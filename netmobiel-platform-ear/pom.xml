@@ -1,0 +1,116 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+  <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>eu.netmobiel</groupId>
+        <artifactId>netmobiel-parent-pom</artifactId>
+        <version>0.2.0-SNAPSHOT</version>
+        <relativePath>../netmobiel-parent-pom/pom.xml</relativePath>
+    </parent>
+    <artifactId>netmobiel-platform-ear</artifactId>
+    <packaging>ear</packaging>
+    <name>NetMobiel Platform EAR assembly</name>
+    <description>The Platform EAR is the assembly of all Java EE modules for the NetMobiel Mobility-as-a-Service application.</description>
+	<properties>
+	</properties>
+
+	<dependencies>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-commons</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-otp-client</artifactId>
+			<version>${project.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-rideshare-ejb</artifactId>
+			<version>${project.version}</version>
+			<type>ejb</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-rideshare-rest</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+		</dependency>
+
+        <!-- other libraries + transitives -->
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-lang3</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.commons</groupId>
+			<artifactId>commons-text</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.slf4j</groupId>
+		    <artifactId>slf4j-log4j12</artifactId>
+		    <scope>runtime</scope>
+		</dependency>
+		<dependency>
+		    <groupId>com.github.dozermapper</groupId>
+		    <artifactId>dozer-core</artifactId>
+			<scope>runtime</scope>
+		</dependency>
+   	</dependencies>
+  <build>
+  	<finalName>${project.artifactId}-${project.version}</finalName>
+    <plugins>
+      <plugin>
+        <artifactId>maven-ear-plugin</artifactId>
+        <configuration>
+<!--           <earName>CoreEAR</earName> -->
+          <defaultLibBundleDir>lib</defaultLibBundleDir>
+          <version>8</version>
+          <generateApplicationXml>true</generateApplicationXml>
+<!--           <archive> -->
+<!--             <manifest> -->
+<!--               <addClasspath>false</addClasspath> -->
+<!--             </manifest> -->
+<!--           </archive> -->
+          <modules>
+<!--           	<jarModule> -->
+<!-- 				<groupId>${project.groupId}</groupId> -->
+<!--                	<artifactId>netmobiel-commons</artifactId> -->
+<!--              </jarModule> -->
+<!-- 			<jarModule> -->
+<!-- 				<groupId>${project.groupId}</groupId> -->
+<!-- 				<artifactId>netmobiel-otp-client</artifactId> -->
+<!-- 			</jarModule> -->
+<!-- 			<jarModule> -->
+<!-- 				<groupId>${project.groupId}</groupId> -->
+<!-- 				<artifactId>netmobiel-rideshare-api</artifactId> -->
+<!-- 			</jarModule> -->
+		    <ejbModule>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-rideshare-ejb</artifactId>
+              	<bundleFileName>netmobiel-rideshare-ejb.jar</bundleFileName>
+            </ejbModule>
+            <webModule>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-rideshare-rest</artifactId>
+              	<contextRoot>/rideshare</contextRoot>
+              	<bundleFileName>netmobiel-rideshare-rest.war</bundleFileName>
+            </webModule>
+          </modules>
+        </configuration>
+      </plugin>
+      <!-- WildFly plugin to deploy ear -->
+      <plugin>
+          <groupId>org.wildfly.plugins</groupId>
+          <artifactId>wildfly-maven-plugin</artifactId>
+          <configuration>
+              <skip>false</skip>
+          </configuration>
+      </plugin>
+    </plugins>
+  </build>
+</project>

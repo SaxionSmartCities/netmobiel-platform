@@ -1,0 +1,22 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jboss-deployment-structure xmlns="urn:jboss:deployment-structure:1.2">
+    <deployment>
+        <dependencies>
+<!--             <system export="true"> -->
+<!--                 <paths> -->
+<!--                 	Enable internal API usage for richfaces -->
+<!--                     <path name="org/w3c/dom/css"/> -->
+<!--                     <path name="org/w3c/dom/stylesheets"/> -->
+<!--                 </paths> -->
+<!--             </system> -->
+        </dependencies>
+<!--         <exclusions> -->
+<!--             <module name="org.jboss.resteasy.resteasy-json-binding-provider"/> -->
+<!--         </exclusions> -->
+    </deployment>
+    <sub-deployment name="netmobiel-rideshare-ejb.jar">
+        <exclusions>
+            <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
+        </exclusions>
+    </sub-deployment>
+</jboss-deployment-structure>

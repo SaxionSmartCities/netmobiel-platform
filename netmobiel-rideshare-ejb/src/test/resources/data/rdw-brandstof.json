@@ -1,0 +1,17 @@
+[
+    {
+        "kenteken": "52PHVD",
+        "brandstof_volgnummer": "1",
+        "brandstof_omschrijving": "Benzine",
+        "brandstofverbruik_buiten": "7.00",
+        "brandstofverbruik_gecombineerd": "9.10",
+        "brandstofverbruik_stad": "12.60",
+        "co2_uitstoot_gecombineerd": "217",
+        "geluidsniveau_rijdend": "73",
+        "geluidsniveau_stationair": "79",
+        "emissiecode_omschrijving": "Euro 4",
+        "milieuklasse_eg_goedkeuring_licht": "70/220*2001/100B",
+        "nettomaximumvermogen": "103.00",
+        "toerental_geluidsniveau": "3375"
+    }
+]
