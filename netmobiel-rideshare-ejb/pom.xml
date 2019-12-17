@@ -94,11 +94,6 @@
 		    <artifactId>hibernate-spatial</artifactId>
 		    <scope>provided</scope>
 		</dependency>
-		<!--  Transformations to Universal Mercator Porjections -->
-		<dependency>
-		    <groupId>org.jscience</groupId>
-		    <artifactId>jscience</artifactId>
-		</dependency>
 		<!--  Bean validation -->
 		<dependency>
 	        <groupId>javax.validation</groupId>

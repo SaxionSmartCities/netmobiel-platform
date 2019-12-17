@@ -19,7 +19,9 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
 import eu.netmobiel.opentripplanner.api.model.Leg;
 import eu.netmobiel.opentripplanner.api.model.TraverseMode;
 import eu.netmobiel.opentripplanner.api.model.TripPlan;
@@ -35,13 +37,13 @@ import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.repository.RideTemplateDao;
 import eu.netmobiel.rideshare.repository.StopDao;
 import eu.netmobiel.rideshare.repository.UserDao;
-import eu.netmobiel.rideshare.util.EllipseHelper;
-import eu.netmobiel.rideshare.util.EllipseHelper.EligibleArea;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @Stateless
 @Logging
 public class RideManager {
+	public static final String AGENCY_NAME = "NetMobiel Rideshare Service";
+	
 	private static final float DEFAULT_RELATIVE_MAX_DETOUR = 0.30f;
 	private static final float DEFAULT_NOMINAL_SPEED = 25 * 1000 / 3600; 	/* km/h --> m/s */
 	/**

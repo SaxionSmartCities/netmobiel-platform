@@ -1,4 +1,4 @@
-package eu.netmobiel.rideshare.repository;
+package eu.netmobiel.commons.repository;
 
 
 import java.util.Collections;
@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
-import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceUnitUtil;
 import javax.persistence.TypedQuery;
@@ -18,8 +17,8 @@ public abstract class AbstractDao<T, ID> {
 	public static final String JPA_HINT_FETCH = "javax.persistence.fetchgraph";
 	public static final String JPA_HINT_LOAD = "javax.persistence.loadgraph";
 	
-    @Inject
-    private EntityManager entityManager;
+    
+    protected abstract EntityManager getEntityManager();
 
     private Class<T> persistentClass;
 
@@ -32,19 +31,19 @@ public abstract class AbstractDao<T, ID> {
     }
 
     public void clear() {
-        entityManager.clear();
+        getEntityManager().clear();
     }
 
     public void flush() {
-        entityManager.flush();
+        getEntityManager().flush();
     }
 
     public boolean contains(T entity) {
-        return entityManager.contains(entity);
+        return getEntityManager().contains(entity);
     }
 
     public void detach(T entity) {
-        entityManager.detach(entity);
+        getEntityManager().detach(entity);
     }
 
     /**
@@ -62,7 +61,7 @@ public abstract class AbstractDao<T, ID> {
      *         is null
      */
     public Optional<T> find(ID id) {
-        return Optional.ofNullable(entityManager.find(getPersistentClass(), id));
+        return Optional.ofNullable(getEntityManager().find(getPersistentClass(), id));
     }
 
     /**
@@ -85,59 +84,59 @@ public abstract class AbstractDao<T, ID> {
      * @since Java Persistence 2.0
      */ 
     public Optional<T> find(ID id, Map<String, Object> properties) {
-        return Optional.ofNullable(entityManager.find(getPersistentClass(), id, properties));
+        return Optional.ofNullable(getEntityManager().find(getPersistentClass(), id, properties));
     }
 
     public void refresh(T entity) {
-        entityManager.refresh(entity);
+        getEntityManager().refresh(entity);
     }
 
     public T save(T entity) {
-        entityManager.persist(entity);
+        getEntityManager().persist(entity);
         return entity;
     }
 
     public T merge(T entity) {
-        return entityManager.merge(entity);
+        return getEntityManager().merge(entity);
     }
 
     public void remove(T entity) {
-        entityManager.remove(entity);
+        getEntityManager().remove(entity);
     }
     
     public List<T> findAll() {
-        CriteriaBuilder cb = entityManager.getCriteriaBuilder();
+        CriteriaBuilder cb = getEntityManager().getCriteriaBuilder();
         CriteriaQuery<T> cq = cb.createQuery(getPersistentClass());
         Root<T> rootEntry = cq.from(getPersistentClass());
         CriteriaQuery<T> all = cq.select(rootEntry);
-        TypedQuery<T> allQuery = entityManager.createQuery(all);
+        TypedQuery<T> allQuery = getEntityManager().createQuery(all);
         return allQuery.getResultList();
     }
 
     public boolean isLoaded(T entity) {
-        PersistenceUnitUtil puu = entityManager.getEntityManagerFactory().getPersistenceUnitUtil();
+        PersistenceUnitUtil puu = getEntityManager().getEntityManagerFactory().getPersistenceUnitUtil();
         return puu.isLoaded(entity);
     }
 
     public boolean isLoaded(T entity, String attributeName) {
-        PersistenceUnitUtil puu = entityManager.getEntityManagerFactory().getPersistenceUnitUtil();
+        PersistenceUnitUtil puu = getEntityManager().getEntityManagerFactory().getPersistenceUnitUtil();
         return puu.isLoaded(entity, attributeName);
     }
     
     public Map<String, Object> createLoadHint(String graphName) {
-        return Collections.singletonMap(JPA_HINT_LOAD, entityManager.getEntityGraph(graphName));
+        return Collections.singletonMap(JPA_HINT_LOAD, getEntityManager().getEntityGraph(graphName));
     }
 
     public Map<String, Object> createFetchHint(String graphName) {
-        return Collections.singletonMap(JPA_HINT_FETCH, entityManager.getEntityGraph(graphName));
+        return Collections.singletonMap(JPA_HINT_FETCH, getEntityManager().getEntityGraph(graphName));
     }
 
     public T loadGraph(ID id, String graphName) {
-        return id == null ? null : entityManager.find(getPersistentClass(), id, createLoadHint(graphName));
+        return id == null ? null : getEntityManager().find(getPersistentClass(), id, createLoadHint(graphName));
     }
 
     public T fetchGraph(ID id, String graphName) {
-        return id == null ? null : entityManager.find(getPersistentClass(), id, createFetchHint(graphName));
+        return id == null ? null : getEntityManager().find(getPersistentClass(), id, createFetchHint(graphName));
     }
 
 }

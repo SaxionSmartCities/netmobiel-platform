@@ -1,4 +1,4 @@
-package eu.netmobiel.rideshare.util;
+package eu.netmobiel.commons.util;
 
 import java.util.Arrays;
 
@@ -16,8 +16,6 @@ import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.util.GeometricShapeFactory;
-
-import eu.netmobiel.commons.util.GeometryHelper;
 
 public class EllipseHelper extends GeometryHelper {
 

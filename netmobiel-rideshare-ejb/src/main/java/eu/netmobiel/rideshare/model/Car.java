@@ -61,7 +61,7 @@ public class Car implements Serializable {
 
     @NotNull
     @Size(min = 1, max = 16)
-    @Column(name = "license_plate")
+    @Column(name = "license_plate", length = 16)
     private String licensePlate;
 
 
@@ -232,6 +232,18 @@ public class Car implements Serializable {
 	    	}
 		}
 		return driverRef;
+	}
+
+	public String getName() {
+		StringBuilder sb = new StringBuilder();
+		if (getBrand() != null) {
+			sb.append(getBrand()).append(" ");
+		}
+		if (getModel() != null) {
+			sb.append(getModel());
+		}
+		String name = sb.toString().trim();
+		return name.length() > 0 ? name : null;
 	}
 
 	@Override

@@ -37,7 +37,6 @@ public class UserManager {
     @Inject
     private CarDao carDao;
     
-    // TODO Find out how to propagate security to EJB.
     @Resource
 	private SessionContext ctx;
 

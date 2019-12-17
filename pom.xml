@@ -19,6 +19,7 @@
         <module>netmobiel-commons</module>
         <module>netmobiel-otp-client</module>
         <module>netmobiel-parent-pom</module>
+        <module>netmobiel-planner-ejb</module>
         <module>netmobiel-rideshare-api</module>
         <module>netmobiel-rideshare-ejb</module>
         <module>netmobiel-rideshare-rest</module>

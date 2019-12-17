@@ -49,7 +49,7 @@ public class GeoLocation implements Serializable {
 	/**
 	 * Explanatory label, non-normative.
 	 */
-	@Column(name="label")
+	@Column(name = "label", length = 128)
 	private String label;
 	
 	public GeoLocation() {
@@ -73,6 +73,10 @@ public class GeoLocation implements Serializable {
 	}
 	public GeoLocation(Point p) {
 		this(p, null);
+	}
+	
+	public GeoLocation(GeoLocation other) {
+		this(other.point, other.label);
 	}
 	
 	private void updatePoint() {

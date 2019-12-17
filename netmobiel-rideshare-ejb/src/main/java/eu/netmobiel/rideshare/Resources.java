@@ -1,14 +1,11 @@
 package eu.netmobiel.rideshare;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Default;
 import javax.enterprise.inject.Produces;
-import javax.enterprise.inject.spi.InjectionPoint;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
 
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
+import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 
 /**
  * This class uses CDI to alias Java EE resources, such as the persistence context, to CDI beans
@@ -24,14 +21,9 @@ import org.slf4j.LoggerFactory;
  */
 @ApplicationScoped
 public class Resources {
+	@RideshareDatabase
     @Produces
-    @PersistenceContext
+    @PersistenceContext(unitName = "pu-rideshare")
     private EntityManager em;
-
-//    @Default
-//    @Produces
-//    public Logger produceLog(InjectionPoint injectionPoint) {
-//        return LoggerFactory.getLogger(injectionPoint.getMember().getDeclaringClass().getName());
-//    }
 
 }

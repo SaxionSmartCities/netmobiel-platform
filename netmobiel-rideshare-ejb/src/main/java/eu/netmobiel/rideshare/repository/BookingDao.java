@@ -12,6 +12,8 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
+import eu.netmobiel.commons.repository.AbstractDao;
+import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Booking_;
@@ -23,11 +25,16 @@ import eu.netmobiel.rideshare.model.User;
 @Typed(BookingDao.class)
 public class BookingDao extends AbstractDao<Booking, Long> {
 
-    @Inject
+    @Inject @RideshareDatabase
     private EntityManager em;
 
     public BookingDao() {
 		super(Booking.class);
+	}
+
+	@Override
+	protected EntityManager getEntityManager() {
+		return em;
 	}
 
     public List<Booking> findByRide(Ride ride) {

@@ -19,12 +19,14 @@ import javax.persistence.criteria.Root;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.repository.AbstractDao;
+import eu.netmobiel.commons.util.EllipseHelper;
+import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.RideTemplate_;
 import eu.netmobiel.rideshare.model.Ride_;
 import eu.netmobiel.rideshare.model.User;
-import eu.netmobiel.rideshare.util.EllipseHelper;
 
 @ApplicationScoped
 @Typed(RideDao.class)
@@ -32,11 +34,16 @@ public class RideDao extends AbstractDao<Ride, Long> {
     @Inject
     private Logger logger;
     
-    @Inject
+    @Inject @RideshareDatabase
     private EntityManager em;
 
     public RideDao() {
 		super(Ride.class);
+	}
+
+	@Override
+	protected EntityManager getEntityManager() {
+		return em;
 	}
 
     public List<Ride> findByDriver(User driver, LocalDate since, LocalDate until, boolean deletedToo, String graphName) {

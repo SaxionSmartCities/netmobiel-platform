@@ -39,7 +39,6 @@ import eu.netmobiel.rideshare.api.resource.SearchResource;
 import eu.netmobiel.rideshare.api.resource.TestsResource;
 import eu.netmobiel.rideshare.api.resource.UserResource;
 import eu.netmobiel.rideshare.rest.Version;
-import eu.netmobiel.rideshare.rest.security.KeycloakAuthenticationFilter;
 
 
 /**
@@ -63,7 +62,7 @@ public class RideshareApplication extends Application {
     public void postConstruct() {
         StringBuilder builder = new StringBuilder();
         builder.append("\n------------------------------------------------");
-        builder.append("\nStarting up NetMobiel Rideshare");
+        builder.append("\nStarting up NetMobiel Rideshare REST Service");
         builder.append("\n\tVersion:  " + version.getVersionString());
         builder.append("\n\tBuilt On: " + version.getVersionDate().toString());
         builder.append("\n\tBuild:    " + version.getVersionInfo());

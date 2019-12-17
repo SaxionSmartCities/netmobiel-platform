@@ -6,17 +6,24 @@ import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 
+import eu.netmobiel.commons.repository.AbstractDao;
+import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.model.RideTemplate;
 
 @ApplicationScoped
 @Typed(RideTemplateDao.class)
 public class RideTemplateDao extends AbstractDao<RideTemplate, Long> {
 
-	@Inject
+	@Inject @RideshareDatabase
     private EntityManager em;
 
     public RideTemplateDao() {
 		super(RideTemplate.class);
+	}
+
+	@Override
+	protected EntityManager getEntityManager() {
+		return em;
 	}
 
     public Long getNrRidesAttached(RideTemplate template) {

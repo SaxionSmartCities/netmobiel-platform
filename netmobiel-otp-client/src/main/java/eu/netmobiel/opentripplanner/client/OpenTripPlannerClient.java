@@ -123,15 +123,15 @@ public class OpenTripPlannerClient {
         return routes;
     }
 
-//    public List<JsonObject> fetchAllTransfers() {
-//        String result = grapqlQuery("{ stops { id transfers { stop { id } distance } } }"); 
-//        JsonReader jsonReader = Json.createReader(new StringReader(result));
-//        JsonObject jobj = jsonReader.readObject();
-//        JsonArray jstops = jobj.getJsonObject("data").getJsonArray("stops");
-//        log.info("fetchAllTransfers: #" + jstops.size() + " stops");
-//        List<JsonObject> transfers = jstops.getValuesAs(JsonObject.class);
-//        return transfers;
-//    }
+    public List<JsonObject> fetchAllTransfers() {
+        String result = grapqlQuery("{ stops { id transfers { stop { id } distance } } }"); 
+        JsonReader jsonReader = Json.createReader(new StringReader(result));
+        JsonObject jobj = jsonReader.readObject();
+        JsonArray jstops = jobj.getJsonObject("data").getJsonArray("stops");
+        log.info("fetchAllTransfers: #" + jstops.size() + " stops");
+        List<JsonObject> transfers = jstops.getValuesAs(JsonObject.class);
+        return transfers;
+    }
 
 	public static URI createURI(String path) {
     	try {

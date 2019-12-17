@@ -35,10 +35,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.rideshare.Resources;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.User;
-import eu.netmobiel.rideshare.repository.AbstractDao;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @RunWith(Arquillian.class)

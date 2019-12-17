@@ -25,19 +25,16 @@ import eu.netmobiel.commons.model.GeoLocation;
 public class Stop implements Serializable {
 	private static final long serialVersionUID = -8837056996502612302L;
 
-	@JsonbTransient
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "stop_sg")
     private Long id;
 
-	@JsonbTransient
     @Embedded
     private GeoLocation location;
 
     /**
      * The ride the stop is connected to.
      */
-	@JsonbTransient
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "ride", nullable = true, foreignKey = @ForeignKey(name = "stop_ride_fk"))
     private Ride ride;

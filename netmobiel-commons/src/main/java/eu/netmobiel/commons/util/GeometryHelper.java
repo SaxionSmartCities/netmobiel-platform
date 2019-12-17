@@ -15,6 +15,8 @@ import com.vividsolutions.jts.io.WKTReader;
 import com.vividsolutions.jts.io.WKTWriter;
 import com.vividsolutions.jts.util.GeometricShapeFactory;
 
+import eu.netmobiel.commons.model.EncodedPolylineBean;
+
 public class GeometryHelper {
 	/**
 	 * The approximate distance in meters that corresponds with one degree 

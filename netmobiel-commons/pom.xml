@@ -30,6 +30,10 @@
 					</archive>
 				</configuration>
         	</plugin>
+<!--         	<plugin> -->
+<!-- 		        <groupId>org.bsc.maven</groupId> -->
+<!-- 		        <artifactId>maven-processor-plugin</artifactId> -->
+<!--         	</plugin> -->
 		</plugins>
 	</build>
 
@@ -104,15 +108,25 @@
 		    <artifactId>jackson-datatype-jsr310</artifactId>
 			<scope>provided</scope>
 		</dependency>
-<!-- 		<dependency> -->
-<!-- 		    <groupId>org.hibernate</groupId> -->
-<!-- 		    <artifactId>hibernate-spatial</artifactId> -->
-<!-- 		    <scope>provided</scope> -->
-<!-- 		</dependency> -->
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-jpamodelgen</artifactId>
+            <scope>provided</scope>
+        </dependency>
+		<dependency>
+		    <groupId>org.hibernate</groupId>
+		    <artifactId>hibernate-spatial</artifactId>
+		    <scope>provided</scope>
+		</dependency>
 		<dependency>
 			<groupId>com.vividsolutions</groupId>
 			<artifactId>jts-core</artifactId>
 			<scope>provided</scope>
+		</dependency>
+		<!--  Transformations to Universal Mercator Porjections -->
+		<dependency>
+		    <groupId>org.jscience</groupId>
+		    <artifactId>jscience</artifactId>
 		</dependency>
 		
 		<!-- TEST Dependencies -->

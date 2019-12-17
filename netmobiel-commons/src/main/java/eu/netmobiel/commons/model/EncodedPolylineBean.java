@@ -1,18 +1,32 @@
-package eu.netmobiel.commons.util;
+package eu.netmobiel.commons.model;
 
 import java.io.Serializable;
+
+import javax.enterprise.inject.Vetoed;
+import javax.persistence.Access;
+import javax.persistence.AccessType;
+import javax.persistence.Basic;
+import javax.persistence.Column;
+import javax.persistence.Embeddable;
+import javax.persistence.Transient;
 
 /**
  * A list of coordinates encoded as a string.
  * 
- * See <a href="http://code.google.com/apis/maps/documentation/polylinealgorithm.html">Encoded
- * polyline algorithm format</a>
+ * See <a href="http://code.google.com/apis/maps/documentation/polylinealgorithm.html">Encoded polyline algorithm format</a>
  */
 
+@Embeddable
+@Vetoed
+@Access(AccessType.FIELD)
 public class EncodedPolylineBean implements Serializable {
     private static final long serialVersionUID = 1L;
-	private String points;	// The encoded points of the polyline.
+
+    @Column(name = "points", length = 1024)
+    private String points;	// The encoded points of the polyline.
+    @Transient
 	private String levels;	// Levels describes which points should be shown at various zoom levels. Presently, we show all points at all zoom levels.
+    @Basic
 	private int length;		// The number of points in the string
 
     public EncodedPolylineBean() {

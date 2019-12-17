@@ -1,14 +1,6 @@
-package eu.netmobiel.rideshare.util;
+package eu.netmobiel.commons.util;
 
-import javax.measure.unit.NonSI;
-import javax.measure.unit.SI;
-
-import org.jscience.geography.coordinates.Coordinates;
-import org.jscience.geography.coordinates.LatLong;
 import org.jscience.geography.coordinates.UTM;
-import org.jscience.geography.coordinates.crs.CoordinatesConverter;
-import org.jscience.geography.coordinates.crs.ProjectedCRS;
-import org.jscience.geography.coordinates.crs.ReferenceEllipsoid;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 

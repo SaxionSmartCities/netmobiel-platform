@@ -28,6 +28,12 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-planner-ejb</artifactId>
+			<version>${project.version}</version>
+			<type>ejb</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
 			<artifactId>netmobiel-rideshare-ejb</artifactId>
 			<version>${project.version}</version>
 			<type>ejb</type>
@@ -80,6 +86,7 @@
 <!--           	<jarModule> -->
 <!-- 				<groupId>${project.groupId}</groupId> -->
 <!--                	<artifactId>netmobiel-commons</artifactId> -->
+<!--               	<bundleFileName>netmobiel-commons.jar</bundleFileName> -->
 <!--              </jarModule> -->
 <!-- 			<jarModule> -->
 <!-- 				<groupId>${project.groupId}</groupId> -->
@@ -89,6 +96,11 @@
 <!-- 				<groupId>${project.groupId}</groupId> -->
 <!-- 				<artifactId>netmobiel-rideshare-api</artifactId> -->
 <!-- 			</jarModule> -->
+		    <ejbModule>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-planner-ejb</artifactId>
+              	<bundleFileName>netmobiel-planner-ejb.jar</bundleFileName>
+            </ejbModule>
 		    <ejbModule>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>netmobiel-rideshare-ejb</artifactId>

@@ -24,17 +24,24 @@ import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 
+import eu.netmobiel.commons.repository.AbstractDao;
+import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.model.User;
 
 @ApplicationScoped
 @Typed(UserDao.class)
 public class UserDao extends AbstractDao<User, Long> {
 
-	@Inject
+	@Inject @RideshareDatabase
     private EntityManager em;
 
     public UserDao() {
 		super(User.class);
+	}
+
+	@Override
+	protected EntityManager getEntityManager() {
+		return em;
 	}
 
     public Optional<User> findByManagedIdentity(String managedId) {
