@@ -1,0 +1,57 @@
+{
+    "response": {
+        "metaInfo": {
+            "timestamp": "2019-07-19T11:22:11.082+0000"
+        },
+        "view": [
+            {
+                "result": [
+                    {
+                        "relevance": 0.0,
+                        "matchLevel": "county",
+                        "location": {
+                            "locationId": "NT_b8wMU6HIXNXKORvov9tP4A",
+                            "locationType": "area",
+                            "displayPosition": {
+                                "latitude": 52.26636,
+                                "longitude": 6.78973
+                            },
+                            "mapView": {
+                                "topLeft": {
+                                    "latitude": 52.31357,
+                                    "longitude": 6.70203
+                                },
+                                "bottomRight": {
+                                    "latitude": 52.19106,
+                                    "longitude": 6.85265
+                                }
+                            },
+                            "address": {
+                                "label": "Hengelo, Overijssel, Nederland",
+                                "country": "NLD",
+                                "state": "Overijssel",
+                                "county": "Hengelo",
+                                "postalCode": "7551 AA",
+                                "additionalData": [
+                                    {
+                                        "value": "Nederland",
+                                        "key": "CountryName"
+                                    },
+                                    {
+                                        "value": "Overijssel",
+                                        "key": "StateName"
+                                    },
+                                    {
+                                        "value": "Hengelo",
+                                        "key": "CountyName"
+                                    }
+                                ]
+                            }
+                        }
+                    }
+                ],
+                "viewId": 0
+            }
+        ]
+    }
+}

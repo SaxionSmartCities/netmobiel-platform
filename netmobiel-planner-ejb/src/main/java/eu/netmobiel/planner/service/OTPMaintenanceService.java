@@ -1,0 +1,136 @@
+package eu.netmobiel.planner.service;
+
+import java.util.List;
+
+import javax.annotation.Resource;
+import javax.ejb.Asynchronous;
+import javax.ejb.ConcurrencyManagement;
+import javax.ejb.ConcurrencyManagementType;
+import javax.ejb.SessionContext;
+import javax.ejb.Singleton;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
+import javax.inject.Inject;
+
+import org.slf4j.Logger;
+
+import eu.netmobiel.planner.model.OtpCluster;
+import eu.netmobiel.planner.model.OtpRoute;
+import eu.netmobiel.planner.model.OtpStop;
+import eu.netmobiel.planner.model.OtpTransfer;
+import eu.netmobiel.planner.repository.OpenTripPlannerDao;
+
+/**
+ * This bean has long running operations which are intended to run asynchronously. 
+ * All database operations are delegated to OTPDataManager.
+ *  
+ * @author Jaap Reitsma
+ *
+ */
+@Singleton
+@ConcurrencyManagement(ConcurrencyManagementType.BEAN)
+@TransactionAttribute(TransactionAttributeType.NEVER)
+public class OTPMaintenanceService {
+	private static final int CHUNK_SIZE_STOPS = 1000;
+	private static final int CHUNK_SIZE_CLUSTERS = 500;
+	private static final int CHUNK_SIZE_ROUTES= 100;
+	private static final int CHUNK_SIZE_TRANSFERS= 1000;
+	
+    @Inject
+    private Logger log;
+
+    @Resource
+    private SessionContext context;
+    
+    @Inject
+    private OpenTripPlannerDao otpDao;
+
+    @Inject
+    private OTPDataManager  otpDataManager;
+
+    private boolean maintenanceRunning = false;
+    
+    private void updatePublicTransportStops() {
+    	log.info("Fetch the stops and update");
+        List<OtpStop> stops =  otpDao.fetchAllStops();
+    	int nrChunks = stops.size() / CHUNK_SIZE_STOPS;
+    	if (stops.size() % CHUNK_SIZE_STOPS > 0) {
+    		nrChunks++;
+    	}
+    	for (int chunk = 0; chunk < nrChunks; chunk++) {
+    		log.debug(String.format("Stops chunck %d/%d", chunk + 1, nrChunks));
+    		List<OtpStop> sublist = stops.subList(chunk * CHUNK_SIZE_STOPS, Math.min((chunk + 1) * CHUNK_SIZE_STOPS, stops.size()));
+    		// Force transaction demarcation
+    		otpDataManager.bulkUpdateStops(sublist);
+    	}
+    }
+
+    private void updatePublicTransportClusters() {
+    	log.info("Fetch the clusters and update");
+        List<OtpCluster> clusters = otpDao.fetchAllClusters();
+    	int nrChunks = clusters.size() / CHUNK_SIZE_CLUSTERS;
+    	if (clusters.size() % CHUNK_SIZE_CLUSTERS > 0) {
+    		nrChunks++;
+    	}
+    	for (int chunk = 0; chunk < nrChunks; chunk++) {
+    		log.debug(String.format("Clusters chunck %d/%d", chunk + 1, nrChunks));
+    		List<OtpCluster> sublist = clusters.subList(chunk * CHUNK_SIZE_CLUSTERS, Math.min((chunk + 1) * CHUNK_SIZE_CLUSTERS, clusters.size()));
+    		// Force transaction demarcation
+    		otpDataManager.bulkUpdateClusters(sublist);
+    	}
+    }
+    private void updatePublicTransportRoutes() {
+    	log.info("Fetch the routes and update");
+        List<OtpRoute> routes = otpDao.fetchAllRoutes();
+    	int nrChunks = routes.size() / CHUNK_SIZE_ROUTES;
+    	if (routes.size() % CHUNK_SIZE_ROUTES > 0) {
+    		nrChunks++;
+    	}
+    	for (int chunk = 0; chunk < nrChunks; chunk++) {
+    		log.debug(String.format("Routes chunck %d/%d", chunk + 1, nrChunks));
+    		List<OtpRoute> sublist = routes.subList(chunk * CHUNK_SIZE_ROUTES, Math.min((chunk + 1) * CHUNK_SIZE_ROUTES, routes.size()));
+    		// Force transaction demarcation
+    		otpDataManager.bulkUpdateRoutes(sublist);
+    	}
+    }
+
+    @SuppressWarnings("unused")
+	private void updatePublicTransportTransfers() {
+    	log.info("Fetch the transfers and update");
+        List<OtpTransfer> transfers = otpDao.fetchAllTransfers();
+    	int nrChunks = transfers.size() / CHUNK_SIZE_TRANSFERS;
+    	if (transfers.size() % CHUNK_SIZE_TRANSFERS > 0) {
+    		nrChunks++;
+    	}
+    	for (int chunk = 0; chunk < nrChunks; chunk++) {
+    		log.debug(String.format("Transfers chunck %d/%d", chunk + 1, nrChunks));
+    		List<OtpTransfer> sublist = transfers.subList(chunk * CHUNK_SIZE_TRANSFERS, Math.min((chunk + 1) * CHUNK_SIZE_TRANSFERS, transfers.size()));
+//    		// Force transaction demarcation
+//    		context.getBusinessObject(OTPMaintenanceService.class).bulkUpdateTransfers(sublist);
+    		otpDataManager.bulkUpdateTransfers(sublist);
+    	}
+    }
+
+    @Asynchronous
+    public void startUpdatePublicTransportData() {
+    	if (maintenanceRunning) {
+    		throw new IllegalStateException("Operation already running");
+    	}
+		maintenanceRunning = true;
+    	try {
+	    	updatePublicTransportStops();
+	    	updatePublicTransportClusters();
+	    	updatePublicTransportRoutes();
+	    	// Transfer does not add much info. Omit for now.
+	//    	updatePublicTransportTransfers();
+			otpDataManager.bulkUpdateClusterRoutes();
+			otpDataManager.bulkUpdateStopRoutes();
+    	} finally {
+    		maintenanceRunning = false;
+    	}
+    }
+
+    public boolean isMaintenanceRunning() {
+    	return maintenanceRunning;
+    }
+}

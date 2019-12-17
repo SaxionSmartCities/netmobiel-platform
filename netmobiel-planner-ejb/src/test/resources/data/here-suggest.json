@@ -1,0 +1,74 @@
+{
+    "suggestions": [
+        {
+            "label": "Nederland, Overijssel, <b>Heng</b>elo",
+            "language": "nl",
+            "countryCode": "NLD",
+            "locationId": "NT_b8wMU6HIXNXKORvov9tP4A",
+            "address": {
+                "country": "Nederland",
+                "state": "Overijssel",
+                "county": "<b>Heng</b>elo",
+                "postalCode": "7551 AA"
+            },
+            "matchLevel": "county"
+        },
+        {
+            "label": "Nederland, Overijssel, <b>Heng</b>elo, <b>Heng</b>elo",
+            "language": "nl",
+            "countryCode": "NLD",
+            "locationId": "NT_tQyYz61sRRIq92kdvRoTUA",
+            "address": {
+                "country": "Nederland",
+                "state": "Overijssel",
+                "county": "<b>Heng</b>elo",
+                "city": "<b>Heng</b>elo",
+                "postalCode": "7551 AA"
+            },
+            "matchLevel": "city"
+        },
+        {
+            "label": "Nederland, Gelderland, <b>Heng</b>elo",
+            "language": "nl",
+            "countryCode": "NLD",
+            "locationId": "NT_um7VolBfVGSOBlBP36jLqD",
+            "address": {
+                "country": "Nederland",
+                "state": "Gelderland",
+                "county": "Bronckhorst",
+                "city": "<b>Heng</b>elo",
+                "postalCode": "7255 AT"
+            },
+            "matchLevel": "city"
+        },
+        {
+            "label": "Nederland, Gelderland, Nijmegen, <b>Heng</b>stdal",
+            "language": "nl",
+            "countryCode": "NLD",
+            "locationId": "NT_jlRb3CKsLXz.8suqxDyZ6B",
+            "address": {
+                "country": "Nederland",
+                "state": "Gelderland",
+                "county": "Nijmegen",
+                "city": "Nijmegen",
+                "district": "<b>Heng</b>stdal",
+                "postalCode": "6523 EA"
+            },
+            "matchLevel": "district"
+        },
+        {
+            "label": "Nederland, Overijssel, <b>Heng</b>evelde",
+            "language": "nl",
+            "countryCode": "NLD",
+            "locationId": "NT_b-M00QHkXJ.VXiSjtYsiNA",
+            "address": {
+                "country": "Nederland",
+                "state": "Overijssel",
+                "county": "Hof van Twente",
+                "city": "<b>Heng</b>evelde",
+                "postalCode": "7496 AD"
+            },
+            "matchLevel": "city"
+        }
+    ]
+}
