@@ -86,8 +86,6 @@ public class Itinerary {
      */
     public boolean tooSloped = false;
 
-    public Double score;
-    
     public Itinerary() {
     	
     }
@@ -100,9 +98,6 @@ public class Itinerary {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("Itinerary [");
-		if (score != null) {
-			builder.append(String.format("%.1f", score)).append(" *** ");
-		}
 		builder.append(formatTime(startTime)).append(" ");
 		builder.append(formatTime(endTime)).append(" ");
 		builder.append(duration).append(" [s] ");

@@ -19,7 +19,7 @@ public class TripPlan {
     /**  The time and date of travel. Is either departure time or arrival time */
     private Instant date;
 
-    private boolean isArrivalTime;
+    private boolean useDateAsArrivalTime;
     
     /** The origin */
     private GeoLocation from;
@@ -36,7 +36,7 @@ public class TripPlan {
         this.from = from;
         this.to = to;
         this.date = date;
-        this.isArrivalTime = isArrival;
+        this.useDateAsArrivalTime = isArrival;
     }
 
 	public Instant getDate() {
@@ -47,12 +47,12 @@ public class TripPlan {
 		this.date = date;
 	}
 
-	public boolean isArrivalTime() {
-		return isArrivalTime;
+	public boolean isUseDateAsArrivalTime() {
+		return useDateAsArrivalTime;
 	}
 
-	public void setArrivalTime(boolean isArrivalTime) {
-		this.isArrivalTime = isArrivalTime;
+	public void setUseDateAsArrivalTime(boolean useDateAsArrivalTime) {
+		this.useDateAsArrivalTime = useDateAsArrivalTime;
 	}
 
 	public GeoLocation getFrom() {

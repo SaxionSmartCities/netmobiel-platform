@@ -1,6 +1,8 @@
 package eu.netmobiel.planner.repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
@@ -28,17 +30,19 @@ import eu.netmobiel.planner.model.OtpRoute;
 import eu.netmobiel.planner.model.OtpStop;
 import eu.netmobiel.planner.model.OtpTransfer;
 import eu.netmobiel.planner.model.TripPlan;
+import eu.netmobiel.planner.repository.mapping.TripPlanMapper;
 import eu.netmobiel.planner.model.TraverseMode;
 
 @ApplicationScoped
 public class OpenTripPlannerDao {
-    @SuppressWarnings("unused")
 	@Inject
     private Logger log;
     
     @Inject
     private OpenTripPlannerClient otpClient;
     
+    @Inject
+    private TripPlanMapper tripPlanMapper;
 
     public List<OtpStop> fetchAllStops() {
     	List<JsonObject> jstops = otpClient.fetchAllStops(); 
@@ -87,6 +91,24 @@ public class OpenTripPlannerDao {
 
     public TripPlan createPlan(GeoLocation fromPlace, GeoLocation toPlace, LocalDateTime fromDate, LocalDateTime toDate, 
     		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, List<GeoLocation> via, Integer maxItineraries) {
-		return null;
+    	boolean useArrivalTime = false;
+    	LocalDate date;
+    	LocalTime time;
+    	if (fromDate != null) {
+    		date = fromDate.toLocalDate();
+    		time = fromDate.toLocalTime();
+    	} else {
+    		useArrivalTime = true;
+    		date = toDate.toLocalDate();
+    		time = toDate.toLocalTime();
+    	}
+    	eu.netmobiel.opentripplanner.api.model.TraverseMode[] otpModes = Arrays
+    			.stream(modes)
+    			.map(m -> eu.netmobiel.opentripplanner.api.model.TraverseMode.valueOf(m.name()))
+    			.toArray(eu.netmobiel.opentripplanner.api.model.TraverseMode[]::new);
+    	GeoLocation otpVia[] = via == null ? null : via.toArray(new GeoLocation[via.size()]);
+    	eu.netmobiel.opentripplanner.api.model.TripPlan plan = 
+    			otpClient.createPlan(fromPlace, toPlace, date, time, useArrivalTime, otpModes, showIntermediateStops, maxWalkDistance, otpVia, maxItineraries);
+		return tripPlanMapper.map(plan);
     }
 }

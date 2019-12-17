@@ -42,15 +42,15 @@ public class TripPlan {
 				itineraries.stream().map(i -> i.toString()).collect(Collectors.joining("\n\t")));
 	}
 
-	/**
-	 * Search the itinerary and return the earliest departure time
-	 * @return a Date
-	 */
-    public Instant getEarliestDeparture() {
-    	return itineraries.stream()
-    			.map(it -> it.startTime)
-    			.min(Instant::compareTo)
-    			.orElse(null);
-    }
-
+//	/**
+//	 * Search the itinerary and return the earliest departure time
+//	 * @return a Date
+//	 */
+//    public Instant getEarliestDeparture() {
+//    	return itineraries.stream()
+//    			.map(it -> it.startTime)
+//    			.min(Instant::compareTo)
+//    			.orElse(null);
+//    }
+//
 }
