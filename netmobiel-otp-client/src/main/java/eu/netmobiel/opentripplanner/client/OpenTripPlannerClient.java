@@ -198,7 +198,7 @@ public class OpenTripPlannerClient {
 				it.startTime = it.startTime.minusSeconds(it.duration);  
 				it.endTime = it.endTime.minusSeconds(it.duration);
 				for (Leg leg : it.legs) {
-					if (TraverseMode.valueOf(leg.mode).isTransit()) {
+					if (leg.mode.isTransit()) {
 						throw new RuntimeException("Leg should not be shifted, it is time-dependent - " + leg.toString());
 					}
 					leg.startTime = leg.startTime.minusSeconds(it.duration);  

@@ -34,7 +34,7 @@ public class WalkStep {
     /**
      * The distance in meters that this step takes.
      */
-    public double distance = 0;
+    public Double distance;
 
     /**
      * The relative direction of this step.

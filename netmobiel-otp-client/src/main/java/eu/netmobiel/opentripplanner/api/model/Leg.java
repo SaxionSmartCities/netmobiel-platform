@@ -21,23 +21,23 @@ public class Leg {
     /**
      * The date and time this leg begins.
      */
-    public Instant startTime = null;
+    public Instant startTime;
     
     /**
      * The date and time this leg ends.
      */
-    public Instant endTime = null;
+    public Instant endTime;
     
     /**
      * For transit leg, the offset from the scheduled departure-time of the boarding stop in this leg.
      * "scheduled time of departure at boarding stop" = startTime - departureDelay
      */
-    public int departureDelay = 0;
+    public Integer departureDelay;
     /**
      * For transit leg, the offset from the scheduled arrival-time of the alighting stop in this leg.
      * "scheduled time of arrival at alighting stop" = endTime - arrivalDelay
      */
-    public int arrivalDelay = 0;
+    public Integer arrivalDelay;
     /**
      * Whether there is real-time data about this Leg
      */
@@ -68,7 +68,7 @@ public class Leg {
     /**
      * The mode (e.g., <code>Walk</code>) used when traversing this leg.
      */
-    public String mode = TraverseMode.WALK.toString();
+    public TraverseMode mode;
 
     /**
      * For transit legs, the route of the bus or train being used. For non-transit legs, the name of
@@ -82,7 +82,7 @@ public class Leg {
 
     public String agencyBrandingUrl;
 
-    public int agencyTimeZoneOffset;
+    public Integer agencyTimeZoneOffset;
 
     /**
      * For transit leg, the route's (background) color (if one exists). For non-transit legs, null.
@@ -239,9 +239,9 @@ public class Leg {
      */
     public Boolean isTransitLeg() {
         if (mode == null) return null;
-        else if (mode.equals(TraverseMode.WALK.toString())) return false;
-        else if (mode.equals(TraverseMode.CAR.toString())) return false;
-        else if (mode.equals(TraverseMode.BICYCLE.toString())) return false;
+        else if (mode == TraverseMode.WALK) return false;
+        else if (mode == TraverseMode.CAR) return false;
+        else if (mode == TraverseMode.BICYCLE) return false;
         else return true;
     }
     

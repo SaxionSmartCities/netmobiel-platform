@@ -31,42 +31,42 @@ public class Itinerary {
     /**
      * How much time is spent walking, in seconds.
      */
-    public long walkTime = 0;
+    public Long walkTime;
     /**
      * How much time is spent on transit, in seconds.
      */
-    public long transitTime = 0;
+    public Long transitTime;
     /**
      * How much time is spent waiting for transit to arrive, in seconds.
      */
-    public long waitingTime = 0;
+    public Long waitingTime;
 
     /**
      * How far the user has to walk, in meters.
      */
-    public Double walkDistance = 0.0;
+    public Double walkDistance;
     
     /**
      * Indicates that the walk limit distance has been exceeded for this itinerary when true.
      */
-    public boolean walkLimitExceeded = false;
+    public Boolean walkLimitExceeded;
 
     /**
      * How much elevation is lost, in total, over the course of the trip, in meters. As an example,
      * a trip that went from the top of Mount Everest straight down to sea level, then back up K2,
      * then back down again would have an elevationLost of Everest + K2.
      */
-    public Double elevationLost = 0.0;
+    public Double elevationLost;
     /**
      * How much elevation is gained, in total, over the course of the trip, in meters. See
      * elevationLost.
      */
-    public Double elevationGained = 0.0;
+    public Double elevationGained;
 
     /**
      * The number of transfers this trip has.
      */
-    public Integer transfers = 0;
+    public Integer transfers;
 
 //    /**
 //     * The cost of this trip
@@ -84,7 +84,7 @@ public class Itinerary {
      * This itinerary has a greater slope than the user requested (but there are no possible 
      * itineraries with a good slope). 
      */
-    public boolean tooSloped = false;
+    public Boolean tooSloped = false;
 
     public Itinerary() {
     	
