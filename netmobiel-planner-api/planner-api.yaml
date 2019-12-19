@@ -28,10 +28,6 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/MaintenanceStatus'
-              examples:
-                No update running:
-                  value:
-                    isRunning: false
           description: The current status of the OTP data.
       description: Retrieves the status of the update.
     post:
@@ -96,7 +92,7 @@ paths:
     get:
       parameters:
       - examples:
-          Since date format:
+          Format:
             value: 2019-11-30
         name: since
         description: "The departure date at which to start the listing. Default is\
@@ -107,7 +103,7 @@ paths:
           type: string
         in: query
       - examples:
-          Until date format:
+          Format:
             value: 2019-12-15
         name: until
         description: The departure date and later not to include in the listing of
@@ -153,8 +149,8 @@ paths:
     get:
       parameters:
       - examples:
-          Station Borne:
-            value: Station Borne::52.298417,6.749157
+          Station-Borne:
+            value: Station-Borne::52.298417,6.749157
         name: fromPlace
         description: The start location comprising of a latitude and longitude pair
           in degrees according WGS84. For logging purposes you may prepend the coordinates
@@ -204,7 +200,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Error'
               examples:
-                Bad request:
+                BadRequest:
                   value:
                     message: 'Missing one or more mandatory parameters: fromPlace,
                       toPlace, fromDate or toDate'
