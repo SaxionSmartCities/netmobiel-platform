@@ -3,7 +3,7 @@ openapi: 3.0.2
 info:
   title: planner
   version: 1.0.0
-  description: 'API for multi-modal planning in NetMobiel'
+  description: API for multi-modal planning in NetMobiel
   contact:
     name: Jaap Reitsma
     email: j.reitsma@saxion.nl
@@ -20,18 +20,145 @@ servers:
 - url: https://dev.netmobiel.eu/gwapi-acc/planner
   description: The rideshare service visible to the world (acceptance).
 paths:
+  /maintenance/otpdatabase:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/MaintenanceStatus'
+              examples:
+                No update running:
+                  value:
+                    isRunning: false
+          description: The current status of the OTP data.
+      description: Retrieves the status of the update.
+    post:
+      responses:
+        "202":
+          description: The update is an asynchronous operation. The post will start
+            an update if no update is running.
+      description: Retrieves all stops, clusters and routes from the OpenTripPlanner
+        and inserts the data in the local database. In additonal, calculate for each
+        stop and each cluster the number of routes passing by and the modalities involved.
+  /trips/{tripId}:
+    summary: Path used to manage a single Trip.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Trip`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+          description: Successful response - returns a single `Trip`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getTrip
+      summary: Get a Trip
+      description: Gets the details of a single instance of a `Trip`.
+    put:
+      requestBody:
+        description: Updated `Trip` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+        required: true
+      responses:
+        "202":
+          description: Successful response.
+      operationId: updateTrip
+      summary: Update a Trip
+      description: Updates an existing `Trip`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deleteTrip
+      summary: Delete a Trip
+      description: Deletes an existing `Trip`.
+    parameters:
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /trips:
+    summary: Path used to manage the list of trips.
+    description: The REST endpoint/path used to list and create zero or more `Trip`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - examples:
+          Since date format:
+            value: 2019-11-30
+        name: since
+        description: "The departure date at which to start the listing. Default is\
+          \ today (local date), effectively listing all planned trips \nstarting last\
+          \ midnight."
+        schema:
+          format: date
+          type: string
+        in: query
+      - examples:
+          Until date format:
+            value: 2019-12-15
+        name: until
+        description: The departure date and later not to include in the listing of
+          trips. The `until` date must be after the `since` parameter. Default is
+          not set, meaning all trips (after since).
+        schema:
+          format: date
+          type: string
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+          description: Successful response - returns an array of `Trip` entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: getTrips
+      summary: List All trips
+      description: Gets a list of all `Trip` entities owned by the calling user.
+    post:
+      requestBody:
+        description: A new `Trip` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: createTrip
+      summary: Create a Trip
+      description: Creates a new instance of a `Trip`.
   /search/plan:
     summary: Search for possible itineraries, combining various modalities..
     description: Search the Rideshare service and OpenTripPlanner for itineraries.
     get:
       parameters:
       - examples:
-          Station_Borne:
-            value: Station Borne::52.298417, 6.749157
+          Station Borne:
+            value: Station Borne::52.298417,6.749157
         name: fromPlace
-        description: The start location, a latitude, longitude pair in degrees according
-          WGS84. For logging purposes you may prepend the coordinates with a place
-          label followed by two colons.
+        description: The start location comprising of a latitude and longitude pair
+          in degrees according WGS84. For logging purposes you may prepend the coordinates
+          with a place label followed by two colons.
         schema:
           type: string
         in: query
@@ -46,7 +173,7 @@ paths:
           Example:
             value: 2019-10-23T09:30
         name: fromDate
-        description: The date and time of intended departure. The format is ISO8601 local date time.
+        description: The date and time of intended departure. The format is ISO8601.
           The system will use midnight as start of the search.
         schema:
           type: string
@@ -63,24 +190,26 @@ paths:
           type: integer
         in: query
         required: false
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
       responses:
-        200:
-          content: 
+        "200":
+          content:
             application/json:
               schema:
-                type: object
+                type: array
+                items: {}
           description: Successfull call.
-        400:
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                Bad request:
+                  value:
+                    message: 'Missing one or more mandatory parameters: fromPlace,
+                      toPlace, fromDate or toDate'
+                    reasonPhrase: Bad Request
+                    status: 400
           description: |-
             When not the minimal required search parameters are specified. Required for search are:
             * fromPlace
@@ -90,6 +219,488 @@ paths:
       summary: Search for itineraries for a trip.
       description: Search and retrieve matching itineraries.
 components:
+  schemas:
+    MaintenanceStatus:
+      title: Root Type for MaintenanceStatus
+      description: Data type used to cummunicate the status of the OTP data.
+      type: object
+      properties:
+        isRunning:
+          description: If true the maintenance job is active.
+          type: boolean
+      example:
+        isRunning: false
+    Error:
+      title: Root Type for Error
+      description: The error response.
+      type: object
+      properties:
+        message:
+          type: string
+        reasonPhrase:
+          type: string
+        status:
+          format: int32
+          type: integer
+      example:
+        message: This is a really bad request
+        reasonPhrase: Bad Request
+        status: 400
+    TripPlan:
+      description: A plan consisting of one or more itineraries.
+      required:
+      - useDateAsArrivalTime
+      - from
+      - to
+      - date
+      type: object
+      properties:
+        from:
+          $ref: '#/components/schemas/Stop'
+          description: Departure location.
+        to:
+          $ref: '#/components/schemas/Stop'
+          description: Arrival location
+        date:
+          format: date-time
+          description: Date and time of either departure or arrival (depending on
+            request). Data is in milliseconds since January 1, 1970 (epoch time).
+          type: string
+        itineraries:
+          description: A propoal for a trip comprising one or more legs.
+          type: array
+          items:
+            $ref: '#/components/schemas/Itinerary'
+        useDateAsArrivalTime:
+          description: Flags whether to use the date property as an arrival time.
+          type: boolean
+    Stop:
+      title: Root Type for Place
+      description: 'A place is location on a map, comprising of a GPS coordinate and
+        optional a descriptional label for human display. A place contains also a
+        timestamp for departure and arrival. '
+      type: object
+      properties:
+        latitude:
+          format: double
+          description: The latitude of this place.
+          type: number
+        longitude:
+          format: double
+          description: The longitude of this place.
+          type: number
+        label:
+          description: A descriptive label of the place.
+          type: string
+        stopCode:
+          description: The "code" of the stop. Depending on the transit agency, this
+            is often something that users care about.
+          type: string
+        platformCode:
+          description: The code or name identifying the quay/platform the vehicle
+            will arrive at or depart from.
+          type: string
+        departureTime:
+          description: The time of departure, formatted as an time instance.
+          type: integer
+        arrivalTime:
+          format: int32
+          description: The time of arrival, formatted as an time instance..
+          type: integer
+        stopId:
+          description: 'The ID of the stop. '
+          type: string
+      example:
+        departureTime: 1572600896000
+        latitude: 52.004166
+        longitude: 6.517835
+        label: Zieuwent,Kennedystraat
+    EncodedPolyline:
+      description: A list of coordinates encoded as a string. See Encoded polyline
+        algorithm format (http://code.google.com/apis/maps/documentation/polylinealgorithm.html).
+      required:
+      - points
+      - length
+      type: object
+      properties:
+        points:
+          description: The encoded points of the polyline.
+          type: string
+        levels:
+          description: evels describes which points should be shown at various zoom
+            levels. Presently, we show all points at all zoom levels.
+          type: string
+        length:
+          description: The number of points in the string
+          type: integer
+      example:
+        length: 11
+        points: _al|Hm_xf@?U?WHe@D_AF{@?QAQEW[iAs@@
+    Itinerary:
+      description: An itinerary is a proposal for a trip from one location at another
+        at a specified departure time.
+      required:
+      - arrivalTime
+      type: object
+      properties:
+        departureTime:
+          format: date-time
+          description: The time of departure in milliseconds since epoch start.
+          type: string
+        arrivalTime:
+          format: date-time
+          description: Time of arrival at destination in milliseonds since epoch time.
+          type: string
+        duration:
+          description: The total duration of the trip in seconds.
+          type: integer
+        transfers:
+          description: Tyhe number of transfers from one modality to another. Walking
+            does not count for a transfer.
+          type: integer
+        transitTime:
+          description: The duration of travelling with transit modalities (tran, bus,
+            rail etc.).
+          type: integer
+        waitingTime:
+          description: The time spend on waiting for a modality to arrive.
+          type: integer
+        walkDistance:
+          description: The total distance spend on walking in meters.
+          type: integer
+        score:
+          format: float
+          description: A relative indication how attractive the proposal is. The higher
+            the better.
+          type: number
+        walkTime:
+          description: The time spend on walking in seconds.
+          type: integer
+        legs:
+          description: One or more legs to travel from origin to destination.
+          type: array
+          items:
+            $ref: '#/components/schemas/Leg'
+    User:
+      description: "A user in the ride share service. A user can have a role as a\
+        \ driver or as a passenger. \nThe role is contextually assigned."
+      required:
+      - managedIdentity
+      - givenName
+      - familyName
+      type: object
+      properties:
+        id:
+          format: int64
+          description: 'The unique user id. If referenced use the URN notation: urn:nb:pn:user:<id>'
+          type: integer
+        managedIdentity:
+          description: The user is as known by the IDM (Keycloak). The format is determined
+            by the IDM.
+          type: string
+        givenName:
+          description: The first name of the driver.
+          type: string
+        familyName:
+          description: The family name of the driver.
+          type: string
+      example:
+        familyName: Normalverbraucher
+        givenName: Otto
+        id: 2
+        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+    Trip:
+      title: Root Type for Trip
+      description: A Trip is a plan that will be or has been effectuated.
+      required:
+      - legs
+      - from
+      - state
+      - to
+      - traveller
+      - travellerRef
+      type: object
+      properties:
+        state:
+          description: The state of the trip.
+          enum:
+          - PLANNING
+          - BOOKING
+          - SCHEDULED
+          - IN_TRANSIT
+          - COMPLETED
+          - CANCELLED
+          type: string
+        cancelReason:
+          description: If the trip was cancelled, the reason why.
+          type: string
+        travellerRef:
+          description: 'A reference to the user. It is a URN with the format: rn:nb:pl:user:12345'
+          type: string
+        traveller:
+          $ref: '#/components/schemas/User'
+          description: 'The user owning this plan. '
+          properties:
+            managedIdentity:
+              type: string
+            givenName:
+              type: string
+            familiyName:
+              type: string
+        deleted:
+          description: Flag indicating whether the trip has been deleted by the traveller.
+          type: boolean
+        from:
+          $ref: '#/components/schemas/Stop'
+          description: The place to depart from.
+          properties:
+            label:
+              type: string
+            latitude:
+              format: double
+              type: number
+            longitude:
+              format: double
+              type: number
+        to:
+          $ref: '#/components/schemas/Stop'
+          description: The final destination of the trip.
+          properties:
+            label:
+              type: string
+            latitude:
+              format: double
+              type: number
+            longitude:
+              format: double
+              type: number
+        departureTime:
+          format: date-time
+          description: The time of departure in ISO8601 format.
+          type: string
+        arrivalTime:
+          format: date-time
+          description: Time of arrival at destination in milliseonds since epoch time.
+          type: string
+        duration:
+          description: The total duration of the trip in seconds.
+          type: integer
+        transfers:
+          description: The number of transfers from one modality to another. Walking
+            does not count for a transfer.
+          type: integer
+        transitTime:
+          description: The duration of travelling with transit modalities (tran, bus,
+            rail etc.).
+          type: integer
+        waitingTime:
+          description: The time spend on waiting for a modality to arrive.
+          type: integer
+        walkDistance:
+          description: The total distance spend on walking in meters.
+          type: integer
+        score:
+          format: float
+          description: A relative indication how attractive the proposal is. The higher
+            the better.
+          type: number
+        walkTime:
+          description: The time spend on walking in seconds.
+          type: integer
+        legs:
+          description: An array of legs, where each leg is a consecutive transport
+            by a singel means.
+          type: array
+          items:
+            $ref: '#/components/schemas/Leg'
+      example:
+        fromPlace:
+          label: Rapenburgsestraat Lichtenvoorde
+          latitude: 51.987757
+          longitude: 6.564012
+        toPlace:
+          label: Rabobank Zutphen
+          latitude: 52.148125
+          longitude: 6.196966
+        departureTime: 2019-11-30T13:00:00
+        duration: 2124
+        legs: []
+        state: Scheduled
+        cancelReason: ""
+        travellerRef: urn:nb:pl:User:234
+        traveller:
+          managedIdentity: 1234-5678-9012
+          givenName: Simon
+          familiyName: d'Hollosy
+    Leg:
+      description: A leg is a displacement using a certain modality from one location
+        to another.
+      required: []
+      type: object
+      properties:
+        startTime:
+          description: The time of departure in milliseconds since epoch start.
+          type: integer
+        endTime:
+          description: Time of arrival at destination in milliseconds since epoch
+            time.
+          type: integer
+        state:
+          description: The state of the leg.
+          enum:
+          - PLANNING
+          - BOOKING
+          - SCHEDULED
+          - IN_TRANSIT
+          - COMPLETED
+          - CANCELLED
+          type: string
+        duration:
+          description: The total duration of the leg in seconds.
+          type: integer
+        distance:
+          format: float
+          description: The distance travelled in meters.
+          type: number
+        from:
+          $ref: '#/components/schemas/Stop'
+          description: Departure location.
+        to:
+          $ref: '#/components/schemas/Stop'
+          description: Arrival location
+        traverseMode:
+          description: The name of the modality.
+          enum:
+          - AIRPLANE
+          - BICYCLE
+          - BUS
+          - CABLE_CAR
+          - CAR
+          - FERRY
+          - FUNICULAR
+          - GONDOLA
+          - LEG_SWITCH
+          - RAIL
+          - SUBWAY
+          - TRAM
+          - TRANSIT
+          - WALK
+          type: string
+        routeType:
+          description: |
+            For transit legs, the type of the route. Non transit -1
+            When 0-7: 0 Tram, 1 Subway, 2 Train, 3 Bus, 4 Ferry, 5 Cable Car, 6 Gondola, 7 Funicular
+            When equal or highter than 100, it is coded using the Hierarchical Vehicle Type (HVT) codes from the European TPEG standard
+            Also see http://groups.google.com/group/gtfs-changes/msg/ed917a69cf8c5bef
+          type: integer
+        routeLongName:
+          description: The name of the route (transit).
+          type: string
+        routeShortName:
+          description: The short name of the route (transit), like a line number.
+          type: string
+        agencyName:
+          description: The name of the agency running the transport.
+          type: string
+        headsign:
+          description: For transit legs, the headsign of the bus or train being used.
+            For non-transit legs, null.
+          type: string
+        driverId:
+          description: 'In case of rideshare: the ID of the driver (a urn).'
+          type: string
+        driverName:
+          description: 'In case of rideshare: the name of the driver.'
+          type: string
+        vehicleId:
+          description: 'In case of rideshare: The ID of the car (a urn).'
+          type: string
+        vehicleName:
+          description: 'In case of rideshare: The brand and model of the car.'
+          type: string
+        vehicleLicensePlate:
+          description: 'In case of rideshare: The license plate of the car.'
+          type: string
+        legGeometry:
+          $ref: '#/components/schemas/EncodedPolyline'
+          description: An encoded description of the leg in GPS coordinates.
+        walkSteps:
+          $ref: '#/components/schemas/WalkStep'
+          description: A list of steps to get at the destination of this leg.
+      example:
+        distance: 152
+        duration: 123
+        startTime: 1572600896000
+        endTime: 1572601019000
+        from:
+          departureTime: 1572600896000
+          latitude: 52.004166
+          longitude: 6.517835
+          label: Zieuwent,Kennedystraat
+        legGeometry:
+          length: 11
+          points: _al|Hm_xf@?U?WHe@D_AF{@?QAQEW[iAs@@
+        traverseMode: WALK
+        to:
+          arrivalTime: 1572601019000
+          departureTime: 1572601020000
+          latitude: 52.004485
+          longitude: 6.519542
+          label: Zieuwent, R.K. Kerk
+          stopCode: "44930020"
+          stopId: NL:1532280
+    WalkStep:
+      title: Root Type for WalkStep
+      description: 'Represents an instruction for walking directions. '
+      type: object
+      properties:
+        distance:
+          format: int32
+          description: The distance in meters that this step takes.
+          type: integer
+        relativeDirection:
+          description: The relative direction of this step.
+          type: string
+        name:
+          description: The streetname or some descriptive name. A name may be generated
+            by the system. The bogusName flag will be set in that case.
+          type: string
+        absoluteDirection:
+          description: The absolute direction of this step.
+          type: string
+        stayOn:
+          description: Indicates whether or not a street changes direction at an intersection.
+          type: boolean
+        area:
+          description: This step is on an open area, such as a plaza or train platform,
+            and thus the directions should say something like "cross"
+          type: boolean
+        bogusName:
+          description: The name of this street was generated by the system, so we
+            should only display it once, and generally just display right/left directions.
+          type: boolean
+        longitude:
+          format: double
+          description: The longitude.
+          type: number
+        latitude:
+          format: double
+          description: The latitude.
+          type: number
+        exit:
+          description: When exiting a highway or traffic circle, the exit name/number.
+          type: string
+      example:
+        distance: 560
+        relativeDirection: LEFT
+        name: Dorpsstraat
+        absoluteDirection: NORTH
+        stayOn: false
+        area: false
+        bogusName: false
+        longitude: 6.519548800000001
+        latitude: 52.0042224
+        exit: Uitrit 32
   responses:
     InternalServerError:
       content:
@@ -140,7 +751,11 @@ components:
   securitySchemes:
     apikey:
       type: apiKey
-      description: 'The Planner service requires an Api Key: x-gravitee-api-key
-        in the header.'
+      description: 'The Planner service requires an Api Key: x-gravitee-api-key in
+        the header.'
       name: Api-key
       in: header
+    Bearer-only:
+      scheme: bearer
+      type: http
+      description: You need a valid acces token.
