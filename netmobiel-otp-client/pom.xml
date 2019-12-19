@@ -12,12 +12,6 @@
     <packaging>jar</packaging>
     <name>NetMobiel OpenTripPlanner Client</name>
     <description>The client for OpenTripPlanner for use by the Rideshare and Planner services in NetMobiel.</description>
-    <scm>
-        <connection>scm:git:git@github.com:SaxionSmartCities/netmobiel-rideshare-api.git</connection>
-        <developerConnection>scm:git:git@github.com:SaxionSmartCities/netmobiel-rideshare-api.git</developerConnection>
-        <url>https://github.com/SaxionSmartCities/netmobiel-rideshare-api</url>
-        <tag>HEAD</tag>
-    </scm>
 
 
     <dependencies>
@@ -83,6 +77,11 @@
 	        <artifactId>javax.json.bind-api</artifactId>
 			<scope>provided</scope>
 	    </dependency>
+		<dependency>
+			<groupId>com.vividsolutions</groupId>
+			<artifactId>jts-core</artifactId>
+			<scope>provided</scope>
+		</dependency>
 		
 		<!-- TEST Dependencies -->
 		

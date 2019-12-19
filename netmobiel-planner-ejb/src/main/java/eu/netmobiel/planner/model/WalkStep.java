@@ -10,7 +10,7 @@ import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
 /**
- * Represents one instruction in walking directions. Three examples from New York City:
+ * Represents an instruction for walking directions. Three examples from New York City:
  * <p>
  * Turn onto Broadway from W 57th St (coming from 7th Ave): <br/>
  * distance = 100 (say) <br/>
@@ -55,7 +55,7 @@ public class WalkStep implements Serializable {
 	private Double longitude;
 
 	/**
-	 * Explanatory label, non-normative.
+	 * The streetname or comparable. 
 	 */
 	@Column(name = "name", length = 128)
 	private String name;
@@ -178,6 +178,38 @@ public class WalkStep implements Serializable {
 
 	public void setAbsoluteDirection(AbsoluteDirection absoluteDirection) {
 		this.absoluteDirection = absoluteDirection;
+	}
+
+	public String getExit() {
+		return exit;
+	}
+
+	public void setExit(String exit) {
+		this.exit = exit;
+	}
+
+	public Boolean getStayOn() {
+		return stayOn;
+	}
+
+	public void setStayOn(Boolean stayOn) {
+		this.stayOn = stayOn;
+	}
+
+	public Boolean getArea() {
+		return area;
+	}
+
+	public void setArea(Boolean area) {
+		this.area = area;
+	}
+
+	public Boolean getBogusName() {
+		return bogusName;
+	}
+
+	public void setBogusName(Boolean bogusName) {
+		this.bogusName = bogusName;
 	}
 
 	public String toString() {

@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package eu.netmobiel.rideshare.api;
+package eu.netmobiel.planner.api;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -32,12 +32,8 @@ import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
 import eu.netmobiel.commons.jaxrs.LocalDataParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
-import eu.netmobiel.rideshare.api.resource.CarLicenseResource;
-import eu.netmobiel.rideshare.api.resource.CarsResource;
-import eu.netmobiel.rideshare.api.resource.RidesResource;
-import eu.netmobiel.rideshare.api.resource.SearchResource;
-import eu.netmobiel.rideshare.api.resource.TestsResource;
-import eu.netmobiel.rideshare.api.resource.UserResource;
+import eu.netmobiel.planner.api.resource.SearchResource;
+import eu.netmobiel.planner.api.resource.TestsResource;
 
 
 /**
@@ -50,7 +46,7 @@ import eu.netmobiel.rideshare.api.resource.UserResource;
  */
 @ApplicationPath("/api")
 @ApplicationScoped
-public class RideshareApplication extends Application {
+public class PlannerApplication extends Application {
     @Inject
     private Logger log;
 
@@ -61,7 +57,7 @@ public class RideshareApplication extends Application {
     public void postConstruct() {
         StringBuilder builder = new StringBuilder();
         builder.append("\n------------------------------------------------");
-        builder.append("\nStarting up NetMobiel Rideshare REST Service");
+        builder.append("\nStarting up NetMobiel Planner REST Service");
         builder.append("\n\tVersion:  " + version.getVersionString());
         builder.append("\n\tBuilt On: " + version.getVersionDate().toString());
         builder.append("\n\tBuild:    " + version.getVersionInfo());
@@ -76,12 +72,8 @@ public class RideshareApplication extends Application {
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new HashSet<>();
-        resources.add(CarLicenseResource.class);
-        resources.add(CarsResource.class);
-        resources.add(RidesResource.class);
         resources.add(SearchResource.class);
         resources.add(TestsResource.class);
-        resources.add(UserResource.class);
         resources.add(LocalDataParamConverterProvider.class);
         resources.add(WebApplicationExceptionMapper.class);
         resources.add(EJBExceptionMapper.class);

@@ -1,6 +1,7 @@
 package eu.netmobiel.planner.model;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -17,9 +18,9 @@ import eu.netmobiel.commons.model.GeoLocation;
 public class TripPlan {
 
     /**  The time and date of travel. Is either departure time or arrival time */
-    private Instant date;
+    private OffsetDateTime requestedDepartureTime;
 
-    private boolean useDateAsArrivalTime;
+    private OffsetDateTime requestedArrivalTime;
     
     /** The origin */
     private GeoLocation from;
@@ -32,28 +33,12 @@ public class TripPlan {
 
     public TripPlan() { }
 
-    public TripPlan(GeoLocation from, GeoLocation to, Instant date, boolean isArrival) {
+    public TripPlan(GeoLocation from, GeoLocation to, OffsetDateTime requestedDepartureTime, OffsetDateTime requestedArrivalTime) {
         this.from = from;
         this.to = to;
-        this.date = date;
-        this.useDateAsArrivalTime = isArrival;
+        this.requestedDepartureTime = requestedDepartureTime;
+        this.requestedArrivalTime = requestedArrivalTime;
     }
-
-	public Instant getDate() {
-		return date;
-	}
-
-	public void setDate(Instant date) {
-		this.date = date;
-	}
-
-	public boolean isUseDateAsArrivalTime() {
-		return useDateAsArrivalTime;
-	}
-
-	public void setUseDateAsArrivalTime(boolean useDateAsArrivalTime) {
-		this.useDateAsArrivalTime = useDateAsArrivalTime;
-	}
 
 	public GeoLocation getFrom() {
 		return from;
@@ -79,13 +64,31 @@ public class TripPlan {
 		this.itineraries = itineraries;
 	}
 
-	private String formatTime(Instant instant) {
-    	return DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
+	
+	public OffsetDateTime getRequestedDepartureTime() {
+		return requestedDepartureTime;
+	}
+
+	public void setRequestedDepartureTime(OffsetDateTime requestedDepartureTime) {
+		this.requestedDepartureTime = requestedDepartureTime;
+	}
+
+	public OffsetDateTime getRequestedArrivalTime() {
+		return requestedArrivalTime;
+	}
+
+	public void setRequestedArrivalTime(OffsetDateTime requestedArrivalTime) {
+		this.requestedArrivalTime = requestedArrivalTime;
+	}
+
+	private String formatTime(OffsetDateTime dt) {
+    	return dt != null ? DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(dt) : "";
     }
     
     @Override
 	public String toString() {
-		return String.format("TripPlan [%s from %s to %s \n\t%s]", formatTime(date), from, to, 
+		return String.format("TripPlan [<%s, %s> from %s to %s \n\t%s]", 
+				formatTime(requestedDepartureTime), formatTime(requestedArrivalTime), from, to, 
 				itineraries.stream().map(i -> i.toString()).collect(Collectors.joining("\n\t")));
 	}
 

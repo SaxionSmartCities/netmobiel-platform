@@ -1,0 +1,146 @@
+---
+openapi: 3.0.2
+info:
+  title: planner
+  version: 1.0.0
+  description: 'API for multi-modal planning in NetMobiel'
+  contact:
+    name: Jaap Reitsma
+    email: j.reitsma@saxion.nl
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+servers:
+- url: https://otp.netmobiel.eu/planner/api
+  description: The internal URL for the rideshare (production).
+- url: https://dev.netmobiel.eu/gwapi/planner
+  description: The rideshare service visible to the world (production).
+- url: https://vps1323.directvps.nl/planner/api
+  description: The internal URL for the rideshare (acceptance).
+- url: https://dev.netmobiel.eu/gwapi-acc/planner
+  description: The rideshare service visible to the world (acceptance).
+paths:
+  /search/plan:
+    summary: Search for possible itineraries, combining various modalities..
+    description: Search the Rideshare service and OpenTripPlanner for itineraries.
+    get:
+      parameters:
+      - examples:
+          Station_Borne:
+            value: Station Borne::52.298417, 6.749157
+        name: fromPlace
+        description: The start location, a latitude, longitude pair in degrees according
+          WGS84. For logging purposes you may prepend the coordinates with a place
+          label followed by two colons.
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: toPlace
+        description: The end location (see fromPlace for format).
+        schema:
+          type: string
+        in: query
+        required: true
+      - examples:
+          Example:
+            value: 2019-10-23T09:30
+        name: fromDate
+        description: The date and time of intended departure. The format is ISO8601 local date time.
+          The system will use midnight as start of the search.
+        schema:
+          type: string
+        in: query
+      - name: toDate
+        description: The date and time of the intended arrival time. The system will
+          use the end-of-day midnight as limit.
+        schema:
+          type: string
+        in: query
+      - name: nrSeats
+        description: The number of seats required.
+        schema:
+          type: integer
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        200:
+          content: 
+            application/json:
+              schema:
+                type: object
+          description: Successfull call.
+        400:
+          description: |-
+            When not the minimal required search parameters are specified. Required for search are:
+            * fromPlace
+            * toPlace
+            * fromDate
+      operationId: searchPlan
+      summary: Search for itineraries for a trip.
+      description: Search and retrieve matching itineraries.
+components:
+  responses:
+    InternalServerError:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: Some application error occurred, indicating a bug in the application
+        (500).
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The calling user is not allowed to perform the operation on the
+        resource (403).
+    NotAuthorized:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The caller is not authorized to performed the intended operation
+        (status 401).
+    ServiceUnavailableException:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: 'The (underlying) service is (temporarily) not available. Try again
+        later (503). '
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: A requested object could not be found (404).
+    Gone:
+      description: The requested object does no longer exist (410).
+    Conflict:
+      description: A conflict occurred with existing objects (duplicate key ec.).
+        A 409 error.
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The request was understood, but in incomplete or invalid and cannot
+        be processed (400).
+  securitySchemes:
+    apikey:
+      type: apiKey
+      description: 'The Planner service requires an Api Key: x-gravitee-api-key
+        in the header.'
+      name: Api-key
+      in: header

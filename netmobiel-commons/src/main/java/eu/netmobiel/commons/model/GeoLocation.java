@@ -306,7 +306,7 @@ public class GeoLocation implements Serializable {
 	 */
 	@Override
 	public String toString() {
-		String latlong = String.format((Locale) null, "%f,%f", getLatitude(), getLongitude());
+		String latlong = String.format((Locale) null, "%.06f,%.06f", getLatitude(), getLongitude());
 		return label != null ? label + "::" + latlong : latlong;
 	}
 

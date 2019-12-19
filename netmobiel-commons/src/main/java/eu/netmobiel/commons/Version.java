@@ -14,7 +14,7 @@
  * limitations under the License.
  */
 
-package eu.netmobiel.rideshare.rest;
+package eu.netmobiel.commons;
 
 import java.io.IOException;
 import java.io.InputStream;

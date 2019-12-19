@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <jboss-deployment-structure xmlns="urn:jboss:deployment-structure:1.2">
-	<ear-subdeployments-isolated>true</ear-subdeployments-isolated>
+	<ear-subdeployments-isolated>false</ear-subdeployments-isolated>
     <deployment>
         <dependencies>
         </dependencies>
@@ -16,10 +16,24 @@
     <sub-deployment name="netmobiel-planner-ejb.jar">
         <dependencies>
         	<module name="org.keycloak.keycloak-core"/>
-        	<module name="netmobiel-rideshare-ejb.jar"/>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
         </dependencies>
         <exclusions>
             <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
         </exclusions>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-rideshare-rest.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-planner-rest.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-planner-ejb.jar"/>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
+        </dependencies>
+<!--         <exclusions> -->
+<!--             <module name="org.jboss.resteasy.resteasy-json-binding-provider"/> -->
+<!--         </exclusions> -->
     </sub-deployment>
 </jboss-deployment-structure>

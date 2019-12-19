@@ -2,6 +2,8 @@ package eu.netmobiel.planner.model;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.time.ZoneId;
+import java.time.format.DateTimeFormatter;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
@@ -28,6 +30,12 @@ public class Stop implements Serializable {
 
     @Embedded
     private GeoLocation location;
+
+	/** 
+     * The ID of the stop. This is often something that users don't care about.
+     */
+	@Column(name = "stop_id", length = 32)
+    private String stopId;
 
 	/** 
      * The "code" of the stop. Depending on the transit agency, this is often
@@ -57,16 +65,6 @@ public class Stop implements Serializable {
     public Stop() {
     }
 
-//    public Stop(Double lon, Double lat, String name) {
-//    	super(lat, lon, name);
-//    }
-
-//    public Stop(Double lon, Double lat, String name, Instant arrival, Instant departure) {
-//        this(lon, lat, name);
-//        this.arrivalTime = arrival;
-//        this.departureTime = departure;
-//    }
-	
 	public Stop(GeoLocation geoloc) {
 		this.location = geoloc;
 	}
@@ -77,6 +75,7 @@ public class Stop implements Serializable {
     	this.departureTime = other.departureTime;
     	this.platformCode = other.platformCode;
     	this.stopCode = other.stopCode;
+    	this.stopId = other.stopId;
     }
     
     public Stop copy() {
@@ -130,6 +129,14 @@ public class Stop implements Serializable {
 		setLocationThen().setLabel(label);
 	}
 
+	public String getStopId() {
+		return stopId;
+	}
+
+	public void setStopId(String stopId) {
+		this.stopId = stopId;
+	}
+
 	public String getStopCode() {
 		return stopCode;
 	}
@@ -162,4 +169,22 @@ public class Stop implements Serializable {
 		this.departureTime = departureTime;
 	}
 
+    private String formatTime(Instant instant) {
+    	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
+    }
+    
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("Stop [");
+		builder.append(location.toString()).append(" ");
+		if (arrivalTime != null) {
+			builder.append("A ").append(formatTime(arrivalTime)).append(" ");
+		}
+		if (departureTime != null) {
+			builder.append("D ").append(formatTime(departureTime));
+		}
+		builder.append("]");
+		return builder.toString();
+	}
 }

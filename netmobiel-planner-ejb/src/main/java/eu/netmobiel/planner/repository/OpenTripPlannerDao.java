@@ -3,7 +3,6 @@ package eu.netmobiel.planner.repository;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
-import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -13,25 +12,18 @@ import javax.inject.Inject;
 import javax.json.JsonObject;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
-import javax.ws.rs.client.WebTarget;
-import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
-import eu.netmobiel.commons.util.NameValuePair;
-import eu.netmobiel.commons.util.UriHelper;
 import eu.netmobiel.opentripplanner.client.OpenTripPlannerClient;
 import eu.netmobiel.planner.model.OtpCluster;
 import eu.netmobiel.planner.model.OtpRoute;
 import eu.netmobiel.planner.model.OtpStop;
 import eu.netmobiel.planner.model.OtpTransfer;
+import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.repository.mapping.TripPlanMapper;
-import eu.netmobiel.planner.model.TraverseMode;
 
 @ApplicationScoped
 public class OpenTripPlannerDao {

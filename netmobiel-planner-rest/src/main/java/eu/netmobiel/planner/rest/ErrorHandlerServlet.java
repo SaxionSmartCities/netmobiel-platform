@@ -1,4 +1,4 @@
-package eu.netmobiel.commons.servlet;
+package eu.netmobiel.planner.rest;
 
 import java.io.IOException;
 

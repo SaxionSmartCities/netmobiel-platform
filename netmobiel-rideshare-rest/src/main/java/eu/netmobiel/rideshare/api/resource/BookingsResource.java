@@ -6,8 +6,6 @@ import javax.ejb.ObjectNotFoundException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
-import javax.ws.rs.PathParam;
-import javax.ws.rs.QueryParam;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
@@ -38,7 +36,7 @@ public class BookingsResource implements BookingsApi {
     			.build();
     }
 
-    public Response getBooking(@PathParam("bookingId") String bookingId) {
+    public Response getBooking(String bookingId) {
     	Booking booking = null;
     	try {
         	Long cid = RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingId);
@@ -49,7 +47,7 @@ public class BookingsResource implements BookingsApi {
     	return Response.ok(mapper.map(booking,  eu.netmobiel.rideshare.api.model.Booking.class, "passenger-view")).build();
     }
 
-    public Response deleteBooking(@PathParam("bookingId") String bookingId, @QueryParam("reason") String reason) {
+    public Response deleteBooking(String bookingId, String reason) {
     	Response rsp = null;
     	try {
         	Long cid = RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingId);

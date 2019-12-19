@@ -4,6 +4,7 @@ package eu.netmobiel.planner.model;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -15,7 +16,6 @@ import javax.persistence.CascadeType;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
-import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
@@ -28,7 +28,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
-import eu.netmobiel.commons.model.EncodedPolylineBean;
+import com.vividsolutions.jts.geom.MultiPoint;
 
 /**
  * One leg of a trip -- that is, a temporally continuous piece of the journey that takes place on a
@@ -163,9 +163,8 @@ public class Leg implements Serializable {
     /**
      * The leg's geometry.
      */
-    @Embedded
     @Column(name = "leg_geometry")
-    private EncodedPolylineBean legGeometry;
+    private MultiPoint legGeometry; 
 
     /**
      * A series of turn by turn instructions used for walking, biking and driving. 
@@ -363,11 +362,11 @@ public class Leg implements Serializable {
 		this.vehicleLicensePlate = vehicleLicensePlate;
 	}
 
-	public EncodedPolylineBean getLegGeometry() {
+	public MultiPoint getLegGeometry() {
 		return legGeometry;
 	}
 
-	public void setLegGeometry(EncodedPolylineBean legGeometry) {
+	public void setLegGeometry(MultiPoint  legGeometry) {
 		this.legGeometry = legGeometry;
 	}
 
@@ -414,8 +413,8 @@ public class Leg implements Serializable {
         return Duration.between(startTime, endTime).getSeconds();
     }
 
-    private String formatTime(Instant ldt) {
-    	return DateTimeFormatter.ISO_TIME.format(ldt);
+    private String formatTime(Instant instant) {
+    	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
     }
     
 	@Override
@@ -424,17 +423,12 @@ public class Leg implements Serializable {
 		builder.append("Leg [");
 		builder.append(formatTime(startTime)).append(" ");
 		builder.append(formatTime(endTime)).append(" ");
-		builder.append(getDuration()).append("s\n");
+		builder.append(getDuration()).append("s");
 		
-		builder.append("\t\t\tFrom ").append(from).append(" ");
+		builder.append("\n\t\t\tFrom ").append(from).append(" ");
 		builder.append("To ").append(to).append(" ");
-		builder.append(Math.round(distance)).append("m\n");
-		
-		if (intermediateStops != null && !intermediateStops.isEmpty()) {
-			builder.append("\t\t\t").append(intermediateStops.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t\t\t"))).append("");
-		}
-		
-		builder.append("\n\t").append(traverseMode).append(" ");
+		builder.append(Math.round(distance)).append("m").append(" ");
+		builder.append(traverseMode).append(" ");
 		if (routeShortName != null) {
 			builder.append(routeShortName).append(" ");
 		}
@@ -447,6 +441,11 @@ public class Leg implements Serializable {
 		if (driverName != null) {
 			builder.append("Driver ").append(driverName).append(" ");
 		}
+		
+		if (intermediateStops != null && !intermediateStops.isEmpty()) {
+			builder.append("\n\t\t\t").append(intermediateStops.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t\t\t"))).append("");
+		}
+		
 		builder.append("]");
 		return builder.toString();
 	}

@@ -20,17 +20,37 @@
 			<groupId>${project.groupId}</groupId>
 			<artifactId>netmobiel-commons</artifactId>
 			<version>${project.version}</version>
+			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>netmobiel-otp-client</artifactId>
 			<version>${project.version}</version>
+			<type>jar</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-planner-api</artifactId>
+			<version>${project.version}</version>
+			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
 			<artifactId>netmobiel-planner-ejb</artifactId>
 			<version>${project.version}</version>
 			<type>ejb</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-planner-rest</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-rideshare-api</artifactId>
+			<version>${project.version}</version>
+			<type>jar</type>
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
@@ -68,12 +88,12 @@
 		</dependency>
    	</dependencies>
   <build>
-  	<finalName>${project.artifactId}-${project.version}</finalName>
+  	<finalName>${project.artifactId}</finalName>
     <plugins>
       <plugin>
         <artifactId>maven-ear-plugin</artifactId>
         <configuration>
-<!--           <earName>CoreEAR</earName> -->
+          <earName>${project.artifactId}</earName>
           <defaultLibBundleDir>lib</defaultLibBundleDir>
           <version>8</version>
           <generateApplicationXml>true</generateApplicationXml>
@@ -83,19 +103,6 @@
 <!--             </manifest> -->
 <!--           </archive> -->
           <modules>
-<!--           	<jarModule> -->
-<!-- 				<groupId>${project.groupId}</groupId> -->
-<!--                	<artifactId>netmobiel-commons</artifactId> -->
-<!--               	<bundleFileName>netmobiel-commons.jar</bundleFileName> -->
-<!--              </jarModule> -->
-<!-- 			<jarModule> -->
-<!-- 				<groupId>${project.groupId}</groupId> -->
-<!-- 				<artifactId>netmobiel-otp-client</artifactId> -->
-<!-- 			</jarModule> -->
-<!-- 			<jarModule> -->
-<!-- 				<groupId>${project.groupId}</groupId> -->
-<!-- 				<artifactId>netmobiel-rideshare-api</artifactId> -->
-<!-- 			</jarModule> -->
 		    <ejbModule>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>netmobiel-planner-ejb</artifactId>
@@ -106,6 +113,12 @@
 				<artifactId>netmobiel-rideshare-ejb</artifactId>
               	<bundleFileName>netmobiel-rideshare-ejb.jar</bundleFileName>
             </ejbModule>
+            <webModule>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-planner-rest</artifactId>
+              	<contextRoot>/planner</contextRoot>
+              	<bundleFileName>netmobiel-planner-rest.war</bundleFileName>
+            </webModule>
             <webModule>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>netmobiel-rideshare-rest</artifactId>

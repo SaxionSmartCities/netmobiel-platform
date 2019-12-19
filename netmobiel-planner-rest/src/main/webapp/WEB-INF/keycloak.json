@@ -1,0 +1,9 @@
+{
+  "realm": "netmobiel",
+  "bearer-only": true,
+  "auth-server-url": "https://keycloak.actmedialab.nl/auth",
+  "ssl-required": "external",
+  "resource": "planner-service",
+  "use-resource-role-mappings": true,
+  "confidential-port": 0
+}

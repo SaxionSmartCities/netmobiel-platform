@@ -7,7 +7,6 @@
    <persistence-unit name="pu-planner" transaction-type="JTA">
       <jta-data-source>java:jboss/datasources/planner-testDS</jta-data-source>
       <class>eu.netmobiel.commons.model.GeoLocation</class>
-      <class>eu.netmobiel.commons.model.EncodedPolylineBean</class>
       <properties>
         <!-- Properties for Hibernate -->
         <!-- create or create-drop will automatically try to run /import.sql -->

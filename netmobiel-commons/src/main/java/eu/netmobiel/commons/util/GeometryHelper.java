@@ -7,6 +7,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.GeometryFactory;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.LinearRing;
+import com.vividsolutions.jts.geom.MultiPoint;
 import com.vividsolutions.jts.geom.Point;
 import com.vividsolutions.jts.geom.Polygon;
 import com.vividsolutions.jts.geom.PrecisionModel;
@@ -15,7 +16,7 @@ import com.vividsolutions.jts.io.WKTReader;
 import com.vividsolutions.jts.io.WKTWriter;
 import com.vividsolutions.jts.util.GeometricShapeFactory;
 
-import eu.netmobiel.commons.model.EncodedPolylineBean;
+import eu.netmobiel.commons.api.EncodedPolylineBean;
 
 public class GeometryHelper {
 	/**
@@ -73,6 +74,10 @@ public class GeometryHelper {
 		return polygon;
 	}
 	
+	public static MultiPoint createMultiPoint(Coordinate[] coords) {
+	    return geometryFactory.createMultiPoint(coords);
+	}
+
 	public static Geometry createFromWKT(String wkt) {
 		try {
 			return new WKTReader(geometryFactory).read(wkt);

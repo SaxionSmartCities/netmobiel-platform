@@ -2,7 +2,11 @@ package eu.netmobiel.planner.model;
 
 public enum TripState {
 	/**
-	 * A trip is being planned, i.e. departure and destination places are known, departure time too, but not all means of transport are known yet.
+	 * A possible itinerary is returned from the planner.
+	 */
+	ITINERARY("ITN"),
+	/**
+	 * A trip is being planned, i.e. departure and destination places are known, departure or arrival time too, but not all means of transport are known yet.
 	 */
 	PLANNING("PLN"),
 	/**

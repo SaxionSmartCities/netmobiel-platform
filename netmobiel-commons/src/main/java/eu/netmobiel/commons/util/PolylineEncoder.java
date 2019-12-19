@@ -9,7 +9,7 @@ import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.MultiLineString;
 
-import eu.netmobiel.commons.model.EncodedPolylineBean;
+import eu.netmobiel.commons.api.EncodedPolylineBean;
 
 public class PolylineEncoder {
 

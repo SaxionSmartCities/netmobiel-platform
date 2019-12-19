@@ -1,0 +1,47 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app version="3.0" xmlns="http://java.sun.com/xml/ns/javaee"
+ xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="http://java.sun.com/xml/ns/javaee http://java.sun.com/xml/ns/javaee/web-app_3_0.xsd">
+ <module-name>planner</module-name>
+ <context-param>
+  <param-name>resteasy.resources</param-name>
+  <param-value>org.jboss.resteasy.plugins.stats.RegistryStatsResource</param-value>
+ </context-param>
+ <error-page>
+  <exception-type/>
+  <!-- 		<error-code>403</error-code> -->
+  <location>/error-handler-servlet</location>
+ </error-page>
+ <security-constraint>
+  <web-resource-collection>
+   <web-resource-name>Public resources</web-resource-name>
+   <url-pattern>/api/search/*</url-pattern>
+   <url-pattern>/api/tests/*</url-pattern>
+  </web-resource-collection>
+  <!-- confidential is not necessary, the service runs behind a proxy on a LAN or localhost 
+ 		<user-data-constraint> 
+             <transport-guarantee>CONFIDENTIAL</transport-guarantee> 
+         </user-data-constraint> -->
+ </security-constraint>
+ <security-constraint>
+  <web-resource-collection>
+   <web-resource-name>All other resources</web-resource-name>
+   <url-pattern>/api/*</url-pattern>
+  </web-resource-collection>
+  <auth-constraint>
+   <role-name>*</role-name>
+  </auth-constraint>
+  <!-- 		<user-data-constraint> 
+             <transport-guarantee>CONFIDENTIAL</transport-guarantee> 
+         </user-data-constraint> -->
+ </security-constraint>
+ <login-config>
+  <auth-method>KEYCLOAK</auth-method>
+  <realm-name>this is ignored currently</realm-name>
+ </login-config>
+ <security-role>
+  <role-name>admin</role-name>
+ </security-role>
+ <security-role>
+  <role-name>*</role-name>
+ </security-role>
+</web-app>

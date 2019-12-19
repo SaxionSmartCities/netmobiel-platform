@@ -6,6 +6,8 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
+import eu.netmobiel.commons.api.EncodedPolylineBean;
+
 /** 
 * A Place is where a journey starts or ends, or a transit stop along the way.
 */ 
