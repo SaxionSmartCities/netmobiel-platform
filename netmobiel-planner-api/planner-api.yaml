@@ -153,7 +153,7 @@ paths:
       - examples:
           Station-Borne:
             value: Station Borne::52.298417,6.749157
-        name: origin
+        name: from
         description: The location to depart from, comprising of a latitude and longitude
           pair in degrees according WGS84. For logging purposes you may prepend the
           coordinates with a place label followed by two colons.
@@ -164,7 +164,7 @@ paths:
       - examples:
           Station-Borne:
             value: Station Borne::52.298417,6.749157
-        name: destination
+        name: to
         description: The location to arrive at, comprising of a latitude and longitude
           pair in degrees according WGS84. For logging purposes you may prepend the
           coordinates with a place label followed by two colons.
@@ -176,7 +176,9 @@ paths:
           Example:
             value: 2019-10-23T09:30+01:00
         name: departureTime
-        description: The system will use midnight as start of the search.
+        description: The requested date and time of the departure. At least one of
+          departureTime or ArrivalTime are specified. If both are specified then it
+          is interpreted as a window for travelling. The time zone is always UTC.
         schema:
           format: date-time
           type: string
@@ -185,11 +187,27 @@ paths:
           Example:
             value: 2019-10-23T10:30+01:00
         name: arrivalTime
-        description: 'The date and time of the intended arrival time. '
+        description: The requested date and time of the arrival. At least one of departureTime
+          or ArrivalTime are specified. If both are specified then it is interpreted
+          as a window for travelling. The time zone is always UTC.
         schema:
           format: date-time
           type: string
         in: query
+      - examples:
+          Example:
+            value: WALK, RIDESHARE, BUS, RAIL
+        name: modalities
+        description: |-
+          A comma-separated list of eligible modalities. Select one or from the following:
+          AIRPLANE, BICYCLE, BUS, CABLE_CAR, CAR, FERRY, FUNICULAR, GONDOLA, RAIL, RIDESHARE, SUBWAY, TRAM, TRANSIT, WALK
+          The transit modality includes all public transport modalities.
+          CAR is useful to test a road route (based on Open Streetmap).
+          Default is [WALK, RIDESHARE, TRANSIT]
+        schema:
+          type: string
+        in: query
+        required: false
       - name: maxWalkDistance
         description: Maximum distance to walk to and from a station and between transfers.
           Default is 500 meter.
@@ -298,6 +316,13 @@ components:
           description: The maximum distance to walk to the station etc. and between
             transfers.
           type: integer
+        modalities:
+          description: |-
+            A comma-separated list of eligible modalities. Select one or from the following:
+            AIRPLANE, BICYCLE, BUS, CABLE_CAR, CAR, FERRY, FUNICULAR, GONDOLA, RAIL, RIDESHARE, SUBWAY, TRAM, TRANSIT, WALK
+            The transit modality includes all public transport modalities.
+            CAR is useful to test a road route (based on Open Streetmap).
+            Default is [WALK, RIDESHARE, TRANSIT]
       example:
         from:
           label: Zieuwent,Kennedystraat
