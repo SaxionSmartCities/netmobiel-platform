@@ -29,12 +29,14 @@ paths:
               schema:
                 $ref: '#/components/schemas/MaintenanceStatus'
           description: The current status of the OTP data.
+      operationId: getOtpMaintenanceStatus
       description: Retrieves the status of the update.
     post:
       responses:
         "202":
           description: The update is an asynchronous operation. The post will start
             an update if no update is running.
+      operationId: startOtpMaintenance
       description: Retrieves all stops, clusters and routes from the OpenTripPlanner
         and inserts the data in the local database. In additonal, calculate for each
         stop and each cluster the number of routes passing by and the modalities involved.
@@ -245,10 +247,8 @@ components:
     TripPlan:
       description: A plan consisting of one or more itineraries.
       required:
-      - useDateAsArrivalTime
       - from
       - to
-      - date
       type: object
       properties:
         from:
@@ -257,19 +257,23 @@ components:
         to:
           $ref: '#/components/schemas/Stop'
           description: Arrival location
-        date:
-          format: date-time
-          description: Date and time of either departure or arrival (depending on
-            request). Data is in milliseconds since January 1, 1970 (epoch time).
-          type: string
         itineraries:
           description: A propoal for a trip comprising one or more legs.
           type: array
           items:
             $ref: '#/components/schemas/Itinerary'
-        useDateAsArrivalTime:
-          description: Flags whether to use the date property as an arrival time.
-          type: boolean
+        requestedArrivalTime:
+          format: date-time
+          description: The requested date and time of the arrival. At least one of
+            departureTime or ArrivalTime are specified. If both are specified then
+            it is interpreted as a window for travelling.
+          type: string
+        requestedDepartureTime:
+          format: date-time
+          description: The requested date and time of the departure. At least one
+            of departureTime or ArrivalTime are specified. If both are specified then
+            it is interpreted as a window for travelling.
+          type: string
     Stop:
       title: Root Type for Place
       description: 'A place is location on a map, comprising of a GPS coordinate and
@@ -323,8 +327,8 @@ components:
           description: The encoded points of the polyline.
           type: string
         levels:
-          description: evels describes which points should be shown at various zoom
-            levels. Presently, we show all points at all zoom levels.
+          description: Levels describes which points should be shown at various zoom
+            levels. OpenTripPlanner shows all points at all zoom levels.
           type: string
         length:
           description: The number of points in the string
