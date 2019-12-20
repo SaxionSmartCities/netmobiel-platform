@@ -152,38 +152,50 @@ paths:
       parameters:
       - examples:
           Station-Borne:
-            value: Station-Borne::52.298417,6.749157
-        name: fromPlace
-        description: The start location comprising of a latitude and longitude pair
-          in degrees according WGS84. For logging purposes you may prepend the coordinates
-          with a place label followed by two colons.
+            value: Station Borne::52.298417,6.749157
+        name: origin
+        description: The location to depart from, comprising of a latitude and longitude
+          pair in degrees according WGS84. For logging purposes you may prepend the
+          coordinates with a place label followed by two colons.
         schema:
           type: string
         in: query
         required: true
-      - name: toPlace
-        description: The end location (see fromPlace for format).
+      - examples:
+          Station-Borne:
+            value: Station Borne::52.298417,6.749157
+        name: destination
+        description: The location to arrive at, comprising of a latitude and longitude
+          pair in degrees according WGS84. For logging purposes you may prepend the
+          coordinates with a place label followed by two colons.
         schema:
           type: string
         in: query
         required: true
       - examples:
           Example:
-            value: 2019-10-23T09:30
-        name: fromDate
-        description: The date and time of intended departure. The format is ISO8601.
-          The system will use midnight as start of the search.
+            value: 2019-10-23T09:30+01:00
+        name: departureTime
+        description: The system will use midnight as start of the search.
         schema:
           type: string
         in: query
-      - name: toDate
-        description: The date and time of the intended arrival time. The system will
-          use the end-of-day midnight as limit.
+      - examples:
+          Example:
+            value: 2019-10-23T10:30+01:00
+        name: arrivalTime
+        description: 'The date and time of the intended arrival time. '
         schema:
           type: string
+        in: query
+      - name: maxWalkDistance
+        description: Maximum distance to walk to and from a station and between transfers.
+          Default is 500 meter.
+        schema:
+          type: integer
         in: query
       - name: nrSeats
-        description: The number of seats required.
+        description: The number of seats required. Default is 1.
         schema:
           type: integer
         in: query
@@ -245,40 +257,57 @@ components:
         reasonPhrase: Bad Request
         status: 400
     TripPlan:
-      description: A plan consisting of one or more itineraries.
+      description: A plan consisting of one or more itineraries. The header of the
+        plan contains the parameters as requestes.
       required:
       - from
       - to
       type: object
       properties:
         from:
-          $ref: '#/components/schemas/Stop'
+          $ref: '#/components/schemas/Location'
           description: Departure location.
         to:
-          $ref: '#/components/schemas/Stop'
+          $ref: '#/components/schemas/Location'
           description: Arrival location
         itineraries:
           description: A propoal for a trip comprising one or more legs.
           type: array
           items:
             $ref: '#/components/schemas/Itinerary'
-        requestedArrivalTime:
+        nrSeats:
+          description: The number of seats requested.
+          type: integer
+        arrivalTime:
           format: date-time
           description: The requested date and time of the arrival. At least one of
             departureTime or ArrivalTime are specified. If both are specified then
             it is interpreted as a window for travelling.
           type: string
-        requestedDepartureTime:
+        departureTime:
           format: date-time
           description: The requested date and time of the departure. At least one
             of departureTime or ArrivalTime are specified. If both are specified then
             it is interpreted as a window for travelling.
           type: string
+      example:
+        from:
+          label: Zieuwent,Kennedystraat
+          latitude: 52.004166
+          longitude: 6.517835
+        itineraries: []
+        arrivalTime: 2019-12-17T14:00:00+01:00
+        departureTime: 2019-12-17T12:00:00+01:00
+        to:
+          label: Slingeland,hoofdingang
+          latitude: 51.976426
+          longitude: 6.285741
     Stop:
       title: Root Type for Place
-      description: 'A place is location on a map, comprising of a GPS coordinate and
-        optional a descriptional label for human display. A place contains also a
-        timestamp for departure and arrival. '
+      description: A stop is extended location on a map, comprising of a GPS coordinate
+        and optional a descriptional label for human display. A stop contains also
+        a timestamp for departure and/or arrival and some data specific to transit
+        modalities.
       type: object
       properties:
         latitude:
@@ -701,6 +730,27 @@ components:
         longitude: 6.519548800000001
         latitude: 52.0042224
         exit: Uitrit 32
+    Location:
+      title: Root Type for Place
+      description: A location on a map, comprising of a GPS coordinate and optional
+        a descriptional label for human display.
+      type: object
+      properties:
+        latitude:
+          format: double
+          description: The latitude of this place.
+          type: number
+        longitude:
+          format: double
+          description: The longitude of this place.
+          type: number
+        label:
+          description: A descriptive label of the place.
+          type: string
+      example:
+        latitude: 52.004166
+        longitude: 6.517835
+        label: Zieuwent,Kennedystraat
   responses:
     InternalServerError:
       content:
