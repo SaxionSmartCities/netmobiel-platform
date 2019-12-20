@@ -317,12 +317,13 @@ components:
             transfers.
           type: integer
         modalities:
-          description: |-
-            A comma-separated list of eligible modalities. Select one or from the following:
+          description: |
+            An array of eligible modalities:
             AIRPLANE, BICYCLE, BUS, CABLE_CAR, CAR, FERRY, FUNICULAR, GONDOLA, RAIL, RIDESHARE, SUBWAY, TRAM, TRANSIT, WALK
             The transit modality includes all public transport modalities.
-            CAR is useful to test a road route (based on Open Streetmap).
-            Default is [WALK, RIDESHARE, TRANSIT]
+          type: array
+          items:
+            type: string
       example:
         from:
           label: Zieuwent,Kennedystraat
@@ -363,12 +364,13 @@ components:
             will arrive at or depart from.
           type: string
         departureTime:
-          description: The time of departure, formatted as an time instance.
-          type: integer
+          format: date-time
+          description: The time of departure in UTC time.
+          type: string
         arrivalTime:
-          format: int32
-          description: The time of arrival, formatted as an time instance..
-          type: integer
+          format: date-time
+          description: The time of arrival in UTC time.
+          type: string
         stopId:
           description: 'The ID of the stop. '
           type: string
@@ -407,11 +409,11 @@ components:
       properties:
         departureTime:
           format: date-time
-          description: The time of departure in milliseconds since epoch start.
+          description: The time of departure in UTC.
           type: string
         arrivalTime:
           format: date-time
-          description: Time of arrival at destination in milliseonds since epoch time.
+          description: Time of arrival at destination UTC time.
           type: string
         duration:
           description: The total duration of the trip in seconds.
@@ -601,12 +603,13 @@ components:
       type: object
       properties:
         startTime:
-          description: The time of departure in milliseconds since epoch start.
-          type: integer
+          format: date-time
+          description: The time of departure in UTC time.
+          type: string
         endTime:
-          description: Time of arrival at destination in milliseconds since epoch
-            time.
-          type: integer
+          format: date-time
+          description: Time of arrival at destination in UTC time.
+          type: string
         state:
           description: The state of the leg.
           enum:
