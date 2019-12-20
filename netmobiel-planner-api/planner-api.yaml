@@ -178,6 +178,7 @@ paths:
         name: departureTime
         description: The system will use midnight as start of the search.
         schema:
+          format: date-time
           type: string
         in: query
       - examples:
@@ -186,6 +187,7 @@ paths:
         name: arrivalTime
         description: 'The date and time of the intended arrival time. '
         schema:
+          format: date-time
           type: string
         in: query
       - name: maxWalkDistance
