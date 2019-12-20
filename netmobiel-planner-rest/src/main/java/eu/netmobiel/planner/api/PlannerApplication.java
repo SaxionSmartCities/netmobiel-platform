@@ -29,7 +29,8 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.Version;
 import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
-import eu.netmobiel.commons.jaxrs.LocalDataParamConverterProvider;
+import eu.netmobiel.commons.jaxrs.LocalDateParamConverterProvider;
+import eu.netmobiel.commons.jaxrs.OffsetDateTimeParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
 import eu.netmobiel.planner.api.resource.SearchResource;
@@ -74,7 +75,8 @@ public class PlannerApplication extends Application {
         Set<Class<?>> resources = new HashSet<>();
         resources.add(SearchResource.class);
         resources.add(TestsResource.class);
-        resources.add(LocalDataParamConverterProvider.class);
+        resources.add(LocalDateParamConverterProvider.class);
+        resources.add(OffsetDateTimeParamConverterProvider.class);
         resources.add(WebApplicationExceptionMapper.class);
         resources.add(EJBExceptionMapper.class);
         resources.add(SecurityExceptionMapper.class);

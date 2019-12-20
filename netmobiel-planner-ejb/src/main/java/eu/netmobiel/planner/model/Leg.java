@@ -30,6 +30,8 @@ import javax.persistence.Transient;
 
 import com.vividsolutions.jts.geom.MultiPoint;
 
+import eu.netmobiel.commons.api.EncodedPolylineBean;
+
 /**
  * One leg of a trip -- that is, a temporally continuous piece of the journey that takes place on a
  * particular vehicle (or on foot).
@@ -161,11 +163,18 @@ public class Leg implements Serializable {
     private String vehicleLicensePlate;
     
     /**
-     * The leg's geometry.
+     * The leg's geometry. This one is used only when storing trips into the database. 
      */
-    @Column(name = "leg_geometry")
+    @Column(name = "leg_geometry", nullable = true)
     private MultiPoint legGeometry; 
 
+    /**
+     * The leg's geometry as encoded polyline bean. When the domain model is used as decoupling layer for OpenTripPlanner, 
+     * the already encode geometry is passed untouched. 
+     */
+    @Transient
+    private EncodedPolylineBean legGeometryEncoded; 
+    
     /**
      * A series of turn by turn instructions used for walking, biking and driving. 
      */
@@ -185,6 +194,10 @@ public class Leg implements Serializable {
 	@Transient
     public List<Stop> intermediateStops;
 
+	/**
+	 * The state of the leg within a trip. In the itineraries the state is null. 
+	 * A leg gets the initial state assigned when persisted as part of a trip.
+	 */
     @Column(name = "state", length = 3)
     private TripState state;
 
@@ -368,6 +381,14 @@ public class Leg implements Serializable {
 
 	public void setLegGeometry(MultiPoint  legGeometry) {
 		this.legGeometry = legGeometry;
+	}
+
+	public EncodedPolylineBean getLegGeometryEncoded() {
+		return legGeometryEncoded;
+	}
+
+	public void setLegGeometryEncoded(EncodedPolylineBean legGeometryEncoded) {
+		this.legGeometryEncoded = legGeometryEncoded;
 	}
 
 	public List<WalkStep> getWalkSteps() {

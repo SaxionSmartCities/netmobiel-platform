@@ -1,8 +1,6 @@
 package eu.netmobiel.planner.model;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -17,27 +15,56 @@ import eu.netmobiel.commons.model.GeoLocation;
  */
 public class TripPlan {
 
-    /**  The time and date of travel. Is either departure time or arrival time */
-    private OffsetDateTime requestedDepartureTime;
+    /**  
+     * The time and date of departure. At least one of departure or arrival must be defined. 
+     */
+    private Instant departureTime;
 
-    private OffsetDateTime requestedArrivalTime;
+    /**  
+     * The time and date of arrival. At least one of departure or arrival must be defined. 
+     */
+    private Instant arrivalTime;
     
-    /** The origin */
+    /** 
+     * The origin location. 
+     */
     private GeoLocation from;
     
-    /** The destination */
+    /**
+     * The destination location.
+     */
     private GeoLocation to;
+    
+    /**
+     * The eligible traverse modes.
+     */
+    private TraverseMode[] traverseModes;
 
-    /** A list of possible itineraries */
+    /**
+     * Maximum walking distance 
+     */
+    private Integer maxWalkDistance;
+
+    /**
+     * Numbers of seats required.
+     */
+    private Integer nrSeats;
+    /** 
+     * A list of possible itineraries. 
+     */
     private List<Itinerary> itineraries = new ArrayList<>();
 
     public TripPlan() { }
 
-    public TripPlan(GeoLocation from, GeoLocation to, OffsetDateTime requestedDepartureTime, OffsetDateTime requestedArrivalTime) {
+    public TripPlan(GeoLocation from, GeoLocation to, Instant departureTime, Instant arrivalTime, 
+    		TraverseMode[] traverseModes, Integer maxWalkDistance, Integer nrSeats) {
         this.from = from;
         this.to = to;
-        this.requestedDepartureTime = requestedDepartureTime;
-        this.requestedArrivalTime = requestedArrivalTime;
+        this.departureTime = departureTime;
+        this.arrivalTime = arrivalTime;
+        this.traverseModes = traverseModes;
+        this.maxWalkDistance = maxWalkDistance;
+        this.nrSeats = nrSeats; 
     }
 
 	public GeoLocation getFrom() {
@@ -64,31 +91,58 @@ public class TripPlan {
 		this.itineraries = itineraries;
 	}
 
-	
-	public OffsetDateTime getRequestedDepartureTime() {
-		return requestedDepartureTime;
+	public Instant getDepartureTime() {
+		return departureTime;
 	}
 
-	public void setRequestedDepartureTime(OffsetDateTime requestedDepartureTime) {
-		this.requestedDepartureTime = requestedDepartureTime;
+	public void setDepartureTime(Instant departureTime) {
+		this.departureTime = departureTime;
 	}
 
-	public OffsetDateTime getRequestedArrivalTime() {
-		return requestedArrivalTime;
+	public Instant getArrivalTime() {
+		return arrivalTime;
 	}
 
-	public void setRequestedArrivalTime(OffsetDateTime requestedArrivalTime) {
-		this.requestedArrivalTime = requestedArrivalTime;
+	public void setArrivalTime(Instant arrivalTime) {
+		this.arrivalTime = arrivalTime;
 	}
 
-	private String formatTime(OffsetDateTime dt) {
-    	return dt != null ? DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(dt) : "";
+	public TraverseMode[] getTraverseModes() {
+		return traverseModes;
+	}
+
+	public void setTraverseModes(TraverseMode[] traverseModes) {
+		this.traverseModes = traverseModes;
+	}
+
+	public Integer getMaxWalkDistance() {
+		return maxWalkDistance;
+	}
+
+	public void setMaxWalkDistance(Integer maxWalkDistance) {
+		this.maxWalkDistance = maxWalkDistance;
+	}
+
+	public Integer getNrSeats() {
+		return nrSeats;
+	}
+
+	public void setNrSeats(Integer nrSeats) {
+		this.nrSeats = nrSeats;
+	}
+
+//	private String formatTime(OffsetDateTime dt) {
+//    	return dt != null ? DateTimeFormatter.ISO_OFFSET_DATE_TIME.format(dt) : "*";
+//    }
+
+	private String formatTime(Instant instant) {
+    	return instant != null ? DateTimeFormatter.ISO_INSTANT.format(instant) : "*";
     }
     
     @Override
 	public String toString() {
-		return String.format("TripPlan [<%s, %s> from %s to %s \n\t%s]", 
-				formatTime(requestedDepartureTime), formatTime(requestedArrivalTime), from, to, 
+		return String.format("TripPlan [%s - %s from %s to %s \n\t%s]", 
+				formatTime(departureTime), formatTime(arrivalTime), from, to, 
 				itineraries.stream().map(i -> i.toString()).collect(Collectors.joining("\n\t")));
 	}
 

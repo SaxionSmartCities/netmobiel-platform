@@ -1,10 +1,12 @@
 package eu.netmobiel.planner.model;
 
+/**
+ * Trips and legs have a state when persisted.
+ * 
+ * @author Jaap Reitsma
+ *
+ */
 public enum TripState {
-	/**
-	 * A possible itinerary is returned from the planner.
-	 */
-	ITINERARY("ITN"),
 	/**
 	 * A trip is being planned, i.e. departure and destination places are known, departure or arrival time too, but not all means of transport are known yet.
 	 */

@@ -1,10 +1,6 @@
 package eu.netmobiel.planner.model;
 
 import java.util.Arrays;
-import java.util.Collections;
-import java.util.EnumSet;
-import java.util.HashMap;
-import java.util.Set;
 
 public enum TraverseMode {
     AIRPLANE("AP"),
@@ -17,13 +13,11 @@ public enum TraverseMode {
     GONDOLA("GD"), 
     LEG_SWITCH("LS"),
     RAIL("RL"), 
+    RIDESHARE("RS"), 
     SUBWAY("SW"), 
     TRAM("TM"), 
     TRANSIT("TS"), 
     WALK("WK");
-
-    private static HashMap <Set<TraverseMode>, Set<TraverseMode>> setMap = 
-            new HashMap <Set<TraverseMode>, Set<TraverseMode>>();
 
 	private String code;
 	 
@@ -35,20 +29,6 @@ public enum TraverseMode {
         return code;
     }
 
-    public static Set<TraverseMode> internSet (Set<TraverseMode> modeSet) {
-        if (modeSet == null)
-            return null;
-        Set<TraverseMode> ret = setMap.get(modeSet);
-        if (ret == null) {
-            EnumSet<TraverseMode> backingSet = EnumSet.noneOf(TraverseMode.class);
-            backingSet.addAll(modeSet);
-            Set<TraverseMode> unmodifiableSet = Collections.unmodifiableSet(backingSet);
-            setMap.put(unmodifiableSet, unmodifiableSet);
-            ret = unmodifiableSet;
-        }
-        return ret;
-    }
-
     public boolean isTransit() {
         return this == TRAM || this == SUBWAY || this == RAIL || this == BUS || this == FERRY
                 || this == CABLE_CAR || this == GONDOLA || this == FUNICULAR || this == TRANSIT
@@ -56,16 +36,17 @@ public enum TraverseMode {
     }
 
     public boolean isOnStreetNonTransit() {
-        return this == WALK || this == BICYCLE || this == CAR;
+        return this == WALK || this == BICYCLE || this == CAR || this == RIDESHARE;
     }
     
     public boolean isDriving() {
-        return this == CAR;
+        return this == CAR || this == RIDESHARE;
     }
 
     public static boolean containsTransit(TraverseMode[] modes) {
     	return Arrays.stream(modes)
     			.filter(m -> m.isTransit())
-    			.count() > 0;
+    			.findAny()
+    			.isPresent();
     }
 }

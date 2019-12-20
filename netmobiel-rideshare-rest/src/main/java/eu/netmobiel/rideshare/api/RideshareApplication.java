@@ -29,7 +29,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.Version;
 import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
-import eu.netmobiel.commons.jaxrs.LocalDataParamConverterProvider;
+import eu.netmobiel.commons.jaxrs.LocalDateParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
 import eu.netmobiel.rideshare.api.resource.CarLicenseResource;
@@ -82,7 +82,7 @@ public class RideshareApplication extends Application {
         resources.add(SearchResource.class);
         resources.add(TestsResource.class);
         resources.add(UserResource.class);
-        resources.add(LocalDataParamConverterProvider.class);
+        resources.add(LocalDateParamConverterProvider.class);
         resources.add(WebApplicationExceptionMapper.class);
         resources.add(EJBExceptionMapper.class);
         resources.add(SecurityExceptionMapper.class);

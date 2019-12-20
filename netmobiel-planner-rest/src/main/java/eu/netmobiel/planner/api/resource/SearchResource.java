@@ -1,7 +1,7 @@
 package eu.netmobiel.planner.api.resource;
 
-import java.time.LocalDateTime;
-import java.time.format.DateTimeParseException;
+import java.time.OffsetDateTime;
+import java.util.Arrays;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -12,6 +12,8 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.planner.api.SearchApi;
+import eu.netmobiel.planner.api.mapping.TripPlanMapper;
+import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.PlannerManager;
 
@@ -24,32 +26,67 @@ public class SearchResource implements SearchApi {
 	@Inject
     private PlannerManager plannerManager;
 
+    @Inject
+    private TripPlanMapper tripPlanMapper;
+
     public Response searchPlan(
-    		String fromPlace, 
-    		String toPlace, 
-    		String fromDate,
-    		String toDate,
-    		Integer nrSeats,
-    		Integer maxResults,
-    		Integer offset
+    		String from, 
+    		String to, 
+    		OffsetDateTime departureTime,
+    		OffsetDateTime arrivalTime,
+    		String modalities,
+    		Integer maxWalkDistance,
+    		Integer nrSeats
     	) {
+    	
     	TripPlan plan = null;
-    	if (fromPlace == null || (fromDate == null && toDate == null) || toPlace == null) {
-    		throw new BadRequestException("Missing one or more mandatory parameters: fromPlace, toPlace, fromDate or toDate");
-    	} else if (fromPlace != null && toPlace != null && (fromDate != null || toDate != null)) {
+
+    	if (from == null || (departureTime == null && arrivalTime == null) || to == null) {
+    		throw new BadRequestException("Missing one or more mandatory parameters: from, to, departureTime or arrivalTime");
+    	}
+    	TraverseMode[] domainModalities = null;
+    	if (modalities != null) {
+    		domainModalities = parseModalities(modalities);
+    	}
+    	
+    	if (maxWalkDistance != null) {
+    		if (maxWalkDistance < 0) {
+    			throw new BadRequestException("Constraint validation error: maxWalkDistance == null || maxWalkDistance >= 0");
+    		}
+    	} else {
+    		maxWalkDistance = 1000;
+    	}
+    	if (nrSeats != null) {
+    		if (nrSeats < 1) {
+    			throw new BadRequestException("Constraint validation error: nrSeats == null || nrSeats >= 1");
+        	}
+    	} else {
+    		nrSeats = 1;
+    	}
+//    	plan = new TripPlan(GeoLocation.fromString(from), GeoLocation.fromString(to), 
+//		departureTime != null ? departureTime.toInstant() : null, arrivalTime != null ? arrivalTime.toInstant() : null, 
+//				domainModalities, maxWalkDistance, nrSeats);
+//        log.debug("TripPlan: " + plan.toString());
     		try {
-    			LocalDateTime departureDate = fromDate != null ? LocalDateTime.parse(fromDate) : null;
-    			LocalDateTime arrivalDate = toDate != null ? LocalDateTime.parse(toDate) : null;
-	    		plan = plannerManager.searchMultiModal(GeoLocation.fromString(fromPlace), GeoLocation.fromString(toPlace), departureDate, arrivalDate, nrSeats);
+	    		plan = plannerManager.searchMultiModal(GeoLocation.fromString(from), GeoLocation.fromString(to), 
+	    					departureTime == null ? null : departureTime.toInstant(), arrivalTime == null ? null : arrivalTime.toInstant(), 
+	    					domainModalities, maxWalkDistance, nrSeats);
 	    		if (log.isDebugEnabled()) {
 	    			log.debug("Multimodal plan: \n" + plan.toString());
 	    		}
-    		} catch (DateTimeParseException ex) {
-    			throw new BadRequestException("Date parameter has unrecognized format", ex);
     		} catch (IllegalArgumentException ex) {
     			throw new BadRequestException("Input parameter has unrecognized format", ex);
     		}
+    	return Response.ok(tripPlanMapper.map(plan)).build();
+    }
+    
+    private TraverseMode[] parseModalities(String modalities) {
+    	if (modalities == null) {
+    		return null;
     	}
-    	return Response.ok(plan).build();
+    	String modes[] = modalities.split("[,\\s]+");
+    	return Arrays.stream(modes)
+    			.map(m -> TraverseMode.valueOf(m))
+    			.toArray(TraverseMode[]::new);
     }
 }

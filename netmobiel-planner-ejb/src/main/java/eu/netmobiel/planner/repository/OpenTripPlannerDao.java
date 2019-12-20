@@ -1,8 +1,8 @@
 package eu.netmobiel.planner.repository;
 
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.LocalDateTime;
-import java.time.LocalTime;
+import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -81,26 +81,18 @@ public class OpenTripPlannerDao {
         return transfers;
     }
 
-    public TripPlan createPlan(GeoLocation fromPlace, GeoLocation toPlace, LocalDateTime fromDate, LocalDateTime toDate, 
+    public TripPlan createPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant departureTime, Instant arrivalTime, 
     		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, List<GeoLocation> via, Integer maxItineraries) {
-    	boolean useArrivalTime = false;
-    	LocalDate date;
-    	LocalTime time;
-    	if (fromDate != null) {
-    		date = fromDate.toLocalDate();
-    		time = fromDate.toLocalTime();
-    	} else {
-    		useArrivalTime = true;
-    		date = toDate.toLocalDate();
-    		time = toDate.toLocalTime();
-    	}
+    	boolean useArrivalTime = arrivalTime != null ;
+    	LocalDateTime localDateTime = (useArrivalTime ? arrivalTime : departureTime).atZone(ZoneId.systemDefault()).toLocalDateTime();  
     	eu.netmobiel.opentripplanner.api.model.TraverseMode[] otpModes = Arrays
     			.stream(modes)
     			.map(m -> eu.netmobiel.opentripplanner.api.model.TraverseMode.valueOf(m.name()))
     			.toArray(eu.netmobiel.opentripplanner.api.model.TraverseMode[]::new);
     	GeoLocation otpVia[] = via == null ? null : via.toArray(new GeoLocation[via.size()]);
     	eu.netmobiel.opentripplanner.api.model.TripPlan plan = 
-    			otpClient.createPlan(fromPlace, toPlace, date, time, useArrivalTime, otpModes, showIntermediateStops, maxWalkDistance, otpVia, maxItineraries);
+    			otpClient.createPlan(fromPlace, toPlace, localDateTime.toLocalDate(), localDateTime.toLocalTime(), 
+    					useArrivalTime, otpModes, showIntermediateStops, maxWalkDistance, otpVia, maxItineraries);
 		return tripPlanMapper.map(plan);
     }
 }

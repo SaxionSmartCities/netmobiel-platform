@@ -1,7 +1,6 @@
 package eu.netmobiel.rideshare;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Disposes;
 import javax.enterprise.inject.Produces;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
@@ -26,9 +25,5 @@ public class Resources {
     @Produces
     @PersistenceContext(unitName = "pu-rideshare")
     private EntityManager em;
-
-	public void close(@Disposes @RideshareDatabase EntityManager entityManager) {
-        entityManager.close();
-    }
 
 }
