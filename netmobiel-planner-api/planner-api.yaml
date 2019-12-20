@@ -624,9 +624,8 @@ components:
           description: The total duration of the leg in seconds.
           type: integer
         distance:
-          format: float
           description: The distance travelled in meters.
-          type: number
+          type: integer
         from:
           $ref: '#/components/schemas/Stop'
           description: Departure location.
@@ -646,6 +645,7 @@ components:
           - GONDOLA
           - LEG_SWITCH
           - RAIL
+          - RIDESHARE
           - SUBWAY
           - TRAM
           - TRANSIT
@@ -690,8 +690,10 @@ components:
           $ref: '#/components/schemas/EncodedPolyline'
           description: An encoded description of the leg in GPS coordinates.
         walkSteps:
-          $ref: '#/components/schemas/WalkStep'
           description: A list of steps to get at the destination of this leg.
+          type: array
+          items:
+            $ref: '#/components/schemas/WalkStep'
       example:
         distance: 152
         duration: 123
