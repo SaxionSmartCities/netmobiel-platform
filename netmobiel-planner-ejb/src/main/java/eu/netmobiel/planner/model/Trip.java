@@ -3,7 +3,6 @@ package eu.netmobiel.planner.model;
 import java.io.Serializable;
 import java.time.Instant;
 import java.time.ZoneId;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 import javax.enterprise.inject.Vetoed;
@@ -39,6 +38,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 				@NamedAttributeNode(value = "stops"),		
 				@NamedAttributeNode(value = "legs", subgraph = "leg-details")		
 		}, subgraphs = {
+				// Without this subgraph no leg details are retrieved
 				@NamedSubgraph(
 						name = "leg-details",
 						attributeNodes = {
