@@ -9,7 +9,7 @@ public class PlannerError {
     
     public int    id;
     public String msg;
-    public String message;
+    public Message message;
     public List<String> missing = null;
     public boolean noPath = false;
 

@@ -7,7 +7,9 @@ import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
+import java.util.Iterator;
 import java.util.List;
+import java.util.ListIterator;
 import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Vetoed;
@@ -43,7 +45,6 @@ public class Itinerary implements Serializable {
     @Column(name = "departure_time", nullable = false)
     private Instant departureTime;
 
-    @NotNull
     @Column(name = "arrival_time", nullable = false)
     private Instant arrivalTime;
 
@@ -82,9 +83,17 @@ public class Itinerary implements Serializable {
     private Integer walkDistance;
 
     /**
-     * The legs in this itinerary.
+     * The stops (vertices) in this itinerary.
      */
-	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.EAGER)
+	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	@JoinColumn(name = "trip", foreignKey = @ForeignKey(name = "stop_trip_fk"))
+	@OrderColumn(name = "stop_ix")
+	private List<Stop> stops;
+
+	/**
+     * The legs (edges) in this itinerary.
+     */
+	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	@JoinColumn(name = "trip", foreignKey = @ForeignKey(name = "leg_trip_fk"))
 	@OrderColumn(name = "leg_ix")
 	private List<Leg> legs;
@@ -170,6 +179,14 @@ public class Itinerary implements Serializable {
 		this.walkDistance = walkDistance;
 	}
 
+	public List<Stop> getStops() {
+		return stops;
+	}
+
+	public void setStops(List<Stop> stops) {
+		this.stops = stops;
+	}
+
 	public List<Leg> getLegs() {
 		return legs;
 	}
@@ -208,35 +225,54 @@ public class Itinerary implements Serializable {
     private String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
     }
-    
+
+    public String toStringCompact() {
+		StringBuilder builder = new StringBuilder();
+		if (duration != null) {
+			builder.append("Duration ").append(duration).append("s ");
+		}
+		if (walkTime != null) {
+			builder.append("Walk ").append(walkTime).append("s ");
+		}
+		if (walkDistance != null) {
+			builder.append(Math.round(walkDistance)).append("m ");
+		}
+		if (transitTime != null) {
+			builder.append("Transit ").append(transitTime).append("s ");
+		}
+		if (waitingTime != null) {
+			builder.append("Waiting ").append(waitingTime).append("s ");
+		}
+		if (transfers != null) {
+			builder.append("Transfers ").append(transfers).append(" ");
+		}
+//		builder.append("\n");
+		if (legs != null) {
+//			builder.append("\t\t").append(legs.stream().map(leg -> leg.toString()).collect(Collectors.joining("\n\t\t")));
+			Stop previous = null;
+			for (Leg leg : legs) {
+				if (previous == null) {
+					builder.append("\n\t\t").append(leg.getFrom());
+				} else if (! previous.equals(leg.getFrom())) {
+					builder.append("\n\t\t").append(leg.getFrom());
+				}
+				builder.append("\n\t\t\t").append(leg);
+				builder.append("\n\t\t").append(leg.getTo());
+				previous = leg.getTo();
+			}
+		}
+		return builder.toString();
+    }
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("Itinerary [");
+		builder.append("Itinerary ");
 		if (score != null) {
 			builder.append(String.format("%.1f", score)).append(" *** ");
 		}
 		builder.append(formatTime(departureTime)).append(" ");
 		builder.append(formatTime(arrivalTime)).append(" ");
-		builder.append(duration).append(" [s] ");
-		builder.append("Walk ").append(walkTime).append("s ");
-		if (walkDistance != null) {
-			builder.append(Math.round(walkDistance)).append("m ");
-		}
-		if (transitTime > 0) {
-			builder.append("transit ").append(transitTime).append("s ");
-		}
-		if (waitingTime > 0) {
-			builder.append("waiting ").append(waitingTime).append("s ");
-		}
-		if (transfers != null && transfers > 0) {
-			builder.append("transfers=").append(transfers).append(" ");
-		}
-		builder.append("\n");
-		if (legs != null) {
-			builder.append("\t\t").append(legs.stream().map(i -> i.toString()).collect(Collectors.joining("\n\t\t")));
-		}
-		builder.append("]");
+		builder.append(toStringCompact());
 		return builder.toString();
 	}
 

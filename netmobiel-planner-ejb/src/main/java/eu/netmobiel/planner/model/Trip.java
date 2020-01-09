@@ -1,6 +1,9 @@
 package eu.netmobiel.planner.model;
 
 import java.io.Serializable;
+import java.time.Instant;
+import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 import javax.enterprise.inject.Vetoed;
@@ -18,7 +21,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedSubgraph;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -28,7 +33,21 @@ import javax.validation.constraints.Size;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
-@NamedEntityGraph
+@NamedEntityGraph(
+		name = Trip.LIST_TRIPS_ENTITY_GRAPH, 
+		attributeNodes = { 
+				@NamedAttributeNode(value = "stops"),		
+				@NamedAttributeNode(value = "legs", subgraph = "leg-details")		
+		}, subgraphs = {
+				@NamedSubgraph(
+						name = "leg-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "walkSteps")
+						}
+					)
+				}
+
+	)
 @Entity
 @Table(name = "trip")
 @Vetoed
@@ -37,6 +56,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 public class Trip extends Itinerary implements Serializable {
 
 	private static final long serialVersionUID = -3789784762166689720L;
+	public static final String LIST_TRIPS_ENTITY_GRAPH = "list-trips-graph";
 
 	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix("trip");
 	
@@ -147,13 +167,22 @@ public class Trip extends Itinerary implements Serializable {
 	public void setTo(GeoLocation to) {
 		this.to = to;
 	}
+	
+//    private String formatTime(Instant instant) {
+//    	return DateTimeFormatter.ISO_DATE_TIME.format(instant.atOffset(ZoneOffset.UTC).toLocalDateTime());
+//    }
+
+    private String formatTime(Instant instant) {
+    	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
+    }
 
 	@Override
 	public String toString() {
-		return String.format("Trip [%s %s D %s A %s from %s to %s]",
-				travellerRef, state.name(), 
-				DateTimeFormatter.ISO_DATE_TIME.format(getDepartureTime()), DateTimeFormatter.ISO_DATE_TIME.format(getArrivalTime()),
-				getFrom().toString(), getTo().toString());
+		return String.format("Trip %s %s D %s A %s from %s to %s\n\t%s",
+				getTravellerRef(), state.name(), 
+				formatTime(getDepartureTime()), formatTime(getArrivalTime()),
+				getFrom().toString(), getTo().toString(),
+				super.toStringCompact());
 	}
 
 

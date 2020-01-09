@@ -63,7 +63,7 @@ public class UserManagerIT {
             .addAsResource("META-INF/test-persistence.xml", "META-INF/persistence.xml")
             .addAsResource("import.sql")
             .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
-		System.out.println(archive.toString(true));
+//		System.out.println(archive.toString(true));
 		return archive;
     }
 

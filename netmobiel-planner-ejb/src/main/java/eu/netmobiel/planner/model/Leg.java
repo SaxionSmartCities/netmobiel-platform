@@ -2,7 +2,6 @@ package eu.netmobiel.planner.model;
 
 
 import java.io.Serializable;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -12,17 +11,17 @@ import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Basic;
-import javax.persistence.CascadeType;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
 import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.OneToOne;
+import javax.persistence.ManyToOne;
 import javax.persistence.OrderColumn;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
@@ -49,18 +48,6 @@ public class Leg implements Serializable {
     private Long id;
 
     /**
-     * The date and time this leg begins.
-     */
-    @Column(name = "start_time")
-    private Instant startTime;
-    
-    /**
-     * The date and time this leg ends.
-     */
-    @Column(name = "end_time")
-    private Instant endTime;
-    
-    /**
      * The duration of the leg in seconds (in general endTime - startTime).
      */
     @Basic
@@ -69,15 +56,15 @@ public class Leg implements Serializable {
     /**
     * The Place where the leg originates. Note: 'from' is a reserved keyword in Postgres.
     */
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "from_stop", foreignKey = @ForeignKey(name = "leg_stop_from_fk"))
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "from_stop", foreignKey = @ForeignKey(name = "leg_from_stop_fk"))
     private Stop from;
    
    /**
     * The Place where the leg begins.
     */
-    @OneToOne(cascade = CascadeType.ALL, orphanRemoval = true)
-    @JoinColumn(name = "to_stop", foreignKey = @ForeignKey(name = "leg_stop_to_fk"))
+    @ManyToOne(fetch = FetchType.EAGER)
+    @JoinColumn(name = "to_stop", foreignKey = @ForeignKey(name = "leg_to_stop_fk"))
     private Stop to;
 
     /**
@@ -98,6 +85,11 @@ public class Leg implements Serializable {
     @Column(name = "agency_name", length = 32)
     private String agencyName;
 
+    /**
+     * The timezone offset of the agency in milliseconds.
+     */
+    @Column(name = "agency_time_zone_offset")
+    private Integer agencyTimeZoneOffset;
     /**
      * For transit legs, the type of the route. Non transit -1
      * When 0-7: 0 Tram, 1 Subway, 2 Train, 3 Bus, 4 Ferry, 5 Cable Car, 6 Gondola, 7 Funicular
@@ -205,11 +197,10 @@ public class Leg implements Serializable {
     }
 
     public Leg(Leg other) {
-		this.startTime = other.startTime;
-		this.endTime = other.endTime;
 		this.distance = other.distance;
 		this.traverseMode = other.traverseMode;
 		this.agencyName = other.agencyName;
+		this.agencyTimeZoneOffset = other.agencyTimeZoneOffset;
 		this.routeType = other.routeType;
 		this.routeId = other.routeId;
 		this.headsign = other.headsign;
@@ -240,19 +231,11 @@ public class Leg implements Serializable {
 	}
 
 	public Instant getStartTime() {
-		return startTime;
-	}
-
-	public void setStartTime(Instant startTime) {
-		this.startTime = startTime;
+		return getFrom().getDepartureTime();
 	}
 
 	public Instant getEndTime() {
-		return endTime;
-	}
-
-	public void setEndTime(Instant endTime) {
-		this.endTime = endTime;
+		return getTo().getArrivalTime();
 	}
 
 	public Stop getFrom() {
@@ -293,6 +276,14 @@ public class Leg implements Serializable {
 
 	public void setAgencyName(String agencyName) {
 		this.agencyName = agencyName;
+	}
+
+	public Integer getAgencyTimeZoneOffset() {
+		return agencyTimeZoneOffset;
+	}
+
+	public void setAgencyTimeZoneOffset(Integer agencyTimeZoneOffset) {
+		this.agencyTimeZoneOffset = agencyTimeZoneOffset;
 	}
 
 	public Integer getRouteType() {
@@ -407,6 +398,10 @@ public class Leg implements Serializable {
 		this.intermediateStops = intermediateStops;
 	}
 
+	public Integer getDuration() {
+		return duration;
+	}
+
 	public void setDuration(Integer duration) {
 		this.duration = duration;
 	}
@@ -427,28 +422,12 @@ public class Leg implements Serializable {
         return traverseMode == null ? null : traverseMode.isTransit();
     }
     
-    /** 
-     * The leg's duration in seconds
-     */
-    public double getDuration() {
-        return Duration.between(startTime, endTime).getSeconds();
-    }
-
-    private String formatTime(Instant instant) {
-    	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
-    }
-    
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("Leg [");
-		builder.append(formatTime(startTime)).append(" ");
-		builder.append(formatTime(endTime)).append(" ");
-		builder.append(getDuration()).append("s");
-		
-		builder.append("\n\t\t\tFrom ").append(from).append(" ");
-		builder.append("To ").append(to).append(" ");
-		builder.append(Math.round(distance)).append("m").append(" ");
+		builder.append("Leg ");
+		builder.append(duration).append("s ");
+		builder.append(distance).append("m ");
 		builder.append(traverseMode).append(" ");
 		if (routeShortName != null) {
 			builder.append(routeShortName).append(" ");
@@ -466,8 +445,9 @@ public class Leg implements Serializable {
 		if (intermediateStops != null && !intermediateStops.isEmpty()) {
 			builder.append("\n\t\t\t").append(intermediateStops.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t\t\t"))).append("");
 		}
-		
-		builder.append("]");
+		if (walkSteps != null && !walkSteps.isEmpty()) {
+			builder.append("\n\t\t\t\t").append(walkSteps.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t\t\t\t"))).append("");
+		}
 		return builder.toString();
 	}
     

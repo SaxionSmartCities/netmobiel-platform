@@ -3,6 +3,7 @@ package eu.netmobiel.planner.repository;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -12,15 +13,23 @@ import javax.inject.Inject;
 import javax.json.JsonObject;
 import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
+import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.opentripplanner.api.model.PlanResponse;
 import eu.netmobiel.opentripplanner.client.OpenTripPlannerClient;
+import eu.netmobiel.planner.model.Itinerary;
+import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.OtpCluster;
 import eu.netmobiel.planner.model.OtpRoute;
 import eu.netmobiel.planner.model.OtpStop;
 import eu.netmobiel.planner.model.OtpTransfer;
+import eu.netmobiel.planner.model.Stop;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.repository.mapping.TripPlanMapper;
@@ -81,18 +90,67 @@ public class OpenTripPlannerDao {
         return transfers;
     }
 
+    /**
+     * Call the OTP the create a trip plan with a number of possible itineraries.
+     * @param fromPlace The place to depart from.
+     * @param toPlace the intended place of arrival.
+     * @param departureTime the departure time. This is an instant, i.e. a precise moment in time.
+     * @param arrivalTime the intended arrival time. This is an instant, i.e. a precise moment in time.
+     * @param modes An array of traversel modes like rail, bus etc.
+     * @param showIntermediateStops if true then list the intermediate stops too.
+     * @param maxWalkDistance the maximum distance to walk to and from transfers.
+     * @param via a list of places that must be part of the itineraries.
+     * @param maxItineraries The maximum number of itineraries to list.
+     * @return A trip plan with 1 or more itineraries.
+     * @throws NotFoundException When no itinerary could be found. 
+     * @throws BadRequestException When the planner cannot plan due to the combination of parameters.
+     */
     public TripPlan createPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant departureTime, Instant arrivalTime, 
-    		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, List<GeoLocation> via, Integer maxItineraries) {
-    	boolean useArrivalTime = arrivalTime != null ;
+    		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, List<GeoLocation> via, Integer maxItineraries) 
+    				throws NotFoundException, BadRequestException {
+    	boolean useArrivalTime = arrivalTime != null;
     	LocalDateTime localDateTime = (useArrivalTime ? arrivalTime : departureTime).atZone(ZoneId.systemDefault()).toLocalDateTime();  
     	eu.netmobiel.opentripplanner.api.model.TraverseMode[] otpModes = Arrays
     			.stream(modes)
     			.map(m -> eu.netmobiel.opentripplanner.api.model.TraverseMode.valueOf(m.name()))
     			.toArray(eu.netmobiel.opentripplanner.api.model.TraverseMode[]::new);
     	GeoLocation otpVia[] = via == null ? null : via.toArray(new GeoLocation[via.size()]);
-    	eu.netmobiel.opentripplanner.api.model.TripPlan plan = 
-    			otpClient.createPlan(fromPlace, toPlace, localDateTime.toLocalDate(), localDateTime.toLocalTime(), 
+    	PlanResponse result = otpClient.createPlan(fromPlace, toPlace, localDateTime.toLocalDate(), localDateTime.toLocalTime(), 
     					useArrivalTime, otpModes, showIntermediateStops, maxWalkDistance, otpVia, maxItineraries);
-		return tripPlanMapper.map(plan);
+		if (result.error != null) {
+			String msg = String.format("OTP Planner Error: %s - %s", result.error.message, result.error.msg);
+			if (result.error.missing != null && result.error.missing.size() > 0) {
+				msg = String.format("%s Missing parameters [ %s ]", msg, String.join(",", result.error.missing));
+			}
+			if (result.error.message.getStatus().getStatusCode() >= 500) {
+				throw new SystemException(msg);
+			} else if (result.error.message.getStatus() == Response.Status.NOT_FOUND) {
+				throw new NotFoundException(msg);
+			} else {
+				throw new BadRequestException(msg);
+			}
+		}
+		TripPlan plan = tripPlanMapper.map(result.plan);
+		// Replace the leg list structure with a linear graph
+		plan.getItineraries().forEach(it -> transformIntoLinearGraph(it));
+		return plan;
+    }
+    
+    private void transformIntoLinearGraph(Itinerary itinerary) {
+    	Stop previous = null;
+    	for (Leg leg: itinerary.getLegs()) {
+    		if (previous == null) {
+    			itinerary.setStops(new ArrayList<>());
+    			itinerary.getStops().add(leg.getFrom());
+    		} else if (! previous.equals(leg.getFrom() )) {
+    			log.warn(String.format("Leg connecting stop inconsistency detected: Last stop was %s, From stop is %s", previous.toString(), leg.getFrom().toString()));
+    			// Hmmm ok keep the hole then
+    			itinerary.getStops().add(leg.getFrom());
+    		} else {
+    			leg.setFrom(previous);
+    		}
+			itinerary.getStops().add(leg.getTo());
+    		previous = leg.getTo();
+		}
     }
 }

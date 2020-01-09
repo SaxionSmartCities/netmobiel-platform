@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
@@ -176,7 +177,7 @@ public class Stop implements Serializable {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("Stop [");
+		builder.append("Stop ");
 		builder.append(location.toString()).append(" ");
 		if (arrivalTime != null) {
 			builder.append("A ").append(formatTime(arrivalTime)).append(" ");
@@ -184,7 +185,39 @@ public class Stop implements Serializable {
 		if (departureTime != null) {
 			builder.append("D ").append(formatTime(departureTime));
 		}
-		builder.append("]");
+		if (stopId != null) {
+			builder.append(" ").append(stopId);
+		}
+		if (stopCode != null) {
+			builder.append(" ").append(stopCode);
+		}
+		if (platformCode != null) {
+			builder.append(" ").append(platformCode);
+		}
 		return builder.toString();
 	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(arrivalTime, departureTime, location, platformCode, stopCode, stopId);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		Stop other = (Stop) obj;
+		return Objects.equals(arrivalTime, other.arrivalTime) && Objects.equals(departureTime, other.departureTime)
+				&& Objects.equals(location, other.location) && Objects.equals(platformCode, other.platformCode)
+				&& Objects.equals(stopCode, other.stopCode) && Objects.equals(stopId, other.stopId);
+	}
+
+	
 }

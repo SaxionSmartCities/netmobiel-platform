@@ -20,6 +20,9 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
@@ -67,11 +70,12 @@ public class PlannerManager {
     	return null;
     }
     
-    private List<GeoLocation> filterIntermediatePlaces(Ride ride, GeoLocation[] places) {
+    private List<GeoLocation> filterIntermediatePlaces(Ride ride, GeoLocation[] places, int distanceInMeters) {
+    	double distanceInKm = distanceInMeters / 1000.0;
     	GeoLocation from = ride.getRideTemplate().getFromPlace().getLocation();
     	GeoLocation to = ride.getRideTemplate().getToPlace().getLocation();
     	return Arrays.stream(places)
-				.filter(loc -> loc.getDistanceFlat(from) > 0.020 && loc.getDistanceFlat(to) > 0.020)
+				.filter(loc -> loc.getDistanceFlat(from) > distanceInKm && loc.getDistanceFlat(to) > distanceInKm)
 			.collect(Collectors.toList());
     }
     
@@ -107,11 +111,11 @@ public class PlannerManager {
     	LocalDateTime startldt = (fromDate != null ? fromDate : toDate).atZone(ZoneId.systemDefault()).toLocalDateTime();
     	LocalDateTime endldt = (fromDate != null ? fromDate : toDate).atZone(ZoneId.systemDefault()).toLocalDateTime();
     	
-    	LocalDateTime start = startldt.toLocalDate().atStartOfDay();
-    	LocalDateTime end = endldt.toLocalDate().atStartOfDay().plusDays(1);
-    	List<Ride> rides = rideManager.search(fromPlace, toPlace,  start, end, nrSeats, 10, 0);
+    	LocalDateTime startOfDay = startldt.toLocalDate().atStartOfDay();
+    	LocalDateTime endOfDay = endldt.toLocalDate().atStartOfDay().plusDays(1);
+    	List<Ride> rides = rideManager.search(fromPlace, toPlace,  startOfDay, endOfDay, nrSeats, 10, 0);
     	// These are potential candidates. Now try to determine the complete route, including the intermediate places for pickup and dropoff
-    	// The passenger is only involved in some (one) of the legs: the pickup and drop-off.
+    	// The passenger is only involved in some (one) of the legs: the pickup or the drop-off. We assume the car is for the first or last mile.
     	// What if the pickup point and the driver's departure point are the same? A test revealed that we get an error TOO_CLOSE. Silly.
     	// So... Add intermediatePlaces only if far enough away. How far? More than 10 meter, let's take 20 meter.
     	
@@ -119,7 +123,7 @@ public class PlannerManager {
     	for (Ride ride : rides) {
     		RideTemplate ride_t = ride.getRideTemplate(); 
     		// Only accept intermediateLocations that are far enough away from departure and arrival of rider. 
-    		List<GeoLocation> intermediatePlaces = filterIntermediatePlaces(ride, new GeoLocation[] { fromPlace, toPlace });
+    		List<GeoLocation> intermediatePlaces = filterIntermediatePlaces(ride, new GeoLocation[] { fromPlace, toPlace }, 20);
     		// Use always the riders departure time. The itineraries will be scored later on.
         	GeoLocation from = ride_t.getFromPlace().getLocation();
         	GeoLocation to = ride_t.getToPlace().getLocation();
@@ -128,6 +132,11 @@ public class PlannerManager {
         	try {
             	ridePlan = otpDao.createPlan(from, to, ride.getDepartureTime().atZone(ZoneId.systemDefault()).toInstant(),  null, 
             			modes, false, maxWalkDistance, intermediatePlaces, 1);
+            	ridePlan.setDepartureTime(fromDate);
+            	ridePlan.setArrivalTime(toDate);
+            	ridePlan.setMaxWalkDistance(maxWalkDistance);
+            	ridePlan.setNrSeats(nrSeats);
+            	ridePlan.setTraverseModes(modes);
         	}  catch(Exception ex) {
         		log.error(ex.toString());
         		log.warn("Skip itinerary due to OTP error: " + 
@@ -172,6 +181,7 @@ public class PlannerManager {
             			leg.setVehicleId(ride_t.getCarRef());
             			leg.setVehicleLicensePlate(ride_t.getCar().getLicensePlate());
             			leg.setVehicleName(ride_t.getCar().getName());
+            			leg.setTraverseMode(TraverseMode.RIDESHARE);
             		});
     	        	itineraries.add(passengerRideIt);
             	}
@@ -191,7 +201,7 @@ public class PlannerManager {
      * @param toPlace The destination of the passenger
      * @param fromDate The (intended) departure time. Specify either departure or arrival time. 
      * @param toDate The (intended) arrival time. Specify either departure or arrival time.
-     * @param maxWalkDistance The number of seats the passenger wants to use in a car.
+     * @param maxWalkDistance The maximum distance the passenger is prepared to walk.
      * @param nrSeats The number of seats the passenger wants to use in a car.
      * @return
      */
@@ -204,14 +214,23 @@ public class PlannerManager {
     	}
 
     	// Get a reference route for the passenger
-    	TripPlan thePlan = otpDao.createPlan(fromPlace, toPlace, fromDate,  toDate, 
-    			new TraverseMode[] { TraverseMode.WALK, TraverseMode.TRANSIT }, false, maxWalkDistance, null, null);
+    	TripPlan thePlan = null;
+		try {
+			thePlan = otpDao.createPlan(fromPlace, toPlace, fromDate,  toDate, 
+					new TraverseMode[] { TraverseMode.WALK, TraverseMode.TRANSIT }, false, maxWalkDistance, null, null);
+		} catch (NotFoundException e) {
+			log.warn(String.format("No reference plan found from %s to %s - %s", fromPlace, toPlace, e.getMessage()));
+			thePlan = new TripPlan();
+			thePlan.setFrom(fromPlace);
+			thePlan.setTo(toPlace);
+		} catch (BadRequestException e) {
+			throw new SystemException("No reference plan found", e);
+		}
 		thePlan.setArrivalTime(toDate);
 		thePlan.setDepartureTime(fromDate);
+		thePlan.setTraverseModes(modalities);
 		thePlan.setNrSeats(nrSeats);
 		thePlan.setMaxWalkDistance(maxWalkDistance);
-		thePlan.setNrSeats(nrSeats);
-		
 
     	if (log.isDebugEnabled()) {
     		log.debug("Reference plan: \n" + thePlan.toString());

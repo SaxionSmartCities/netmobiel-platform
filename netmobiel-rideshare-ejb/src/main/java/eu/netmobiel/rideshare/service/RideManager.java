@@ -18,13 +18,14 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.EllipseHelper;
-import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
+import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.opentripplanner.api.model.Leg;
+import eu.netmobiel.opentripplanner.api.model.PlanResponse;
 import eu.netmobiel.opentripplanner.api.model.TraverseMode;
-import eu.netmobiel.opentripplanner.api.model.TripPlan;
 import eu.netmobiel.opentripplanner.client.OpenTripPlannerClient;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.RecurrenceIterator;
@@ -184,21 +185,24 @@ public class RideManager {
     	template.setCarthesianBearing(Math.toIntExact(Math.round(ea.carthesianBearing)));
     	LocalDate date = ride.getDepartureTime().toLocalDate();
     	LocalTime time = ride.getDepartureTime().toLocalTime();
-    	TripPlan plan = otpClient.createPlan(template.getFromPlace().getLocation(), template.getToPlace().getLocation(), 
+    	PlanResponse result = otpClient.createPlan(template.getFromPlace().getLocation(), template.getToPlace().getLocation(), 
     			date, time, false, new TraverseMode[] { TraverseMode.CAR }, false, OTP_MAX_WALK_DISTANCE, null, 1);
-    	if (log.isDebugEnabled()) {
-        	log.debug("Create plan for ride: \n" + plan.toString());
-    	}
-    	if (plan.itineraries.size() > 0 && plan.itineraries.get(0).legs.size() > 0) {
-	    	Leg leg = plan.itineraries.get(0).legs.get(0);
+    	if (result.error != null) {
+			String msg = String.format("Unable to determine reference CAR plan due to OTP Planner Error: %s - %s", result.error.message, result.error.msg);
+			if (result.error.missing != null && result.error.missing.size() > 0) {
+				msg = String.format("%s Missing parameters [ %s ]", msg, String.join(",", result.error.missing));
+			}
+			throw new SystemException(msg);
+    	} else {
+	    	if (log.isDebugEnabled()) {
+	        	log.debug("Create plan for ride: \n" + result.plan.toString());
+	    	}
+	    	Leg leg = result.plan.itineraries.get(0).legs.get(0);
 	    	template.setEstimatedDistance(Math.toIntExact(Math.round(leg.distance)));
 	    	template.setEstimatedDrivingTime(Math.toIntExact(Math.round(leg.getDuration())));
 	    	template.setEstimatedCO2Emission(Math.toIntExact(Math.round(template.getEstimatedDistance() * template.getCar().getCo2Emission() / 1000.0)));
 			ride.updateEstimatedArrivalTime();
-    	} else {
-        	log.warn("Unable to determine reference CAR plan");
-    	}
-    	
+    	}    	
     }
     /**
      * Creates a ride. In case recurrence is set, all following rides are created as well, up to 8 weeks in advance. 

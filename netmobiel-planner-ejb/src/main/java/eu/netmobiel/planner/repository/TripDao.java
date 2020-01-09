@@ -1,6 +1,6 @@
 package eu.netmobiel.planner.repository;
 
-import java.time.LocalDate;
+import java.time.Instant;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
@@ -42,7 +42,7 @@ public class TripDao extends AbstractDao<Trip, Long> {
 		return em;
 	}
 
-    public List<Trip> findByTraveller(User traveller, LocalDate since, LocalDate until, boolean deletedToo, String graphName) {
+    public List<Trip> findByTraveller(User traveller, Instant since, Instant until, boolean deletedToo, String graphName) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Trip> cq = cb.createQuery(Trip.class);
         Root<Trip> trips = cq.from(Trip.class);
@@ -51,11 +51,11 @@ public class TripDao extends AbstractDao<Trip, Long> {
         Predicate predTraveller = cb.equal(trips.get(Trip_.traveller), traveller);
         predicates.add(predTraveller);
         if (since != null) {
-	        Predicate predSince = cb.greaterThanOrEqualTo(trips.get(Trip_.departureTime), since.atStartOfDay().toInstant(ZoneOffset.UTC));
+	        Predicate predSince = cb.greaterThanOrEqualTo(trips.get(Trip_.departureTime), since);
 	        predicates.add(predSince);
         }        
         if (until != null) {
-	        Predicate predUntil = cb.lessThanOrEqualTo(trips.get(Trip_.departureTime), until.atStartOfDay().toInstant(ZoneOffset.UTC));
+	        Predicate predUntil = cb.lessThanOrEqualTo(trips.get(Trip_.departureTime), until);
 	        predicates.add(predUntil);
         }        
         if (! deletedToo) {

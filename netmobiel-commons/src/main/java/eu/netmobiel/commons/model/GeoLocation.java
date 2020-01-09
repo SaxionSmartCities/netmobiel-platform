@@ -2,6 +2,7 @@ package eu.netmobiel.commons.model;
 
 import java.io.Serializable;
 import java.util.Locale;
+import java.util.Objects;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
@@ -353,4 +354,25 @@ public class GeoLocation implements Serializable {
 	public double getInitialBearing(GeoLocation origin) {
 		throw new UnsupportedOperationException();
 	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(label, point);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		GeoLocation other = (GeoLocation) obj;
+		return Objects.equals(label, other.label) && Objects.equals(point, other.point);
+	}
+
 }

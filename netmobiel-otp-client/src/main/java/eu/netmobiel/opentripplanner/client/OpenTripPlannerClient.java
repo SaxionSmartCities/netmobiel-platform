@@ -20,6 +20,7 @@ import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
 import javax.json.JsonReader;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.MediaType;
@@ -35,7 +36,6 @@ import eu.netmobiel.opentripplanner.api.model.Itinerary;
 import eu.netmobiel.opentripplanner.api.model.Leg;
 import eu.netmobiel.opentripplanner.api.model.PlanResponse;
 import eu.netmobiel.opentripplanner.api.model.TraverseMode;
-import eu.netmobiel.opentripplanner.api.model.TripPlan;
 
 @ApplicationScoped
 public class OpenTripPlannerClient {
@@ -76,7 +76,7 @@ public class OpenTripPlannerClient {
 		Entity<?> e = Entity.entity(query, MediaType.APPLICATION_JSON);
 		try (Response response = target.request(MediaType.APPLICATION_JSON).post(e)) {
 			if (response.getStatusInfo() != Response.Status.OK) {
-				throw new RuntimeException("Error retrieving data from OTP - Status " + response.getStatusInfo().toString());
+				throw new WebApplicationException("Error retrieving data from OTP", response);
 			}
 	        result = response.readEntity(String.class);
 		}
@@ -141,7 +141,7 @@ public class OpenTripPlannerClient {
 		}
     }
 
-    public TripPlan createPlan(GeoLocation fromPlace, GeoLocation toPlace, LocalDate date, LocalTime time, boolean useTimeAsArriveBy, 
+    public PlanResponse createPlan(GeoLocation fromPlace, GeoLocation toPlace, LocalDate date, LocalTime time, boolean useTimeAsArriveBy, 
     		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, GeoLocation[] via, Integer maxItineraries) {
 		PlanResponse result = null;
 		boolean forcedDepartureTime = false;
@@ -178,20 +178,20 @@ public class OpenTripPlannerClient {
 		}
 		try (Response response = target.request().get()) {
 			if (response.getStatusInfo() != Response.Status.OK) {
-				throw new RuntimeException("Error retrieving data from OTP - Status " + response.getStatusInfo().toString());
+				throw new WebApplicationException("Error retrieving data from OTP", response);
 			}
 //			response.bufferEntity();
 //			log.debug(JsonHelper.prettyPrint(JsonHelper.parseJson(response.readEntity(String.class))));
 	        result = response.readEntity(PlanResponse.class);
 		}
-		if (result.error != null) {
-			String msg = result.error.msg;
-			if (result.error.missing != null && result.error.missing.size() > 0) {
-				msg = String.format("%s Missing parameters [ %s ]", msg, String.join(",", result.error.missing));
-			}
-			throw new RuntimeException(msg);
-		}
-		if (forcedDepartureTime) {
+//		if (result.error != null) {
+//			String msg = String.format("%s - %s", result.error.message, result.error.msg);
+//			if (result.error.missing != null && result.error.missing.size() > 0) {
+//				msg = String.format("%s Missing parameters [ %s ]", msg, String.join(",", result.error.missing));
+//			}
+//			throw new WebApplicationException(msg, result.error.message.getStatus());
+//		}
+		if (result.plan != null && forcedDepartureTime) {
 			// Shift the plan in time (earlier) so that arrivalTime equals departureTime
 			// The plan header is ok. Just modify itinerary and legs. 
 			for (Itinerary it : result.plan.itineraries) {
@@ -206,6 +206,6 @@ public class OpenTripPlannerClient {
 				}
 			}
 		}
-		return result.plan;
+		return result;
     }
 }
