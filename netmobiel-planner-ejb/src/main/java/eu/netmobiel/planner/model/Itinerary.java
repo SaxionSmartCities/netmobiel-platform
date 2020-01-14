@@ -83,7 +83,7 @@ public class Itinerary implements Serializable {
      * The stops (vertices) in this itinerary.
      */
 	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-	@JoinColumn(name = "trip", foreignKey = @ForeignKey(name = "stop_trip_fk"))
+	@JoinColumn(name = "trip", foreignKey = @ForeignKey(name = "stop_trip_fk"), nullable = false)
 	@OrderColumn(name = "stop_ix")
 	private List<Stop> stops;
 
@@ -91,7 +91,7 @@ public class Itinerary implements Serializable {
      * The legs (edges) in this itinerary.
      */
 	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-	@JoinColumn(name = "trip", foreignKey = @ForeignKey(name = "leg_trip_fk"))
+	@JoinColumn(name = "trip", foreignKey = @ForeignKey(name = "leg_trip_fk"), nullable = false)
 	@OrderColumn(name = "leg_ix")
 	private List<Leg> legs;
 

@@ -55,14 +55,14 @@ public class Leg implements Serializable {
     * The Place where the leg originates. Note: 'from' is a reserved keyword in Postgres.
     */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "from_stop", foreignKey = @ForeignKey(name = "leg_from_stop_fk"))
+    @JoinColumn(name = "from_stop", foreignKey = @ForeignKey(name = "leg_from_stop_fk"), nullable = false)
     private Stop from;
    
    /**
     * The Place where the leg begins.
     */
     @ManyToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "to_stop", foreignKey = @ForeignKey(name = "leg_to_stop_fk"))
+    @JoinColumn(name = "to_stop", foreignKey = @ForeignKey(name = "leg_to_stop_fk"), nullable = false)
     private Stop to;
 
     /**
@@ -180,6 +180,7 @@ public class Leg implements Serializable {
     /**
      * For transit legs, intermediate stops between the Place where the leg originates and the Place where the leg ends.
      * For non-transit legs, null.
+     * In the model we do not save the intermediate stops.
      */
 	@Transient
     public List<Stop> intermediateStops;
