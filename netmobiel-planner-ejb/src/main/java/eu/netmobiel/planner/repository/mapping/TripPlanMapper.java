@@ -3,10 +3,16 @@ package eu.netmobiel.planner.repository.mapping;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 
+import javax.inject.Inject;
+
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
+import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.opentripplanner.api.model.Itinerary;
@@ -17,18 +23,23 @@ import eu.netmobiel.opentripplanner.api.model.WalkStep;
 import eu.netmobiel.planner.model.Stop;
 
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
-public interface TripPlanMapper {
-    @Mapping(target = "departureTime", ignore = true)
+public abstract class TripPlanMapper {
+	@Inject
+	private Logger log;
+//    private static final Logger log = LoggerFactory.getLogger(TripPlanMapper.class);
+
+	@Mapping(target = "departureTime", ignore = true)
     @Mapping(target = "arrivalTime", ignore = true)
     @Mapping(target = "maxWalkDistance", ignore = true)
     @Mapping(target = "nrSeats", ignore = true)
-    eu.netmobiel.planner.model.TripPlan map(TripPlan source );
+    @Mapping(target = "traverseModes", ignore = true)
+    public abstract eu.netmobiel.planner.model.TripPlan map(TripPlan source );
 
     @Mapping(target = "label", source = "name")
     @Mapping(target = "latitude", source = "lat")
     @Mapping(target = "longitude", source = "lon")
     @Mapping(target = "point", ignore = true)
-    GeoLocation placeToGeoLocation(Place source );
+    public abstract GeoLocation placeToGeoLocation(Place source );
 
     @Mapping(target = "label", source = "name")
     @Mapping(target = "latitude", source = "lat")
@@ -37,12 +48,13 @@ public interface TripPlanMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "arrivalTime", source = "arrival")
     @Mapping(target = "departureTime", source = "departure")
-    Stop placeToStop(Place source);
+    public abstract Stop placeToStop(Place source);
 
     @Mapping(target = "arrivalTime", source = "endTime")
     @Mapping(target = "departureTime", source = "startTime")
     @Mapping(target = "score", ignore = true)
-    eu.netmobiel.planner.model.Itinerary itineraryToItinerary(Itinerary itinerary);
+    @Mapping(target = "stops", ignore = true)
+    public abstract eu.netmobiel.planner.model.Itinerary itineraryToItinerary(Itinerary itinerary);
 
     
     @Mapping(target = "id", ignore = true)
@@ -55,14 +67,40 @@ public interface TripPlanMapper {
     @Mapping(target = "vehicleId", ignore = true)
     @Mapping(target = "vehicleName", ignore = true)
     @Mapping(target = "vehicleLicensePlate", ignore = true)
-    eu.netmobiel.planner.model.Leg legToLeg(Leg leg);
+    public abstract eu.netmobiel.planner.model.Leg legToLeg(Leg leg);
     
     @Mapping(target = "name", source = "streetName")
     @Mapping(target = "latitude", source = "lat")
     @Mapping(target = "longitude", source = "lon")
-    eu.netmobiel.planner.model.WalkStep walkStepToWalkStep(WalkStep step);
+    public abstract eu.netmobiel.planner.model.WalkStep walkStepToWalkStep(WalkStep step);
     
-    default OffsetDateTime map(Instant instant) {
+    public OffsetDateTime map(Instant instant) {
     	return instant.atOffset(ZoneOffset.UTC);
+    }
+
+    @AfterMapping
+    // Replace the leg list structure with a linear graph
+    public eu.netmobiel.planner.model.TripPlan transformIntoLinearGraph(@MappingTarget eu.netmobiel.planner.model.TripPlan plan) {
+    	plan.getItineraries().forEach(it -> transformIntoLinearGraph(it));
+    	log.info("Completed the mapping from OTP");
+    	return plan;
+    }
+
+    private void transformIntoLinearGraph(eu.netmobiel.planner.model.Itinerary itinerary) {
+    	Stop previous = null;
+    	for (eu.netmobiel.planner.model.Leg leg: itinerary.getLegs()) {
+    		if (previous == null) {
+    			itinerary.setStops(new ArrayList<>());
+    			itinerary.getStops().add(leg.getFrom());
+    		} else if (! previous.equals(leg.getFrom() )) {
+    			log.warn(String.format("Leg connecting stop inconsistency detected: Last stop was %s, From stop is %s", previous.toString(), leg.getFrom().toString()));
+    			// Hmmm ok, keep the hole between the legs then, what eolse can we do?
+    			itinerary.getStops().add(leg.getFrom());
+    		} else {
+    			leg.setFrom(previous);
+    		}
+			itinerary.getStops().add(leg.getTo());
+    		previous = leg.getTo();
+		}
     }
 }

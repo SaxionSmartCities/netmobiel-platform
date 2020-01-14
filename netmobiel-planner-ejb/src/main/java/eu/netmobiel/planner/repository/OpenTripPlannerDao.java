@@ -131,26 +131,9 @@ public class OpenTripPlannerDao {
 			}
 		}
 		TripPlan plan = tripPlanMapper.map(result.plan);
-		// Replace the leg list structure with a linear graph
-		plan.getItineraries().forEach(it -> transformIntoLinearGraph(it));
+		plan.setTraverseModes(modes);
+		plan.setMaxWalkDistance(maxWalkDistance);
 		return plan;
     }
     
-    private void transformIntoLinearGraph(Itinerary itinerary) {
-    	Stop previous = null;
-    	for (Leg leg: itinerary.getLegs()) {
-    		if (previous == null) {
-    			itinerary.setStops(new ArrayList<>());
-    			itinerary.getStops().add(leg.getFrom());
-    		} else if (! previous.equals(leg.getFrom() )) {
-    			log.warn(String.format("Leg connecting stop inconsistency detected: Last stop was %s, From stop is %s", previous.toString(), leg.getFrom().toString()));
-    			// Hmmm ok keep the hole then
-    			itinerary.getStops().add(leg.getFrom());
-    		} else {
-    			leg.setFrom(previous);
-    		}
-			itinerary.getStops().add(leg.getTo());
-    		previous = leg.getTo();
-		}
-    }
 }
