@@ -17,7 +17,7 @@ public class OtpBase implements Serializable {
     @Column(name = "id", length = 64)
     private String id;
     
-    @Column(name = "gtfs_id", length = 64, unique = true)
+    @Column(name = "gtfs_id", length = 64)
     private String gtfsId;
     
 

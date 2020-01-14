@@ -12,12 +12,15 @@ import javax.persistence.FetchType;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Transient;
+import javax.persistence.UniqueConstraint;
 
 import eu.netmobiel.opentripplanner.api.model.TransportationType;
 
 @Entity
 @Vetoed
-@Table(name = "otp_cluster")
+@Table(name = "otp_cluster",
+	uniqueConstraints = @UniqueConstraint(name = "otp_cluster_gtfs_id_uc", columnNames= { "gtfs_id" } )
+)
 @Access(AccessType.FIELD)
 public class OtpCluster extends OtpLocatedEntity {
 	private static final long serialVersionUID = -8837056996502612302L;

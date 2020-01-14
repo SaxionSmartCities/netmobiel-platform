@@ -17,13 +17,17 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.Table;
 import javax.persistence.Transient;
+import javax.persistence.UniqueConstraint;
 
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
 @Entity
 @Vetoed
-@Table(name = "otp_stop", indexes = @Index(name = "stop_cluster_ix", columnList = "cluster") )
+@Table(name = "otp_stop", 
+	indexes = @Index(name = "stop_cluster_ix", columnList = "cluster"),
+	uniqueConstraints = @UniqueConstraint(name = "otp_stop_gtfs_id_uc", columnNames= { "gtfs_id" } )
+)
 @Access(AccessType.FIELD)
 public class OtpStop extends OtpLocatedEntity {
 	private static final long serialVersionUID = -8837056996502612302L;
