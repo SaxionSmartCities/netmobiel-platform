@@ -15,6 +15,7 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.planner.model.Trip;
+import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.TripDao;
 
@@ -35,16 +36,16 @@ public class TripManager {
      * List all trips owned by the specified user. Soft deleted trips are omitted.
      * @return A list of trips owned by the specified user.
      */
-    public List<Trip> listTrips(User traveller, Instant since, Instant until) throws BadRequestException {
+    public List<Trip> listTrips(User traveller, Instant since, Instant until, Boolean deletedToo) throws BadRequestException {
     	List<Trip> trips = Collections.emptyList();
 //    	if (since == null) {
 //    		since = Instant.now();
 //    	}
-    	if (until != null && since != null && ! until.isAfter(since)) {
+    	if (until != null && since != null && !until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
     	}
     	if (traveller != null) {
-    		trips = tripDao.findByTraveller(traveller, since, until, false, Trip.LIST_TRIPS_ENTITY_GRAPH);
+    		trips = tripDao.findByTraveller(traveller, since, until, deletedToo, Trip.LIST_TRIPS_ENTITY_GRAPH);
     	}
     	return trips;
     	
@@ -54,8 +55,8 @@ public class TripManager {
      * List all trips owned by  the calling user. Soft deleted trips are omitted.
      * @return A list of trips owned by the calling user.
      */
-    public List<Trip> listMyTrips(Instant since, Instant until) throws BadRequestException {
-    	return listTrips(userManager.findCallingUser(), since, until);
+    public List<Trip> listMyTrips(Instant since, Instant until, Boolean deletedToo) throws BadRequestException {
+    	return listTrips(userManager.findCallingUser(), since, until, deletedToo);
     }
     
     private void validateCreateUpdateTrip(Trip trip)  throws BadRequestException {
@@ -105,32 +106,20 @@ public class TripManager {
     }
     
     /**
-     * Removes a trip. If the trip contains a booked ride, it is soft-deleted. 
-     * If a ride is recurring and the scope is set to <code>this-and-following</code> 
-     * then all following trips are removed as well. The <code>horizon</code> date of the
-     * preceding trips of the same trip, if any, is set to the day of the departure 
-     * date of the ride being deleted.
-     * @param rideId The ride to remove.
-     * @param reason The reason why it was cancelled (optional).
-     * @throws NotFoundException
+     * Removes a trip. Whether or not a trip is soft-deleted or hard-deleted dependson the trip state.
+     * @param tripId The trip to remove.
+     * @throws NotFoundException The trip doesnot exist.
      */
-    public void removeTrip(Long rideId, final String reason) throws NotFoundException {
-    	Trip tripdb = tripDao.find(rideId)
+    public void removeTrip(Long tripId) throws NotFoundException {
+    	Trip tripdb = tripDao.find(tripId)
     			.orElseThrow(NotFoundException::new);
-//    	security.checkOwnership(tripdb.getTraveller(), Trip.class.getSimpleName());
-//    	tripdb.getItinerary().legs.forEach(leg -> {
-//    		if (leg.ride != null) {
-//    			 We have a ride. Cancel it
-//    			rideshareDao.
-//    		}
-//    	});
-//    	if (tripdb.getBookings().size() > 0) {
-//    		// Perform a soft delete
-//    		tripdb.setDeleted(true);
-//    		tripdb.getBookings().forEach(b -> b.markAsCancelled(reason, true));
-//		} else {
-//			tripDao.remove(tripdb);
-//		}
+    	//    	security.checkOwnership(tripdb.getTraveller(), Trip.class.getSimpleName());
+    	if (tripdb.getState() == TripState.PLANNING) {
+    		// Hard delete
+			tripDao.remove(tripdb);
+    	} else {
+    		tripdb.setDeleted(true);
+    	}
     }
  
 }

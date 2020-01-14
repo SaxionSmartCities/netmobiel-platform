@@ -42,7 +42,7 @@ public class TripDao extends AbstractDao<Trip, Long> {
 		return em;
 	}
 
-    public List<Trip> findByTraveller(User traveller, Instant since, Instant until, boolean deletedToo, String graphName) {
+    public List<Trip> findByTraveller(User traveller, Instant since, Instant until, Boolean deletedToo, String graphName) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Trip> cq = cb.createQuery(Trip.class);
         Root<Trip> trips = cq.from(Trip.class);
@@ -55,10 +55,10 @@ public class TripDao extends AbstractDao<Trip, Long> {
 	        predicates.add(predSince);
         }        
         if (until != null) {
-	        Predicate predUntil = cb.lessThanOrEqualTo(trips.get(Trip_.departureTime), until);
+	        Predicate predUntil = cb.lessThan(trips.get(Trip_.departureTime), until);
 	        predicates.add(predUntil);
         }        
-        if (! deletedToo) {
+        if (deletedToo == null || !deletedToo.booleanValue()) {
             Predicate predNotDeleted = cb.or(cb.isNull(trips.get(Trip_.deleted)), cb.isFalse(trips.get(Trip_.deleted)));
 	        predicates.add(predNotDeleted);
         }
