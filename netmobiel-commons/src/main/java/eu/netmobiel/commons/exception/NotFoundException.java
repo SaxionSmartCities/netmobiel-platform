@@ -21,8 +21,16 @@ public class NotFoundException extends ApplicationException {
 		super(message);
 	}
 
+	public NotFoundException(String message, String vendorCode) {
+		super(message, vendorCode);
+	}
+
 	public NotFoundException(Throwable cause) {
 		super(cause);
+	}
+
+	public NotFoundException(String message, String vendorCode, Throwable cause) {
+		super(message, vendorCode, cause);
 	}
 
 }

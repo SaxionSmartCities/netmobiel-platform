@@ -25,9 +25,13 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 
+import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.MultiPoint;
 
 import eu.netmobiel.commons.api.EncodedPolylineBean;
+import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.util.GeometryHelper;
+import eu.netmobiel.commons.util.PolylineEncoder;
 
 /**
  * One leg of a trip -- that is, a temporally continuous piece of the journey that takes place on a
@@ -419,6 +423,19 @@ public class Leg implements Serializable {
      */
     public Boolean isTransitLeg() {
         return traverseMode == null ? null : traverseMode.isTransit();
+    }
+
+    public void convertLegGeometry() {
+    	if (getLegGeometry() == null && getLegGeometryEncoded() != null) {
+    		setLegGeometry(GeometryHelper.createLegGeometry(getLegGeometryEncoded()));
+    	}
+    }
+    
+    public int getDestinationStopDistance() {
+    	convertLegGeometry();
+    	Coordinate lastCoord = getLegGeometry().getCoordinates()[getLegGeometry().getCoordinates().length - 1];
+    	GeoLocation lastPoint = new GeoLocation(GeometryHelper.createPoint(lastCoord));
+    	return Math.toIntExact(Math.round(to.getLocation().getDistanceFlat(lastPoint) * 1000));
     }
     
 	@Override

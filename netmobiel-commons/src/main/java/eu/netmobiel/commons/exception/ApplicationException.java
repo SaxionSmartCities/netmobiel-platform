@@ -11,36 +11,38 @@ public class ApplicationException extends Exception {
 	 * Serial version UID.
 	 */
 	private static final long serialVersionUID = 3405463788177828830L;
-
 	/**
-	 * Constructor.
+	 * A vendor specific code identifying the reason of the exception.
 	 */
+	private String vendorCode;
+
 	public ApplicationException() {
 	}
 
-	/**
-	 * Constructor.
-	 * @param message
-	 */
 	public ApplicationException(String message) {
 		super(message);
 	}
 
-	/**
-	 * Constructor.
-	 * @param cause
-	 */
+	public ApplicationException(String message, String vendorCode) {
+		super(message);
+		this.vendorCode = vendorCode;
+	}
+
 	public ApplicationException(Throwable cause) {
 		super(cause);
 	}
 
-	/**
-	 * Constructor.
-	 * @param message
-	 * @param cause
-	 */
 	public ApplicationException(String message, Throwable cause) {
 		super(message, cause);
+	}
+
+	public ApplicationException(String message, String vendorCode, Throwable cause) {
+		super(message, cause);
+		this.vendorCode = vendorCode;
+	}
+
+	public String getVendorCode() {
+		return vendorCode;
 	}
 
 }

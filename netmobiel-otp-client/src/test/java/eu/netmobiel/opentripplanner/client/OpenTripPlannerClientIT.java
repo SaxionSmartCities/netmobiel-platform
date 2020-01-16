@@ -16,7 +16,6 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ArchivePaths;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
-import org.jboss.shrinkwrap.api.formatter.Formatters;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.junit.Test;
@@ -50,7 +49,7 @@ public class OpenTripPlannerClientIT {
             // Take car of removing the default json provider, because we use jackson everywhere (unfortunately).
         	.addAsWebInfResource("jboss-deployment-structure.xml")
         	.addAsResource("log4j.properties");
-		System.out.println(archive.toString(Formatters.VERBOSE));
+//		System.out.println(archive.toString(Formatters.VERBOSE));
         return archive;
     }
 

@@ -76,11 +76,6 @@ public class TripManagerIT {
     @Inject
     private Logger log;
 
-    private MultiPoint createLegGeometry(EncodedPolylineBean encodedPolylineBean) {
-    	List<Coordinate> coords = PolylineEncoder.decode(encodedPolylineBean);
-    	return GeometryHelper.createMultiPoint(coords.toArray(new Coordinate[coords.size()]));
-    }
-
     private Trip createEmptyTrip(String departureTimeIso, String arrivalTimeIso) {
         Trip trip = new Trip();
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
@@ -158,7 +153,7 @@ public class TripManagerIT {
 
     	leg1.setState(TripState.PLANNING);
     	leg1.setTraverseMode(TraverseMode.WALK);
-    	leg1.setLegGeometry(createLegGeometry(new EncodedPolylineBean("_al|Hm_xf@?U?WHe@D_AF{@?QAQEW[iAs@@", null, 11)));
+    	leg1.setLegGeometry(GeometryHelper.createLegGeometry(new EncodedPolylineBean("_al|Hm_xf@?U?WHe@D_AF{@?QAQEW[iAs@@", null, 11)));
 
     	leg1.setWalkSteps(new ArrayList<>());
     	WalkStep ws1_1 = new WalkStep();
@@ -198,7 +193,7 @@ public class TripManagerIT {
 
     	leg2.setState(TripState.PLANNING);
     	leg2.setTraverseMode(TraverseMode.BUS);
-    	leg2.setLegGeometry(createLegGeometry(new EncodedPolylineBean("acl|Hcjxf@?Ds@Bq@@cEN]Bm@HeAb@i@Xe@\\UVW`@o@fAkApBQVgBdDa@r@iArB_A~BgA|CgCrHsAvDu@rBs@bBa@dAGTYpBMn@s@rJKfAKEJDADK|@_@bCYpAKXsG|KuAlB[\\m@f@k@d@_B~@_CrAaA|@]d@Y`@KRKVaDbH]t@Sb@SRYPXnCKBJCBXFd@PzBFx@FXZtAtAfEn@hBPj@Np@Hr@Hn@Dl@Bp@@x@Ar@SbCeAzHW|AKx@Gj@MbAEz@Av@?r@@f@Bd@Db@Hp@v@vFn@nELtANpAJxANxBLzADz@H`At@tEF^DZH`BH`DDb@Jd@P~@hBrIt@rDd@vBH^NZtCdEvGrJtDtFGNFOX^{CrHO`@yAlDiAjC_@`AO\\wCbHoCrG_@~@OVINOPWL]R_DtACQBPuB~@MJELS^u@zBa@fBIh@Ij@EXMd@_C~GQX}@b@[LuIzCeJ`DwUpIkZzKcE|AmE|AsSrHiKzDQFkJjDaXvJOBaBn@iE`Bo@Pa@P_@H[D]@c@GWEcAo@cLaHeBmAiAiAaAeAuCkDoAoAs@u@{AeASMWIeNkDqFmAeCo@[GsSmFoCi@SA{JnAqBXw@LYJSNY`@iB`DUn@Sl@k@dC_@~A]|@_@v@AD_@l@_@b@c@`@g@^s@Vw@Xw@TyAXiALo@@k@GkAOw@Ak@DW@a@AkACiFq@kBU]ImGyBaA_@MGGEUk@MFy@PODg@LeRpHm@XSLQNOPsI|Ig@f@_@`@Yv@CHEJAHE@C@GAGCUEKCMb@Kd@Kb@C?C?KBEDAFCF]QSK]_@{@{@{@aAWUc@_@UWWSrAaHt@aDJk@FS@O@U?QEMG_@II", null, 273)));
+    	leg2.setLegGeometry(GeometryHelper.createLegGeometry(new EncodedPolylineBean("acl|Hcjxf@?Ds@Bq@@cEN]Bm@HeAb@i@Xe@\\UVW`@o@fAkApBQVgBdDa@r@iArB_A~BgA|CgCrHsAvDu@rBs@bBa@dAGTYpBMn@s@rJKfAKEJDADK|@_@bCYpAKXsG|KuAlB[\\m@f@k@d@_B~@_CrAaA|@]d@Y`@KRKVaDbH]t@Sb@SRYPXnCKBJCBXFd@PzBFx@FXZtAtAfEn@hBPj@Np@Hr@Hn@Dl@Bp@@x@Ar@SbCeAzHW|AKx@Gj@MbAEz@Av@?r@@f@Bd@Db@Hp@v@vFn@nELtANpAJxANxBLzADz@H`At@tEF^DZH`BH`DDb@Jd@P~@hBrIt@rDd@vBH^NZtCdEvGrJtDtFGNFOX^{CrHO`@yAlDiAjC_@`AO\\wCbHoCrG_@~@OVINOPWL]R_DtACQBPuB~@MJELS^u@zBa@fBIh@Ij@EXMd@_C~GQX}@b@[LuIzCeJ`DwUpIkZzKcE|AmE|AsSrHiKzDQFkJjDaXvJOBaBn@iE`Bo@Pa@P_@H[D]@c@GWEcAo@cLaHeBmAiAiAaAeAuCkDoAoAs@u@{AeASMWIeNkDqFmAeCo@[GsSmFoCi@SA{JnAqBXw@LYJSNY`@iB`DUn@Sl@k@dC_@~A]|@_@v@AD_@l@_@b@c@`@g@^s@Vw@Xw@TyAXiALo@@k@GkAOw@Ak@DW@a@AkACiFq@kBU]ImGyBaA_@MGGEUk@MFy@PODg@LeRpHm@XSLQNOPsI|Ig@f@_@`@Yv@CHEJAHE@C@GAGCUEKCMb@Kd@Kb@C?C?KBEDAFCF]QSK]_@{@{@{@aAWUc@_@UWWSrAaHt@aDJk@FS@O@U?QEMG_@II", null, 273)));
     	leg2.setAgencyName("Arriva");
     	leg2.setRouteType(3);
     	leg2.setRouteId("NL:10");
@@ -225,7 +220,7 @@ public class TripManagerIT {
 
     	leg3.setState(TripState.PLANNING);
     	leg3.setTraverseMode(TraverseMode.WALK);
-    	leg3.setLegGeometry(createLegGeometry(new EncodedPolylineBean("sb{|Hwwjf@Rz@@LATAFHD\\P??DDJg@CAf@iC", null, 12)));
+    	leg3.setLegGeometry(GeometryHelper.createLegGeometry(new EncodedPolylineBean("sb{|Hwwjf@Rz@@LATAFHD\\P??DDJg@CAf@iC", null, 12)));
     	
     	leg3.setWalkSteps(new ArrayList<>());
     	WalkStep ws3_1 = new WalkStep();
@@ -276,7 +271,7 @@ public class TripManagerIT {
     	
     	leg4.setState(TripState.PLANNING);
     	leg4.setTraverseMode(TraverseMode.RAIL);
-    	leg4.setLegGeometry(createLegGeometry(new EncodedPolylineBean("e_{|Hqyjf@}b@lcCk{@n|K}e@|rC{]hfCwIxe@gOxZqoEz|EkKdTgy@laC_Mn_BtHjzB|GzQz~@xqA", null, 14)));
+    	leg4.setLegGeometry(GeometryHelper.createLegGeometry(new EncodedPolylineBean("e_{|Hqyjf@}b@lcCk{@n|K}e@|rC{]hfCwIxe@gOxZqoEz|EkKdTgy@laC_Mn_BtHjzB|GzQz~@xqA", null, 14)));
     	leg4.setAgencyName("Arriva");
     	leg4.setRouteType(2);
     	leg4.setRouteId("NL:17752");
@@ -300,7 +295,7 @@ public class TripManagerIT {
 
     	leg5.setState(TripState.PLANNING);
     	leg5.setTraverseMode(TraverseMode.WALK);
-    	leg5.setLegGeometry(createLegGeometry(new EncodedPolylineBean("arg}Ho_yd@Pj@p@bDCBBHA@EDw@n@{@f@A@KQOa@I]_A_FgB~@QoAc@wCCKCIEIw@gACCG?_Aj@k@XODGw@gA\\Gk@XK", null, 30)));
+    	leg5.setLegGeometry(GeometryHelper.createLegGeometry(new EncodedPolylineBean("arg}Ho_yd@Pj@p@bDCBBHA@EDw@n@{@f@A@KQOa@I]_A_FgB~@QoAc@wCCKCIEIw@gACCG?_Aj@k@XODGw@gA\\Gk@XK", null, 30)));
     	
     	leg5.setWalkSteps(new ArrayList<>());
     	WalkStep ws5_1 = new WalkStep();

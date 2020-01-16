@@ -143,6 +143,12 @@ public class GeometryHelper {
         return geometryFactory.createLineString(coords.toArray(new Coordinate[coords.size()]));
 	}
 
+    public static MultiPoint createLegGeometry(EncodedPolylineBean encodedPolylineBean) {
+    	List<Coordinate> coords = PolylineEncoder.decode(encodedPolylineBean);
+    	return GeometryHelper.createMultiPoint(coords.toArray(new Coordinate[coords.size()]));
+    }
+
+
 	/**
 	 * Convert the encoded polyline (OpenTripPlanner) into WKT.
 	 * @param encodedPolyline the poly line string

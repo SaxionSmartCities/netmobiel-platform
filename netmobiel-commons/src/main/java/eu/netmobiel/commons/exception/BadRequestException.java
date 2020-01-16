@@ -19,12 +19,19 @@ public class BadRequestException extends ApplicationException {
 		super(message, cause);
 	}
 
+	public BadRequestException(String message, String vendorCode, Throwable cause) {
+		super(message, vendorCode, cause);
+	}
+
 	public BadRequestException(String message) {
 		super(message);
+	}
+
+	public BadRequestException(String message, String vendorCode) {
+		super(message, vendorCode);
 	}
 
 	public BadRequestException(Throwable cause) {
 		super(cause);
 	}
-
 }

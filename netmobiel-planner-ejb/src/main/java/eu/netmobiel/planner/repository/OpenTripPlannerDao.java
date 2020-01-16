@@ -119,11 +119,11 @@ public class OpenTripPlannerDao {
 				msg = String.format("%s Missing parameters [ %s ]", msg, String.join(",", result.error.missing));
 			}
 			if (result.error.message.getStatus().getStatusCode() >= 500) {
-				throw new SystemException(msg);
+				throw new SystemException(msg, result.error.message.name());
 			} else if (result.error.message.getStatus() == Response.Status.NOT_FOUND) {
-				throw new NotFoundException(msg);
+				throw new NotFoundException(msg, result.error.message.name());
 			} else {
-				throw new BadRequestException(msg);
+				throw new BadRequestException(msg, result.error.message.name());
 			}
 		}
 		TripPlan plan = tripPlanMapper.map(result.plan);

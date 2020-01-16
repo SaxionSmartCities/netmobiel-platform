@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.repository.mapping.TripPlanMapper;
@@ -49,7 +50,7 @@ public class OpenTripPlannerDaoIT {
         	.addAsWebInfResource("jboss-deployment-structure.xml")
             // Arquillian tests need the beans.xml to recognize it as a CDI application
             .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
-		System.out.println(archive.toString(true));
+//		System.out.println(archive.toString(true));
 		return archive;
     }
 
@@ -69,6 +70,11 @@ public class OpenTripPlannerDaoIT {
     	try {
 			TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, null, null, 1);
 			assertNotNull(plan);
+			assertEquals(1, plan.getItineraries().size());
+    		Leg leg = plan.getItineraries().get(0).getLegs().get(0);
+        	int distance = leg.getDestinationStopDistance();
+        	log.debug("Distance to destination is " + distance);
+        	assertTrue("Remaining distance is < 10 meter", distance < 10);
 		} catch (NotFoundException e) {
 			fail("Did not expect " + e);
 		} catch (BadRequestException e) {
@@ -76,4 +82,103 @@ public class OpenTripPlannerDaoIT {
 		}
 	}
 
+	@Test
+	public void testPlanTransitOutsideService() {
+    	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+    	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
+    	LocalDate date = LocalDate.now().plusYears(1);
+    	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
+    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT };
+    	try {
+    		otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, null, null, 1);
+			fail("Expected a BadRequest");
+		} catch (NotFoundException e) {
+			fail("Did not expect " + e);
+		} catch (BadRequestException e) {
+			assertNotNull(e.getVendorCode());
+			assertEquals("NO_TRANSIT_TIMES", e.getVendorCode());
+			
+		}
+	}
+
+	@Test
+	public void testPlanTooClose() {
+    	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+    	GeoLocation  toPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+    	LocalDate date = LocalDate.now();
+    	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
+    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR };
+    	try {
+    		otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, null, null, 1);
+			fail("Expected a BadRequest");
+		} catch (NotFoundException e) {
+			fail("Did not expect " + e);
+		} catch (BadRequestException e) {
+			assertNotNull(e.getVendorCode());
+			assertEquals("TOO_CLOSE", e.getVendorCode());
+			
+		}
+	}
+
+	@Test
+	public void testPlanGoToNowhere() {
+    	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+    	GeoLocation  toPlace = GeoLocation.fromString("Het Hilgelo Waterplas::51.993629,6.715974");
+    	LocalDate date = LocalDate.now();
+    	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
+    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK };
+    	try {
+    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, 10, null, 1);
+    		Leg leg = plan.getItineraries().get(0).getLegs().get(0);
+//        	String wkt = GeometryHelper.createWKT(leg.getLegGeometry());
+//        	System.out.println(wkt);
+        	int distance = leg.getDestinationStopDistance();
+        	log.debug("Distance to destination is " + distance);
+        	assertTrue("Remaining distance is > 100 meter", distance > 100);
+		} catch (NotFoundException e) {
+			fail("Did not expect " + e);
+		} catch (BadRequestException e) {
+			fail("Did not expect " + e);
+		}
+	}
+
+	@Test
+	public void testPlanTransitMaxWalkDistanceLow() {
+    	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+    	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
+    	LocalDate date = LocalDate.now();
+    	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
+    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK };
+    	try {
+    		otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, 100, null, 1);
+			fail("Expected a NotFound");
+		} catch (NotFoundException e) {
+			assertNotNull(e.getVendorCode());
+			assertEquals("PATH_NOT_FOUND", e.getVendorCode());
+		} catch (BadRequestException e) {
+			fail("Did not expect " + e);
+		}
+	}
+
+	@Test
+	public void testPlanTransitMaxWalkDistanceHigh() {
+    	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+    	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
+    	LocalDate date = LocalDate.now();
+    	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
+    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK };
+    	try {
+    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, 1000, null, 1);
+			assertNotNull(plan);
+			assertEquals(1, plan.getItineraries().size());
+    		Leg leg = plan.getItineraries().get(0).getLegs().get(0);
+        	int distance = leg.getDestinationStopDistance();
+        	log.debug("Distance to destination is " + distance);
+        	assertTrue("Remaining distance is < 10 meter", distance < 10);
+		} catch (NotFoundException e) {
+			fail("Did not expect " + e);
+		} catch (BadRequestException e) {
+			fail("Did not expect " + e);
+		}
+	}
 }
