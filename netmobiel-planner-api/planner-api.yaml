@@ -378,6 +378,10 @@ components:
         stopId:
           description: 'The ID of the stop. '
           type: string
+        id:
+          format: int64
+          description: The unique stop id. Not intended to be referenced.
+          type: integer
       example:
         departureTime: 1572600896000
         latitude: 52.004166
@@ -487,6 +491,7 @@ components:
       - to
       - traveller
       - travellerRef
+      - id
       type: object
       properties:
         state:
@@ -581,6 +586,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Leg'
+        id:
+          format: int64
+          description: 'The unique trip id. If referenced use the URN notation: urn:nb:pn:trip:<id>'
+          type: integer
       example:
         from:
           label: Rapenburgsestraat Lichtenvoorde
@@ -603,7 +612,8 @@ components:
     Leg:
       description: A leg is a displacement using a certain modality from one location
         to another.
-      required: []
+      required:
+      - agencyTimeZoneOffset
       type: object
       properties:
         startTime:
@@ -657,9 +667,9 @@ components:
           type: string
         routeType:
           description: |
-            For transit legs, the type of the route. Non transit -1
-            When 0-7: 0 Tram, 1 Subway, 2 Train, 3 Bus, 4 Ferry, 5 Cable Car, 6 Gondola, 7 Funicular
-            When equal or highter than 100, it is coded using the Hierarchical Vehicle Type (HVT) codes from the European TPEG standard
+            For transit legs, the type of the route. Non transit -1.
+            When 0-7: 0 Tram, 1 Subway, 2 Train, 3 Bus, 4 Ferry, 5 Cable Car, 6 Gondola, 7 Funicular.
+            When equal or higher than 100, it is coded using the Hierarchical Vehicle Type (HVT) codes from the European TPEG standard
             Also see http://groups.google.com/group/gtfs-changes/msg/ed917a69cf8c5bef
           type: integer
         routeLongName:
@@ -698,6 +708,16 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/GuideStep'
+        id:
+          format: int64
+          description: The unique leg id. Not intended to be referenced.
+          type: integer
+        routeId:
+          description: For transit legs, the ID of the route.
+          type: string
+        agencyTimeZoneOffset:
+          description: The timezone offset of the agency in milliseconds.
+          type: integer
       example:
         distance: 152
         duration: 123
