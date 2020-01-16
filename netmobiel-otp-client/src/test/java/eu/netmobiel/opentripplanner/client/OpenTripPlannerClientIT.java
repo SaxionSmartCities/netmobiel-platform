@@ -16,6 +16,7 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ArchivePaths;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
+import org.jboss.shrinkwrap.api.formatter.Formatters;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.junit.Test;
@@ -33,31 +34,23 @@ import eu.netmobiel.opentripplanner.api.model.TripPlan;
 public class OpenTripPlannerClientIT {
     @Deployment
     public static Archive<?> createTestArchive() {
-//    	File[] deps = Maven.configureResolver()
-//				.loadPomFromFile("pom.xml")
-//				.importCompileAndRuntimeDependencies() 
-//				.resolve()
-//				.withTransitivity()
-//				.asFile();
-		File[] deps2 = Maven.configureResolver()
-//				.workOffline()
+    	File[] deps = Maven.configureResolver()
 				.loadPomFromFile("pom.xml")
-				.resolve("eu.netmobiel:commons")
+				.importCompileAndRuntimeDependencies() 
+				.resolve()
 				.withTransitivity()
 				.asFile();
 		Archive<?> archive = ShrinkWrap.create(WebArchive.class, "test.war")
-//       		.addAsLibraries(deps)
-       		.addAsLibraries(deps2)
+       		.addAsLibraries(deps)
             .addPackage(Leg.class.getPackage())
             .addClass(OpenTripPlannerClient.class)
             .addClass(Jackson2ObjectMapperContextResolver.class)
-            .addClass(Resources.class)
             // Arquillian tests need the beans.xml to recognize it as a CDI application
             .addAsWebInfResource(EmptyAsset.INSTANCE, ArchivePaths.create("beans.xml"))
             // Take car of removing the default json provider, because we use jackson everywhere (unfortunately).
         	.addAsWebInfResource("jboss-deployment-structure.xml")
         	.addAsResource("log4j.properties");
-//        log.debug(archive.toString(Formatters.VERBOSE));
+		System.out.println(archive.toString(Formatters.VERBOSE));
         return archive;
     }
 
@@ -83,7 +76,7 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanDeparture");
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	LocalDate date = LocalDate.parse("2019-12-01");
+    	LocalDate date = LocalDate.now();
     	LocalTime time = LocalTime.parse("20:00:00");
     	boolean useTimeAsArriveBy = false;
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
@@ -105,7 +98,7 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanArrival");
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	LocalDate date = LocalDate.parse("2019-12-01");
+    	LocalDate date = LocalDate.now();
     	LocalTime time = LocalTime.parse("20:00:00");
     	boolean useTimeAsArriveBy = true;
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
@@ -128,7 +121,7 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanDepartureVia");
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	LocalDate date = LocalDate.parse("2019-12-01");
+    	LocalDate date = LocalDate.now();
     	LocalTime time = LocalTime.parse("20:00:00");
     	GeoLocation[] via = new GeoLocation[] { GeoLocation.fromString("Rabobank Zutphen::52.148125, 6.196966") }; 
     	boolean useTimeAsArriveBy = false;
@@ -152,7 +145,7 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanArrivalVia");
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	LocalDate date = LocalDate.parse("2019-12-01");
+    	LocalDate date = LocalDate.now();
     	LocalTime time = LocalTime.parse("20:00:00");
     	GeoLocation[] via = new GeoLocation[] { GeoLocation.fromString("Rabobank Zutphen::52.148125, 6.196966") }; 
     	boolean useTimeAsArriveBy = true;
@@ -175,7 +168,7 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanDepartureTransit");
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	LocalDate date = LocalDate.parse("2019-12-01");
+    	LocalDate date = LocalDate.now();
     	LocalTime time = LocalTime.parse("20:00:00");
     	boolean useTimeAsArriveBy = false;
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK }; 
@@ -197,7 +190,7 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanArrivalTransit");
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	LocalDate date = LocalDate.parse("2019-12-01");
+    	LocalDate date = LocalDate.now();
     	LocalTime time = LocalTime.parse("20:00:00");
     	boolean useTimeAsArriveBy = true;
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK }; 
