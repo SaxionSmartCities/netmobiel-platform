@@ -272,6 +272,10 @@ components:
         status:
           format: int32
           type: integer
+        errorCode:
+          description: A string code identifying the error. This code can be used
+            to display an error message in the right language.
+          type: string
       example:
         message: This is a really bad request
         reasonPhrase: Bad Request
@@ -689,11 +693,11 @@ components:
         legGeometry:
           $ref: '#/components/schemas/EncodedPolyline'
           description: An encoded description of the leg in GPS coordinates.
-        walkSteps:
+        guideSteps:
           description: A list of steps to get at the destination of this leg.
           type: array
           items:
-            $ref: '#/components/schemas/WalkStep'
+            $ref: '#/components/schemas/GuideStep'
       example:
         distance: 152
         duration: 123
@@ -716,7 +720,28 @@ components:
           label: Zieuwent, R.K. Kerk
           stopCode: "44930020"
           stopId: NL:1532280
-    WalkStep:
+    Location:
+      title: Root Type for Place
+      description: A location on a map, comprising of a GPS coordinate and optional
+        a descriptional label for human display.
+      type: object
+      properties:
+        latitude:
+          format: double
+          description: The latitude of this place.
+          type: number
+        longitude:
+          format: double
+          description: The longitude of this place.
+          type: number
+        label:
+          description: A descriptive label of the place.
+          type: string
+      example:
+        latitude: 52.004166
+        longitude: 6.517835
+        label: Zieuwent,Kennedystraat
+    GuideStep:
       title: Root Type for WalkStep
       description: 'Represents an instruction for walking directions. '
       type: object
@@ -768,27 +793,6 @@ components:
         longitude: 6.519548800000001
         latitude: 52.0042224
         exit: Uitrit 32
-    Location:
-      title: Root Type for Place
-      description: A location on a map, comprising of a GPS coordinate and optional
-        a descriptional label for human display.
-      type: object
-      properties:
-        latitude:
-          format: double
-          description: The latitude of this place.
-          type: number
-        longitude:
-          format: double
-          description: The longitude of this place.
-          type: number
-        label:
-          description: A descriptive label of the place.
-          type: string
-      example:
-        latitude: 52.004166
-        longitude: 6.517835
-        label: Zieuwent,Kennedystraat
   responses:
     InternalServerError:
       content:
