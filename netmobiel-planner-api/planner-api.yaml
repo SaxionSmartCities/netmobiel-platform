@@ -519,7 +519,7 @@ components:
           description: Flag indicating whether the trip has been deleted by the traveller.
           type: boolean
         from:
-          $ref: '#/components/schemas/Stop'
+          $ref: '#/components/schemas/Location'
           description: The place to depart from.
           properties:
             label:
@@ -531,7 +531,7 @@ components:
               format: double
               type: number
         to:
-          $ref: '#/components/schemas/Stop'
+          $ref: '#/components/schemas/Location'
           description: The final destination of the trip.
           properties:
             label:
@@ -582,11 +582,11 @@ components:
           items:
             $ref: '#/components/schemas/Leg'
       example:
-        fromPlace:
+        from:
           label: Rapenburgsestraat Lichtenvoorde
           latitude: 51.987757
           longitude: 6.564012
-        toPlace:
+        to:
           label: Rabobank Zutphen
           latitude: 52.148125
           longitude: 6.196966
@@ -742,7 +742,7 @@ components:
         longitude: 6.517835
         label: Zieuwent,Kennedystraat
     GuideStep:
-      title: Root Type for WalkStep
+      title: Root Type for GuideStep
       description: 'Represents an instruction for walking directions. '
       type: object
       properties:
