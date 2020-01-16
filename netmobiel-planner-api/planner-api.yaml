@@ -86,65 +86,6 @@ paths:
         type: string
       in: path
       required: true
-  /trips:
-    summary: Path used to manage the list of trips.
-    description: The REST endpoint/path used to list and create zero or more `Trip`
-      entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
-    get:
-      parameters:
-      - examples:
-          Format:
-            value: 2019-11-30
-        name: since
-        description: "The departure date at which to start the listing. Default is\
-          \ today (local date), effectively listing all planned trips \nstarting last\
-          \ midnight."
-        schema:
-          format: date
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-12-15
-        name: until
-        description: The departure date and later not to include in the listing of
-          trips. The `until` date must be after the `since` parameter. Default is
-          not set, meaning all trips (after since).
-        schema:
-          format: date
-          type: string
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Trip'
-          description: Successful response - returns an array of `Trip` entities.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      operationId: getTrips
-      summary: List All trips
-      description: Gets a list of all `Trip` entities owned by the calling user.
-    post:
-      requestBody:
-        description: A new `Trip` to be created.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Trip'
-        required: true
-      responses:
-        "201":
-          description: Successful response.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      operationId: createTrip
-      summary: Create a Trip
-      description: Creates a new instance of a `Trip`.
   /search/plan:
     summary: Search for possible itineraries, combining various modalities..
     description: Search the Rideshare service and OpenTripPlanner for itineraries.
@@ -248,6 +189,75 @@ paths:
       operationId: searchPlan
       summary: Search for itineraries for a trip.
       description: Search and retrieve matching itineraries.
+  /trips:
+    summary: Path used to manage the list of trips.
+    description: The REST endpoint/path used to list and create zero or more `Trip`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The departure date at which to start the listing. Default is
+          today (local server date), effectively listing all planned trips starting
+          last midnight.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The departure date and later not to include in the listing of
+          trips. The `until` date must be after the `since` parameter. Default is
+          not set, meaning all trips (after since).
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Trip'
+          description: Successful response - returns an array of `Trip` entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: getTrips
+      summary: List All trips
+      description: Gets a list of all `Trip` entities owned by the calling user.
+    post:
+      requestBody:
+        description: A new `Trip` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: createTrip
+      summary: Create a Trip
+      description: Creates a new instance of a `Trip`.
 components:
   schemas:
     MaintenanceStatus:
