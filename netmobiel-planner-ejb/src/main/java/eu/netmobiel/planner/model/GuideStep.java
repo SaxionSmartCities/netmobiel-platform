@@ -10,7 +10,7 @@ import javax.persistence.Column;
 import javax.persistence.Embeddable;
 
 /**
- * Represents an instruction for walking directions. Three examples from New York City:
+ * Represents an instruction for directions. Three examples from New York City:
  * <p>
  * Turn onto Broadway from W 57th St (coming from 7th Ave): <br/>
  * distance = 100 (say) <br/>
@@ -39,7 +39,7 @@ import javax.persistence.Embeddable;
 @Embeddable
 @Vetoed
 @Access(AccessType.FIELD)
-public class WalkStep implements Serializable {
+public class GuideStep implements Serializable {
 
 	private static final long serialVersionUID = 6096844876269982454L;
 	/**
@@ -101,22 +101,22 @@ public class WalkStep implements Serializable {
 	@Column(name = "is_bogus_name")
 	private Boolean bogusName = false;
 
-    public WalkStep() {
+    public GuideStep() {
     }
 
-    public WalkStep(Double lon, Double lat, String name) {
+    public GuideStep(Double lon, Double lat, String name) {
     	this.latitude = lat;
     	this.longitude = lon;
     	this.name = name;
     }
     
-    public WalkStep(Double lon, Double lat, String name, RelativeDirection reldir, AbsoluteDirection absdir) {
+    public GuideStep(Double lon, Double lat, String name, RelativeDirection reldir, AbsoluteDirection absdir) {
     	this(lat, lon, name);
     	this.relativeDirection = reldir;
     	this.absoluteDirection = absdir;
     }
 
-    public WalkStep(WalkStep other) {
+    public GuideStep(GuideStep other) {
     	this.latitude = other.latitude;
     	this.longitude = other.longitude;
     	this.name = other.name;
@@ -128,8 +128,8 @@ public class WalkStep implements Serializable {
     	this.stayOn = other.stayOn;
     }
     
-    public WalkStep copy() {
-    	return new WalkStep(this);
+    public GuideStep copy() {
+    	return new GuideStep(this);
     }
 
     public Double getLatitude() {
@@ -217,7 +217,7 @@ public class WalkStep implements Serializable {
         if (relativeDirection != null) {
             direction = relativeDirection.toString();
         }
-        return String.format("WalkStep %s on %s for %dm", direction, name, distance);
+        return String.format("GuideStep %s on %s for %dm", direction, name, distance);
     }
 
     public static RelativeDirection getRelativeDirection(double lastAngle, double thisAngle, boolean roundabout) {

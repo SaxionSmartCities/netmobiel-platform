@@ -23,16 +23,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.MultiPoint;
-
 import eu.netmobiel.commons.api.EncodedPolylineBean;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.GeometryHelper;
-import eu.netmobiel.commons.util.PolylineEncoder;
 import eu.netmobiel.planner.Resources;
 import eu.netmobiel.planner.model.AbsoluteDirection;
+import eu.netmobiel.planner.model.GuideStep;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.RelativeDirection;
 import eu.netmobiel.planner.model.Stop;
@@ -40,7 +37,6 @@ import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
-import eu.netmobiel.planner.model.WalkStep;
 import eu.netmobiel.planner.repository.UserDao;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
@@ -155,17 +151,17 @@ public class TripManagerIT {
     	leg1.setTraverseMode(TraverseMode.WALK);
     	leg1.setLegGeometry(GeometryHelper.createLegGeometry(new EncodedPolylineBean("_al|Hm_xf@?U?WHe@D_AF{@?QAQEW[iAs@@", null, 11)));
 
-    	leg1.setWalkSteps(new ArrayList<>());
-    	WalkStep ws1_1 = new WalkStep();
-    	leg1.getWalkSteps().add(ws1_1);
+    	leg1.setGuideSteps(new ArrayList<>());
+    	GuideStep ws1_1 = new GuideStep();
+    	leg1.getGuideSteps().add(ws1_1);
     	ws1_1.setAbsoluteDirection(AbsoluteDirection.EAST);
     	ws1_1.setDistance(124);
     	ws1_1.setLatitude(52.00416334775857);
     	ws1_1.setLongitude(6.517834978465908);
     	ws1_1.setName("Kennedystraat");
     	ws1_1.setRelativeDirection(RelativeDirection.DEPART);
-    	WalkStep ws1_2 = new WalkStep();
-    	leg1.getWalkSteps().add(ws1_2);
+    	GuideStep ws1_2 = new GuideStep();
+    	leg1.getGuideSteps().add(ws1_2);
     	ws1_2.setAbsoluteDirection(AbsoluteDirection.NORTH);
     	ws1_2.setDistance(29);
     	ws1_2.setLatitude(52.0042224);
@@ -222,9 +218,9 @@ public class TripManagerIT {
     	leg3.setTraverseMode(TraverseMode.WALK);
     	leg3.setLegGeometry(GeometryHelper.createLegGeometry(new EncodedPolylineBean("sb{|Hwwjf@Rz@@LATAFHD\\P??DDJg@CAf@iC", null, 12)));
     	
-    	leg3.setWalkSteps(new ArrayList<>());
-    	WalkStep ws3_1 = new WalkStep();
-    	leg3.getWalkSteps().add(ws3_1);
+    	leg3.setGuideSteps(new ArrayList<>());
+    	GuideStep ws3_1 = new GuideStep();
+    	leg3.getGuideSteps().add(ws3_1);
     	ws3_1.setAbsoluteDirection(AbsoluteDirection.SOUTHWEST);
     	ws3_1.setDistance(39);
     	ws3_1.setLatitude(52.08122495805119);
@@ -232,8 +228,8 @@ public class TripManagerIT {
     	ws3_1.setName("Stationsstraat");
     	ws3_1.setRelativeDirection(RelativeDirection.DEPART);
     	
-    	WalkStep ws3_2 = new WalkStep();
-    	leg3.getWalkSteps().add(ws3_2);
+    	GuideStep ws3_2 = new GuideStep();
+    	leg3.getGuideSteps().add(ws3_2);
     	ws3_2.setAbsoluteDirection(AbsoluteDirection.SOUTHWEST);
     	ws3_2.setDistance(42);
     	ws3_2.setLatitude(52.081132200000006);
@@ -242,8 +238,8 @@ public class TripManagerIT {
     	ws3_2.setBogusName(true);
     	ws3_2.setRelativeDirection(RelativeDirection.LEFT);
 
-    	WalkStep ws3_3 = new WalkStep();
-    	leg3.getWalkSteps().add(ws3_3);
+    	GuideStep ws3_3 = new GuideStep();
+    	leg3.getGuideSteps().add(ws3_3);
     	ws3_3.setAbsoluteDirection(AbsoluteDirection.NORTH);
     	ws3_3.setDistance(54);
     	ws3_3.setLatitude(52.0808466);
@@ -297,9 +293,9 @@ public class TripManagerIT {
     	leg5.setTraverseMode(TraverseMode.WALK);
     	leg5.setLegGeometry(GeometryHelper.createLegGeometry(new EncodedPolylineBean("arg}Ho_yd@Pj@p@bDCBBHA@EDw@n@{@f@A@KQOa@I]_A_FgB~@QoAc@wCCKCIEIw@gACCG?_Aj@k@XODGw@gA\\Gk@XK", null, 30)));
     	
-    	leg5.setWalkSteps(new ArrayList<>());
-    	WalkStep ws5_1 = new WalkStep();
-    	leg5.getWalkSteps().add(ws5_1);
+    	leg5.setGuideSteps(new ArrayList<>());
+    	GuideStep ws5_1 = new GuideStep();
+    	leg5.getGuideSteps().add(ws5_1);
     	ws5_1.setAbsoluteDirection(AbsoluteDirection.SOUTHWEST);
     	ws5_1.setDistance(80);
     	ws5_1.setLatitude(52.14513155204586);
@@ -307,8 +303,8 @@ public class TripManagerIT {
     	ws5_1.setName("Platform 2b");
     	ws5_1.setRelativeDirection(RelativeDirection.DEPART);
     	
-    	WalkStep ws5_2 = new WalkStep();
-    	leg5.getWalkSteps().add(ws5_2);
+    	GuideStep ws5_2 = new GuideStep();
+    	leg5.getGuideSteps().add(ws5_2);
     	ws5_2.setAbsoluteDirection(AbsoluteDirection.NORTHWEST);
     	ws5_2.setDistance(2);
     	ws5_2.setLatitude(52.1447967);
@@ -317,8 +313,8 @@ public class TripManagerIT {
     	ws5_2.setBogusName(true);
     	ws5_2.setRelativeDirection(RelativeDirection.RIGHT);
 
-    	WalkStep ws5_3 = new WalkStep();
-    	leg5.getWalkSteps().add(ws5_3);
+    	GuideStep ws5_3 = new GuideStep();
+    	leg5.getGuideSteps().add(ws5_3);
     	ws5_3.setAbsoluteDirection(AbsoluteDirection.SOUTHWEST);
     	ws5_3.setDistance(82);
     	ws5_3.setLatitude(52.1448115);
@@ -326,8 +322,8 @@ public class TripManagerIT {
     	ws5_3.setName("NS Stationstunnel");
     	ws5_3.setRelativeDirection(RelativeDirection.LEFT);
 
-    	WalkStep ws5_4 = new WalkStep();
-    	leg5.getWalkSteps().add(ws5_4);
+    	GuideStep ws5_4 = new GuideStep();
+    	leg5.getGuideSteps().add(ws5_4);
     	ws5_4.setAbsoluteDirection(AbsoluteDirection.NORTHEAST);
     	ws5_4.setDistance(120);
     	ws5_4.setLatitude(52.1454218);
@@ -335,8 +331,8 @@ public class TripManagerIT {
     	ws5_4.setName("Lijmerij");
     	ws5_4.setRelativeDirection(RelativeDirection.RIGHT);
 
-    	WalkStep ws5_5 = new WalkStep();
-    	leg5.getWalkSteps().add(ws5_5);
+    	GuideStep ws5_5 = new GuideStep();
+    	leg5.getGuideSteps().add(ws5_5);
     	ws5_5.setAbsoluteDirection(AbsoluteDirection.NORTH);
     	ws5_5.setDistance(62);
     	ws5_5.setLatitude(52.145932300000005);
@@ -344,8 +340,8 @@ public class TripManagerIT {
     	ws5_5.setName("Statenbolwerk");
     	ws5_5.setRelativeDirection(RelativeDirection.LEFT);
 
-    	WalkStep ws5_6 = new WalkStep();
-    	leg5.getWalkSteps().add(ws5_6);
+    	GuideStep ws5_6 = new GuideStep();
+    	leg5.getGuideSteps().add(ws5_6);
     	ws5_6.setAbsoluteDirection(AbsoluteDirection.EAST);
     	ws5_6.setDistance(218);
     	ws5_6.setLatitude(52.1464538);
@@ -353,8 +349,8 @@ public class TripManagerIT {
     	ws5_6.setName("Noorderhavenstraat");
     	ws5_6.setRelativeDirection(RelativeDirection.RIGHT);
 
-    	WalkStep ws5_7 = new WalkStep();
-    	leg5.getWalkSteps().add(ws5_7);
+    	GuideStep ws5_7 = new GuideStep();
+    	leg5.getGuideSteps().add(ws5_7);
     	ws5_7.setAbsoluteDirection(AbsoluteDirection.EAST);
     	ws5_7.setDistance(20);
     	ws5_7.setLatitude(52.1477512);
@@ -362,8 +358,8 @@ public class TripManagerIT {
     	ws5_7.setName("Dreef");
     	ws5_7.setRelativeDirection(RelativeDirection.RIGHT);
 
-    	WalkStep ws5_8 = new WalkStep();
-    	leg5.getWalkSteps().add(ws5_8);
+    	GuideStep ws5_8 = new GuideStep();
+    	leg5.getGuideSteps().add(ws5_8);
     	ws5_8.setAbsoluteDirection(AbsoluteDirection.NORTH);
     	ws5_8.setDistance(72);
     	ws5_8.setLatitude(52.147799400000004);

@@ -31,7 +31,6 @@ import com.vividsolutions.jts.geom.MultiPoint;
 import eu.netmobiel.commons.api.EncodedPolylineBean;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.GeometryHelper;
-import eu.netmobiel.commons.util.PolylineEncoder;
 
 /**
  * One leg of a trip -- that is, a temporally continuous piece of the journey that takes place on a
@@ -174,12 +173,12 @@ public class Leg implements Serializable {
      */
 	@ElementCollection()
 	@CollectionTable(
-		name = "walk_step",
+		name = "guide_step",
 		joinColumns = @JoinColumn(name = "leg_id", referencedColumnName = "id", 
 			foreignKey = @ForeignKey(name = "step_leg_fk")) 
 	)
 	@OrderColumn(name = "step_ix")
-    private List<WalkStep> walkSteps;
+    private List<GuideStep> guideSteps;
 
     /**
      * For transit legs, intermediate stops between the Place where the leg originates and the Place where the leg ends.
@@ -218,7 +217,7 @@ public class Leg implements Serializable {
 		this.vehicleName = other.vehicleName;
 		this.vehicleLicensePlate = other.vehicleLicensePlate;
 		// Copy by value
-		this.walkSteps = new ArrayList<>(other.walkSteps.stream().map(WalkStep::copy).collect(Collectors.toList()));
+		this.guideSteps = new ArrayList<>(other.guideSteps.stream().map(GuideStep::copy).collect(Collectors.toList()));
 	}
 
     public Leg copy() {
@@ -385,12 +384,12 @@ public class Leg implements Serializable {
 		this.legGeometryEncoded = legGeometryEncoded;
 	}
 
-	public List<WalkStep> getWalkSteps() {
-		return walkSteps;
+	public List<GuideStep> getGuideSteps() {
+		return guideSteps;
 	}
 
-	public void setWalkSteps(List<WalkStep> walkSteps) {
-		this.walkSteps = walkSteps;
+	public void setGuideSteps(List<GuideStep> walkSteps) {
+		this.guideSteps = walkSteps;
 	}
 
 	public List<Stop> getIntermediateStops() {
@@ -461,8 +460,8 @@ public class Leg implements Serializable {
 		if (intermediateStops != null && !intermediateStops.isEmpty()) {
 			builder.append("\n\t\t\t").append(intermediateStops.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t\t\t"))).append("");
 		}
-		if (walkSteps != null && !walkSteps.isEmpty()) {
-			builder.append("\n\t\t\t\t").append(walkSteps.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t\t\t\t"))).append("");
+		if (guideSteps != null && !guideSteps.isEmpty()) {
+			builder.append("\n\t\t\t\t").append(guideSteps.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t\t\t\t"))).append("");
 		}
 		return builder.toString();
 	}

@@ -18,7 +18,7 @@ import eu.netmobiel.commons.util.PolylineEncoder;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TripPlan;
-import eu.netmobiel.planner.model.WalkStep;
+import eu.netmobiel.planner.model.GuideStep;
 
 /**
  * This mapper defines the mapoping from the domain TripPlan to the API tripPlan as defioned by OpenAPI
@@ -37,7 +37,7 @@ public interface TripPlanMapper {
     @Mapping(target = "legGeometry", source = "legGeometryEncoded")
     eu.netmobiel.planner.api.model.Leg map(Leg source );
 
-    eu.netmobiel.planner.api.model.WalkStep map(WalkStep source );
+    eu.netmobiel.planner.api.model.WalkStep map(GuideStep source );
 
     //    @Mapping(target = "label", source = "name")
 //    @Mapping(target = "latitude", source = "lat")

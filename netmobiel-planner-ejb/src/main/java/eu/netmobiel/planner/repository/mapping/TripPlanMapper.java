@@ -3,6 +3,7 @@ package eu.netmobiel.planner.repository.mapping;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
 import javax.inject.Inject;
@@ -72,7 +73,7 @@ public abstract class TripPlanMapper {
     @Mapping(target = "name", source = "streetName")
     @Mapping(target = "latitude", source = "lat")
     @Mapping(target = "longitude", source = "lon")
-    public abstract eu.netmobiel.planner.model.WalkStep walkStepToWalkStep(WalkStep step);
+    public abstract eu.netmobiel.planner.model.GuideStep guideStepToGuideStep(WalkStep step);
     
     public OffsetDateTime map(Instant instant) {
     	return instant.atOffset(ZoneOffset.UTC);
@@ -93,8 +94,8 @@ public abstract class TripPlanMapper {
     			itinerary.setStops(new ArrayList<>());
     			itinerary.getStops().add(leg.getFrom());
     		} else if (! previous.equals(leg.getFrom() )) {
-    			log.warn(String.format("Leg connecting stop inconsistency detected: Last stop was %s, From stop is %s", previous.toString(), leg.getFrom().toString()));
-    			// Hmmm ok, keep the hole between the legs then, what eolse can we do?
+    			log.warn(String.format("Leg connecting stop inconsistency detected: Arrival stop was %s, departure stop is %s", previous.toString(), leg.getFrom().toString()));
+    			// Hmmm ok, keep the hole between the legs then, what else can we do?
     			itinerary.getStops().add(leg.getFrom());
     		} else {
     			leg.setFrom(previous);

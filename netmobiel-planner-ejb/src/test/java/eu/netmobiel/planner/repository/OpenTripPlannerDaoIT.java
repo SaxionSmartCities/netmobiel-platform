@@ -8,6 +8,7 @@ import java.time.LocalDate;
 import java.time.LocalTime;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
 
 import javax.inject.Inject;
 
@@ -25,6 +26,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
@@ -71,8 +73,37 @@ public class OpenTripPlannerDaoIT {
 			TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, null, null, 1);
 			assertNotNull(plan);
 			assertEquals(1, plan.getItineraries().size());
-    		Leg leg = plan.getItineraries().get(0).getLegs().get(0);
+			Itinerary it = plan.getItineraries().get(0);
+			assertEquals(1, it.getLegs().size());
+    		Leg leg = it.getLegs().get(0);
         	int distance = leg.getDestinationStopDistance();
+        	log.debug("Distance to destination is " + distance);
+        	assertTrue("Remaining distance is < 10 meter", distance < 10);
+		} catch (NotFoundException e) {
+			fail("Did not expect " + e);
+		} catch (BadRequestException e) {
+			fail("Did not expect " + e);
+		}
+	}
+
+	@Test
+	public void testPlanCarOnlyVia() {
+    	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+    	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
+    	GeoLocation[] via = new GeoLocation[] { GeoLocation.fromString("Rabobank Zutphen::52.148125, 6.196966") }; 
+    	LocalDate date = LocalDate.now();
+    	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
+    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR }; 
+    	try {
+			TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, null, Arrays.asList(via), 1);
+			assertNotNull(plan);
+			assertEquals(1, plan.getItineraries().size());
+			Itinerary it = plan.getItineraries().get(0);
+			assertEquals(2, it.getLegs().size());
+    		Leg leg1 = it.getLegs().get(0);
+    		Leg leg2 = it.getLegs().get(1);
+    		assertTrue("Stop between legs must be the same object if equals", !leg1.getTo().equals(leg2.getFrom()) || leg1.getTo() == leg2.getFrom());
+        	int distance = leg2.getDestinationStopDistance();
         	log.debug("Distance to destination is " + distance);
         	assertTrue("Remaining distance is < 10 meter", distance < 10);
 		} catch (NotFoundException e) {
