@@ -75,7 +75,7 @@ public class TripDao extends AbstractDao<Trip, Long> {
 
 	@Override
 	public List<Trip> fetch(List<Long> ids, String graphName) {
-		// Create an identity map.
+		// Create an identity map using the generic fetch. Rows are returned, but not necessarily in the same order
 		Map<Long, Trip> resultMap = super.fetch(ids, graphName).stream().collect(Collectors.toMap(Trip::getId, Function.identity()));
 		// Now return the rows in the same order as the ids.
 		return ids.stream().map(id -> resultMap.get(id)).collect(Collectors.toList());

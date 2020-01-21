@@ -60,8 +60,6 @@ public class TripsResource implements TripsApi {
 			throw new javax.ws.rs.BadRequestException(e);
 		} catch (NotFoundException e) {
 	    	rsp = Response.status(Status.GONE).build();
-		} catch (ApplicationException e) {
-			throw new WebApplicationException(e);
 		}
     	return rsp;
 	}
@@ -81,11 +79,11 @@ public class TripsResource implements TripsApi {
 	}
 
 	@Override
-	public Response getTrips(OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
+	public Response getTrips(OffsetDateTime since, OffsetDateTime until, Boolean deletedToo, Integer maxResults, Integer offset) {
     	Response rsp = null;
 		List<Trip> trips;
 		try {
-			trips = tripManager.listMyTrips(since != null ? since.toInstant() : Instant.now(), until != null ? until.toInstant() : null, false, maxResults, offset);
+			trips = tripManager.listMyTrips(since != null ? since.toInstant() : Instant.now(), until != null ? until.toInstant() : null, deletedToo, maxResults, offset);
 			rsp = Response.ok(trips.stream().map(t -> tripMapper.map(t)).collect(Collectors.toList())).build();
 		} catch (ApplicationException e) {
 			throw new WebApplicationException(e);

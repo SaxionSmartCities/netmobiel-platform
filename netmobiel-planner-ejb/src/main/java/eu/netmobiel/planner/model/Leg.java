@@ -488,6 +488,12 @@ public class Leg implements Serializable {
 		if (driverName != null) {
 			builder.append("Driver ").append(driverName).append(" ");
 		}
+		if (agencyId != null) {
+			builder.append("AgencyId ").append(agencyId).append(" ");
+		}
+		if (tripId != null) {
+			builder.append("Trip ").append(tripId).append(" ");
+		}
 		
 		if (intermediateStops != null && !intermediateStops.isEmpty()) {
 			builder.append("\n\t\t\t").append(intermediateStops.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t\t\t"))).append("");

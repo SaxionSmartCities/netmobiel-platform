@@ -34,8 +34,10 @@ import eu.netmobiel.commons.jaxrs.LocalDateParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.OffsetDateTimeParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
+import eu.netmobiel.planner.api.resource.MaintenanceResource;
 import eu.netmobiel.planner.api.resource.SearchResource;
 import eu.netmobiel.planner.api.resource.TestsResource;
+import eu.netmobiel.planner.api.resource.TripsResource;
 
 
 /**
@@ -74,8 +76,10 @@ public class PlannerApplication extends Application {
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new HashSet<>();
+        resources.add(MaintenanceResource.class);
         resources.add(SearchResource.class);
         resources.add(TestsResource.class);
+        resources.add(TripsResource.class);
         resources.add(LocalDateParamConverterProvider.class);
         resources.add(OffsetDateTimeParamConverterProvider.class);
         resources.add(WebApplicationExceptionMapper.class);

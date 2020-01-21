@@ -201,24 +201,24 @@ public class PlannerManager {
      * An attempt is made to sort the itineraries by attractiveness to the passenger.   
      * @param fromPlace The departure point of the passenger
      * @param toPlace The destination of the passenger
-     * @param fromDate The (intended) departure time. Specify either departure or arrival time. 
-     * @param toDate The (intended) arrival time. Specify either departure or arrival time.
+     * @param depTime The (intended) departure time. Specify either departure or arrival time. 
+     * @param arrTime The (intended) arrival time. Specify either departure or arrival time.
      * @param maxWalkDistance The maximum distance the passenger is prepared to walk.
      * @param nrSeats The number of seats the passenger wants to use in a car.
      * @return
      */
     public TripPlan searchMultiModal(GeoLocation fromPlace, GeoLocation toPlace, 
-    		Instant fromDate, Instant toDate, 
+    		Instant depTime, Instant arrTime, 
     		TraverseMode[] modalities, Integer maxWalkDistance, Integer nrSeats) {
     	// Let's force the use of an arrival date
-    	if (toDate == null) {
+    	if (arrTime == null) {
     		throw new IllegalArgumentException("Only a search with an arrival time is supported now");
     	}
 
     	// Get a reference route for the passenger
     	TripPlan thePlan = null;
 		try {
-			thePlan = otpDao.createPlan(fromPlace, toPlace, fromDate,  toDate, 
+			thePlan = otpDao.createPlan(fromPlace, toPlace, depTime,  arrTime, 
 					new TraverseMode[] { TraverseMode.WALK, TraverseMode.TRANSIT }, false, maxWalkDistance, null, null);
 		} catch (NotFoundException e) {
 			log.warn(String.format("No reference plan found from %s to %s - %s", fromPlace, toPlace, e.getMessage()));
@@ -228,8 +228,8 @@ public class PlannerManager {
 		} catch (BadRequestException e) {
 			throw new SystemException("No reference plan found", e);
 		}
-		thePlan.setArrivalTime(toDate);
-		thePlan.setDepartureTime(fromDate);
+		thePlan.setArrivalTime(arrTime);
+		thePlan.setDepartureTime(depTime);
 		thePlan.setTraverseModes(modalities);
 		thePlan.setNrSeats(nrSeats);
 		thePlan.setMaxWalkDistance(maxWalkDistance);
@@ -252,13 +252,13 @@ public class PlannerManager {
 
     	// Extend the transit plan with CAR (ride sharing) modality and combinations of the ride and transit itineraries
     	// Add all direct rides
-    	thePlan.getItineraries().addAll(searchRideshareOnly(fromPlace, toPlace, fromDate, toDate, maxWalkDistance, nrSeats));
+    	thePlan.getItineraries().addAll(searchRideshareOnly(fromPlace, toPlace, depTime, arrTime, maxWalkDistance, nrSeats));
 
     	// Try to find a ride from pickup point to each transit place (first mile by car)
     	log.debug("Search for first leg by Car");
     	for (Stop place : places) {
     		// Try to find a shared ride from passenger's departure to a transit hub
-        	List<Itinerary> passengerCarItineraries = searchRideshareOnly(fromPlace, place.getLocation(), fromDate, toDate, maxWalkDistance, nrSeats);
+        	List<Itinerary> passengerCarItineraries = searchRideshareOnly(fromPlace, place.getLocation(), depTime, arrTime, maxWalkDistance, nrSeats);
     		// Create a transit plan from shared ride dropoff to passenger's destination
     		// Add x minutes waiting time at drop off
         	// Extract the leg for the passenger and create a complete itinerary for the passenger
@@ -283,7 +283,7 @@ public class PlannerManager {
     	log.debug("Search for a last leg by Car");
     	for (Stop place : places) {
     		// Try to find a shared ride from transit hub to passenger's destination
-        	List<Itinerary> passengerCarItineraries = searchRideshareOnly(place.getLocation(), toPlace, fromDate, toDate, maxWalkDistance, nrSeats);
+        	List<Itinerary> passengerCarItineraries = searchRideshareOnly(place.getLocation(), toPlace, depTime, arrTime, maxWalkDistance, nrSeats);
     		// Create a transit plan from passenger departure to shared ride pickup
     		// Add x minutes waiting time at pick off
         	// Extract the leg for the passenger and create a complete itinerary for the passenger
@@ -304,7 +304,7 @@ public class PlannerManager {
 			}
 		}
 
-    	rankItineraries(thePlan, fromDate, toDate);
+    	rankItineraries(thePlan, depTime, arrTime);
     	thePlan.getItineraries().sort(new Comparator<Itinerary>() {
 			@Override
 			public int compare(Itinerary it1, Itinerary it2) {
