@@ -738,6 +738,15 @@ components:
         agencyTimeZoneOffset:
           description: The timezone offset of the agency in milliseconds.
           type: integer
+        agencyId:
+          description: Unique identification of the agency.
+          type: string
+        tripId:
+          description: |-
+            Unique identification of the trip that the agency provides for this leg. The trip ID is defined for transit and for rideshare.
+
+            Note: The tripId is an identifier from OTP, it has nothing to do with the word trip as used as a journey by a traveller elsewhere in this API.
+          type: string
       example:
         distance: 152
         duration: 123
