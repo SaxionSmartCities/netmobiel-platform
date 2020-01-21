@@ -28,6 +28,7 @@ import javax.ws.rs.core.Application;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.Version;
+import eu.netmobiel.commons.jaxrs.ApplicationExceptionMapper;
 import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
 import eu.netmobiel.commons.jaxrs.LocalDateParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
@@ -86,6 +87,7 @@ public class RideshareApplication extends Application {
         resources.add(WebApplicationExceptionMapper.class);
         resources.add(EJBExceptionMapper.class);
         resources.add(SecurityExceptionMapper.class);
+        resources.add(ApplicationExceptionMapper.class);
         return resources;
     }
 

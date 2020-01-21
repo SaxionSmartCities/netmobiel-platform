@@ -42,7 +42,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 				@NamedSubgraph(
 						name = "leg-details",
 						attributeNodes = {
-								@NamedAttributeNode(value = "walkSteps")
+								@NamedAttributeNode(value = "guideSteps")
 						}
 					)
 				}

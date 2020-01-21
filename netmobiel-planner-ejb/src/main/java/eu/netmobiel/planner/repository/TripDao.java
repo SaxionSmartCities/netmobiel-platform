@@ -1,9 +1,11 @@
 package eu.netmobiel.planner.repository;
 
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -26,6 +28,7 @@ import eu.netmobiel.planner.model.User;
 @ApplicationScoped
 @Typed(TripDao.class)
 public class TripDao extends AbstractDao<Trip, Long> {
+	public static final Integer MAX_RESULTS = 10; 
     @SuppressWarnings("unused")
 	@Inject
     private Logger logger;
@@ -42,11 +45,11 @@ public class TripDao extends AbstractDao<Trip, Long> {
 		return em;
 	}
 
-    public List<Trip> findByTraveller(User traveller, Instant since, Instant until, Boolean deletedToo, String graphName) {
+    public List<Long> findByTraveller(User traveller, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Trip> cq = cb.createQuery(Trip.class);
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Trip> trips = cq.from(Trip.class);
-        cq.select(trips);
+        cq.select(trips.get(Trip_.id));
         List<Predicate> predicates = new ArrayList<>();
         Predicate predTraveller = cb.equal(trips.get(Trip_.traveller), traveller);
         predicates.add(predTraveller);
@@ -64,13 +67,20 @@ public class TripDao extends AbstractDao<Trip, Long> {
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         cq.orderBy(cb.asc(trips.get(Trip_.departureTime)));
-        
-        TypedQuery<Trip> tq = em.createQuery(cq);
-        if (graphName != null) {
-        	tq.setHint(JPA_HINT_LOAD, em.getEntityGraph(graphName));
-        }
+        TypedQuery<Long> tq = em.createQuery(cq);
+		tq.setFirstResult(offset == null ? 0 : offset);
+		tq.setMaxResults(maxResults == null ? MAX_RESULTS : maxResults);
         return tq.getResultList();
     }
 
+	@Override
+	public List<Trip> fetch(List<Long> ids, String graphName) {
+		// Create an identity map.
+		Map<Long, Trip> resultMap = super.fetch(ids, graphName).stream().collect(Collectors.toMap(Trip::getId, Function.identity()));
+		// Now return the rows in the same order as the ids.
+		return ids.stream().map(id -> resultMap.get(id)).collect(Collectors.toList());
+	}
+
+//  Map<Long, T> resultMap = tq.getResultList().stream().collect(Collectors.toMap(Trip::getId, ));
 
 }

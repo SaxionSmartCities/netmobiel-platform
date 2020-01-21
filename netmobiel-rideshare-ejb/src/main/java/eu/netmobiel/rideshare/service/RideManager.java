@@ -44,6 +44,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 @Logging
 public class RideManager {
 	public static final String AGENCY_NAME = "NetMobiel Rideshare Service";
+	public static final String AGENCY_ID = "NB:RS";
 	
 	private static final float DEFAULT_RELATIVE_MAX_DETOUR = 0.30f;
 	private static final float DEFAULT_NOMINAL_SPEED = 25 * 1000 / 3600; 	/* km/h --> m/s */

@@ -11,6 +11,7 @@ import javax.persistence.PersistenceUnitUtil;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Expression;
 import javax.persistence.criteria.Root;
 
 public abstract class AbstractDao<T, ID> {
@@ -21,12 +22,23 @@ public abstract class AbstractDao<T, ID> {
     protected abstract EntityManager getEntityManager();
 
     private Class<T> persistentClass;
+    private Class<ID> primaryKeyClass;
 
-    public AbstractDao(Class<T> entityClass) {
+    @SuppressWarnings("unchecked")
+	public AbstractDao(Class<T> entityClass) {
+        this((Class<ID>) Long.class, entityClass);
+    }
+
+    public AbstractDao(Class<ID> pkClass, Class<T> entityClass) {
+        this.primaryKeyClass = pkClass;
         this.persistentClass = entityClass;
     }
 
-    protected Class<T> getPersistentClass() {
+    public Class<ID> getPrimaryKeyClass() {
+		return primaryKeyClass;
+	}
+
+	protected Class<T> getPersistentClass() {
         return this.persistentClass;
     }
 
@@ -111,6 +123,26 @@ public abstract class AbstractDao<T, ID> {
         CriteriaQuery<T> all = cq.select(rootEntry);
         TypedQuery<T> allQuery = getEntityManager().createQuery(all);
         return allQuery.getResultList();
+    }
+
+    /**
+     * Given a list of identifiers, return the objects. NOTE: The output list has NOT necessarily the same order as the input list
+     * @param ids A list of primary keys
+     * @param graphName
+     * @return
+     */
+    public List<T> fetch(List<ID> ids, String graphName) {
+        CriteriaBuilder cb = getEntityManager().getCriteriaBuilder();
+        CriteriaQuery<T> cq = cb.createQuery(getPersistentClass());
+        Root<T> rootEntry = cq.from(getPersistentClass());
+        cq.select(rootEntry);
+        Expression<ID> exp = rootEntry.get(rootEntry.getModel().getDeclaredId(getPrimaryKeyClass()));
+        cq.where(exp.in(ids));
+        TypedQuery<T> tq = getEntityManager().createQuery(cq);
+        if (graphName != null) {
+        	tq.setHint(JPA_HINT_LOAD, getEntityManager().getEntityGraph(graphName));
+        }
+        return tq.getResultList();
     }
 
     public boolean isLoaded(T entity) {

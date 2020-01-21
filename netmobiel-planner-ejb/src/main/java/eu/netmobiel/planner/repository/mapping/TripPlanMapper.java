@@ -3,7 +3,6 @@ package eu.netmobiel.planner.repository.mapping;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 
 import javax.inject.Inject;
@@ -27,7 +26,6 @@ import eu.netmobiel.planner.model.Stop;
 public abstract class TripPlanMapper {
 	@Inject
 	private Logger log;
-//    private static final Logger log = LoggerFactory.getLogger(TripPlanMapper.class);
 
 	@Mapping(target = "departureTime", ignore = true)
     @Mapping(target = "arrivalTime", ignore = true)
@@ -68,6 +66,7 @@ public abstract class TripPlanMapper {
     @Mapping(target = "vehicleId", ignore = true)
     @Mapping(target = "vehicleName", ignore = true)
     @Mapping(target = "vehicleLicensePlate", ignore = true)
+    @Mapping(target = "guideSteps", source = "walkSteps")
     public abstract eu.netmobiel.planner.model.Leg legToLeg(Leg leg);
     
     @Mapping(target = "name", source = "streetName")

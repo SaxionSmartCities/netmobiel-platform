@@ -11,6 +11,9 @@ import javax.ws.rs.ext.Provider;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.api.ErrorResponse;
+import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.util.ExceptionUtil;
 
 /**
@@ -33,13 +36,26 @@ public class WebApplicationExceptionMapper implements
 	@Override
 	public Response toResponse(WebApplicationException e) {
 		Response rsp = null;
-		
-		String[] msgs = ExceptionUtil.unwindExceptionMessage(null, e);
-		ErrorResponse err = new ErrorResponse(e.getResponse().getStatusInfo(), String.join(" - ", msgs));
-		rsp =  Response.status(e.getResponse().getStatusInfo()).type(MediaType.APPLICATION_JSON).entity(err).build();
+		Throwable t = e;
+		String errorCode = null;
+		Response.StatusType status = e.getResponse().getStatusInfo();
+		if (e.getCause() instanceof ApplicationException) {
+			ApplicationException ae = (ApplicationException) e.getCause();
+			errorCode = ae.getVendorCode();
+			t = ae;
+			status = Response.Status.INTERNAL_SERVER_ERROR;
+			if (ae instanceof BadRequestException) {
+				status = Response.Status.BAD_REQUEST;
+			} else if (ae instanceof NotFoundException) {
+				status = Response.Status.NOT_FOUND;
+			}
+		}
+		String[] msgs = ExceptionUtil.unwindExceptionMessage(null, t);
+		ErrorResponse err = new ErrorResponse(status, errorCode, String.join(" - ", msgs));
+		rsp =  Response.status(status).type(MediaType.APPLICATION_JSON).entity(err).build();
 		if (e instanceof ServerErrorException) {
 			// Log stackdump
-			log.error("Server error", e);
+			log.error("Server error", t);
 		} else {
 			// Log message only
 			String[] excs = ExceptionUtil.unwindException(null, e);

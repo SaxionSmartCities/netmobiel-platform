@@ -36,16 +36,25 @@ public class TripManager {
      * List all trips owned by the specified user. Soft deleted trips are omitted.
      * @return A list of trips owned by the specified user.
      */
-    public List<Trip> listTrips(User traveller, Instant since, Instant until, Boolean deletedToo) throws BadRequestException {
+    public List<Trip> listTrips(User traveller, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
     	List<Trip> trips = Collections.emptyList();
-//    	if (since == null) {
-//    		since = Instant.now();
-//    	}
     	if (until != null && since != null && !until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
     	}
+    	if (maxResults != null && maxResults > 100) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
+    	}
+    	if (maxResults != null && maxResults <= 0) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' > 0.");
+    	}
+    	if (maxResults != null && offset < 0) {
+    		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
+    	}
     	if (traveller != null) {
-    		trips = tripDao.findByTraveller(traveller, since, until, deletedToo, Trip.LIST_TRIPS_ENTITY_GRAPH);
+    		List<Long> tripIds = tripDao.findByTraveller(traveller, since, until, deletedToo, maxResults, offset);
+    		if (tripIds.size() > 0) {
+    			trips = tripDao.fetch(tripIds, Trip.LIST_TRIPS_ENTITY_GRAPH);
+    		}
     	}
     	return trips;
     	
@@ -55,8 +64,8 @@ public class TripManager {
      * List all trips owned by  the calling user. Soft deleted trips are omitted.
      * @return A list of trips owned by the calling user.
      */
-    public List<Trip> listMyTrips(Instant since, Instant until, Boolean deletedToo) throws BadRequestException {
-    	return listTrips(userManager.findCallingUser(), since, until, deletedToo);
+    public List<Trip> listMyTrips(Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
+    	return listTrips(userManager.findCallingUser(), since, until, deletedToo, maxResults, offset);
     }
     
     private void validateCreateUpdateTrip(Trip trip)  throws BadRequestException {

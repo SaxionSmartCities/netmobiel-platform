@@ -81,6 +81,20 @@ public class Leg implements Serializable {
     private TraverseMode traverseMode;
 
     /**
+     * For transit legs, the ID of the transit agency that operates the service used for this leg.
+     * For ridesharing the reference to the rideshare service.
+     */
+    @Column(name = "agency_id", length = 32)
+    public String agencyId = null;
+    
+    /**
+     * For transit legs, the ID of the trip.
+     * For ridesharing the 
+     * Otherwise null.
+     */
+    @Column(name = "trip_id", length = 32)
+    public String tripId = null;
+    /**
      * The name of the agency or transport service provider
      */
     @Column(name = "agency_name", length = 32)
@@ -94,7 +108,7 @@ public class Leg implements Serializable {
     /**
      * For transit legs, the type of the route. Non transit -1
      * When 0-7: 0 Tram, 1 Subway, 2 Train, 3 Bus, 4 Ferry, 5 Cable Car, 6 Gondola, 7 Funicular
-     * When equal or highter than 100, it is coded using the Hierarchical Vehicle Type (HVT) codes from the European TPEG standard
+     * When equal or higher than 100, it is coded using the Hierarchical Vehicle Type (HVT) codes from the European TPEG standard
      * Also see http://groups.google.com/group/gtfs-changes/msg/ed917a69cf8c5bef
      */
     @Column(name = "route_type")
@@ -201,6 +215,7 @@ public class Leg implements Serializable {
     public Leg(Leg other) {
 		this.distance = other.distance;
 		this.traverseMode = other.traverseMode;
+		this.agencyId = other.agencyId;
 		this.agencyName = other.agencyName;
 		this.agencyTimeZoneOffset = other.agencyTimeZoneOffset;
 		this.routeType = other.routeType;
@@ -213,6 +228,7 @@ public class Leg implements Serializable {
 		this.routeLongName = other.routeLongName;
 		this.driverId = other.driverId;
 		this.driverName = other.driverName;
+		this.tripId = other.tripId;
 		this.vehicleId = other.vehicleId;
 		this.vehicleName = other.vehicleName;
 		this.vehicleLicensePlate = other.vehicleLicensePlate;
@@ -270,6 +286,22 @@ public class Leg implements Serializable {
 
 	public void setTraverseMode(TraverseMode mode) {
 		this.traverseMode = mode;
+	}
+
+	public String getAgencyId() {
+		return agencyId;
+	}
+
+	public void setAgencyId(String agencyId) {
+		this.agencyId = agencyId;
+	}
+
+	public String getTripId() {
+		return tripId;
+	}
+
+	public void setTripId(String tripId) {
+		this.tripId = tripId;
 	}
 
 	public String getAgencyName() {

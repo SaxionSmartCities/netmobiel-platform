@@ -176,12 +176,14 @@ public class PlannerManager {
             		passengerRideIt = passengerRideIt.filterLegs(fromPlace, toPlace);
             		passengerRideIt.getLegs().forEach(leg -> {
             			leg.setAgencyName(RideManager.AGENCY_NAME);
+            			leg.setAgencyId(RideManager.AGENCY_ID);
             			leg.setDriverId(ride_t.getDriverRef());
             			leg.setDriverName(ride_t.getDriver().getName());
             			leg.setVehicleId(ride_t.getCarRef());
             			leg.setVehicleLicensePlate(ride_t.getCar().getLicensePlate());
             			leg.setVehicleName(ride_t.getCar().getName());
             			leg.setTraverseMode(TraverseMode.RIDESHARE);
+            			leg.setTripId(ride.getRideRef());
             		});
     	        	itineraries.add(passengerRideIt);
             	}
