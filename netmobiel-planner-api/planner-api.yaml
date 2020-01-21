@@ -75,7 +75,11 @@ paths:
     delete:
       responses:
         "204":
-          description: Successful response.
+          description: Succesful response, trip is deleted.
+        "410":
+          $ref: '#/components/responses/Gone'
+        "404":
+          $ref: '#/components/responses/NotFound'
       operationId: deleteTrip
       summary: Delete a Trip
       description: Deletes an existing `Trip`.
@@ -217,6 +221,12 @@ paths:
         schema:
           format: date-time
           type: string
+        in: query
+      - name: deletedToo
+        description: Set this flag to 'true' if deleted trips should be returned as
+          well. Default is false.
+        schema:
+          type: boolean
         in: query
       - name: maxResults
         description: 'Paging: The maximum number of results per page. Default is 10.'
