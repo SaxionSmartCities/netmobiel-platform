@@ -72,7 +72,7 @@ public class Car implements Serializable {
 
     @NotNull
     @NotEmpty
-    @Size(max = 32)		//TODO Too small for 85-BV-RS "TRAFIC 1200 L2 H1 1.9DCI 82 DUBBELE CABINE"
+    @Size(max = 64)
     private String model;
     
 	@NotNull
