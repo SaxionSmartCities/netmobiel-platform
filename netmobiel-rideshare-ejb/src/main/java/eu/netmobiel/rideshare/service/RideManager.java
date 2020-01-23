@@ -201,7 +201,10 @@ public class RideManager {
 	    	Leg leg = result.plan.itineraries.get(0).legs.get(0);
 	    	template.setEstimatedDistance(Math.toIntExact(Math.round(leg.distance)));
 	    	template.setEstimatedDrivingTime(Math.toIntExact(Math.round(leg.getDuration())));
-	    	template.setEstimatedCO2Emission(Math.toIntExact(Math.round(template.getEstimatedDistance() * template.getCar().getCo2Emission() / 1000.0)));
+	    	// Old cars don't have the CO2 emission specificiation
+	    	if (template.getCar().getCo2Emission() != null) {
+	    		template.setEstimatedCO2Emission(Math.toIntExact(Math.round(template.getEstimatedDistance() * template.getCar().getCo2Emission() / 1000.0)));
+	    	}
 			ride.updateEstimatedArrivalTime();
     	}    	
     }
