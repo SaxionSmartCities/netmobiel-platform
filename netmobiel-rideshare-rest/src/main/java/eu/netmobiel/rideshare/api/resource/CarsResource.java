@@ -34,8 +34,8 @@ public class CarsResource implements CarsApi {
      * @return an array of cars.
      */
     @Override
-	public Response getCars() {
-    	List<eu.netmobiel.rideshare.api.model.Car> cars = userManager.listMyCars().stream()
+	public Response getCars(Boolean deletedToo) {
+    	List<eu.netmobiel.rideshare.api.model.Car> cars = userManager.listMyCars(deletedToo).stream()
     			.map(u -> mapper.map(u,  eu.netmobiel.rideshare.api.model.Car.class, "default"))
     			.collect(Collectors.toList());
     	return Response.ok(cars).build();

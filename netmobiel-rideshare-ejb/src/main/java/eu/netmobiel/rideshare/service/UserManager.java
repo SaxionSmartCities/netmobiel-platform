@@ -124,11 +124,11 @@ public class UserManager {
     			.orElseThrow(ObjectNotFoundException::new);
     }
     
-    public List<Car> listMyCars() {
+    public List<Car> listMyCars(Boolean deletedToo) {
     	List<Car> cars = Collections.emptyList();
     	User caller = findCallingUser();
     	if (caller != null) {
-    		cars = carDao.findByDriver(caller);
+    		cars = carDao.findByDriver(caller, deletedToo);
     	}
     	return cars;
     }
@@ -168,7 +168,13 @@ public class UserManager {
     	Car cardb = carDao.find(carId)
     			.orElseThrow(ObjectNotFoundException::new);
     	checkOwnership(cardb.getDriver(), Car.class.getSimpleName());
-		carDao.remove(cardb);
+    	Long nrRefs = carDao.getNrRideTemplatesAttached(cardb);
+    	if (nrRefs > 0) {
+    		// The car is referenced in a template and cannot be removed. Do a soft delete.
+    		cardb.setDeleted(true);
+    	} else {
+    		carDao.remove(cardb);
+    	}
     }
     
     public void throwRuntimeException() {

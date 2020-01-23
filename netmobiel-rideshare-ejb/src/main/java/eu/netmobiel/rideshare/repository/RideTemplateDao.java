@@ -32,4 +32,5 @@ public class RideTemplateDao extends AbstractDao<RideTemplate, Long> {
     			.setParameter("template", template);
     	return tq.getSingleResult();
     }
+
 }

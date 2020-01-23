@@ -112,6 +112,8 @@ public class Car implements Serializable {
     @Column(name = "type_registration_id")
     private String typeRegistrationId;
 
+    private Boolean deleted;
+    
     public Long getId() {
 		return id;
 	}
@@ -223,6 +225,14 @@ public class Car implements Serializable {
 
 	public void setTypeRegistrationId(String typeRegistrationId) {
 		this.typeRegistrationId = typeRegistrationId;
+	}
+
+	public Boolean getDeleted() {
+		return deleted;
+	}
+
+	public void setDeleted(Boolean deleted) {
+		this.deleted = deleted;
 	}
 
 	public String getDriverRef() {
