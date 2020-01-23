@@ -44,7 +44,7 @@ public class CarDao extends AbstractDao<Car, Long> {
         Predicate predDriver = cb.equal(cars.get(Car_.driver), driver);
         predicates.add(predDriver);
         if (deletedToo == null || !deletedToo.booleanValue()) {
-            Predicate predNotDeleted = cb.not(cb.isTrue(cars.get(Car_.deleted)));
+            Predicate predNotDeleted = cb.or(cb.isNull(cars.get(Car_.deleted)), cb.isFalse(cars.get(Car_.deleted)));
 	        predicates.add(predNotDeleted);
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
