@@ -798,6 +798,10 @@ components:
         passenger:
           $ref: '#/components/schemas/User'
           description: The passenger who booked the ride.
+        nrSeats:
+          description: The number of seats requested for this booking. Default is
+            1.
+          type: integer
       example:
         dropOff:
           label: Station Zutphen
