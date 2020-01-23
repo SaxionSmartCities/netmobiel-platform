@@ -912,7 +912,7 @@ components:
       description: A Ride object specifies a ride with a car by a driver on a certain.
         The retour can be specified as well.
       required:
-      - departureDate
+      - departureTime
       - nrSeatsAvailable
       - carRef
       - allowedLuggage
@@ -927,14 +927,6 @@ components:
         remarks:
           description: 'Remarks for passengers. '
           type: string
-        distance:
-          description: Read-only. The estimated (single) trip distance in meters.
-          type: integer
-        emissionCO2:
-          format: float
-          description: Read-only. The estimated CO2 emission in kg CO2. This is calculated
-            from the distance and the car in use.
-          type: number
         id:
           format: int64
           description: 'Read-only. The unique id of this ride, assigned by the system.
@@ -951,10 +943,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Booking'
-        departureDate:
-          description: The local departure date and time of the trip, formatted according
-            ISO 8601.
-          type: string
         maxDetourMeters:
           description: The distance in meters the driver is prepared to detour to
             pickup of dropoff a passenger. If the detour in meters as well as in seconds
@@ -1011,6 +999,13 @@ components:
         car:
           $ref: '#/components/schemas/Car'
           description: The car used for this ride.
+        deleted:
+          description: If true then the ride was deleted / cancelled.
+          type: boolean
+        departureTime:
+          description: The local departure date and time of the trip, formatted according
+            ISO 8601.
+          type: string
       example:
         bookings: []
         car:
