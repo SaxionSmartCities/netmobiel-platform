@@ -23,6 +23,12 @@ paths:
 
       Cars belong always to a specific user. This endpoint should be placed under /users.
     get:
+      parameters:
+      - name: deletedToo
+        description: Return also cars that have been (soft) deleted in the past.
+        schema:
+          type: boolean
+        in: query
       responses:
         "200":
           content:
@@ -34,7 +40,9 @@ paths:
           description: Successful response - returns an array of `Car` entities.
       operationId: getCars
       summary: List All cars
-      description: Gets a list of all `Car` entities driven by the calling user.
+      description: |-
+        Gets a list of all `Car` entities driven by the calling user. Cars that have
+        been deleted are not listed, unless the 'deletedToo' flag is set.
     post:
       requestBody:
         description: A new `Car` to be created.
@@ -121,7 +129,8 @@ paths:
           $ref: '#/components/responses/NotFound'
       operationId: deleteCar
       summary: Delete a Car
-      description: Deletes an existing `Car`.
+      description: "Deletes an existing `Car`. Cars are hard deleted if never used\
+        \ in a ride, \notherwise a soft delete is performed."
     parameters:
     - name: carId
       description: A unique identifier for a `Car`.
@@ -408,6 +417,15 @@ paths:
     get:
       parameters:
       - examples:
+          Example:
+            value: 2019-10-23T09:30
+        name: fromDate
+        description: The local date and time of intended departure. The format is
+          ISO8601. The system will use midnight as start of the search.
+        schema:
+          type: string
+        in: query
+      - examples:
           Borne:
             value: Station Borne::52.298417, 6.749157
         name: fromPlace
@@ -420,15 +438,6 @@ paths:
         required: true
       - name: toPlace
         description: The end location (see fromPlace for format).
-        schema:
-          type: string
-        in: query
-      - examples:
-          Example:
-            value: 2019-10-23T09:30
-        name: fromDate
-        description: The local date and time of intended departure. The format is
-          ISO8601. The system will use midnight as start of the search.
         schema:
           type: string
         in: query
@@ -895,7 +904,7 @@ components:
       description: A Ride object specifies a ride with a car by a driver on a certain.
         The retour can be specified as well.
       required:
-      - departureTime
+      - departureDate
       - nrSeatsAvailable
       - carRef
       - allowedLuggage
@@ -934,8 +943,9 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Booking'
-        departureTime:
-          description: The start date and time of the trip.
+        departureDate:
+          description: The local departure date and time of the trip, formatted according
+            ISO 8601.
           type: string
         maxDetourMeters:
           description: The distance in meters the driver is prepared to detour to
@@ -963,7 +973,8 @@ components:
             nominal speed (around 30) km/h.
           type: integer
         estimatedArrivalTime:
-          description: The estimated time of arrival (normal traffic conditions).
+          description: "The estimated time of arrival (normal traffic conditions),\
+            \ \nformatted according ISO 8601."
           type: string
         estimatedCO2Emission:
           description: The amount of CO2 emitted by the car in this trip.
