@@ -9,9 +9,8 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import com.github.dozermapper.core.Mapper;
-
 import eu.netmobiel.rideshare.api.BookingsApi;
+import eu.netmobiel.rideshare.api.mapping.BookingMapper;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
@@ -20,7 +19,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 public class BookingsResource implements BookingsApi {
 
 	@Inject
-	private Mapper mapper;
+	private BookingMapper mapper;
 
     @Inject
     private BookingManager bookingManager;
@@ -31,7 +30,7 @@ public class BookingsResource implements BookingsApi {
      */
     public Response getBookings() {
     	return Response.ok(bookingManager.listMyBookings().stream()
-    			.map(u -> mapper.map(u,  eu.netmobiel.rideshare.api.model.Booking.class, "passenger-view"))
+    			.map(u -> mapper.mapMine(u))
     			.collect(Collectors.toList()))
     			.build();
     }
@@ -44,7 +43,7 @@ public class BookingsResource implements BookingsApi {
 		} catch (ObjectNotFoundException e) {
 			throw new NotFoundException();
 		}
-    	return Response.ok(mapper.map(booking,  eu.netmobiel.rideshare.api.model.Booking.class, "passenger-view")).build();
+    	return Response.ok(mapper.map(booking)).build();
     }
 
     public Response deleteBooking(String bookingId, String reason) {

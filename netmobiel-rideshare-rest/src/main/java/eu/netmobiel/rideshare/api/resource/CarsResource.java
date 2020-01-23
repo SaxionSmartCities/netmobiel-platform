@@ -13,9 +13,8 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
 
-import com.github.dozermapper.core.Mapper;
-
 import eu.netmobiel.rideshare.api.CarsApi;
+import eu.netmobiel.rideshare.api.mapping.CarMapper;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.service.UserManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
@@ -24,7 +23,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 public class CarsResource implements CarsApi {
 
 	@Inject
-    private Mapper mapper;
+    private CarMapper mapper;
 
     @Inject
     private UserManager userManager;
@@ -36,7 +35,7 @@ public class CarsResource implements CarsApi {
     @Override
 	public Response getCars(Boolean deletedToo) {
     	List<eu.netmobiel.rideshare.api.model.Car> cars = userManager.listMyCars(deletedToo).stream()
-    			.map(u -> mapper.map(u,  eu.netmobiel.rideshare.api.model.Car.class, "default"))
+    			.map(u -> mapper.mapMyCar(u))
     			.collect(Collectors.toList());
     	return Response.ok(cars).build();
     }
@@ -45,7 +44,7 @@ public class CarsResource implements CarsApi {
 	public Response createCar(eu.netmobiel.rideshare.api.model.Car cardt) {
     	Response rsp = null;
 		try {
-			Car car = mapper.map(cardt, Car.class, "default");
+			Car car = mapper.map(cardt);
 			String newCarId = RideshareUrnHelper.createUrn(Car.URN_PREFIX, userManager.createCar(car));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newCarId)).build();
 		} catch (CreateException e) {
@@ -63,7 +62,7 @@ public class CarsResource implements CarsApi {
 		} catch (ObjectNotFoundException e) {
 			throw new NotFoundException();
 		}
-    	return Response.ok(mapper.map(car, eu.netmobiel.rideshare.api.model.Car.class, "driver")).build();
+    	return Response.ok(mapper.map(car)).build();
     }
 
     @Override
@@ -71,7 +70,7 @@ public class CarsResource implements CarsApi {
     	Response rsp = null;
     	try {
         	Long cid = RideshareUrnHelper.getId(Car.URN_PREFIX, carId);
-        	Car car = mapper.map(cardt, Car.class, "default");
+        	Car car = mapper.map(cardt);
 			userManager.updateCar(cid, car);
 			rsp = Response.noContent().build();
 		} catch (ObjectNotFoundException e) {
@@ -84,8 +83,6 @@ public class CarsResource implements CarsApi {
     public Response deleteCar(@PathParam("carId") String carId) {
     	Response rsp = null;
     	try {
-    		// Obviously you cannot delete cars if they have been used in rides... Only soft delete.
-    		//TODO
         	Long cid = RideshareUrnHelper.getId(Car.URN_PREFIX, carId);
 			userManager.removeCar(cid);
 			rsp = Response.noContent().build();

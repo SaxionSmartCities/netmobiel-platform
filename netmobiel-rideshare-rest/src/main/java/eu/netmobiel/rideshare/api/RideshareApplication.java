@@ -33,6 +33,7 @@ import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
 import eu.netmobiel.commons.jaxrs.LocalDateParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
+import eu.netmobiel.rideshare.api.resource.BookingsResource;
 import eu.netmobiel.rideshare.api.resource.CarLicenseResource;
 import eu.netmobiel.rideshare.api.resource.CarsResource;
 import eu.netmobiel.rideshare.api.resource.RidesResource;
@@ -78,6 +79,7 @@ public class RideshareApplication extends Application {
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new HashSet<>();
         resources.add(CarLicenseResource.class);
+        resources.add(BookingsResource.class);
         resources.add(CarsResource.class);
         resources.add(RidesResource.class);
         resources.add(SearchResource.class);

@@ -12,10 +12,9 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 
-import com.github.dozermapper.core.Mapper;
-
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.rideshare.api.SearchApi;
+import eu.netmobiel.rideshare.api.mapping.RideMapper;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.service.RideManager;
 
@@ -27,7 +26,7 @@ public class SearchResource implements SearchApi {
     private Logger log;
  
 	@Inject
-	private Mapper mapper;
+	private RideMapper mapper;
 	
 	@Inject
     private RideManager rideManager;
@@ -51,9 +50,9 @@ public class SearchResource implements SearchApi {
      */
     @Override
 	public Response searchRides(
+    		String fromDate,
     		String fromPlace, 
     		String toPlace, 
-    		String fromDate,
     		String toDate,
     		Integer nrSeats,
     		Integer maxResults,
@@ -73,7 +72,7 @@ public class SearchResource implements SearchApi {
     			throw new BadRequestException("Input parameter has unrecognized format", ex);
     		}
     	}
-    	return Response.ok(rides.stream().map(r -> mapper.map(r, eu.netmobiel.rideshare.api.model.Ride.class, "search")).collect(Collectors.toList())).build(); 
+    	return Response.ok(rides.stream().map(r -> mapper.mapSearch(r)).collect(Collectors.toList())).build(); 
     }
 
 }

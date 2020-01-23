@@ -12,9 +12,8 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 
-import com.github.dozermapper.core.Mapper;
-
 import eu.netmobiel.rideshare.api.CarLicensesApi;
+import eu.netmobiel.rideshare.api.mapping.CarMapper;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.service.LicensePlateService;
 
@@ -29,7 +28,7 @@ public class CarLicenseResource implements CarLicensesApi {
     private Logger log;
 
     @Inject
-    private Mapper mapper;
+    private CarMapper mapper;
 
     @Inject
     private LicensePlateService licensePlateService;
@@ -50,7 +49,7 @@ public class CarLicenseResource implements CarLicensesApi {
 		} catch (IOException e) {
 			throw new ServiceUnavailableException("Unable to retrieve license plate information", 0L, e);
 		}
-        return Response.ok(mapper.map(car,  eu.netmobiel.rideshare.api.model.Car.class)).build();
+        return Response.ok(mapper.map(car)).build();
     }
 
 }

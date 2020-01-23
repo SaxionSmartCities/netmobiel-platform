@@ -25,6 +25,26 @@
                 <filtering>true</filtering>
             </resource>
         </resources>
+        <plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.mapstruct</groupId>
+							<artifactId>mapstruct-processor</artifactId>
+							<version>${version.org.mapstruct}</version>
+						</path>
+                    </annotationProcessorPaths>
+					<compilerArgs>
+			            <compilerArg>
+			                -Amapstruct.defaultComponentModel=cdi
+			            </compilerArg>
+			        </compilerArgs>
+				</configuration>
+			</plugin>
+        </plugins>
     </build>
 
     <dependencies>
@@ -160,10 +180,15 @@
             <artifactId>keycloak-adapter-spi</artifactId>
 		    <scope>provided</scope>
         </dependency>
-		<!-- Object mapper between domain and API model -->
+		<!-- Bean Mapper -->
 		<dependency>
-		    <groupId>com.github.dozermapper</groupId>
-		    <artifactId>dozer-core</artifactId>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+            <scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.vividsolutions</groupId>
+			<artifactId>jts-core</artifactId>
 			<scope>provided</scope>
 		</dependency>
 

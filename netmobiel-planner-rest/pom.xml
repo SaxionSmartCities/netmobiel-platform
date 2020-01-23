@@ -185,12 +185,6 @@
             <artifactId>keycloak-adapter-spi</artifactId>
 		    <scope>provided</scope>
         </dependency>
-		<!-- Object mapper between domain and API model -->
-		<dependency>
-		    <groupId>com.github.dozermapper</groupId>
-		    <artifactId>dozer-core</artifactId>
-			<scope>provided</scope>
-		</dependency>
 
 		<!-- TEST Dependencies -->
         <dependency>

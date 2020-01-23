@@ -16,9 +16,9 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
 
-import com.github.dozermapper.core.Mapper;
-
 import eu.netmobiel.rideshare.api.RidesApi;
+import eu.netmobiel.rideshare.api.mapping.BookingMapper;
+import eu.netmobiel.rideshare.api.mapping.RideMapper;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideScope;
@@ -37,7 +37,9 @@ public class RidesResource implements RidesApi {
     private BookingManager bookingManager;
 
     @Inject
-    private Mapper mapper;
+    private RideMapper mapper;
+    @Inject
+    private BookingMapper bookingMapper;
     /**
      * List all rides owned by the calling user. Soft deleted rides are omitted.
      * @return A list of rides owned by the calling user.
@@ -55,8 +57,9 @@ public class RidesResource implements RidesApi {
 		} catch (FinderException e) {
 			throw new BadRequestException("Error finding rides", e);
 		}
+		// Map the rides as my rides: Brand/model car only, no driver info (because it is the specified driver)
     	return Response.ok(rides.stream()
-    			.map(r -> mapper.map(r, eu.netmobiel.rideshare.api.model.Ride.class, "my-details"))
+    			.map(r -> mapper.mapMine(r))
     			.collect(Collectors.toList())).build();
     }
 
@@ -70,7 +73,7 @@ public class RidesResource implements RidesApi {
 	public Response createRide(eu.netmobiel.rideshare.api.model.Ride ridedt) {
     	Response rsp = null;
 		try {
-			Ride ride = mapper.map(ridedt, Ride.class, "default");
+			Ride ride = mapper.map(ridedt);
 			String newRideId = RideshareUrnHelper.createUrn(Ride.URN_PREFIX, rideManager.createRide(ride));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newRideId)).build();
 		} catch (CreateException e) {
@@ -95,7 +98,8 @@ public class RidesResource implements RidesApi {
 		} catch (ObjectNotFoundException e) {
 			throw new NotFoundException();
 		}
-    	return Response.ok(mapper.map(ride, eu.netmobiel.rideshare.api.model.Ride.class, "detail")).build();
+    	// Return all information, including car, driver and bookings
+    	return Response.ok(mapper.mapDetailed(ride)).build();
     }
 
     /**
@@ -159,7 +163,7 @@ public class RidesResource implements RidesApi {
     	Response rsp = null;
 		try {
         	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideId);
-        	Booking booking = mapper.map(bookingdt, Booking.class, "default");
+        	Booking booking = bookingMapper.map(bookingdt);
 			String newBookingId = RideshareUrnHelper.createUrn(Booking.URN_PREFIX, bookingManager.createBooking(rid, booking));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newBookingId)).build();
 		} catch (CreateException e) {

@@ -9,9 +9,8 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
 
-import com.github.dozermapper.core.Mapper;
-
 import eu.netmobiel.rideshare.api.UsersApi;
+import eu.netmobiel.rideshare.api.mapping.UserMapper;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.service.UserManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
@@ -21,7 +20,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 public class UserResource implements UsersApi {
 
     @Inject
-    private Mapper mapper;
+    private UserMapper mapper;
 
    @Inject
     private UserManager userManager;
@@ -33,7 +32,7 @@ public class UserResource implements UsersApi {
     @Override
 	public Response getUsers() {
     	return Response.ok(userManager.listUsers().stream()
-    			.map(u -> mapper.map(u,  eu.netmobiel.rideshare.api.model.User.class))
+    			.map(u -> mapper.map(u))
     			.collect(Collectors.toList())).build();
     }
 
@@ -46,7 +45,7 @@ public class UserResource implements UsersApi {
 		} catch (ObjectNotFoundException e) {
 			throw new NotFoundException();
 		}
-    	return Response.ok(mapper.map(user, eu.netmobiel.rideshare.api.model.User.class)).build();
+    	return Response.ok(mapper.map(user)).build();
     }
 
 	@Override
