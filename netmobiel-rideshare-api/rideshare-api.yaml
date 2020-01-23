@@ -752,6 +752,10 @@ components:
         nrSeats:
           description: The number of seats in the car.
           type: integer
+        deleted:
+          description: If true then the car has been deleted by the user. The car
+            may still be referenced in ride templates.
+          type: boolean
     Booking:
       description: A booking of a ride by a passenger.
       required:
