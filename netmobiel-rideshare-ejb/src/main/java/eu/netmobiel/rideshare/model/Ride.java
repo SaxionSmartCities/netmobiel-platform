@@ -2,6 +2,7 @@ package eu.netmobiel.rideshare.model;
 
 import java.io.Serializable;
 import java.time.LocalDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.List;
 
 import javax.enterprise.inject.Vetoed;
@@ -191,5 +192,20 @@ public class Ride implements Serializable {
 		return c;
 	}
 
+    private String formatTime(LocalDateTime ldt) {
+    	return DateTimeFormatter.ISO_TIME.format(ldt);
+    }
 
+    @Override
+    public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("Ride D ");
+		builder.append(formatTime(departureTime)).append(" A ");
+		builder.append(formatTime(estimatedArrivalTime)).append(" ");
+		builder.append(rideTemplate.getEstimatedDrivingTime()).append("s ");
+		builder.append(rideTemplate.getEstimatedDistance()).append("m ");
+		builder.append(rideTemplate.getFromPlace().toString()).append(" -> ");
+		builder.append(rideTemplate.getToPlace().toString());
+		return builder.toString();
+    }
 }	

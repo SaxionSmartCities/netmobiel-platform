@@ -81,7 +81,7 @@ public class SecurityContext implements ISecurityContext {
     	if (getCurrentUser().getId() == null) {
     		loadUser();
     	}
-    	if (getCurrentUser().getId() == null || ! owner.getId().equals(getCurrentUser().getId())) {
+    	if (getCurrentUser().getManagedIdentity() == null || ! owner.getManagedIdentity().equals(getCurrentUser().getManagedIdentity())) {
     		throw new SecurityException(objectName + " is not owned by calling user");
     	}
     }

@@ -18,6 +18,7 @@ import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.representations.AccessToken;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.model.BasicUser;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.User;
@@ -85,6 +86,22 @@ public class UserManager {
     	return dbuser;
     }
 
+    /**
+     * 
+     * Register the user, if not yet registered.
+     * @param user the input record
+     * @return the registered user.
+     * @throws Exception
+     */
+    public User register(BasicUser user) {
+    	User dbuser = userDao.findByManagedIdentity(user.getManagedIdentity())
+    			.orElseGet(() -> userDao.save(new User(user)));
+    	dbuser.setEmail(user.getEmail()); 
+    	dbuser.setFamilyName(user.getFamilyName()); 
+    	dbuser.setGivenName(user.getGivenName()); 
+    	return dbuser;
+    }
+    
     public User registerCallingUser() {
     	User caller = findCallingUser();
     	if (caller != null) {

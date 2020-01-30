@@ -82,7 +82,7 @@ public abstract class TripPlanMapper {
     // Replace the leg list structure with a linear graph
     public eu.netmobiel.planner.model.TripPlan transformIntoLinearGraph(@MappingTarget eu.netmobiel.planner.model.TripPlan plan) {
     	plan.getItineraries().forEach(it -> transformIntoLinearGraph(it));
-    	log.info("Completed the mapping from OTP");
+//    	log.info("Completed the mapping from OTP");
     	return plan;
     }
 

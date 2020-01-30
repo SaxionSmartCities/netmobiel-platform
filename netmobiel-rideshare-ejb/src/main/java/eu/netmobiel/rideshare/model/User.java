@@ -63,8 +63,23 @@ public class User implements BasicUser, Serializable {
     
     @Column(name = "family_name", length = 64)
 	private String familyName;
-	
-	public Long getId() {
+
+    public User() {
+    	// No args constructor
+    }
+    
+    /**
+     * Copy constructor from general definition.
+     * @param bu the basic user fields
+     */
+    public User(BasicUser bu) {
+    	this.email = bu.getEmail();
+    	this.familyName = bu.getFamilyName();
+    	this.givenName = bu.getGivenName();
+    	this.managedIdentity = bu.getManagedIdentity();
+    }
+
+    public Long getId() {
 		return id;
 	}
 

@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 
 import javax.ejb.EJB;
+import javax.ejb.ObjectNotFoundException;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
@@ -14,10 +15,15 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.planner.model.Leg;
+import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.TripDao;
+import eu.netmobiel.rideshare.model.Booking;
+import eu.netmobiel.rideshare.model.Stop;
+import eu.netmobiel.rideshare.service.BookingManager;
 
 @Stateless
 @Logging
@@ -31,6 +37,9 @@ public class TripManager {
     
     @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
     private UserManager userManager;
+
+    @Inject
+    private BookingManager bookingManager;
 
     /**
      * List all trips owned by the specified user. Soft deleted trips are omitted.
@@ -73,35 +82,85 @@ public class TripManager {
     		throw new BadRequestException("Constraint violation: A new trip must have a 'departureTime'");
     	}
     	if (trip.getFrom() == null || trip.getTo() == null) {
-    		throw new BadRequestException("Constraint violation: A new trip must have a 'fromPlace' and a 'toPlace'");
+    		throw new BadRequestException("Constraint violation: A new trip must have a 'from' and a 'to'");
     	}
     }
 
     /**
-     * Creates a trip on behalf of a user. 
+     * Creates a trip on behalf of a user. If a trip contains bookable legs, the leg will automatically be booked  if the autobook flag is set. 
      * @param user the user for whom the trip is created
      * @param trip the new trip
+     * @param autobook If set then start the booking process of each leg.
      * @return The ID of the trip just created.
      * @throws CreateException In case of trouble, like wrong parameter values.
      * @throws BadRequestException In case of bad parameters.
      */
-    public Long createTrip(User traveller, Trip trip) throws BadRequestException {
+    public Long createTrip(User traveller, Trip trip, boolean autobook) throws BadRequestException, CreateException {
     	validateCreateUpdateTrip(trip);
     	trip.setTraveller(traveller);
+    	trip.setState(TripState.PLANNING);
        	tripDao.save(trip);
+       	tripDao.flush();
+       	if (autobook) {
+       		for (Leg leg : trip.getLegs()) {
+				startBookingProcessIfNecessary(traveller, trip, leg);
+			}
+           	updateTripState(trip);
+       	}
     	return trip.getId();
     }
+
+    public Long createTrip(User traveller, Trip trip) throws BadRequestException, CreateException {
+    	return createTrip(traveller,  trip, true);
+    }
+    
     /**
      * Creates a trip. 
      * @param trip the new trip
+     * @param autobook If set then start the booking process of each leg.
      * @return The ID of the trip just created.
      * @throws CreateException In case of trouble, like wrong parameter values.
      * @throws BadRequestException In case of bad parameters.
      */
-    public Long createTrip(Trip trip) throws BadRequestException {
-    	return createTrip(userManager.registerCallingUser(), trip);
+    public Long createTrip(Trip trip, boolean autobook) throws BadRequestException, CreateException {
+    	return createTrip(userManager.registerCallingUser(), trip, autobook);
     }
 
+    protected void startBookingProcessIfNecessary(User traveller, Trip trip, Leg leg) throws CreateException {
+    	if (leg.getTraverseMode() == TraverseMode.RIDESHARE) {
+    		leg.setState(TripState.BOOKING);
+        	Booking booking = new Booking();
+        	booking.setNrSeats(trip.getNrSeats() == null ? 1 : trip.getNrSeats());
+        	booking.setDropOff(new Stop());
+        	booking.setDropOff(new Stop(leg.getFrom().getLocation()));
+    		String bookingRef;
+			try {
+				bookingRef = bookingManager.createBooking(leg.getTripId(), traveller, 
+						leg.getFrom().getLocation(), leg.getTo().getLocation(), 1);
+			} catch (ObjectNotFoundException | javax.ejb.CreateException e) {
+				throw new CreateException("cannot create booking", e);
+			}
+    		if (bookingRef != null) {
+    			leg.setState(TripState.SCHEDULED);
+    		}
+    	} else {
+			leg.setState(TripState.SCHEDULED);
+    	}
+    }
+
+    /**
+     * Assigns the lowest leg state (in ordinal terms) to the overall trip state. 
+     * @param trip
+     */
+   	protected void updateTripState(Trip trip) {
+   		for (Leg leg : trip.getLegs()) {
+   	   		if (leg.getState().ordinal() < trip.getState().ordinal()) {
+   	   			trip.setState(leg.getState());
+   	   		}
+		}
+   	}
+
+    
     /**
      * Retrieves a ride. Anyone can read a ride, given the id. All details are retrieved.
      * @param id

@@ -10,6 +10,8 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.model.BasicUser;
+import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
@@ -17,6 +19,7 @@ import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.repository.BookingDao;
 import eu.netmobiel.rideshare.repository.RideDao;
+import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @Stateless
 @Logging
@@ -40,6 +43,29 @@ public class BookingManager {
     	}
     	return bookings;
     	
+    }
+
+    /**
+     * Create a booking for a user. 
+     * @param rideRef The ride reference to assign the booking to
+     * @param traveller the identity of the traveller
+     * @param pickupLocation the location to pickup the traveller
+     * @param dropOffLocation the location to drop-off the traveller
+     * @param nrSeats
+     * @return A booking reference
+     * @throws CreateException on error.
+     * @throws ObjectNotFoundException if the ride cannot be found.
+     */
+    public String createBooking(String rideRef, BasicUser traveller, 
+    		GeoLocation pickupLocation, GeoLocation dropOffLocation, Integer nrSeats) throws CreateException, ObjectNotFoundException {
+		User travellerUser = userManager.register(traveller);
+    	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideRef);
+		Ride ride = rideDao.find(rid)
+    			.orElseThrow(() -> new ObjectNotFoundException("Ride not found: " + rideRef));
+		Booking booking = new Booking(ride, travellerUser, pickupLocation, dropOffLocation, nrSeats);
+    	booking.setState(BookingState.CONFIRMED);
+    	bookingDao.save(booking);
+    	return RideshareUrnHelper.createUrn(Booking.URN_PREFIX, booking.getId());
     }
 
     /**

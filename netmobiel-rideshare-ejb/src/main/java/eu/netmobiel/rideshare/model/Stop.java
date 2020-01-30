@@ -3,7 +3,6 @@ package eu.netmobiel.rideshare.model;
 import java.io.Serializable;
 
 import javax.enterprise.inject.Vetoed;
-import javax.json.bind.annotation.JsonbTransient;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -101,4 +100,8 @@ public class Stop implements Serializable {
 		setLocationThen().setLabel(label);
 	}
 
+	@Override
+	public String toString() {
+		return location.toString();
+	}
 }

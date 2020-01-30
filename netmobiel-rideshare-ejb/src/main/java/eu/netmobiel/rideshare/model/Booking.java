@@ -21,6 +21,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
+import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
@@ -86,6 +87,22 @@ public class Booking implements Serializable {
     @Transient
     private String passengerRef;
 
+    /**
+     * No-args constructor.
+     */
+    public Booking() {
+    	
+    }
+    
+    public Booking(Ride ride, User passenger, GeoLocation pickup, GeoLocation dropOff, Integer nrSeats) {
+    	this.dropOff = new Stop(dropOff);
+    	this.nrSeats = nrSeats;
+    	this.passenger = passenger;
+    	this.pickup = new Stop(pickup);
+    	this.ride = ride;
+    	this.state = BookingState.NEW;
+    }
+    
     public Long getId() {
 		return id;
 	}

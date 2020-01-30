@@ -27,6 +27,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.GeoLocation;
@@ -97,6 +98,14 @@ public class Trip extends Itinerary implements Serializable {
     
     @Column(name = "deleted")
     private Boolean deleted;
+
+    /**
+     * In case of rideshare: The number of seats requested.
+     */
+    @Positive
+    @Column(name = "nr_seats")
+    private int nrSeats = 1;
+
 
 
 	public Long getId() {
@@ -172,7 +181,15 @@ public class Trip extends Itinerary implements Serializable {
 //    	return DateTimeFormatter.ISO_DATE_TIME.format(instant.atOffset(ZoneOffset.UTC).toLocalDateTime());
 //    }
 
-    private String formatTime(Instant instant) {
+    public Integer getNrSeats() {
+		return nrSeats;
+	}
+
+	public void setNrSeats(Integer nrSeats) {
+		this.nrSeats = nrSeats;
+	}
+
+	private String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
     }
 

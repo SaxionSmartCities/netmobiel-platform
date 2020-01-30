@@ -85,9 +85,10 @@ public class PlannerManager {
     
     private String dumpPlanRequest(Instant fromDate, Instant toDate, GeoLocation fromPlace, GeoLocation toPlace, List<GeoLocation> intermediatePlaces, TraverseMode[] modes) {
 		StringBuilder sb = new StringBuilder();
-		sb.append(fromDate != null ? "D ": "A").append(formatDateTime(fromDate != null ? fromDate : toDate));
-		sb.append(" From: ").append(fromPlace.toString());
-		sb.append(" To: ").append(fromPlace.toString());
+		sb.append("D ").append(fromDate != null ? formatDateTime(fromDate) : "-");
+		sb.append(" A ").append(toDate != null ? formatDateTime(toDate) : "-");
+		sb.append(" ").append(fromPlace.toString());
+		sb.append(" --> ").append(toPlace.toString());
 		if (intermediatePlaces != null) {
 			sb.append(" Via: ").append(intermediatePlaces.stream().map(p -> p.toString()).collect(Collectors.joining(" ")));
 		}
@@ -121,6 +122,9 @@ public class PlannerManager {
     	
     	List<Itinerary> itineraries = new ArrayList<>();
     	for (Ride ride : rides) {
+    		if (log.isDebugEnabled()) {
+    			log.debug("Ride option: " + ride.toString());
+    		}
     		RideTemplate ride_t = ride.getRideTemplate(); 
     		// Only accept intermediateLocations that are far enough away from departure and arrival of rider. 
     		List<GeoLocation> intermediatePlaces = filterIntermediatePlaces(ride, new GeoLocation[] { fromPlace, toPlace }, 20);
@@ -130,8 +134,8 @@ public class PlannerManager {
         	TraverseMode[] modes = new TraverseMode[] { TraverseMode.WALK, TraverseMode.CAR };
         	TripPlan ridePlan = null;
         	try {
-            	ridePlan = otpDao.createPlan(from, to, ride.getDepartureTime().atZone(ZoneId.systemDefault()).toInstant(),  null, 
-            			modes, false, maxWalkDistance, intermediatePlaces, 1);
+        		Instant rideDepTime = ride.getDepartureTime().atZone(ZoneId.systemDefault()).toInstant();
+            	ridePlan = otpDao.createPlan(from, to, rideDepTime,  null, modes, false, maxWalkDistance, intermediatePlaces, 1);
             	ridePlan.setDepartureTime(fromDate);
             	ridePlan.setArrivalTime(toDate);
             	ridePlan.setMaxWalkDistance(maxWalkDistance);
@@ -140,7 +144,7 @@ public class PlannerManager {
         	}  catch(Exception ex) {
         		log.error(ex.toString());
         		log.warn("Skip itinerary due to OTP error: " + 
-        				dumpPlanRequest(fromDate, toDate, fromPlace, toPlace, intermediatePlaces, modes));
+        				dumpPlanRequest(fromDate, toDate, from, to, intermediatePlaces, modes));
         	}
         	if (ridePlan != null && ridePlan.getItineraries() != null && !ridePlan.getItineraries().isEmpty()) {
         		boolean accepted = false;
@@ -210,6 +214,18 @@ public class PlannerManager {
     public TripPlan searchMultiModal(GeoLocation fromPlace, GeoLocation toPlace, 
     		Instant depTime, Instant arrTime, 
     		TraverseMode[] modalities, Integer maxWalkDistance, Integer nrSeats) {
+    	if (log.isDebugEnabled()) {
+    		log.debug(String.format("searchMultiModal:\n D %s A %s from %s to %s; seats #%d, max walk distance %sm; modalities %s", 
+    						depTime != null ? formatDateTime(depTime) : "*", 
+    						arrTime != null ? formatDateTime(arrTime) : "*", 
+    						fromPlace.toString(), 
+    						toPlace.toString(),
+    						nrSeats != null ? nrSeats : 1, 
+    						maxWalkDistance != null ? maxWalkDistance.toString() : "?",
+    						modalities != null ? Arrays.stream(modalities).map(tm -> tm.name()).collect(Collectors.joining(", ")) : "*"
+    				)
+    		);
+    	}
     	// Let's force the use of an arrival date
     	if (arrTime == null) {
     		throw new IllegalArgumentException("Only a search with an arrival time is supported now");

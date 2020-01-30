@@ -205,4 +205,29 @@ public class OpenTripPlannerClientIT {
         Itinerary it = plan.itineraries.get(0);
         assertTrue("Arrive at or before indicated time", time.isAfter(it.endTime.atZone(ZoneId.systemDefault()).toLocalTime()));
     }
+
+    @Test
+    public void testPlanArrivalVia2() throws Exception {
+    	log.debug("testPlanArrivalVia2");
+    	GeoLocation fromPlace = GeoLocation.fromString("Enschede Overijssel::52.223610,6.895510");
+    	GeoLocation  toPlace = GeoLocation.fromString("Deventer Overijssel::52.251030,6.159900");
+    	LocalDate date = LocalDate.now();
+    	LocalTime time = LocalTime.parse("12:00:00");
+//    	GeoLocation[] via = new GeoLocation[] { GeoLocation.fromString("Saxion Gaming::52.219680,6.889550"), GeoLocation.fromString("Deventer::52.254055,6.167655") }; 
+    	GeoLocation[] via = new GeoLocation[] { GeoLocation.fromString("Saxion Gaming::52.220,6.889550") };//52.219680 
+//    	GeoLocation[] via = new GeoLocation[] { GeoLocation.fromString("Deventer::52.254055,6.167655") }; 
+    	boolean useTimeAsArriveBy = false;
+    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
+    	Integer maxWalkDistance = 1000;
+  	    Integer maxItineraries = 1;
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, date, time, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
+    	TripPlan plan = result.plan;
+        assertNotNull(plan);
+        log.debug(plan.toString());
+        assertPlan(fromPlace, toPlace, date, time, plan);
+        assertEquals(1, plan.itineraries.size());
+        Itinerary it = plan.itineraries.get(0);
+        assertEquals(time, it.endTime.atZone(ZoneId.systemDefault()).toLocalTime());
+        assertEquals(2, it.legs.size());
+    }
 }

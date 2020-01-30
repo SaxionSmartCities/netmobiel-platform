@@ -89,7 +89,7 @@ public class Leg implements Serializable {
     
     /**
      * For transit legs, the ID of the trip.
-     * For ridesharing the 
+     * For ridesharing it is the ride reference.
      * Otherwise null.
      */
     @Column(name = "trip_id", length = 32)
