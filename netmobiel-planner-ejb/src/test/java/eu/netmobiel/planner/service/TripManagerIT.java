@@ -89,6 +89,43 @@ public class TripManagerIT {
     	return trip;
     }
 
+    private Trip createSimpleTrip(String departureTimeIso, String arrivalTimeIso) {
+        Trip trip = new Trip();
+    	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+    	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
+    	Instant departureTime = OffsetDateTime.parse(departureTimeIso).toInstant();
+    	Instant arrivalTime = OffsetDateTime.parse(arrivalTimeIso).toInstant();
+//    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
+    	trip.setFrom(fromPlace);
+    	trip.setTo(toPlace);
+    	trip.setState(TripState.PLANNING);
+    	trip.setDepartureTime(departureTime);
+    	trip.setArrivalTime(arrivalTime);
+    	trip.setDuration(Math.toIntExact(Duration.between(departureTime, arrivalTime).getSeconds()));
+    	trip.setStops(new ArrayList<>());
+    	trip.setLegs(new ArrayList<>());
+    	
+    	Leg leg1 = new Leg();
+    	trip.getLegs().add(leg1);
+    	leg1.setAgencyTimeZoneOffset(3600000);
+    	leg1.setDistance(Math.toIntExact(Math.round(toPlace.getDistanceTo(fromPlace) * 1000)));
+    	leg1.setDuration(trip.getDuration());
+    
+    	Stop stop1F = new Stop(fromPlace);
+    	stop1F.setDepartureTime(departureTime);
+    	leg1.setFrom(stop1F);		
+    	trip.getStops().add(stop1F);
+    	
+    	Stop stop1T = new Stop(GeoLocation.fromString("Zieuwent, R.K. Kerk::52.004485,6.519542"));
+    	stop1T.setArrivalTime(stop1F.getDepartureTime().plusSeconds(leg1.getDuration()));
+    	stop1T.setStopId("NL:1532280");
+    	stop1T.setStopCode("44930020");
+    	leg1.setTo(stop1T);
+    	trip.getStops().add(stop1T);
+
+    	return trip;
+    }
+
     @Test
     public void testCreateEmptyTrip() throws Exception {
     	User traveller = new User();
@@ -106,8 +143,36 @@ public class TripManagerIT {
         log.info("List trips: #" + trips.size());
         trips.stream().filter(t -> t.getId() == id).findFirst().ifPresent(t -> log.debug(t.toString()));
         assertEquals(nrTripsStart + 1, trips.size());
+        
+        
     }
 
+    
+    @Test
+    public void testGetTrip() throws Exception {
+    	User traveller = new User();
+    	traveller.setId(1L);
+        
+        Trip trip = createEmptyTrip("2020-01-07T14:30:00+01:00", "2020-01-07T16:30:00+01:00");
+    	Long id = tripManager.createTrip(traveller, trip);
+        assertNotNull(id);
+
+        trip = tripManager.getTrip(id);
+        assertNotNull(trip);
+        assertEquals(id, trip.getId());
+        assertNotNull(trip.getLegs());
+        assertEquals(0, trip.getLegs().size());
+        assertNull(trip.getTraveller().getFamilyName());
+
+        trip = createSimpleTrip("2020-01-07T14:30:00+01:00", "2020-01-07T16:30:00+01:00");
+    	id = tripManager.createTrip(traveller, trip);
+        assertNotNull(id);
+        assertEquals(id, trip.getId());
+        assertNotNull(trip.getLegs());
+        assertEquals(1, trip.getLegs().size());
+        assertNull(trip.getTraveller().getFamilyName());
+    }
+    
     private Trip createLargeTrip() {
         Trip trip = new Trip();
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
@@ -441,7 +506,7 @@ public class TripManagerIT {
     	leg1.setVehicleLicensePlate("52-PH-VD");
     	leg1.setVehicleName("Volvo V70");
 
-    	Long id = tripManager.createTrip(traveller, trip);
+    	Long id = tripManager.createTrip(traveller, trip, false);
         assertNotNull(id);
         
     	trips = tripManager.listTrips(traveller, null, null, null, null, null);
@@ -460,7 +525,7 @@ public class TripManagerIT {
         int nrTripsStart = trips.size();
         
         Trip trip = createLargeTrip();
-        Long id = tripManager.createTrip(traveller, trip);
+        Long id = tripManager.createTrip(traveller, trip, false);
         assertNotNull(id);
         
     	trips = tripManager.listTrips(traveller, null, null, null, null, null);
@@ -472,6 +537,10 @@ public class TripManagerIT {
         assertNotNull(trips);
         assertEquals(nrTripsStart, trips.size());
 
+        // Note it is hard deleted
+    	trips = tripManager.listTrips(traveller, null, null, Boolean.TRUE, null, null);
+        assertNotNull(trips);
+        assertEquals(nrTripsStart, trips.size());
     }
 
     @Test
@@ -490,10 +559,9 @@ public class TripManagerIT {
     	Long id2 = tripManager.createTrip(traveller, trip2);
         assertNotNull(id2);
         
-        Trip trip3 = createEmptyTrip("2020-01-09T14:30:00+01:00", "2020-01-09T16:30:00+01:00");
-        // Make it only soft-deletable
-        trip3.setState(TripState.SCHEDULED);
-    	Long id3 = tripManager.createTrip(traveller, trip3);
+        Trip trip3 = createSimpleTrip("2020-01-09T14:30:00+01:00", "2020-01-09T16:30:00+01:00");
+        // Make it only soft-deletable. Auto book the trip so it will be scheduled.
+    	Long id3 = tripManager.createTrip(traveller, trip3, true);
         assertNotNull(id3);
         tripManager.removeTrip(id3);
         

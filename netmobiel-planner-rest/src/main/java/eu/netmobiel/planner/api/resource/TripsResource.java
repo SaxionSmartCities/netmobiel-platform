@@ -71,7 +71,7 @@ public class TripsResource implements TripsApi {
 		try {
         	Long tid = PlannerUrnHelper.getId(Trip.URN_PREFIX, tripId);
 			trip = tripManager.getTrip(tid);
-			rsp = Response.ok(tripMapper.map(trip)).build();
+			rsp = Response.ok(tripMapper.mapInDetail(trip)).build();
 		} catch (ApplicationException e) {
 			throw new WebApplicationException(e);
 		}
@@ -84,7 +84,7 @@ public class TripsResource implements TripsApi {
 		List<Trip> trips;
 		try {
 			trips = tripManager.listMyTrips(since != null ? since.toInstant() : Instant.now(), until != null ? until.toInstant() : null, deletedToo, maxResults, offset);
-			rsp = Response.ok(trips.stream().map(t -> tripMapper.map(t)).collect(Collectors.toList())).build();
+			rsp = Response.ok(trips.stream().map(t -> tripMapper.mapMine(t)).collect(Collectors.toList())).build();
 		} catch (ApplicationException e) {
 			throw new WebApplicationException(e);
 		}

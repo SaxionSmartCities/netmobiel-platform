@@ -49,6 +49,23 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 				}
 
 	)
+@NamedEntityGraph(
+		name = Trip.LIST_TRIP_DETAIL_ENTITY_GRAPH, 
+		attributeNodes = { 
+				@NamedAttributeNode(value = "stops"),		
+				@NamedAttributeNode(value = "legs", subgraph = "leg-details"),		
+				@NamedAttributeNode(value = "traveller"),		
+		}, subgraphs = {
+				// Without this subgraph no leg details are retrieved
+				@NamedSubgraph(
+						name = "leg-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "guideSteps")
+						}
+					)
+				}
+
+	)
 @Entity
 @Table(name = "trip")
 @Vetoed
@@ -58,6 +75,7 @@ public class Trip extends Itinerary implements Serializable {
 
 	private static final long serialVersionUID = -3789784762166689720L;
 	public static final String LIST_TRIPS_ENTITY_GRAPH = "list-trips-graph";
+	public static final String LIST_TRIP_DETAIL_ENTITY_GRAPH = "list-trip-detail-graph";
 
 	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix("trip");
 	

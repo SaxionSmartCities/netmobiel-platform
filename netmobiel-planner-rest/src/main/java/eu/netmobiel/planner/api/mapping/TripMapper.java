@@ -40,11 +40,17 @@ public abstract class TripMapper {
 	@Inject
 	private Logger log;
 
-	// Trip <--> Trip
-	public abstract eu.netmobiel.planner.api.model.Trip map(Trip source );
+	// Domain trip --> Api Trip in full detail
+	public abstract eu.netmobiel.planner.api.model.Trip mapInDetail(Trip source );
 
+	// Domain trip --> Api Trip but without traveller, because these are mine
+	@Mapping(target = "traveller", ignore = true)
+	public abstract eu.netmobiel.planner.api.model.Trip mapMine(Trip source );
+
+	// Api Trip --> Domain trip. 
     @Mapping(target = "traveller", ignore = true)
     @Mapping(target = "stops", ignore = true)
+    @Mapping(target = "score", ignore = true)
     public abstract Trip map(eu.netmobiel.planner.api.model.Trip source );
 
     // Location <--> GeoLocation

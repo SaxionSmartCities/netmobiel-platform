@@ -2,7 +2,9 @@ package eu.netmobiel.planner.service;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.Comparator;
 import java.util.List;
+import java.util.Optional;
 
 import javax.ejb.EJB;
 import javax.ejb.ObjectNotFoundException;
@@ -101,7 +103,7 @@ public class TripManager {
     	trip.setState(TripState.PLANNING);
        	tripDao.save(trip);
        	tripDao.flush();
-       	if (autobook) {
+       	if (autobook && trip.getLegs() != null) {
        		for (Leg leg : trip.getLegs()) {
 				startBookingProcessIfNecessary(traveller, trip, leg);
 			}
@@ -150,14 +152,14 @@ public class TripManager {
 
     /**
      * Assigns the lowest leg state (in ordinal terms) to the overall trip state. 
-     * @param trip
+     * @param trip the trip to analyze.
      */
    	protected void updateTripState(Trip trip) {
-   		for (Leg leg : trip.getLegs()) {
-   	   		if (leg.getState().ordinal() < trip.getState().ordinal()) {
-   	   			trip.setState(leg.getState());
-   	   		}
-		}
+   		if (trip.getLegs() == null) {
+   			return;
+   		}
+   		Optional<Leg> minleg = trip.getLegs().stream().min(Comparator.comparingInt(leg -> leg.getState().ordinal()));
+   		minleg.ifPresent(leg -> trip.setState(leg.getState()));
    	}
 
     
@@ -168,7 +170,7 @@ public class TripManager {
      * @throws NotFoundException
      */
     public Trip getTrip(Long id) throws NotFoundException {
-    	Trip tripdb = tripDao.find(id, tripDao.createLoadHint(null))
+    	Trip tripdb = tripDao.find(id, tripDao.createLoadHint(Trip.LIST_TRIP_DETAIL_ENTITY_GRAPH))
     			.orElseThrow(NotFoundException::new);
     	return tripdb;
     }
