@@ -170,6 +170,12 @@ public class Leg implements Serializable {
     private String vehicleLicensePlate;
     
     /**
+     * For bookable legs: the reference to the booking.
+     */
+    @Column(name = "booking_id", length = 32)
+    private String bookingId;
+
+    /**
      * The leg's geometry. This one is used only when storing trips into the database. 
      */
     @Column(name = "leg_geometry", nullable = true)
@@ -398,6 +404,14 @@ public class Leg implements Serializable {
 
 	public void setVehicleLicensePlate(String vehicleLicensePlate) {
 		this.vehicleLicensePlate = vehicleLicensePlate;
+	}
+
+	public String getBookingId() {
+		return bookingId;
+	}
+
+	public void setBookingId(String bookingId) {
+		this.bookingId = bookingId;
 	}
 
 	public MultiPoint getLegGeometry() {

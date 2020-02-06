@@ -135,16 +135,14 @@ public class TripManager {
         	booking.setNrSeats(trip.getNrSeats() == null ? 1 : trip.getNrSeats());
         	booking.setDropOff(new Stop());
         	booking.setDropOff(new Stop(leg.getFrom().getLocation()));
-    		String bookingRef;
 			try {
-				bookingRef = bookingManager.createBooking(leg.getTripId(), traveller, 
+				String bookingRef = bookingManager.createBooking(leg.getTripId(), traveller, 
 						leg.getFrom().getLocation(), leg.getTo().getLocation(), 1);
+				leg.setBookingId(bookingRef);
+    			leg.setState(TripState.SCHEDULED);
 			} catch (ObjectNotFoundException | javax.ejb.CreateException e) {
 				throw new CreateException("cannot create booking", e);
 			}
-    		if (bookingRef != null) {
-    			leg.setState(TripState.SCHEDULED);
-    		}
     	} else {
 			leg.setState(TripState.SCHEDULED);
     	}

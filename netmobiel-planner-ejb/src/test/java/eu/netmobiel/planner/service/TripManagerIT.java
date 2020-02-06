@@ -162,7 +162,8 @@ public class TripManagerIT {
         assertEquals(id, trip.getId());
         assertNotNull(trip.getLegs());
         assertEquals(0, trip.getLegs().size());
-        assertNull(trip.getTraveller().getFamilyName());
+        // Check access
+        trip.getTraveller().getFamilyName();
 
         trip = createSimpleTrip("2020-01-07T14:30:00+01:00", "2020-01-07T16:30:00+01:00");
     	id = tripManager.createTrip(traveller, trip);
@@ -170,7 +171,8 @@ public class TripManagerIT {
         assertEquals(id, trip.getId());
         assertNotNull(trip.getLegs());
         assertEquals(1, trip.getLegs().size());
-        assertNull(trip.getTraveller().getFamilyName());
+        // Check access
+        trip.getTraveller().getFamilyName();
     }
     
     private Trip createLargeTrip() {
