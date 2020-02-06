@@ -76,10 +76,10 @@ paths:
       responses:
         "204":
           description: Succesful response, trip is deleted.
-        "410":
-          $ref: '#/components/responses/Gone'
         "404":
           $ref: '#/components/responses/NotFound'
+        "410":
+          $ref: '#/components/responses/Gone'
       operationId: deleteTrip
       summary: Delete a Trip
       description: Deletes an existing `Trip`.
@@ -505,13 +505,8 @@ components:
       title: Root Type for Trip
       description: A Trip is a plan that will be or has been effectuated.
       required:
-      - legs
       - from
-      - state
       - to
-      - traveller
-      - travellerRef
-      - id
       type: object
       properties:
         state:
@@ -532,7 +527,8 @@ components:
           type: string
         traveller:
           $ref: '#/components/schemas/User'
-          description: 'The user owning this plan. '
+          description: The user owning this plan. The traveller is determine when
+            the trip is saved.
           properties:
             managedIdentity:
               type: string
@@ -592,11 +588,6 @@ components:
         walkDistance:
           description: The total distance spend on walking in meters.
           type: integer
-        score:
-          format: float
-          description: A relative indication how attractive the proposal is. The higher
-            the better.
-          type: number
         walkTime:
           description: The time spend on walking in seconds.
           type: integer
@@ -609,6 +600,9 @@ components:
         id:
           format: int64
           description: 'The unique trip id. If referenced use the URN notation: urn:nb:pn:trip:<id>'
+          type: integer
+        nrSeats:
+          description: The number of seats required for the trip.
           type: integer
       example:
         from:
@@ -899,4 +893,4 @@ components:
     Bearer-only:
       scheme: bearer
       type: http
-      description: You need a valid acces token.
+      description: You need a valid access token.
