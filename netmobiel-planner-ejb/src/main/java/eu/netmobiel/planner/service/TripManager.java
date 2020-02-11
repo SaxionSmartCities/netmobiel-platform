@@ -132,7 +132,7 @@ public class TripManager {
     	if (leg.getTraverseMode() == TraverseMode.RIDESHARE) {
     		leg.setState(TripState.BOOKING);
         	Booking booking = new Booking();
-        	booking.setNrSeats(trip.getNrSeats() == null ? 1 : trip.getNrSeats());
+        	booking.setNrSeats(trip.getNrSeats());
         	booking.setDropOff(new Stop());
         	booking.setDropOff(new Stop(leg.getFrom().getLocation()));
 			try {

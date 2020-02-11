@@ -199,11 +199,11 @@ public class Trip extends Itinerary implements Serializable {
 //    	return DateTimeFormatter.ISO_DATE_TIME.format(instant.atOffset(ZoneOffset.UTC).toLocalDateTime());
 //    }
 
-    public Integer getNrSeats() {
+    public int getNrSeats() {
 		return nrSeats;
 	}
 
-	public void setNrSeats(Integer nrSeats) {
+	public void setNrSeats(int nrSeats) {
 		this.nrSeats = nrSeats;
 	}
 
