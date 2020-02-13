@@ -9,15 +9,15 @@ import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
-import javax.ejb.CreateException;
-import javax.ejb.FinderException;
-import javax.ejb.ObjectNotFoundException;
 import javax.ejb.Schedule;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.EllipseHelper;
@@ -115,14 +115,24 @@ public class RideManager {
     /**
      * List all rides owned by the calling user (driverId is null) or owned by the specified user. Soft deleted rides are omitted.
      * @return A list of rides owned by the calling user.
+     * @throws BadRequestException 
      */
-    public List<Ride> listRides(Long driverId, LocalDate since, LocalDate until) throws FinderException {
+    public List<Ride> listRides(Long driverId, LocalDate since, LocalDate until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
     	List<Ride> rides = Collections.emptyList();
     	if (since == null) {
     		since = LocalDate.now();
     	}
     	if (until != null && since != null && ! until.isAfter(since)) {
-    		throw new FinderException("Constraint violation: The 'until' date must be greater than the 'since' date.");
+    		throw new BadRequestException("Constraint violation: The 'until' date must be greater than the 'since' date.");
+    	}
+    	if (maxResults != null && maxResults > 100) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
+    	}
+    	if (maxResults != null && maxResults <= 0) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' > 0.");
+    	}
+    	if (offset != null && offset < 0) {
+    		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
     	}
     	User driver = null;
     	if (driverId != null) {
@@ -132,7 +142,10 @@ public class RideManager {
     		driver = userManager.findCallingUser();
     	}
     	if (driver != null) {
-    		rides = rideDao.findByDriver(driver, since, until, false, Ride.BOOKINGS_ENTITY_GRAPH);
+    		List<Long> rideIds = rideDao.findByDriver(driver, since, until, deletedToo, maxResults, offset);
+    		if (rideIds.size() > 0) {
+    			rides = rideDao.fetch(rideIds, Ride.BOOKINGS_ENTITY_GRAPH);
+    		}
     	}
     	return rides;
     	
@@ -213,9 +226,9 @@ public class RideManager {
      * @param ride
      * @return The ID of the ride just created.
      * @throws CreateException In case of trouble like wrong parameter values.
-     * @throws ObjectNotFoundException
+     * @throws NotFoundException
      */
-    public Long createRide(Ride ride) throws CreateException, ObjectNotFoundException {
+    public Long createRide(Ride ride) throws CreateException, NotFoundException {
     	User caller = userManager.registerCallingUser();
     	validateCreateUpdateRide(ride);
     	RideTemplate template = ride.getRideTemplate();
@@ -280,18 +293,18 @@ public class RideManager {
      * Retrieves a ride. Anyone can read a ride, given the id. All details are retrieved.
      * @param id
      * @return
-     * @throws ObjectNotFoundException
+     * @throws NotFoundException
      */
-    public Ride getRide(Long id) throws ObjectNotFoundException {
+    public Ride getRide(Long id) throws NotFoundException {
     	Ride ridedb = rideDao.find(id, rideDao.createLoadHint(Ride.BOOKINGS_ENTITY_GRAPH))
-    			.orElseThrow(ObjectNotFoundException::new);
+    			.orElseThrow(NotFoundException::new);
     	return ridedb;
     }
 
-    public void updateRide(Long rideId, Ride ride) throws CreateException, ObjectNotFoundException {
+    public void updateRide(Long rideId, Ride ride) throws CreateException, NotFoundException {
     	User caller = userManager.registerCallingUser();
     	Ride ridedb = rideDao.find(rideId)
-    			.orElseThrow(ObjectNotFoundException::new);
+    			.orElseThrow(NotFoundException::new);
     	userManager.checkOwnership(ridedb.getRideTemplate().getDriver(), Ride.class.getSimpleName());
     	if (ridedb.getBookings().size() > 0) {
     		// What if there is already a booking
@@ -328,7 +341,7 @@ public class RideManager {
     	Ride ridedb;
 		try {
 			ridedb = rideDao.find(rideId)
-					.orElseThrow(ObjectNotFoundException::new);
+					.orElseThrow(NotFoundException::new);
 	    	if (ridedb.getBookings().size() > 0) {
 	    		// Perform a soft delete
 	    		ridedb.setDeleted(true);
@@ -337,7 +350,7 @@ public class RideManager {
 				rideDao.remove(ridedb);
 //	    		ridedb.getStops().forEach(s -> stopDao.remove(s));
 			}
-		} catch (ObjectNotFoundException e) {
+		} catch (NotFoundException e) {
 			log.warn(String.format("Ride %d not found, ignoring...", rideId));
 		}
     }
@@ -351,11 +364,11 @@ public class RideManager {
      * @param rideId The ride to remove.
      * @param reason The reason why it was cancelled (optional).
      * @param scope The extent of deletion in case of a recurrent ride. 
-     * @throws ObjectNotFoundException
+     * @throws NotFoundException
      */
-    public void removeRide(Long rideId, final String reason, RideScope scope) throws ObjectNotFoundException {
+    public void removeRide(Long rideId, final String reason, RideScope scope) throws NotFoundException {
     	Ride ridedb = rideDao.find(rideId)
-    			.orElseThrow(ObjectNotFoundException::new);
+    			.orElseThrow(NotFoundException::new);
     	userManager.checkOwnership(ridedb.getRideTemplate().getDriver(), Ride.class.getSimpleName());
     	removeRide(rideId, reason);
     	if (scope == RideScope.THIS_AND_FOLLOWING) {

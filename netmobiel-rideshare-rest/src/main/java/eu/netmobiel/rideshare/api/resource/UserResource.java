@@ -2,7 +2,6 @@ package eu.netmobiel.rideshare.api.resource;
 
 import java.util.stream.Collectors;
 
-import javax.ejb.ObjectNotFoundException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
@@ -42,7 +41,7 @@ public class UserResource implements UsersApi {
     	try {
         	Long uid = RideshareUrnHelper.getId(User.URN_PREFIX, userId);
 			user = userManager.getUser(uid);
-		} catch (ObjectNotFoundException e) {
+		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new NotFoundException();
 		}
     	return Response.ok(mapper.map(user)).build();

@@ -28,7 +28,7 @@ import eu.netmobiel.planner.model.User;
 @ApplicationScoped
 @Typed(TripDao.class)
 public class TripDao extends AbstractDao<Trip, Long> {
-	public static final Integer MAX_RESULTS = 10; 
+	public static final Integer DEFAULT_PAGE_SIZE = 10; 
     @SuppressWarnings("unused")
 	@Inject
     private Logger logger;
@@ -69,7 +69,7 @@ public class TripDao extends AbstractDao<Trip, Long> {
         cq.orderBy(cb.asc(trips.get(Trip_.departureTime)));
         TypedQuery<Long> tq = em.createQuery(cq);
 		tq.setFirstResult(offset == null ? 0 : offset);
-		tq.setMaxResults(maxResults == null ? MAX_RESULTS : maxResults);
+		tq.setMaxResults(maxResults == null ? DEFAULT_PAGE_SIZE : maxResults);
         return tq.getResultList();
     }
 

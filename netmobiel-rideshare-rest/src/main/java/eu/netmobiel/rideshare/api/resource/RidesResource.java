@@ -5,9 +5,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
-import javax.ejb.CreateException;
-import javax.ejb.FinderException;
-import javax.ejb.ObjectNotFoundException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
@@ -16,6 +13,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
 
+import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.rideshare.api.RidesApi;
 import eu.netmobiel.rideshare.api.mapping.BookingMapper;
 import eu.netmobiel.rideshare.api.mapping.RideMapper;
@@ -44,7 +42,7 @@ public class RidesResource implements RidesApi {
      * List all rides owned by the calling user. Soft deleted rides are omitted.
      * @return A list of rides owned by the calling user.
      */
-    public Response listRides(String driverId, LocalDate sinceDate, LocalDate untilDate) {
+    public Response listRides(String driverId, LocalDate sinceDate, LocalDate untilDate, Boolean deletedToo, Integer maxResults, Integer offset) {
 //    	LocalDate sinceDate = since != null ? LocalDate.parse(since) : null;
 //    	LocalDate untilDate =  until != null ? LocalDate.parse(until) : null;
     	List<Ride> rides;
@@ -53,9 +51,9 @@ public class RidesResource implements RidesApi {
 			if (driverId != null) {
 				did = RideshareUrnHelper.getId(User.URN_PREFIX, driverId);
 			}
-			rides = rideManager.listRides(did, sinceDate, untilDate);
-		} catch (FinderException e) {
-			throw new BadRequestException("Error finding rides", e);
+			rides = rideManager.listRides(did, sinceDate, untilDate, deletedToo, maxResults, offset);
+		} catch (eu.netmobiel.commons.exception.BadRequestException e) {
+			throw new BadRequestException("Error listing rides", e);
 		}
 		// Map the rides as my rides: Brand/model car only, no driver info (because it is the specified driver)
     	return Response.ok(rides.stream()
@@ -76,9 +74,7 @@ public class RidesResource implements RidesApi {
 			Ride ride = mapper.map(ridedt);
 			String newRideId = RideshareUrnHelper.createUrn(Ride.URN_PREFIX, rideManager.createRide(ride));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newRideId)).build();
-		} catch (CreateException e) {
-			throw new BadRequestException("Error creating ride", e);
-		} catch (ObjectNotFoundException e) {
+		} catch (ApplicationException e) {
 			throw new BadRequestException("Error creating ride", e);
 		}
     	return rsp;
@@ -95,7 +91,7 @@ public class RidesResource implements RidesApi {
     	try {
         	Long cid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideId);
 			ride = rideManager.getRide(cid);
-		} catch (ObjectNotFoundException e) {
+		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new NotFoundException();
 		}
     	// Return all information, including car, driver and bookings
@@ -146,7 +142,7 @@ public class RidesResource implements RidesApi {
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
-		} catch (ObjectNotFoundException e) {
+		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 	    	rsp = Response.status(Status.GONE).build();
 		}
     	return rsp;
@@ -166,9 +162,7 @@ public class RidesResource implements RidesApi {
         	Booking booking = bookingMapper.map(bookingdt);
 			String newBookingId = RideshareUrnHelper.createUrn(Booking.URN_PREFIX, bookingManager.createBooking(rid, booking));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newBookingId)).build();
-		} catch (CreateException e) {
-			throw new BadRequestException("Error creating booking for ride " + rideId, e);
-		} catch (ObjectNotFoundException e) {
+		} catch (ApplicationException e) {
 			throw new BadRequestException("Error creating booking for ride " + rideId, e);
 		}
     	return rsp;

@@ -2,7 +2,6 @@ package eu.netmobiel.rideshare.api.resource;
 
 import java.io.IOException;
 
-import javax.ejb.ObjectNotFoundException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
@@ -44,7 +43,7 @@ public class CarLicenseResource implements CarLicensesApi {
     	}
 		try {
 			car = licensePlateService.fetchLicensePlateInformation(country, plate);
-		} catch (ObjectNotFoundException e) {
+		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new NotFoundException(e);
 		} catch (IOException e) {
 			throw new ServiceUnavailableException("Unable to retrieve license plate information", 0L, e);

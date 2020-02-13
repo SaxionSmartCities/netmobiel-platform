@@ -3,13 +3,13 @@ package eu.netmobiel.rideshare.service;
 import java.util.Collections;
 import java.util.List;
 
-import javax.ejb.CreateException;
-import javax.ejb.ObjectNotFoundException;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.BasicUser;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.Logging;
@@ -54,14 +54,14 @@ public class BookingManager {
      * @param nrSeats
      * @return A booking reference
      * @throws CreateException on error.
-     * @throws ObjectNotFoundException if the ride cannot be found.
+     * @throws NotFoundException if the ride cannot be found.
      */
     public String createBooking(String rideRef, BasicUser traveller, 
-    		GeoLocation pickupLocation, GeoLocation dropOffLocation, Integer nrSeats) throws CreateException, ObjectNotFoundException {
+    		GeoLocation pickupLocation, GeoLocation dropOffLocation, Integer nrSeats) throws CreateException, NotFoundException {
 		User travellerUser = userManager.register(traveller);
     	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideRef);
 		Ride ride = rideDao.find(rid)
-    			.orElseThrow(() -> new ObjectNotFoundException("Ride not found: " + rideRef));
+    			.orElseThrow(() -> new NotFoundException("Ride not found: " + rideRef));
 		Booking booking = new Booking(ride, travellerUser, pickupLocation, dropOffLocation, nrSeats);
     	booking.setState(BookingState.CONFIRMED);
     	bookingDao.save(booking);
@@ -74,12 +74,12 @@ public class BookingManager {
      * @param booking the booking
      * @return A booking ID
      * @throws CreateException on error.
-     * @throws ObjectNotFoundException if the ride cannot be found.
+     * @throws NotFoundException if the ride cannot be found.
      */
-    public Long createBooking(Long rideId, Booking booking) throws CreateException, ObjectNotFoundException {
+    public Long createBooking(Long rideId, Booking booking) throws CreateException, NotFoundException {
 		User caller = userManager.registerCallingUser();
     	Ride ride = rideDao.find(rideId)
-    			.orElseThrow(ObjectNotFoundException::new);
+    			.orElseThrow(NotFoundException::new);
     	booking.setRide(ride);
     	booking.setPassenger(caller);
     	booking.setState(BookingState.CONFIRMED);
@@ -91,11 +91,11 @@ public class BookingManager {
      * Retrieves a booking. Anyone can read a booking, given the id.
      * @param id
      * @return
-     * @throws ObjectNotFoundException
+     * @throws NotFoundException
      */
-    public Booking getBooking(Long id) throws ObjectNotFoundException {
+    public Booking getBooking(Long id) throws NotFoundException {
     	Booking bookingdb = bookingDao.find(id)
-    			.orElseThrow(ObjectNotFoundException::new);
+    			.orElseThrow(NotFoundException::new);
     	return bookingdb;
     }
 
@@ -104,11 +104,11 @@ public class BookingManager {
      * the database, but its state is set to cancelled. 
      * @param bookingId the booking to cancel
      * @param reason An optional reason
-     * @throws ObjectNotFoundException if the booking is not found in the database.
+     * @throws NotFoundException if the booking is not found in the database.
      */
-    public void removeBooking(Long bookingId, final String reason) throws ObjectNotFoundException {
+    public void removeBooking(Long bookingId, final String reason) throws NotFoundException {
     	Booking bookingdb = bookingDao.find(bookingId)
-    			.orElseThrow(ObjectNotFoundException::new);
+    			.orElseThrow(NotFoundException::new);
     	@SuppressWarnings("unused")
 		User caller = userManager.registerCallingUser();
     	//TODO Fixed cancelled by driver

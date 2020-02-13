@@ -7,7 +7,6 @@ import java.util.List;
 import java.util.Optional;
 
 import javax.ejb.EJB;
-import javax.ejb.ObjectNotFoundException;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
@@ -58,7 +57,7 @@ public class TripManager {
     	if (maxResults != null && maxResults <= 0) {
     		throw new BadRequestException("Constraint violation: 'maxResults' > 0.");
     	}
-    	if (maxResults != null && offset < 0) {
+    	if (offset != null && offset < 0) {
     		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
     	}
     	if (traveller != null) {
@@ -140,7 +139,7 @@ public class TripManager {
 						leg.getFrom().getLocation(), leg.getTo().getLocation(), 1);
 				leg.setBookingId(bookingRef);
     			leg.setState(TripState.SCHEDULED);
-			} catch (ObjectNotFoundException | javax.ejb.CreateException e) {
+			} catch (NotFoundException | CreateException e) {
 				throw new CreateException("cannot create booking", e);
 			}
     	} else {

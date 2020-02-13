@@ -2,7 +2,6 @@ package eu.netmobiel.rideshare.service;
 
 import java.io.IOException;
 
-import javax.ejb.ObjectNotFoundException;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -10,6 +9,7 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.repository.RDWCarLicenseDao;
 
@@ -21,7 +21,7 @@ public class LicensePlateService {
 
     @Inject
     private RDWCarLicenseDao rdwDao;
-    public Car fetchLicensePlateInformation(String country, String plate) throws IOException, ObjectNotFoundException {
+    public Car fetchLicensePlateInformation(String country, String plate) throws IOException, NotFoundException {
 		Car car = null;
     	if (country.toUpperCase().equals("NL")) {
     		car = rdwDao.fetchDutchLicensePlateInformation(plate);
@@ -29,7 +29,7 @@ public class LicensePlateService {
     		log.warn("Country not supported: " + country);
     	}
     	if (car == null) {
-    		throw new ObjectNotFoundException(String.format("No car found with license %s %s", country.toUpperCase(), plate.toUpperCase()));
+    		throw new NotFoundException(String.format("No car found with license %s %s", country.toUpperCase(), plate.toUpperCase()));
     	} else {
     		car.setRegistrationCountry(country.toUpperCase());
     	}

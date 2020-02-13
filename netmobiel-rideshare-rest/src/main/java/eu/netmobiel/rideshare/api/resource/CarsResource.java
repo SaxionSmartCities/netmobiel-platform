@@ -3,8 +3,6 @@ package eu.netmobiel.rideshare.api.resource;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.ejb.CreateException;
-import javax.ejb.ObjectNotFoundException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
@@ -13,6 +11,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
 
+import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.rideshare.api.CarsApi;
 import eu.netmobiel.rideshare.api.mapping.CarMapper;
 import eu.netmobiel.rideshare.model.Car;
@@ -59,7 +58,7 @@ public class CarsResource implements CarsApi {
     	try {
         	Long cid = RideshareUrnHelper.getId(Car.URN_PREFIX, carId);
 			car = userManager.getCar(cid);
-		} catch (ObjectNotFoundException e) {
+		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new NotFoundException();
 		}
     	return Response.ok(mapper.map(car)).build();
@@ -73,7 +72,7 @@ public class CarsResource implements CarsApi {
         	Car car = mapper.map(cardt);
 			userManager.updateCar(cid, car);
 			rsp = Response.noContent().build();
-		} catch (ObjectNotFoundException e) {
+		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			rsp = Response.status(Status.NOT_FOUND).build();
 		}
     	return rsp;
@@ -86,7 +85,7 @@ public class CarsResource implements CarsApi {
         	Long cid = RideshareUrnHelper.getId(Car.URN_PREFIX, carId);
 			userManager.removeCar(cid);
 			rsp = Response.noContent().build();
-		} catch (ObjectNotFoundException e) {
+		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 	    	rsp = Response.status(Status.GONE).build();
 		}
     	return rsp;

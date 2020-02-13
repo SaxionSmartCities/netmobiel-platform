@@ -2,7 +2,6 @@ package eu.netmobiel.rideshare.api.resource;
 
 import java.util.stream.Collectors;
 
-import javax.ejb.ObjectNotFoundException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
@@ -40,7 +39,7 @@ public class BookingsResource implements BookingsApi {
     	try {
         	Long cid = RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingId);
 			booking = bookingManager.getBooking(cid);
-		} catch (ObjectNotFoundException e) {
+		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new NotFoundException();
 		}
     	return Response.ok(mapper.map(booking)).build();
@@ -52,7 +51,7 @@ public class BookingsResource implements BookingsApi {
         	Long cid = RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingId);
 			bookingManager.removeBooking(cid, reason);
 			rsp = Response.noContent().build();
-		} catch (ObjectNotFoundException e) {
+		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 	    	rsp = Response.status(Status.GONE).build();
 		}
     	return rsp;

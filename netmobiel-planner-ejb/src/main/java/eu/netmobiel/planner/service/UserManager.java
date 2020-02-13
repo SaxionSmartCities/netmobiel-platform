@@ -38,7 +38,6 @@ public class UserManager {
         User user = null;
     	Principal p = ctx.getCallerPrincipal();
     	if (p != null && p instanceof KeycloakPrincipal) {
-    		log.debug("Principal name: " + p.getName());
     		@SuppressWarnings("unchecked")
 			KeycloakPrincipal<KeycloakSecurityContext> kp = (KeycloakPrincipal<KeycloakSecurityContext>) p;
             KeycloakSecurityContext ksc = kp.getKeycloakSecurityContext(); 
@@ -52,7 +51,9 @@ public class UserManager {
                 user.setGivenName(token.getGivenName());
             }
     	}
-    	log.debug("createCallingUser: " + (user != null ? user.toString() : "<null>"));
+    	if (log.isTraceEnabled()) {
+    		log.trace("createCallingUser: " + (user != null ? user.toString() : "<null>"));
+    	}
     	return user;
     }
     
