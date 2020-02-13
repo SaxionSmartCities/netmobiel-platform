@@ -5,6 +5,9 @@ import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -31,7 +34,9 @@ import eu.netmobiel.rideshare.model.User;
 @ApplicationScoped
 @Typed(RideDao.class)
 public class RideDao extends AbstractDao<Ride, Long> {
-    @Inject
+	public static final Integer DEFAULT_PAGE_SIZE = 10; 
+
+	@Inject
     private Logger logger;
     
     @Inject @RideshareDatabase
@@ -46,11 +51,11 @@ public class RideDao extends AbstractDao<Ride, Long> {
 		return em;
 	}
 
-    public List<Ride> findByDriver(User driver, LocalDate since, LocalDate until, boolean deletedToo, String graphName) {
+    public List<Long> findByDriver(User driver, LocalDate since, LocalDate until, Boolean deletedToo, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Ride> cq = cb.createQuery(Ride.class);
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Ride> rides = cq.from(Ride.class);
-        cq.select(rides);
+        cq.select(rides.get(Ride_.id));
         List<Predicate> predicates = new ArrayList<>();
         Predicate predDriver = cb.equal(rides.get(Ride_.rideTemplate).get(RideTemplate_.driver), driver);
         predicates.add(predDriver);
@@ -62,19 +67,19 @@ public class RideDao extends AbstractDao<Ride, Long> {
 	        Predicate predUntil = cb.lessThanOrEqualTo(rides.get(Ride_.departureTime), until.atStartOfDay());
 	        predicates.add(predUntil);
         }        
-        if (! deletedToo) {
+        if (deletedToo == null || !deletedToo) {
             Predicate predNotDeleted = cb.or(cb.isNull(rides.get(Ride_.deleted)), cb.isFalse(rides.get(Ride_.deleted)));
 	        predicates.add(predNotDeleted);
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         cq.orderBy(cb.asc(rides.get(Ride_.departureTime)));
         
-        TypedQuery<Ride> tq = em.createQuery(cq);
-        if (graphName != null) {
-        	tq.setHint(JPA_HINT_LOAD, em.getEntityGraph(graphName));
-        }
+        TypedQuery<Long> tq = em.createQuery(cq);
+		tq.setFirstResult(offset == null ? 0 : offset);
+		tq.setMaxResults(maxResults == null ? DEFAULT_PAGE_SIZE : maxResults);
         return tq.getResultList();
     }
+
 
     /**
      * Searches for matching rides. The following rules apply:<br/>
@@ -121,16 +126,14 @@ public class RideDao extends AbstractDao<Ride, Long> {
         return tq.getResultList();
     }
 
-    public List<Ride> fetch(List<Long> rideIds, String graphName) {
-    	TypedQuery<Ride> tq = em.createQuery(
-    			"from Ride r where r.id in :rideIdList", Ride.class)
-    			.setParameter("rideIdList", rideIds);
-    	if (graphName != null) {
-    		tq.setHint(JPA_HINT_LOAD, em.getEntityGraph(graphName));
-    	}
-    	return tq.getResultList();
-    }
-
+	@Override
+	public List<Ride> fetch(List<Long> ids, String graphName) {
+		// Create an identity map using the generic fetch. Rows are returned, but not necessarily in the same order
+		Map<Long, Ride> resultMap = super.fetch(ids, graphName).stream().collect(Collectors.toMap(Ride::getId, Function.identity()));
+		// Now return the rows in the same order as the ids.
+		return ids.stream().map(id -> resultMap.get(id)).collect(Collectors.toList());
+	}
+    
     public List<Long> findFollowingRideIds(RideTemplate template, LocalDateTime departureTime) {
     	TypedQuery<Long> tq = em.createQuery(
     			"select r.id from Ride r where r.rideTemplate = :template and r.departureTime > :departureTime and (r.deleted is null or r.deleted = false)", Long.class)
