@@ -591,6 +591,11 @@ paths:
           format: date
           type: string
         in: query
+      - name: deletedToo
+        description: If set to true then return also cancelled rides.
+        schema:
+          type: boolean
+        in: query
       - name: maxResults
         description: 'Paging: The maximum number of results per page. Default is 10.'
         schema:
