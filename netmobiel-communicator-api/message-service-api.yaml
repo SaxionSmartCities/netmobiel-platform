@@ -12,38 +12,6 @@ servers:
 - url: https://acc.netmobiel.eu/gwapi-acc/msgsvc
   description: The message service visible to the world (acceptance).
 paths:
-  /messages:
-    summary: Path used to manage the list of messages.
-    description: The REST endpoint/path used to list and create zero or more `Message`
-      entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Message'
-          description: Successful response - returns an array of `Message` entities.
-      operationId: getmessages
-      summary: List All messages
-      description: Gets a list of all `Message` entities.
-    post:
-      requestBody:
-        description: A new `Message` to be created.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Message'
-        required: true
-      responses:
-        "201":
-          description: Successful response.
-      operationId: createMessage
-      summary: Create a Message
-      description: Creates a new instance of a `Message`.
   /messages/{messageId}:
     summary: Path used to manage a single Message.
     description: The REST endpoint/path used to get, update, and delete single instances
@@ -60,27 +28,6 @@ paths:
       operationId: getMessage
       summary: Get a Message
       description: Gets the details of a single instance of a `Message`.
-    put:
-      requestBody:
-        description: Updated `Message` information.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Message'
-        required: true
-      responses:
-        "202":
-          description: Successful response.
-      operationId: updateMessage
-      summary: Update a Message
-      description: Updates an existing `Message`.
-    delete:
-      responses:
-        "204":
-          description: Successful response.
-      operationId: deleteMessage
-      summary: Delete a Message
-      description: Deletes an existing `Message`.
     parameters:
     - name: messageId
       description: A unique identifier for a `Message`.
@@ -88,60 +35,98 @@ paths:
         type: string
       in: path
       required: true
+  /messages:
+    summary: Path used to manage the list of messages.
+    description: The REST endpoint/path used to list and create zero or more `Message`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - name: groupByConveration
+        description: If set then of messages is returned, ordered recent to older,
+          where each message is the most recent message of each conversation. The
+          recipient must also be set, other filters are not allowed. Without this
+          flag a plain list of messages is returned.
+        schema:
+          type: boolean
+        in: query
+      - name: recipient
+        description: |-
+          The recipient of the messages. Only allowed with elevated privilege. The recipient domain is the Keycloak managed identity.
+          Without this parameter the caller is considered to be the recipient.
+        schema:
+          type: string
+        in: query
+      - name: context
+        description: The context to filter on. Only allowed if 'groupByConversation'
+          is not set (or false).
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The date from which to start the listing. Default is beginning
+          of the list.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The date and after which to limit the list. The `until` date
+          must be after the `since` parameter. Default is not set, meaning all messages
+          from now and before.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+          description: Successful response - returns an array of `Message` entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: listMessages
+      summary: List messages
+      description: |-
+        Gets a paged list of all `Message` entities. There are two forms supported:
+        With the flag 'groupByConversation' the latest message of each context (the conversation) is selected.
+        Without that flag a list of messages complying to the filter criteria are returned.
+    post:
+      requestBody:
+        description: A new `Message` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+      operationId: sendMessage
+      summary: Create a Message
+      description: Creates a new instance of a `Message`.
 components:
   schemas:
-    Message:
-      description: A text message exchanged between one party and one or more others.
-      required:
-      - recipients
-      - deliveryMode
-      - context
-      type: object
-      properties:
-        body:
-          description: "The payload of the message comprising the actual message text\
-            \ to convey. \nThis text should be in the right language. \nThe backend\
-            \ services use message codes only."
-          type: string
-        context:
-          description: The object reference to mark the context of the message. This
-            is a urn, uniquely defining the object this message is about.
-          type: string
-        deliveryMode:
-          description: "The deliver mode, indicating how the message should be delivered.\n\
-            A message delivered in the inbox can be read at a later point. \nA notification\
-            \ only message is volatile an is not saved in the inbox. For auditing\
-            \ purposes the message is saved in outbox.\n"
-          enum:
-          - INBOX
-          - NOTIFY
-          - ALL
-          type: string
-        sender:
-          description: The address of the sender. The system will assign the caller
-            as the sender. If the caller has elevated privilege, a from can set by
-            the caller.
-          type: string
-        recipients:
-          description: |-
-            The list of recipients that should receive the message or have received the message.
-
-            This field will only be present on read when a system account retrieves messages. In the normal case the calleer is the implicit recipient.
-          type: string
-        creationTime:
-          format: date-time
-          description: The date and time the message was sent. This field is set by
-            the message service.
-          type: string
-        ackTime:
-          format: date-time
-          description: The timestamp conforming the reading of the message. Only set
-            in case of a message, thus not in case of a notification.
-          type: string
-        subject:
-          description: Human-readable context, used for displaying the subject of
-            the context.
-          type: string
     Error:
       title: Root Type for Error
       description: The error response.
@@ -165,6 +150,60 @@ components:
         message: This is a really bad request
         reasonPhrase: Bad Request
         status: 400
+    Message:
+      description: A text message exchanged between one party and one or more others.
+      required:
+      - recipients
+      - deliveryMode
+      - context
+      type: object
+      properties:
+        body:
+          description: "The payload of the message comprising the actual message text\
+            \ to convey. \nThis text should be in the right language. \nThe backend\
+            \ services use message codes only."
+          type: string
+        context:
+          description: The object reference to mark the context of the message. This
+            is a urn, uniquely defining the object this message is about.
+          type: string
+        deliveryMode:
+          description: "The deliver mode, indicating how the message should be delivered.\n\
+            A message delivered in the inbox of each recipient and can be read by\
+            \ the recipient at a later point. \nA notification only message is volatile\
+            \ an is not saved in the inbox of the recipient. For auditing purposes\
+            \ the message is saved in outbox of the sender. Notifications have a limited\
+            \ lifetime (to be specified).\n"
+          enum:
+          - MESSAGE
+          - NOTIFICATION
+          - ALL
+          type: string
+        sender:
+          description: The address of the sender. The system will assign the caller
+            as the sender. If the caller has elevated privilege, a sender can set
+            by the caller.
+          type: string
+        recipients:
+          description: |-
+            The list of recipients that should receive the message or have received the message.
+
+            This field will only be present on read when a system account retrieves messages. In the normal case the calleer is the implicit recipient.
+          type: string
+        creationTime:
+          format: date-time
+          description: Read-only. The date and time the message was sent. This field
+            is set by the message service.
+          type: string
+        ackTime:
+          format: date-time
+          description: Read-only. The timestamp conforming the reading of the message.
+            Only set in case of a message, thus not in case of a notification.
+          type: string
+        subject:
+          description: Human-readable context, used for displaying the subject of
+            the context.
+          type: string
   responses:
     InternalServerError:
       content:
