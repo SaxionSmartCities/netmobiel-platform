@@ -15,7 +15,6 @@ import javax.jms.Queue;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.CreateException;
-import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
