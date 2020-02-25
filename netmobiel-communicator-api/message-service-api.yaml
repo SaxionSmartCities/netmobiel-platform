@@ -1,0 +1,225 @@
+---
+openapi: 3.0.2
+info:
+  title: message-service
+  version: 1.0.0
+  description: API for the Netmobiel Message Service .
+servers:
+- url: https://api.netmobiel.eu/gwapi/msgsvc
+  description: The message service visible to the world (production).
+- url: https://otp.netmobiel.eu/msgsvc/api
+  description: The internal URL for the message service (production).
+- url: https://acc.netmobiel.eu/gwapi-acc/msgsvc
+  description: The message service visible to the world (acceptance).
+paths:
+  /messages:
+    summary: Path used to manage the list of messages.
+    description: The REST endpoint/path used to list and create zero or more `Message`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Message'
+          description: Successful response - returns an array of `Message` entities.
+      operationId: getmessages
+      summary: List All messages
+      description: Gets a list of all `Message` entities.
+    post:
+      requestBody:
+        description: A new `Message` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+      operationId: createMessage
+      summary: Create a Message
+      description: Creates a new instance of a `Message`.
+  /messages/{messageId}:
+    summary: Path used to manage a single Message.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Message`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: Successful response - returns a single `Message`.
+      operationId: getMessage
+      summary: Get a Message
+      description: Gets the details of a single instance of a `Message`.
+    put:
+      requestBody:
+        description: Updated `Message` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+        required: true
+      responses:
+        "202":
+          description: Successful response.
+      operationId: updateMessage
+      summary: Update a Message
+      description: Updates an existing `Message`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deleteMessage
+      summary: Delete a Message
+      description: Deletes an existing `Message`.
+    parameters:
+    - name: messageId
+      description: A unique identifier for a `Message`.
+      schema:
+        type: string
+      in: path
+      required: true
+components:
+  schemas:
+    Message:
+      description: A text message exchanged between one party and one or more others.
+      required:
+      - recipients
+      - deliveryMode
+      - context
+      type: object
+      properties:
+        body:
+          description: "The payload of the message comprising the actual message text\
+            \ to convey. \nThis text should be in the right language. \nThe backend\
+            \ services use message codes only."
+          type: string
+        context:
+          description: The object reference to mark the context of the message. This
+            is a urn, uniquely defining the object this message is about.
+          type: string
+        deliveryMode:
+          description: "The deliver mode, indicating how the message should be delivered.\n\
+            A message delivered in the inbox can be read at a later point. \nA notification\
+            \ only message is volatile an is not saved in the inbox. For auditing\
+            \ purposes the message is saved in outbox.\n"
+          enum:
+          - INBOX
+          - NOTIFY
+          - ALL
+          type: string
+        sender:
+          description: The address of the sender. The system will assign the caller
+            as the sender. If the caller has elevated privilege, a from can set by
+            the caller.
+          type: string
+        recipients:
+          description: |-
+            The list of recipients that should receive the message or have received the message.
+
+            This field will only be present on read when a system account retrieves messages. In the normal case the calleer is the implicit recipient.
+          type: string
+        creationTime:
+          format: date-time
+          description: The date and time the message was sent. This field is set by
+            the message service.
+          type: string
+        ackTime:
+          format: date-time
+          description: The timestamp conforming the reading of the message. Only set
+            in case of a message, thus not in case of a notification.
+          type: string
+        subject:
+          description: Human-readable context, used for displaying the subject of
+            the context.
+          type: string
+    Error:
+      title: Root Type for Error
+      description: The error response.
+      type: object
+      properties:
+        message:
+          description: Human-readable error text intended for developers.
+          type: string
+        reasonPhrase:
+          description: The HTTP status code textual message.
+          type: string
+        status:
+          format: int32
+          description: The HTTP status code.
+          type: integer
+        errorCode:
+          description: A string code identifying the error. This code can be used
+            to display an error message in the right language.
+          type: string
+      example:
+        message: This is a really bad request
+        reasonPhrase: Bad Request
+        status: 400
+  responses:
+    InternalServerError:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: Some application error occurred, indicating a bug in the application
+        (500).
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The calling user is not allowed to perform the operation on the
+        resource (403).
+    NotAuthorized:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The caller is not authorized to performed the intended operation
+        (status 401).
+    ServiceUnavailableException:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: 'The (underlying) service is (temporarily) not available. Try again
+        later (503). '
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: A requested object could not be found (404).
+    Gone:
+      description: The requested object does no longer exist (410).
+    Conflict:
+      description: A conflict occurred with existing objects (duplicate key ec.).
+        A 409 error.
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The request was understood, but in incomplete or invalid and cannot
+        be processed (400).
+  securitySchemes:
+    apikey:
+      type: apiKey
+      description: 'The Planner service requires an Api Key: x-gravitee-api-key in
+        the header.'
+      name: Api-key
+      in: header
+    Bearer-only:
+      scheme: bearer
+      type: http
+      description: You need a valid access token.
