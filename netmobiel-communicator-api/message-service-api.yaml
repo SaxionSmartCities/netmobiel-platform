@@ -12,28 +12,6 @@ servers:
 - url: https://acc.netmobiel.eu/gwapi-acc/msgsvc
   description: The message service visible to the world (acceptance).
 paths:
-  /messages/{messageId}:
-    summary: Path used to manage a single Message.
-    description: The REST endpoint/path used to get a single instances of an `Message`.  This
-      path contains a `GET` operation used to perform the get tasks.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Message'
-          description: Successful response - returns a single `Message`.
-      operationId: getMessage
-      summary: Get a Message
-      description: Gets the details of a single instance of a `Message`.
-    parameters:
-    - name: messageId
-      description: A unique identifier for a `Message`.
-      schema:
-        type: string
-      in: path
-      required: true
   /messages:
     summary: Path used to manage the list of messages.
     description: The REST endpoint/path used to list and create zero or more `Message`
@@ -241,7 +219,7 @@ components:
           type: string
         id:
           description: Read-only. A unique identification for the message in combination
-            with the recipient.
+            with the recipient, i.e. the envelope.
           type: integer
   responses:
     InternalServerError:
