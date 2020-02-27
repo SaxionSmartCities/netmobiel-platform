@@ -5,12 +5,14 @@ info:
   version: 1.0.0
   description: API for the Netmobiel Message Service .
 servers:
-- url: https://api.netmobiel.eu/gwapi/msgsvc
-  description: The message service visible to the world (production).
-- url: https://otp.netmobiel.eu/msgsvc/api
-  description: The internal URL for the message service (production).
-- url: https://acc.netmobiel.eu/gwapi-acc/msgsvc
-  description: The message service visible to the world (acceptance).
+- url: https://prod.netmobiel.eu/communicator/api
+  description: The internal URL for the communicator (production).
+- url: https://api.netmobiel.eu/gwapi/communicator
+  description: The communicator service visible to the world (production).
+- url: https://acc.netmobiel.eu/communicator/api
+  description: The internal URL for the communicator (acceptance).
+- url: https://api.netmobiel.eu/gwapi-acc/communicator
+  description: The communicator service visible to the world (acceptance).
 paths:
   /messages:
     summary: Path used to manage the list of messages.
