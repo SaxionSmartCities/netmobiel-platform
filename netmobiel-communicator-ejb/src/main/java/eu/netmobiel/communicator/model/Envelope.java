@@ -49,10 +49,10 @@ public class Envelope implements Serializable {
     private Message message;
 
 	/**
-	 * The recipient of the message. Address format is keycloak managed identity guid or a system name.
+	 * The recipient of the message. Address format is keycloak managed identity guid or a system name or a urn in the urn:nb:kc:user:....
 	 */
     @NotNull
-	@Column(name = "recipient", length = 36, nullable = false)
+	@Column(name = "recipient", length = 64, nullable = false)
 	private String recipient;
 
 	/**

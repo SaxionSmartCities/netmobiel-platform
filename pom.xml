@@ -17,6 +17,9 @@
 
     <modules>
         <module>netmobiel-commons</module>
+        <module>netmobiel-communicator-api</module>
+        <module>netmobiel-communicator-ejb</module>
+        <module>netmobiel-communicator-rest</module>
         <module>netmobiel-otp-client</module>
         <module>netmobiel-parent-pom</module>
         <module>netmobiel-planner-api</module>

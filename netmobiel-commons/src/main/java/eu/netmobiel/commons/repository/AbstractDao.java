@@ -132,6 +132,9 @@ public abstract class AbstractDao<T, ID> {
      * @return
      */
     public List<T> fetch(List<ID> ids, String graphName) {
+    	if (ids == null || ids.isEmpty()) {
+    		return Collections.emptyList();
+    	}
         CriteriaBuilder cb = getEntityManager().getCriteriaBuilder();
         CriteriaQuery<T> cq = cb.createQuery(getPersistentClass());
         Root<T> rootEntry = cq.from(getPersistentClass());

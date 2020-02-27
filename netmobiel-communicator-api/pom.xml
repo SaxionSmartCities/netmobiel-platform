@@ -28,7 +28,7 @@
 			                <goal>generate</goal>
 			            </goals>
 			            <configuration>
-			                <inputSpec>${project.basedir}/message-service-api.yaml</inputSpec>
+			                <inputSpec>${project.basedir}/communicator-api.yaml</inputSpec>
 			                <configOptions>
 				            	<apiPackage>eu.netmobiel.communicator.api</apiPackage>
 				            	<modelPackage>eu.netmobiel.communicator.api.model</modelPackage>

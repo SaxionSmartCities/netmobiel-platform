@@ -4,7 +4,7 @@ import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.util.UrnHelper;
 
 public class MessageServiceUrnHelper extends UrnHelper {
-	public static final NetMobielModule MODULE = NetMobielModule.RIDESHARE;
+	public static final NetMobielModule MODULE = NetMobielModule.COMMUNICATOR;
 	
 	public static String createUrnPrefix(Class<?> className) {
 		return createUrnPrefix(className.getSimpleName());

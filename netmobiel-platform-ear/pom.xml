@@ -24,6 +24,24 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-communicator-api</artifactId>
+			<version>${project.version}</version>
+			<type>jar</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-communicator-ejb</artifactId>
+			<version>${project.version}</version>
+			<type>ejb</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-communicator-rest</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
 			<artifactId>netmobiel-otp-client</artifactId>
 			<version>${project.version}</version>
 			<type>jar</type>
@@ -100,6 +118,11 @@
           <modules>
 		    <ejbModule>
 				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-communicator-ejb</artifactId>
+              	<bundleFileName>netmobiel-communicator-ejb.jar</bundleFileName>
+            </ejbModule>
+		    <ejbModule>
+				<groupId>${project.groupId}</groupId>
 				<artifactId>netmobiel-planner-ejb</artifactId>
               	<bundleFileName>netmobiel-planner-ejb.jar</bundleFileName>
             </ejbModule>
@@ -108,6 +131,12 @@
 				<artifactId>netmobiel-rideshare-ejb</artifactId>
               	<bundleFileName>netmobiel-rideshare-ejb.jar</bundleFileName>
             </ejbModule>
+            <webModule>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-communicator-rest</artifactId>
+              	<contextRoot>/communicator</contextRoot>
+              	<bundleFileName>netmobiel-communicator-rest.war</bundleFileName>
+            </webModule>
             <webModule>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>netmobiel-planner-rest</artifactId>

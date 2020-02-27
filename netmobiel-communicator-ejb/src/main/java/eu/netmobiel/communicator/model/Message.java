@@ -58,7 +58,6 @@ public class Message implements Serializable {
 	@Column(name = "created_time", nullable = false)
 	private Instant creationTime;
 	
-    @NotNull
 	@Column(name = "delivery_mode", length = 2, nullable = false)
 	private DeliveryMode deliveryMode;
 
@@ -66,8 +65,9 @@ public class Message implements Serializable {
 	 * The sender of the message. Address format is keycloak managed identity guid, or a system service name
 	 */
     @NotNull
-	@Column(name = "sender", length = 36, nullable = false)
+	@Column(name = "sender", length = 64, nullable = false)
 	private String sender;
+
     public Long getId() {
 		return id;
 	}

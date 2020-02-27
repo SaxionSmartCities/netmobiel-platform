@@ -3,7 +3,7 @@ package eu.netmobiel.commons;
 public enum NetMobielModule {
 	RIDESHARE("rs"),
 	PLANNER("pn"),
-	MESSAGE_SERVICE("ms");
+	COMMUNICATOR("cm");
 
 	private String code;
 	 

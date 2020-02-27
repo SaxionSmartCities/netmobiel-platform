@@ -37,6 +37,7 @@ import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
+import eu.netmobiel.communicator.repository.converter.DeliveryModeConverter;
 import eu.netmobiel.communicator.util.MessageServiceUrnHelper;
 
 @RunWith(Arquillian.class)
@@ -54,6 +55,7 @@ public class EnvelopeDaoIT {
                 .addPackages(true, MessageServiceUrnHelper.class.getPackage())
                 .addPackages(true, Envelope.class.getPackage())
                 .addPackages(true, AbstractDao.class.getPackage())
+                .addPackages(true, DeliveryModeConverter.class.getPackage())
             .addClass(EnvelopeDao.class)
             .addClass(Resources.class)
             .addAsResource("META-INF/test-persistence.xml", "META-INF/persistence.xml")

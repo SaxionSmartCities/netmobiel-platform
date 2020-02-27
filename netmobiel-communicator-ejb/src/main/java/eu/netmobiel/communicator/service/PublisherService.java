@@ -1,20 +1,21 @@
 package eu.netmobiel.communicator.service;
 
 import java.time.Instant;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
-import javax.jms.JMSContext;
-import javax.jms.JMSException;
-import javax.jms.MapMessage;
-import javax.jms.Queue;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
@@ -24,17 +25,19 @@ import eu.netmobiel.communicator.repository.EnvelopeDao;
  */
 @Stateless
 public class PublisherService {
+	public static final int NOTIFICATION_TTL = 60 * 60 * 1000; // [ms] Expiration time of a notification  
 
-    @Resource
-    private SessionContext sc;
-    @Resource(lookup = "java:module/jms/netmobielMessageProcessor")
-    private Queue queue;
-    @Inject
-    private JMSContext context;
+	@Resource
+    private SessionContext sessionContext;
+//    @Resource(lookup = "java:module/jms/netmobielNotificationTopic")
+//    private Topic notificationTopic;
+//    @Inject
+//    private JMSContext context;
 
     @Inject
     private Logger logger;
 
+    @Inject
     private EnvelopeDao envelopeDao;
     
     public PublisherService() {
@@ -46,38 +49,80 @@ public class PublisherService {
      * received by MessageBean, a message-driven bean that uses a message
      * selector to retrieve messages whose NewsType property has certain values.
      */
-    public void publish(Message msg, String recipients) throws CreateException {
-        MapMessage message;
-        try {
-        	if (logger.isDebugEnabled()) {
-                logger.debug(String.format("Send message from %s to %s: %s %s - %s", msg.getSender(), recipients, msg.getContext(), msg.getSubject(), msg.getBody()));
-        	}
-            message = context.createMapMessage();
-            message.setString("text", msg.getBody());
-            message.setString("context", msg.getContext());
-            message.setString("subject", msg.getSubject());
-            message.setString("deliveryMode", msg.getDeliveryMode().name());
-            // The sender is the caller for now, unless the sender is set.
-            
-            message.setString("sender", msg.getSender() != null ? msg.getSender() : sc.getCallerPrincipal().getName());
-            message.setString("recipients", recipients);
-            context.createProducer().send(queue, message);
-        } catch (JMSException ex) {
-            logger.error("Error sending message", ex);
-            sc.setRollbackOnly();
-            throw new CreateException("Failed to publish message", ex);
-        }
+    public void publish(Message msg, String recipients) throws CreateException, BadRequestException {
+    	if (msg.getContext() == null) {
+    		throw new BadRequestException("Constraint violation: 'context' must be set.");
+    	}
+    	if (msg.getSubject() == null) {
+    		throw new BadRequestException("Constraint violation: 'subject' must be set.");
+    	}
+    	if (msg.getDeliveryMode() == null) {
+    		throw new BadRequestException("Constraint violation: 'deliveryMode' must be set.");
+    	}
+    	if (recipients == null || recipients.trim().isEmpty()) {
+    		throw new BadRequestException("Constraint violation: 'recipients' must be set.");
+    	}
+
+    	if (logger.isDebugEnabled()) {
+            logger.debug(String.format("Send message from %s to %s: %s %s - %s", msg.getSender(), recipients, msg.getContext(), msg.getSubject(), msg.getBody()));
+    	}
+		if (msg.getDeliveryMode() == DeliveryMode.MESSAGE || msg.getDeliveryMode() == DeliveryMode.ALL) {
+			List<Envelope> envelopes = Arrays.stream(recipients.split(","))
+					.map(rpc -> new Envelope(msg, rpc))
+					.collect(Collectors.toList());
+			// Always add the sender as recipient too, but acknowledge the message immediately
+			envelopes.add(new Envelope(msg, msg.getSender(), Instant.now()));
+			envelopeDao.saveAll(envelopes);
+		}
+		if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
+//			sendNotification(msg, recipients);
+		}
     }
+
+//    protected void sendNotification(Message msg, String recipients) {
+//        try {
+//	        MapMessage message = context.createMapMessage();
+//	        message.setString("text", msg.getBody());
+//	        message.setString("context", msg.getContext());
+//	        message.setString("subject", msg.getSubject());
+//	        message.setString("deliveryMode", msg.getDeliveryMode().name());
+//	        // The sender is the caller for now, unless the sender is set.
+//	        message.setString("sender", msg.getSender() != null ? msg.getSender() : sessionContext.getCallerPrincipal().getName());
+//	        message.setString("recipients", recipients);
+//	        context.createProducer()
+//	        	.setDeliveryMode(javax.jms.DeliveryMode.NON_PERSISTENT)	// Notifications are not critical
+//	        	.setTimeToLive(NOTIFICATION_TTL)
+//	        	.send(notificationTopic, message);
+//        } catch (JMSException ex) {
+//            logger.error("Error sending notification", ex);
+//        }
+//	    	
+//    }
     
 	public List<Envelope> listEnvelopes(String recipient, String context, Instant since, Instant until, Integer maxResults, Integer offset) {
-    	String effectiveRecipient = recipient != null ? recipient : sc.getCallerPrincipal().getName();
+    	String effectiveRecipient = recipient != null ? recipient : sessionContext.getCallerPrincipal().getName();
     	List<Long> ids = envelopeDao.listEnvelopes(effectiveRecipient, context, since, until, maxResults, offset);
     	return envelopeDao.fetch(ids, null);
 	}
 
     public List<Envelope> listConversation(String recipient, Integer maxResults, Integer offset) {
-    	String effectiveRecipient = recipient != null ? recipient : sc.getCallerPrincipal().getName();
+    	String effectiveRecipient = recipient != null ? recipient : sessionContext.getCallerPrincipal().getName();
     	List<Long> ids = envelopeDao.listConverations(effectiveRecipient, maxResults, offset);
     	return envelopeDao.fetch(ids, null);
     }
+    
+	protected void checkOwnership(String owner, String objectName) {
+    	if (! owner.equals(sessionContext.getCallerPrincipal().getName())) {
+    		throw new SecurityException(objectName + " is not owned by calling user");
+    	}
+    }
+
+    public void updateAcknowledgment(Long envelopeId, Instant ackTime) throws NotFoundException {
+    	Envelope envdb = envelopeDao.find(envelopeId)
+    			.orElseThrow(NotFoundException::new);
+    	checkOwnership(envdb.getRecipient(), Envelope.class.getSimpleName());
+    	envdb.setAckTime(ackTime);
+    	envelopeDao.merge(envdb);
+    }
+
 }

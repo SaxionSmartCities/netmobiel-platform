@@ -5,9 +5,23 @@
         <dependencies>
         </dependencies>
     </deployment>
+    <sub-deployment name="netmobiel-communicator-ejb.jar">
+        <dependencies>
+        	<module name="org.keycloak.keycloak-core"/>
+        </dependencies>
+        <exclusions>
+            <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
+        </exclusions>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-communicator-rest.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-communicator-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
     <sub-deployment name="netmobiel-rideshare-ejb.jar">
         <dependencies>
         	<module name="org.keycloak.keycloak-core"/>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-communicator-ejb.jar"/>
         </dependencies>
         <exclusions>
             <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
@@ -16,16 +30,12 @@
     <sub-deployment name="netmobiel-planner-ejb.jar">
         <dependencies>
         	<module name="org.keycloak.keycloak-core"/>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-communicator-ejb.jar"/>
         	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
         </dependencies>
         <exclusions>
             <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
         </exclusions>
-    </sub-deployment>
-    <sub-deployment name="netmobiel-rideshare-rest.war">
-        <dependencies>
-        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
-        </dependencies>
     </sub-deployment>
     <sub-deployment name="netmobiel-planner-rest.war">
         <dependencies>
@@ -36,4 +46,10 @@
 <!--             <module name="org.jboss.resteasy.resteasy-json-binding-provider"/> -->
 <!--         </exclusions> -->
     </sub-deployment>
+    <sub-deployment name="netmobiel-rideshare-rest.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+
 </jboss-deployment-structure>

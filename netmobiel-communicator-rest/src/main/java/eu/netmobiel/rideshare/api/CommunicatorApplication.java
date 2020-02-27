@@ -30,7 +30,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.Version;
 import eu.netmobiel.commons.jaxrs.ApplicationExceptionMapper;
 import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
-import eu.netmobiel.commons.jaxrs.LocalDateParamConverterProvider;
+import eu.netmobiel.commons.jaxrs.OffsetDateTimeParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
 import eu.netmobiel.rideshare.api.resource.MessagesResource;
@@ -73,7 +73,7 @@ public class CommunicatorApplication extends Application {
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new HashSet<>();
         resources.add(MessagesResource.class);
-        resources.add(LocalDateParamConverterProvider.class);
+        resources.add(OffsetDateTimeParamConverterProvider.class);
         resources.add(WebApplicationExceptionMapper.class);
         resources.add(EJBExceptionMapper.class);
         resources.add(SecurityExceptionMapper.class);

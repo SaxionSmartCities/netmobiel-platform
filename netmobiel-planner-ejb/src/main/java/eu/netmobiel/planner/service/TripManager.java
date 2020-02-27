@@ -173,9 +173,10 @@ public class TripManager {
     }
     
     /**
-     * Removes a trip. Whether or not a trip is soft-deleted or hard-deleted dependson the trip state.
+     * Removes a trip. Whether or not a trip is soft-deleted or hard-deleted depends on the trip state.
+     * 
      * @param tripId The trip to remove.
-     * @throws NotFoundException The trip doesnot exist.
+     * @throws NotFoundException The trip does not exist.
      */
     public void removeTrip(Long tripId) throws NotFoundException {
     	Trip tripdb = tripDao.find(tripId)
@@ -185,8 +186,33 @@ public class TripManager {
     		// Hard delete
 			tripDao.remove(tripdb);
     	} else {
+    		// TODO Add cancelling of the legs!
+    		if (tripdb.getState() == TripState.BOOKING || tripdb.getState() == TripState.SCHEDULED) {
+    	       	if (tripdb.getLegs() != null) {
+    	       		for (Leg leg : tripdb.getLegs()) {
+//    					cancelBookingProcessIfNecessary(leg);
+    				}
+//    	           	updateTripState(trip);
+    	       	}
+    		}
     		tripdb.setDeleted(true);
     	}
     }
  
+//    protected void cancelBookingsIfNecessary(Leg leg) throws CreateException {
+//    	if (leg.getTraverseMode() == TraverseMode.RIDESHARE && 
+//    			(leg.getState() == TripState.BOOKING || leg.getState() == TripState.SCHEDULED)) {
+//    		leg.setState(TripState.CANCELLED);
+//			try {
+//				String bookingRef = bookingManager.createBooking(leg.getTripId(), traveller, 
+//						leg.getFrom().getLocation(), leg.getTo().getLocation(), 1);
+//				leg.setBookingId(bookingRef);
+//    			leg.setState(TripState.SCHEDULED);
+//			} catch (NotFoundException | CreateException e) {
+//				throw new CreateException("cannot create booking", e);
+//			}
+//    	} else {
+//			leg.setState(TripState.SCHEDULED);
+//    	}
+//    }
 }
