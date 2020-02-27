@@ -1,7 +1,7 @@
 ---
 openapi: 3.0.2
 info:
-  title: message-service
+  title: communicator
   version: 1.0.0
   description: API for the Netmobiel Message Service .
 servers:
@@ -223,6 +223,14 @@ components:
           description: Read-only. A unique identification for the message in combination
             with the recipient, i.e. the envelope.
           type: integer
+      example:
+        body: Kunnen we iets later vertrekken?
+        context: urn:nb:pl:leg:23
+        deliveryMode: MESSAGE
+        sender: 71f69345-42e1-4d17-a7c4-7c47178edcd7
+        recipients: a8ee130f-23c6-4b26-bb79-b84a3799216d
+        creationTime: 2020-02-27T15:30+01:00
+        subject: Meerijden Zieuwert - Doetinchem
   responses:
     InternalServerError:
       content:
