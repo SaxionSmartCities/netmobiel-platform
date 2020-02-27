@@ -14,9 +14,8 @@ servers:
 paths:
   /messages/{messageId}:
     summary: Path used to manage a single Message.
-    description: The REST endpoint/path used to get, update, and delete single instances
-      of an `Message`.  This path contains `GET`, `PUT`, and `DELETE` operations used
-      to perform the get, update, and delete tasks, respectively.
+    description: The REST endpoint/path used to get a single instances of an `Message`.  This
+      path contains a `GET` operation used to perform the get tasks.
     get:
       responses:
         "200":
@@ -43,23 +42,22 @@ paths:
     get:
       parameters:
       - name: groupByConveration
-        description: If set then of messages is returned, ordered recent to older,
-          where each message is the most recent message of each conversation. The
-          recipient must also be set, other filters are not allowed. Without this
-          flag a plain list of messages is returned.
+        description: If set then the most recent message of each conversation is returned,
+          ordered recent to older. If set no other filter is allowed. Without this
+          flag a plain list of messages is returned, ordered from recent to older.
         schema:
           type: boolean
         in: query
-      - name: recipient
+      - name: participant
         description: |-
-          The recipient of the messages. Only allowed with elevated privilege. The recipient domain is the Keycloak managed identity.
-          Without this parameter the caller is considered to be the recipient.
+          The participant in the messages, i.e. as a recipient or a sender. Only allowed with elevated privilege. The participant domain is the Keycloak managed identity.
+          Without this parameter the caller is considered to be the participant.
         schema:
           type: string
         in: query
       - name: context
         description: The context to filter on. Only allowed if 'groupByConversation'
-          is not set (or false).
+          is not set (or false). The context used as a conversation tracker.
         schema:
           type: string
         in: query
@@ -68,7 +66,7 @@ paths:
             value: 2019-11-30T12:00:00+01:00
         name: since
         description: The date from which to start the listing. Default is beginning
-          of the list.
+          of the list. Only allowed when 'groupByConversation' is not set or false.
         schema:
           format: date-time
           type: string
@@ -79,7 +77,8 @@ paths:
         name: until
         description: The date and after which to limit the list. The `until` date
           must be after the `since` parameter. Default is not set, meaning all messages
-          from now and before.
+          from now and before. Only allowed when 'groupByConversation' is not set
+          or false.
         schema:
           format: date-time
           type: string
@@ -111,6 +110,8 @@ paths:
         Gets a paged list of all `Message` entities. There are two forms supported:
         With the flag 'groupByConversation' the latest message of each context (the conversation) is selected.
         Without that flag a list of messages complying to the filter criteria are returned.
+
+        Note that all messages are returned for a participant: Message received , but also messages sent. Messages sent are always acknowledged.
     post:
       requestBody:
         description: A new `Message` to be created.
@@ -125,6 +126,38 @@ paths:
       operationId: sendMessage
       summary: Create a Message
       description: Creates a new instance of a `Message`.
+  /messages/{messageId}/ack:
+    summary: Acknowledge the message.
+    description: Manages the acknowledgement state of a message for the implied recipient.
+      The field 'ackTime' represents this time.
+    put:
+      responses:
+        "204":
+          description: Succesfull response.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: acknowledgeMessage
+      summary: Acknowledge a message
+      description: Assigns a timestamp to the message for the implied recipient. The
+        field 'ackTime' represents this time.
+    delete:
+      responses:
+        "204":
+          description: Succesfull reponse.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      operationId: removeAcknowledgement
+      summary: Removes the acknowledgement state.
+      description: Removes the acknowledgement time from the message.
+    parameters:
+    - name: messageId
+      description: The id of the message.
+      schema:
+        type: integer
+      in: path
+      required: true
 components:
   schemas:
     Error:
@@ -182,13 +215,15 @@ components:
         sender:
           description: The address of the sender. The system will assign the caller
             as the sender. If the caller has elevated privilege, a sender can set
-            by the caller.
+            by the caller. The sender is an Keycloak managed identity.
           type: string
         recipients:
           description: |-
             The list of recipients that should receive the message or have received the message.
 
-            This field will only be present on read when a system account retrieves messages. In the normal case the calleer is the implicit recipient.
+            This field will only be present on read when a system account retrieves messages. When sending a message the field is requried.
+
+            The recipient's domain is the Keycloak managed identity.
           type: string
         creationTime:
           format: date-time
@@ -204,6 +239,10 @@ components:
           description: Human-readable context, used for displaying the subject of
             the context.
           type: string
+        id:
+          description: Read-only. A unique identification for the message in combination
+            with the recipient.
+          type: integer
   responses:
     InternalServerError:
       content:
