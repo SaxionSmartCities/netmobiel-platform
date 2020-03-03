@@ -47,7 +47,6 @@ public class UserManager {
                 user.setManagedIdentity(token.getSubject()); // Same as kp.getName()
                 user.setFamilyName(token.getFamilyName());
                 user.setGivenName(token.getGivenName());
-                userDao.save(user);
             }
     	}
     	if (log.isTraceEnabled()) {
@@ -92,7 +91,7 @@ public class UserManager {
     
     public User findCallingUser() {
     	return userDao.findByManagedIdentity(ctx.getCallerPrincipal().getName())
-    			.orElse(createContextUser());
+    			.orElseGet(() -> createContextUser());
     }
     public User find(User user) {
     	return userDao.findByManagedIdentity(user.getManagedIdentity())

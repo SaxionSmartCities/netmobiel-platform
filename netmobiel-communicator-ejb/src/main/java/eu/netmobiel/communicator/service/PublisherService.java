@@ -72,12 +72,15 @@ public class PublisherService {
     	if (logger.isDebugEnabled()) {
             logger.debug(String.format("Send message from %s to %s: %s %s - %s", msg.getSender(), recipients, msg.getContext(), msg.getSubject(), msg.getBody()));
     	}
+    	// The sender is alwyas the calling user (for now)
+    	msg.setSender(userManager.registerCallingUser());
+    	// Assure all recipients are present in the database
     	recipients.forEach(rcp -> userManager.register(rcp));
 		if (msg.getDeliveryMode() == DeliveryMode.MESSAGE || msg.getDeliveryMode() == DeliveryMode.ALL) {
 			List<Envelope> envelopes = recipients.stream()
 					.map(rpc -> new Envelope(msg, rpc))
 					.collect(Collectors.toList());
-			// Always add the sender as recipient too, but acknowledge the message immediately
+			// Always add the sender as recipient too, but acknowledge the message for the sender immediately
 			envelopes.add(new Envelope(msg, userManager.register(msg.getSender()), Instant.now()));
 			envelopeDao.saveAll(envelopes);
 		}
@@ -118,12 +121,6 @@ public class PublisherService {
     	return envelopeDao.fetch(ids, null);
     }
     
-	protected void checkOwnership(String owner, String objectName) {
-    	if (! owner.equals(sessionContext.getCallerPrincipal().getName())) {
-    		throw new SecurityException(objectName + " is not owned by calling user");
-    	}
-    }
-
     public void updateAcknowledgment(Long envelopeId, Instant ackTime) throws NotFoundException {
     	Envelope envdb = envelopeDao.find(envelopeId)
     			.orElseThrow(NotFoundException::new);

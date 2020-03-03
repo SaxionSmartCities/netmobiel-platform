@@ -60,7 +60,7 @@ public class TripManager {
     	if (offset != null && offset < 0) {
     		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
     	}
-    	if (traveller != null) {
+    	if (traveller != null && traveller.getId() != null) {
     		List<Long> tripIds = tripDao.findByTraveller(traveller, since, until, deletedToo, maxResults, offset);
     		if (tripIds.size() > 0) {
     			trips = tripDao.fetch(tripIds, Trip.LIST_TRIPS_ENTITY_GRAPH);
@@ -96,7 +96,7 @@ public class TripManager {
      * @throws CreateException In case of trouble, like wrong parameter values.
      * @throws BadRequestException In case of bad parameters.
      */
-    public Long createTrip(User traveller, Trip trip, boolean autobook) throws BadRequestException, CreateException {
+    protected Long createTrip(User traveller, Trip trip, boolean autobook) throws BadRequestException, CreateException {
     	validateCreateUpdateTrip(trip);
     	trip.setTraveller(traveller);
     	trip.setState(TripState.PLANNING);
@@ -111,7 +111,7 @@ public class TripManager {
     	return trip.getId();
     }
 
-    public Long createTrip(User traveller, Trip trip) throws BadRequestException, CreateException {
+    protected Long createTrip(User traveller, Trip trip) throws BadRequestException, CreateException {
     	return createTrip(traveller,  trip, true);
     }
     
@@ -181,7 +181,7 @@ public class TripManager {
     public void removeTrip(Long tripId) throws NotFoundException {
     	Trip tripdb = tripDao.find(tripId)
     			.orElseThrow(NotFoundException::new);
-    	//    	security.checkOwnership(tripdb.getTraveller(), Trip.class.getSimpleName());
+    	userManager.checkOwnership(tripdb.getTraveller(), Trip.class.getSimpleName());
     	if (tripdb.getState() == TripState.PLANNING) {
     		// Hard delete
 			tripDao.remove(tripdb);

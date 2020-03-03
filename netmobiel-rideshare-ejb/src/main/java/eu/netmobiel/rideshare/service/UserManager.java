@@ -56,7 +56,6 @@ public class UserManager {
                 user.setEmail(token.getEmail());
                 user.setFamilyName(token.getFamilyName());
                 user.setGivenName(token.getGivenName());
-                userDao.save(user);
             }
     	}
     	if (log.isTraceEnabled()) {
@@ -72,7 +71,7 @@ public class UserManager {
     	}
     }
 
-    /**
+	/**
      * 
      * Register the user, if not yet registered.
      * @param user the input record
@@ -120,7 +119,7 @@ public class UserManager {
 
     public User findCallingUser() {
     	return userDao.findByManagedIdentity(ctx.getCallerPrincipal().getName())
-    			.orElse(createContextUser());
+    			.orElseGet(() -> createContextUser());
     }
 
     /**

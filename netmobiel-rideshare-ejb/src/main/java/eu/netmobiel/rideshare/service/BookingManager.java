@@ -2,6 +2,7 @@ package eu.netmobiel.rideshare.service;
 
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 
 import javax.ejb.Stateless;
 import javax.inject.Inject;
@@ -109,12 +110,14 @@ public class BookingManager {
     public void removeBooking(Long bookingId, final String reason) throws NotFoundException {
     	Booking bookingdb = bookingDao.find(bookingId)
     			.orElseThrow(NotFoundException::new);
-    	@SuppressWarnings("unused")
-		User caller = userManager.registerCallingUser();
-    	//TODO Fixed cancelled by driver
-    	boolean cancelledByDriver = false;
-    	userManager.checkOwnership(bookingdb.getPassenger(), Booking.class.getSimpleName());
-   		bookingdb.markAsCancelled(reason, cancelledByDriver);
+		User caller = userManager.findCallingUser();
+		User driver = bookingdb.getRide().getRideTemplate().getDriver();
+		if (Objects.equals(caller.getId(), bookingdb.getPassenger().getId()) || Objects.equals(caller.getId(), driver.getId())) {
+	    	boolean cancelledByDriver = Objects.equals(caller.getId(), driver.getId());
+	   		bookingdb.markAsCancelled(reason, cancelledByDriver);
+		} else {
+    		throw new SecurityException(String.format("Removal of %s %d is not allowed by calling user", Booking.class.getSimpleName(), bookingdb.getId()));
+		}
     }
  
 }
