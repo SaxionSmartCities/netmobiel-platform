@@ -43,9 +43,6 @@ public class User implements BasicUser, Serializable {
     @Column(name = "managed_identity")
     private String managedIdentity;
 
-    @Column(name = "email", length = 64)
-	private String email;
-    
     @Column(name = "given_name", length = 32)
 	private String givenName;
     
@@ -68,14 +65,6 @@ public class User implements BasicUser, Serializable {
 		this.managedIdentity = managedIdentity;
 	}
 
-	public String getEmail() {
-		return email;
-	}
-
-	public void setEmail(String email) {
-		this.email = email;
-	}
-
 	public String getGivenName() {
 		return givenName;
 	}
@@ -94,7 +83,7 @@ public class User implements BasicUser, Serializable {
 
 	@Override
 	public String toString() {
-		return String.format("User [%s %s]", managedIdentity, email);
+		return String.format("User [%s %s %s]", managedIdentity, givenName, familyName);
 	}
 
 	@Override

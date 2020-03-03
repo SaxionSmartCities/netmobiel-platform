@@ -73,7 +73,6 @@ public class User implements BasicUser, Serializable {
      * @param bu the basic user fields
      */
     public User(BasicUser bu) {
-    	this.email = bu.getEmail();
     	this.familyName = bu.getFamilyName();
     	this.givenName = bu.getGivenName();
     	this.managedIdentity = bu.getManagedIdentity();
