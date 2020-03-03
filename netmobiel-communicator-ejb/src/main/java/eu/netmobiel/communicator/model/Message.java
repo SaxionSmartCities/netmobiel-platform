@@ -7,15 +7,19 @@ import java.time.format.DateTimeFormatter;
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
-import eu.netmobiel.communicator.util.MessageServiceUrnHelper;
+import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @NamedEntityGraph()
 @Entity
@@ -25,7 +29,7 @@ import eu.netmobiel.communicator.util.MessageServiceUrnHelper;
 public class Message implements Serializable {
 
 	private static final long serialVersionUID = 1045941720040157428L;
-	public static final String URN_PREFIX = MessageServiceUrnHelper.createUrnPrefix(Message.class);
+	public static final String URN_PREFIX = CommunicatorUrnHelper.createUrnPrefix(Message.class);
 	public static final int MAX_MESSAGE_SIZE = 1024;
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "message_sg")
@@ -62,11 +66,12 @@ public class Message implements Serializable {
 	private DeliveryMode deliveryMode;
 
 	/**
-	 * The sender of the message. Address format is keycloak managed identity guid, or a system service name
+	 * The sender of the message.
 	 */
     @NotNull
-	@Column(name = "sender", length = 64, nullable = false)
-	private String sender;
+    @ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "sender", nullable = false, foreignKey = @ForeignKey(name = "message_sender_fk"))
+    private User sender;
 
     public Long getId() {
 		return id;
@@ -117,17 +122,17 @@ public class Message implements Serializable {
 		this.deliveryMode = deliveryMode;
 	}
 
-	public String getSender() {
+	public User getSender() {
 		return sender;
 	}
 
-	public void setSender(String sender) {
+	public void setSender(User sender) {
 		this.sender = sender;
 	}
 
 	@Override
 	public String toString() {
-		return String.format("Message [%d %s %s '%s' %s '%s']", id, sender, context, subject, DateTimeFormatter.ISO_INSTANT.format(creationTime), body != null ? body : "");
+		return String.format("Message [%d %s %s '%s' %s '%s']", id, sender.toString(), context, subject, DateTimeFormatter.ISO_INSTANT.format(creationTime), body != null ? body : "");
 	}
 
    

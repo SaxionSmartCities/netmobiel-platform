@@ -22,6 +22,7 @@ import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Envelope_;
 import eu.netmobiel.communicator.model.Message_;
+import eu.netmobiel.communicator.model.User_;
 
 @ApplicationScoped
 @Typed(EnvelopeDao.class)
@@ -50,7 +51,7 @@ public class EnvelopeDao extends AbstractDao<Envelope, Long> {
 	 * Lists the message ids considering the filter parameters. If a message has context, it is considered 
 	 * as part of a conversation. In that case the messages with that context must be grouped and only the 
 	 * most recent message is added in the list.   
-	 * @param recipient The recipient address. 
+	 * @param recipient The recipient address (managed identity). 
 	 * @param context the context of the message (used as a conversation id). 
 	 * @param since the date from which to list messages, using the creation date.
 	 * @param until the date until to list the messages, using the creation date.
@@ -65,7 +66,7 @@ public class EnvelopeDao extends AbstractDao<Envelope, Long> {
         cq.select(env.get(Envelope_.id));
         List<Predicate> predicates = new ArrayList<>();
         if (recipient != null) {
-            Predicate predRecipient = cb.equal(env.get(Envelope_.recipient), recipient);
+            Predicate predRecipient = cb.equal(env.get(Envelope_.recipient).get(User_.managedIdentity), recipient);
             predicates.add(predRecipient);
         }
         if (context != null) {
@@ -140,8 +141,8 @@ public class EnvelopeDao extends AbstractDao<Envelope, Long> {
 	
 	public List<Long> listConverations(String recipient, Integer maxResults, Integer offset) {
 		TypedQuery<Long> tq = em.createQuery(
-				"select e.id from Envelope e where e.recipient = :recipient and (e.message.context, e.message.creationTime) in " +
-				" (select ee.message.context, max(ee.message.creationTime) from Envelope ee where ee.recipient = :recipient group by ee.message.context) " +
+				"select e.id from Envelope e where e.recipient.managedIdentity = :recipient and (e.message.context, e.message.creationTime) in " +
+				" (select ee.message.context, max(ee.message.creationTime) from Envelope ee where ee.recipient.managedIdentity = :recipient group by ee.message.context) " +
 				" order by e.message.creationTime desc"
 				, Long.class);
 		tq.setParameter("recipient", recipient);

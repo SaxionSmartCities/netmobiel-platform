@@ -132,6 +132,22 @@
 <!--             <artifactId>jboss-jms-api_2.0_spec</artifactId> -->
 <!--             <scope>provided</scope> -->
 <!--         </dependency> -->
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-authz-client</artifactId>
+		    <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-adapter-core</artifactId>
+		    <scope>provided</scope>
+        </dependency>
+        <!--  Add the SPI as well, otherwise maven will complain -->
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-adapter-spi</artifactId>
+		    <scope>provided</scope>
+        </dependency>
 
 		<!-- TEST Dependencies -->
         <dependency>

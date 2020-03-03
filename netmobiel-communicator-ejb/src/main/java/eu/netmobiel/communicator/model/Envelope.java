@@ -23,7 +23,7 @@ import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 
-import eu.netmobiel.communicator.util.MessageServiceUrnHelper;
+import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @NamedEntityGraph()
 @Entity
@@ -35,7 +35,7 @@ import eu.netmobiel.communicator.util.MessageServiceUrnHelper;
 public class Envelope implements Serializable {
 
 	private static final long serialVersionUID = 1045941720040157428L;
-	public static final String URN_PREFIX = MessageServiceUrnHelper.createUrnPrefix(Envelope.class);
+	public static final String URN_PREFIX = CommunicatorUrnHelper.createUrnPrefix(Envelope.class);
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "envelope_sg")
@@ -49,11 +49,12 @@ public class Envelope implements Serializable {
     private Message message;
 
 	/**
-	 * The recipient of the message. Address format is keycloak managed identity guid or a system name or a urn in the urn:nb:kc:user:....
+	 * The recipient of the message. 
 	 */
     @NotNull
-	@Column(name = "recipient", length = 64, nullable = false)
-	private String recipient;
+    @ManyToOne(fetch = FetchType.EAGER)
+	@JoinColumn(name = "recipient", nullable = false, foreignKey = @ForeignKey(name = "message_recipient_fk"))
+    private User recipient;
 
 	/**
 	 * The time the message was acknowledged (read) by the user.
@@ -65,11 +66,11 @@ public class Envelope implements Serializable {
 		
 	}
 	
-	public Envelope(Message m, String rcp) {
+	public Envelope(Message m, User rcp) {
 		this(m, rcp, null);
 	}
 	
-	public Envelope(Message m, String rcp, Instant anAckTime) {
+	public Envelope(Message m, User rcp, Instant anAckTime) {
 		this.message = m;
 		this.recipient = rcp;
 		this.ackTime = anAckTime;
@@ -85,7 +86,7 @@ public class Envelope implements Serializable {
 
 	public String getEnvelopeRef() {
 		if (envelopeRef == null) {
-			envelopeRef = MessageServiceUrnHelper.createUrn(Envelope.URN_PREFIX, getId());
+			envelopeRef = CommunicatorUrnHelper.createUrn(Envelope.URN_PREFIX, getId());
 		}
 		return envelopeRef;
 	}
@@ -99,11 +100,11 @@ public class Envelope implements Serializable {
 		this.message = message;
 	}
 
-	public String getRecipient() {
+	public User getRecipient() {
 		return recipient;
 	}
 
-	public void setRecipient(String recipient) {
+	public void setRecipient(User recipient) {
 		this.recipient = recipient;
 	}
 

@@ -10,6 +10,7 @@ import org.mapstruct.ReportingPolicy;
 
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
+import eu.netmobiel.communicator.model.User;
 
 /**
  * This mapper defines the mapping from the domain Booking to the API Booking as defined by OpenAPI.
@@ -20,6 +21,9 @@ import eu.netmobiel.communicator.model.Message;
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
 public abstract class MessageMapper {
 
+	public abstract eu.netmobiel.communicator.api.model.User map(User source);
+	public abstract User map(eu.netmobiel.communicator.api.model.User source);
+	
 	// Domain Envelope --> API Message 
 	@Mapping(target = "deliveryMode", source = "message.deliveryMode")
 	@Mapping(target = "body", source = "message.body")

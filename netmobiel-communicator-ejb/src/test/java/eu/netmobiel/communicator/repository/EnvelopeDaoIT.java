@@ -36,9 +36,10 @@ import eu.netmobiel.communicator.Resources;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
+import eu.netmobiel.communicator.model.User;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
 import eu.netmobiel.communicator.repository.converter.DeliveryModeConverter;
-import eu.netmobiel.communicator.util.MessageServiceUrnHelper;
+import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @RunWith(Arquillian.class)
 public class EnvelopeDaoIT {
@@ -52,10 +53,11 @@ public class EnvelopeDaoIT {
 				.asFile();
         WebArchive archive = ShrinkWrap.create(WebArchive.class, "test.war")
                 .addAsLibraries(deps)
-                .addPackages(true, MessageServiceUrnHelper.class.getPackage())
+                .addPackages(true, CommunicatorUrnHelper.class.getPackage())
                 .addPackages(true, Envelope.class.getPackage())
                 .addPackages(true, AbstractDao.class.getPackage())
                 .addPackages(true, DeliveryModeConverter.class.getPackage())
+            .addClass(UserDao.class)
             .addClass(EnvelopeDao.class)
             .addClass(Resources.class)
             .addAsResource("META-INF/test-persistence.xml", "META-INF/persistence.xml")
@@ -66,6 +68,8 @@ public class EnvelopeDaoIT {
 
     @Inject
     private EnvelopeDao envelopeDao;
+    @Inject
+    private UserDao userDao;
 
     @PersistenceContext(unitName = "pu-communicator")
     private EntityManager em;
@@ -89,6 +93,7 @@ public class EnvelopeDaoIT {
         log.debug("Dumping old records...");
         em.createQuery("delete from Envelope").executeUpdate();
         em.createQuery("delete from Message").executeUpdate();
+        em.createQuery("delete from User").executeUpdate();
         utx.commit();
     }
 
@@ -96,14 +101,21 @@ public class EnvelopeDaoIT {
         utx.begin();
         em.joinTransaction();
         log.debug("Inserting records...");
+    	List<User> users = new ArrayList<>();
+        users.add(new User("A1", "user", "FN A1"));
+        users.add(new User("A2", "user", "FN A2"));
+        users.add(new User("A3", "user", "FN A3"));
+        for (User user : users) {
+			em.persist(user);
+		}
     	List<Envelope> envelopes = new ArrayList<>();
-    	envelopes.addAll(createEnvelopes("Body M0", "Context 1", "Subject 1", "2020-02-11T13:00:00Z", "Sender A1", "2020-02-11T15:00:00Z", "recipient A2", "recipient A3"));
-    	envelopes.addAll(createEnvelopes("Body M1", "Context 1", "Subject 1", "2020-02-11T14:25:00Z", "Sender A1", null, "recipient A2", "recipient A3"));
-        envelopes.addAll(createEnvelopes("Body M2", "Context 1", "Subject 1", "2020-02-12T11:00:00Z", "Sender A2", null, "recipient A1", "recipient A3"));
-        envelopes.addAll(createEnvelopes("Body M3", "Context 2", "Subject 2", "2020-02-13T12:00:00Z", "Sender A1", null, "recipient A2", "recipient A3"));
-        envelopes.addAll(createEnvelopes("Body M4", "Context 1", "Subject 1", "2020-02-13T13:00:00Z", "Sender A2", null, "recipient A1", "recipient A3"));
-        envelopes.addAll(createEnvelopes("Body M5", "Context 3", "Subject 3", "2020-02-13T14:00:00Z", "Sender A1", null, "recipient A2", "recipient A3"));
-        envelopes.addAll(createEnvelopes("Body M6", "Context 2", "Subject 2", "2020-02-13T15:00:00Z", "Sender A1", null, "recipient A2", "recipient A3"));
+    	envelopes.addAll(createEnvelopes("Body M0", "Context 1", "Subject 1", "2020-02-11T13:00:00Z", "A1", "2020-02-11T15:00:00Z", "A2", "A3"));
+    	envelopes.addAll(createEnvelopes("Body M1", "Context 1", "Subject 1", "2020-02-11T14:25:00Z", "A1", null, "A2", "A3"));
+        envelopes.addAll(createEnvelopes("Body M2", "Context 1", "Subject 1", "2020-02-12T11:00:00Z", "A2", null, "A1", "A3"));
+        envelopes.addAll(createEnvelopes("Body M3", "Context 2", "Subject 2", "2020-02-13T12:00:00Z", "A1", null, "A2", "A3"));
+        envelopes.addAll(createEnvelopes("Body M4", "Context 1", "Subject 1", "2020-02-13T13:00:00Z", "A2", null, "A1", "A3"));
+        envelopes.addAll(createEnvelopes("Body M5", "Context 3", "Subject 3", "2020-02-13T14:00:00Z", "A1", null, "A2", "A3"));
+        envelopes.addAll(createEnvelopes("Body M6", "Context 2", "Subject 2", "2020-02-13T15:00:00Z", "A1", null, "A2", "A3"));
         for (Envelope envelope : envelopes) {
 			em.persist(envelope);
 		}
@@ -127,20 +139,20 @@ public class EnvelopeDaoIT {
         final Set<String> actualRecipients = new HashSet<String>();
         for (Envelope env : retrievedEnvelopes) {
             log.debug("* " + env.toString());
-            actualRecipients.add(env.getRecipient());
+            actualRecipients.add(env.getRecipient().getManagedIdentity());
         }
-        final List<String> expectedRecipients = expectedEnvelopes.stream().map(env -> env.getRecipient()).collect(Collectors.toList());  
+        final List<String> expectedRecipients = expectedEnvelopes.stream().map(env -> env.getRecipient().getManagedIdentity()).collect(Collectors.toList());  
         assertTrue(actualRecipients.containsAll(expectedRecipients));
     }
     
     private List<Envelope> findAllEnvelopesSentBy(String sender) {
         log.debug("Selecting (using JPQL)...");
         List<Envelope> envelopes = em.createQuery(
-        		"select env from Envelope env where env.message.sender = :sender order by env.message.creationTime desc",
+        		"select env from Envelope env where env.message.sender.managedIdentity = :sender order by env.message.creationTime desc",
         		Envelope.class)
         		.setParameter("sender", sender)
         		.getResultList();
-        log.debug("Found " + envelopes.size() + " envelopes (using JPQL):");
+        log.debug("Found " + envelopes.size() + " envelopes (using JPQL)");
         return envelopes;
     }
     
@@ -151,11 +163,11 @@ public class EnvelopeDaoIT {
     	m.setBody(body);
     	m.setContext(context);
     	m.setCreationTime(creationTime);
-    	m.setSender(sender);
+    	m.setSender(userDao.findByManagedIdentity(sender).get());
     	m.setDeliveryMode(DeliveryMode.MESSAGE);
     	m.setSubject(subject);
     	return Arrays.stream(recipients)
-    			.map(rcp -> new Envelope(m, rcp, ackTime))
+    			.map(rcp -> new Envelope(m, userDao.findByManagedIdentity(rcp).get(), ackTime))
     			.collect(Collectors.toList());
     }
     
@@ -165,9 +177,12 @@ public class EnvelopeDaoIT {
     
     @Test
     public void saveEnvelopes() {
-    	List<Envelope> envelopes = createEnvelopes("Body B", "Context C", "Subject S", "2020-02-11T14:25:00Z", "Sender U1", null, "recipient U2", "recipient U3");
+		em.persist(new User("A11"));
+		em.persist(new User("A12"));
+		em.persist(new User("A13"));
+    	List<Envelope> envelopes = createEnvelopes("Body B", "Context C", "Subject S", "2020-02-11T14:25:00Z", "A11", null, "A12", "A13");
     	envelopeDao.saveAll(envelopes);
-    	List<Envelope> actualEnvelopes = findAllEnvelopesSentBy("Sender U1");
+    	List<Envelope> actualEnvelopes = findAllEnvelopesSentBy("A11");
     	assertContainsAllEnvelopes(envelopes, actualEnvelopes);
     }
 
@@ -181,14 +196,14 @@ public class EnvelopeDaoIT {
 
     @Test
     public void listEnvelopes_ByRecipient() {
-    	final String recipient = "recipient A3";
+    	final String recipient = "A3";
     	List<Long> envelopeIds = envelopeDao.listEnvelopes(recipient, null, null, null, 100, 0);
     	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds, null);
-    	Set<String> recipients = envelopes.stream().map(env -> env.getRecipient()).collect(Collectors.toSet());
+    	Set<String> recipients = envelopes.stream().map(env -> env.getRecipient().getManagedIdentity()).collect(Collectors.toSet());
     	assertEquals("Only 1 recipient", 1, recipients.size());
     	assertTrue("Must be the requested recipient", recipients.contains(recipient));
     	Long expCount = em.createQuery(
-        		"select count(env) from Envelope env where env.recipient = :recipient",
+        		"select count(env) from Envelope env where env.recipient.managedIdentity = :recipient",
         		Long.class)
         		.setParameter("recipient", recipient)
         		.getSingleResult();
@@ -236,7 +251,7 @@ public class EnvelopeDaoIT {
 
     @Test
     public void listConversation() {
-    	final String recipient = "recipient A3";
+    	final String recipient = "A3";
     	List<Long> envelopeIds = envelopeDao.listConverations(recipient, 100, 0);
     	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds, null);
     	dump("listConversation", envelopes);

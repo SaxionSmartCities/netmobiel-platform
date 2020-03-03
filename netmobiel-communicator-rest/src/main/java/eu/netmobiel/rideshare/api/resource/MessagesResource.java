@@ -33,7 +33,8 @@ public class MessagesResource implements MessagesApi {
 	public Response sendMessage(Message msg) {
     	Response rsp = null;
 		try {
-			publisherService.publish(mapper.map(msg), msg.getRecipients());
+			publisherService.publish(mapper.map(msg), 
+					msg.getRecipients().stream().map(u -> mapper.map(u)).collect(Collectors.toList()));
 			rsp = Response.status(Status.ACCEPTED).build();
 		} catch (CreateException e) {
 			throw new InternalServerErrorException(e);

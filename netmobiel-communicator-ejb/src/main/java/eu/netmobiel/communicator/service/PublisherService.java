@@ -1,11 +1,11 @@
 package eu.netmobiel.communicator.service;
 
 import java.time.Instant;
-import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
+import javax.ejb.EJB;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
@@ -18,6 +18,7 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
+import eu.netmobiel.communicator.model.User;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
 
 /**
@@ -37,6 +38,9 @@ public class PublisherService {
     @Inject
     private Logger logger;
 
+    @EJB(name = "java:app/netmobiel-communicator-ejb/UserManager")
+    private UserManager userManager;
+
     @Inject
     private EnvelopeDao envelopeDao;
     
@@ -48,8 +52,10 @@ public class PublisherService {
      * property and using the property value as the message text. Messages are
      * received by MessageBean, a message-driven bean that uses a message
      * selector to retrieve messages whose NewsType property has certain values.
+     * @param msg the message to send
+     * @param recipients the addressees of the message
      */
-    public void publish(Message msg, String recipients) throws CreateException, BadRequestException {
+    public void publish(Message msg, List<User> recipients) throws CreateException, BadRequestException {
     	if (msg.getContext() == null) {
     		throw new BadRequestException("Constraint violation: 'context' must be set.");
     	}
@@ -59,19 +65,20 @@ public class PublisherService {
     	if (msg.getDeliveryMode() == null) {
     		throw new BadRequestException("Constraint violation: 'deliveryMode' must be set.");
     	}
-    	if (recipients == null || recipients.trim().isEmpty()) {
+    	if (recipients == null || recipients.isEmpty()) {
     		throw new BadRequestException("Constraint violation: 'recipients' must be set.");
     	}
 
     	if (logger.isDebugEnabled()) {
             logger.debug(String.format("Send message from %s to %s: %s %s - %s", msg.getSender(), recipients, msg.getContext(), msg.getSubject(), msg.getBody()));
     	}
+    	recipients.forEach(rcp -> userManager.register(rcp));
 		if (msg.getDeliveryMode() == DeliveryMode.MESSAGE || msg.getDeliveryMode() == DeliveryMode.ALL) {
-			List<Envelope> envelopes = Arrays.stream(recipients.split(","))
+			List<Envelope> envelopes = recipients.stream()
 					.map(rpc -> new Envelope(msg, rpc))
 					.collect(Collectors.toList());
 			// Always add the sender as recipient too, but acknowledge the message immediately
-			envelopes.add(new Envelope(msg, msg.getSender(), Instant.now()));
+			envelopes.add(new Envelope(msg, userManager.register(msg.getSender()), Instant.now()));
 			envelopeDao.saveAll(envelopes);
 		}
 		if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
@@ -120,7 +127,7 @@ public class PublisherService {
     public void updateAcknowledgment(Long envelopeId, Instant ackTime) throws NotFoundException {
     	Envelope envdb = envelopeDao.find(envelopeId)
     			.orElseThrow(NotFoundException::new);
-    	checkOwnership(envdb.getRecipient(), Envelope.class.getSimpleName());
+    	userManager.checkOwnership(envdb.getRecipient(), Envelope.class.getSimpleName());
     	envdb.setAckTime(ackTime);
     	envelopeDao.merge(envdb);
     }
