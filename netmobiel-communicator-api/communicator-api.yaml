@@ -193,10 +193,10 @@ components:
           - ALL
           type: string
         sender:
+          $ref: '#/components/schemas/User'
           description: The address of the sender. The system will assign the caller
             as the sender. If the caller has elevated privilege, a sender can set
             by the caller. The sender is an Keycloak managed identity.
-          type: string
         recipients:
           description: |-
             The list of recipients that should receive the message or have received the message.
@@ -204,7 +204,9 @@ components:
             This field will only be present on read when a system account retrieves messages. When sending a message the field is requried.
 
             The recipient's domain is the Keycloak managed identity.
-          type: string
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
         creationTime:
           format: date-time
           description: Read-only. The date and time the message was sent. This field
@@ -227,10 +229,43 @@ components:
         body: Kunnen we iets later vertrekken?
         context: urn:nb:pl:leg:23
         deliveryMode: MESSAGE
-        sender: 71f69345-42e1-4d17-a7c4-7c47178edcd7
-        recipients: a8ee130f-23c6-4b26-bb79-b84a3799216d
+        sender:
+          managedIdentity: 71f69345-42e1-4d17-a7c4-7c47178edcd7
+          familyName: Normalverbraucher
+          givenName: Otto
+        recipients:
+        - managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+          familyName: Netmobiel
+          givenName: Carla1
         creationTime: 2020-02-27T15:30+01:00
         subject: Meerijden Zieuwert - Doetinchem
+    User:
+      description: 'A user in the message service. '
+      required:
+      - managedIdentity
+      - givenName
+      - familyName
+      type: object
+      properties:
+        id:
+          format: int64
+          description: 'The unique user id. If referenced use the URN notation: urn:nb:cm:user:<id>'
+          type: integer
+        managedIdentity:
+          description: The user is as known by the IDM (Keycloak). The format is determined
+            by the IDM.
+          type: string
+        givenName:
+          description: The first name of the driver.
+          type: string
+        familyName:
+          description: The family name of the driver.
+          type: string
+      example:
+        familyName: Normalverbraucher
+        givenName: Otto
+        id: 2
+        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
   responses:
     InternalServerError:
       content:
