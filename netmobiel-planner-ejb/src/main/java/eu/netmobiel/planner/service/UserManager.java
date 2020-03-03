@@ -46,9 +46,9 @@ public class UserManager {
             if (token != null) {
                 user = new User();
                 user.setManagedIdentity(token.getSubject()); // Same as kp.getName()
-                user.setEmail(token.getEmail());
                 user.setFamilyName(token.getFamilyName());
                 user.setGivenName(token.getGivenName());
+                userDao.save(user);
             }
     	}
     	if (log.isTraceEnabled()) {
@@ -76,7 +76,6 @@ public class UserManager {
 //    	Principal p = ctx.getCallerPrincipal();
     	User dbuser = userDao.findByManagedIdentity(user.getManagedIdentity())
     			.orElseGet(() -> userDao.save(user));
-    	dbuser.setEmail(user.getEmail()); 
     	dbuser.setFamilyName(user.getFamilyName()); 
     	dbuser.setGivenName(user.getGivenName()); 
     	return dbuser;

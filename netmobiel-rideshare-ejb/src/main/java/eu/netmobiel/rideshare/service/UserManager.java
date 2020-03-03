@@ -56,6 +56,7 @@ public class UserManager {
                 user.setEmail(token.getEmail());
                 user.setFamilyName(token.getFamilyName());
                 user.setGivenName(token.getGivenName());
+                userDao.save(user);
             }
     	}
     	if (log.isTraceEnabled()) {
@@ -97,7 +98,6 @@ public class UserManager {
     public User register(BasicUser user) {
     	User dbuser = userDao.findByManagedIdentity(user.getManagedIdentity())
     			.orElseGet(() -> userDao.save(new User(user)));
-    	dbuser.setEmail(user.getEmail()); 
     	dbuser.setFamilyName(user.getFamilyName()); 
     	dbuser.setGivenName(user.getGivenName()); 
     	return dbuser;
