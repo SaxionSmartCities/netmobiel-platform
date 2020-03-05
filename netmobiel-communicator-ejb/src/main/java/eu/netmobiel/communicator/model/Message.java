@@ -7,7 +7,6 @@ import java.time.format.DateTimeFormatter;
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -69,8 +68,8 @@ public class Message implements Serializable {
 	 * The sender of the message.
 	 */
     @NotNull
-    @ManyToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "sender", nullable = false, foreignKey = @ForeignKey(name = "message_sender_fk"))
+    @ManyToOne
+    @JoinColumn(name = "sender", nullable = false, foreignKey = @ForeignKey(name = "message_sender_fk"))
     private User sender;
 
     public Long getId() {

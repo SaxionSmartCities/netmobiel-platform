@@ -16,7 +16,9 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedSubgraph;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -25,7 +27,21 @@ import javax.validation.constraints.NotNull;
 
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
-@NamedEntityGraph()
+@NamedEntityGraph(
+		name = Envelope.LIST_MY_ENVELOPES_ENTITY_GRAPH, 
+		attributeNodes = { 
+				@NamedAttributeNode(value = "message", subgraph = "message-details")		
+		}, subgraphs = {
+				// Without this subgraph no leg details are retrieved
+				@NamedSubgraph(
+						name = "message-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "sender")
+						}
+					)
+				}
+
+	)
 @Entity
 @Table(name = "envelope", uniqueConstraints = {
 	    @UniqueConstraint(name = "cs_unique_message_recipient", columnNames = { "recipient", "message" })
@@ -36,6 +52,7 @@ public class Envelope implements Serializable {
 
 	private static final long serialVersionUID = 1045941720040157428L;
 	public static final String URN_PREFIX = CommunicatorUrnHelper.createUrnPrefix(Envelope.class);
+	public static final String LIST_MY_ENVELOPES_ENTITY_GRAPH = "list-my-envelopes-graph";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "envelope_sg")
@@ -44,7 +61,7 @@ public class Envelope implements Serializable {
     @Transient
     private String envelopeRef;
 
-    @ManyToOne(fetch = FetchType.EAGER, cascade = { CascadeType.PERSIST } )
+    @ManyToOne(cascade = { CascadeType.PERSIST } )
 	@JoinColumn(name = "message", nullable = false, foreignKey = @ForeignKey(name = "envelope_message_fk"))
     private Message message;
 
@@ -52,7 +69,7 @@ public class Envelope implements Serializable {
 	 * The recipient of the message. 
 	 */
     @NotNull
-    @ManyToOne(fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "recipient", nullable = false, foreignKey = @ForeignKey(name = "message_recipient_fk"))
     private User recipient;
 

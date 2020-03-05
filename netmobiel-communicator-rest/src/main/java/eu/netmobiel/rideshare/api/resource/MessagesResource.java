@@ -52,7 +52,7 @@ public class MessagesResource implements MessagesApi {
 			if (context != null || since != null || until != null) {
 				throw new BadRequestException("Parameters 'context', 'since' or 'until' are not allowed when listing conversations"); 
 			}
-			List<Envelope> envelopes = publisherService.listConversation(participant, maxResults, offset); 
+			List<Envelope> envelopes = publisherService.listConversations(participant, maxResults, offset); 
 			rsp = Response.ok(envelopes.stream().map(e -> mapper.map(e)).collect(Collectors.toList())).build();
 		} else {
 			List<Envelope> envelopes = publisherService.listEnvelopes(participant, context, 

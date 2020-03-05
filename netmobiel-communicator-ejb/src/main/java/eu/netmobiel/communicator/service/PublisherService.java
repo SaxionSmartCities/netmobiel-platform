@@ -68,16 +68,16 @@ public class PublisherService {
     	if (recipients == null || recipients.isEmpty()) {
     		throw new BadRequestException("Constraint violation: 'recipients' must be set.");
     	}
-
+    	// The sender is alwyas the calling user (for now)
+    	msg.setCreationTime(Instant.now());
+    	msg.setSender(userManager.registerCallingUser());
     	if (logger.isDebugEnabled()) {
             logger.debug(String.format("Send message from %s to %s: %s %s - %s", msg.getSender(), recipients, msg.getContext(), msg.getSubject(), msg.getBody()));
     	}
-    	// The sender is alwyas the calling user (for now)
-    	msg.setSender(userManager.registerCallingUser());
     	// Assure all recipients are present in the database
-    	recipients.forEach(rcp -> userManager.register(rcp));
+    	List<User> dbrecipients = recipients.stream().map(rcp -> userManager.register(rcp)).collect(Collectors.toList());
 		if (msg.getDeliveryMode() == DeliveryMode.MESSAGE || msg.getDeliveryMode() == DeliveryMode.ALL) {
-			List<Envelope> envelopes = recipients.stream()
+			List<Envelope> envelopes = dbrecipients.stream()
 					.map(rpc -> new Envelope(msg, rpc))
 					.collect(Collectors.toList());
 			// Always add the sender as recipient too, but acknowledge the message for the sender immediately
@@ -115,7 +115,7 @@ public class PublisherService {
     	return envelopeDao.fetch(ids, null);
 	}
 
-    public List<Envelope> listConversation(String recipient, Integer maxResults, Integer offset) {
+    public List<Envelope> listConversations(String recipient, Integer maxResults, Integer offset) {
     	String effectiveRecipient = recipient != null ? recipient : sessionContext.getCallerPrincipal().getName();
     	List<Long> ids = envelopeDao.listConverations(effectiveRecipient, maxResults, offset);
     	return envelopeDao.fetch(ids, null);
