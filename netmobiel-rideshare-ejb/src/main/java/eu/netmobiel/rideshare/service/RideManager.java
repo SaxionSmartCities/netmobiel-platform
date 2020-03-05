@@ -138,8 +138,10 @@ public class RideManager {
     	if (driverId != null) {
     		driver = userDao.find(driverId)
     					.orElse(null);
+    	} else {
+    		driver = userManager.findCallingUser();
     	}
-    	if (driver != null) {
+    	if (driver != null && driver.getId() != null) {
     		List<Long> rideIds = rideDao.findByDriver(driver, since, until, deletedToo, maxResults, offset);
     		if (rideIds.size() > 0) {
     			rides = rideDao.fetch(rideIds, Ride.BOOKINGS_ENTITY_GRAPH);
