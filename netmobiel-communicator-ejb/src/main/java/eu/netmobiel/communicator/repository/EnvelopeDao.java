@@ -139,7 +139,7 @@ public class EnvelopeDao extends AbstractDao<Envelope, Long> {
 //        return tq.getResultList();
 //	}
 	
-	public List<Long> listConverations(String recipient, Integer maxResults, Integer offset) {
+	public List<Long> listConversations(String recipient, Integer maxResults, Integer offset) {
 		TypedQuery<Long> tq = em.createQuery(
 				"select e.id from Envelope e where e.recipient.managedIdentity = :recipient and (e.message.context, e.message.creationTime) in " +
 				" (select ee.message.context, max(ee.message.creationTime) from Envelope ee where ee.recipient.managedIdentity = :recipient group by ee.message.context) " +

@@ -252,7 +252,7 @@ public class EnvelopeDaoIT {
     @Test
     public void listConversation() {
     	final String recipient = "A3";
-    	List<Long> envelopeIds = envelopeDao.listConverations(recipient, 100, 0);
+    	List<Long> envelopeIds = envelopeDao.listConversations(recipient, 100, 0);
     	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds, null);
     	dump("listConversation", envelopes);
     	Set<String> bodies = envelopes.stream().map(env -> env.getMessage().getBody()).collect(Collectors.toSet());

@@ -119,7 +119,7 @@ public class PublisherService {
 
     public List<Envelope> listConversations(String recipient, Integer maxResults, Integer offset) {
     	String effectiveRecipient = recipient != null ? recipient : sessionContext.getCallerPrincipal().getName();
-    	List<Long> ids = envelopeDao.listConverations(effectiveRecipient, maxResults, offset);
+    	List<Long> ids = envelopeDao.listConversations(effectiveRecipient, maxResults, offset);
     	return envelopeDao.fetch(ids, null);
     }
     
