@@ -78,10 +78,8 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Message'
-          description: Successful response - returns an array of `Message` entities.
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns an page with `Message` entities.
         "400":
           $ref: '#/components/responses/BadRequest'
       operationId: listMessages
@@ -266,6 +264,38 @@ components:
         givenName: Otto
         id: 2
         managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+    Page:
+      title: Root Type for Page
+      description: A page from a result set. For smaller sets the page contains the
+        complete result set.
+      type: object
+      properties:
+        totalCount:
+          format: int32
+          description: |-
+            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
+
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when an empty resultset is returned.
+          type: integer
+        start:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
+        count:
+          format: int32
+          description: The number of items in this page.
+          type: integer
+        data:
+          description: An array with the actual payload. The payload depends on the
+            request being made.
+          type: array
+          items: {}
+      example:
+        totalCount: 104
+        start: 32
+        count: 16
+        data: []
   responses:
     InternalServerError:
       content:
