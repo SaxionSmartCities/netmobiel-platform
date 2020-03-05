@@ -45,10 +45,10 @@ public class MessagesResource implements MessagesApi {
 	}
 
 	@Override
-	public Response listMessages(Boolean groupByConveration, String participant, String context, 
+	public Response listMessages(Boolean groupByConversation, String participant, String context, 
 			OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
 		Response rsp = null;
-		if (groupByConveration != null && groupByConveration) {
+		if (groupByConversation != null && groupByConversation) {
 			if (context != null || since != null || until != null) {
 				throw new BadRequestException("Parameters 'context', 'since' or 'until' are not allowed when listing conversations"); 
 			}

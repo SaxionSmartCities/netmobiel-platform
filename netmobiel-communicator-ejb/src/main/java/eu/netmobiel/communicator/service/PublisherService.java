@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
@@ -25,6 +26,7 @@ import eu.netmobiel.communicator.repository.EnvelopeDao;
  * Bean class for Publisher enterprise bean. 
  */
 @Stateless
+@Logging
 public class PublisherService {
 	public static final int NOTIFICATION_TTL = 60 * 60 * 1000; // [ms] Expiration time of a notification  
 
