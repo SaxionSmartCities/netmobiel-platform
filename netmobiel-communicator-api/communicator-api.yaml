@@ -21,7 +21,7 @@ paths:
       and create tasks, respectively.
     get:
       parameters:
-      - name: groupByConveration
+      - name: groupByConversation
         description: If set then the most recent message of each conversation is returned,
           ordered recent to older. If set no other filter is allowed. Without this
           flag a plain list of messages is returned, ordered from recent to older.
