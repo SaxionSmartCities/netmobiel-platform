@@ -275,12 +275,7 @@ components:
           description: |-
             The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
 
-            There are no more items if 'offset' + 'count' >= 'totalCount' or when an empty resultset is returned.
-          type: integer
-        start:
-          format: int32
-          description: The zero-based offset in the result set. Should be equal to
-            the offset passed by the request.
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
           type: integer
         count:
           format: int32
@@ -291,6 +286,11 @@ components:
             request being made.
           type: array
           items: {}
+        offset:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
       example:
         totalCount: 104
         start: 32
