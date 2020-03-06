@@ -2,7 +2,6 @@ package eu.netmobiel.rideshare.api.resource;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -14,6 +13,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.util.PagedResult;
 import eu.netmobiel.communicator.api.MessagesApi;
 import eu.netmobiel.communicator.api.model.Message;
 import eu.netmobiel.communicator.model.Envelope;
@@ -48,19 +48,19 @@ public class MessagesResource implements MessagesApi {
 	public Response listMessages(Boolean groupByConversation, String participant, String context, 
 			OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
 		Response rsp = null;
+		PagedResult<Envelope> result = null;
 		if (groupByConversation != null && groupByConversation) {
 			if (context != null || since != null || until != null) {
 				throw new BadRequestException("Parameters 'context', 'since' or 'until' are not allowed when listing conversations"); 
 			}
-			List<Envelope> envelopes = publisherService.listConversations(participant, maxResults, offset); 
-			rsp = Response.ok(envelopes.stream().map(e -> mapper.map(e)).collect(Collectors.toList())).build();
+			result = publisherService.listConversations(participant, maxResults, offset); 
 		} else {
-			List<Envelope> envelopes = publisherService.listEnvelopes(participant, context, 
+			result = publisherService.listEnvelopes(participant, context, 
 							since != null ? since.toInstant() : null, 
 							until != null ? until.toInstant() : null, 
 							maxResults, offset); 
-			rsp = Response.ok(envelopes.stream().map(e -> mapper.map(e)).collect(Collectors.toList())).build();
 		}
+		rsp = Response.ok(mapper.map(result)).build();
 		return rsp;
 	}
 

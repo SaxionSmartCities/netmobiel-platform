@@ -1,6 +1,7 @@
 package eu.netmobiel.communicator.service;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -16,6 +17,7 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.PagedResult;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
@@ -29,6 +31,7 @@ import eu.netmobiel.communicator.repository.EnvelopeDao;
 @Logging
 public class PublisherService {
 	public static final int NOTIFICATION_TTL = 60 * 60 * 1000; // [ms] Expiration time of a notification  
+	public static final Integer MAX_RESULTS = 10; 
 
 	@Resource
     private SessionContext sessionContext;
@@ -111,16 +114,49 @@ public class PublisherService {
 //	    	
 //    }
     
-	public List<Envelope> listEnvelopes(String recipient, String context, Instant since, Instant until, Integer maxResults, Integer offset) {
+	public PagedResult<Envelope> listEnvelopes(String recipient, String context, Instant since, Instant until, Integer maxResults, Integer offset) {
     	String effectiveRecipient = recipient != null ? recipient : sessionContext.getCallerPrincipal().getName();
-    	List<Long> ids = envelopeDao.listEnvelopes(effectiveRecipient, context, since, until, maxResults, offset);
-    	return envelopeDao.fetch(ids, null);
+    	// As an optimalisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
+    	// the additional call to determine the totalCount.
+    	// For now don't do conditional things. First total count, then data. 
+    	// Get the total count
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+    	PagedResult<Long> prs = envelopeDao.listEnvelopes(effectiveRecipient, context, since, until, 0, offset);
+    	List<Envelope> results = null;
+    	if (maxResults == null || maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> envIds = envelopeDao.listEnvelopes(effectiveRecipient, context, since, until, maxResults, offset);
+    		results = envelopeDao.fetch(envIds.getData(), Envelope.LIST_MY_ENVELOPES_ENTITY_GRAPH);
+    	} else {
+    		results = Collections.emptyList();
+    	}
+    	return new PagedResult<Envelope>(results, maxResults, offset, prs.getTotalCount());
 	}
 
-    public List<Envelope> listConversations(String recipient, Integer maxResults, Integer offset) {
+    public PagedResult<Envelope> listConversations(String recipient, Integer maxResults, Integer offset) {
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
     	String effectiveRecipient = recipient != null ? recipient : sessionContext.getCallerPrincipal().getName();
-    	List<Long> ids = envelopeDao.listConversations(effectiveRecipient, maxResults, offset);
-    	return envelopeDao.fetch(ids, null);
+    	// Get the total count
+    	PagedResult<Long> prs = envelopeDao.listConversations(effectiveRecipient, 0, offset);
+    	List<Envelope> results = null;
+    	if (maxResults == null || maxResults > 0) {
+    		// Get the actual data
+        	PagedResult<Long> envIds = envelopeDao.listConversations(effectiveRecipient, maxResults, offset);
+        	results = envelopeDao.fetch(envIds.getData(), Envelope.LIST_MY_ENVELOPES_ENTITY_GRAPH);
+    	} else {
+    		results = Collections.emptyList();
+    	}
+    	return new PagedResult<Envelope>(results, maxResults, offset, prs.getTotalCount());
     }
     
     public void updateAcknowledgment(Long envelopeId, Instant ackTime) throws NotFoundException {

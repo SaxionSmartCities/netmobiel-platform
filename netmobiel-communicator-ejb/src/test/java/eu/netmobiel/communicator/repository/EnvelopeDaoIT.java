@@ -32,6 +32,7 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.repository.AbstractDao;
+import eu.netmobiel.commons.util.PagedResult;
 import eu.netmobiel.communicator.Resources;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
@@ -188,17 +189,29 @@ public class EnvelopeDaoIT {
 
     @Test
     public void listEnvelopes_All() {
-    	List<Long> envelopeIds = envelopeDao.listEnvelopes(null, null, null, null, 100, 0);
-    	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds, null);
+    	PagedResult<Long> envelopeIds = envelopeDao.listEnvelopes(null, null, null, null, 100, 0);
+    	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds.getData(), null);
     	Long expCount = em.createQuery("select count(env) from Envelope env", Long.class).getSingleResult();
     	assertEquals("All envelopes present", Math.toIntExact(expCount) , envelopes.size());
+    	assertNull("No total count", envelopeIds.getTotalCount());
+    	assertEquals("Offset matches", 0, envelopeIds.getOffset());
+    	assertEquals("maxResults matches", 100, envelopeIds.getResultsPerPage());
+    }
+
+    @Test
+    public void listEnvelopes_AllCount() {
+    	PagedResult<Long> envelopeIds = envelopeDao.listEnvelopes(null, null, null, null, 0, 0);
+    	Long expCount = em.createQuery("select count(env) from Envelope env", Long.class).getSingleResult();
+    	assertEquals("All envelopes present", expCount , envelopeIds.getTotalCount());
+    	assertEquals("Offset matches", 0, envelopeIds.getOffset());
+    	assertEquals("maxResults matches", 0, envelopeIds.getResultsPerPage());
     }
 
     @Test
     public void listEnvelopes_ByRecipient() {
     	final String recipient = "A3";
-    	List<Long> envelopeIds = envelopeDao.listEnvelopes(recipient, null, null, null, 100, 0);
-    	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds, null);
+    	PagedResult<Long> envelopeIds = envelopeDao.listEnvelopes(recipient, null, null, null, 100, 0);
+    	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds.getData(), null);
     	Set<String> recipients = envelopes.stream().map(env -> env.getRecipient().getManagedIdentity()).collect(Collectors.toSet());
     	assertEquals("Only 1 recipient", 1, recipients.size());
     	assertTrue("Must be the requested recipient", recipients.contains(recipient));
@@ -213,8 +226,8 @@ public class EnvelopeDaoIT {
     @Test
     public void listEnvelopes_Context() {
     	final String context = "Context 1";
-    	List<Long> envelopeIds = envelopeDao.listEnvelopes(null, context, null, null, 100, 0);
-    	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds, null);
+    	PagedResult<Long> envelopeIds = envelopeDao.listEnvelopes(null, context, null, null, 100, 0);
+    	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds.getData(), null);
     	Set<String> bodies = envelopes.stream().map(env -> env.getMessage().getBody()).collect(Collectors.toSet());
     	assertTrue("Body M0 present", bodies.contains("Body M0"));
     	assertTrue("Body M1 present", bodies.contains("Body M1"));
@@ -226,8 +239,8 @@ public class EnvelopeDaoIT {
     @Test
     public void listEnvelopes_Since() {
     	final Instant since = Instant.parse("2020-02-13T14:00:00Z");
-    	List<Long> envelopeIds = envelopeDao.listEnvelopes(null, null, since, null, 100, 0);
-    	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds, null);
+    	PagedResult<Long> envelopeIds = envelopeDao.listEnvelopes(null, null, since, null, 100, 0);
+    	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds.getData(), null);
     	Set<String> bodies = envelopes.stream().map(env -> env.getMessage().getBody()).collect(Collectors.toSet());
     	assertEquals("Only 2 message bodies", 2, bodies.size());
     	assertEquals("Only 4 envelopes", 4, envelopes.size());
@@ -238,8 +251,8 @@ public class EnvelopeDaoIT {
     @Test
     public void listEnvelopes_Until() {
     	final Instant until = Instant.parse("2020-02-13T12:00:00Z");
-    	List<Long> envelopeIds = envelopeDao.listEnvelopes(null, null, null, until, 100, 0);
-    	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds, null);
+    	PagedResult<Long> envelopeIds = envelopeDao.listEnvelopes(null, null, null, until, 100, 0);
+    	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds.getData(), null);
 //    	dump("listEnvelopes_Until", envelopes);
     	Set<String> bodies = envelopes.stream().map(env -> env.getMessage().getBody()).collect(Collectors.toSet());
     	assertEquals("Only 3 message bodies", 3, bodies.size());
@@ -252,8 +265,8 @@ public class EnvelopeDaoIT {
     @Test
     public void listConversation() {
     	final String recipient = "A3";
-    	List<Long> envelopeIds = envelopeDao.listConversations(recipient, 100, 0);
-    	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds, null);
+    	PagedResult<Long> envelopeIds = envelopeDao.listConversations(recipient, 100, 0);
+    	List<Envelope> envelopes = envelopeDao.fetch(envelopeIds.getData(), null);
     	dump("listConversation", envelopes);
     	Set<String> bodies = envelopes.stream().map(env -> env.getMessage().getBody()).collect(Collectors.toSet());
     	assertEquals("Only 3 message bodies", 3, bodies.size());

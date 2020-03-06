@@ -8,6 +8,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import eu.netmobiel.commons.util.PagedResult;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.model.User;
@@ -33,7 +34,11 @@ public abstract class MessageMapper {
 	@Mapping(target = "sender", source = "message.sender")
 	@Mapping(target = "subject", source = "message.subject")
 	public abstract eu.netmobiel.communicator.api.model.Message map(Envelope source);
+
 	
+	@Mapping(target = "start", source = "offset")
+	public abstract eu.netmobiel.communicator.api.model.Page map(PagedResult<Envelope> source);
+
 	@Mapping(target = "id", ignore = true)
 	public abstract Message map(eu.netmobiel.communicator.api.model.Message source);
 

@@ -2,6 +2,7 @@ package eu.netmobiel.communicator.repository;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -18,6 +19,7 @@ import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
 import eu.netmobiel.commons.repository.AbstractDao;
+import eu.netmobiel.commons.util.PagedResult;
 import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Envelope_;
@@ -27,7 +29,6 @@ import eu.netmobiel.communicator.model.User_;
 @ApplicationScoped
 @Typed(EnvelopeDao.class)
 public class EnvelopeDao extends AbstractDao<Envelope, Long> {
-	public static final Integer MAX_RESULTS = 10; 
 
     @Inject @CommunicatorDatabase
     private EntityManager em;
@@ -59,11 +60,10 @@ public class EnvelopeDao extends AbstractDao<Envelope, Long> {
 	 * @param offset the zero-based index to start the page.
 	 * @return A list of envelope IDs matching the criteria. 
 	 */
-	public List<Long> listEnvelopes(String recipient, String context, Instant since, Instant until, Integer maxResults, Integer offset) {
+	public PagedResult<Long> listEnvelopes(String recipient, String context, Instant since, Instant until, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Envelope> env = cq.from(Envelope.class);
-        cq.select(env.get(Envelope_.id));
         List<Predicate> predicates = new ArrayList<>();
         if (recipient != null) {
             Predicate predRecipient = cb.equal(env.get(Envelope_.recipient).get(User_.managedIdentity), recipient);
@@ -83,11 +83,20 @@ public class EnvelopeDao extends AbstractDao<Envelope, Long> {
 	        predicates.add(predUntil);
         }        
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
-        cq.orderBy(cb.desc(env.get(Envelope_.message).get(Message_.creationTime)));
-        TypedQuery<Long> tq = em.createQuery(cq);
-		tq.setFirstResult(offset == null ? 0 : offset);
-		tq.setMaxResults(maxResults == null ? MAX_RESULTS : maxResults);
-        return tq.getResultList();
+        Long totalCount = null;
+        List<Long> results = Collections.emptyList();
+        if (maxResults == 0) {
+          cq.select(cb.count(env.get(Envelope_.id)));
+          totalCount = em.createQuery(cq).getSingleResult();
+        } else {
+	        cq.select(env.get(Envelope_.id));
+	        cq.orderBy(cb.desc(env.get(Envelope_.message).get(Message_.creationTime)));
+	        TypedQuery<Long> tq = em.createQuery(cq);
+			tq.setFirstResult(offset);
+			tq.setMaxResults(maxResults);
+			results = tq.getResultList();
+        }
+        return new PagedResult<Long>(results, maxResults, offset, totalCount);
 	}
 
 	/**
@@ -139,22 +148,34 @@ public class EnvelopeDao extends AbstractDao<Envelope, Long> {
 //        return tq.getResultList();
 //	}
 	
-	public List<Long> listConversations(String recipient, Integer maxResults, Integer offset) {
-		TypedQuery<Long> tq = em.createQuery(
-				"select e.id from Envelope e where e.recipient.managedIdentity = :recipient and (e.message.context, e.message.creationTime) in " +
-				" (select ee.message.context, max(ee.message.creationTime) from Envelope ee where ee.recipient.managedIdentity = :recipient group by ee.message.context) " +
-				" order by e.message.creationTime desc"
-				, Long.class);
-		tq.setParameter("recipient", recipient);
-		tq.setFirstResult(offset == null ? 0 : offset);
-		tq.setMaxResults(maxResults == null ? MAX_RESULTS : maxResults);
-        return tq.getResultList();
+	public PagedResult<Long> listConversations(String recipient, Integer maxResults, Integer offset) {
+		String basicQuery = 
+				" from Envelope e where e.recipient.managedIdentity = :recipient and (e.message.context, e.message.creationTime) in " +
+				" (select ee.message.context, max(ee.message.creationTime) from Envelope ee where ee.recipient.managedIdentity = :recipient group by ee.message.context) ";
+		TypedQuery<Long> countQuery = em.createQuery("select count(e) " + basicQuery, Long.class);
+		countQuery.setParameter("recipient", recipient);
+        Long totalCount = countQuery.getSingleResult();
+
+        List<Long> results = Collections.emptyList();
+        if (maxResults > 0) {
+    		TypedQuery<Long> tq = em.createQuery("select e.id " + basicQuery + " order by e.message.creationTime desc", Long.class);
+    		tq.setParameter("recipient", recipient);
+    		tq.setFirstResult(offset);
+    		tq.setMaxResults(maxResults);
+    		results = tq.getResultList();
+        }
+        return new PagedResult<Long>(results, maxResults, offset, totalCount);
 	}
 	
 	@Override
 	public List<Envelope> fetch(List<Long> ids, String graphName) {
-		// Create an identity map using the generic fetch. Rows are returned, but not necessarily in the same order
-		Map<Long, Envelope> resultMap = super.fetch(ids, graphName).stream().collect(Collectors.toMap(Envelope::getId, Function.identity()));
+		Map<Long, Envelope> resultMap;
+		if (ids.size() > 0) {
+			// Create an identity map using the generic fetch. Rows are returned, but not necessarily in the same order
+			resultMap = super.fetch(ids, graphName).stream().collect(Collectors.toMap(Envelope::getId, Function.identity()));
+		} else {
+			resultMap = Collections.emptyMap();
+		}
 		// Now return the rows in the same order as the ids.
 		return ids.stream().map(id -> resultMap.get(id)).collect(Collectors.toList());
 	}
