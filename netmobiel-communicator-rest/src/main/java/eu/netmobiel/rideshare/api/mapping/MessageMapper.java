@@ -36,7 +36,6 @@ public abstract class MessageMapper {
 	public abstract eu.netmobiel.communicator.api.model.Message map(Envelope source);
 
 	
-	@Mapping(target = "start", source = "offset")
 	public abstract eu.netmobiel.communicator.api.model.Page map(PagedResult<Envelope> source);
 
 	@Mapping(target = "id", ignore = true)
