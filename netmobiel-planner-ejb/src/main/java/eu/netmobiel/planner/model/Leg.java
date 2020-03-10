@@ -21,6 +21,7 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OrderColumn;
+import javax.persistence.PostLoad;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -31,6 +32,7 @@ import com.vividsolutions.jts.geom.MultiPoint;
 import eu.netmobiel.commons.api.EncodedPolylineBean;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.GeometryHelper;
+import eu.netmobiel.commons.util.PolylineEncoder;
 
 /**
  * One leg of a trip -- that is, a temporally continuous piece of the journey that takes place on a
@@ -183,7 +185,7 @@ public class Leg implements Serializable {
 
     /**
      * The leg's geometry as encoded polyline bean. When the domain model is used as decoupling layer for OpenTripPlanner, 
-     * the already encode geometry is passed untouched. 
+     * the already encoded geometry is passed untouched. 
      */
     @Transient
     private EncodedPolylineBean legGeometryEncoded; 
@@ -242,6 +244,12 @@ public class Leg implements Serializable {
 		this.guideSteps = new ArrayList<>(other.guideSteps.stream().map(GuideStep::copy).collect(Collectors.toList()));
 	}
 
+    @PostLoad
+    private void encodeLegGeometry() {
+    	if (legGeometry != null) {
+    		legGeometryEncoded = PolylineEncoder.createEncodings(legGeometry);
+    	}
+    }
     public Leg copy() {
     	return new Leg(this);
     }
@@ -470,14 +478,16 @@ public class Leg implements Serializable {
         return traverseMode == null ? null : traverseMode.isTransit();
     }
 
-    public void convertLegGeometry() {
-    	if (getLegGeometry() == null && getLegGeometryEncoded() != null) {
+    public void decodeLegGeometry() {
+    	if (getLegGeometryEncoded() != null) {
     		setLegGeometry(GeometryHelper.createLegGeometry(getLegGeometryEncoded()));
     	}
     }
     
     public int getDestinationStopDistance() {
-    	convertLegGeometry();
+    	if (getLegGeometry() == null) { 
+    		decodeLegGeometry();
+    	}
     	Coordinate lastCoord = getLegGeometry().getCoordinates()[getLegGeometry().getCoordinates().length - 1];
     	GeoLocation lastPoint = new GeoLocation(GeometryHelper.createPoint(lastCoord));
     	return Math.toIntExact(Math.round(to.getLocation().getDistanceFlat(lastPoint) * 1000));

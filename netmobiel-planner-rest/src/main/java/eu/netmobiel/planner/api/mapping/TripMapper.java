@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
-import java.util.List;
 
 import javax.inject.Inject;
 
@@ -16,13 +15,7 @@ import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 import org.slf4j.Logger;
 
-import com.vividsolutions.jts.geom.Coordinate;
-import com.vividsolutions.jts.geom.MultiPoint;
-
-import eu.netmobiel.commons.api.EncodedPolylineBean;
 import eu.netmobiel.commons.model.GeoLocation;
-import eu.netmobiel.commons.util.GeometryHelper;
-import eu.netmobiel.commons.util.PolylineEncoder;
 import eu.netmobiel.planner.model.GuideStep;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Stop;
@@ -45,10 +38,12 @@ public abstract class TripMapper {
 
 	// Domain trip --> Api Trip but without traveller, because these are mine
 	@Mapping(target = "traveller", ignore = true)
+	@Mapping(target = "travellerRef", ignore = true)
 	public abstract eu.netmobiel.planner.api.model.Trip mapMine(Trip source );
 
 	// Api Trip --> Domain trip. 
     @Mapping(target = "traveller", ignore = true)
+    @Mapping(target = "travellerRef", ignore = true)
     @Mapping(target = "stops", ignore = true)
     @Mapping(target = "score", ignore = true)
     public abstract Trip map(eu.netmobiel.planner.api.model.Trip source );
@@ -64,27 +59,29 @@ public abstract class TripMapper {
     @Mapping(target = "location", ignore = true)
     public abstract Stop map(eu.netmobiel.planner.api.model.Stop source );
 
-    // Leg <--> Leg
+    // Domain Leg --> API Leg
     @Mapping(target = "legGeometry", source = "legGeometryEncoded")
     public abstract eu.netmobiel.planner.api.model.Leg map(Leg source );
 
+    // API Leg --> Domain Leg
     @InheritInverseConfiguration
-    @Mapping(target = "intermediateStops", ignore= true)
-    @Mapping(target = "legGeometry", ignore= true)
+    @Mapping(target = "intermediateStops", ignore = true)
+    @Mapping(target = "legGeometry", ignore = true)
+    @Mapping(target = "legGeometryEncoded", source = "legGeometry")
     public abstract Leg map(eu.netmobiel.planner.api.model.Leg source );
 
     // GuideStep <--> GuideStep
     public abstract eu.netmobiel.planner.api.model.GuideStep map(GuideStep source );
 
     // EncodedPolylineBean --> MultiPoint
-    public MultiPoint map(EncodedPolylineBean encodedPolylineBean) {
-    	MultiPoint result = null;
-    	if (encodedPolylineBean != null) {
-        	List<Coordinate> coords = PolylineEncoder.decode(encodedPolylineBean);
-        	result = GeometryHelper.createMultiPoint(coords.toArray(new Coordinate[coords.size()]));
-    	}
-    	return result;
-    }
+//    public MultiPoint map(EncodedPolylineBean encodedPolylineBean) {
+//    	MultiPoint result = null;
+//    	if (encodedPolylineBean != null) {
+//        	List<Coordinate> coords = PolylineEncoder.decode(encodedPolylineBean);
+//        	result = GeometryHelper.createMultiPoint(coords.toArray(new Coordinate[coords.size()]));
+//    	}
+//    	return result;
+//    }
 
     // Instant --> OffsetDateTime
     public  OffsetDateTime map(Instant instant) {
@@ -97,7 +94,7 @@ public abstract class TripMapper {
     }
     
     @AfterMapping
-    // Replace the leg list structure with a linear graph
+    // Replace the leg list structure with a linear graph, and convert the encoded leg geometry
     public Trip transformIntoLinearGraph(@MappingTarget Trip trip) {
     	Stop previous = null;
     	for (Leg leg: trip.getLegs()) {
@@ -113,6 +110,8 @@ public abstract class TripMapper {
     		}
 			trip.getStops().add(leg.getTo());
     		previous = leg.getTo();
+    		// Also decode the encoded legGeometry while we are here
+    		leg.decodeLegGeometry();
 		}
     	return trip;
     }
