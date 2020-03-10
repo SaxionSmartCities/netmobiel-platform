@@ -77,12 +77,15 @@ public class Trip extends Itinerary implements Serializable {
 	public static final String LIST_TRIPS_ENTITY_GRAPH = "list-trips-graph";
 	public static final String LIST_TRIP_DETAIL_ENTITY_GRAPH = "list-trip-detail-graph";
 
-	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix("trip");
+	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(Trip.class);
 	
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "trip_sg")
     private Long id;
 
+    @Transient
+    private String tripRef;
+    
     @NotNull
     @Embedded
     @AttributeOverrides({ 
@@ -134,17 +137,20 @@ public class Trip extends Itinerary implements Serializable {
 		this.id = id;
 	}
 
+	public String getTripRef() {
+    	if (tripRef == null) {
+    		tripRef = PlannerUrnHelper.createUrn(Trip.URN_PREFIX, getId());
+    	}
+		return tripRef;
+	}
+
 	public String getTravellerRef() {
-    	if (traveller != null) {
+    	if (travellerRef == null) {
     		travellerRef = PlannerUrnHelper.createUrn(User.URN_PREFIX, traveller.getId());
     	}
 		return travellerRef;
 	}
 
-
-	public void setTravellerRef(String travellerRef) {
-		this.travellerRef = travellerRef;
-	}
 
 	public User getTraveller() {
 		return traveller;
