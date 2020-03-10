@@ -49,7 +49,7 @@ public class EnvelopeDao extends AbstractDao<Envelope, Long> {
 	}
 
 	/**
-	 * Lists the message ids considering the filter parameters. If a message has context, it is considered 
+	 * Lists the envelope ids considering the filter parameters. If a message has context, it is considered 
 	 * as part of a conversation. In that case the messages with that context must be grouped and only the 
 	 * most recent message is added in the list.   
 	 * @param recipient The recipient address (managed identity). 
@@ -100,7 +100,7 @@ public class EnvelopeDao extends AbstractDao<Envelope, Long> {
 	}
 
 	/**
-	 * Lists the message ids considering the filter parameters and the context. Each message has a context 
+	 * Lists the envelope ids considering the filter parameters and the context. Each message has a context 
 	 * that is used as a conversation. Messages with that context are grouped and only the 
 	 * most recent message is added in the list.
 	 * @param recipient The recipient address. 
