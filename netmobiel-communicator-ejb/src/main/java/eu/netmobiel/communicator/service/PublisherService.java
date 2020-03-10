@@ -116,9 +116,9 @@ public class PublisherService {
     
 	public PagedResult<Envelope> listEnvelopes(String recipient, String context, Instant since, Instant until, Integer maxResults, Integer offset) {
     	String effectiveRecipient = recipient != null ? recipient : sessionContext.getCallerPrincipal().getName();
-    	// As an optimalisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
+    	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
-    	// For now don't do conditional things. First total count, then data. 
+    	// For now don't do conditional things. First always total count, then data if data is requested. 
     	// Get the total count
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
