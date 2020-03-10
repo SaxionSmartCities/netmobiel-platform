@@ -170,8 +170,7 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items: {}
+                $ref: '#/components/schemas/TripPlan'
           description: Successfull call.
         "400":
           content:
@@ -243,10 +242,9 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Trip'
-          description: Successful response - returns an array of `Trip` entities.
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a page with an array of `Trip`
+            entities.
         "400":
           $ref: '#/components/responses/BadRequest'
       operationId: getTrips
@@ -315,7 +313,7 @@ components:
           $ref: '#/components/schemas/Location'
           description: Arrival location
         itineraries:
-          description: A propoal for a trip comprising one or more legs.
+          description: A proposal for a trip comprising one or more legs.
           type: array
           items:
             $ref: '#/components/schemas/Itinerary'
@@ -841,6 +839,38 @@ components:
           label: Zieuwent, R.K. Kerk
           stopCode: "44930020"
           stopId: NL:1532280
+    Page:
+      title: Root Type for Page
+      description: A page from a result set. For smaller sets the page contains the
+        complete result set.
+      type: object
+      properties:
+        totalCount:
+          format: int32
+          description: |-
+            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
+
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
+          type: integer
+        count:
+          format: int32
+          description: The number of items in this page.
+          type: integer
+        data:
+          description: An array with the actual payload. The payload depends on the
+            request being made.
+          type: array
+          items: {}
+        offset:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
+      example:
+        totalCount: 104
+        start: 32
+        count: 16
+        data: []
   responses:
     InternalServerError:
       content:
