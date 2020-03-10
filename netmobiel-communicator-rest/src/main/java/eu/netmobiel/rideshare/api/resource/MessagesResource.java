@@ -13,7 +13,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import eu.netmobiel.commons.exception.CreateException;
-import eu.netmobiel.commons.util.PagedResult;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.communicator.api.MessagesApi;
 import eu.netmobiel.communicator.api.model.Message;
 import eu.netmobiel.communicator.model.Envelope;

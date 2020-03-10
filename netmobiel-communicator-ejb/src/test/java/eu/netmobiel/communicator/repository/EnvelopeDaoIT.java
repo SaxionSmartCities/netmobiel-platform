@@ -31,8 +31,8 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
-import eu.netmobiel.commons.util.PagedResult;
 import eu.netmobiel.communicator.Resources;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;

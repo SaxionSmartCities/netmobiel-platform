@@ -1,4 +1,4 @@
-package eu.netmobiel.commons.util;
+package eu.netmobiel.commons.model;
 
 import java.util.List;
 

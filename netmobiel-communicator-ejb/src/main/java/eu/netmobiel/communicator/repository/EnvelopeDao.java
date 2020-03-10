@@ -18,8 +18,8 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
-import eu.netmobiel.commons.util.PagedResult;
 import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Envelope_;
