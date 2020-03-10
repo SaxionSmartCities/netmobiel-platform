@@ -11,10 +11,14 @@ info:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
 servers:
-- url: https://otp.netmobiel.eu/rideshare/api
-  description: The internal URL for the rideshare.
-- url: https://dev.netmobiel.eu/gwapi/rideshare
-  description: The rideshare service visible to the world.
+- url: https://prod.netmobiel.eu/rideshare/api
+  description: The internal URL for the rideshare (production).
+- url: https://api.netmobiel.eu/gwapi/rideshare
+  description: The rideshare service visible to the world (production).
+- url: https://acc.netmobiel.eu/rideshare/api
+  description: The internal URL for the rideshare (acceptance).
+- url: https://api.netmobiel.eu/gwapi-acc/rideshare
+  description: The rideshare service visible to the world (acceptance).
 paths:
   /cars:
     summary: Path used to manage the list of cars.
@@ -72,10 +76,9 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Booking'
-          description: Successful response - returns an array of `Booking` entities.
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with an array of `Booking`
+            entities.
       operationId: getBookings
       summary: List all bookings made by the calling user.
       description: Gets a list of all `Booking` entities of which the calling user
@@ -471,39 +474,8 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Ride'
-              examples:
-                Result:
-                  value:
-                  - car:
-                      brand: Volvo
-                      model: V70
-                    carRef: urn:nb:rs:car:5
-                    carthesianBearing: 265
-                    carthesianDistance: 19009
-                    departureTime: 2019-11-02T11:30:00Z[UTC]
-                    driver:
-                      familyName: Reitsma
-                      givenName: Jaap
-                    driverRef: urn:nb:rs:user:1
-                    estimatedCO2Emission: 5055
-                    estimatedDistance: 23295
-                    estimatedDrivingTime: 1720
-                    fromPlace:
-                      label: Rapenburgsestraat Lichtenvoorde
-                      latitude: 51.987757
-                      longitude: 6.564012
-                    rideRef: urn:nb:rs:ride:52
-                    maxDetourMeters: 5000
-                    nrSeatsAvailable: 2
-                    remarks: Een middagje shoppen in Doetinchem
-                    toPlace:
-                      label: Catharina Parkeergarage Doetinchem
-                      latitude: 51.9670528
-                      longitude: 6.2894002
-          description: Successfull call.
+                $ref: '#/components/schemas/Page'
+          description: Successfull call. Returns a `Page` with `Ride` entities.
         "400":
           description: |-
             When not the minimal required search parameters are specified. Required for search are:
@@ -611,10 +583,9 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Ride'
-          description: Successfull call.
+                $ref: '#/components/schemas/Page'
+          description: Successfull call. The result contains a `Page` with an array
+            of `Ride` entities.
         "400":
           content:
             application/json:
@@ -1074,6 +1045,38 @@ components:
         unit: WEEK
         daysOfWeek: 62
         horizon: 2019-12-31
+    Page:
+      title: Root Type for Page
+      description: A page from a result set. For smaller sets the page contains the
+        complete result set.
+      type: object
+      properties:
+        totalCount:
+          format: int32
+          description: |-
+            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
+
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
+          type: integer
+        count:
+          format: int32
+          description: The number of items in this page.
+          type: integer
+        data:
+          description: An array with the actual payload. The payload depends on the
+            request being made.
+          type: array
+          items: {}
+        offset:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
+      example:
+        totalCount: 104
+        start: 32
+        count: 16
+        data: []
   responses:
     InternalServerError:
       content:
