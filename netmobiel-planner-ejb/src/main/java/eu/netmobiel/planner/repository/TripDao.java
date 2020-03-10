@@ -2,6 +2,7 @@ package eu.netmobiel.planner.repository;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -19,6 +20,7 @@ import javax.persistence.criteria.Root;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.planner.annotation.PlannerDatabase;
 import eu.netmobiel.planner.model.Trip;
@@ -28,7 +30,6 @@ import eu.netmobiel.planner.model.User;
 @ApplicationScoped
 @Typed(TripDao.class)
 public class TripDao extends AbstractDao<Trip, Long> {
-	public static final Integer DEFAULT_PAGE_SIZE = 10; 
     @SuppressWarnings("unused")
 	@Inject
     private Logger logger;
@@ -45,11 +46,10 @@ public class TripDao extends AbstractDao<Trip, Long> {
 		return em;
 	}
 
-    public List<Long> findByTraveller(User traveller, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) {
+    public PagedResult<Long> findByTraveller(User traveller, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Trip> trips = cq.from(Trip.class);
-        cq.select(trips.get(Trip_.id));
         List<Predicate> predicates = new ArrayList<>();
         Predicate predTraveller = cb.equal(trips.get(Trip_.traveller), traveller);
         predicates.add(predTraveller);
@@ -66,11 +66,20 @@ public class TripDao extends AbstractDao<Trip, Long> {
 	        predicates.add(predNotDeleted);
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
-        cq.orderBy(cb.asc(trips.get(Trip_.departureTime)));
-        TypedQuery<Long> tq = em.createQuery(cq);
-		tq.setFirstResult(offset == null ? 0 : offset);
-		tq.setMaxResults(maxResults == null ? DEFAULT_PAGE_SIZE : maxResults);
-        return tq.getResultList();
+        Long totalCount = null;
+        List<Long> results = Collections.emptyList();
+        if (maxResults == 0) {
+            cq.select(cb.count(trips.get(Trip_.id)));
+            totalCount = em.createQuery(cq).getSingleResult();
+        } else {
+            cq.select(trips.get(Trip_.id));
+	        cq.orderBy(cb.asc(trips.get(Trip_.departureTime)));
+	        TypedQuery<Long> tq = em.createQuery(cq);
+			tq.setFirstResult(offset);
+			tq.setMaxResults(maxResults);
+			results = tq.getResultList();
+        }
+        return new PagedResult<Long>(results, maxResults, offset, totalCount);
     }
 
 	@Override

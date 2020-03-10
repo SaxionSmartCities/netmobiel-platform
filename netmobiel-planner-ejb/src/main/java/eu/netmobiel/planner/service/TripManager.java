@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TraverseMode;
@@ -29,6 +30,7 @@ import eu.netmobiel.rideshare.service.BookingManager;
 @Stateless
 @Logging
 public class TripManager {
+	public static final Integer MAX_RESULTS = 10; 
 	@SuppressWarnings("unused")
 	@Inject
     private Logger log;
@@ -46,8 +48,7 @@ public class TripManager {
      * List all trips owned by the specified user. Soft deleted trips are omitted.
      * @return A list of trips owned by the specified user.
      */
-    public List<Trip> listTrips(User traveller, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
-    	List<Trip> trips = Collections.emptyList();
+    public PagedResult<Trip> listTrips(User traveller, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
     	if (until != null && since != null && !until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
     	}
@@ -60,13 +61,24 @@ public class TripManager {
     	if (offset != null && offset < 0) {
     		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
     	}
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+        List<Trip> results = Collections.emptyList();
+        Long totalCount = 0L;
     	if (traveller != null && traveller.getId() != null) {
-    		List<Long> tripIds = tripDao.findByTraveller(traveller, since, until, deletedToo, maxResults, offset);
-    		if (tripIds.size() > 0) {
-    			trips = tripDao.fetch(tripIds, Trip.LIST_TRIPS_ENTITY_GRAPH);
-    		}
-    	}
-    	return trips;
+    		PagedResult<Long> prs = tripDao.findByTraveller(traveller, since, until, deletedToo, 0, 0);
+    		totalCount = prs.getTotalCount();
+        	if (totalCount > 0 && maxResults > 0) {
+        		// Get the actual data
+        		PagedResult<Long> tripIds = tripDao.findByTraveller(traveller, since, until, deletedToo, maxResults, offset);
+    			results = tripDao.fetch(tripIds.getData(), Trip.LIST_TRIPS_ENTITY_GRAPH);
+        	}
+    	} 
+    	return new PagedResult<Trip>(results, maxResults, offset, totalCount);
     	
     }
 
@@ -74,7 +86,7 @@ public class TripManager {
      * List all trips owned by  the calling user. Soft deleted trips are omitted.
      * @return A list of trips owned by the calling user.
      */
-    public List<Trip> listMyTrips(Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
+    public PagedResult<Trip> listMyTrips(Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
     	return listTrips(userManager.findCallingUser(), since, until, deletedToo, maxResults, offset);
     }
     
@@ -96,7 +108,7 @@ public class TripManager {
      * @throws CreateException In case of trouble, like wrong parameter values.
      * @throws BadRequestException In case of bad parameters.
      */
-    protected Long createTrip(User traveller, Trip trip, boolean autobook) throws BadRequestException, CreateException {
+    public Long createTrip(User traveller, Trip trip, boolean autobook) throws BadRequestException, CreateException {
     	validateCreateUpdateTrip(trip);
     	trip.setTraveller(traveller);
     	trip.setState(TripState.PLANNING);
@@ -111,7 +123,7 @@ public class TripManager {
     	return trip.getId();
     }
 
-    protected Long createTrip(User traveller, Trip trip) throws BadRequestException, CreateException {
+    public Long createTrip(User traveller, Trip trip) throws BadRequestException, CreateException {
     	return createTrip(traveller,  trip, true);
     }
     

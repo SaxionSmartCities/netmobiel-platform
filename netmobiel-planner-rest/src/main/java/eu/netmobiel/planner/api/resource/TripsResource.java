@@ -2,8 +2,6 @@ package eu.netmobiel.planner.api.resource;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
@@ -17,7 +15,9 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.planner.api.TripsApi;
+import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripMapper;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.service.TripManager;
@@ -32,6 +32,9 @@ public class TripsResource implements TripsApi {
  
     @Inject
     private TripMapper tripMapper;
+
+    @Inject
+    private PageMapper pageMapper;
 
     @EJB
     private TripManager tripManager;
@@ -81,10 +84,10 @@ public class TripsResource implements TripsApi {
 	@Override
 	public Response getTrips(OffsetDateTime since, OffsetDateTime until, Boolean deletedToo, Integer maxResults, Integer offset) {
     	Response rsp = null;
-		List<Trip> trips;
 		try {
-			trips = tripManager.listMyTrips(since != null ? since.toInstant() : Instant.now(), until != null ? until.toInstant() : null, deletedToo, maxResults, offset);
-			rsp = Response.ok(trips.stream().map(t -> tripMapper.mapMine(t)).collect(Collectors.toList())).build();
+			PagedResult<Trip> result = tripManager.listMyTrips(since != null ? since.toInstant() : Instant.now(), 
+					until != null ? until.toInstant() : null, deletedToo, maxResults, offset);
+			rsp = Response.ok(pageMapper.mapMine(result)).build();
 		} catch (ApplicationException e) {
 			throw new WebApplicationException(e);
 		}

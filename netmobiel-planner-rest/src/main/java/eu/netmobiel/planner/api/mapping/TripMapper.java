@@ -16,6 +16,9 @@ import org.mapstruct.ReportingPolicy;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.planner.api.mapping.annotation.TripDetails;
+import eu.netmobiel.planner.api.mapping.annotation.TripMapperQualifier;
+import eu.netmobiel.planner.api.mapping.annotation.TripMyDetails;
 import eu.netmobiel.planner.model.GuideStep;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Stop;
@@ -29,16 +32,19 @@ import eu.netmobiel.planner.model.Trip;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
+@TripMapperQualifier
 public abstract class TripMapper {
 	@Inject
 	private Logger log;
 
 	// Domain trip --> Api Trip in full detail
+	@TripDetails
 	public abstract eu.netmobiel.planner.api.model.Trip mapInDetail(Trip source );
 
 	// Domain trip --> Api Trip but without traveller, because these are mine
 	@Mapping(target = "traveller", ignore = true)
 	@Mapping(target = "travellerRef", ignore = true)
+	@TripMyDetails
 	public abstract eu.netmobiel.planner.api.model.Trip mapMine(Trip source );
 
 	// Api Trip --> Domain trip. 
