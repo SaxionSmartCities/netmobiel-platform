@@ -11,14 +11,14 @@ info:
     name: Apache 2.0
     url: https://www.apache.org/licenses/LICENSE-2.0
 servers:
-- url: https://otp.netmobiel.eu/planner/api
-  description: The internal URL for the rideshare (production).
-- url: https://dev.netmobiel.eu/gwapi/planner
-  description: The rideshare service visible to the world (production).
-- url: https://vps1323.directvps.nl/planner/api
-  description: The internal URL for the rideshare (acceptance).
-- url: https://dev.netmobiel.eu/gwapi-acc/planner
-  description: The rideshare service visible to the world (acceptance).
+- url: https://prod.netmobiel.eu/planner/api
+  description: The internal URL for the planner (production).
+- url: https://api.netmobiel.eu/gwapi/planner
+  description: The planner service visible to the world (production).
+- url: https://acc.netmobiel.eu/planner/api
+  description: The internal URL for the planner (acceptance).
+- url: https://api.netmobiel.eu/gwapi-acc/planner
+  description: The planner service visible to the world (acceptance).
 paths:
   /maintenance/otpdatabase:
     get:
@@ -474,8 +474,7 @@ components:
           items:
             $ref: '#/components/schemas/Leg'
     User:
-      description: "A user in the ride share service. A user can have a role as a\
-        \ driver or as a passenger. \nThe role is contextually assigned."
+      description: 'A user in the planner service. '
       required:
       - managedIdentity
       - givenName
@@ -523,7 +522,7 @@ components:
           description: If the trip was cancelled, the reason why.
           type: string
         travellerRef:
-          description: 'A reference to the user. It is a URN with the format: rn:nb:pl:user:12345'
+          description: 'A reference to the user. It is a URN with the format: urn:nb:pl:user:12345'
           type: string
         traveller:
           $ref: '#/components/schemas/User'
@@ -604,6 +603,9 @@ components:
         nrSeats:
           description: The number of seats required for the trip.
           type: integer
+        tripRef:
+          description: The reference urn of the trip. Format is urn:nb:pl:trip:{id}.
+          type: string
       example:
         from:
           label: Rapenburgsestraat Lichtenvoorde
