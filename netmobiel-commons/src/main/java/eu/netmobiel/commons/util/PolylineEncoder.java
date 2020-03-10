@@ -8,6 +8,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
 import com.vividsolutions.jts.geom.LineString;
 import com.vividsolutions.jts.geom.MultiLineString;
+import com.vividsolutions.jts.geom.MultiPoint;
 
 import eu.netmobiel.commons.api.EncodedPolylineBean;
 
@@ -39,8 +40,11 @@ public class PolylineEncoder {
         } else if (geometry instanceof MultiLineString) {
             MultiLineString mls = (MultiLineString) geometry;
             return createEncodings(new CoordinateList(mls.getCoordinates()));
+        } else if (geometry instanceof MultiPoint) {
+            MultiPoint mp = (MultiPoint) geometry;
+            return createEncodings(new CoordinateList(mp.getCoordinates()));
         } else {
-            throw new IllegalArgumentException(geometry.toString());
+            throw new IllegalArgumentException("Unsupported geometry:" + geometry.toString());
         }
     }
 
