@@ -656,6 +656,27 @@ paths:
       A booking is created through the `ride` path.
     get:
       parameters:
+      - examples:
+          Format:
+            value: 2019-11-30
+        name: since
+        description: The departure date at which to start the listing. Default is
+          today (local date), effectively listing all bookings since midnight.
+        schema:
+          format: date
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15
+        name: until
+        description: The departure date and later not to include in the listing of
+          bookings. The until date must be after the since parameter. Default is not
+          set, meaning all available bookings (after since).
+        schema:
+          format: date
+          type: string
+        in: query
       - name: maxResults
         description: 'Paging: The maximum number of results per page. Default is 10.'
         schema:
