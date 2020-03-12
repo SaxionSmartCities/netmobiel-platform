@@ -75,11 +75,12 @@ public class TripManager {
         	if (totalCount > 0 && maxResults > 0) {
         		// Get the actual data
         		PagedResult<Long> tripIds = tripDao.findByTraveller(traveller, since, until, deletedToo, maxResults, offset);
-    			results = tripDao.fetch(tripIds.getData(), Trip.LIST_TRIPS_ENTITY_GRAPH);
+        		if (tripIds.getData().size() > 0) {
+        			results = tripDao.fetch(tripIds.getData(), Trip.LIST_TRIPS_ENTITY_GRAPH);
+        		}
         	}
     	} 
     	return new PagedResult<Trip>(results, maxResults, offset, totalCount);
-    	
     }
 
     /**

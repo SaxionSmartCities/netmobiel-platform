@@ -1,6 +1,12 @@
 package eu.netmobiel.rideshare.repository;
 
+import java.time.LocalDate;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
+import java.util.Map;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -12,6 +18,7 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.model.Booking;
@@ -51,24 +58,48 @@ public class BookingDao extends AbstractDao<Booking, Long> {
     	return exists != null && exists;
     }
     
-    public List<Booking> findByPassenger(User passenger, boolean cancelledToo, String graphName) {
+    public PagedResult<Long> findByPassenger(User passenger, LocalDate since, LocalDate until, boolean cancelledToo, Integer maxResults, Integer offset) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Booking> cq = cb.createQuery(Booking.class);
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Booking> bookings = cq.from(Booking.class);
-        cq.select(bookings);
+        List<Predicate> predicates = new ArrayList<>();
         Predicate predPassenger = cb.equal(bookings.get(Booking_.passenger), passenger);
-        if (cancelledToo) {
-        	cq.where(predPassenger);
-        } else {
+        predicates.add(predPassenger);
+        if (since != null) {
+	        Predicate predSince = cb.greaterThanOrEqualTo(bookings.get(Booking_.ride).get(Ride_.departureTime), since.atStartOfDay());
+	        predicates.add(predSince);
+        }        
+        if (until != null) {
+	        Predicate predUntil = cb.lessThanOrEqualTo(bookings.get(Booking_.ride).get(Ride_.departureTime), until.atStartOfDay());
+	        predicates.add(predUntil);
+        }        
+        if (!cancelledToo) {
             Predicate predNotCancelled = cb.notEqual(bookings.get(Booking_.state), BookingState.CANCELLED);
-        	cq.where(cb.and(predPassenger, predNotCancelled));
+            predicates.add(predNotCancelled);
         }
-        cq.orderBy(cb.desc(bookings.get(Booking_.ride).get(Ride_.departureTime)));
-        TypedQuery<Booking> tq = em.createQuery(cq);
-        if (graphName != null) {
-        	tq.setHint(JPA_HINT_LOAD, em.getEntityGraph(graphName));
+        cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
+        Long totalCount = null;
+        List<Long> results = Collections.emptyList();
+        if (maxResults == 0) {
+            cq.select(cb.count(bookings.get(Booking_.id)));
+            totalCount = em.createQuery(cq).getSingleResult();
+        } else {
+            cq.select(bookings.get(Booking_.id));
+            cq.orderBy(cb.desc(bookings.get(Booking_.ride).get(Ride_.departureTime)));
+	        TypedQuery<Long> tq = em.createQuery(cq);
+			tq.setFirstResult(offset);
+			tq.setMaxResults(maxResults);
+			results = tq.getResultList();
         }
-        return tq.getResultList();
+        return new PagedResult<Long>(results, maxResults, offset, totalCount);
     }
+
+	@Override
+	public List<Booking> fetch(List<Long> ids, String graphName) {
+		// Create an identity map using the generic fetch. Rows are returned, but not necessarily in the same order
+		Map<Long, Booking> resultMap = super.fetch(ids, graphName).stream().collect(Collectors.toMap(Booking::getId, Function.identity()));
+		// Now return the rows in the same order as the ids.
+		return ids.stream().map(id -> resultMap.get(id)).collect(Collectors.toList());
+	}
 
 }

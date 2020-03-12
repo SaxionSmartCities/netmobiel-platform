@@ -9,6 +9,10 @@ import org.mapstruct.ReportingPolicy;
 import eu.netmobiel.rideshare.api.mapping.annotation.CarBrandModelDetails;
 import eu.netmobiel.rideshare.api.mapping.annotation.CarMapperQualifier;
 import eu.netmobiel.rideshare.api.mapping.annotation.CarMyDetails;
+import eu.netmobiel.rideshare.api.mapping.annotation.RideDetails;
+import eu.netmobiel.rideshare.api.mapping.annotation.RideMapperQualifier;
+import eu.netmobiel.rideshare.api.mapping.annotation.RideMyDetails;
+import eu.netmobiel.rideshare.api.mapping.annotation.RideSearchDetails;
 import eu.netmobiel.rideshare.api.mapping.annotation.UserMapperQualifier;
 import eu.netmobiel.rideshare.api.mapping.annotation.UserSomeDetails;
 import eu.netmobiel.rideshare.model.Booking;
@@ -22,6 +26,7 @@ import eu.netmobiel.rideshare.model.Ride;
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
 	uses = { StopMapper.class, CarMapper.class, UserMapper.class })
+@RideMapperQualifier
 public interface RideMapper {
 	// Default mapping domain Ride --> Api Ride
 	@Mapping(target = "car", source = "rideTemplate.car") 
@@ -57,6 +62,7 @@ public interface RideMapper {
 	@InheritConfiguration(name = "commonMap")
 	@Mapping(target = "car", source = "rideTemplate.car", 
 		qualifiedBy = { CarMapperQualifier.class, CarMyDetails.class } )
+	@RideDetails
 	eu.netmobiel.rideshare.api.model.Ride mapDetailed(Ride source);
 
 	// Domain Ride --> Api Ride: Some details, like car brand and model. No driver. Include bookings. 
@@ -66,6 +72,7 @@ public interface RideMapper {
 	@Mapping(target = "driverRef", ignore = true)
 	@Mapping(target = "car", source = "rideTemplate.car", 
 		qualifiedBy = { CarMapperQualifier.class, CarBrandModelDetails.class } )
+	@RideMyDetails
 	eu.netmobiel.rideshare.api.model.Ride mapMine(Ride source);
 
 	// Domain Ride --> Api Ride: Some details, like car brand and model. Driver name. No bookings. 
@@ -74,7 +81,8 @@ public interface RideMapper {
 	@Mapping(target = "car", source = "rideTemplate.car", 
 		qualifiedBy = { CarMapperQualifier.class, CarBrandModelDetails.class } )
 	@Mapping(target = "driver",	source = "rideTemplate.driver",
-		qualifiedBy = { UserMapperQualifier.class, UserSomeDetails.class } ) 
+		qualifiedBy = { UserMapperQualifier.class, UserSomeDetails.class } )
+	@RideSearchDetails
 	eu.netmobiel.rideshare.api.model.Ride mapSearch(Ride source);
 
 	

@@ -1,8 +1,6 @@
 package eu.netmobiel.rideshare.api.resource;
 
 import java.time.LocalDate;
-import java.util.List;
-import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -14,8 +12,10 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.rideshare.api.RidesApi;
 import eu.netmobiel.rideshare.api.mapping.BookingMapper;
+import eu.netmobiel.rideshare.api.mapping.PageMapper;
 import eu.netmobiel.rideshare.api.mapping.RideMapper;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Ride;
@@ -36,8 +36,12 @@ public class RidesResource implements RidesApi {
 
     @Inject
     private RideMapper mapper;
+
     @Inject
     private BookingMapper bookingMapper;
+    
+    @Inject
+    private PageMapper pageMapper;
     /**
      * List all rides owned by the calling user. Soft deleted rides are omitted.
      * @return A list of rides owned by the calling user.
@@ -45,7 +49,7 @@ public class RidesResource implements RidesApi {
     public Response listRides(String driverId, LocalDate sinceDate, LocalDate untilDate, Boolean deletedToo, Integer maxResults, Integer offset) {
 //    	LocalDate sinceDate = since != null ? LocalDate.parse(since) : null;
 //    	LocalDate untilDate =  until != null ? LocalDate.parse(until) : null;
-    	List<Ride> rides;
+    	PagedResult<Ride> rides;
 		try {
 			Long did = null;
 			if (driverId != null) {
@@ -56,9 +60,7 @@ public class RidesResource implements RidesApi {
 			throw new BadRequestException("Error listing rides", e);
 		}
 		// Map the rides as my rides: Brand/model car only, no driver info (because it is the specified driver)
-    	return Response.ok(rides.stream()
-    			.map(r -> mapper.mapMine(r))
-    			.collect(Collectors.toList())).build();
+    	return Response.ok(pageMapper.mapMine(rides)).build();
     }
 
     /**

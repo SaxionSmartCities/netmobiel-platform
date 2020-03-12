@@ -2,8 +2,6 @@ package eu.netmobiel.rideshare.api.resource;
 
 import java.time.LocalDateTime;
 import java.time.format.DateTimeParseException;
-import java.util.List;
-import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -13,8 +11,9 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.rideshare.api.SearchApi;
-import eu.netmobiel.rideshare.api.mapping.RideMapper;
+import eu.netmobiel.rideshare.api.mapping.PageMapper;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.service.RideManager;
 
@@ -26,7 +25,7 @@ public class SearchResource implements SearchApi {
     private Logger log;
  
 	@Inject
-	private RideMapper mapper;
+	private PageMapper mapper;
 	
 	@Inject
     private RideManager rideManager;
@@ -58,7 +57,7 @@ public class SearchResource implements SearchApi {
     		Integer maxResults,
     		Integer offset
     	) {
-    	List<Ride> rides = null;
+    	PagedResult<Ride> rides = null;
     	if (fromPlace == null || (fromDate == null && toDate == null) || toPlace == null) {
     		throw new BadRequestException("Missing one or more mandatory parameters: fromPlace, toPlace, fromDate or toDate");
     	} else if (fromPlace != null && toPlace != null && (fromDate != null || toDate != null)) {
@@ -72,7 +71,7 @@ public class SearchResource implements SearchApi {
     			throw new BadRequestException("Input parameter has unrecognized format", ex);
     		}
     	}
-    	return Response.ok(rides.stream().map(r -> mapper.mapSearch(r)).collect(Collectors.toList())).build(); 
+    	return Response.ok(mapper.mapSearch(rides)).build(); 
     }
 
 }

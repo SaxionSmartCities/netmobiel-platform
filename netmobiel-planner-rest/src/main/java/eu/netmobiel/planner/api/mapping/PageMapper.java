@@ -11,8 +11,8 @@ import eu.netmobiel.planner.api.mapping.annotation.TripMyDetails;
 import eu.netmobiel.planner.model.Trip;
 
 /**
- * This mapper defines the mapping from the domain Trip to the API Trip as defined by OpenAPI
- * Becasue trip are written to and read from the service, a bi-directional mapping is necessary.
+ * This mapper defines the mapping from the domain PagedResult to the API PagedResult as defined by OpenAPI.
+ * One way only.
  * 
  * @author Jaap Reitsma
  *

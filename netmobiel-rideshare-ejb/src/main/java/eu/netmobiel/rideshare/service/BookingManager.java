@@ -1,5 +1,6 @@
 package eu.netmobiel.rideshare.service;
 
+import java.time.LocalDate;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -9,10 +10,12 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.BasicUser;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
@@ -25,6 +28,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 @Stateless
 @Logging
 public class BookingManager {
+	public static final Integer MAX_RESULTS = 10; 
 
     @SuppressWarnings("unused")
 	@Inject
@@ -36,14 +40,45 @@ public class BookingManager {
     @Inject
     private UserManager userManager;
 
-    public List<Booking> listMyBookings() {
-    	User caller = userManager.findCallingUser();
-    	List<Booking> bookings = Collections.emptyList();
-    	if (caller != null) {
-    		bookings = bookingDao.findByPassenger(caller, false, null);
+    public PagedResult<Booking> listMyBookings(LocalDate since, LocalDate until, Integer maxResults, Integer offset) throws BadRequestException {
+    	if (since == null) {
+    		since = LocalDate.now();
     	}
-    	return bookings;
-    	
+    	if (until != null && since != null && ! until.isAfter(since)) {
+    		throw new BadRequestException("Constraint violation: The 'until' date must be greater than the 'since' date.");
+    	}
+    	if (maxResults != null && maxResults > 100) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
+    	}
+    	if (maxResults != null && maxResults <= 0) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' > 0.");
+    	}
+    	if (offset != null && offset < 0) {
+    		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
+    	}
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+    	User caller = userManager.findCallingUser();
+    	if (caller != null) {
+    	}
+        List<Booking> results = Collections.emptyList();
+        Long totalCount = 0L;
+    	if (caller != null && caller.getId() != null) {
+    		PagedResult<Long> prs = bookingDao.findByPassenger(caller, since, until, false, 0, 0);
+    		totalCount = prs.getTotalCount();
+        	if (totalCount > 0 && maxResults > 0) {
+        		// Get the actual data
+        		PagedResult<Long> bookingIds = bookingDao.findByPassenger(caller, since, until, false, maxResults, offset);
+        		if (!bookingIds.getData().isEmpty()) {
+        			results = bookingDao.fetch(bookingIds.getData(), null);
+        		}
+        	}
+    	} 
+    	return new PagedResult<Booking>(results, maxResults, offset, totalCount);
     }
 
     /**

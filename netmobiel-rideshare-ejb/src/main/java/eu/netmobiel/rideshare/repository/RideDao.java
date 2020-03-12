@@ -4,6 +4,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.function.Function;
@@ -22,6 +23,7 @@ import javax.persistence.criteria.Root;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
@@ -51,11 +53,10 @@ public class RideDao extends AbstractDao<Ride, Long> {
 		return em;
 	}
 
-    public List<Long> findByDriver(User driver, LocalDate since, LocalDate until, Boolean deletedToo, Integer maxResults, Integer offset) {
+    public PagedResult<Long> findByDriver(User driver, LocalDate since, LocalDate until, Boolean deletedToo, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Ride> rides = cq.from(Ride.class);
-        cq.select(rides.get(Ride_.id));
         List<Predicate> predicates = new ArrayList<>();
         Predicate predDriver = cb.equal(rides.get(Ride_.rideTemplate).get(RideTemplate_.driver), driver);
         predicates.add(predDriver);
@@ -72,12 +73,20 @@ public class RideDao extends AbstractDao<Ride, Long> {
 	        predicates.add(predNotDeleted);
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
-        cq.orderBy(cb.asc(rides.get(Ride_.departureTime)));
-        
-        TypedQuery<Long> tq = em.createQuery(cq);
-		tq.setFirstResult(offset == null ? 0 : offset);
-		tq.setMaxResults(maxResults == null ? DEFAULT_PAGE_SIZE : maxResults);
-        return tq.getResultList();
+        Long totalCount = null;
+        List<Long> results = Collections.emptyList();
+        if (maxResults == 0) {
+            cq.select(cb.count(rides.get(Ride_.id)));
+            totalCount = em.createQuery(cq).getSingleResult();
+        } else {
+            cq.select(rides.get(Ride_.id));
+            cq.orderBy(cb.asc(rides.get(Ride_.departureTime)));
+	        TypedQuery<Long> tq = em.createQuery(cq);
+			tq.setFirstResult(offset);
+			tq.setMaxResults(maxResults);
+			results = tq.getResultList();
+        }
+        return new PagedResult<Long>(results, maxResults, offset, totalCount);
     }
 
 
@@ -98,7 +107,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
      * @param graphName the graph name of the entity graph to use.
      * @return A list of potential matches.
      */
-    public List<Long> search(GeoLocation fromPlace, GeoLocation toPlace, int maxBearingDifference, LocalDateTime fromDate, LocalDateTime toDate, Integer nrSeats, Integer maxResults, Integer offset) {
+    public PagedResult<Long> search(GeoLocation fromPlace, GeoLocation toPlace, int maxBearingDifference, LocalDateTime fromDate, LocalDateTime toDate, Integer nrSeats, Integer maxResults, Integer offset) {
     	int searchBearing = Math.toIntExact(Math.round(EllipseHelper.getBearing(fromPlace.getPoint(), toPlace.getPoint())));
     	if (logger.isDebugEnabled()) {
 	    	logger.debug(String.format("Search for ride from %s to %s D %s A %s #%d seats, bearing %d", fromPlace, toPlace, 
@@ -106,24 +115,39 @@ public class RideDao extends AbstractDao<Ride, Long> {
 	    			toDate != null ? DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(toDate) : "-",
 	    			nrSeats, searchBearing));
     	}
-    	TypedQuery<Long> tq = em.createQuery(
-    			"select r.id from Ride r where contains(r.rideTemplate.shareEligibility, :fromPoint) = true and " +
+    	String baseQuery =     			
+    			"from Ride r where contains(r.rideTemplate.shareEligibility, :fromPoint) = true and " +
     			"contains(r.rideTemplate.shareEligibility, :toPoint) = true and " +
     			"abs(r.rideTemplate.carthesianBearing - :searchBearing) < :maxBearingDifference and " +
     			"(CAST(:fromDate as java.lang.String) is null or r.departureTime >= :fromDate) and " +
     			"(CAST(:toDate as java.lang.String) is null or r.departureTime < :toDate) and " +
     			"r.rideTemplate.nrSeatsAvailable >= :nrSeats and " +
-    			"(r.deleted is null or r.deleted = false)", Long.class)
-    			.setParameter("fromPoint", fromPlace.getPoint())
-    			.setParameter("toPoint", toPlace.getPoint())
-    			.setParameter("searchBearing", searchBearing)
-    			.setParameter("maxBearingDifference", maxBearingDifference)
-    			.setParameter("fromDate", fromDate)
-    			.setParameter("toDate", toDate)
-    			.setParameter("nrSeats", nrSeats)
-    			.setFirstResult(offset)
-    			.setMaxResults(maxResults);
-        return tq.getResultList();
+    			"(r.deleted is null or r.deleted = false)";
+    	TypedQuery<Long> tq = null;
+    	if (maxResults == 0) {
+    		// Only request the possible numbe rof results
+    		tq = em.createQuery("select count(r.id) " + baseQuery, Long.class);
+    	} else {
+    		// Get the data IDs
+    		tq = em.createQuery("select r.id " + baseQuery + " order by r.departureTime asc ", Long.class);
+    	}
+    	tq.setParameter("fromPoint", fromPlace.getPoint())
+			.setParameter("toPoint", toPlace.getPoint())
+			.setParameter("searchBearing", searchBearing)
+			.setParameter("maxBearingDifference", maxBearingDifference)
+			.setParameter("fromDate", fromDate)
+			.setParameter("toDate", toDate)
+			.setParameter("nrSeats", nrSeats);
+        Long totalCount = null;
+        List<Long> results = Collections.emptyList();
+        if (maxResults == 0) {
+            totalCount = tq.getSingleResult();
+        } else {
+			tq.setFirstResult(offset);
+			tq.setMaxResults(maxResults);
+			results = tq.getResultList();
+        }
+        return new PagedResult<Long>(results, maxResults, offset, totalCount);
     }
 
 	@Override

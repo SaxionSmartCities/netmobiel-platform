@@ -24,6 +24,7 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
 import eu.netmobiel.commons.util.Logging;
@@ -42,9 +43,9 @@ import eu.netmobiel.rideshare.service.RideManager;
 @Stateless
 @Logging
 public class PlannerManager {
-	private final float PASSENGER_RELATIVE_MAX_DETOUR = 1.0f;
-	private final Integer CAR_TO_TRANSIT_SLACK = 10 * 60; // [seconds]
-	
+	private static final float PASSENGER_RELATIVE_MAX_DETOUR = 1.0f;
+	private static final Integer CAR_TO_TRANSIT_SLACK = 10 * 60; // [seconds]
+	private static final int MAX_RIDESHARES = 5;	
 	@Inject
     private Logger log;
 
@@ -114,14 +115,14 @@ public class PlannerManager {
     	
     	LocalDateTime startOfDay = startldt.toLocalDate().atStartOfDay();
     	LocalDateTime endOfDay = endldt.toLocalDate().atStartOfDay().plusDays(1);
-    	List<Ride> rides = rideManager.search(fromPlace, toPlace,  startOfDay, endOfDay, nrSeats, 10, 0);
+    	PagedResult<Ride> rides = rideManager.search(fromPlace, toPlace,  startOfDay, endOfDay, nrSeats, MAX_RIDESHARES, 0);
     	// These are potential candidates. Now try to determine the complete route, including the intermediate places for pickup and dropoff
     	// The passenger is only involved in some (one) of the legs: the pickup or the drop-off. We assume the car is for the first or last mile.
     	// What if the pickup point and the driver's departure point are the same? A test revealed that we get an error TOO_CLOSE. Silly.
     	// So... Add intermediatePlaces only if far enough away. How far? More than 10 meter, let's take 20 meter.
     	
     	List<Itinerary> itineraries = new ArrayList<>();
-    	for (Ride ride : rides) {
+    	for (Ride ride : rides.getData()) {
     		if (log.isDebugEnabled()) {
     			log.debug("Ride option: " + ride.toString());
     		}

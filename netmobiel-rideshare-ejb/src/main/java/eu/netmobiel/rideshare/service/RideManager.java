@@ -20,6 +20,7 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
 import eu.netmobiel.commons.util.Logging;
@@ -43,6 +44,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 @Stateless
 @Logging
 public class RideManager {
+	public static final Integer MAX_RESULTS = 10; 
 	public static final String AGENCY_NAME = "NetMobiel Rideshare Service";
 	public static final String AGENCY_ID = "NB:RS";
 	
@@ -117,8 +119,7 @@ public class RideManager {
      * @return A list of rides owned by the calling user.
      * @throws BadRequestException 
      */
-    public List<Ride> listRides(Long driverId, LocalDate since, LocalDate until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
-    	List<Ride> rides = Collections.emptyList();
+    public PagedResult<Ride> listRides(Long driverId, LocalDate since, LocalDate until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
     	if (since == null) {
     		since = LocalDate.now();
     	}
@@ -134,6 +135,12 @@ public class RideManager {
     	if (offset != null && offset < 0) {
     		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
     	}
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
     	User driver = null;
     	if (driverId != null) {
     		driver = userDao.find(driverId)
@@ -141,32 +148,42 @@ public class RideManager {
     	} else {
     		driver = userManager.findCallingUser();
     	}
+    	List<Ride> results = Collections.emptyList();
+        Long totalCount = 0L;
     	if (driver != null && driver.getId() != null) {
-    		List<Long> rideIds = rideDao.findByDriver(driver, since, until, deletedToo, maxResults, offset);
-    		if (rideIds.size() > 0) {
-    			rides = rideDao.fetch(rideIds, Ride.BOOKINGS_ENTITY_GRAPH);
-    		}
+    		PagedResult<Long> prs = rideDao.findByDriver(driver, since, until, deletedToo, 0, 0);
+    		totalCount = prs.getTotalCount();
+        	if (totalCount > 0 && maxResults > 0) {
+        		// Get the actual data
+        		PagedResult<Long> rideIds = rideDao.findByDriver(driver, since, until, deletedToo, maxResults, offset);
+        		if (rideIds.getData().size() > 0) {
+        			results = rideDao.fetch(rideIds.getData(), Ride.BOOKINGS_ENTITY_GRAPH);
+        		}
+        	}
     	}
-    	return rides;
-    	
+    	return new PagedResult<Ride>(results, maxResults, offset, totalCount);
     }
     
-    public List<Ride> search(GeoLocation fromPlace, GeoLocation toPlace, LocalDateTime fromDate, LocalDateTime toDate, Integer nrSeats, Integer maxResults, Integer offset) {
+    public PagedResult<Ride> search(GeoLocation fromPlace, GeoLocation toPlace, LocalDateTime fromDate, LocalDateTime toDate, Integer nrSeats, Integer maxResults, Integer offset) {
     	if (nrSeats == null) {
     		nrSeats = 1;
     	}
     	if (maxResults == null) {
-    		maxResults = 10;
+    		maxResults = MAX_RESULTS;
     	}
     	if (offset == null) {
     		offset = 0;
     	}
-    	List<Long> rideIds = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, fromDate, toDate, nrSeats, maxResults, offset);
-    	List<Ride> rides = new ArrayList<>();
-    	if (! rideIds.isEmpty()) {
-    		rides.addAll(rideDao.fetch(rideIds, Ride.SEARCH_RIDES_ENTITY_GRAPH));
+    	List<Ride> results = Collections.emptyList();
+        PagedResult<Long> prs = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, fromDate, toDate, nrSeats, 0, 0);
+        Long totalCount = prs.getTotalCount();
+    	if (totalCount > 0 && maxResults > 0) {
+    		PagedResult<Long> rideIds = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, fromDate, toDate, nrSeats, maxResults, offset);
+        	if (! rideIds.getData().isEmpty()) {
+        		results = rideDao.fetch(rideIds.getData(), Ride.SEARCH_RIDES_ENTITY_GRAPH);
+        	}
     	}
-    	return rides;
+    	return new PagedResult<Ride>(results, maxResults, offset, totalCount);
     }
  
     private void validateCreateUpdateRide(Ride ride)  throws CreateException {
