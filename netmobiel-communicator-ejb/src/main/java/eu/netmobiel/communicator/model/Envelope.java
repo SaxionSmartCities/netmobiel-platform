@@ -6,7 +6,6 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 import javax.enterprise.inject.Vetoed;
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -61,7 +60,7 @@ public class Envelope implements Serializable {
     @Transient
     private String envelopeRef;
 
-    @ManyToOne(cascade = { CascadeType.PERSIST } )
+    @ManyToOne
 	@JoinColumn(name = "message", nullable = false, foreignKey = @ForeignKey(name = "envelope_message_fk"))
     private Message message;
 

@@ -24,19 +24,14 @@ public abstract class MessageMapper {
 
 	public abstract eu.netmobiel.communicator.api.model.User map(User source);
 	public abstract User map(eu.netmobiel.communicator.api.model.User source);
+
+	public abstract eu.netmobiel.communicator.api.model.Envelope map(Envelope source);
 	
 	// Domain Envelope --> API Message 
-	@Mapping(target = "deliveryMode", source = "message.deliveryMode")
-	@Mapping(target = "body", source = "message.body")
-	@Mapping(target = "context", source = "message.context")
-	@Mapping(target = "creationTime", source = "message.creationTime")
-	@Mapping(target = "recipients", ignore = true)
-	@Mapping(target = "sender", source = "message.sender")
-	@Mapping(target = "subject", source = "message.subject")
-	public abstract eu.netmobiel.communicator.api.model.Message map(Envelope source);
+	public abstract eu.netmobiel.communicator.api.model.Message map(Message source);
 
 	
-	public abstract eu.netmobiel.communicator.api.model.Page map(PagedResult<Envelope> source);
+	public abstract eu.netmobiel.communicator.api.model.Page map(PagedResult<Message> source);
 
 	@Mapping(target = "id", ignore = true)
 	public abstract Message map(eu.netmobiel.communicator.api.model.Message source);

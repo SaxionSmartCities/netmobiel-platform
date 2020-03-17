@@ -2,7 +2,6 @@ package eu.netmobiel.rideshare.api.resource;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -15,8 +14,7 @@ import javax.ws.rs.core.Response.Status;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.communicator.api.MessagesApi;
-import eu.netmobiel.communicator.api.model.Message;
-import eu.netmobiel.communicator.model.Envelope;
+import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.rideshare.api.mapping.MessageMapper;
 
@@ -30,11 +28,10 @@ public class MessagesResource implements MessagesApi {
     private PublisherService publisherService;
 
     @Override
-	public Response sendMessage(Message msg) {
+	public Response sendMessage(eu.netmobiel.communicator.api.model.Message msg) {
     	Response rsp = null;
 		try {
-			publisherService.publish(mapper.map(msg), 
-					msg.getRecipients().stream().map(u -> mapper.map(u)).collect(Collectors.toList()));
+			publisherService.publish(mapper.map(msg));
 			rsp = Response.status(Status.ACCEPTED).build();
 		} catch (CreateException e) {
 			throw new InternalServerErrorException(e);
@@ -48,14 +45,14 @@ public class MessagesResource implements MessagesApi {
 	public Response listMessages(Boolean groupByConversation, String participant, String context, 
 			OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
 		Response rsp = null;
-		PagedResult<Envelope> result = null;
+		PagedResult<Message> result = null;
 		if (groupByConversation != null && groupByConversation) {
 			if (context != null || since != null || until != null) {
 				throw new BadRequestException("Parameters 'context', 'since' or 'until' are not allowed when listing conversations"); 
 			}
 			result = publisherService.listConversations(participant, maxResults, offset); 
 		} else {
-			result = publisherService.listEnvelopes(participant, context, 
+			result = publisherService.listMessages(participant, context, 
 							since != null ? since.toInstant() : null, 
 							until != null ? until.toInstant() : null, 
 							maxResults, offset); 

@@ -3,32 +3,53 @@ package eu.netmobiel.communicator.model;
 import java.io.Serializable;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.List;
 
 import javax.enterprise.inject.Vetoed;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedSubgraph;
+import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
-@NamedEntityGraph()
+@NamedEntityGraph(
+		name = Message.LIST_MY_MESSAGES_ENTITY_GRAPH, 
+		attributeNodes = { 
+				@NamedAttributeNode(value = "sender"),		
+				@NamedAttributeNode(value = "envelopes", subgraph = "envelope-details")		
+		}, subgraphs = {
+				@NamedSubgraph(
+						name = "envelope-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "recipient"),
+								@NamedAttributeNode(value = "ackTime")
+						}
+					)
+				}
+	)
 @Entity
 @Table(name = "message")
 @Vetoed
 @SequenceGenerator(name = "message_sg", sequenceName = "message_id_seq", allocationSize = 1, initialValue = 50)
 public class Message implements Serializable {
 
-	private static final long serialVersionUID = 1045941720040157428L;
+	private static final long serialVersionUID = 5034396677188994964L;
 	public static final String URN_PREFIX = CommunicatorUrnHelper.createUrnPrefix(Message.class);
+	public static final String LIST_MY_MESSAGES_ENTITY_GRAPH = "list-my-messages-graph";
 	public static final int MAX_MESSAGE_SIZE = 1024;
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "message_sg")
@@ -71,6 +92,12 @@ public class Message implements Serializable {
     @ManyToOne
     @JoinColumn(name = "sender", nullable = false, foreignKey = @ForeignKey(name = "message_sender_fk"))
     private User sender;
+
+    /**
+     * The recipients of the message.
+     */
+	@OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	private List<Envelope> envelopes;
 
     public Long getId() {
 		return id;
@@ -127,6 +154,14 @@ public class Message implements Serializable {
 
 	public void setSender(User sender) {
 		this.sender = sender;
+	}
+
+	public List<Envelope> getEnvelopes() {
+		return envelopes;
+	}
+
+	public void setEnvelopes(List<Envelope> envelopes) {
+		this.envelopes = envelopes;
 	}
 
 	@Override

@@ -10,6 +10,7 @@ import javax.ejb.EJB;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
+import javax.persistence.NoResultException;
 
 import org.slf4j.Logger;
 
@@ -23,6 +24,7 @@ import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.model.User;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
+import eu.netmobiel.communicator.repository.MessageDao;
 
 /**
  * Bean class for Publisher enterprise bean. 
@@ -49,6 +51,9 @@ public class PublisherService {
     @Inject
     private EnvelopeDao envelopeDao;
     
+    @Inject
+    private MessageDao messageDao;
+    
     public PublisherService() {
     }
 
@@ -60,7 +65,7 @@ public class PublisherService {
      * @param msg the message to send
      * @param recipients the addressees of the message
      */
-    public void publish(Message msg, List<User> recipients) throws CreateException, BadRequestException {
+    public void publish(Message msg) throws CreateException, BadRequestException {
     	if (msg.getContext() == null) {
     		throw new BadRequestException("Constraint violation: 'context' must be set.");
     	}
@@ -70,24 +75,26 @@ public class PublisherService {
     	if (msg.getDeliveryMode() == null) {
     		throw new BadRequestException("Constraint violation: 'deliveryMode' must be set.");
     	}
-    	if (recipients == null || recipients.isEmpty()) {
-    		throw new BadRequestException("Constraint violation: 'recipients' must be set.");
+    	if (msg.getEnvelopes() == null || msg.getEnvelopes().isEmpty()) {
+    		throw new BadRequestException("Constraint violation: 'envelopes' must be set and contain at least one recipient.");
     	}
-    	// The sender is alwyas the calling user (for now)
+    	// The sender is always the calling user (for now)
     	msg.setCreationTime(Instant.now());
     	msg.setSender(userManager.registerCallingUser());
     	if (logger.isDebugEnabled()) {
-            logger.debug(String.format("Send message from %s to %s: %s %s - %s", msg.getSender(), recipients, msg.getContext(), msg.getSubject(), msg.getBody()));
+            logger.debug(String.format("Send message from %s to %s: %s %s - %s", msg.getSender(), 
+            		msg.getEnvelopes().stream().map(env -> env.getRecipient().getManagedIdentity()).collect(Collectors.joining(", ")), 
+            		msg.getContext(), msg.getSubject(), msg.getBody()));
     	}
     	// Assure all recipients are present in the database
+    	List<User> recipients = msg.getEnvelopes().stream().map(env -> env.getRecipient()).collect(Collectors.toList());
     	List<User> dbrecipients = recipients.stream().map(rcp -> userManager.register(rcp)).collect(Collectors.toList());
 		if (msg.getDeliveryMode() == DeliveryMode.MESSAGE || msg.getDeliveryMode() == DeliveryMode.ALL) {
 			List<Envelope> envelopes = dbrecipients.stream()
 					.map(rpc -> new Envelope(msg, rpc))
 					.collect(Collectors.toList());
-			// Always add the sender as recipient too, but acknowledge the message for the sender immediately
-			envelopes.add(new Envelope(msg, userManager.register(msg.getSender()), Instant.now()));
-			envelopeDao.saveAll(envelopes);
+			msg.setEnvelopes(envelopes);
+			messageDao.save(msg);
 		}
 		if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
 //			sendNotification(msg, recipients);
@@ -114,57 +121,61 @@ public class PublisherService {
 //	    	
 //    }
     
-	public PagedResult<Envelope> listEnvelopes(String recipient, String context, Instant since, Instant until, Integer maxResults, Integer offset) {
-    	String effectiveRecipient = recipient != null ? recipient : sessionContext.getCallerPrincipal().getName();
+	public PagedResult<Message> listMessages(String participant, String context, Instant since, Instant until, Integer maxResults, Integer offset) {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
     	// For now don't do conditional things. First always total count, then data if data is requested. 
     	// Get the total count
+    	String effectiveParticipant = participant != null ? participant : sessionContext.getCallerPrincipal().getName();
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
         if (offset == null) {
         	offset = 0;
         }
-    	PagedResult<Long> prs = envelopeDao.listEnvelopes(effectiveRecipient, context, since, until, 0, offset);
-    	List<Envelope> results = null;
+    	PagedResult<Long> prs = messageDao.listMessages(effectiveParticipant, context, since, until, 0, offset);
+    	List<Message> results = null;
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
-    		PagedResult<Long> envIds = envelopeDao.listEnvelopes(effectiveRecipient, context, since, until, maxResults, offset);
-    		results = envelopeDao.fetch(envIds.getData(), Envelope.LIST_MY_ENVELOPES_ENTITY_GRAPH);
+    		PagedResult<Long> mids = messageDao.listMessages(effectiveParticipant, context, since, until, maxResults, offset);
+    		results = messageDao.fetch(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH);
     	} else {
     		results = Collections.emptyList();
     	}
-    	return new PagedResult<Envelope>(results, maxResults, offset, prs.getTotalCount());
+    	return new PagedResult<Message>(results, maxResults, offset, prs.getTotalCount());
 	}
 
-    public PagedResult<Envelope> listConversations(String recipient, Integer maxResults, Integer offset) {
+    public PagedResult<Message> listConversations(String participant, Integer maxResults, Integer offset) {
+    	String effectiveParticipant = participant != null ? participant : sessionContext.getCallerPrincipal().getName();
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
         if (offset == null) {
         	offset = 0;
         }
-    	String effectiveRecipient = recipient != null ? recipient : sessionContext.getCallerPrincipal().getName();
     	// Get the total count
-    	PagedResult<Long> prs = envelopeDao.listConversations(effectiveRecipient, 0, offset);
-    	List<Envelope> results = null;
+    	PagedResult<Long> prs = messageDao.listConversations(effectiveParticipant, 0, offset);
+    	List<Message> results = null;
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
-        	PagedResult<Long> envIds = envelopeDao.listConversations(effectiveRecipient, maxResults, offset);
-        	results = envelopeDao.fetch(envIds.getData(), Envelope.LIST_MY_ENVELOPES_ENTITY_GRAPH);
+        	PagedResult<Long> mids = messageDao.listConversations(effectiveParticipant, maxResults, offset);
+        	results = messageDao.fetch(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH);
     	} else {
     		results = Collections.emptyList();
     	}
-    	return new PagedResult<Envelope>(results, maxResults, offset, prs.getTotalCount());
+    	return new PagedResult<Message>(results, maxResults, offset, prs.getTotalCount());
     }
     
-    public void updateAcknowledgment(Long envelopeId, Instant ackTime) throws NotFoundException {
-    	Envelope envdb = envelopeDao.find(envelopeId)
-    			.orElseThrow(NotFoundException::new);
-    	userManager.checkOwnership(envdb.getRecipient(), Envelope.class.getSimpleName());
-    	envdb.setAckTime(ackTime);
-    	envelopeDao.merge(envdb);
+    public void updateAcknowledgment(Long messaged, Instant ackTime) throws NotFoundException {
+    	String caller = sessionContext.getCallerPrincipal().getName();
+    	try {
+	    	Envelope envdb = envelopeDao.findByMessageAndRecipient(messaged, caller);
+	    	userManager.checkOwnership(envdb.getRecipient(), Envelope.class.getSimpleName());
+	    	envdb.setAckTime(ackTime);
+	    	envelopeDao.merge(envdb);
+    	} catch (NoResultException ex) {
+    		throw new NotFoundException (String.format("No such recipient %s for message %d", caller, messaged));	
+    	}
     }
 
 }
