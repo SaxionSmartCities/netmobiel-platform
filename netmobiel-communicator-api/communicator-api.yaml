@@ -164,7 +164,7 @@ components:
     Message:
       description: A text message exchanged between one party and one or more others.
       required:
-      - recipients
+      - envelopes
       - deliveryMode
       - context
       type: object
@@ -195,25 +195,10 @@ components:
           description: The address of the sender. The system will assign the caller
             as the sender. If the caller has elevated privilege, a sender can set
             by the caller. The sender is an Keycloak managed identity.
-        recipients:
-          description: |-
-            The list of recipients that should receive the message or have received the message.
-
-            This field will only be present on read when a system account retrieves messages. When sending a message the field is requried.
-
-            The recipient's domain is the Keycloak managed identity.
-          type: array
-          items:
-            $ref: '#/components/schemas/User'
         creationTime:
           format: date-time
           description: Read-only. The date and time the message was sent. This field
             is set by the message service.
-          type: string
-        ackTime:
-          format: date-time
-          description: Read-only. The timestamp conforming the reading of the message.
-            Only set in case of a message, thus not in case of a notification.
           type: string
         subject:
           description: Human-readable context, used for displaying the subject of
@@ -223,6 +208,14 @@ components:
           description: Read-only. A unique identification for the message in combination
             with the recipient, i.e. the envelope.
           type: integer
+        envelopes:
+          description: |-
+            The list of envelopes, each containing one recipient that should receive the message or have received the message.
+
+            The recipient's domain is the Keycloak managed identity.
+          type: array
+          items:
+            $ref: '#/components/schemas/User'
       example:
         body: Kunnen we iets later vertrekken?
         context: urn:nb:pl:leg:23
@@ -231,10 +224,11 @@ components:
           managedIdentity: 71f69345-42e1-4d17-a7c4-7c47178edcd7
           familyName: Normalverbraucher
           givenName: Otto
-        recipients:
-        - managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
-          familyName: Netmobiel
-          givenName: Carla1
+        envelopes:
+        - recipient:
+            managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+            familyName: Netmobiel
+            givenName: Carla1
         creationTime: 2020-02-27T15:30+01:00
         subject: Meerijden Zieuwert - Doetinchem
     User:
@@ -296,6 +290,35 @@ components:
         start: 32
         count: 16
         data: []
+    Envelope:
+      title: Root Type for Envelope
+      description: "The envelope is the header of the message. It contains the recipient\
+        \ and the \ndate and time that the message was read by the recipient."
+      required:
+      - recipient
+      type: object
+      properties:
+        ackTime:
+          format: date-time
+          description: Read-only. The timestamp conforming the reading of the message.
+            Only set in case of a message, thus not in case of a notification.
+          type: string
+        recipient:
+          $ref: '#/components/schemas/User'
+          description: A receiver of the message.
+          properties:
+            managedIndentity:
+              type: string
+            givenName:
+              type: string
+            familiyName:
+              type: string
+      example:
+        ackTime: 2020-03-17T08:45:00Z
+        recipient:
+          managedIndentity: 1234-5678
+          givenName: Jaap
+          familiyName: Reitsma
   responses:
     InternalServerError:
       content:
