@@ -215,7 +215,7 @@ components:
             The recipient's domain is the Keycloak managed identity.
           type: array
           items:
-            $ref: '#/components/schemas/User'
+            $ref: '#/components/schemas/Envelope'
       example:
         body: Kunnen we iets later vertrekken?
         context: urn:nb:pl:leg:23
