@@ -125,7 +125,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
     			"(r.deleted is null or r.deleted = false)";
     	TypedQuery<Long> tq = null;
     	if (maxResults == 0) {
-    		// Only request the possible numbe rof results
+    		// Only request the possible number of results
     		tq = em.createQuery("select count(r.id) " + baseQuery, Long.class);
     	} else {
     		// Get the data IDs
