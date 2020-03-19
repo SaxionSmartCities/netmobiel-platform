@@ -46,11 +46,11 @@ public class EllipseHelper extends GeometryHelper {
     	
     	// Calculate centroid of the ellipse
     	EligibleArea ea = new EligibleArea();
-    	UTM f1_utm = EllipseHelper.polar2Utm(f1.getCoordinate());
-    	UTM f2_utm = EllipseHelper.polar2Utm(f2.getCoordinate());
+    	UTM f1_utm = polar2Utm(f1.getCoordinate());
+    	UTM f2_utm = polar2Utm(f2.getCoordinate());
     	Coordinate c1_utm = utm2Coordinate(f1_utm);
     	Coordinate c2_utm = utm2Coordinate(f2_utm);
-    	LineString line = EllipseHelper.createLine(c1_utm, c2_utm);
+    	LineString line = createLine(c1_utm, c2_utm);
     	Point center = line.getCentroid();
 
     	
@@ -85,8 +85,36 @@ public class EllipseHelper extends GeometryHelper {
 		ea.carthesianBearing = getBearing(c1_utm, c2_utm);
 		return ea;
     }
-	
-	public static UTM polar2utm(double latitude, double longitude) {
+
+    /**
+     * Creates a circle. Could also be done with the ellipse, but as this circle is used in queries quite often, 
+     * we create a more efficient one.
+     * @param center The center of a circle in WGS-84 coordinates.
+     * @param radius The radius in meters.
+     * @return A polygon with 16 sides representing a constant distance on the flattened earth.
+     */
+    public static Polygon calculateCircle(Point center, Integer radius) {
+    	// In order to proper calculate the shape we have to switch to a different coordinate system: 
+    	// UTM (Universal Transverse Mercator) 
+    	// https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinate_system
+    	// In UTM we can work in meters and is the earth flat, at least is a small area.
+    	
+    	UTM center_utm = polar2Utm(center.getCoordinate());
+    	Coordinate center_utm_coord = utm2Coordinate(center_utm);
+		GeometricShapeFactory shapeFactory = new GeometricShapeFactory(geometryFactory);
+		shapeFactory.setNumPoints(16); // adjustable
+		shapeFactory.setCentre(center_utm_coord);
+		shapeFactory.setWidth(radius * 2);
+		shapeFactory.setHeight(radius * 2);
+		Polygon p = shapeFactory.createCircle();
+		Coordinate[] ucs = p.getCoordinates();
+		Coordinate[] pcs = Arrays.asList(ucs).stream()
+				.map(uc -> utm2Polar(uc, center_utm))
+				.toArray(Coordinate[]::new);
+		return geometryFactory.createPolygon(pcs);
+    }
+
+    public static UTM polar2utm(double latitude, double longitude) {
 		LatLong latlong = LatLong.valueOf(latitude, longitude, NonSI.DEGREE_ANGLE);
 		return UTM.latLongToUtm(latlong, ReferenceEllipsoid.WGS84);
 	}
@@ -116,8 +144,8 @@ public class EllipseHelper extends GeometryHelper {
 	}
 
 	public static double getBearing(Point polar1, Point polar2) {
-    	UTM utm1 = EllipseHelper.polar2Utm(polar1.getCoordinate());
-    	UTM utm2 = EllipseHelper.polar2Utm(polar2.getCoordinate());
+    	UTM utm1 = polar2Utm(polar1.getCoordinate());
+    	UTM utm2 = polar2Utm(polar2.getCoordinate());
 		return getBearing(utm2Coordinate(utm1), utm2Coordinate(utm2));
 	}
 

@@ -49,6 +49,16 @@ public class User implements BasicUser, Serializable {
     @Column(name = "family_name", length = 64)
 	private String familyName;
 	
+    public User() {
+    	
+    }
+    
+    public User(String identity, String givenName, String familyName) {
+    	this.managedIdentity = identity;
+    	this.givenName = givenName;
+    	this.familyName = familyName;
+    }
+    
 	public Long getId() {
 		return id;
 	}
