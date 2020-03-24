@@ -274,7 +274,7 @@ paths:
       operationId: createTrip
       summary: Create a Trip
       description: Creates a new instance of a `Trip`.
-  /shoutouts:
+  /shout-outs:
     summary: Path used to manage the list of trips in planning state thate have unfulfilled
       legs.
     description: The REST endpoint/path used to list and `Trip` entities that are
