@@ -335,8 +335,8 @@ paths:
             entities.
         "400":
           $ref: '#/components/responses/BadRequest'
-      operationId: listShoutouts
-      summary: List the shoutouts
+      operationId: listShoutOuts
+      summary: List the shout-outs.
       description: List the trips that are in planning state and are eligible for
         a shared ride.
 components:
