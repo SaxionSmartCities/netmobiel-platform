@@ -384,7 +384,7 @@ paths:
           type: string
         in: query
       - examples:
-          Highlight end with span:
+          Highlight-end:
             value: </span>
         name: hls
         description: Highlight start text. This text fragment is inserted before each
@@ -394,7 +394,7 @@ paths:
           type: string
         in: query
       - examples:
-          Highlighted with span:
+          Highlight-start:
             value: <span class="search-hit">
         name: hle
         description: Highlight end text. This text fragment is appended after each
