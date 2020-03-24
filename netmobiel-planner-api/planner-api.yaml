@@ -199,6 +199,14 @@ paths:
       and create tasks, respectively.
     get:
       parameters:
+      - name: user
+        description: |-
+          the user id owning the trips. This parameter needs admin powers. The format of the user id is the database id of planner user, or an urn reference. Two formats are allowed:
+          urn:nb:pl:user:{primary-key}
+          urn:nb:kc:user:{managed-identity}
+        schema:
+          type: string
+        in: query
       - examples:
           Format:
             value: 2019-11-30T12:00:00+01:00
@@ -266,6 +274,64 @@ paths:
       operationId: createTrip
       summary: Create a Trip
       description: Creates a new instance of a `Trip`.
+  /shoutouts:
+    summary: Path used to manage the list of trips in planning state thate have unfulfilled
+      legs.
+    description: The REST endpoint/path used to list and `Trip` entities that are
+      in planning state. Those trips are eligible for reconciliation with a shared
+      ride. This path contains a `GET` operation to perform the list task.
+    get:
+      parameters:
+      - examples:
+          Station-Borne:
+            value: Station Borne::52.298417,6.749157
+        name: location
+        description: The center of the circle to search planning trips, comprising
+          of a latitude and longitude pair in degrees according WGS84. For logging
+          purposes you may prepend the coordinates with a place label followed by
+          two colons.
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: depArrRadius
+        description: the small circle containing at least departure or arrival location
+          of the traveller. If omitted a radius of 10 kilometer is used.
+        schema:
+          type: integer
+        in: query
+        required: false
+      - name: travelRadius
+        description: The larger circle containing both departure and arrival location
+          of the traveller. If omitted the `depArrRadius` is used.
+        schema:
+          type: integer
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a page with an array of `Trip`
+            entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: listShoutouts
+      summary: List the shoutouts
+      description: List the trips that are in planning state and are eligible for
+        a shared ride.
 components:
   schemas:
     MaintenanceStatus:
