@@ -15,6 +15,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.planner.model.Leg;
@@ -37,7 +38,6 @@ public class TripManager {
 
     @Inject
     private TripDao tripDao;
-    
     @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
     private UserManager userManager;
 
@@ -91,6 +91,27 @@ public class TripManager {
     	return listTrips(userManager.findCallingUser(), since, until, deletedToo, maxResults, offset);
     }
     
+    /**
+     * List all trips owned by the specified. Soft deleted trips are omitted.
+     * @return A list of trips owned by the specified user.
+     */
+    public PagedResult<Trip> listTrips(String userRef, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
+    	User traveller = null;
+    	if (userRef == null) {
+    		traveller = userManager.findCallingUser();
+    	} else {
+    		traveller = userManager.resolveUrn(userRef).orElse(null);
+    	}
+    	PagedResult<Trip> results = null;
+    	if (traveller != null && traveller.getId() != null) {
+        	// Only retrieve if a user exists in the trip service
+    		results = listTrips(traveller, since, until, deletedToo, maxResults, offset);
+    	} else {
+    		results = PagedResult.<Trip>empty();
+    	}
+    	return results;
+    }
+
     private void validateCreateUpdateTrip(Trip trip)  throws BadRequestException {
     	if (trip.getDepartureTime() == null) {
     		throw new BadRequestException("Constraint violation: A new trip must have a 'departureTime'");
@@ -228,4 +249,39 @@ public class TripManager {
 //			leg.setState(TripState.SCHEDULED);
 //    	}
 //    }
+
+    /**
+     * Lists a page of trips in planning state (of anyone) that have a departure or arrival location within a circle with radius 
+     * <code>arrdepRadius</code> meter around the <code>location</code> and where both departure and arrival location are within
+     * a circle with radius <code>travelRadius</code> meter. 
+     * @param location the reference location of the driver asking for the trips.
+     * @param startTime the time from where to start the search. 
+     * @param depArrRadius the small circle containing at least departure or arrival location of the traveller.
+     * @param travelRadius the larger circle containing both departure and arrival location of the traveller.
+     * @param maxResults For paging: maximum results.
+     * @param offset For paging: the offset in the results to return.
+     * @return A list of trips matching the parameters.
+     */
+    public PagedResult<Trip> listShoutOuts(GeoLocation location, Instant startTime, Integer depArrRadius, 
+    		Integer travelRadius, Integer maxResults, Integer offset) {
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+        List<Trip> results = Collections.emptyList();
+        Long totalCount = 0L;
+   		PagedResult<Long> prs = tripDao.findShoutOutTrips(location, startTime, depArrRadius, travelRadius, 0, 0);
+		totalCount = prs.getTotalCount();
+    	if (totalCount > 0 && maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> tripIds = tripDao.findShoutOutTrips(location, startTime, depArrRadius, travelRadius, maxResults, offset);
+    		if (tripIds.getData().size() > 0) {
+    			results = tripDao.fetch(tripIds.getData(), Trip.LIST_TRIP_DETAIL_ENTITY_GRAPH);
+    		}
+    	}
+    	return new PagedResult<Trip>(results, maxResults, offset, totalCount);
+    }
+
 }

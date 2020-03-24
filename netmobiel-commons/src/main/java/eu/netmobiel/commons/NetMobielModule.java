@@ -1,9 +1,11 @@
 package eu.netmobiel.commons;
 
 public enum NetMobielModule {
-	RIDESHARE("rs"),
+	BANKER("bn"),
+	COMMUNICATOR("cm"),
+	KEYCLOAK("kc"),
 	PLANNER("pn"),
-	COMMUNICATOR("cm");
+	RIDESHARE("rs");
 
 	private String code;
 	 

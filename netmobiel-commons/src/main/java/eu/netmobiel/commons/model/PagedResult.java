@@ -1,5 +1,6 @@
 package eu.netmobiel.commons.model;
 
+import java.util.Collections;
 import java.util.List;
 
 public class PagedResult<T> {
@@ -20,6 +21,10 @@ public class PagedResult<T> {
 	 */
 	private int offset;
 	
+	public PagedResult() {
+		
+	}
+	
 	public PagedResult(List<T> someData, int aResultsPerPage, int anOffset, Long aTotalCount) {
 		this.data = someData;
 		this.resultsPerPage = aResultsPerPage;
@@ -27,6 +32,10 @@ public class PagedResult<T> {
 		this.totalCount = aTotalCount;
 	}
 
+	public static <T> PagedResult<T> empty() {
+		return new PagedResult<T>(Collections.emptyList(), 0, 0, 0L);
+	}
+	
 	public List<T> getData() {
 		return data;
 	}

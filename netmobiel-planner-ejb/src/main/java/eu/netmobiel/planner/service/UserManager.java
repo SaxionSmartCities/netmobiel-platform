@@ -2,6 +2,7 @@ package eu.netmobiel.planner.service;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Resource;
 import javax.annotation.security.PermitAll;
@@ -16,9 +17,12 @@ import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.representations.AccessToken;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.UserDao;
+import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @Stateless(name = "plannerUserManager")
 @Logging
@@ -119,6 +123,24 @@ public class UserManager {
     			.orElseThrow(ObjectNotFoundException::new);
     }
     
+    public Optional<User> resolveUrn(String userRef) {
+    	User user = null;
+    	if (UrnHelper.isUrn(userRef)) {
+        	NetMobielModule module = NetMobielModule.valueOf(UrnHelper.getService(userRef));
+        	if (module == NetMobielModule.PLANNER) {
+    			Long did = PlannerUrnHelper.getId(User.URN_PREFIX, userRef);
+        		user = userDao.find(did).orElse(null);
+        	} else if (module == NetMobielModule.KEYCLOAK) {
+        		String managedIdentity = UrnHelper.getSuffix(userRef);
+        		user = userDao.findByManagedIdentity(managedIdentity).orElseGet(() -> new User(managedIdentity, null, null));
+        	}
+    	} else {
+			Long did = PlannerUrnHelper.getId(User.URN_PREFIX, userRef);
+    		user = userDao.find(did).orElse(null);
+    	}
+    	return Optional.ofNullable(user);
+    }
+
     public void throwRuntimeException() {
     	throw new RuntimeException("A bug in a EJB!");
     }

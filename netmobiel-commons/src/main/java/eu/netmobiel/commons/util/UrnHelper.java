@@ -33,4 +33,16 @@ public class UrnHelper {
 	public static boolean isUrn(String value) {
 		return value != null && value.startsWith("urn:"); 
 	}
+	
+	public static String getService(String urn) {
+		if (!isUrn(urn)) {
+			throw new IllegalArgumentException("Not an urn: " + urn);
+		}
+		String[] parts = urn.split(":", 5);
+		if (! "nb".equals(parts[1])) {
+			throw new IllegalArgumentException("Not a NetMobiel urn: " + urn);
+		}
+		return parts[2];
+	}
+
 }

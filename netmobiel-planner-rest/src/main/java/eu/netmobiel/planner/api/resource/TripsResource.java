@@ -82,10 +82,10 @@ public class TripsResource implements TripsApi {
 	}
 
 	@Override
-	public Response getTrips(OffsetDateTime since, OffsetDateTime until, Boolean deletedToo, Integer maxResults, Integer offset) {
+	public Response getTrips(String userRef, OffsetDateTime since, OffsetDateTime until, Boolean deletedToo, Integer maxResults, Integer offset) {
     	Response rsp = null;
 		try {
-			PagedResult<Trip> result = tripManager.listMyTrips(since != null ? since.toInstant() : Instant.now(), 
+			PagedResult<Trip> result = tripManager.listTrips(userRef, since != null ? since.toInstant() : Instant.now(), 
 					until != null ? until.toInstant() : null, deletedToo, maxResults, offset);
 			rsp = Response.ok(pageMapper.mapMine(result)).build();
 		} catch (ApplicationException e) {

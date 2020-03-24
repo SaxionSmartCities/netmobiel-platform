@@ -18,7 +18,6 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
-import org.hibernate.spatial.criterion.SpatialRestrictions;
 import org.slf4j.Logger;
 
 import com.vividsolutions.jts.geom.Polygon;
@@ -96,6 +95,7 @@ public class TripDao extends AbstractDao<Trip, Long> {
      * <code>arrdepRadius</code> meter around the <code>location</code> and where both departure and arrival location are within
      * a circle with radius <code>travelRadius</code> meter. Consider only trips with a departure time beyond now.
      * @param location the reference location of the driver asking for the trips.
+     * @param startTime the time from where to start the search. 
      * @param depArrRadius the small circle containing at least departure or arrival location of the traveller.
      * @param travelRadius the larger circle containing both departure and arrival location of the traveller.
      * @param maxResults For paging: maximum results.
