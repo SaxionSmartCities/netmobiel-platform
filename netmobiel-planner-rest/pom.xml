@@ -56,6 +56,12 @@
 		</dependency>
 		<dependency>
 		    <groupId>${project.groupId}</groupId>
+		    <artifactId>netmobiel-here-client</artifactId>
+		    <version>${project.version}</version>
+		    <scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>${project.groupId}</groupId>
 		    <artifactId>netmobiel-planner-api</artifactId>
 		    <version>${project.version}</version>
 		    <scope>provided</scope>
