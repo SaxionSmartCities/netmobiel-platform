@@ -374,13 +374,12 @@ paths:
         required: false
       - name: resultTypes
         description: The result types to search for. Default is place,address. An
-          empty value removes the filter.
+          empty value removes the filter and returns all types of suggestions.
         schema:
           enum:
           - address
           - place
-          - category
-          - chain
+          - query
           type: string
         in: query
       - examples:
@@ -1075,6 +1074,9 @@ components:
           description: 'The distance in meter from the reference position specified
             in the query to the suggestion. '
           type: integer
+        completion:
+          description: ' The suggested query completion (in case of result type ''query'').'
+          type: string
       example:
         title: Enschede Airport Twente
         highlightedTitle: <span class="search-hit">Ens</span>chede Airport Twente
