@@ -26,14 +26,14 @@ public class Ledger {
 	/**
 	 * Start of the accounting period inclusive.
 	 */
-	@Column(name = "start", nullable = false)
-	private Instant start;
+	@Column(name = "start_period", nullable = false)
+	private Instant startPeriod;
 
 	/**
 	 * Start of the accounting period exclusive.
 	 */
-	@Column(name = "end", nullable = false)
-	private Instant end;
+	@Column(name = "end_period", nullable = false)
+	private Instant endPeriod;
 	
 	/**
 	 * Name of the period.

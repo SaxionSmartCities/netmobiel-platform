@@ -47,9 +47,13 @@ public class AccountingTransaction {
 	@Column(name = "description", nullable = false)
     private String description;
 
-    private Instant when;
+	@Column(name = "transaction_time", nullable = false)
+    private Instant transactionTime;
 
-    @ManyToOne
+	@Column(name = "accounting_time", nullable = false)
+    private Instant accountingTime;
+
+	@ManyToOne
     private Ledger ledger;
     
     @OneToMany(mappedBy = "transaction")
@@ -59,10 +63,11 @@ public class AccountingTransaction {
         this.accountingEntries = new ArrayList<>();
     }
     
-    public AccountingTransaction(String description, OffsetDateTime someTime) {
+    public AccountingTransaction(String description, OffsetDateTime accountingTime) {
     	this();
     	this.description = description;
-        this.when = someTime.toInstant();
+        this.accountingTime = accountingTime.toInstant();
+        this.transactionTime = Instant.now();
     }
 
     public void addEntry(Account account, int amount) {
@@ -98,14 +103,6 @@ public class AccountingTransaction {
 
 	public void setDescription(String description) {
 		this.description = description;
-	}
-
-	public Instant getWhen() {
-		return when;
-	}
-
-	public void setWhen(Instant when) {
-		this.when = when;
 	}
 
 	public List<AccountingEntry> getAccountingEntries() {

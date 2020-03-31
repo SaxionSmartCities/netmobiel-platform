@@ -31,7 +31,7 @@ public class AccountingEntry {
     private Long id;
 
 	@NotNull
-	@ManyToOne()
+	@ManyToOne
 	@Column(name = "account", nullable = false, updatable = false)
     private Account account;
 
@@ -40,7 +40,7 @@ public class AccountingEntry {
     private int amount;
 
 	@NotNull
-	@ManyToOne()
+	@ManyToOne
 	@Column(name = "transaction", nullable = false, updatable = false)
     private AccountingTransaction transaction;
 	
