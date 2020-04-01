@@ -19,7 +19,7 @@ import eu.netmobiel.planner.service.PlannerManager;
 
 @ApplicationScoped
 public class SearchResource implements SearchApi {
-
+	private static final int DEFAULT_MAX_WALK_DISTANCE = 1000;
 	@Inject
     private Logger log;
  
@@ -44,17 +44,14 @@ public class SearchResource implements SearchApi {
     	if (from == null || (departureTime == null && arrivalTime == null) || to == null) {
     		throw new BadRequestException("Missing one or more mandatory parameters: from, to, departureTime or arrivalTime");
     	}
-    	TraverseMode[] domainModalities = null;
-    	if (modalities != null) {
-    		domainModalities = parseModalities(modalities);
+    	TraverseMode[] domainModalities = parseModalities(modalities);
+    	if (domainModalities == null) {
+    		domainModalities = new TraverseMode[] { TraverseMode.WALK, TraverseMode.RIDESHARE, TraverseMode.TRANSIT };
     	}
-    	
-    	if (maxWalkDistance != null) {
-    		if (maxWalkDistance < 0) {
-    			throw new BadRequestException("Constraint validation error: maxWalkDistance == null || maxWalkDistance >= 0");
-    		}
-    	} else {
-    		maxWalkDistance = 1000;
+    	if (maxWalkDistance == null) {
+    		maxWalkDistance = DEFAULT_MAX_WALK_DISTANCE;
+    	} else if (maxWalkDistance < 0) {
+			throw new BadRequestException("Constraint validation error: maxWalkDistance == null || maxWalkDistance >= 0");
     	}
     	if (nrSeats != null) {
     		if (nrSeats < 1) {
@@ -81,12 +78,17 @@ public class SearchResource implements SearchApi {
     }
     
     private TraverseMode[] parseModalities(String modalities) {
-    	if (modalities == null) {
-    		return null;
+    	TraverseMode[] traverseModes = null;
+    	if (modalities != null && modalities.trim().length() > 0) {
+        	try {
+    	    	String modes[] = modalities.split("[,\\s]+");
+    	    	traverseModes = Arrays.stream(modes)
+    	    			.map(m -> TraverseMode.valueOf(m))
+    	    			.toArray(TraverseMode[]::new);
+        	} catch (IllegalArgumentException ex) {
+        		throw new BadRequestException("Failed to parse modalities: " + modalities, ex);
+        	}
     	}
-    	String modes[] = modalities.split("[,\\s]+");
-    	return Arrays.stream(modes)
-    			.map(m -> TraverseMode.valueOf(m))
-    			.toArray(TraverseMode[]::new);
+    	return traverseModes;
     }
 }
