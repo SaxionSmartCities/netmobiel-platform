@@ -144,7 +144,7 @@ public class UserManager {
     public List<Car> listMyCars(Boolean deletedToo) {
     	List<Car> cars = Collections.emptyList();
     	User caller = findCallingUser();
-    	if (caller != null) {
+    	if (caller != null && caller.getId() != null) {
     		cars = carDao.findByDriver(caller, deletedToo);
     	}
     	return cars;

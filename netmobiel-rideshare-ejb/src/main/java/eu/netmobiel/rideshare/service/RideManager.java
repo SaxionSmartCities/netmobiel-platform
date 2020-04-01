@@ -150,6 +150,7 @@ public class RideManager {
     	}
     	List<Ride> results = Collections.emptyList();
         Long totalCount = 0L;
+        // Only if user exists locally
     	if (driver != null && driver.getId() != null) {
     		PagedResult<Long> prs = rideDao.findByDriver(driver, since, until, deletedToo, 0, 0);
     		totalCount = prs.getTotalCount();

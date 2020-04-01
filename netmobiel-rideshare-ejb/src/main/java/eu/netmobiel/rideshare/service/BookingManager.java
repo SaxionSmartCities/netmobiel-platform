@@ -63,10 +63,9 @@ public class BookingManager {
         	offset = 0;
         }
     	User caller = userManager.findCallingUser();
-    	if (caller != null) {
-    	}
         List<Booking> results = Collections.emptyList();
         Long totalCount = 0L;
+        // Assure user exists in database
     	if (caller != null && caller.getId() != null) {
     		PagedResult<Long> prs = bookingDao.findByPassenger(caller, since, until, false, 0, 0);
     		totalCount = prs.getTotalCount();
