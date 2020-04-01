@@ -208,6 +208,7 @@ public class PlannerManager {
      * @param toPlace The destination of the passenger
      * @param depTime The (intended) departure time. Specify either departure or arrival time. 
      * @param arrTime The (intended) arrival time. Specify either departure or arrival time.
+     * @param modalities The eligible modalities to travel with.
      * @param maxWalkDistance The maximum distance the passenger is prepared to walk.
      * @param nrSeats The number of seats the passenger wants to use in a car.
      * @return
