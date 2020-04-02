@@ -13,24 +13,38 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
+/**
+ * Formal record that represents, in words, money or other unit of measurement, certain resources, claims to such 
+ * resources, transactions or other events that result in changes to those resources and claims. An account is 
+ * externally identified by a unique accountNumber.
+ * 
+ * How do we relate the bank account number to the netmobiel account number?
+ *  
+ * @author Jaap Reitsma
+ *
+ */
 @Entity
 @Table(name = "account", uniqueConstraints = {
-	    @UniqueConstraint(name = "cs_account_unique", columnNames = { "label" })
+	    @UniqueConstraint(name = "cs_account_unique", columnNames = { "accountNumber" })
 })
 @Vetoed
 @SequenceGenerator(name = "account_sg", sequenceName = "account_seq", allocationSize = 1, initialValue = 50)
 public class Account {
+	public static final int ACCOUNT_NUMBER_MAX_LENGTH = 32;
+	
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "account_sg")
     private Long id;
 
 	/**
-	 * An account has a label. The label is the external identifier of the account.
+	 * An account has a accountNumber. The accountNumber is the external identifier of the account.
 	 */
+	@Size(max = ACCOUNT_NUMBER_MAX_LENGTH)
 	@NotNull
-	@Column(name = "label", nullable = false)
-    private String label;
+	@Column(name = "reference", nullable = false, length = ACCOUNT_NUMBER_MAX_LENGTH)
+    private String reference;
 
     /**
      * An account is owned by someone.
@@ -39,32 +53,21 @@ public class Account {
 	@Column(name = "holder", nullable = false)
     private User holder;
     
-    @Column(name = "account_type")
+    /**
+     * The account type.
+     */
+    @Column(name = "account_type", length = 1)
     private AccountType accountType;
     
     public Account() {
 //        accountingEntries = new ArrayList<>();
     }
 
-    public Account(String aLabel) {
-        assert aLabel.length() > 0 : "Account label cannot be empty";
-        this.label = aLabel;
+    public Account(String aReference) {
+        assert aReference.length() > 0 : "Account reference cannot be empty";
+        this.reference = aReference;
     }
 
-    public boolean canProcess(@SuppressWarnings("unused") AccountingEntry entry) {
-        // by default, accounts are unable to process entries
-        return false;
-    }
-
-    public boolean hasProcessed(AccountingEntry entry) {
-        return this.equals(entry.getAccount()) && entry.getId() != null;
-    }
-
-//    public int getBalance() {
-//        return entries.values().stream().mapToInt(AccountingEntry::getAmount).sum();
-//    }
-//
-    
 	public Long getId() {
 		return id;
 	}
@@ -73,12 +76,12 @@ public class Account {
 		this.id = id;
 	}
 
-	public String getLabel() {
-		return label;
+	public String getReference() {
+		return reference;
 	}
 
-	public void setLabel(String label) {
-		this.label = label;
+	public void setReference(String reference) {
+		this.reference = reference;
 	}
 
 	public User getHolder() {
@@ -89,9 +92,17 @@ public class Account {
 		this.holder = holder;
 	}
 
+	public AccountType getAccountType() {
+		return accountType;
+	}
+
+	public void setAccountType(AccountType accountType) {
+		this.accountType = accountType;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(label);
+		return Objects.hash(reference);
 	}
 
 	@Override
@@ -106,6 +117,6 @@ public class Account {
 			return false;
 		}
 		Account other = (Account) obj;
-		return Objects.equals(label, other.label);
+		return Objects.equals(reference, other.reference);
 	}
 }

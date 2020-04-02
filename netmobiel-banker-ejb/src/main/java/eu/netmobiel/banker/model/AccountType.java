@@ -15,10 +15,10 @@ package eu.netmobiel.banker.model;
  */
 public enum AccountType {
 	ASSET("A"),
-	LIABILITY("L"),
-	REVENUE("R"),
-	EXPENSE("X"),
-	EQUITY("E");
+	LIABILITY("L");
+//	REVENUE("R"),
+//	EXPENSE("X"),
+//	EQUITY("E");
 	
 	private String code;
 	 

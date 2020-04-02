@@ -20,7 +20,7 @@ import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.repository.UserDao;
 import eu.netmobiel.commons.util.Logging;
 
-@Stateless(name = "communicatorUserManager")
+@Stateless(name = "bankerUserManager")
 @Logging
 public class UserManager {
 

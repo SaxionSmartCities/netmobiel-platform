@@ -30,41 +30,43 @@ public class AccountingEntry {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "accounting_entry_sg")
     private Long id;
 
+	/**
+	 * The account involved in the entry. Once saved in the database it cannot be changed.
+	 */
 	@NotNull
 	@ManyToOne
-	@Column(name = "account", nullable = false, updatable = false)
+	@Column(name = "account", nullable = false)
     private Account account;
 
+	/**
+	 * The amount (of credits). Once saved in the database it cannot be changed.
+	 */
 	@NotNull
-	@Column(name = "amount", nullable = false, updatable = false)
+	@Column(name = "amount", nullable = false)
     private int amount;
 
-	@NotNull
+    /**
+     * The accounting entry type.
+     */
+    @Column(name = "entry_type", nullable = false)
+    private AccountingEntryType entryType;
+
+    /**
+     * The transaction this entry belongs to.
+     */
+    @NotNull
 	@ManyToOne
-	@Column(name = "transaction", nullable = false, updatable = false)
+	@Column(name = "transaction", nullable = false)
     private AccountingTransaction transaction;
 	
     public AccountingEntry() {
     	
     }
     
-    public AccountingEntry(int amount) {
+    public AccountingEntry(AccountingEntryType entryType, int amount) {
         assert amount != 0 : "Amount of accounting entry must be nonzero";
+        this.entryType = entryType;
         this.amount = amount;
-    }
-
-    public boolean canProcess() {
-        return account.canProcess(this);
-    }
-
-    public boolean isProcessed() {
-        return account.hasProcessed(this);
-    }
-
-    public void process() {
-        if (!account.hasProcessed(this)) {
-        	throw new IllegalStateException("Cannot process accounting entries twice");
-        }
     }
 
 	public Long getId() {
@@ -97,7 +99,14 @@ public class AccountingEntry {
 
 	public void setTransaction(AccountingTransaction transaction) {
 		this.transaction = transaction;
-		transaction.getAccountingEntries().add(this);
+	}
+
+	public AccountingEntryType getEntryType() {
+		return entryType;
+	}
+
+	public void setEntryType(AccountingEntryType entryType) {
+		this.entryType = entryType;
 	}
     
 }
