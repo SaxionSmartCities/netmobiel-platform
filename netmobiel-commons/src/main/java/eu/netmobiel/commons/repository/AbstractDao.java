@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.function.Function;
+import java.util.stream.Collectors;
 
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceUnitUtil;
@@ -147,6 +149,18 @@ public abstract class AbstractDao<T, ID> {
         }
         return tq.getResultList();
     }
+
+	public List<T> fetch(List<ID> ids, String graphName, Function<T, ID> keyMapper) {
+		Map<ID, T> resultMap;
+		if (ids.size() > 0) {
+			// Create an identity map using the generic fetch. Rows are returned, but not necessarily in the same order
+			resultMap = fetch(ids, graphName).stream().collect(Collectors.toMap(keyMapper, Function.identity()));
+		} else {
+			resultMap = Collections.emptyMap();
+		}
+		// Now return the rows in the same order as the ids.
+		return ids.stream().map(id -> resultMap.get(id)).collect(Collectors.toList());
+	}
 
     public boolean isLoaded(T entity) {
         PersistenceUnitUtil puu = getEntityManager().getEntityManagerFactory().getPersistenceUnitUtil();
