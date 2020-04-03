@@ -32,7 +32,7 @@ public class LedgerDao extends AbstractDao<Ledger, Long> {
 	}
 
 	public Ledger findByDate(Instant point) throws NoResultException, NonUniqueResultException {
-		String q = "from Ledger ldg where :point >= ldg.startPeriod and :point < ldg.endPeriod";
+		String q = "from Ledger ldg where :point >= ldg.startPeriod and (:point < ldg.endPeriod or ldg.endPeriod is null)";
 		TypedQuery<Ledger> tq = em.createQuery(q, Ledger.class);
 		tq.setParameter("point", point);
 		return tq.getSingleResult();

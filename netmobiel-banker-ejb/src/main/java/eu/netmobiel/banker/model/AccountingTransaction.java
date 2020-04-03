@@ -117,6 +117,9 @@ public class AccountingTransaction {
 	}
 
 	public List<AccountingEntry> getAccountingEntries() {
+		if (accountingEntries == null) {
+			accountingEntries = new ArrayList<>();
+		}
 		return accountingEntries;
 	}
 

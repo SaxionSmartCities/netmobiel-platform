@@ -1,6 +1,7 @@
 package eu.netmobiel.banker.model;
 
 import java.util.Objects;
+import java.util.function.Predicate;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
@@ -34,6 +35,9 @@ import javax.validation.constraints.Size;
 public class Account {
 	public static final int ACCOUNT_NUMBER_MAX_LENGTH = 32;
 	
+	public static final Predicate<Account> isAsset = acc -> acc.getAccountType() == AccountType.ASSET;
+	public static final Predicate<Account> isLiability = acc -> acc.getAccountType() == AccountType.LIABILITY;
+
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "account_sg")
     private Long id;
@@ -100,6 +104,19 @@ public class Account {
 		this.accountType = accountType;
 	}
 
+	public void expect(Predicate<Account> predicate, String msg) {
+		if (!predicate.test(this)) {
+			throw new IllegalStateException(msg);  
+		}
+	}
+
+//    protected void expectType(Predicate<Account> predicate) {
+//    	if (getAccountType() != type) {
+//    		throw new IllegalArgumentException(String.format("Expected account type %s, got %s", type.toString(), account.toString()));
+//    	}
+//    }
+
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(reference);
@@ -118,5 +135,10 @@ public class Account {
 		}
 		Account other = (Account) obj;
 		return Objects.equals(reference, other.reference);
+	}
+
+	@Override
+	public String toString() {
+		return String.format("Account [%s %s %s]", id, reference, accountType);
 	}
 }
