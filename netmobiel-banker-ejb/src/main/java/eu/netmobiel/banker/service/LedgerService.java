@@ -1,6 +1,7 @@
 package eu.netmobiel.banker.service;
 
 import java.time.OffsetDateTime;
+import java.util.stream.Collectors;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -8,12 +9,14 @@ import javax.inject.Inject;
 
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountType;
+import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.Ledger;
 import eu.netmobiel.banker.repository.AccountingTransactionDao;
 import eu.netmobiel.banker.repository.BalanceDao;
 import eu.netmobiel.banker.repository.LedgerDao;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
 
 @Stateless
@@ -126,6 +129,8 @@ public class LedgerService {
     	// Move all transactions with accounting time equal or beyond newStartPeriod to the new ledger
     	
     	// Calculate the final balance of all accounts of the old ledger
+    	// No transactions are required to transfer balances. All accounts are balance accounts (as oppposed
+    	// to revenue and expenses accounts in real life).
     	// Calculate the new balance of all accounts of the new ledger
     	// We need a flag for each balance to notify it is dirty
     	// Should we also mark the ledger as being in maintenance?
@@ -133,4 +138,21 @@ public class LedgerService {
     	
 
     }
+    
+    public PagedResult<Ledger> listLedgers() {
+        return null;
+    }
+    
+    public PagedResult<Account> listAccounts() {
+        return null;
+    }
+
+    public PagedResult<Balance> listBalances() {
+        return null;
+    }
+
+    public PagedResult<AccountingEntry> listAccountingEntries() {
+        return null;
+    }
+
 }
