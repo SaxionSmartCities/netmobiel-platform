@@ -49,7 +49,7 @@ public class PagedResult<T> {
 	}
 
 	public int getCount() {
-		return data == null ? 0 : data.size(); 
+		return data.size(); 
 	}
 
 	public int getOffset() {
