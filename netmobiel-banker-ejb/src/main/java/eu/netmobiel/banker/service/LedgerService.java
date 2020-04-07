@@ -5,7 +5,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.time.temporal.ChronoUnit;
 import java.util.List;
-import java.util.UUID;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -19,6 +18,7 @@ import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.Ledger;
 import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.repository.AccountDao;
+import eu.netmobiel.banker.repository.AccountingEntryDao;
 import eu.netmobiel.banker.repository.AccountingTransactionDao;
 import eu.netmobiel.banker.repository.BalanceDao;
 import eu.netmobiel.banker.repository.LedgerDao;
@@ -29,8 +29,10 @@ import eu.netmobiel.commons.util.Logging;
 @Stateless
 @Logging
 public class LedgerService {
+	public static final String SYSTEM_USER_IDENTITY = "credit-service-system";
 	public static final String ACC_BANKING_RESERVE = "banking-reserve";
 	public static final Integer MAX_RESULTS = 10; 
+	public static final Integer DEFAULT_LOOKBACK_DAYS = 90; 
 	
     @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
     private UserManager userManager;
@@ -41,6 +43,8 @@ public class LedgerService {
     private AccountingTransactionDao accountingTransactionDao;
     @Inject
     private BalanceDao balanceDao;
+    @Inject
+    private AccountingEntryDao accountingEntryDao;
     @Inject
     private AccountDao accountDao;
     @Inject
@@ -131,11 +135,12 @@ public class LedgerService {
      * Move all transactions with accountingTime >= newStartPeriod to the new ledger.
      * Calculate the account balances of the closed ledger and calculate the balances for
      * the new ledger. 
-     * @param whenNewLedger
+     * @param newStartPeriod
      */
     public void closeLedger(OffsetDateTime newStartPeriod) {
     	// Find the active ledger
-    	Ledger ledger = ledgerDao.findByDate(newStartPeriod.toInstant());
+    	@SuppressWarnings("unused")
+		Ledger ledger = ledgerDao.findByDate(newStartPeriod.toInstant());
     	
     	Ledger newLedger = new Ledger();
     	newLedger.setStartPeriod(newStartPeriod.toInstant());
@@ -150,8 +155,7 @@ public class LedgerService {
     	// We need a flag for each balance to notify it is dirty
     	// Should we also mark the ledger as being in maintenance?
     	// At startup we need to check for maintenance and finish whatever was started.
-    	
-
+    	throw new UnsupportedOperationException("closeLedger is not yet implemented");
     }
     
     public PagedResult<Ledger> listLedgers(Integer maxResults, Integer offset) {
@@ -177,16 +181,77 @@ public class LedgerService {
     	return new PagedResult<Ledger>(results, maxResults, offset, totalCount);
     }
     
-    public PagedResult<Account> listAccounts() {
-        return null;
+    public PagedResult<Account> listAccounts(String holderIdentity, Integer maxResults, Integer offset) {
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+    	PagedResult<Long> prs = accountDao.listAccounts(holderIdentity, 0, offset);
+    	List<Account> results = null;
+    	if (maxResults == null || maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> mids = accountDao.listAccounts(holderIdentity, maxResults, offset);
+    		results = accountDao.fetch(mids.getData(), null, Account::getId);
+    	}
+    	return new PagedResult<Account>(results, maxResults, offset, prs.getTotalCount());
     }
 
-    public PagedResult<Balance> listBalances() {
-        return null;
+    public PagedResult<Account> listMyAccounts(Integer maxResults, Integer offset) {
+        User caller = userManager.findCallingUser();
+    	return listAccounts(caller.getManagedIdentity(), maxResults, offset);
     }
 
-    public PagedResult<AccountingEntry> listAccountingEntries() {
-        return null;
+    public PagedResult<Balance> listBalances(String holder, String accountReference, OffsetDateTime period, Integer maxResults, Integer offset) {
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+        if (period == null) {
+        	period = OffsetDateTime.now();
+        }
+		Ledger ledger = ledgerDao.findByDate(period.toInstant());
+    	PagedResult<Long> prs = balanceDao.listBalances(holder, accountReference, ledger, 0, offset);
+    	List<Balance> results = null;
+    	if (maxResults == null || maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> ids = balanceDao.listBalances(holder, accountReference, ledger, maxResults, offset);
+    		results = balanceDao.fetch(ids.getData(), null, Balance::getId);
+    	}
+    	return new PagedResult<Balance>(results, maxResults, offset, prs.getTotalCount());
+    }
+
+    public PagedResult<Balance> listMyBalances(String accountReference, OffsetDateTime period, Integer maxResults, Integer offset) {
+        User caller = userManager.findCallingUser();
+    	return listBalances(caller.getManagedIdentity(), accountReference, period, maxResults, offset);
+    }
+    
+    public PagedResult<AccountingEntry> listAccountingEntries(String holder, String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) {
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+        if (since == null) {
+        	since = Instant.now().atOffset(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).minusDays(DEFAULT_LOOKBACK_DAYS).toInstant();
+        }
+    	PagedResult<Long> prs = accountingEntryDao.listAccountingEntries(holder, accountReference, since, until, 0, offset);
+    	List<AccountingEntry> results = null;
+    	if (maxResults == null || maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> ids = accountingEntryDao.listAccountingEntries(holder, accountReference, since, until, maxResults, offset);
+    		results = accountingEntryDao.fetch(ids.getData(), null, AccountingEntry::getId);
+    	}
+    	return new PagedResult<AccountingEntry>(results, maxResults, offset, prs.getTotalCount());
+    }
+
+    public PagedResult<AccountingEntry> listAccountingEntries(String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) {
+        User caller = userManager.findCallingUser();
+    	return listAccountingEntries(caller.getManagedIdentity(), accountReference, since, until, maxResults, offset);
     }
 
     protected Ledger createLedger(Instant when) {
@@ -219,7 +284,7 @@ public class LedgerService {
     	if (prl.getTotalCount() == 0) {
     		// No active ledger, create the initial ledger and the rest
     		createLedger(Instant.now());
-    		User systemUser = new User(UUID.randomUUID().toString(), "Credit", "System");
+    		User systemUser = new User(SYSTEM_USER_IDENTITY, "Credit", "System");
     		userDao.save(systemUser);
     		createAccount(systemUser, LedgerService.ACC_BANKING_RESERVE, AccountType.ASSET);
     	}
