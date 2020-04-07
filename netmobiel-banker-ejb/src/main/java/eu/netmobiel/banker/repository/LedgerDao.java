@@ -48,7 +48,7 @@ public class LedgerDao extends AbstractDao<Ledger, Long> {
             totalCount = countQuery.getSingleResult();
             results = Collections.emptyList();
         } else {
-    		TypedQuery<Long> selectQuery = em.createQuery("from Ledger ldg order by ldg.startPeriod desc", Long.class);
+    		TypedQuery<Long> selectQuery = em.createQuery("select ldg.id from Ledger ldg order by ldg.startPeriod desc", Long.class);
     		selectQuery.setFirstResult(offset);
     		selectQuery.setMaxResults(maxResults);
     		results = selectQuery.getResultList();

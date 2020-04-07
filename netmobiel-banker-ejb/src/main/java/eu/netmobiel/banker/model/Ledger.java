@@ -16,6 +16,7 @@ import javax.persistence.Id;
 import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.Size;
 
 /**
@@ -29,7 +30,9 @@ import javax.validation.constraints.Size;
  *
  */
 @Entity
-@Table(name = "ledger")
+@Table(name = "ledger", uniqueConstraints = {
+	    @UniqueConstraint(name = "cs_ledger_unique", columnNames = { "name" })
+})
 @Vetoed
 @SequenceGenerator(name = "ledger_sg", sequenceName = "ledger_seq", allocationSize = 1, initialValue = 50)
 public class Ledger {
@@ -147,7 +150,7 @@ public class Ledger {
 		if (instant == null) {
 			return "---";
 		} else {
-			return DateTimeFormatter.ISO_DATE_TIME.format(instant);
+			return DateTimeFormatter.ISO_INSTANT.format(instant);
 		}
 	}
 
