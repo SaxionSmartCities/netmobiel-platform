@@ -1,7 +1,6 @@
 package eu.netmobiel.banker.model;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -129,8 +128,8 @@ public class Ledger {
 		this.balances = balances;
 	}
 	
-	public AccountingTransaction createTransaction(String description, OffsetDateTime accountingTime) {
-		AccountingTransaction tr = new AccountingTransaction(description, accountingTime);
+	public AccountingTransaction createTransaction(String description, Instant accountingTime, Instant transactionTime) {
+		AccountingTransaction tr = new AccountingTransaction(description, accountingTime, transactionTime);
 		tr.setLedger(this);
 		this.getTransactions().add(tr);
 		return tr;

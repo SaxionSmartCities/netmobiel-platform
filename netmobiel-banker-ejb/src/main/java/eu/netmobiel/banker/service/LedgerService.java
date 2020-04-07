@@ -75,7 +75,7 @@ public class LedgerService {
     	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
     	expect(brab.getAccount(), AccountType.ASSET);
     	AccountingTransaction tr = ledger
-    			.createTransaction(description, when)
+    			.createTransaction(description, when.toInstant(), Instant.now())
     			.debit(brab, amount)
 				.credit(userAccountBalance, amount);
     	tr.validate();
@@ -98,7 +98,7 @@ public class LedgerService {
     	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
     	expect(brab.getAccount(), AccountType.ASSET);
     	AccountingTransaction tr = ledger
-    			.createTransaction(description, when)
+    			.createTransaction(description, when.toInstant(), Instant.now())
     			.credit(brab, amount)
 				.debit(userAccountBalance, amount);
     	tr.validate();
@@ -123,7 +123,7 @@ public class LedgerService {
     	expect(customerBalance.getAccount(), AccountType.LIABILITY);
     	expect(providerBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
-    			.createTransaction(description, when)
+    			.createTransaction(description, when.toInstant(), Instant.now())
     			.debit(customerBalance, amount)
 				.credit(providerBalance, amount);
     	tr.validate();

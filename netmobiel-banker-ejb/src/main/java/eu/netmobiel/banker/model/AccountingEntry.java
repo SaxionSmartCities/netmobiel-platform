@@ -1,5 +1,7 @@
 package eu.netmobiel.banker.model;
 
+import java.time.format.DateTimeFormatter;
+
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Entity;
@@ -109,6 +111,14 @@ public class AccountingEntry {
 
 	public void setEntryType(AccountingEntryType entryType) {
 		this.entryType = entryType;
+	}
+
+	@Override
+	public String toString() {
+		return String.format("AccountingEntry [%s, %s, %s, %s, '%s', %s, %s ]", id,
+				account.getReference(), amount, entryType, transaction.getDescription(), 
+				DateTimeFormatter.ISO_INSTANT.format(transaction.getAccountingTime()), 
+				DateTimeFormatter.ISO_INSTANT.format(transaction.getTransactionTime()));
 	}
     
 }

@@ -1,7 +1,6 @@
 package eu.netmobiel.banker.model;
 
 import java.time.Instant;
-import java.time.OffsetDateTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -77,11 +76,11 @@ public class AccountingTransaction {
         this.accountingEntries = new ArrayList<>();
     }
     
-    public AccountingTransaction(String description, OffsetDateTime accountingTime) {
+    public AccountingTransaction(String description, Instant accountingTime, Instant transactionTime) {
     	this();
     	this.description = description;
-        this.accountingTime = accountingTime.toInstant();
-        this.transactionTime = Instant.now();
+        this.accountingTime = accountingTime;
+        this.transactionTime = transactionTime;
     }
 
     public void validate() {

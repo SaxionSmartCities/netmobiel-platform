@@ -6,7 +6,6 @@ import static org.junit.Assert.*;
 import java.io.File;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
 
@@ -32,7 +31,6 @@ import org.slf4j.Logger;
 import eu.netmobiel.banker.Resources;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.Ledger;
-import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.repository.converter.InstantConverter;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.model.PagedResult;

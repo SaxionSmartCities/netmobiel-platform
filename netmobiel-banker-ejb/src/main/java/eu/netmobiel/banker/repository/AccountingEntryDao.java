@@ -69,7 +69,8 @@ public class AccountingEntryDao extends AbstractDao<AccountingEntry, Long> {
           totalCount = em.createQuery(cq).getSingleResult();
         } else {
 	        cq.select(entry.get(AccountingEntry_.id));
-	        cq.orderBy(cb.desc(entry.get(AccountingEntry_.transaction).get(AccountingTransaction_.accountingTime)));
+	        cq.orderBy(cb.desc(entry.get(AccountingEntry_.transaction).get(AccountingTransaction_.accountingTime)),
+	        		cb.asc(entry.get(AccountingEntry_.entryType)));
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
 			tq.setMaxResults(maxResults);
