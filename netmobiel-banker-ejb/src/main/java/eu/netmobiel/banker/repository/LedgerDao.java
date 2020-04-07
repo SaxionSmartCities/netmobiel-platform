@@ -1,6 +1,7 @@
 package eu.netmobiel.banker.repository;
 
 import java.time.Instant;
+import java.util.Collections;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -13,6 +14,7 @@ import javax.persistence.TypedQuery;
 
 import eu.netmobiel.banker.annotation.BankerDatabase;
 import eu.netmobiel.banker.model.Ledger;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
 
 @ApplicationScoped
@@ -38,8 +40,20 @@ public class LedgerDao extends AbstractDao<Ledger, Long> {
 		return tq.getSingleResult();
 	}
 	
-	@Override
-	public List<Ledger> fetch(List<Long> ids, String graphName) {
-		return super.fetch(ids, graphName, Ledger::getId);
+	public PagedResult<Long> listLedgers(Integer maxResults, Integer offset) {
+		Long totalCount = null;
+        List<Long> results = null;
+        if (maxResults == 0) {
+    		TypedQuery<Long> countQuery = em.createQuery("select count(ldg) from Ledger ldg", Long.class);
+            totalCount = countQuery.getSingleResult();
+            results = Collections.emptyList();
+        } else {
+    		TypedQuery<Long> selectQuery = em.createQuery("from Ledger ldg order by ldg.startPeriod desc", Long.class);
+    		selectQuery.setFirstResult(offset);
+    		selectQuery.setMaxResults(maxResults);
+    		results = selectQuery.getResultList();
+        }
+        return new PagedResult<Long>(results, maxResults, offset, totalCount);
 	}
+
 }

@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.model;
 
+import java.time.Instant;
 import java.util.Objects;
 import java.util.function.Predicate;
 
@@ -37,6 +38,7 @@ public class Account {
 	
 	public static final Predicate<Account> isAsset = acc -> acc.getAccountType() == AccountType.ASSET;
 	public static final Predicate<Account> isLiability = acc -> acc.getAccountType() == AccountType.LIABILITY;
+	public static final Predicate<Account> isOpen = acc -> acc.getClosedTime() == null;
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "account_sg")
@@ -62,14 +64,30 @@ public class Account {
      */
     @Column(name = "account_type", length = 1)
     private AccountType accountType;
-    
+
+    /**
+     * Time of creation of the account.
+     */
+    @Column(name = "created_time", nullable = false)
+    private Instant createdTime;
+
+    /**
+     * Time of closing of the account. A closed account cannot be used anymore. Before closing, the balance must be neutralized.
+     * If null then the account is open.
+     */
+    @Column(name = "closed_time", nullable = true)
+    private Instant closedTime;
+
     public Account() {
-//        accountingEntries = new ArrayList<>();
     }
 
-    public Account(String aReference) {
-        assert aReference.length() > 0 : "Account reference cannot be empty";
-        this.reference = aReference;
+    public static Account newInstant(User aHolder, String aReference, AccountType type) {
+    	Account acc = new Account();
+    	acc.holder = aHolder;
+    	acc.reference = aReference;
+    	acc.accountType = type;
+        acc.createdTime = Instant.now();
+        return acc;
     }
 
 	public Long getId() {
@@ -110,12 +128,29 @@ public class Account {
 		}
 	}
 
+	
 //    protected void expectType(Predicate<Account> predicate) {
 //    	if (getAccountType() != type) {
 //    		throw new IllegalArgumentException(String.format("Expected account type %s, got %s", type.toString(), account.toString()));
 //    	}
 //    }
 
+
+	public Instant getCreatedTime() {
+		return createdTime;
+	}
+
+	public void setCreatedTime(Instant createdTime) {
+		this.createdTime = createdTime;
+	}
+
+	public Instant getClosedTime() {
+		return closedTime;
+	}
+
+	public void setClosedTime(Instant closedTime) {
+		this.closedTime = closedTime;
+	}
 
 	@Override
 	public int hashCode() {

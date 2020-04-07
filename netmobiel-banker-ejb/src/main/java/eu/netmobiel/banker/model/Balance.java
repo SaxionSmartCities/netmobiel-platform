@@ -60,6 +60,17 @@ public class Balance {
 	@Column(name = "account", nullable = false)
 	private Account account;
 
+	public Balance() {
+		
+	}
+	
+	public Balance(Ledger ledger, Account acc, int start) {
+		this.ledger = ledger;
+		this.account = acc;
+		this.startAmount = start;
+		this.endAmount = this.startAmount;
+	}
+	
 	public Long getId() {
 		return id;
 	}

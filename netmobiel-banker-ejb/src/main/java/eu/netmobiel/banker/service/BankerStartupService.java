@@ -2,27 +2,41 @@ package eu.netmobiel.banker.service;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.ejb.EJB;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
+import javax.inject.Inject;
+
+import org.slf4j.Logger;
 
 @Singleton
 @Startup
 public class BankerStartupService {
-    public enum States { BEFORESTARTED, STARTED, SHUTTINGDOWN };
+    @Inject
+    private Logger logger;
+
+	public enum States { BEFORESTARTED, STARTED, SHUTTINGDOWN };
+    
     private States state;
     
+    @EJB
+    private LedgerService ledgerService;
+
+    /**
+     * Creates the initial data structure for the credit system: A system user is created, a first ledger starting at January 1st.
+     */
     @PostConstruct
-    public void initialize() {
+    public void bootstrapTheBank() {
         state = States.BEFORESTARTED;
-        // Perform intialization
+   		ledgerService.bootstrapTheBank();
         state = States.STARTED;
-        System.out.println("Service Started");
+        logger.info("Started");
     }
+
     @PreDestroy
     public void terminate() {
         state = States.SHUTTINGDOWN;
-        // Perform termination
-        System.out.println("Shut down in progress");
+        logger.info("Shutting down");
     }
 
     public States getState() {

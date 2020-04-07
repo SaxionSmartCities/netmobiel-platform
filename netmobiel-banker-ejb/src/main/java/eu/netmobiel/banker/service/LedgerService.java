@@ -1,7 +1,11 @@
 package eu.netmobiel.banker.service;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.stream.Collectors;
+import java.time.ZoneOffset;
+import java.time.temporal.ChronoUnit;
+import java.util.List;
+import java.util.UUID;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
@@ -13,9 +17,12 @@ import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.Ledger;
+import eu.netmobiel.banker.model.User;
+import eu.netmobiel.banker.repository.AccountDao;
 import eu.netmobiel.banker.repository.AccountingTransactionDao;
 import eu.netmobiel.banker.repository.BalanceDao;
 import eu.netmobiel.banker.repository.LedgerDao;
+import eu.netmobiel.banker.repository.UserDao;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
 
@@ -23,6 +30,7 @@ import eu.netmobiel.commons.util.Logging;
 @Logging
 public class LedgerService {
 	public static final String ACC_BANKING_RESERVE = "banking-reserve";
+	public static final Integer MAX_RESULTS = 10; 
 	
     @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
     private UserManager userManager;
@@ -33,8 +41,15 @@ public class LedgerService {
     private AccountingTransactionDao accountingTransactionDao;
     @Inject
     private BalanceDao balanceDao;
+    @Inject
+    private AccountDao accountDao;
+    @Inject
+    private UserDao userDao;
     
     protected void expect(Account account, AccountType type) {
+    	if (! Account.isOpen.test(account)) {
+    		throw new IllegalArgumentException(String.format("Account is not open: %s", account.toString()));
+    	}
     	if (account.getAccountType() != type) {
     		throw new IllegalArgumentException(String.format("Expected account type %s, got %s", type.toString(), account.toString()));
     	}
@@ -139,8 +154,27 @@ public class LedgerService {
 
     }
     
-    public PagedResult<Ledger> listLedgers() {
-        return null;
+    public PagedResult<Ledger> listLedgers(Integer maxResults, Integer offset) {
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+    	List<Ledger> results = null;
+		Long totalCount = 0L;
+    	if (maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> lids = ledgerDao.listLedgers(maxResults, offset);
+    		results = ledgerDao.fetch(lids.getData(), null, Ledger::getId);
+    		totalCount = Long.valueOf(results.size());
+    	}
+    	if (maxResults == 0 || results.size() >= maxResults) {
+    		// We only want to know the total count, or we have potential more data available then we can guess now
+    		// Determine the total count
+        	totalCount = ledgerDao.listLedgers(0, offset).getTotalCount();
+    	}
+    	return new PagedResult<Ledger>(results, maxResults, offset, totalCount);
     }
     
     public PagedResult<Account> listAccounts() {
@@ -153,6 +187,42 @@ public class LedgerService {
 
     public PagedResult<AccountingEntry> listAccountingEntries() {
         return null;
+    }
+
+    protected Ledger createLedger(Instant when) {
+    	Ledger newLedger = new Ledger();
+    	newLedger.setStartPeriod(when.atOffset(ZoneOffset.UTC).truncatedTo(ChronoUnit.YEARS).toInstant());
+    	newLedger.setName(String.format("%d", when.atOffset(ZoneOffset.UTC).getYear()));
+    	ledgerDao.save(newLedger);
+    	return newLedger; 
+    }
+    
+    /**
+     * Create an account and connect it through a balance to the active ledger.   
+     * @param holder the holder of the account.
+     * @param reference the external reference to the account.
+     * @param type the account type.
+     * @return the account  
+     */
+    public void createAccount(User holder, String reference, AccountType type) {
+    	Instant now = Instant.now();
+    	Ledger ledger = ledgerDao.findByDate(now);
+    	Account acc = Account.newInstant(holder, reference, type);
+    	accountDao.save(acc);
+    	Balance bal = new Balance(ledger, acc, 0);
+    	balanceDao.save(bal);
+    }
+
+    
+    public void bootstrapTheBank() {
+    	PagedResult<Ledger> prl = listLedgers(0, 0);
+    	if (prl.getTotalCount() == 0) {
+    		// No active ledger, create the initial ledger and the rest
+    		createLedger(Instant.now());
+    		User systemUser = new User(UUID.randomUUID().toString(), "Credit", "System");
+    		userDao.save(systemUser);
+    		createAccount(systemUser, LedgerService.ACC_BANKING_RESERVE, AccountType.ASSET);
+    	}
     }
 
 }
