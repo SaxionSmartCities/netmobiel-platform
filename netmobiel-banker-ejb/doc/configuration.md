@@ -1,6 +1,44 @@
 # Configuration
 
 ## Configuration of the database
+The credit service uses Postgres (version 10.x) as relational database. No extensions are required.
+
+For each database you need to create a login and the database itself.
+### Add a Postgres user
+
+Add a user (banker) with a password. Use the same values in the setup for WildFly.
+
+```SQL
+CREATE ROLE banker WITH
+	LOGIN
+	NOSUPERUSER
+	NOCREATEDB
+	NOCREATEROLE
+	INHERIT
+	NOREPLICATION
+	CONNECTION LIMIT -1
+	PASSWORD 'xxxxxx';
+```
+### Create the database
+In the snippet the database name is `banker_dev`. You are free to give the database any name you prefer. From an old hand I learned to distinguish explicitly between the databases used in different develop stages to prevent accidents, especially with the production database.    
+
+```SQL
+CREATE DATABASE banker_dev
+    WITH 
+    OWNER = banker
+    ENCODING = 'UTF8'
+    LC_COLLATE = 'English_Netherlands.1252'
+    LC_CTYPE = 'English_Netherlands.1252'
+    TABLESPACE = pg_default
+    CONNECTION LIMIT = -1;
+
+COMMENT ON DATABASE banker_dev
+    IS 'Credit service database';
+```
+   
+Repeat this step for the integration test database (if required), with name `banker_test`.
+
+## Configuration of the datasource
 The Netmobiel platform uses a separate XA datasource for each service. To add the database to Wildfly, stop Wildfly and add the following XML snippet to the standalone.xml at `<subsystem xmlns="urn:jboss:domain:datasources:5.0">/<datasources>`:
 
 ```XML
@@ -25,9 +63,8 @@ The Netmobiel platform uses a separate XA datasource for each service. To add th
     </validation>
 </xa-datasource>
 ```
-In the snippet the database name is `banker_dev`. You are free to give the database any name you prefer. From an old hand I learned to distinguish explicitly between the databases used in different develop stages to prevent accidents, especially with the production database.    
 
-## Configuration of the test database
+## Configuration of the test datasource
 The test database is used to run integration test with Maven. If you don't intend to run integration tests, then there is no need for a test database. 
 Acceptance and production servers don't need a test database either.
 
