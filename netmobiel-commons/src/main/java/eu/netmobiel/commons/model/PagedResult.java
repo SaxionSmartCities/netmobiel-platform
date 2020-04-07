@@ -26,14 +26,14 @@ public class PagedResult<T> {
 	}
 	
 	public PagedResult(List<T> someData, int aResultsPerPage, int anOffset, Long aTotalCount) {
-		this.data = someData;
+		this.data = someData == null ? Collections.emptyList() : someData;
 		this.resultsPerPage = aResultsPerPage;
 		this.offset = anOffset;
 		this.totalCount = aTotalCount;
 	}
 
 	public static <T> PagedResult<T> empty() {
-		return new PagedResult<T>(Collections.emptyList(), 0, 0, 0L);
+		return new PagedResult<T>(null, 0, 0, 0L);
 	}
 	
 	public List<T> getData() {
