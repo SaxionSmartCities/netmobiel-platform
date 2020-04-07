@@ -46,6 +46,13 @@ public class AccountDao extends AbstractDao<Account, Long> {
 		return tq.getSingleResult();
 	}
 	
+	/**
+	 * Lists the accounts. Filter optionally by holder. 
+	 * @param holder The holder of the accounbts or null for any holder.
+	 * @param maxResults The maximum results to query. If set to 0 the total number of results is fetched.
+	 * @param offset The zero-based paging offset 
+	 * @return a paged result of accounts.
+	 */
     public PagedResult<Long> listAccounts(String holder, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
@@ -63,7 +70,7 @@ public class AccountDao extends AbstractDao<Account, Long> {
           totalCount = em.createQuery(cq).getSingleResult();
         } else {
 	        cq.select(account.get(Account_.id));
-	        cq.orderBy(cb.desc(account.get(Account_.reference)));
+	        cq.orderBy(cb.asc(account.get(Account_.reference)));
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
 			tq.setMaxResults(maxResults);

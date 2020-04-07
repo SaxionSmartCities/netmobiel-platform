@@ -9,9 +9,11 @@ import javax.enterprise.inject.Vetoed;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
@@ -62,7 +64,7 @@ public class AccountingTransaction {
 	 * The ledger containing all the transactions for the financial period.
 	 */
 	@ManyToOne
-	@Column(name = "ledger", nullable = false)
+	@JoinColumn(name = "ledger", nullable = false, foreignKey = @ForeignKey(name = "accounting_transaction_ledger_fk"))
     private Ledger ledger;
     
 	/**

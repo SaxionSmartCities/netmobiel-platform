@@ -1,15 +1,18 @@
 package eu.netmobiel.banker.model;
 
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 import java.util.function.Predicate;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
@@ -29,7 +32,7 @@ import javax.validation.constraints.Size;
  */
 @Entity
 @Table(name = "account", uniqueConstraints = {
-	    @UniqueConstraint(name = "cs_account_unique", columnNames = { "accountNumber" })
+	    @UniqueConstraint(name = "cs_account_unique", columnNames = { "reference" })
 })
 @Vetoed
 @SequenceGenerator(name = "account_sg", sequenceName = "account_seq", allocationSize = 1, initialValue = 50)
@@ -56,7 +59,7 @@ public class Account {
      * An account is owned by someone.
      */
     @ManyToOne
-	@Column(name = "holder", nullable = false)
+	@JoinColumn(name = "holder", nullable = false, foreignKey = @ForeignKey(name = "account_user_fk"))
     private User holder;
     
     /**
@@ -174,6 +177,6 @@ public class Account {
 
 	@Override
 	public String toString() {
-		return String.format("Account [%s %s %s]", id, reference, accountType);
+		return String.format("Account [%s %s %s %s]", id, reference, accountType, DateTimeFormatter.ISO_INSTANT.format(createdTime));
 	}
 }

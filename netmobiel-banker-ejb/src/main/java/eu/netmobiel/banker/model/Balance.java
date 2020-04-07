@@ -5,9 +5,11 @@ import java.sql.Timestamp;
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
@@ -42,7 +44,6 @@ public class Balance {
 	@Column(name = "version")
 	private int version;
 	
-	@Temporal(TemporalType.TIMESTAMP)
 	@Column(name = "modifiedAt", insertable = false, updatable = false)
 	private Timestamp modifiedAt;
 	
@@ -53,11 +54,11 @@ public class Balance {
 	private int endAmount;
 	
 	@ManyToOne
-	@Column(name = "ledger", nullable = false)
+	@JoinColumn(name = "ledger", nullable = false, foreignKey = @ForeignKey(name = "balance_ledger_fk"))
 	private Ledger ledger;
 	
 	@ManyToOne
-	@Column(name = "account", nullable = false)
+	@JoinColumn(name = "account", nullable = false, foreignKey = @ForeignKey(name = "balance_account_fk"))
 	private Account account;
 
 	public Balance() {
