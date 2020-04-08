@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 
 import java.io.File;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
 
@@ -223,7 +224,39 @@ public class AccountingEntryDaoIT {
 		}
 
     	// TEST Account reference
+    	holderId = null;
+    	accref = account1.getReference();
+    	actual = accountingEntryDao.listAccountingEntries(holderId, accref, since, until, 10, 0);
+    	assertNotNull(actual);
+    	assertEquals(3, actual.getData().size());
+    	entries = accountingEntryDao.fetch(actual.getData(), null, AccountingEntry::getId);
+    	dump("listEntries - " + accref, entries);
+    	for (AccountingEntry entry : entries) {
+    		assertEquals(accref, entry.getAccount().getReference());
+		}
 
+    	// TEST since
+    	accref = null;
+    	since = Instant.parse("2020-04-09T17:00:00Z");
+    	actual = accountingEntryDao.listAccountingEntries(holderId, accref, since, until, 10, 0);
+    	assertNotNull(actual);
+    	assertEquals(2, actual.getData().size());
+    	entries = accountingEntryDao.fetch(actual.getData(), null, AccountingEntry::getId);
+    	dump("listEntries - since " + DateTimeFormatter.ISO_INSTANT.format(since), entries);
+    	for (AccountingEntry entry : entries) {
+    		assertTrue(!entry.getTransaction().getAccountingTime().isBefore(since));
+		}
+    	// TEST until
+    	since = null;
+    	until = Instant.parse("2020-04-08T17:00:00Z");
+    	actual = accountingEntryDao.listAccountingEntries(holderId, accref, since, until, 10, 0);
+    	assertNotNull(actual);
+    	assertEquals(2, actual.getData().size());
+    	entries = accountingEntryDao.fetch(actual.getData(), null, AccountingEntry::getId);
+    	dump("listEntries - until " + DateTimeFormatter.ISO_INSTANT.format(until), entries);
+    	for (AccountingEntry entry : entries) {
+    		assertTrue(entry.getTransaction().getAccountingTime().isBefore(until));
+		}
     }
 
 }
