@@ -128,11 +128,17 @@ public class Ledger {
 		this.balances = balances;
 	}
 	
-	public AccountingTransaction createTransaction(String description, Instant accountingTime, Instant transactionTime) {
-		AccountingTransaction tr = new AccountingTransaction(description, accountingTime, transactionTime);
-		tr.setLedger(this);
-		this.getTransactions().add(tr);
-		return tr;
+	public AccountingTransaction.Builder createTransaction(String description, Instant accountingTime, Instant transactionTime) {
+		return AccountingTransaction.newTransaction(this, description, accountingTime, transactionTime);
+	}
+
+	/**
+	 * Tests whether a specific instant matches the ledger period. Formal check: Start <= instant < End.
+	 * @param dt the instant
+	 * @return true if hte instant matches the ledger period.
+	 */
+	public boolean fitsPeriod(Instant dt) {
+		return !dt.isBefore(getStartPeriod()) && (getEndPeriod() == null || getEndPeriod().isAfter(dt));
 	}
 	
 	public void expect(Predicate<Ledger> predicate, String msg) {

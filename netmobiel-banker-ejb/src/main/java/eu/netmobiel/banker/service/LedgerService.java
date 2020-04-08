@@ -77,8 +77,8 @@ public class LedgerService {
     	AccountingTransaction tr = ledger
     			.createTransaction(description, when.toInstant(), Instant.now())
     			.debit(brab, amount)
-				.credit(userAccountBalance, amount);
-    	tr.validate();
+				.credit(userAccountBalance, amount)
+				.build();
     	accountingTransactionDao.save(tr);
     }
 
@@ -100,8 +100,8 @@ public class LedgerService {
     	AccountingTransaction tr = ledger
     			.createTransaction(description, when.toInstant(), Instant.now())
     			.credit(brab, amount)
-				.debit(userAccountBalance, amount);
-    	tr.validate();
+				.debit(userAccountBalance, amount)
+    			.build();
     	accountingTransactionDao.save(tr);
     }
 
@@ -125,8 +125,8 @@ public class LedgerService {
     	AccountingTransaction tr = ledger
     			.createTransaction(description, when.toInstant(), Instant.now())
     			.debit(customerBalance, amount)
-				.credit(providerBalance, amount);
-    	tr.validate();
+				.credit(providerBalance, amount)
+    			.build();
     	accountingTransactionDao.save(tr);
     }
 

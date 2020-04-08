@@ -168,17 +168,20 @@ public class AccountingEntryDaoIT {
     
     @Test
     public void listAccountingEntries() {
-    	AccountingTransaction trans = ledger.createTransaction("description-1", Instant.parse("2020-04-07T17:00:00Z"), Instant.parse("2020-04-07T18:00:00Z"));
-    	trans.credit(balance1, 10)
-    		.debit(balance2, 10);
+    	AccountingTransaction trans = ledger.createTransaction("description-1", Instant.parse("2020-04-07T17:00:00Z"), Instant.parse("2020-04-07T18:00:00Z"))
+    			.credit(balance1, 10)
+    			.debit(balance2, 10)
+    			.build();
     	em.persist(trans);
-    	trans = ledger.createTransaction("description-2", Instant.parse("2020-04-08T17:00:00Z"), Instant.parse("2020-04-08T18:00:00Z"));
-    	trans.credit(balance2, 20)
-    		.debit(balance1, 20);
+    	trans = ledger.createTransaction("description-2", Instant.parse("2020-04-08T17:00:00Z"), Instant.parse("2020-04-08T18:00:00Z"))
+    			.credit(balance2, 20)
+    			.debit(balance1, 20)
+    			.build();
     	em.persist(trans);
-    	trans = ledger.createTransaction("description-3", Instant.parse("2020-04-09T17:00:00Z"), Instant.parse("2020-04-09T18:00:00Z"));
-    	trans.credit(balance3, 20)
-    		.debit(balance1, 20);
+    	trans = ledger.createTransaction("description-3", Instant.parse("2020-04-09T17:00:00Z"), Instant.parse("2020-04-09T18:00:00Z"))
+    			.credit(balance3, 20)
+    			.debit(balance1, 20)
+    			.build();
     	em.persist(trans);
 
     	String holderId = null;

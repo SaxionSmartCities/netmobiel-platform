@@ -1,6 +1,7 @@
 package eu.netmobiel.banker.model;
 
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,6 +24,8 @@ import javax.validation.constraints.Size;
 /**
  * An AccountingTransaction captures an atomic transfer of an amount between two or more accounts. A transaction is always balanced, 
  * i.e., the total sum of the amount transferred in an transaction is always zero.
+ * 
+ * Transaction are build using a builder pattern.
  * 
  * @author Jaap Reitsma
  *
@@ -76,29 +79,11 @@ public class AccountingTransaction {
         this.accountingEntries = new ArrayList<>();
     }
     
-    public AccountingTransaction(String description, Instant accountingTime, Instant transactionTime) {
+    AccountingTransaction(String description, Instant accountingTime, Instant transactionTime) {
     	this();
     	this.description = description;
         this.accountingTime = accountingTime;
         this.transactionTime = transactionTime;
-    }
-
-    public void validate() {
-        if (accountingEntries.size() < 2) {
-        	throw new IllegalStateException("Transactions require at least two entries");
-        }
-        int credit = accountingEntries.stream()
-        		.filter(e -> e.getEntryType() == AccountingEntryType.CREDIT)
-        		.mapToInt(AccountingEntry::getAmount).sum();
-        int debit = accountingEntries.stream()
-        		.filter(e -> e.getEntryType() == AccountingEntryType.DEBIT)
-        		.mapToInt(AccountingEntry::getAmount).sum();
-        if (debit != credit) {
-        	throw new IllegalStateException("Transaction is not balanced");
-        }
-        if (accountingTime.isBefore(ledger.getStartPeriod()) || !ledger.getEndPeriod().isAfter(accountingTime)) {
-        	throw new IllegalStateException("AccountingTime does not match ledger period");
-        }
     }
 
 	public Long getId() {
@@ -124,10 +109,6 @@ public class AccountingTransaction {
 		return accountingEntries;
 	}
 
-	public void setAccountingEntries(List<AccountingEntry> accountingEntries) {
-		this.accountingEntries = accountingEntries;
-	}
-
 	public Instant getTransactionTime() {
 		return transactionTime;
 	}
@@ -148,26 +129,68 @@ public class AccountingTransaction {
 		return ledger;
 	}
 
-	public void setLedger(Ledger ledger) {
-		this.ledger = ledger;
+	static AccountingTransaction.Builder newTransaction(Ledger ledger, String description, Instant accountingTime, Instant transactionTime) {
+		AccountingTransaction tr = new AccountingTransaction(description, accountingTime, transactionTime);
+		tr.ledger = ledger;
+		return new Builder(tr);
 	}
 
-	protected void addAccountingEntry(Account account, AccountingEntry entry) {
-		entry.setAccount(account);
-		entry.setTransaction(this);
-		this.getAccountingEntries().add(entry);
-	}
+	public static class Builder {
+		private AccountingTransaction transaction;
+		private boolean finished = false;
+		
+		Builder(AccountingTransaction tr) {
+			this.transaction = tr;
+		}
+		
+		protected void addAccountingEntry(Account account, AccountingEntry entry) {
+			entry.setAccount(account);
+			entry.setTransaction(transaction);
+			transaction.getAccountingEntries().add(entry);
+		}
 
-	public AccountingTransaction debit(Balance balance, int amount) {
-		addAccountingEntry(balance.getAccount(), new AccountingEntry(AccountingEntryType.DEBIT, amount));
-		balance.debit(amount);
-		return this;
-	}
-	
-	public AccountingTransaction credit(Balance balance, int amount) {
-		addAccountingEntry(balance.getAccount(), new AccountingEntry(AccountingEntryType.CREDIT, amount));
-		balance.credit(amount);
-		return this;
+		protected void expectNotFinished() {
+			if (finished) {
+				throw new IllegalStateException("Cannot rebuild transaction: " + transaction.toString());
+			}
+		}
+		
+		public AccountingTransaction.Builder debit(Balance balance, int amount) {
+			expectNotFinished();
+			addAccountingEntry(balance.getAccount(), new AccountingEntry(AccountingEntryType.DEBIT, amount));
+			balance.debit(amount);
+			return this;
+		}
+		
+		public AccountingTransaction.Builder credit(Balance balance, int amount) {
+			expectNotFinished();
+			addAccountingEntry(balance.getAccount(), new AccountingEntry(AccountingEntryType.CREDIT, amount));
+			balance.credit(amount);
+			return this;
+		}
+
+	    public AccountingTransaction build() {
+			expectNotFinished();
+	        if (transaction.accountingEntries.size() < 2) {
+	        	throw new IllegalStateException("Transactions require at least two entries");
+	        }
+	        int credit = transaction.accountingEntries.stream()
+	        		.filter(e -> e.getEntryType() == AccountingEntryType.CREDIT)
+	        		.mapToInt(AccountingEntry::getAmount).sum();
+	        int debit = transaction.accountingEntries.stream()
+	        		.filter(e -> e.getEntryType() == AccountingEntryType.DEBIT)
+	        		.mapToInt(AccountingEntry::getAmount).sum();
+	        if (debit != credit) {
+	        	throw new IllegalStateException("Transaction is not balanced");
+	        }
+	        if (! transaction.ledger.fitsPeriod(transaction.accountingTime)) {
+	        	throw new IllegalStateException(String.format("AccountingTime %s does not match ledger '%s' period", 
+	        			DateTimeFormatter.ISO_INSTANT.format(transaction.accountingTime), transaction.ledger.getName()));
+	        }
+	        finished = true;
+	        return transaction;
+	    }
+
 	}
 	
 }
