@@ -5,6 +5,19 @@
         <dependencies>
         </dependencies>
     </deployment>
+    <sub-deployment name="netmobiel-banker-ejb.jar">
+        <dependencies>
+        	<module name="org.keycloak.keycloak-core"/>
+        </dependencies>
+        <exclusions>
+            <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
+        </exclusions>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-banker-rest.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-banker-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
     <sub-deployment name="netmobiel-communicator-ejb.jar">
         <dependencies>
         	<module name="org.keycloak.keycloak-core"/>

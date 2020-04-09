@@ -18,6 +18,24 @@
 	<dependencies>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-banker-api</artifactId>
+			<version>${project.version}</version>
+			<type>jar</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-banker-ejb</artifactId>
+			<version>${project.version}</version>
+			<type>ejb</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-banker-rest</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
 			<artifactId>netmobiel-commons</artifactId>
 			<version>${project.version}</version>
 			<type>jar</type>
@@ -122,6 +140,11 @@
 <!--             </manifest> -->
 <!--           </archive> -->
           <modules>
+		    <ejbModule>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-banker-ejb</artifactId>
+              	<bundleFileName>netmobiel-banker-ejb.jar</bundleFileName>
+            </ejbModule>
 		    <ejbModule>
 				<groupId>${project.groupId}</groupId>
 				<artifactId>netmobiel-communicator-ejb</artifactId>

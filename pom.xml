@@ -16,6 +16,9 @@
     <description>Aggregator of the NetMobiel Platform</description>
 
     <modules>
+        <module>netmobiel-banker-api</module>
+        <module>netmobiel-banker-ejb</module>
+        <module>netmobiel-banker-rest</module>
         <module>netmobiel-commons</module>
         <module>netmobiel-communicator-api</module>
         <module>netmobiel-communicator-ejb</module>
