@@ -203,6 +203,45 @@ components:
         start: 32
         count: 16
         data: []
+    Balance:
+      title: Root Type for Balance
+      description: A representation of the balance of an account.
+      required:
+      - account
+      - endAmount
+      - ledger
+      - startAmount
+      type: object
+      properties:
+        startAmount:
+          format: int32
+          description: The amount at the start of the accounting period.
+          type: integer
+        endAmount:
+          format: int32
+          description: The amount of credits currently held in this account.
+          type: integer
+        ledger:
+          description: The name of the accounting poeriod, in general the year.
+          type: string
+        account:
+          description: 'The account as known by the user. Example: `current` for tracking
+            the amount of credits owned by the user.'
+          type: string
+        userRef:
+          description: The user holding the account. The reference is a urn to the
+            keycloak managed identity.
+          type: string
+        id:
+          description: Database refrence of the entity.
+          type: integer
+      example:
+        startAmount: 54
+        endAmount: 112
+        ledger: "2020"
+        account: current
+        user: urn:nb:kc:user:919e1308-6fe0-4727-881f-419bffa1ca7b
+        id: 23
     AccountingEntry:
       title: Root Type for AccountingEntry
       description: An single accounting entry or booking statement.
@@ -229,7 +268,7 @@ components:
           type: string
         account:
           description: 'The account as known by the user. Example: `current` for tracking
-            the amoubt of credits owned by the user.'
+            the amount of credits owned by the user.'
           type: string
         id:
           format: int32
@@ -252,6 +291,10 @@ components:
           - ASSET
           - LIABILITY
           type: string
+        userRef:
+          description: The user holding the account. The reference is a urn to the
+            keycloak managed identity.
+          type: string
       example:
         accountingTime: 2019-06-17T15:59:00Z
         transactionTime: 2019-06-17T16:30:00Z
@@ -261,29 +304,6 @@ components:
         amount: 5
         type: CREDIT
         accountType: LIABILITY
-    Balance:
-      title: Root Type for Balance
-      description: A representation of the balance of an account.
-      type: object
-      properties:
-        startAmount:
-          format: int32
-          type: integer
-        endAmount:
-          format: int32
-          type: integer
-        ledger:
-          type: string
-        account:
-          type: string
-        userRef:
-          type: string
-      example:
-        startAmount: 54
-        endAmount: 112
-        ledger: "2020"
-        account: current
-        user: urn:nb:kc:user:919e1308-6fe0-4727-881f-419bffa1ca7b
   responses:
     InternalServerError:
       content:
