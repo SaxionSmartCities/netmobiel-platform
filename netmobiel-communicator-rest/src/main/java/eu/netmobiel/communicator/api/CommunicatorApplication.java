@@ -14,7 +14,7 @@
  * See the License for the specific language governing permissions and
  * limitations under the License.
  */
-package eu.netmobiel.rideshare.api;
+package eu.netmobiel.communicator.api;
 
 import java.util.HashSet;
 import java.util.Set;
@@ -33,7 +33,7 @@ import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
 import eu.netmobiel.commons.jaxrs.OffsetDateTimeParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
-import eu.netmobiel.rideshare.api.resource.MessagesResource;
+import eu.netmobiel.communicator.api.resource.MessagesResource;
 
 
 /**

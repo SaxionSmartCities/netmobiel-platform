@@ -1,4 +1,4 @@
-package eu.netmobiel.rideshare.rest;
+package eu.netmobiel.communicator.rest;
 
 import javax.enterprise.context.ApplicationScoped;
 

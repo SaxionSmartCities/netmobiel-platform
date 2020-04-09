@@ -1,4 +1,4 @@
-package eu.netmobiel.rideshare.api.mapping;
+package eu.netmobiel.communicator.api.mapping;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;

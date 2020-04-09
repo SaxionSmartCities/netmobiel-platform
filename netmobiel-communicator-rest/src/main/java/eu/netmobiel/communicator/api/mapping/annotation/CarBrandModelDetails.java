@@ -1,4 +1,4 @@
-package eu.netmobiel.rideshare.api.mapping.annotation;
+package eu.netmobiel.communicator.api.mapping.annotation;
 
 import static java.lang.annotation.ElementType.*;
 import static java.lang.annotation.RetentionPolicy.*;

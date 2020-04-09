@@ -1,4 +1,4 @@
-package eu.netmobiel.rideshare.api.resource;
+package eu.netmobiel.communicator.api.resource;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -14,9 +14,9 @@ import javax.ws.rs.core.Response.Status;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.communicator.api.MessagesApi;
+import eu.netmobiel.communicator.api.mapping.MessageMapper;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.PublisherService;
-import eu.netmobiel.rideshare.api.mapping.MessageMapper;
 
 @ApplicationScoped
 public class MessagesResource implements MessagesApi {

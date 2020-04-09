@@ -1,4 +1,4 @@
-package eu.netmobiel.rideshare.rest.security;
+package eu.netmobiel.communicator.rest.security;
 
 import java.io.IOException;
 
