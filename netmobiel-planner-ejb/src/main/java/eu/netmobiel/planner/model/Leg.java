@@ -180,6 +180,7 @@ public class Leg implements Serializable {
     /**
      * The leg's geometry. This one is used only when storing trips into the database. 
      */
+	@Basic			// Add this annotation, otherwise no JPA ModelGen attribute is generated.
     @Column(name = "leg_geometry", nullable = true)
     private MultiPoint legGeometry; 
 
