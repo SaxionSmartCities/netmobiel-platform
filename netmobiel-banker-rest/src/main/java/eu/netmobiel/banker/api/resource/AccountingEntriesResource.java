@@ -1,19 +1,28 @@
 package eu.netmobiel.banker.api.resource;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 
+import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.ws.rs.BadRequestException;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import eu.netmobiel.banker.api.AccountingEntriesApi;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.service.LedgerService;
+import eu.netmobiel.banker.service.UserManager;
+import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.model.PagedResult;
 
 @ApplicationScoped
 public class AccountingEntriesResource implements AccountingEntriesApi {
+
+    @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
+    private UserManager userManager;
 
 	@Inject
 	private AccountingEntryMapper mapper;
@@ -22,13 +31,24 @@ public class AccountingEntriesResource implements AccountingEntriesApi {
     private LedgerService ledgerService;
 
 	@Override
-	public Response listAccountingEntries(String user, OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
+	public Response listAccountingEntries(String userRef, OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
+		Instant si = since != null ? since.toInstant() : null;
+		Instant ui = until != null ? until.toInstant() : null;
 		Response rsp = null;
-		PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user, 
-				since != null ? since.toInstant() : null, 
-				until != null ? until.toInstant() : null, 
-				maxResults, offset); 
-		rsp = Response.ok(mapper.map(result)).build();
+		try {
+			if (userRef == null) {
+				PagedResult<AccountingEntry> result = ledgerService.listMyAccountingEntries(null, si, ui, maxResults, offset); 
+				rsp = Response.ok(mapper.map(result)).build();
+			} else {
+				String managedIdentity = userManager
+						.resolveUrn(userRef).orElseThrow(() -> new BadRequestException("Do not understand userRef: " + userRef))
+						.getManagedIdentity();
+				PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(managedIdentity, null, si, ui, maxResults, offset); 
+				rsp = Response.ok(mapper.map(result)).build();
+			}
+		} catch (ApplicationException ex) {
+			throw new WebApplicationException(ex);
+		}
 		return rsp;
 	}
 

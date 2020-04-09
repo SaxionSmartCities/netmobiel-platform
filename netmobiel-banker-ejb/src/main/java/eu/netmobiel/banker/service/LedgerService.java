@@ -3,12 +3,13 @@ package eu.netmobiel.banker.service;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.temporal.ChronoUnit;
 import java.util.List;
 
 import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
+
+import org.slf4j.Logger;
 
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountType;
@@ -22,10 +23,19 @@ import eu.netmobiel.banker.repository.AccountingEntryDao;
 import eu.netmobiel.banker.repository.AccountingTransactionDao;
 import eu.netmobiel.banker.repository.BalanceDao;
 import eu.netmobiel.banker.repository.LedgerDao;
-import eu.netmobiel.banker.repository.UserDao;
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
 
+/**
+ * Stateless bean for the management of the ledger.
+ * 
+ * TODO: Security
+ * 
+ * @author Jaap Reitsma
+ *
+ */
+		
 @Stateless
 @Logging
 public class LedgerService {
@@ -34,9 +44,6 @@ public class LedgerService {
 	public static final Integer MAX_RESULTS = 10; 
 	public static final Integer DEFAULT_LOOKBACK_DAYS = 90; 
 	
-    @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
-    private UserManager userManager;
-
     @Inject
     private LedgerDao ledgerDao;
     @Inject
@@ -47,8 +54,13 @@ public class LedgerService {
     private AccountingEntryDao accountingEntryDao;
     @Inject
     private AccountDao accountDao;
-    @Inject
-    private UserDao userDao;
+    @SuppressWarnings("unused")
+	@Inject
+    private Logger log;
+    
+    @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
+    private UserManager userManager;
+
     
     protected void expect(Account account, AccountType type) {
     	if (! Account.isOpen.test(account)) {
@@ -229,15 +241,16 @@ public class LedgerService {
     	return listBalances(caller.getManagedIdentity(), accountReference, period, maxResults, offset);
     }
     
-    public PagedResult<AccountingEntry> listAccountingEntries(String holder, String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) {
+    public PagedResult<AccountingEntry> listAccountingEntries(String holder, String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) 
+    		throws BadRequestException {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
         if (offset == null) {
         	offset = 0;
         }
-        if (since == null) {
-        	since = Instant.now().atOffset(ZoneOffset.UTC).truncatedTo(ChronoUnit.DAYS).minusDays(DEFAULT_LOOKBACK_DAYS).toInstant();
+        if (since != null && until != null && until.isBefore(since)) {
+        	throw new BadRequestException("Until must be after since");
         }
     	PagedResult<Long> prs = accountingEntryDao.listAccountingEntries(holder, accountReference, since, until, 0, offset);
     	List<AccountingEntry> results = null;
@@ -249,14 +262,15 @@ public class LedgerService {
     	return new PagedResult<AccountingEntry>(results, maxResults, offset, prs.getTotalCount());
     }
 
-    public PagedResult<AccountingEntry> listAccountingEntries(String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) {
+    public PagedResult<AccountingEntry> listMyAccountingEntries(String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) 
+    		throws BadRequestException {
         User caller = userManager.findCallingUser();
     	return listAccountingEntries(caller.getManagedIdentity(), accountReference, since, until, maxResults, offset);
     }
 
     protected Ledger createLedger(Instant when) {
     	Ledger newLedger = new Ledger();
-    	newLedger.setStartPeriod(when.atOffset(ZoneOffset.UTC).truncatedTo(ChronoUnit.YEARS).toInstant());
+    	newLedger.setStartPeriod(when);
     	newLedger.setName(String.format("%d", when.atOffset(ZoneOffset.UTC).getYear()));
     	ledgerDao.save(newLedger);
     	return newLedger; 
@@ -283,9 +297,10 @@ public class LedgerService {
     	PagedResult<Ledger> prl = listLedgers(0, 0);
     	if (prl.getTotalCount() == 0) {
     		// No active ledger, create the initial ledger and the rest
-    		createLedger(Instant.now());
+    		OffsetDateTime odt = OffsetDateTime.of(Instant.now().atOffset(ZoneOffset.UTC).getYear(), 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
+    		createLedger(odt.toInstant());
     		User systemUser = new User(SYSTEM_USER_IDENTITY, "Credit", "System");
-    		userDao.save(systemUser);
+    		userManager.register(systemUser);
     		createAccount(systemUser, LedgerService.ACC_BANKING_RESERVE, AccountType.ASSET);
     	}
     }

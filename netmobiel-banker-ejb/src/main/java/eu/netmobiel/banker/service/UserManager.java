@@ -2,6 +2,7 @@ package eu.netmobiel.banker.service;
 
 import java.security.Principal;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Resource;
 import javax.annotation.security.PermitAll;
@@ -18,7 +19,10 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.repository.UserDao;
+import eu.netmobiel.banker.util.BankerUrnHelper;
+import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.UrnHelper;
 
 @Stateless(name = "bankerUserManager")
 @Logging
@@ -88,12 +92,17 @@ public class UserManager {
     	}
     	return caller;
     }
-    
-    public User findCallingUser() {
+
+    public boolean isCallingUser(String identity) {
+    	return identity.equals(ctx.getCallerPrincipal().getName());
+    }
+
+   	public User findCallingUser() {
     	return userDao.findByManagedIdentity(ctx.getCallerPrincipal().getName())
     			.orElseGet(() -> createContextUser());
     }
-    public User find(User user) {
+
+   	public User find(User user) {
     	return userDao.findByManagedIdentity(user.getManagedIdentity())
     			.orElse(user);
     }
@@ -118,6 +127,24 @@ public class UserManager {
     			.orElseThrow(ObjectNotFoundException::new);
     }
     
+    public Optional<User> resolveUrn(String userRef) {
+    	User user = null;
+    	if (UrnHelper.isUrn(userRef)) {
+        	NetMobielModule module = NetMobielModule.getEnum(UrnHelper.getService(userRef));
+        	if (module == NetMobielModule.BANKER) {
+    			Long did = BankerUrnHelper.getId(User.URN_PREFIX, userRef);
+        		user = userDao.find(did).orElse(null);
+        	} else if (module == NetMobielModule.KEYCLOAK) {
+        		String managedIdentity = UrnHelper.getSuffix(userRef);
+        		user = userDao.findByManagedIdentity(managedIdentity).orElseGet(() -> new User(managedIdentity, null, null));
+        	}
+    	} else {
+			Long did = BankerUrnHelper.getId(User.URN_PREFIX, userRef);
+    		user = userDao.find(did).orElse(null);
+    	}
+    	return Optional.ofNullable(user);
+    }
+
     public void throwRuntimeException() {
     	throw new RuntimeException("A bug in a EJB!");
     }
