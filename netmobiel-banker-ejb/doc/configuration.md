@@ -25,7 +25,7 @@ In the snippet the database name is `banker_dev`. You are free to give the datab
 ```SQL
 CREATE DATABASE banker_dev
     WITH 
-    OWNER = banker
+    OWNER = postgres
     ENCODING = 'UTF8'
     LC_COLLATE = 'English_Netherlands.1252'
     LC_CTYPE = 'English_Netherlands.1252'
@@ -36,7 +36,7 @@ COMMENT ON DATABASE banker_dev
     IS 'Credit service database';
 ```
    
-Repeat this step for the integration test database (if required), with name `banker_test`.
+Repeat this step for the integration test database (if required), with name `banker_test`. Because the test database is dropped and created by the application, the owner of the database must be set to `banker`.  
 
 ## Configuration of the datasource
 The Netmobiel platform uses a separate XA datasource for each service. To add the database to Wildfly, stop Wildfly and add the following XML snippet to the standalone.xml at `<subsystem xmlns="urn:jboss:domain:datasources:5.0">/<datasources>`:
