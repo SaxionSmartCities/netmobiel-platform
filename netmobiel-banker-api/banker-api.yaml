@@ -114,8 +114,8 @@ paths:
           description: Successful response - returns a `Page` with `Balance` entities.
         "400":
           $ref: '#/components/responses/BadRequest'
-      operationId: getbalances
-      summary: List All balances
+      operationId: listBalances
+      summary: List all balances
       description: "Gets a paged list of  `Balance` entities. Default the entities\
         \ owned by the calling user are listed while applying \nthe filter criteria.\n\
         The administrator can request balances owned by any user. \n"
