@@ -1,0 +1,344 @@
+---
+openapi: 3.0.2
+info:
+  title: banker
+  version: 1.0.0
+  description: The credit management service for NetMobiel
+servers:
+- url: https://prod.netmobiel.eu/banker/api
+  description: The internal URL for the credit service (production).
+- url: https://api.netmobiel.eu/gwapi/banker
+  description: The credit service visible to the world (production).
+- url: https://acc.netmobiel.eu/banker/api
+  description: The internal URL for the credit service (acceptance).
+- url: https://api.netmobiel.eu/gwapi-acc/banker
+  description: The credit service visible to the world (acceptance).
+paths:
+  /accounting-entries:
+    summary: Path used to manage the list of accounting entries.
+    description: The REST endpoint/path used to list zero or more `AccountingEntry`
+      entities.  This path contains a `GET` operation to perform the list task.
+    get:
+      parameters:
+      - name: user
+        description: |-
+          The user owning the account(s). Only allowed with elevated privilege. The user domain is the Keycloak managed identity.
+          Without this parameter the caller is considered to be the user.
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The maximum lookback date of the listing. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: 'The date of the latest entry to retrieve. The `until` date must
+          be after the `since` parameter. Default is not set, meaning all entries
+          from now and before. '
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `AccountingEntry`
+            entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: listAccountingEntries
+      summary: List accounting entries.
+      description: "Gets a paged list of  `AccountingEntry` entities. Default the\
+        \ entries owned by the calling user are listed while applying \nthe filter\
+        \ criteria.\nThe administrator can request entries owned by any user. \n"
+  /balances:
+    summary: Path used to manage the list of balances.
+    description: The REST endpoint/path used to list `Balance` entities.  This path
+      contains a `GET` operation to perform the list task.
+    get:
+      parameters:
+      - name: user
+        description: |-
+          The user owning the account(s). Only allowed with elevated privilege. The user domain is the Keycloak managed identity.
+          Without this parameter the records of the calling user are retrieved.
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: period
+        description: A (random) date in the period concerning the balance. Default
+          is the balance of the active ledger.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Balance` entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: getbalances
+      summary: List All balances
+      description: "Gets a paged list of  `Balance` entities. Default the entities\
+        \ owned by the calling user are listed while applying \nthe filter criteria.\n\
+        The administrator can request balances owned by any user. \n"
+components:
+  schemas:
+    Error:
+      title: Root Type for Error
+      description: The error response.
+      type: object
+      properties:
+        message:
+          description: Human-readable error text intended for developers.
+          type: string
+        reasonPhrase:
+          description: The HTTP status code textual message.
+          type: string
+        status:
+          format: int32
+          description: The HTTP status code.
+          type: integer
+        errorCode:
+          description: A string code identifying the error. This code can be used
+            to display an error message in the right language.
+          type: string
+      example:
+        message: This is a really bad request
+        reasonPhrase: Bad Request
+        status: 400
+    User:
+      description: 'A user in the message service. '
+      required:
+      - managedIdentity
+      - givenName
+      - familyName
+      type: object
+      properties:
+        id:
+          format: int64
+          description: 'The unique user id. If referenced use the URN notation: urn:nb:cm:user:<id>'
+          type: integer
+        managedIdentity:
+          description: The user is as known by the IDM (Keycloak). The format is determined
+            by the IDM.
+          type: string
+        givenName:
+          description: The first name of the driver.
+          type: string
+        familyName:
+          description: The family name of the driver.
+          type: string
+      example:
+        familyName: Normalverbraucher
+        givenName: Otto
+        id: 2
+        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+    Page:
+      title: Root Type for Page
+      description: A page from a result set. For smaller sets the page contains the
+        complete result set.
+      type: object
+      properties:
+        totalCount:
+          format: int32
+          description: |-
+            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
+
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
+          type: integer
+        count:
+          format: int32
+          description: The number of items in this page.
+          type: integer
+        data:
+          description: An array with the actual payload. The payload depends on the
+            request being made.
+          type: array
+          items: {}
+        offset:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
+      example:
+        totalCount: 104
+        start: 32
+        count: 16
+        data: []
+    AccountingEntry:
+      title: Root Type for AccountingEntry
+      description: An single accounting entry or booking statement.
+      required:
+      - accountType
+      - accountingTime
+      - account
+      - amount
+      - id
+      - transactionTime
+      - transactionType
+      type: object
+      properties:
+        accountingTime:
+          format: date-time
+          description: The timestamp of the 'financial' fact.
+          type: string
+        transactionTime:
+          format: date-time
+          description: The timstamp of the actual execution of the transaction.
+          type: string
+        description:
+          description: The short description of the transaction.
+          type: string
+        account:
+          description: 'The account as known by the user. Example: `current` for tracking
+            the amoubt of credits owned by the user.'
+          type: string
+        id:
+          format: int32
+          description: The database id of the entry.
+          type: integer
+        amount:
+          format: int32
+          description: The amount of credits involved in the transaction.
+          type: integer
+        transactionType:
+          description: The type of the transaction.
+          enum:
+          - DEBIT
+          - CREDIT
+          type: string
+        accountType:
+          description: 'The type of the account. Normal users have a liability account,
+            meaning that NetMobiel is owing them an amount of credits. '
+          enum:
+          - ASSET
+          - LIABILITY
+          type: string
+      example:
+        accountingTime: 2019-06-17T15:59:00Z
+        transactionTime: 2019-06-17T16:30:00Z
+        description: Rit met Coby Hoekstra naar Zelhem
+        account: current
+        id: 123456
+        amount: 5
+        type: CREDIT
+        accountType: LIABILITY
+    Balance:
+      title: Root Type for Balance
+      description: A representation of the balance of an account.
+      type: object
+      properties:
+        startAmount:
+          format: int32
+          type: integer
+        endAmount:
+          format: int32
+          type: integer
+        ledger:
+          type: string
+        account:
+          type: string
+        userRef:
+          type: string
+      example:
+        startAmount: 54
+        endAmount: 112
+        ledger: "2020"
+        account: current
+        user: urn:nb:kc:user:919e1308-6fe0-4727-881f-419bffa1ca7b
+  responses:
+    InternalServerError:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: Some application error occurred, indicating a bug in the application
+        (500).
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The calling user is not allowed to perform the operation on the
+        resource (403).
+    NotAuthorized:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The caller is not authorized to performed the intended operation
+        (status 401).
+    ServiceUnavailableException:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: 'The (underlying) service is (temporarily) not available. Try again
+        later (503). '
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: A requested object could not be found (404).
+    Gone:
+      description: The requested object does no longer exist (410).
+    Conflict:
+      description: A conflict occurred with existing objects (duplicate key ec.).
+        A 409 error.
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The request was understood, but in incomplete or invalid and cannot
+        be processed (400).
+  securitySchemes:
+    apikey:
+      type: apiKey
+      description: 'The Planner service requires an Api Key: x-gravitee-api-key in
+        the header.'
+      name: Api-key
+      in: header
+    Bearer-only:
+      scheme: bearer
+      type: http
+      description: You need a valid access token.
