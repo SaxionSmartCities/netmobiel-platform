@@ -12,6 +12,7 @@ import java.util.List;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceContext;
+import javax.persistence.TypedQuery;
 import javax.transaction.UserTransaction;
 
 import org.jboss.arquillian.container.test.api.Deployment;
@@ -117,27 +118,27 @@ public class AccountingEntryDaoIT {
     	em.persist(user1);
     	em.persist(user2);
     	em.persist(user3);
-    	account1 = createAccount(user1, "account-1", AccountType.LIABILITY, "2020-04-07T14:45:00Z");
-    	account2 = createAccount(user2, "account-2", AccountType.LIABILITY, "2020-04-06T12:00:00Z"); 
-    	account3 = createAccount(user2, "account-3", AccountType.LIABILITY, "2020-04-05T12:00:00Z"); 
+    	account1 = createAccount(user1, "account-1", AccountType.LIABILITY);
+    	account2 = createAccount(user2, "account-2", AccountType.LIABILITY); 
+    	account3 = createAccount(user2, "account-3", AccountType.LIABILITY); 
         em.persist(account1);
         em.persist(account2);
         em.persist(account3);
         balance1 = new Balance(ledger, account1, 100); 
         balance2 = new Balance(ledger, account2, 200); 
         balance3 = new Balance(ledger, account3, 0); 
+        em.persist(balance1);
+        em.persist(balance2);
+        em.persist(balance3);
     	
-
         utx.commit();
         // clear the persistence context (first-level cache)
         em.clear();
     }
 
-    private Account createAccount(User holder, String reference, AccountType type, String creationTimeIso) {
-    	Instant creationTime = Instant.parse(creationTimeIso);
+    private Account createAccount(User holder, String reference, AccountType type) {
     	Account acc = new Account();
     	acc.setAccountType(type);
-    	acc.setCreatedTime(creationTime);
     	acc.setHolder(holder);
     	acc.setReference(reference);
     	return acc;
@@ -167,23 +168,52 @@ public class AccountingEntryDaoIT {
     	entries.forEach(obj -> log.info(subject + ": " + obj.toString()));
     }
     
+    private void checkBalance(Account acc, int amount) {
+		TypedQuery<Balance> tq = em.createQuery("from Balance bal where bal.ledger = :ledger and bal.account = :account", Balance.class);
+		tq.setParameter("ledger", ledger);
+		tq.setParameter("account", acc);
+		Balance b = tq.getSingleResult();
+		assertEquals(amount, b.getEndAmount());
+
+    }
     @Test
     public void listAccountingEntries() {
+    	// Take care to load the balances into the persistence context
+    	balance1 = em.find(Balance.class, balance1.getId());
+    	balance2 = em.find(Balance.class, balance2.getId());
+    	balance3 = em.find(Balance.class, balance3.getId());
+    	int oldAmount1 = balance1.getEndAmount();
+    	int oldAmount2 = balance2.getEndAmount();
     	AccountingTransaction trans = ledger.createTransaction("description-1", Instant.parse("2020-04-07T17:00:00Z"), Instant.parse("2020-04-07T18:00:00Z"))
     			.credit(balance1, 10)
     			.debit(balance2, 10)
     			.build();
     	em.persist(trans);
+    	checkBalance(balance1.getAccount(), oldAmount1 + 10);
+    	checkBalance(balance2.getAccount(), oldAmount2 - 10);
+    	oldAmount1 += 10;
+    	oldAmount2 -= 10;
+
     	trans = ledger.createTransaction("description-2", Instant.parse("2020-04-08T17:00:00Z"), Instant.parse("2020-04-08T18:00:00Z"))
     			.credit(balance2, 20)
     			.debit(balance1, 20)
     			.build();
     	em.persist(trans);
+    	checkBalance(balance1.getAccount(), oldAmount1 - 20);
+    	checkBalance(balance2.getAccount(), oldAmount2 + 20);
+    	oldAmount1 -= 20;
+    	oldAmount2 += 20;
+
+    	int oldAmount3 = balance3.getEndAmount();
     	trans = ledger.createTransaction("description-3", Instant.parse("2020-04-09T17:00:00Z"), Instant.parse("2020-04-09T18:00:00Z"))
     			.credit(balance3, 20)
     			.debit(balance1, 20)
     			.build();
     	em.persist(trans);
+    	checkBalance(balance3.getAccount(), oldAmount3 + 20);
+    	checkBalance(balance1.getAccount(), oldAmount1 - 20);
+    	oldAmount3 += 20;
+    	oldAmount2 -= 20;
 
     	String holderId = null;
     	String accref = null;
@@ -205,7 +235,6 @@ public class AccountingEntryDaoIT {
     	assertEquals(AccountingEntryType.CREDIT, entries.get(0).getEntryType());
     	assertEquals(AccountingEntryType.DEBIT, entries.get(1).getEntryType());
     	dump("listEntries 2", entries);
-
     	// TEST holder
     	holderId = "U2";
     	actual = accountingEntryDao.listAccountingEntries(holderId, accref, since, until, 0, 0);

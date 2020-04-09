@@ -30,21 +30,19 @@ public class AccountingTransactionTest {
         User user2 = new User("U2", "B", "Family U2");
         User user3 = new User("U3", "C", "Family U3");
         User bank= new User("B", "D", "Family Bank");
-    	account1 = createAccount(user1, "account-1", AccountType.LIABILITY, "2020-04-07T14:45:00Z");
-    	account2 = createAccount(user2, "account-2", AccountType.LIABILITY, "2020-04-06T12:00:00Z"); 
-    	account3 = createAccount(user3, "account-3", AccountType.LIABILITY, "2020-04-05T12:00:00Z"); 
-    	assetAccount = createAccount(bank, "bank", AccountType.ASSET, "2020-01-01T12:00:00Z"); 
+    	account1 = createAccount(user1, "account-1", AccountType.LIABILITY);
+    	account2 = createAccount(user2, "account-2", AccountType.LIABILITY); 
+    	account3 = createAccount(user3, "account-3", AccountType.LIABILITY); 
+    	assetAccount = createAccount(bank, "bank", AccountType.ASSET); 
         balance1 = new Balance(ledger, account1, 100); 
         balance2 = new Balance(ledger, account2, 200); 
         balance3 = new Balance(ledger, account3, 0); 
         assetBalance = new Balance(ledger, assetAccount, 0); 
 	}
 
-    private Account createAccount(User holder, String reference, AccountType type, String creationTimeIso) {
-    	Instant creationTime = Instant.parse(creationTimeIso);
+    private Account createAccount(User holder, String reference, AccountType type) {
     	Account acc = new Account();
     	acc.setAccountType(type);
-    	acc.setCreatedTime(creationTime);
     	acc.setHolder(holder);
     	acc.setReference(reference);
     	return acc;

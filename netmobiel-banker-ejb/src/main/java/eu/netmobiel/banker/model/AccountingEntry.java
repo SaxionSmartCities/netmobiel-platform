@@ -52,7 +52,7 @@ public class AccountingEntry {
     /**
      * The accounting entry type.
      */
-    @Column(name = "entry_type", nullable = false)
+    @Column(name = "entry_type", nullable = false, length = 1)
     private AccountingEntryType entryType;
 
     /**

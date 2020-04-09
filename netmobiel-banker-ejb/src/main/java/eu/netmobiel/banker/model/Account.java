@@ -14,6 +14,7 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.PrePersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
@@ -65,13 +66,13 @@ public class Account {
     /**
      * The account type.
      */
-    @Column(name = "account_type", length = 1)
+    @Column(name = "account_type", length = 1, nullable = false)
     private AccountType accountType;
 
     /**
      * Time of creation of the account.
      */
-    @Column(name = "created_time", nullable = false)
+    @Column(name = "created_time", nullable = false, updatable = false)
     private Instant createdTime;
 
     /**
@@ -89,11 +90,15 @@ public class Account {
     	acc.holder = aHolder;
     	acc.reference = aReference;
     	acc.accountType = type;
-        acc.createdTime = Instant.now();
         return acc;
     }
 
-	public Long getId() {
+    @PrePersist
+    void onPersist() {
+        this.createdTime = Instant.now();
+    }
+
+    public Long getId() {
 		return id;
 	}
 
@@ -141,10 +146,6 @@ public class Account {
 
 	public Instant getCreatedTime() {
 		return createdTime;
-	}
-
-	public void setCreatedTime(Instant createdTime) {
-		this.createdTime = createdTime;
 	}
 
 	public Instant getClosedTime() {

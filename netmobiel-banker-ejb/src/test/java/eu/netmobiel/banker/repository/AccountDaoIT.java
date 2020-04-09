@@ -4,7 +4,6 @@ package eu.netmobiel.banker.repository;
 import static org.junit.Assert.*;
 
 import java.io.File;
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
@@ -119,11 +118,9 @@ public class AccountDaoIT {
         utx.commit();
     }
     
-    private Account createAccount(User holder, String reference, AccountType type, String creationTimeIso) {
-    	Instant creationTime = Instant.parse(creationTimeIso);
+    private Account createAccount(User holder, String reference, AccountType type) {
     	Account acc = new Account();
     	acc.setAccountType(type);
-    	acc.setCreatedTime(creationTime);
     	acc.setHolder(holder);
     	acc.setReference(reference);
     	return acc;
@@ -136,7 +133,7 @@ public class AccountDaoIT {
     @Test
     public void saveAccount() {
     	User holder = userDao.findByManagedIdentity("U1").get();
-		Account account= createAccount(holder, "account-1", AccountType.LIABILITY, "2020-04-07T14:45:00Z");
+		Account account= createAccount(holder, "account-1", AccountType.LIABILITY);
     	accountDao.save(account);
     	List<Account> actual = accountDao.findAll();
     	assertNotNull(actual);
@@ -148,7 +145,7 @@ public class AccountDaoIT {
     public void findByReference() {
     	User holder = userDao.findByManagedIdentity("U1").get();
     	final String accref = "account-1"; 
-		Account account= createAccount(holder, accref, AccountType.LIABILITY, "2020-04-07T14:45:00Z");
+		Account account= createAccount(holder, accref, AccountType.LIABILITY);
     	accountDao.save(account);
     	Account actual = accountDao.findByReference(accref);
     	assertNotNull(actual);
@@ -175,8 +172,8 @@ public class AccountDaoIT {
     	User holder2 = userDao.findByManagedIdentity("U2").get();
     	final String accref1 = "account-1"; 
     	final String accref2 = "account-2"; 
-    	accountDao.save(createAccount(holder2, accref2, AccountType.LIABILITY, "2020-04-07T16:00:00Z"));
-    	accountDao.save(createAccount(holder1, accref1, AccountType.LIABILITY, "2020-04-07T14:45:00Z"));
+    	accountDao.save(createAccount(holder2, accref2, AccountType.LIABILITY));
+    	accountDao.save(createAccount(holder1, accref1, AccountType.LIABILITY));
     	PagedResult<Long> actual = accountDao.listAccounts(null, 0, 0);
     	assertNotNull(actual);
     	assertEquals(0, actual.getCount());

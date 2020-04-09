@@ -1,6 +1,6 @@
 package eu.netmobiel.banker.model;
 
-import java.sql.Timestamp;
+import java.time.Instant;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
@@ -11,6 +11,8 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.PrePersist;
+import javax.persistence.PreUpdate;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
@@ -42,8 +44,8 @@ public class Balance {
 	@Column(name = "version")
 	private int version;
 	
-	@Column(name = "modifiedAt", insertable = false, updatable = false)
-	private Timestamp modifiedAt;
+	@Column(name = "modified_time", nullable = false)
+	private Instant modifiedTime;
 	
 	@Column(name = "start_amount", nullable = false)
 	private int startAmount;
@@ -70,6 +72,12 @@ public class Balance {
 		this.endAmount = this.startAmount;
 	}
 	
+	@PrePersist
+	@PreUpdate
+	void onUpdateOrPersist() {
+		this.modifiedTime = Instant.now();
+	}
+
 	public Long getId() {
 		return id;
 	}
@@ -110,10 +118,10 @@ public class Balance {
 		this.account = account;
 	}
 
-	public Timestamp getModifiedAt() {
-		return modifiedAt;
+	public Instant getModifiedTime() {
+		return modifiedTime;
 	}
-	
+
 	public void debit(int amount) {
 		if (account.getAccountType() == AccountType.ASSET) {
 			endAmount += amount;

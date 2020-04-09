@@ -23,7 +23,7 @@ import eu.netmobiel.commons.model.BasicUser;
 @NamedEntityGraph()
 @Entity
 // You cannot have a table called 'user' in postgres, it is a reserved keyword
-@Table(name = "cm_user", uniqueConstraints = {
+@Table(name = "bn_user", uniqueConstraints = {
 	    @UniqueConstraint(name = "cs_managed_identity_unique", columnNames = { "managed_identity" })
 })
 @Vetoed
