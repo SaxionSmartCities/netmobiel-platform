@@ -162,6 +162,12 @@
             </ejbModule>
             <webModule>
 				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-banker-rest</artifactId>
+              	<contextRoot>/banker</contextRoot>
+              	<bundleFileName>netmobiel-banker-rest.war</bundleFileName>
+            </webModule>
+            <webModule>
+				<groupId>${project.groupId}</groupId>
 				<artifactId>netmobiel-communicator-rest</artifactId>
               	<contextRoot>/communicator</contextRoot>
               	<bundleFileName>netmobiel-communicator-rest.war</bundleFileName>
