@@ -126,7 +126,7 @@ public class UserManager {
     public Optional<User> resolveUrn(String userRef) {
     	User user = null;
     	if (UrnHelper.isUrn(userRef)) {
-        	NetMobielModule module = NetMobielModule.valueOf(UrnHelper.getService(userRef));
+        	NetMobielModule module = NetMobielModule.getEnum(UrnHelper.getService(userRef));
         	if (module == NetMobielModule.PLANNER) {
     			Long did = PlannerUrnHelper.getId(User.URN_PREFIX, userRef);
         		user = userDao.find(did).orElse(null);
