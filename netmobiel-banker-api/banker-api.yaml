@@ -211,6 +211,7 @@ components:
       - endAmount
       - ledger
       - startAmount
+      - modifiedTime
       type: object
       properties:
         startAmount:
@@ -222,7 +223,7 @@ components:
           description: The amount of credits currently held in this account.
           type: integer
         ledger:
-          description: The name of the accounting poeriod, in general the year.
+          description: The name of the accounting period, in general the fiscal year.
           type: string
         account:
           description: 'The account as known by the user. Example: `current` for tracking
@@ -235,13 +236,18 @@ components:
         id:
           description: Database refrence of the entity.
           type: integer
+        modifiedTime:
+          format: date-time
+          description: Last modification time.
+          type: string
       example:
         startAmount: 54
         endAmount: 112
         ledger: "2020"
         account: current
-        user: urn:nb:kc:user:919e1308-6fe0-4727-881f-419bffa1ca7b
+        userRef: urn:nb:kc:user:919e1308-6fe0-4727-881f-419bffa1ca7b
         id: 23
+        modifiedTime: 2020-04-09T13:33:00.000Z
     AccountingEntry:
       title: Root Type for AccountingEntry
       description: An single accounting entry or booking statement.
@@ -304,6 +310,7 @@ components:
         amount: 5
         type: CREDIT
         accountType: LIABILITY
+        userRef: urn:nb:kc:user:919e1308-6fe0-4727-881f-419bffa1ca7b
   responses:
     InternalServerError:
       content:
