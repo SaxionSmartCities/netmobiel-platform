@@ -23,6 +23,7 @@
         <module>netmobiel-communicator-api</module>
         <module>netmobiel-communicator-ejb</module>
         <module>netmobiel-communicator-rest</module>
+        <module>netmobiel-firebase-client</module>
         <module>netmobiel-here-client</module>
         <module>netmobiel-otp-client</module>
         <module>netmobiel-parent-pom</module>
