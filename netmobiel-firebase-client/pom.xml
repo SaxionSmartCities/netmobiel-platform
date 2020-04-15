@@ -1,0 +1,94 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>eu.netmobiel</groupId>
+        <artifactId>netmobiel-parent-pom</artifactId>
+        <version>0.2.0-SNAPSHOT</version>
+        <relativePath>../netmobiel-parent-pom/pom.xml</relativePath>
+    </parent>
+    <artifactId>netmobiel-firebase-client</artifactId>
+    <packaging>jar</packaging>
+    <name>NetMobiel Google Firebase Client</name>
+    <description>The client for Google FireBase for use by the Message service in NetMobiel.</description>
+	<properties>
+		<version.firebase>6.12.2</version.firebase>
+	</properties>
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-shade-plugin</artifactId>
+				<executions>
+					<execution>
+						<phase>package</phase>
+						<goals>
+							<goal>shade</goal>
+						</goals>
+						<configuration>
+							<createDependencyReducedPom>true</createDependencyReducedPom>
+							<shadedArtifactAttached>true</shadedArtifactAttached>
+							<shadedClassifierName>shaded</shadedClassifierName>
+<!-- 							<promoteTransitiveDependencies>true</promoteTransitiveDependencies> -->
+							<minimizeJar>true</minimizeJar>
+							<artifactSet>
+								<excludes>
+									<exclude>${project.groupId}:netmobiel-commons</exclude>
+									<exclude>org.jscience:jscience</exclude>
+									<exclude>org.javolution:javolution</exclude>
+								</excludes>
+							</artifactSet>
+						</configuration>
+					</execution>
+				</executions>
+			</plugin>
+		</plugins>
+	</build>
+	
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+           <artifactId>netmobiel-commons</artifactId>
+            <version>${project.version}</version>
+<!-- 		    <scope>provided</scope> -->
+        </dependency>
+		<dependency>
+		  <groupId>com.google.firebase</groupId>
+		  <artifactId>firebase-admin</artifactId>
+		  <version>${version.firebase}</version>
+		  <exclusions>
+		  	<exclusion>
+		  		<groupId>com.google.cloud</groupId>
+		  		<artifactId>google-cloud-storage</artifactId>
+		  	</exclusion>
+		  	<exclusion>
+		  		<groupId>com.google.cloud</groupId>
+		  		<artifactId>google-cloud-firestore</artifactId>
+		  	</exclusion>
+		  	<exclusion>
+		  		<groupId>com.fasterxml.jackson.core</groupId>
+		  		<artifactId>jackson-core</artifactId>
+		  	</exclusion>
+		  	<exclusion>
+		  		<groupId>javax.annotation</groupId>
+		  		<artifactId>javax.annotation-api</artifactId>
+		  	</exclusion>
+		  </exclusions>
+		</dependency>
+        <dependency>
+            <groupId>javax.enterprise</groupId>
+            <artifactId>cdi-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.spec.javax.annotation</groupId>
+            <artifactId>jboss-annotations-api_1.3_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+		
+		<!-- TEST Dependencies -->
+		
+    </dependencies>
+
+</project>
