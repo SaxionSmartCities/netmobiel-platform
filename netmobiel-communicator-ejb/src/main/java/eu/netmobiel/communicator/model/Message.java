@@ -24,6 +24,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
+import eu.netmobiel.commons.model.NetMobielMessage;
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @NamedEntityGraph(
@@ -45,7 +46,7 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 @Table(name = "message")
 @Vetoed
 @SequenceGenerator(name = "message_sg", sequenceName = "message_id_seq", allocationSize = 1, initialValue = 50)
-public class Message implements Serializable {
+public class Message implements NetMobielMessage, Serializable {
 
 	private static final long serialVersionUID = 5034396677188994964L;
 	public static final String URN_PREFIX = CommunicatorUrnHelper.createUrnPrefix(Message.class);
@@ -169,5 +170,4 @@ public class Message implements Serializable {
 		return String.format("Message [%d %s %s '%s' %s '%s']", id, sender.toString(), context, subject, DateTimeFormatter.ISO_INSTANT.format(creationTime), body != null ? body : "");
 	}
 
-   
 }

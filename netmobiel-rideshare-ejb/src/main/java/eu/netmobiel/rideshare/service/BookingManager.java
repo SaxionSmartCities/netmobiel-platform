@@ -13,7 +13,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
-import eu.netmobiel.commons.model.BasicUser;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
@@ -91,7 +91,7 @@ public class BookingManager {
      * @throws CreateException on error.
      * @throws NotFoundException if the ride cannot be found.
      */
-    public String createBooking(String rideRef, BasicUser traveller, 
+    public String createBooking(String rideRef, NetMobielUser traveller, 
     		GeoLocation pickupLocation, GeoLocation dropOffLocation, Integer nrSeats) throws CreateException, NotFoundException {
 		User travellerUser = userManager.register(traveller);
     	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideRef);

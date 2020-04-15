@@ -17,7 +17,7 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
-import eu.netmobiel.commons.model.BasicUser;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @NamedEntityGraph()
@@ -28,7 +28,7 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 })
 @Vetoed
 @SequenceGenerator(name = "user_sg", sequenceName = "user_id_seq", allocationSize = 1, initialValue = 50)
-public class User implements BasicUser, Serializable {
+public class User implements NetMobielUser, Serializable {
 
 	private static final long serialVersionUID = -4237705703151528786L;
 	public static final String URN_PREFIX = CommunicatorUrnHelper.createUrnPrefix(User.class);

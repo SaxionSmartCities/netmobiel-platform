@@ -3,7 +3,7 @@ package eu.netmobiel.rideshare.rest.security;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 
-import eu.netmobiel.commons.model.BasicUser;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.security.ISecurityContext;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.service.UserManager;
@@ -77,7 +77,7 @@ public class SecurityContext implements ISecurityContext {
     }
 
     @Override
-	public void checkOwnership(BasicUser owner, String objectName) {
+	public void checkOwnership(NetMobielUser owner, String objectName) {
     	if (getCurrentUser().getId() == null) {
     		loadUser();
     	}

@@ -18,7 +18,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.DuplicateEntryException;
 import eu.netmobiel.commons.exception.NotFoundException;
-import eu.netmobiel.commons.model.BasicUser;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.User;
@@ -94,7 +94,7 @@ public class UserManager {
      * @return the registered user.
      * @throws Exception
      */
-    public User register(BasicUser user) {
+    public User register(NetMobielUser user) {
     	User dbuser = userDao.findByManagedIdentity(user.getManagedIdentity())
     			.orElseGet(() -> userDao.save(new User(user)));
     	dbuser.setFamilyName(user.getFamilyName()); 

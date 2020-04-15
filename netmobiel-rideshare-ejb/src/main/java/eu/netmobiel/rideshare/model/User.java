@@ -19,7 +19,7 @@ import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
-import eu.netmobiel.commons.model.BasicUser;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @NamedEntityGraph()
@@ -30,7 +30,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 })
 @Vetoed
 @SequenceGenerator(name = "user_sg", sequenceName = "user_id_seq", allocationSize = 1, initialValue = 50)
-public class User implements BasicUser, Serializable {
+public class User implements NetMobielUser, Serializable {
 
 	private static final long serialVersionUID = -4237705703151528786L;
 	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix("user");
@@ -72,7 +72,7 @@ public class User implements BasicUser, Serializable {
      * Copy constructor from general definition.
      * @param bu the basic user fields
      */
-    public User(BasicUser bu) {
+    public User(NetMobielUser bu) {
     	this.familyName = bu.getFamilyName();
     	this.givenName = bu.getGivenName();
     	this.managedIdentity = bu.getManagedIdentity();
