@@ -61,13 +61,15 @@ public class FirebaseMessagingClientIT {
 
     private NetMobielUser aSender;
     
+    private static final String fcmToken_NetAtNemobielDotNet = "eFxxs0F4uEadoiqHu54Byt:APA91bHJHwXFxH3jOSUybFs7iRw48kpIHPsGM31BpzHJZPGsaa37c6SXhjjC-FiJyNcGKowwKJiySKl6AjGT0QDA0K-yjlnrqfHudiEt6wvUHYCeDC6JqR7Tcc-Ns5qPK_J5n8D3dwci"; 
+    private static final boolean enableRealSendMessage = false;
     @Before
     public void prepareTest() throws Exception {
     	aSender = new TestUser("some-user", "Otto", "Normalverbraucher");
     }
     
     @Test
-    public void testSendMessage() throws Exception {
+    public void testSendMessageDryRunBadToken() throws Exception {
     	NetMobielMessage msg = new TestMessage("a body", "urn:nb:ts:Test:1234", "Test 1234", Instant.now(), aSender);
     	try {
     		client.send("someFcmToken", msg, true);
@@ -77,6 +79,16 @@ public class FirebaseMessagingClientIT {
     	}
     }
 
+    @Test
+    public void testSendMessageRealToken() throws Exception {
+    	NetMobielMessage msg = new TestMessage("Dit is een NetMobiel test van Jaap, stuur even appje als je dit ontvangt", "urn:nb:ts:Test:1234", "Test 1234", Instant.now(), aSender);
+    	try {
+    		client.send(fcmToken_NetAtNemobielDotNet, msg, !enableRealSendMessage);
+    	} catch (SystemException ex) {
+    		fail(ex.toString());
+    	}
+    }
+    
     @Test
     public void testPublishMessage() throws Exception {
     	NetMobielMessage msg = new TestMessage("a body", "urn:nb:ts:Test:1234", "Test 1234", Instant.now(), aSender);
