@@ -1,0 +1,6 @@
+---
+openapi: 3.0.2
+info:
+  title: profile-service
+  version: 1.0.0
+  description: The profile service for NetMobiel.
