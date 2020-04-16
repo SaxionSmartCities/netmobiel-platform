@@ -204,6 +204,7 @@
 		<!-- <version>${version.org.slf4j}</version> -->
 		<!-- <scope>test</scope> -->
 		<!-- </dependency> -->
+		<!-- http://www.slf4j.org/legacy.html There are performance issues with jul-to-slf4j -->
 		<dependency>
 			<groupId>org.slf4j</groupId>
 			<artifactId>jul-to-slf4j</artifactId>
@@ -225,7 +226,13 @@
 			<artifactId>shrinkwrap-resolver-impl-maven</artifactId>
 			<scope>test</scope>
 		</dependency>
-	</dependencies>
+<!-- 		<dependency> -->
+<!-- 	      <groupId>org.jboss.shrinkwrap.resolver</groupId> -->
+<!-- 	      <artifactId>shrinkwrap-resolver-depchain</artifactId> -->
+<!-- 	      <scope>test</scope> -->
+<!-- 	      <type>pom</type> -->
+<!-- 	    </dependency> -->
+   	</dependencies>
 	<build>
 		<!-- Set the name of the artifacts. -->
 		<finalName>${project.artifactId}</finalName>
@@ -417,6 +424,10 @@
 								<name>java.util.logging.manager</name>
 								<value>org.jboss.logmanager.LogManager</value>
 							</property>
+<!-- 				             <property>  -->
+<!-- 				               <name>java.util.logging.config.file</name> -->
+<!-- 				               <value>src/test/resources/logging.properties</value> -->
+<!-- 				             </property> -->
 						</systemProperties>
 					</configuration>
 				</plugin>
