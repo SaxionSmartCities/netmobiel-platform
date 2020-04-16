@@ -8,6 +8,7 @@
         <version>0.2.0-SNAPSHOT</version>
         <relativePath>../netmobiel-parent-pom/pom.xml</relativePath>
     </parent>
+    <!--  Note: Integration test knows the group and artifact IDs too! -->
     <artifactId>netmobiel-firebase-client</artifactId>
     <packaging>jar</packaging>
     <name>NetMobiel Google Firebase Client</name>
@@ -43,6 +44,32 @@
 					</execution>
 				</executions>
 			</plugin>
+			<!--  Copy just before the integration test the shaded jar to a file with version stripped for easier maintenance. -->
+		    <plugin>  
+		       <groupId>org.apache.maven.plugins</groupId>  
+		       <artifactId>maven-dependency-plugin</artifactId>  
+		       <executions>  
+		          <execution>  
+		             <id>copy-shaded-lib</id>  
+		             <phase>pre-integration-test</phase>  
+		             <configuration>  
+		                <artifactItems>  
+		                   <artifactItem>  
+		                      <groupId>${project.groupId}</groupId>  
+		                      <artifactId>${project.artifactId}</artifactId>
+		                      <classifier>shaded</classifier>
+		                      <version>${project.version}</version>  
+		                   </artifactItem>  
+		                </artifactItems>  
+		                <outputDirectory>${project.build.directory}</outputDirectory>  
+		                <stripVersion>true</stripVersion>  
+		             </configuration>  
+		             <goals>  
+		                <goal>copy</goal>  
+		             </goals>  
+		          </execution>  
+		       </executions>  
+		    </plugin>  
 		</plugins>
 	</build>
 	

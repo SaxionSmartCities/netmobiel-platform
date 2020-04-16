@@ -1,6 +1,8 @@
 package eu.netmobiel.firebase.messaging;
 
 
+import static org.junit.Assert.*;
+
 import java.io.File;
 import java.time.Instant;
 
@@ -19,6 +21,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.NetMobielMessage;
 import eu.netmobiel.commons.model.NetMobielUser;
 
@@ -26,23 +29,26 @@ import eu.netmobiel.commons.model.NetMobielUser;
 public class FirebaseMessagingClientIT {
     @Deployment
     public static Archive<?> createTestArchive() {
-    	File[] deps = Maven.configureResolver()
-				.loadPomFromFile("pom.xml")
-				.importCompileAndRuntimeDependencies() 
-				.resolve()
-				.withTransitivity()
-				.asFile();
-		Archive<?> archive = ShrinkWrap.create(WebArchive.class, "test.war")
-       		.addAsLibraries(deps)
-            .addClass(FirebaseMessagingClient.class)
-//            .addClass(NetMobielUser.class)
-//            .addClass(NetMobielMessage.class)
-            // Arquillian tests need the beans.xml to recognize it as a CDI application
-            .addAsWebInfResource(EmptyAsset.INSTANCE, ArchivePaths.create("beans.xml"))
-            // Take car of removing the default json provider, because we use jackson everywhere (unfortunately).
-        	.addAsWebInfResource("jboss-deployment-structure.xml")
-        	.addAsResource("log4j.properties");
-//		System.out.println(archive.toString(Formatters.VERBOSE));
+    	Archive<?> archive = null;
+    	try {
+	    	File[] deps = Maven.configureResolver()
+					.loadPomFromFile("pom.xml")
+					.resolve("eu.netmobiel:netmobiel-commons:jar:?")
+					.withTransitivity()
+					.asFile();
+	    	// We want to test with the shaded jar to check if the packaging is ok!
+			archive = ShrinkWrap.create(WebArchive.class, "test.war")
+	       		.addAsLibrary(new File("target/netmobiel-firebase-client-shaded.jar"))
+	       		.addAsLibraries(deps)
+	            // Arquillian tests need the beans.xml to recognize it as a CDI application
+	            .addAsWebInfResource(EmptyAsset.INSTANCE, ArchivePaths.create("beans.xml"))
+	            // Take car of removing the default json provider, because we use jackson everywhere (unfortunately).
+	        	.addAsWebInfResource("jboss-deployment-structure.xml")
+	        	.addAsResource("log4j.properties");
+	//		System.out.println(archive.toString(Formatters.VERBOSE));
+    	} catch (Throwable t) {
+    		t.printStackTrace();
+    	}
         return archive;
     }
 
@@ -60,12 +66,21 @@ public class FirebaseMessagingClientIT {
     	aSender = new TestUser("some-user", "Otto", "Normalverbraucher");
     }
     
+    @Test
+    public void testSendMessage() throws Exception {
+    	NetMobielMessage msg = new TestMessage("a body", "urn:nb:ts:Test:1234", "Test 1234", Instant.now(), aSender);
+    	try {
+    		client.send("someFcmToken", msg, true);
+    		fail("Expected an exception due to invalid FCM token");
+    	} catch (SystemException ex) {
+    		assertEquals("The registration token is not a valid FCM registration token", ex.getCause().getMessage());
+    	}
+    }
 
     @Test
     public void testPublishMessage() throws Exception {
     	NetMobielMessage msg = new TestMessage("a body", "urn:nb:ts:Test:1234", "Test 1234", Instant.now(), aSender);
     	client.publish("systemTopic", msg, true);
-    	
     }
 
     private static class TestUser implements NetMobielUser {
