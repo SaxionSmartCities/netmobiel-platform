@@ -3,4 +3,429 @@ openapi: 3.0.2
 info:
   title: profile-service
   version: 1.0.0
-  description: The profile service for NetMobiel.
+  description: API for the profile service of NetMobiel.
+servers:
+- url: https://prod.netmobiel.eu/profiles/api
+  description: The internal URL for the profile service (production).
+- url: https://api.netmobiel.eu/gwapi/profiles
+  description: The profile service visible to the world (production).
+- url: https://acc.netmobiel.eu/profiles/api
+  description: The internal URL for the profile service (acceptance).
+- url: https://api.netmobiel.eu/gwapi-acc/profiles
+  description: The profile service visible to the world (acceptance).
+paths:
+  /profiles:
+    summary: Path used to manage profile.
+    description: The REST endpoint/path used to list and create zero or more `Profile`
+      entities. This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+          description: Successfull call. The result contains an array of `Profile`
+            entities.
+      operationId: listRides
+      summary: List profiles of users.
+      description: |-
+        List profiles matching the search criteria.
+
+        TO BE IMPLEMENTED.
+    post:
+      requestBody:
+        description: A profile.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+        required: true
+      responses:
+        "201":
+          description: The profile is created.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+              examples:
+                "400response":
+                  value:
+                    succcess: false
+                    message: Invalid date of birth.
+          description: Invalid or missing date of birth.
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+              examples:
+                "409example":
+                  value:
+                    success: false
+                    message: Profile already exists (in Keycloak).
+          description: Profile already exists (in Keycloak)
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+              examples:
+                "422response":
+                  value:
+                    success: false
+                    message: Missing mandatory profile attributes (email, firstName
+                      or lastName).
+          description: One or more required parameters are missing.
+        "451":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+              examples:
+                "451example":
+                  value:
+                    success: false
+                    message: Terms have not been accepted.
+          description: Terms have not been accepted.
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - apikey: []
+      operationId: createProfile
+      summary: Create aprofile.
+      description: Creates a new profile
+  /profiles/{profileId}:
+    summary: Path used to manage a single `Profile`.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of a `Profile`. This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: On success the profile is reurned.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "500":
+          description: The profile could not be found.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getProfile
+      summary: Retrieves a profile
+      description: Retrieves a profile from the database.
+    put:
+      requestBody:
+        description: Updated `Profile` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+        required: true
+      responses:
+        "200":
+          description: Profile updated. The updated profile is returned.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "500":
+          description: The profile could not be updated.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: updateProfile
+      summary: Update a Profile
+      description: Updates an existing `Profile`.
+    delete:
+      responses:
+        "200":
+          description: Successful response.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "500":
+          description: The profile could not be deleted.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: deleteProfile
+      summary: Delete a Profile
+      description: Deletes an existing `Profile`. Profiles are hard deleted.
+    parameters:
+    - examples:
+        keycloakId:
+          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
+      name: profileId
+      description: The keycloak managed identity of the user owning the profile.
+      schema:
+        type: string
+      in: path
+      required: true
+components:
+  schemas:
+    SearchPreferences:
+      type: object
+      properties:
+        numPassengers:
+          description: 'In case of searching for car rides: The preferred number of
+            passengers that will go along. At least 1, at most 4.'
+          maximum: 4
+          minimum: 1
+          type: integer
+        maximumTransferTime:
+          description: The maximum amount time the transfers may take in minutes.
+            Default is 10 minutes.
+          type: number
+        luggageOptions:
+          description: 'A list of default luggage options. Choose from the following
+            options: `HANDLUGGAGE`, `PET`, `WALKER`, `STROLLER`, `WHEELCHAIR`, `GROCERIES`.'
+          type: array
+          items:
+            type: string
+        allowedTravelModes:
+          description: 'The default preferences of travel modalities. Choose a combination
+            from the following options: `BIKE`, `BUS`, `CAR`, `NETMOBIEL`, `RAIL`,
+            `TRAIN`, `WALK`.'
+          type: array
+          items:
+            type: string
+        allowTransfer:
+          description: If true then transfers between modalities are allowed.
+          type: boolean
+    ProfileResponse:
+      required:
+      - success
+      - message
+      - profiles
+      type: object
+      properties:
+        success:
+          type: boolean
+        message:
+          type: string
+        profiles:
+          type: array
+          items:
+            $ref: '#/components/schemas/Profile'
+    Profile:
+      required:
+      - email
+      - firstName
+      - lastName
+      - dateOfBirth
+      - consent
+      type: object
+      properties:
+        email:
+          description: The email address.
+          type: string
+        firstName:
+          description: The given name of the user.
+          type: string
+        lastName:
+          description: The family name of the user.
+          type: string
+        dateOfBirth:
+          format: date
+          description: The date of birth of the user.
+          type: string
+        phoneNumber:
+          description: The phone number where the user can be reached if necessary.
+          type: string
+        searchPreferences:
+          $ref: '#/components/schemas/SearchPreferences'
+        fcmToken:
+          description: The registration token for communicating messages through Google
+            Firebase Messaging.
+          type: string
+        userRole:
+          description: The role of the user (?).
+          type: string
+        consent:
+          $ref: '#/components/schemas/UserConsent'
+          description: The consent flags for the user.
+        address:
+          $ref: '#/components/schemas/Address'
+          description: The home address of the user.
+    UserConsent:
+      title: Root Type for UserConsent
+      description: Type user to flag consent with the terms of use of NetMobiel.
+      type: object
+      properties:
+        olderThanSixteen:
+          description: 'If true the user has confirmed his or her age to be at least
+            16 years old. '
+          type: boolean
+        acceptedTerms:
+          description: If true the user has agreed with the terms of use for NetMobiel.
+          type: boolean
+      example:
+        olderThanSixteen: true
+        acceptedTerms: true
+    Address:
+      title: Root Type for Address
+      description: The address of a user.
+      type: object
+      properties:
+        street:
+          description: The name of the street.
+          type: string
+        houseNumber:
+          description: The house number.
+          type: string
+        postalCode:
+          description: Thje postal code for the address.
+          type: string
+        locality:
+          description: The city or village name.
+          type: string
+        country:
+          description: The country code according to ISO 3166-2.
+          type: string
+      example:
+        street: Rembrandtstraat
+        houseNumber: "8"
+        postalCode: 7556WD
+        locality: Hengelo
+        country: NL
+    RideOptions:
+      type: object
+      properties:
+        numPassengers:
+          description: The maximum number of passengers that can be taken. At least
+            1, at most 4.
+          maximum: 4
+          minimum: 1
+          type: integer
+        luggageOptions:
+          description: 'A list of default luggage options. Choose from the following
+            options: `HANDLUGGAGE`, `PET`, `WALKER`, `STROLLER`, `WHEELCHAIR`, `GROCERIES`.'
+          type: array
+          items:
+            type: string
+        maxMinutesDetour:
+          description: The maximum amount time the driver will reserve for a detour
+            to pickup and drop-off a passenger. Default is 10 minutes.
+          type: number
+        selectedCarId:
+          description: The currently preferred car for ridesharing.
+          type: integer
+  responses:
+    InternalServerError:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProfileResponse'
+          examples:
+            "500example":
+              value:
+                success: false
+                message: Error querying profile from database.
+      description: Some application error occurred, indicating a bug in the application
+        (500) or some runtime problem with the database.
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProfileResponse'
+          examples:
+            "403example":
+              value:
+                success: false
+                message: Forbidden.
+      description: The calling user is not allowed to perform the operation on the
+        resource (403).
+    NotAuthorized:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProfileResponse'
+          examples:
+            "401example":
+              value:
+                success: false
+                message: Not authorized.
+      description: The caller is not authorized to performed the intended operation
+        (status 401).
+    ServiceUnavailableException:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProfileResponse'
+          examples:
+            "503example":
+              value:
+                success: false
+                message: Not available for now.
+      description: 'The (underlying) service is (temporarily) not available. Try again
+        later (503). '
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProfileResponse'
+          examples:
+            "404example":
+              value:
+                success: false
+                message: Not found.
+      description: A requested object could not be found (404).
+    Gone:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProfileResponse'
+          examples:
+            "410example":
+              value:
+                success: false
+                message: Object does no longer exist.
+      description: The requested object does no longer exist (410).
+    Conflict:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProfileResponse'
+          examples:
+            "409example":
+              value:
+                success: false
+                message: Duplicate object.
+      description: A conflict occurred with existing objects (duplicate key ec.) (409).
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/ProfileResponse'
+          examples:
+            "400example":
+              value:
+                success: false
+                message: Request is invalid and canmnot be understood.
+      description: The request was understood, but in incomplete or invalid and cannot
+        be processed (400).
+  securitySchemes:
+    apikey:
+      type: apiKey
+      description: 'The service requires an Api Key: x-gravitee-api-key in the header.'
+      name: Api-key
+      in: header
+    Bearer-only:
+      scheme: bearer
+      type: http
+      description: You need a valid access token.
