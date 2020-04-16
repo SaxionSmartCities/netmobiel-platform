@@ -110,7 +110,7 @@ paths:
       description: Creates a new profile
   /profiles/{profileId}:
     summary: Path used to manage a single `Profile`.
-    description: The REST endpoint/path used to get, update, and delete single instances
+    description: The REST endpoint/path used to get, update, and delete a single instance
       of a `Profile`. This path contains `GET`, `PUT`, and `DELETE` operations used
       to perform the get, update, and delete tasks, respectively.
     get:
@@ -176,6 +176,32 @@ paths:
         type: string
       in: path
       required: true
+  /profiles/{profileId}/fcmToken:
+    summary: Path used to manage a single `Firebase Messaging Token`.
+    description: The REST endpoint/path used to get a single instance of a `Firebase
+      Messaging Token`. This path contains a `GET` operation to perform the get operation.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirebaseMessagingToken'
+          description: Returns a FCM token.
+      operationId: getFcmToken
+      summary: Retrieves a `Firebase Messaging Token`.
+      description: Retrieves a `Firebase Messaging Token` from the profile of a user,
+        given the managed identity of the user.
+    parameters:
+    - examples:
+        keycloakId:
+          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
+      name: profileId
+      description: The keycloak managed identity of the user owning the profile.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     SearchPreferences:
@@ -223,12 +249,14 @@ components:
           items:
             $ref: '#/components/schemas/Profile'
     Profile:
+      description: The profile attributes of a user of NetMobiel.
       required:
       - email
       - firstName
       - lastName
       - dateOfBirth
       - consent
+      - id
       type: object
       properties:
         email:
@@ -249,6 +277,7 @@ components:
           type: string
         searchPreferences:
           $ref: '#/components/schemas/SearchPreferences'
+          description: The preferences of a NetMobiel traveller role.
         fcmToken:
           description: The registration token for communicating messages through Google
             Firebase Messaging.
@@ -262,6 +291,13 @@ components:
         address:
           $ref: '#/components/schemas/Address'
           description: The home address of the user.
+        id:
+          description: The profile id, which is exactly equals to the Keycloak managed
+            identity.
+          type: string
+        ridePlanOptions:
+          $ref: '#/components/schemas/RidePlanOptions'
+          description: The preferences of a driver role in NetMobiel.
     UserConsent:
       title: Root Type for UserConsent
       description: Type user to flag consent with the terms of use of NetMobiel.
@@ -303,7 +339,7 @@ components:
         postalCode: 7556WD
         locality: Hengelo
         country: NL
-    RideOptions:
+    RidePlanOptions:
       type: object
       properties:
         numPassengers:
@@ -325,6 +361,17 @@ components:
         selectedCarId:
           description: The currently preferred car for ridesharing.
           type: integer
+    FirebaseMessagingToken:
+      title: Root Type for FirebaseMessagingToken
+      description: Type of a messaging token.
+      type: object
+      properties:
+        fcmToken:
+          description: The `Firebase Messaing Token` used to send a message to a specific
+            device.
+          type: string
+      example:
+        fcmToken: "1234"
   responses:
     InternalServerError:
       content:
