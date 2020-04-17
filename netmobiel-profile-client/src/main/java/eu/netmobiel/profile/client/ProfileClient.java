@@ -1,5 +1,6 @@
 package eu.netmobiel.profile.client;
 
+import java.io.IOException;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
@@ -7,6 +8,8 @@ import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.ws.rs.client.ClientRequestContext;
+import javax.ws.rs.client.ClientRequestFilter;
 import javax.ws.rs.core.Response;
 
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
@@ -16,6 +19,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.jaxrs.LocalDateParamConverterProvider;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.api.ProfilesApi;
@@ -43,6 +47,7 @@ public class ProfileClient {
 				.maxPooledPerRoute(20)
 				.register(new Jackson2ObjectMapperContextResolver())
 				.property("resteasy.preferJacksonOverJsonB", true)
+				.register(new LocalDateParamConverterProvider())
 				.build();
 	}
 	
@@ -51,11 +56,28 @@ public class ProfileClient {
 		client.close();
 	}
 	
-    public String getFirebaseToken(String managedIdentity) throws ApplicationException {
+	public static class AddAuthHeadersRequestFilter implements ClientRequestFilter {
+		private String token;
+		
+	    public AddAuthHeadersRequestFilter(String token) {
+	        this.token = token;
+	    }
+
+	    @Override
+	    public void filter(ClientRequestContext requestContext) throws IOException {
+	        requestContext.getHeaders().add("Authorization", "Bearer " + token);
+	    }
+	}
+
+	public String getFirebaseToken(String accessToken, String managedIdentity) throws ApplicationException {
+    	if (accessToken == null || accessToken.trim().length() < 1) {
+    		throw new IllegalArgumentException("getFirebaseToken: accessToken is a mandatory parameter");
+    	}
     	if (managedIdentity == null || managedIdentity.trim().length() < 1) {
     		throw new IllegalArgumentException("getFirebaseToken: managedIdentity is a mandatory parameter");
     	}
-    	ResteasyWebTarget target = client.target(profileServiceUrl);
+    	ResteasyWebTarget target = client.target(profileServiceUrl)
+    			.register(new AddAuthHeadersRequestFilter(accessToken));
         ProfilesApi api = target.proxy(ProfilesApi.class);
         FirebaseMessagingToken result = null;
 		try (Response response =  api.getFcmToken(managedIdentity)) {
@@ -70,11 +92,15 @@ public class ProfileClient {
         return result.getFcmToken();
     }
 
-    public Profile getProfile(String managedIdentity) throws ApplicationException {
+    public Profile getProfile(String accessToken, String managedIdentity) throws ApplicationException {
+    	if (accessToken == null || accessToken.trim().length() < 1) {
+    		throw new IllegalArgumentException("getFirebaseToken: accessToken is a mandatory parameter");
+    	}
     	if (managedIdentity == null || managedIdentity.trim().length() < 1) {
     		throw new IllegalArgumentException("getProfile: managedIdentity is a mandatory parameter");
     	}
-    	ResteasyWebTarget target = client.target(profileServiceUrl);
+    	ResteasyWebTarget target = client.target(profileServiceUrl)
+    			.register(new AddAuthHeadersRequestFilter(accessToken));
         ProfilesApi api = target.proxy(ProfilesApi.class);
         ProfileResponse result = null;
         Profile profile= null;
@@ -86,7 +112,7 @@ public class ProfileClient {
 	        if (result.getProfiles().isEmpty()) {
 	        	throw new NotFoundException("Profile does not exist");
 	        }
-	        
+	        profile = result.getProfiles().get(0);
 		}
         return profile;
     }

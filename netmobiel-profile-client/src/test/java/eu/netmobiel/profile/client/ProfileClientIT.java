@@ -4,6 +4,8 @@ package eu.netmobiel.profile.client;
 import static org.junit.Assert.*;
 
 import java.io.File;
+import java.io.InputStream;
+import java.util.Properties;
 
 import javax.inject.Inject;
 
@@ -15,9 +17,14 @@ import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.keycloak.authorization.client.AuthzClient;
+import org.keycloak.representations.AccessTokenResponse;
 import org.slf4j.Logger;
+
+import eu.netmobiel.profile.api.model.Profile;
 
 @RunWith(Arquillian.class)
 public class ProfileClientIT {
@@ -25,7 +32,7 @@ public class ProfileClientIT {
     public static Archive<?> createTestArchive() {
     	File[] deps = Maven.configureResolver()
 				.loadPomFromFile("pom.xml")
-				.importCompileAndRuntimeDependencies() 
+				.importRuntimeAndTestDependencies() 
 				.resolve()
 				.withTransitivity()
 				.asFile();
@@ -37,7 +44,9 @@ public class ProfileClientIT {
             .addAsWebInfResource(EmptyAsset.INSTANCE, ArchivePaths.create("beans.xml"))
             // Take car of removing the default json provider, because we use jackson everywhere (unfortunately).
         	.addAsWebInfResource("jboss-deployment-structure.xml")
-        	.addAsResource("log4j.properties");
+        	.addAsResource("log4j.properties")
+        	.addAsResource("keycloak-issuer.json")
+        	.addAsResource("test-setup.properties");
 //		System.out.println(archive.toString(Formatters.VERBOSE));
         return archive;
     }
@@ -49,20 +58,44 @@ public class ProfileClientIT {
 	@Inject
     private Logger log;
 
-    /**
-     * Managed Identity of net@netmobiel.net.
-     */
-    private static final String testManagedIdentity = "5fd8defe-848e-4b66-8e6f-8a7d3b7ee485";
-    /**
-     * FCM token of net@netmobiel.net.
-     */
-    private static final String testFcmToken = "eFxxs0F4uEadoiqHu54Byt:APA91bHJHwXFxH3jOSUybFs7iRw48kpIHPsGM31BpzHJZPGsaa37c6SXhjjC-FiJyNcGKowwKJiySKl6AjGT0QDA0K-yjlnrqfHudiEt6wvUHYCeDC6JqR7Tcc-Ns5qPK_J5n8D3dwci";
+    private Properties testSetupProperties;
+    private String accessToken;
+    
+    @Before
+    public void prepare() throws Exception {
+        testSetupProperties = new Properties();
+		try (InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-setup.properties")){
+			testSetupProperties.load(inputStream);
+		}
+        InputStream configStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("keycloak-issuer.json");
+    	AuthzClient authzClient = AuthzClient.create(configStream);
+    	AccessTokenResponse rsp = authzClient.obtainAccessToken(testSetupProperties.getProperty("username"), testSetupProperties.getProperty("password"));
+    	accessToken = rsp.getToken();
+    }
 
     @Test
     public void testGetFcmToken() throws Exception {
-		String token = client.getFirebaseToken(testManagedIdentity);
-    	assertNotNull(token);
-    	assertEquals(testFcmToken, token);
+		String fcmtoken = client.getFirebaseToken(accessToken, testSetupProperties.getProperty("managedIdentity"));
+    	assertNotNull(fcmtoken);
+    	assertEquals(testSetupProperties.getProperty("fcmToken"), fcmtoken);
+    }
+
+    @Test
+    public void testGetFcmTokenAccessDenied() throws Exception {
+    	try {
+			client.getFirebaseToken(accessToken + "xxxx", testSetupProperties.getProperty("managedIdentity"));
+			fail("Expected Exception");
+    	} catch (Exception ex) {
+    		assertTrue(ex instanceof SecurityException);
+    		assertTrue(ex.getMessage().contains("403"));
+    	}
+    }
+    
+    @Test
+    public void testGetProfile() throws Exception {
+		Profile profile = client.getProfile(accessToken, testSetupProperties.getProperty("managedIdentity"));
+    	assertNotNull(profile);
+    	assertEquals(testSetupProperties.getProperty("managedIdentity"), profile.getId());
     }
 
 }
