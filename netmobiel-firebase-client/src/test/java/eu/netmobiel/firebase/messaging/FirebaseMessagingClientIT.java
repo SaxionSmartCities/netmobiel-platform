@@ -60,8 +60,12 @@ public class FirebaseMessagingClientIT {
     private Logger log;
 
     private NetMobielUser aSender;
+
+    /**
+     * FCM token of net@netmobiel.net.
+     */
+    private static final String testFcmToken = "eFxxs0F4uEadoiqHu54Byt:APA91bHJHwXFxH3jOSUybFs7iRw48kpIHPsGM31BpzHJZPGsaa37c6SXhjjC-FiJyNcGKowwKJiySKl6AjGT0QDA0K-yjlnrqfHudiEt6wvUHYCeDC6JqR7Tcc-Ns5qPK_J5n8D3dwci";
     
-    private static final String fcmToken_NetAtNemobielDotNet = "eFxxs0F4uEadoiqHu54Byt:APA91bHJHwXFxH3jOSUybFs7iRw48kpIHPsGM31BpzHJZPGsaa37c6SXhjjC-FiJyNcGKowwKJiySKl6AjGT0QDA0K-yjlnrqfHudiEt6wvUHYCeDC6JqR7Tcc-Ns5qPK_J5n8D3dwci"; 
     private static final boolean enableRealSendMessage = false;
     @Before
     public void prepareTest() throws Exception {
@@ -83,7 +87,7 @@ public class FirebaseMessagingClientIT {
     public void testSendMessageRealToken() throws Exception {
     	NetMobielMessage msg = new TestMessage("Dit is een NetMobiel test van Jaap, stuur even appje als je dit ontvangt", "urn:nb:ts:Test:1234", "Test 1234", Instant.now(), aSender);
     	try {
-    		client.send(fcmToken_NetAtNemobielDotNet, msg, !enableRealSendMessage);
+    		client.send(testFcmToken, msg, !enableRealSendMessage);
     	} catch (SystemException ex) {
     		fail(ex.toString());
     	}
