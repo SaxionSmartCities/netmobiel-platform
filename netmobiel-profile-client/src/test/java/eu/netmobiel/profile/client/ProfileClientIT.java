@@ -1,13 +1,9 @@
-package eu.netmobiel.here.client;
+package eu.netmobiel.profile.client;
 
 
 import static org.junit.Assert.*;
 
 import java.io.File;
-import java.util.Arrays;
-import java.util.HashSet;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.inject.Inject;
 
@@ -22,10 +18,6 @@ import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
-
-import eu.netmobiel.commons.model.GeoLocation;
-import eu.netmobiel.profile.client.ProfileClient;
-import eu.netmobiel.profile.client.Jackson2ObjectMapperContextResolver;
 
 @RunWith(Arquillian.class)
 public class ProfileClientIT {
@@ -53,11 +45,24 @@ public class ProfileClientIT {
     @Inject
     private ProfileClient client;
 
-    @Inject
+    @SuppressWarnings("unused")
+	@Inject
     private Logger log;
 
+    /**
+     * Managed Identity of net@netmobiel.net.
+     */
+    private static final String testManagedIdentity = "5fd8defe-848e-4b66-8e6f-8a7d3b7ee485";
+    /**
+     * FCM token of net@netmobiel.net.
+     */
+    private static final String testFcmToken = "eFxxs0F4uEadoiqHu54Byt:APA91bHJHwXFxH3jOSUybFs7iRw48kpIHPsGM31BpzHJZPGsaa37c6SXhjjC-FiJyNcGKowwKJiySKl6AjGT0QDA0K-yjlnrqfHudiEt6wvUHYCeDC6JqR7Tcc-Ns5qPK_J5n8D3dwci";
+
     @Test
-    public void testAutoSuggest() throws Exception {
+    public void testGetFcmToken() throws Exception {
+		String token = client.getFirebaseToken(testManagedIdentity);
+    	assertNotNull(token);
+    	assertEquals(testFcmToken, token);
     }
 
 }

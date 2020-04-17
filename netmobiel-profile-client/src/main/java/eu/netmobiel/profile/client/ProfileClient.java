@@ -7,7 +7,6 @@ import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
@@ -15,7 +14,9 @@ import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.api.ProfilesApi;
 import eu.netmobiel.profile.api.model.FirebaseMessagingToken;
@@ -29,7 +30,7 @@ public class ProfileClient {
 	@Inject
     private Logger log;
 
-    @Resource(lookup = "java:global/profile/baseUrl")
+    @Resource(lookup = "java:global/profileService/baseUrl")
     private String profileServiceUrl; 
 
     private ResteasyClient client;
@@ -50,7 +51,7 @@ public class ProfileClient {
 		client.close();
 	}
 	
-    public String getFirebaseToken(String managedIdentity) throws NotFoundException {
+    public String getFirebaseToken(String managedIdentity) throws ApplicationException {
     	if (managedIdentity == null || managedIdentity.trim().length() < 1) {
     		throw new IllegalArgumentException("getFirebaseToken: managedIdentity is a mandatory parameter");
     	}
@@ -59,7 +60,7 @@ public class ProfileClient {
         FirebaseMessagingToken result = null;
 		try (Response response =  api.getFcmToken(managedIdentity)) {
 			if (response.getStatusInfo() != Response.Status.OK) {
-				throw new WebApplicationException("Error retrieving data from profile service", response);
+				ExceptionUtil.throwExceptionFromResponse("Error retrieving data from profile service", response);
 			}
 	        result = response.readEntity(FirebaseMessagingToken.class);
 	        if (result.getFcmToken() == null || result.getFcmToken().isEmpty()) {
@@ -69,7 +70,7 @@ public class ProfileClient {
         return result.getFcmToken();
     }
 
-    public Profile getProfile(String managedIdentity) throws NotFoundException {
+    public Profile getProfile(String managedIdentity) throws ApplicationException {
     	if (managedIdentity == null || managedIdentity.trim().length() < 1) {
     		throw new IllegalArgumentException("getProfile: managedIdentity is a mandatory parameter");
     	}
@@ -79,7 +80,7 @@ public class ProfileClient {
         Profile profile= null;
 		try (Response response =  api.getProfile(managedIdentity)) {
 			if (response.getStatusInfo() != Response.Status.OK) {
-				throw new WebApplicationException("Error retrieving data from profile service", response);
+				ExceptionUtil.throwExceptionFromResponse("Error retrieving data from profile service", response);
 			}
 	        result = response.readEntity(ProfileResponse.class);
 	        if (result.getProfiles().isEmpty()) {
