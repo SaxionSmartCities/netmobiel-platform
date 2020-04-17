@@ -19,7 +19,6 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.NotFoundException;
-import eu.netmobiel.commons.jaxrs.LocalDateParamConverterProvider;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.api.ProfilesApi;
@@ -47,7 +46,6 @@ public class ProfileClient {
 				.maxPooledPerRoute(20)
 				.register(new Jackson2ObjectMapperContextResolver())
 				.property("resteasy.preferJacksonOverJsonB", true)
-				.register(new LocalDateParamConverterProvider())
 				.build();
 	}
 	
