@@ -1,7 +1,12 @@
 package eu.netmobiel.profile.client;
 
 import java.io.IOException;
+import java.io.InputStream;
+import java.nio.file.Files;
+import java.nio.file.Paths;
+import java.time.Instant;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.StampedLock;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -15,10 +20,15 @@ import javax.ws.rs.core.Response;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.jboss.resteasy.client.jaxrs.ResteasyWebTarget;
+import org.keycloak.authorization.client.AuthzClient;
+import org.keycloak.authorization.client.Configuration;
+import org.keycloak.representations.AccessTokenResponse;
+import org.keycloak.util.JsonSerialization;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.api.ProfilesApi;
@@ -29,17 +39,35 @@ import eu.netmobiel.profile.api.model.ProfileResponse;
 @ApplicationScoped
 @Logging
 public class ProfileClient {
-    @SuppressWarnings("unused")
+	/**
+	 * Start acquiring a new token token when expiration is this near
+	 */
+	private static final int PROFILE_TIMEOUT_SLACK_SECS = 10;
+
 	@Inject
     private Logger log;
 
     @Resource(lookup = "java:global/profileService/baseUrl")
     private String profileServiceUrl; 
 
+    /**
+     * The path to the service account file for the Profile Service.
+     */
+    @Resource(lookup = "java:global/profileService/serviceAccountPath")
+    private String profileServiceAccountPath;
+
     private ResteasyClient client;
+    private Configuration profileServiceAccount;
+
+    private AccessTokenResponse profileAccessTokenResponse;
+    private StampedLock lock = new StampedLock();
+    private Instant profileTokenExpiration;
     
-	@PostConstruct
-	public void createClient() {
+    /**
+     * Initializes the ResetEasy client and the profile service account credentials. 
+     */
+    @PostConstruct
+    void initialize() {
 		client = new ResteasyClientBuilder()
 				.connectionPoolSize(200)
 				.connectionCheckoutTimeout(5, TimeUnit.SECONDS)
@@ -47,8 +75,14 @@ public class ProfileClient {
 				.register(new Jackson2ObjectMapperContextResolver())
 				.property("resteasy.preferJacksonOverJsonB", true)
 				.build();
-	}
-	
+
+		try (final InputStream configStream = Files.newInputStream(Paths.get(profileServiceAccountPath))) {
+			profileServiceAccount = JsonSerialization.readValue(configStream, Configuration.class);
+    	} catch (IOException ex) {
+    		throw new SystemException("Unable to read profile service account configuration", ex);
+		}
+    }
+
 	@PreDestroy
 	void cleanup() {
 		client.close();
@@ -63,14 +97,68 @@ public class ProfileClient {
 
 	    @Override
 	    public void filter(ClientRequestContext requestContext) throws IOException {
-	        requestContext.getHeaders().add("Authorization", "Bearer " + token);
+	    	if (token != null) {
+	    		requestContext.getHeaders().add("Authorization", "Bearer " + token);
+	    	}
 	    }
 	}
 
+	/**
+	 * Acquires a profile service account token, but only when the current access token is near expiration.
+	 * @return a service account  access token
+	 */
+	protected String getServiceAccountAccessToken() {
+		long stamp = lock.readLock();
+		try {
+			if (profileAccessTokenResponse == null || profileTokenExpiration == null ||
+				Instant.now().isAfter(profileTokenExpiration.minusSeconds(PROFILE_TIMEOUT_SLACK_SECS))) {
+				stamp = lock.tryConvertToWriteLock(stamp);
+	            if (stamp == 0L) {
+	                log.warn("Could not convert to write lock");
+	                stamp = lock.writeLock();
+	            }
+	            if (log.isDebugEnabled()) {
+	            	log.debug("Acquire service account access token");
+	            }
+	        	AuthzClient authzClient = AuthzClient.create(profileServiceAccount);
+	        	profileAccessTokenResponse = authzClient.obtainAccessToken();
+	            profileTokenExpiration = Instant.now().plusSeconds(profileAccessTokenResponse.getExpiresIn());
+			}
+		} finally {
+			lock.unlock(stamp);
+		}
+		return profileAccessTokenResponse.getToken();
+	}
+
+	/**
+	 * Helper method for obtaining an access token for the profile service.
+	 * @param user the user name
+	 * @param password the password
+	 * @return An access token
+	 */
+	public AccessTokenResponse getAccessToken(String user, String password) {
+    	AuthzClient authzClient = AuthzClient.create(profileServiceAccount);
+    	return authzClient.obtainAccessToken(user, password);
+	}
+	
+	/**
+	 * For testing purposes: Clears the profile service token. 
+	 */
+	protected void clearToken() {
+		long stamp = lock.writeLock();
+		try {
+	    	profileAccessTokenResponse = null;
+	        profileTokenExpiration = null;
+		} finally {
+			lock.unlock(stamp);
+		}
+	}
+
+	public String getFirebaseToken(String managedIdentity) throws ApplicationException {
+		return getFirebaseToken(getServiceAccountAccessToken(), managedIdentity);
+	}
+	
 	public String getFirebaseToken(String accessToken, String managedIdentity) throws ApplicationException {
-    	if (accessToken == null || accessToken.trim().length() < 1) {
-    		throw new IllegalArgumentException("getFirebaseToken: accessToken is a mandatory parameter");
-    	}
     	if (managedIdentity == null || managedIdentity.trim().length() < 1) {
     		throw new IllegalArgumentException("getFirebaseToken: managedIdentity is a mandatory parameter");
     	}
@@ -90,10 +178,11 @@ public class ProfileClient {
         return result.getFcmToken();
     }
 
+    public Profile getProfile(String managedIdentity) throws ApplicationException {
+    	return getProfile(getServiceAccountAccessToken(), managedIdentity);
+    }
+
     public Profile getProfile(String accessToken, String managedIdentity) throws ApplicationException {
-    	if (accessToken == null || accessToken.trim().length() < 1) {
-    		throw new IllegalArgumentException("getFirebaseToken: accessToken is a mandatory parameter");
-    	}
     	if (managedIdentity == null || managedIdentity.trim().length() < 1) {
     		throw new IllegalArgumentException("getProfile: managedIdentity is a mandatory parameter");
     	}
@@ -114,4 +203,8 @@ public class ProfileClient {
 		}
         return profile;
     }
+
+	public Instant getProfileTokenExpiration() {
+		return profileTokenExpiration;
+	}
 }

@@ -64,13 +64,12 @@
 		    <artifactId>jackson-datatype-jsr310</artifactId>
 			<scope>provided</scope>
 		</dependency>
-		
-		<!-- TEST Dependencies -->
 		<dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-authz-client</artifactId>
-		    <scope>test</scope>
+		    <scope>provided</scope>
         </dependency>
+		<!-- TEST Dependencies -->
 		
     </dependencies>
 

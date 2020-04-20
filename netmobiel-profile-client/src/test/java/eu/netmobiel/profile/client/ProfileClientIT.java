@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 
 import java.io.File;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.Properties;
 
 import javax.inject.Inject;
@@ -20,7 +21,6 @@ import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.keycloak.authorization.client.AuthzClient;
 import org.keycloak.representations.AccessTokenResponse;
 import org.slf4j.Logger;
 
@@ -32,7 +32,7 @@ public class ProfileClientIT {
     public static Archive<?> createTestArchive() {
     	File[] deps = Maven.configureResolver()
 				.loadPomFromFile("pom.xml")
-				.importRuntimeAndTestDependencies() 
+				.importCompileAndRuntimeDependencies() 
 				.resolve()
 				.withTransitivity()
 				.asFile();
@@ -43,14 +43,14 @@ public class ProfileClientIT {
             // Arquillian tests need the beans.xml to recognize it as a CDI application
             .addAsWebInfResource(EmptyAsset.INSTANCE, ArchivePaths.create("beans.xml"))
             // Take car of removing the default json provider, because we use jackson everywhere (unfortunately).
+            // Also add keycloak client
         	.addAsWebInfResource("jboss-deployment-structure.xml")
         	.addAsResource("log4j.properties")
-        	.addAsResource("keycloak-issuer.json")
         	.addAsResource("test-setup.properties");
 //		System.out.println(archive.toString(Formatters.VERBOSE));
         return archive;
     }
-
+   
     @Inject
     private ProfileClient client;
 
@@ -59,7 +59,6 @@ public class ProfileClientIT {
     private Logger log;
 
     private Properties testSetupProperties;
-    private String accessToken;
     
     @Before
     public void prepare() throws Exception {
@@ -67,23 +66,38 @@ public class ProfileClientIT {
 		try (InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-setup.properties")){
 			testSetupProperties.load(inputStream);
 		}
-        InputStream configStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("keycloak-issuer.json");
-    	AuthzClient authzClient = AuthzClient.create(configStream);
-    	AccessTokenResponse rsp = authzClient.obtainAccessToken(testSetupProperties.getProperty("username"), testSetupProperties.getProperty("password"));
-    	accessToken = rsp.getToken();
     }
 
     @Test
     public void testGetFcmToken() throws Exception {
-		String fcmtoken = client.getFirebaseToken(accessToken, testSetupProperties.getProperty("managedIdentity"));
+		String fcmtoken = client.getFirebaseToken(testSetupProperties.getProperty("managedIdentity"));
     	assertNotNull(fcmtoken);
     	assertEquals(testSetupProperties.getProperty("fcmToken"), fcmtoken);
     }
 
     @Test
-    public void testGetFcmTokenAccessDenied() throws Exception {
+    public void testGetFcmToken_MyToken() throws Exception {
+    	AccessTokenResponse accessTokenResponse = client.getAccessToken(testSetupProperties.getProperty("username"), testSetupProperties.getProperty("password"));
+		String fcmtoken = client.getFirebaseToken(accessTokenResponse.getToken(), testSetupProperties.getProperty("managedIdentity"));
+    	assertNotNull(fcmtoken);
+    	assertEquals(testSetupProperties.getProperty("fcmToken"), fcmtoken);
+    }
+
+    @Test
+    public void testGetFcmToken_NoToken() throws Exception {
     	try {
-			client.getFirebaseToken(accessToken + "xxxx", testSetupProperties.getProperty("managedIdentity"));
+			client.getFirebaseToken(null, testSetupProperties.getProperty("managedIdentity"));
+			fail("Expected Exception");
+    	} catch (Exception ex) {
+    		assertTrue(ex instanceof SecurityException);
+    		assertTrue(ex.getMessage().contains("403"));
+    	}
+    }
+
+    @Test
+    public void testGetFcmToken_InvalidAccessToken() throws Exception {
+    	try {
+			client.getFirebaseToken("very-bad-token", testSetupProperties.getProperty("managedIdentity"));
 			fail("Expected Exception");
     	} catch (Exception ex) {
     		assertTrue(ex instanceof SecurityException);
@@ -93,9 +107,25 @@ public class ProfileClientIT {
     
     @Test
     public void testGetProfile() throws Exception {
-		Profile profile = client.getProfile(accessToken, testSetupProperties.getProperty("managedIdentity"));
+    	client.clearToken();
+		Profile profile = client.getProfile(testSetupProperties.getProperty("managedIdentity"));
     	assertNotNull(profile);
     	assertEquals(testSetupProperties.getProperty("managedIdentity"), profile.getId());
     }
 
+    @Test
+    public void testGetAccessToken() throws Exception {
+    	client.clearToken();
+    	String accessToken = client.getServiceAccountAccessToken();
+    	assertNotNull(accessToken);
+    	Instant tokenExpiration = client.getProfileTokenExpiration();
+    	String accessToken2 = client.getServiceAccountAccessToken();
+    	assertTrue(tokenExpiration == client.getProfileTokenExpiration());
+    	assertEquals(accessToken, accessToken2);
+    	client.clearToken();
+    	accessToken2 = client.getServiceAccountAccessToken();
+    	// This is a different object now
+    	assertTrue(tokenExpiration != client.getProfileTokenExpiration());
+    	assertNotEquals(accessToken, accessToken2);
+    }
 }
