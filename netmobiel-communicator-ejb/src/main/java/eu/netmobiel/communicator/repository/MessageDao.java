@@ -2,12 +2,9 @@ package eu.netmobiel.communicator.repository;
 
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -56,13 +53,13 @@ public class MessageDao extends AbstractDao<Message, Long> {
 	 * @param context the context of the message (used as a conversation id). 
 	 * @param since the date from which to list messages, using the creation date.
 	 * @param until the date until to list the messages, using the creation date.
-     * @param modes only show messages with the specified (effective) delivery mode. Omitting the modes, 
-     * 				specifying DeliveryMode.ALL or specifying all modes have the same effect: no filter on delivery mode.   
+     * @param mode only show messages with the specified (effective) delivery mode. Omitting the mode or 
+     * 				specifying DeliveryMode.ALL has the same effect: no filter on delivery mode.   
 	 * @param maxResults The maximum number of messages (page size).
 	 * @param offset the zero-based index to start the page.
 	 * @return A list of envelope IDs matching the criteria. 
 	 */
-	public PagedResult<Long> listMessages(String participant, String context, Instant since, Instant until, DeliveryMode[] modes, Integer maxResults, Integer offset) {
+	public PagedResult<Long> listMessages(String participant, String context, Instant since, Instant until, DeliveryMode mode, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Message> message = cq.from(Message.class);
@@ -89,14 +86,10 @@ public class MessageDao extends AbstractDao<Message, Long> {
         }
         // 'modes' represents the query: null, empty or ALL represent any message. 
         // The message attribute 'deliveryMode' has a slightly different meaning. 
-        if (modes != null && modes.length > 0) {
-        	Set<DeliveryMode> theModes = new HashSet<>(Arrays.asList(modes));
-        	if (! theModes.contains(DeliveryMode.ALL)) {
-        		// Only filter on the specified delivery mode(s). Add ALL to catch them too.
-            	theModes.add(DeliveryMode.ALL);
-    	        Predicate predModes = message.get(Message_.deliveryMode).in(theModes);
-    	        predicates.add(predModes);
-        	}
+        if (mode != null && mode != DeliveryMode.ALL) {
+	        Predicate predMode = cb.equal(message.get(Message_.deliveryMode), mode);
+	        Predicate predModeAll = cb.equal(message.get(Message_.deliveryMode), DeliveryMode.ALL);
+	        predicates.add(cb.or(predMode, predModeAll));
         }        
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;

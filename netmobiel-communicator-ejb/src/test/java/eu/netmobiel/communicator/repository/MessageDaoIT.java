@@ -273,7 +273,7 @@ public class MessageDaoIT {
     }
 
     @Test
-    public void listMessages_DeliveryModes() {
+    public void listMessages_DeliveryModes_Default() {
     	prepareDeliveryModes();
     	PagedResult<Long> messageIds = messageDao.listMessages("A3", null, null, null, null, 100, 0);
     	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
@@ -285,21 +285,9 @@ public class MessageDaoIT {
     }
 
     @Test
-    public void listMessages_DeliveryModes_Empty() {
-    	prepareDeliveryModes();
-    	PagedResult<Long> messageIds = messageDao.listMessages("A3", null, null, null, new DeliveryMode[] { }, 100, 0);
-    	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
-    	dump("listMessages_DeliveryModes_Empty", messages);
-    	Set<DeliveryMode> modes = messages.stream().map(m -> m.getDeliveryMode()).collect(Collectors.toSet());
-    	assertTrue("MESSAGE present", modes.contains(DeliveryMode.MESSAGE));
-    	assertTrue("NOTIFICATION present", modes.contains(DeliveryMode.NOTIFICATION));
-    	assertTrue("ALL present", modes.contains(DeliveryMode.ALL));
-    }
-    
-    @Test
     public void listMessages_DeliveryModes_All() {
     	prepareDeliveryModes();
-    	PagedResult<Long> messageIds = messageDao.listMessages("A3", null, null, null, new DeliveryMode[] { DeliveryMode.ALL }, 100, 0);
+    	PagedResult<Long> messageIds = messageDao.listMessages("A3", null, null, null, DeliveryMode.ALL, 100, 0);
     	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
     	dump("listMessages_DeliveryModes_All", messages);
     	Set<DeliveryMode> modes = messages.stream().map(m -> m.getDeliveryMode()).collect(Collectors.toSet());
@@ -309,25 +297,25 @@ public class MessageDaoIT {
     }
 
     @Test
-    public void listMessages_DeliveryModes_NotificationOnly() {
+    public void listMessages_DeliveryModes_MessageOnly() {
     	prepareDeliveryModes();
-    	PagedResult<Long> messageIds = messageDao.listMessages("A3", null, null, null, new DeliveryMode[] { DeliveryMode.NOTIFICATION }, 100, 0);
+    	PagedResult<Long> messageIds = messageDao.listMessages("A3", null, null, null, DeliveryMode.MESSAGE, 100, 0);
     	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
-    	dump("listMessages_DeliveryModes_NotificationOnly", messages);
+    	dump("listMessages_DeliveryModes_MessageOnly", messages);
     	Set<DeliveryMode> modes = messages.stream().map(m -> m.getDeliveryMode()).collect(Collectors.toSet());
-    	assertFalse("MESSAGE present", modes.contains(DeliveryMode.MESSAGE));
-    	assertTrue("NOTIFICATION present", modes.contains(DeliveryMode.NOTIFICATION));
+    	assertTrue("MESSAGE present", modes.contains(DeliveryMode.MESSAGE));
+    	assertFalse("NOTIFICATION present", modes.contains(DeliveryMode.NOTIFICATION));
     	assertTrue("ALL present", modes.contains(DeliveryMode.ALL));
     }
 
     @Test
-    public void listMessages_DeliveryModes_AllListed() {
+    public void listMessages_DeliveryModes_NotificationOnly() {
     	prepareDeliveryModes();
-    	PagedResult<Long> messageIds = messageDao.listMessages("A3", null, null, null, new DeliveryMode[] { DeliveryMode.MESSAGE, DeliveryMode.NOTIFICATION }, 100, 0);
+    	PagedResult<Long> messageIds = messageDao.listMessages("A3", null, null, null, DeliveryMode.NOTIFICATION, 100, 0);
     	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
-    	dump("listMessages_DeliveryModes_AllListed", messages);
+    	dump("listMessages_DeliveryModes_NotificationOnly", messages);
     	Set<DeliveryMode> modes = messages.stream().map(m -> m.getDeliveryMode()).collect(Collectors.toSet());
-    	assertTrue("MESSAGE present", modes.contains(DeliveryMode.MESSAGE));
+    	assertFalse("MESSAGE present", modes.contains(DeliveryMode.MESSAGE));
     	assertTrue("NOTIFICATION present", modes.contains(DeliveryMode.NOTIFICATION));
     	assertTrue("ALL present", modes.contains(DeliveryMode.ALL));
     }

@@ -117,13 +117,13 @@ public class PublisherService {
      * @param context the context of the message (a urn pointing to the database object triggering the message). Default is any context.
      * @param since only show messages sent after a specified time. Default is no time limit set.
      * @param until only show message sent before specified time. Default is no time limit set.
-     * @param modes only show messages with specific (effective) delivery modes. Omitting the modes, specifying DeliveryMode.ALL, 
-     * 				or specifying all modes have the same effect: No filter. 
+     * @param mode only show messages with specific (effective) delivery mode. Omitting the modes or specifying DeliveryMode.ALL 
+     * 				has the same effect: No filter. 
      * @param maxResults for paging: maximum number of results per page. 
      * @param offset for paging: zero-based offset in the result.  
      * @return A page of messages.
      */
-	public @NotNull PagedResult<Message> listMessages(String participant, String context, Instant since, Instant until, DeliveryMode[] modes, Integer maxResults, Integer offset) {
+	public @NotNull PagedResult<Message> listMessages(String participant, String context, Instant since, Instant until, DeliveryMode mode, Integer maxResults, Integer offset) {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
     	// For now don't do conditional things. First always total count, then data if data is requested. 
@@ -135,11 +135,11 @@ public class PublisherService {
         if (offset == null) {
         	offset = 0;
         }
-    	PagedResult<Long> prs = messageDao.listMessages(effectiveParticipant, context, since, until, modes, 0, offset);
+    	PagedResult<Long> prs = messageDao.listMessages(effectiveParticipant, context, since, until, mode, 0, offset);
     	List<Message> results = null;
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
-    		PagedResult<Long> mids = messageDao.listMessages(effectiveParticipant, context, since, until, modes, maxResults, offset);
+    		PagedResult<Long> mids = messageDao.listMessages(effectiveParticipant, context, since, until, mode, maxResults, offset);
     		results = messageDao.fetch(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH);
     	} else {
     		results = Collections.emptyList();
