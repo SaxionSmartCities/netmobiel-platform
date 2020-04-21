@@ -6,11 +6,13 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
+import javax.ejb.Asynchronous;
 import javax.ejb.EJB;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.persistence.NoResultException;
+import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 
@@ -18,13 +20,15 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
-import eu.netmobiel.communicator.model.User;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
 import eu.netmobiel.communicator.repository.MessageDao;
+import eu.netmobiel.firebase.messaging.FirebaseMessagingClient;
+import eu.netmobiel.profile.client.ProfileClient;
 
 /**
  * Bean class for Publisher enterprise bean. 
@@ -37,10 +41,6 @@ public class PublisherService {
 
 	@Resource
     private SessionContext sessionContext;
-//    @Resource(lookup = "java:module/jms/netmobielNotificationTopic")
-//    private Topic notificationTopic;
-//    @Inject
-//    private JMSContext context;
 
     @Inject
     private Logger logger;
@@ -53,18 +53,22 @@ public class PublisherService {
     
     @Inject
     private MessageDao messageDao;
+
+    @Inject
+    private ProfileClient profileClient;
+    
+    @Inject
+    private FirebaseMessagingClient firebaseMessagingClient;
     
     public PublisherService() {
     }
 
     /**
-     * Creates producer and message. Sends messages after setting their NewsType
-     * property and using the property value as the message text. Messages are
-     * received by MessageBean, a message-driven bean that uses a message
-     * selector to retrieve messages whose NewsType property has certain values.
-     * @param msg the message to send
-     * @param recipients the addressees of the message
+     * Sends a message and/or a notification to the recipients in the message envelopes.
+     * This is an asynchronous call.  
+     * @param msg the message to send to the recipients in the envelopes 
      */
+    @Asynchronous
     public void publish(Message msg) throws CreateException, BadRequestException {
     	if (msg.getContext() == null) {
     		throw new BadRequestException("Constraint violation: 'context' must be set.");
@@ -86,42 +90,40 @@ public class PublisherService {
             		msg.getEnvelopes().stream().map(env -> env.getRecipient().getManagedIdentity()).collect(Collectors.joining(", ")), 
             		msg.getContext(), msg.getSubject(), msg.getBody()));
     	}
-    	// Assure all recipients are present in the database
-    	List<User> recipients = msg.getEnvelopes().stream().map(env -> env.getRecipient()).collect(Collectors.toList());
-    	List<User> dbrecipients = recipients.stream().map(rcp -> userManager.register(rcp)).collect(Collectors.toList());
-		if (msg.getDeliveryMode() == DeliveryMode.MESSAGE || msg.getDeliveryMode() == DeliveryMode.ALL) {
-			List<Envelope> envelopes = dbrecipients.stream()
-					.map(rpc -> new Envelope(msg, rpc))
-					.collect(Collectors.toList());
-			msg.setEnvelopes(envelopes);
-			messageDao.save(msg);
-		}
+    	// Assure all recipients are present in the database, replace transient instances off users with persistent instances.
+    	msg.getEnvelopes().forEach(env -> env.setRecipient(userManager.register(env.getRecipient())));
+		// Send each user a notification, if required
 		if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
-//			sendNotification(msg, recipients);
+			for (Envelope env : msg.getEnvelopes()) {
+				try {
+					String fcmToken = profileClient.getFirebaseToken(env.getRecipient().getManagedIdentity());
+					if (fcmToken != null) {
+						firebaseMessagingClient.send(fcmToken, msg);
+						env.setPushTime(Instant.now());
+					} else {
+						logger.warn(String.format("User %s has no FCM token, no notification possible", env.getRecipient().getManagedIdentity()));
+					}
+				} catch (Exception ex) {
+					logger.error("Cannot send push notification: " + String.join(" - ", ExceptionUtil.unwindException(ex)));
+				}
+			}
 		}
+		messageDao.save(msg);
     }
 
-//    protected void sendNotification(Message msg, String recipients) {
-//        try {
-//	        MapMessage message = context.createMapMessage();
-//	        message.setString("text", msg.getBody());
-//	        message.setString("context", msg.getContext());
-//	        message.setString("subject", msg.getSubject());
-//	        message.setString("deliveryMode", msg.getDeliveryMode().name());
-//	        // The sender is the caller for now, unless the sender is set.
-//	        message.setString("sender", msg.getSender() != null ? msg.getSender() : sessionContext.getCallerPrincipal().getName());
-//	        message.setString("recipients", recipients);
-//	        context.createProducer()
-//	        	.setDeliveryMode(javax.jms.DeliveryMode.NON_PERSISTENT)	// Notifications are not critical
-//	        	.setTimeToLive(NOTIFICATION_TTL)
-//	        	.send(notificationTopic, message);
-//        } catch (JMSException ex) {
-//            logger.error("Error sending notification", ex);
-//        }
-//	    	
-//    }
-    
-	public PagedResult<Message> listMessages(String participant, String context, Instant since, Instant until, Integer maxResults, Integer offset) {
+    /**
+     * Lists the messages matching the criteria.
+     * @param participant The sender or recipient of the message. Default is the calling user.
+     * @param context the context of the message (a urn pointing to the database object triggering the message). Default is any context.
+     * @param since only show messages sent after a specified time. Default is no time limit set.
+     * @param until only show message sent before specified time. Default is no time limit set.
+     * @param modes only show messages with specific (effective) delivery modes. Omitting the modes, specifying DeliveryMode.ALL, 
+     * 				or specifying all modes have the same effect: No filter. 
+     * @param maxResults for paging: maximum number of results per page. 
+     * @param offset for paging: zero-based offset in the result.  
+     * @return A page of messages.
+     */
+	public @NotNull PagedResult<Message> listMessages(String participant, String context, Instant since, Instant until, DeliveryMode[] modes, Integer maxResults, Integer offset) {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
     	// For now don't do conditional things. First always total count, then data if data is requested. 
@@ -133,11 +135,11 @@ public class PublisherService {
         if (offset == null) {
         	offset = 0;
         }
-    	PagedResult<Long> prs = messageDao.listMessages(effectiveParticipant, context, since, until, 0, offset);
+    	PagedResult<Long> prs = messageDao.listMessages(effectiveParticipant, context, since, until, modes, 0, offset);
     	List<Message> results = null;
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
-    		PagedResult<Long> mids = messageDao.listMessages(effectiveParticipant, context, since, until, maxResults, offset);
+    		PagedResult<Long> mids = messageDao.listMessages(effectiveParticipant, context, since, until, modes, maxResults, offset);
     		results = messageDao.fetch(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH);
     	} else {
     		results = Collections.emptyList();
@@ -145,7 +147,15 @@ public class PublisherService {
     	return new PagedResult<Message>(results, maxResults, offset, prs.getTotalCount());
 	}
 
-    public PagedResult<Message> listConversations(String participant, Integer maxResults, Integer offset) {
+	/**
+	 * Lists the conversations of a user. Each conversation is a related list of messages, the relation is determined by the context attribute.
+	 * The result contains the latest message for each conversation. Notification only messages are ignored.
+	 * @param participant the sender or recipient
+     * @param maxResults for paging: maximum number of results per page. 
+     * @param offset for paging: zero-based offset in the result.  
+     * @return A page of messages.
+	 */
+    public @NotNull PagedResult<Message> listConversations(String participant, Integer maxResults, Integer offset) {
     	String effectiveParticipant = participant != null ? participant : sessionContext.getCallerPrincipal().getName();
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
@@ -165,16 +175,24 @@ public class PublisherService {
     	}
     	return new PagedResult<Message>(results, maxResults, offset, prs.getTotalCount());
     }
-    
-    public void updateAcknowledgment(Long messaged, Instant ackTime) throws NotFoundException {
+
+    /**
+     * Updates the acknowledgement time of a message, meaning that the user has read the mesaage.
+     * The front-end should call this method explicitly when the user has read the message. 'Unreading' is also 
+     * possible by setting the acknowledgment time to <code>null</code>.
+     * @param messageId the message ID. The calling user must be the owner of the message. 
+     * @param ackTime the timestamp, if <code>null</code> then the timestamp is removed.
+     * @throws NotFoundException if the message does not exist.
+     */
+    public void updateAcknowledgment(Long messageId, Instant ackTime) throws NotFoundException {
     	String caller = sessionContext.getCallerPrincipal().getName();
     	try {
-	    	Envelope envdb = envelopeDao.findByMessageAndRecipient(messaged, caller);
+	    	Envelope envdb = envelopeDao.findByMessageAndRecipient(messageId, caller);
 	    	userManager.checkOwnership(envdb.getRecipient(), Envelope.class.getSimpleName());
 	    	envdb.setAckTime(ackTime);
 	    	envelopeDao.merge(envdb);
     	} catch (NoResultException ex) {
-    		throw new NotFoundException (String.format("No such recipient %s for message %d", caller, messaged));	
+    		throw new NotFoundException (String.format("No such recipient %s for message %d", caller, messageId));	
     	}
     }
 

@@ -54,7 +54,8 @@ public class MessagesResource implements MessagesApi {
 		} else {
 			result = publisherService.listMessages(participant, context, 
 							since != null ? since.toInstant() : null, 
-							until != null ? until.toInstant() : null, 
+							until != null ? until.toInstant() : null,
+							null,
 							maxResults, offset); 
 		}
 		rsp = Response.ok(mapper.map(result)).build();

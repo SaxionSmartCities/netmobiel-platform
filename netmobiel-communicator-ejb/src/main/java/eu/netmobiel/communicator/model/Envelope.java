@@ -2,7 +2,6 @@ package eu.netmobiel.communicator.model;
 
 import java.io.Serializable;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 import javax.enterprise.inject.Vetoed;
@@ -78,6 +77,12 @@ public class Envelope implements Serializable {
 	@Column(name = "ack_time")
 	private Instant ackTime;
 	
+	/**
+	 * The time the message was sent as a notification (push message) to the user, i.e. sent to the device used by the user. 
+	 */
+	@Column(name = "push_time")
+	private Instant pushTime;
+	
 	public Envelope() {
 		
 	}
@@ -133,10 +138,19 @@ public class Envelope implements Serializable {
 		this.ackTime = ackTime;
 	}
 
+	public Instant getPushTime() {
+		return pushTime;
+	}
+
+	public void setPushTime(Instant pushTime) {
+		this.pushTime = pushTime;
+	}
+
 	@Override
 	public String toString() {
-		return String.format("Envelope [%s %s %s]", 
-				ackTime != null ? DateTimeFormatter.ISO_DATE_TIME.format(ackTime.atZone(ZoneOffset.UTC)) : "<no ack>",
+		return String.format("Envelope [%s %s %s %s]", 
+				ackTime != null ? DateTimeFormatter.ISO_INSTANT.format(ackTime) : "<no ack>",
+				pushTime != null ? DateTimeFormatter.ISO_INSTANT.format(pushTime) : "<no push>",
 				recipient,
 				message.toString());
 	}

@@ -2,9 +2,12 @@ package eu.netmobiel.communicator.repository;
 
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -22,6 +25,7 @@ import javax.persistence.criteria.Root;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
+import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Envelope_;
 import eu.netmobiel.communicator.model.Message;
@@ -52,11 +56,13 @@ public class MessageDao extends AbstractDao<Message, Long> {
 	 * @param context the context of the message (used as a conversation id). 
 	 * @param since the date from which to list messages, using the creation date.
 	 * @param until the date until to list the messages, using the creation date.
+     * @param modes only show messages with the specified (effective) delivery mode. Omitting the modes, 
+     * 				specifying DeliveryMode.ALL or specifying all modes have the same effect: no filter on delivery mode.   
 	 * @param maxResults The maximum number of messages (page size).
 	 * @param offset the zero-based index to start the page.
 	 * @return A list of envelope IDs matching the criteria. 
 	 */
-	public PagedResult<Long> listMessages(String participant, String context, Instant since, Instant until, Integer maxResults, Integer offset) {
+	public PagedResult<Long> listMessages(String participant, String context, Instant since, Instant until, DeliveryMode[] modes, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Message> message = cq.from(Message.class);
@@ -80,6 +86,17 @@ public class MessageDao extends AbstractDao<Message, Long> {
         if (until != null) {
 	        Predicate predUntil = cb.lessThan(message.get(Message_.creationTime), until);
 	        predicates.add(predUntil);
+        }
+        // 'modes' represents the query: null, empty or ALL represent any message. 
+        // The message attribute 'deliveryMode' has a slightly different meaning. 
+        if (modes != null && modes.length > 0) {
+        	Set<DeliveryMode> theModes = new HashSet<>(Arrays.asList(modes));
+        	if (! theModes.contains(DeliveryMode.ALL)) {
+        		// Only filter on the specified delivery mode(s). Add ALL to catch them too.
+            	theModes.add(DeliveryMode.ALL);
+    	        Predicate predModes = message.get(Message_.deliveryMode).in(theModes);
+    	        predicates.add(predModes);
+        	}
         }        
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;
@@ -104,18 +121,22 @@ public class MessageDao extends AbstractDao<Message, Long> {
 				" from Message m where (m.context, m.creationTime) in " +
 				" (select mm.context, max(mm.creationTime) from Message mm join mm.envelopes env" + 
 				" where (env.recipient.managedIdentity = :participant or mm.sender.managedIdentity = :participant)" + 
-				" group by mm.context) ";
+				" group by mm.context) and m.deliveryMode in (:DeliveryModeAll, :DeliveryModeMessage)";
 
 		Long totalCount = null;
         List<Long> results = null;
         if (maxResults == 0) {
     		TypedQuery<Long> countQuery = em.createQuery("select count(m) " + basicQuery, Long.class);
     		countQuery.setParameter("participant", participant);
+    		countQuery.setParameter("DeliveryModeAll", DeliveryMode.ALL);
+    		countQuery.setParameter("DeliveryModeMessage", DeliveryMode.MESSAGE);
             totalCount = countQuery.getSingleResult();
             results = Collections.emptyList();
         } else {
     		TypedQuery<Long> selectQuery = em.createQuery("select m.id " + basicQuery + " order by m.creationTime desc", Long.class);
     		selectQuery.setParameter("participant", participant);
+    		selectQuery.setParameter("DeliveryModeAll", DeliveryMode.ALL);
+    		selectQuery.setParameter("DeliveryModeMessage", DeliveryMode.MESSAGE);
     		selectQuery.setFirstResult(offset);
     		selectQuery.setMaxResults(maxResults);
     		results = selectQuery.getResultList();

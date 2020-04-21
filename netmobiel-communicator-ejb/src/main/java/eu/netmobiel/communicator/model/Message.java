@@ -167,7 +167,8 @@ public class Message implements NetMobielMessage, Serializable {
 
 	@Override
 	public String toString() {
-		return String.format("Message [%d %s %s '%s' %s '%s']", id, sender.toString(), context, subject, DateTimeFormatter.ISO_INSTANT.format(creationTime), body != null ? body : "");
+		return String.format("Message [%d %s %s '%s' %s %s '%s']", id, sender.toString(), 
+				context, subject, deliveryMode, DateTimeFormatter.ISO_INSTANT.format(creationTime), body != null ? body : "");
 	}
 
 }
