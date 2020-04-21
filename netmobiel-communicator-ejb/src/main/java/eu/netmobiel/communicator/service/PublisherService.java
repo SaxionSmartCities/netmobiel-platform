@@ -95,16 +95,14 @@ public class PublisherService {
 		// Send each user a notification, if required
 		if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
 			for (Envelope env : msg.getEnvelopes()) {
+				env.setMessage(msg);
 				try {
 					String fcmToken = profileClient.getFirebaseToken(env.getRecipient().getManagedIdentity());
-					if (fcmToken != null) {
-						firebaseMessagingClient.send(fcmToken, msg);
-						env.setPushTime(Instant.now());
-					} else {
-						logger.warn(String.format("User %s has no FCM token, no notification possible", env.getRecipient().getManagedIdentity()));
-					}
+					firebaseMessagingClient.send(fcmToken, msg);
+					env.setPushTime(Instant.now());
 				} catch (Exception ex) {
-					logger.error("Cannot send push notification: " + String.join(" - ", ExceptionUtil.unwindException(ex)));
+					logger.error(String.format("Cannot send push notification to %s: %s", 
+							env.getRecipient().getManagedIdentity(), String.join(" - ", ExceptionUtil.unwindException(ex))));
 				}
 			}
 		}
