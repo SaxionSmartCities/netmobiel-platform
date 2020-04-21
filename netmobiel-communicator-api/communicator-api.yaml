@@ -14,6 +14,38 @@ servers:
 - url: https://api.netmobiel.eu/gwapi-acc/communicator
   description: The communicator service visible to the world (acceptance).
 paths:
+  /messages/{messageId}/ack:
+    summary: Acknowledge the message.
+    description: Manages the acknowledgement state of a message for the implied recipient.
+      The field 'ackTime' represents this time.
+    put:
+      responses:
+        "204":
+          description: Succesfull response.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: acknowledgeMessage
+      summary: Acknowledge a message
+      description: Assigns a timestamp to the message for the implied recipient. The
+        field 'ackTime' represents this time.
+    delete:
+      responses:
+        "204":
+          description: Succesfull reponse.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      operationId: removeAcknowledgement
+      summary: Removes the acknowledgement state.
+      description: Removes the acknowledgement time from the message.
+    parameters:
+    - name: messageId
+      description: The id of the message.
+      schema:
+        type: integer
+      in: path
+      required: true
   /messages:
     summary: Path used to manage the list of messages.
     description: The REST endpoint/path used to list and create zero or more `Message`
@@ -63,6 +95,19 @@ paths:
           format: date-time
           type: string
         in: query
+      - name: deliveryMode
+        description: "The delivery mode to filter on. Default is MESSAGE. \nThe intention\
+          \ of the flag is to filter on the effective delivery mode. Specify MESSAGE\
+          \ to list only the messages. Specify NOTIFICATION to list the notifications\
+          \ only. To list any message leave the parameter empty or specify ALL. Note\
+          \ that messages sent with deliveryMode ALL will show up with either value. "
+        schema:
+          enum:
+          - MESSAGE
+          - NOTIFICATION
+          - ALL
+          type: string
+        in: query
       - name: maxResults
         description: 'Paging: The maximum number of results per page. Default is 10.'
         schema:
@@ -104,38 +149,6 @@ paths:
       operationId: sendMessage
       summary: Create a Message
       description: Creates a new instance of a `Message`.
-  /messages/{messageId}/ack:
-    summary: Acknowledge the message.
-    description: Manages the acknowledgement state of a message for the implied recipient.
-      The field 'ackTime' represents this time.
-    put:
-      responses:
-        "204":
-          description: Succesfull response.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: acknowledgeMessage
-      summary: Acknowledge a message
-      description: Assigns a timestamp to the message for the implied recipient. The
-        field 'ackTime' represents this time.
-    delete:
-      responses:
-        "204":
-          description: Succesfull reponse.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-      operationId: removeAcknowledgement
-      summary: Removes the acknowledgement state.
-      description: Removes the acknowledgement time from the message.
-    parameters:
-    - name: messageId
-      description: The id of the message.
-      schema:
-        type: integer
-      in: path
-      required: true
 components:
   schemas:
     Error:
@@ -205,8 +218,9 @@ components:
             the context.
           type: string
         id:
-          description: Read-only. A unique identification for the message in combination
-            with the recipient, i.e. the envelope.
+          description: Read-only. A unique identification for the message. To get
+            the right envelope the message id must be combined with the managed identity
+            of the recipient.
           type: integer
         envelopes:
           description: |-
