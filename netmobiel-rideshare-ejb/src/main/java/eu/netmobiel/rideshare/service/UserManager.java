@@ -80,7 +80,10 @@ public class UserManager {
      */
     public User register(User user) {
     	User dbuser = userDao.findByManagedIdentity(user.getManagedIdentity())
-    			.orElseGet(() -> userDao.save(user));
+    			.orElseGet(() -> {
+    				user.setId(null);
+    				return userDao.save(user); 
+    			});
     	dbuser.setEmail(user.getEmail()); 
     	dbuser.setFamilyName(user.getFamilyName()); 
     	dbuser.setGivenName(user.getGivenName()); 

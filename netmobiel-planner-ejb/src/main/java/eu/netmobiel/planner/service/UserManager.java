@@ -78,7 +78,10 @@ public class UserManager {
     public User register(User user) {
 //    	Principal p = ctx.getCallerPrincipal();
     	User dbuser = userDao.findByManagedIdentity(user.getManagedIdentity())
-    			.orElseGet(() -> userDao.save(user));
+    			.orElseGet(() -> {
+    				user.setId(null);
+    				return userDao.save(user);	
+    			});
     	dbuser.setFamilyName(user.getFamilyName()); 
     	dbuser.setGivenName(user.getGivenName()); 
     	return dbuser;
