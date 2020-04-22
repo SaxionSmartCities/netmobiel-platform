@@ -91,14 +91,18 @@ public class PublisherService {
             		msg.getContext(), msg.getSubject(), msg.getBody()));
     	}
     	// Assure all recipients are present in the database, replace transient instances off users with persistent instances.
-    	msg.getEnvelopes().forEach(env -> env.setRecipient(userManager.register(env.getRecipient())));
+		for (Envelope env : msg.getEnvelopes()) {
+			env.setId(null);
+			env.setAckTime(null);
+			env.setPushTime(null);
+			env.setMessage(msg);
+			env.setRecipient(userManager.register(env.getRecipient()));
+		}
+		msg.setId(null); 	// Assure it is a new message.
+		messageDao.save(msg);
 		// Send each user a notification, if required
 		if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
 			for (Envelope env : msg.getEnvelopes()) {
-				env.setId(null);
-				env.setAckTime(null);
-				env.setPushTime(null);
-				env.setMessage(msg);
 				try {
 					String fcmToken = profileClient.getFirebaseToken(env.getRecipient().getManagedIdentity());
 					firebaseMessagingClient.send(fcmToken, msg);
@@ -109,8 +113,6 @@ public class PublisherService {
 				}
 			}
 		}
-		msg.setId(null); 	// Assure it is a new message.
-		messageDao.save(msg);
     }
 
     /**
