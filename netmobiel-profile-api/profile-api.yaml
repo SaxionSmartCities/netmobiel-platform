@@ -5,13 +5,15 @@ info:
   version: 1.0.0
   description: API for the profile service of NetMobiel.
 servers:
+- url: http://localhost:3000/api
+  description: The local URL for the profile service (acceptance, production).
 - url: https://prod.netmobiel.eu/profiles/api
   description: The internal URL for the profile service (production).
 - url: https://api.netmobiel.eu/gwapi/profiles
   description: The profile service visible to the world (production).
 - url: https://acc.netmobiel.eu/profiles/api
   description: The internal URL for the profile service (acceptance).
-- url: https://api.netmobiel.eu/gwapi-acc/profiles
+- url: https://api.netmobiel.eu/gwapi/acc/profiles
   description: The profile service visible to the world (acceptance).
 paths:
   /profiles:
@@ -225,8 +227,8 @@ components:
             type: string
         allowedTravelModes:
           description: 'The default preferences of travel modalities. Choose a combination
-            from the following options: `BIKE`, `BUS`, `CAR`, `NETMOBIEL`, `RAIL`,
-            `TRAIN`, `WALK`.'
+            from the following options: `BICYCLE`, `BUS`, `CAR`, `RIDESHARE`, `RAIL`,
+            `WALK`.'
           type: array
           items:
             type: string
