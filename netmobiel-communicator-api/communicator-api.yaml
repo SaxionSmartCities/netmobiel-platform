@@ -257,7 +257,8 @@ components:
       properties:
         id:
           format: int64
-          description: 'The unique user id. If referenced use the URN notation: urn:nb:cm:user:<id>'
+          description: 'Read-only. The unique user id. If referenced use the URN notation:
+            urn:nb:cm:user:<id>'
           type: integer
         managedIdentity:
           description: The user is as known by the IDM (Keycloak). The format is determined
@@ -329,8 +330,14 @@ components:
               type: string
             familiyName:
               type: string
+        pushTime:
+          format: date-time
+          description: 'Read-only. The time of notifiying the recipient through the
+            push messaging system. If null no notification was delivered. '
+          type: string
       example:
         ackTime: 2020-03-17T08:45:00Z
+        pushTime: 2020-03-17T08:27:00Z
         recipient:
           managedIndentity: 1234-5678
           givenName: Jaap
