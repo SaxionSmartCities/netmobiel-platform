@@ -17,7 +17,7 @@ servers:
   description: The planner service visible to the world (production).
 - url: https://acc.netmobiel.eu/planner/api
   description: The internal URL for the planner (acceptance).
-- url: https://api.netmobiel.eu/gwapi-acc/planner
+- url: https://api.netmobiel.eu/gwapi/acc/planner
   description: The planner service visible to the world (acceptance).
 paths:
   /maintenance/otpdatabase:
@@ -155,7 +155,7 @@ paths:
         required: false
       - name: maxWalkDistance
         description: Maximum distance to walk to and from a station and between transfers.
-          Default is 500 meter.
+          Default is 1000 meter.
         schema:
           type: integer
         in: query
