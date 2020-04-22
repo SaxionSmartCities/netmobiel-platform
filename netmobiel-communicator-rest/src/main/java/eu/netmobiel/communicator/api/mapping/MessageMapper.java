@@ -23,6 +23,13 @@ import eu.netmobiel.communicator.model.User;
 public abstract class MessageMapper {
 
 	public abstract eu.netmobiel.communicator.api.model.User map(User source);
+	
+	/**
+	 * Don't pass the id, it cannot be trusted.
+	 * @param source
+	 * @return
+	 */
+	@Mapping(target = "id", ignore = true)
 	public abstract User map(eu.netmobiel.communicator.api.model.User source);
 
 	public abstract eu.netmobiel.communicator.api.model.Envelope map(Envelope source);
