@@ -17,7 +17,7 @@ servers:
   description: The rideshare service visible to the world (production).
 - url: https://acc.netmobiel.eu/rideshare/api
   description: The internal URL for the rideshare (acceptance).
-- url: https://api.netmobiel.eu/gwapi-acc/rideshare
+- url: https://api.netmobiel.eu/gwapi/acc/rideshare
   description: The rideshare service visible to the world (acceptance).
 paths:
   /cars:
@@ -697,8 +697,8 @@ paths:
             entities.
       operationId: getBookings
       summary: List all bookings made by the calling user.
-      description: Gets a list of all `Booking` entities of which the calling user
-        is the passenger.
+      description: Gets a list of `Booking` entities of which the calling user is
+        the passenger.
 components:
   schemas:
     Car:
