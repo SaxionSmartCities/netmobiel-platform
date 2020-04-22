@@ -11,7 +11,7 @@ servers:
   description: The credit service visible to the world (production).
 - url: https://acc.netmobiel.eu/banker/api
   description: The internal URL for the credit service (acceptance).
-- url: https://api.netmobiel.eu/gwapi-acc/banker
+- url: https://api.netmobiel.eu/gwapi/acc/banker
   description: The credit service visible to the world (acceptance).
 paths:
   /accounting-entries:
