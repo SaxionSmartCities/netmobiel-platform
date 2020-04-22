@@ -95,6 +95,9 @@ public class PublisherService {
 		// Send each user a notification, if required
 		if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
 			for (Envelope env : msg.getEnvelopes()) {
+				env.setId(null);
+				env.setAckTime(null);
+				env.setPushTime(null);
 				env.setMessage(msg);
 				try {
 					String fcmToken = profileClient.getFirebaseToken(env.getRecipient().getManagedIdentity());
@@ -106,6 +109,7 @@ public class PublisherService {
 				}
 			}
 		}
+		msg.setId(null); 	// Assure it is a new message.
 		messageDao.save(msg);
     }
 
