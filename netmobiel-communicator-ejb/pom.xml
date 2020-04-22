@@ -25,7 +25,7 @@
     					<manifestEntries>
     						<!-- Trigger the loading of the keycloak core module when this jar is used (because of vividsolutions usage) -->
     						<!-- See also https://docs.jboss.org/author/display/WFLY10/Class+Loading+in+WildFly -->
-							<!-- Is this also req	uried for the message service? -->
+							<!-- Is this also required for the message service? -->
 			                <!-- <Dependencies>org.keycloak.keycloak-core</Dependencies> -->
     					</manifestEntries>
 					</archive>

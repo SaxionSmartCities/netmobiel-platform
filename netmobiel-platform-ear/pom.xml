@@ -62,15 +62,7 @@
 			<groupId>${project.groupId}</groupId>
 			<artifactId>netmobiel-firebase-client</artifactId>
 			<version>${project.version}</version>
-			<classifier>shaded</classifier>
 			<type>jar</type>
-			<!-- Exclude all dependencies, everything is present in the shaded jar -->
-			<exclusions>
-				<exclusion>
-					<groupId>*</groupId>
-					<artifactId>*</artifactId>
-				</exclusion>
-			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>

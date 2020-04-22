@@ -31,15 +31,22 @@ public class FirebaseMessagingClientIT {
     public static Archive<?> createTestArchive() {
     	Archive<?> archive = null;
     	try {
+//	    	File[] deps = Maven.configureResolver()
+//					.loadPomFromFile("pom.xml")
+//					.resolve("eu.netmobiel:netmobiel-commons:jar:?")
+//					.withTransitivity()
+//					.asFile();
 	    	File[] deps = Maven.configureResolver()
 					.loadPomFromFile("pom.xml")
-					.resolve("eu.netmobiel:netmobiel-commons:jar:?")
+					.importCompileAndRuntimeDependencies() 
+					.resolve()
 					.withTransitivity()
 					.asFile();
-	    	// We want to test with the shaded jar to check if the packaging is ok!
 			archive = ShrinkWrap.create(WebArchive.class, "test.war")
-	       		.addAsLibrary(new File("target/netmobiel-firebase-client-shaded.jar"))
+			    	// We want to test with the shaded jar to check if the packaging is ok!
+//	       		.addAsLibrary(new File("target/netmobiel-firebase-client-shaded.jar"))
 	       		.addAsLibraries(deps)
+	            .addClass(FirebaseMessagingClient.class)
 	            // Arquillian tests need the beans.xml to recognize it as a CDI application
 	            .addAsWebInfResource(EmptyAsset.INSTANCE, ArchivePaths.create("beans.xml"))
 	            // Take car of removing the default json provider, because we use jackson everywhere (unfortunately).

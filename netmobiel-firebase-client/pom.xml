@@ -18,58 +18,68 @@
 	</properties>
 	<build>
 		<plugins>
-			<plugin>
-				<groupId>org.apache.maven.plugins</groupId>
-				<artifactId>maven-shade-plugin</artifactId>
-				<executions>
-					<execution>
-						<phase>package</phase>
-						<goals>
-							<goal>shade</goal>
-						</goals>
-						<configuration>
-							<createDependencyReducedPom>true</createDependencyReducedPom>
-							<shadedArtifactAttached>true</shadedArtifactAttached>
-							<shadedClassifierName>shaded</shadedClassifierName>
+		<!-- 
+			The initial idea was to use a shaded jar for the firebase messaging client. 
+			It is proven feasible and it works well. However, in combination with WildFly/CodeReady(Eclipse) toolset
+			we get a conflict between maven build rules and the rules set applied to run the application in the embedded
+			WildFLy. The embedded WildFly uses the (exploded) jar contents as produces from the classes in the project, it does
+			not use the shaded contents too, as it should. Perhaps it is configurable, I don't know yet.
+			
+			For now, the solution is to live with the expanded EAR (due to Google's libraries) and exclude jars that touch
+			functionality we don't use. That also gives 13 Mb reduction. The shaded solution would reduce 5Mb more.
+		 -->
+<!-- 			<plugin> -->
+<!-- 				<groupId>org.apache.maven.plugins</groupId> -->
+<!-- 				<artifactId>maven-shade-plugin</artifactId> -->
+<!-- 				<executions> -->
+<!-- 					<execution> -->
+<!-- 						<phase>package</phase> -->
+<!-- 						<goals> -->
+<!-- 							<goal>shade</goal> -->
+<!-- 						</goals> -->
+<!-- 						<configuration> -->
+<!-- 							<createDependencyReducedPom>true</createDependencyReducedPom> -->
+<!-- 							<shadedArtifactAttached>true</shadedArtifactAttached> -->
+<!-- 							<shadedClassifierName>shaded</shadedClassifierName> -->
 <!-- 							<promoteTransitiveDependencies>true</promoteTransitiveDependencies> -->
-							<minimizeJar>true</minimizeJar>
-							<artifactSet>
-								<excludes>
-									<exclude>${project.groupId}:netmobiel-commons</exclude>
-									<exclude>org.jscience:jscience</exclude>
-									<exclude>org.javolution:javolution</exclude>
-								</excludes>
-							</artifactSet>
-						</configuration>
-					</execution>
-				</executions>
-			</plugin>
+<!-- 							<minimizeJar>true</minimizeJar> -->
+<!-- 							<artifactSet> -->
+<!-- 								<excludes> -->
+<!-- 									<exclude>${project.groupId}:netmobiel-commons</exclude> -->
+<!-- 									<exclude>org.jscience:jscience</exclude> -->
+<!-- 									<exclude>org.javolution:javolution</exclude> -->
+<!-- 								</excludes> -->
+<!-- 							</artifactSet> -->
+<!-- 						</configuration> -->
+<!-- 					</execution> -->
+<!-- 				</executions> -->
+<!-- 			</plugin> -->
 			<!--  Copy just before the integration test the shaded jar to a file with version stripped for easier maintenance. -->
-		    <plugin>  
-		       <groupId>org.apache.maven.plugins</groupId>  
-		       <artifactId>maven-dependency-plugin</artifactId>  
-		       <executions>  
-		          <execution>  
-		             <id>copy-shaded-lib</id>  
-		             <phase>pre-integration-test</phase>  
-		             <configuration>  
-		                <artifactItems>  
-		                   <artifactItem>  
-		                      <groupId>${project.groupId}</groupId>  
-		                      <artifactId>${project.artifactId}</artifactId>
-		                      <classifier>shaded</classifier>
-		                      <version>${project.version}</version>  
-		                   </artifactItem>  
-		                </artifactItems>  
-		                <outputDirectory>${project.build.directory}</outputDirectory>  
-		                <stripVersion>true</stripVersion>  
-		             </configuration>  
-		             <goals>  
-		                <goal>copy</goal>  
-		             </goals>  
-		          </execution>  
-		       </executions>  
-		    </plugin>  
+<!-- 		    <plugin>   -->
+<!-- 		       <groupId>org.apache.maven.plugins</groupId>   -->
+<!-- 		       <artifactId>maven-dependency-plugin</artifactId>   -->
+<!-- 		       <executions>   -->
+<!-- 		          <execution>   -->
+<!-- 		             <id>copy-shaded-lib</id>   -->
+<!-- 		             <phase>pre-integration-test</phase>   -->
+<!-- 		             <configuration>   -->
+<!-- 		                <artifactItems>   -->
+<!-- 		                   <artifactItem>   -->
+<!-- 		                      <groupId>${project.groupId}</groupId>   -->
+<!-- 		                      <artifactId>${project.artifactId}</artifactId> -->
+<!-- 		                      <classifier>shaded</classifier> -->
+<!-- 		                      <version>${project.version}</version>   -->
+<!-- 		                   </artifactItem>   -->
+<!-- 		                </artifactItems>   -->
+<!-- 		                <outputDirectory>${project.build.directory}</outputDirectory>   -->
+<!-- 		                <stripVersion>true</stripVersion>   -->
+<!-- 		             </configuration>   -->
+<!-- 		             <goals>   -->
+<!-- 		                <goal>copy</goal>   -->
+<!-- 		             </goals>   -->
+<!-- 		          </execution>   -->
+<!-- 		       </executions>   -->
+<!-- 		    </plugin>   -->
 		</plugins>
 	</build>
 	
@@ -100,6 +110,18 @@
 		  	<exclusion>
 		  		<groupId>javax.annotation</groupId>
 		  		<artifactId>javax.annotation-api</artifactId>
+		  	</exclusion>
+		  	<exclusion>
+		  		<groupId>io.netty</groupId>
+		  		<artifactId>netty-codec-http</artifactId>
+		  	</exclusion>
+		  	<exclusion>
+		  		<groupId>io.netty</groupId>
+		  		<artifactId>netty-handler</artifactId>
+		  	</exclusion>
+		  	<exclusion>
+		  		<groupId>io.netty</groupId>
+		  		<artifactId>netty-transport</artifactId>
 		  	</exclusion>
 		  </exclusions>
 		</dependency>
