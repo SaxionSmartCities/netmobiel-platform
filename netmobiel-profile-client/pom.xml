@@ -13,6 +13,23 @@
     <name>NetMobiel Profile Service Client</name>
     <description>The client for the Profile Service in NetMobiel.</description>
 
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-jar-plugin</artifactId>
+				<configuration>
+					<archive>
+						<manifestEntries>
+							<!-- Unable to add this dependency in jboss-deplymnet-structure, put it here instead -->
+							<Dependencies>org.keycloak.keycloak-core, org.keycloak.keycloak-authz-client</Dependencies>
+						</manifestEntries>
+					</archive>
+				</configuration>
+			</plugin>
+		</plugins>
+	</build>
+
     <dependencies>
         <dependency>
             <groupId>${project.groupId}</groupId>
