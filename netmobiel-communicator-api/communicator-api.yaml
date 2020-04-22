@@ -11,7 +11,7 @@ servers:
   description: The communicator service visible to the world (production).
 - url: https://acc.netmobiel.eu/communicator/api
   description: The internal URL for the communicator (acceptance).
-- url: https://api.netmobiel.eu/gwapi-acc/communicator
+- url: https://api.netmobiel.eu/gwapi/acc/communicator
   description: The communicator service visible to the world (acceptance).
 paths:
   /messages/{messageId}/ack:
@@ -144,11 +144,13 @@ paths:
               $ref: '#/components/schemas/Message'
         required: true
       responses:
-        "201":
+        "202":
           description: Successful response.
       operationId: sendMessage
       summary: Create a Message
-      description: Creates a new instance of a `Message`.
+      description: Creates asynchronously a new instance of a `Message`. If the delivery
+        mode includes `NOTIFICATION` then a notification (push) message is sent to
+        each recipient.
 components:
   schemas:
     Error:
