@@ -94,6 +94,8 @@ public class TripDao extends AbstractDao<Trip, Long> {
      * Lists a page of trips in planning state (of anyone) that have a departure or arrival location within a circle with radius 
      * <code>arrdepRadius</code> meter around the <code>location</code> and where both departure and arrival location are within
      * a circle with radius <code>travelRadius</code> meter. Consider only trips with a departure time beyond now.
+     * For a shout-out we have two option: Drive to the nearby departure, then to the drop-off, then back home. The other way around is
+     * also feasible. This why the small circle must included either departure or arrival location!
      * @param location the reference location of the driver asking for the trips.
      * @param startTime the time from where to start the search. 
      * @param depArrRadius the small circle containing at least departure or arrival location of the traveller.
