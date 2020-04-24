@@ -96,7 +96,7 @@ public class Itinerary implements Serializable {
 	private List<Leg> legs;
 
 	@Transient
-    public Double score;
+    private Double score;
     
 	public Itinerary() {
     	

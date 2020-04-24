@@ -87,7 +87,7 @@ public class Leg implements Serializable {
      * For ridesharing the reference to the rideshare service.
      */
     @Column(name = "agency_id", length = 32)
-    public String agencyId = null;
+    private String agencyId = null;
     
     /**
      * For transit legs, the ID of the trip.
@@ -95,7 +95,7 @@ public class Leg implements Serializable {
      * Otherwise null.
      */
     @Column(name = "trip_id", length = 32)
-    public String tripId = null;
+    private String tripId = null;
     /**
      * The name of the agency or transport service provider
      */
@@ -209,7 +209,7 @@ public class Leg implements Serializable {
      * In the model we do not save the intermediate stops.
      */
 	@Transient
-    public List<Stop> intermediateStops;
+    private List<Stop> intermediateStops;
 
 	/**
 	 * The state of the leg within a trip. In the itineraries the state is null. 

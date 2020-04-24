@@ -326,7 +326,7 @@ public class PlannerManager {
     	thePlan.getItineraries().sort(new Comparator<Itinerary>() {
 			@Override
 			public int compare(Itinerary it1, Itinerary it2) {
-				return -Double.compare(it1.score, it2.score);
+				return -Double.compare(it1.getScore(), it2.getScore());
 			}
 		});
     	return thePlan;

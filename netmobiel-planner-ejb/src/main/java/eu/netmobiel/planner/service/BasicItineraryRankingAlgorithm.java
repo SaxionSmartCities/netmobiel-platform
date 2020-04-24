@@ -18,16 +18,17 @@ public class BasicItineraryRankingAlgorithm {
 		// # of transfers: less is better
 		// waiting time: less is better
 		// total travel time: less is better
-		// distance in time to intended departure or arrival time. Closer is better. 
-		it.score = it.getTransfers() * TRANSFER_PENALTY +
+		// distance in time to intended departure or arrival time. Closer is better.
+		double score = it.getTransfers() * TRANSFER_PENALTY +
 				it.getWaitingTime() * WAITING_TIME_PENALTY +
 				it.getWalkDistance() * WALK_DISTANCE_PENALTY +
 				it.getDuration() * DURATION_PENALTY;
 		if (fromDate != null) {
-			it.score += Math.abs(Duration.between(fromDate, it.getDepartureTime()).getSeconds()) * DEPARTURE_PENALTY; 
+			score += Math.abs(Duration.between(fromDate, it.getDepartureTime()).getSeconds()) * DEPARTURE_PENALTY; 
 		}
 		if (toDate != null) {
-			it.score += Math.abs(Duration.between(toDate, it.getArrivalTime()).getSeconds()) * ARRIVAL_PENALTY; 
+			score += Math.abs(Duration.between(toDate, it.getArrivalTime()).getSeconds()) * ARRIVAL_PENALTY; 
 		}
+		it.setScore(score);
 	}
 }
