@@ -3,9 +3,11 @@ package eu.netmobiel.opentripplanner.client;
 import java.io.StringReader;
 import java.net.URI;
 import java.net.URISyntaxException;
-import java.time.LocalDate;
-import java.time.LocalTime;
+import java.time.Instant;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -141,7 +143,7 @@ public class OpenTripPlannerClient {
 		}
     }
 
-    public PlanResponse createPlan(GeoLocation fromPlace, GeoLocation toPlace, LocalDate date, LocalTime time, boolean useTimeAsArriveBy, 
+    public PlanResponse createPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean useTimeAsArriveBy, 
     		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, GeoLocation[] via, Integer maxItineraries) {
 		PlanResponse result = null;
 		boolean forcedDepartureTime = false;
@@ -153,11 +155,18 @@ public class OpenTripPlannerClient {
 //					the intermediatePlaces cannot be combined with arriveBy=true if there is no transit involved");
 			}
 		}
+   		// The OTP translates the input date using the system default zone. So we do the opposite conversion. 
+    	// @see OTP Planner org.opentripplanner.api.resource.PlannerResource.plan(UriInfo, Request)
+		// Skip the milliseconds
+		LocalDateTime localTravelTime = travelTime
+				.truncatedTo(ChronoUnit.SECONDS)
+				.atZone(ZoneId.systemDefault())
+				.toLocalDateTime();
 		UriBuilder ub = UriBuilder.fromUri(createURI(openTripPlannerApi + OTP_PLAN_REQUEST));
 		ub.queryParam("fromPlace", fromPlace.toString());
 		ub.queryParam("toPlace", toPlace.toString());
-		ub.queryParam("date", DateTimeFormatter.ISO_LOCAL_DATE.format(date));
-		ub.queryParam("time", DateTimeFormatter.ISO_LOCAL_TIME.format(time));
+		ub.queryParam("date", DateTimeFormatter.ISO_LOCAL_DATE.format(localTravelTime.toLocalDate()));
+		ub.queryParam("time", DateTimeFormatter.ISO_LOCAL_TIME.format(localTravelTime.toLocalTime()));
 		ub.queryParam("arriveBy", Boolean.toString(useTimeAsArriveBy));
 		ub.queryParam("showIntermediateStops", Boolean.toString(showIntermediateStops));
 		ub.queryParam("mode", Arrays.asList(modes).stream()

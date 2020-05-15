@@ -4,9 +4,8 @@ package eu.netmobiel.opentripplanner.client;
 import static org.junit.Assert.*;
 
 import java.io.File;
-import java.time.LocalDate;
-import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.Instant;
+import java.time.temporal.ChronoUnit;
 
 import javax.inject.Inject;
 
@@ -59,9 +58,8 @@ public class OpenTripPlannerClientIT {
     @Inject
     private Logger log;
 
-    private void assertPlan(GeoLocation fromPlace, GeoLocation toPlace, LocalDate date, LocalTime time, TripPlan plan) {
-        assertEquals(date, plan.date.atZone(ZoneId.systemDefault()).toLocalDate());
-        assertEquals(time, plan.date.atZone(ZoneId.systemDefault()).toLocalTime());
+    private void assertPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, TripPlan plan) {
+        assertEquals(travelTime, plan.date);
         assertEquals(fromPlace.getLabel(), plan.from.name);
         assertEquals(fromPlace.getLatitude(), plan.from.lat);
         assertEquals(fromPlace.getLongitude(), plan.from.lon);
@@ -75,20 +73,19 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanDeparture");
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	LocalDate date = LocalDate.now();
-    	LocalTime time = LocalTime.parse("20:00:00");
+    	Instant travelTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
     	boolean useTimeAsArriveBy = false;
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 3;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, date, time, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
     	TripPlan plan = result.plan;
         assertNotNull(plan);
         log.debug(plan.toString());
-        assertPlan(fromPlace, toPlace, date, time, plan);
+        assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);
-        assertEquals(time, it.startTime.atZone(ZoneId.systemDefault()).toLocalTime());
+        assertEquals(travelTime, it.startTime);
         assertEquals(1, it.legs.size());
     }
 
@@ -97,21 +94,20 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanArrival");
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	LocalDate date = LocalDate.now();
-    	LocalTime time = LocalTime.parse("20:00:00");
+    	Instant travelTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
     	boolean useTimeAsArriveBy = true;
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 3;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, date, time, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
         log.debug(plan.toString());
-        assertPlan(fromPlace, toPlace, date, time, plan);
+        assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);
-        assertEquals(time, it.endTime.atZone(ZoneId.systemDefault()).toLocalTime());
+        assertEquals(travelTime, it.endTime);
         assertEquals(1, it.legs.size());
     }
 
@@ -120,22 +116,21 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanDepartureVia");
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	LocalDate date = LocalDate.now();
-    	LocalTime time = LocalTime.parse("20:00:00");
+    	Instant travelTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
     	GeoLocation[] via = new GeoLocation[] { GeoLocation.fromString("Rabobank Zutphen::52.148125, 6.196966") }; 
     	boolean useTimeAsArriveBy = false;
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 3;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, date, time, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
         log.debug(plan.toString());
-        assertPlan(fromPlace, toPlace, date, time, plan);
+        assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);
-        assertEquals(time, it.startTime.atZone(ZoneId.systemDefault()).toLocalTime());
+        assertEquals(travelTime, it.startTime);
         assertEquals(2, it.legs.size());
     }
 
@@ -144,21 +139,20 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanArrivalVia");
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	LocalDate date = LocalDate.now();
-    	LocalTime time = LocalTime.parse("20:00:00");
+    	Instant travelTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
     	GeoLocation[] via = new GeoLocation[] { GeoLocation.fromString("Rabobank Zutphen::52.148125, 6.196966") }; 
     	boolean useTimeAsArriveBy = true;
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
     	Integer maxWalkDistance = 2000;
   	    Integer maxItineraries = 3;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, date, time, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
     	TripPlan plan = result.plan;
         assertNotNull(plan);
         log.debug(plan.toString());
-        assertPlan(fromPlace, toPlace, date, time, plan);
+        assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);
-        assertEquals(time, it.endTime.atZone(ZoneId.systemDefault()).toLocalTime());
+        assertEquals(travelTime, it.endTime);
         assertEquals(2, it.legs.size());
     }
 
@@ -167,21 +161,20 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanDepartureTransit");
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	LocalDate date = LocalDate.now();
-    	LocalTime time = LocalTime.parse("20:00:00");
+    	Instant travelTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
     	boolean useTimeAsArriveBy = false;
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK }; 
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 1;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, date, time, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
         log.debug(plan.toString());
-        assertPlan(fromPlace, toPlace, date, time, plan);
+        assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);
-        assertTrue("Depart at or after indicated time", time.isBefore(it.startTime.atZone(ZoneId.systemDefault()).toLocalTime()));
+        assertTrue("Depart at or after indicated time", travelTime.isBefore(it.startTime));
     }
 
     @Test
@@ -189,21 +182,20 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanArrivalTransit");
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	LocalDate date = LocalDate.now();
-    	LocalTime time = LocalTime.parse("20:00:00");
+    	Instant travelTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
     	boolean useTimeAsArriveBy = true;
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK }; 
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 1;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, date, time, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
         log.debug(plan.toString());
-        assertPlan(fromPlace, toPlace, date, time, plan);
+        assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);
-        assertTrue("Arrive at or before indicated time", time.isAfter(it.endTime.atZone(ZoneId.systemDefault()).toLocalTime()));
+        assertTrue("Arrive at or before indicated time", travelTime.isAfter(it.endTime));
     }
 
     @Test
@@ -211,8 +203,7 @@ public class OpenTripPlannerClientIT {
     	log.debug("testPlanArrivalVia2");
     	GeoLocation fromPlace = GeoLocation.fromString("Enschede Overijssel::52.223610,6.895510");
     	GeoLocation  toPlace = GeoLocation.fromString("Deventer Overijssel::52.251030,6.159900");
-    	LocalDate date = LocalDate.now();
-    	LocalTime time = LocalTime.parse("12:00:00");
+    	Instant travelTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
 //    	GeoLocation[] via = new GeoLocation[] { GeoLocation.fromString("Saxion Gaming::52.219680,6.889550"), GeoLocation.fromString("Deventer::52.254055,6.167655") }; 
     	GeoLocation[] via = new GeoLocation[] { GeoLocation.fromString("Saxion Gaming::52.220,6.889550") };//52.219680 
 //    	GeoLocation[] via = new GeoLocation[] { GeoLocation.fromString("Deventer::52.254055,6.167655") }; 
@@ -220,7 +211,7 @@ public class OpenTripPlannerClientIT {
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR /*, TraverseMode.WALK */}; 
     	Integer maxWalkDistance = 1000;
   	    Integer maxItineraries = 1;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, date, time, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
     	if (result.error != null) {
     		log.error("Planner error: " + result.error.msg);
     	}
@@ -228,11 +219,5 @@ public class OpenTripPlannerClientIT {
     	// Expect an error due to traverse problems in OTP
         assertNull(plan);
         assertNotNull(result.error);
-//        log.debug(plan.toString());
-//        assertPlan(fromPlace, toPlace, date, time, plan);
-//        assertEquals(1, plan.itineraries.size());
-//        Itinerary it = plan.itineraries.get(0);
-//        assertEquals(time, it.endTime.atZone(ZoneId.systemDefault()).toLocalTime());
-//        assertEquals(2, it.legs.size());
     }
 }
