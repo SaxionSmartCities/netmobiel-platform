@@ -30,7 +30,7 @@ import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
-import eu.netmobiel.planner.repository.mapping.TripPlanMapper;
+import eu.netmobiel.rideshare.repository.mapping.LegMapper;
 
 @RunWith(Arquillian.class)
 public class OpenTripPlannerDaoIT {
@@ -46,7 +46,7 @@ public class OpenTripPlannerDaoIT {
                 .addAsLibraries(deps)
 //                .addPackage(PlannerUrnHelper.class.getPackage())
             .addPackages(true, TripPlan.class.getPackage())
-            .addPackages(true, TripPlanMapper.class.getPackage())
+            .addPackages(true, LegMapper.class.getPackage())
             .addClass(OpenTripPlannerDao.class)
 //            .addClass(Resources.class)
         	.addAsWebInfResource("jboss-deployment-structure.xml")

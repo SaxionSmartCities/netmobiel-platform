@@ -15,10 +15,11 @@ import eu.netmobiel.rideshare.model.Stop;
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
 public interface StopMapper {
 
-	// Stop <--> Stop
+	// Domain Stop --> API Stop
+	@Mapping(target = "id", ignore = true)
 	eu.netmobiel.rideshare.api.model.Stop map(Stop source);
 
-	@Mapping(target = "ride", ignore = true)
+//	@Mapping(target = "ride", ignore = true)
 	@Mapping(target = "location", ignore = true)
 	@Mapping(target = "id", ignore = true)
 	Stop map(eu.netmobiel.rideshare.api.model.Stop source);

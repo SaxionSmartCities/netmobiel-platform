@@ -1,10 +1,14 @@
 package eu.netmobiel.rideshare.model;
 
 import java.io.Serializable;
+import java.time.Instant;
+import java.util.List;
 
 import javax.enterprise.inject.Vetoed;
-import javax.persistence.CascadeType;
+import javax.persistence.AttributeOverride;
+import javax.persistence.AttributeOverrides;
 import javax.persistence.Column;
+import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
@@ -12,7 +16,9 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
+import javax.persistence.OrderBy;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -44,9 +50,15 @@ public class Booking implements Serializable {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "booking_sg")
     private Long id;
 
+	/**
+	 * The state of the booking.
+	 */
     @Column(name = "state", length = 3)
     private BookingState state;
 
+    /**
+     * Number of seats occupied by this booking 
+     */
     @Positive
     @Max(99)
     @Column(name = "nr_seats")
@@ -60,33 +72,78 @@ public class Booking implements Serializable {
 	@JoinColumn(name = "passenger", nullable = false, foreignKey = @ForeignKey(name = "booking_passenger_fk"))
     private User passenger;
 
+    /**
+     * The ride carrying the booking.
+     */
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "ride", nullable = false, foreignKey = @ForeignKey(name = "booking_ride_fk"))
     private Ride ride;
 
+    /**
+     * The intended pickup time.
+     */
     @NotNull
-    @ManyToOne(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
-	@JoinColumn(name = "pickup", nullable = false, foreignKey = @ForeignKey(name = "booking_pickup_stop_fk"))
-    private Stop pickup;
-
+    @Column(name = "departure_time", nullable = false)
+    private Instant departureTime;
+    
+    /**
+     * The intended drop-off time
+     */
     @NotNull
-    @ManyToOne(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
-	@JoinColumn(name = "drop_off", nullable = false, foreignKey = @ForeignKey(name = "booking_drop_off_stop_fk"))
-    private Stop dropOff;
+    @Column(name = "arrival_time", nullable = false)
+    private Instant arrivalTime;
+
+    /**
+     * The pickup location of the passenger.  
+     */
+    @NotNull
+    @Embedded
+    @AttributeOverrides({ 
+    	@AttributeOverride(name = "label", column = @Column(name = "from_label", length = 128)), 
+    	@AttributeOverride(name = "point", column = @Column(name = "from_point")), 
+   	} )
+    private GeoLocation pickup;
+    
+    /**
+     * The drop-off location of the passenger.  
+     */
+    @NotNull
+    @Embedded
+    @AttributeOverrides({ 
+    	@AttributeOverride(name = "label", column = @Column(name = "to_label", length = 128)), 
+    	@AttributeOverride(name = "point", column = @Column(name = "to_point")), 
+   	} )
+    private GeoLocation dropOff;
 
 
+    /**
+     * If the booking is cancelled, the reason for canceling.
+     */
     @Size(max = 256)
     @Column(name = "cancel_reason", length = 256)
     private String cancelReason;
     
+    /**
+     * If true then the booking was canceled by the driver.
+     */
     @Column(name = "cancelled_by_driver")
     private Boolean cancelledByDriver;
 
 
+    /**
+     * The reference to the passenger
+     */
     @Transient
     private String passengerRef;
 
+    /**
+     * The legs this booking is involved in.
+     */
+    @ManyToMany(mappedBy = "bookings")
+    @OrderBy("legIx asc")
+    private List<Leg> legs;
+    
     /**
      * No-args constructor.
      */
@@ -95,10 +152,10 @@ public class Booking implements Serializable {
     }
     
     public Booking(Ride ride, User passenger, GeoLocation pickup, GeoLocation dropOff, Integer nrSeats) {
-    	this.dropOff = new Stop(dropOff);
+    	this.dropOff = new GeoLocation(dropOff);
     	this.nrSeats = nrSeats;
     	this.passenger = passenger;
-    	this.pickup = new Stop(pickup);
+    	this.pickup = new GeoLocation(pickup);
     	this.ride = ride;
     	this.state = BookingState.NEW;
     }
@@ -127,19 +184,35 @@ public class Booking implements Serializable {
 		this.nrSeats = nrSeats;
 	}
 
-	public Stop getPickup() {
+	public Instant getDepartureTime() {
+		return departureTime;
+	}
+
+	public void setDepartureTime(Instant departureTime) {
+		this.departureTime = departureTime;
+	}
+
+	public Instant getArrivalTime() {
+		return arrivalTime;
+	}
+
+	public void setArrivalTime(Instant arrivalTime) {
+		this.arrivalTime = arrivalTime;
+	}
+
+	public GeoLocation getPickup() {
 		return pickup;
 	}
 
-	public void setPickup(Stop pickup) {
+	public void setPickup(GeoLocation pickup) {
 		this.pickup = pickup;
 	}
 
-	public Stop getDropOff() {
+	public GeoLocation getDropOff() {
 		return dropOff;
 	}
 
-	public void setDropOff(Stop dropOff) {
+	public void setDropOff(GeoLocation dropOff) {
 		this.dropOff = dropOff;
 	}
 
@@ -183,9 +256,46 @@ public class Booking implements Serializable {
 		return passengerRef;
 	}
 
+	public boolean isDeleted() {
+		return getState() == BookingState.CANCELLED;
+	}
+	public List<Leg> getLegs() {
+		return legs;
+	}
+
+	public void setLegs(List<Leg> legs) {
+		this.legs = legs;
+	}
+
 	public void markAsCancelled(String reason, boolean byDriver) {
 		this.state = BookingState.CANCELLED;
 		this.cancelReason = reason;
 		this.cancelledByDriver = byDriver;
 	}
+
+	/**
+	 * Using the database ID as equals test!
+	 * @see https://vladmihalcea.com/the-best-way-to-implement-equals-hashcode-and-tostring-with-jpa-and-hibernate/
+	 */
+	@Override
+    public boolean equals(Object o) {
+        if (this == o) {
+        	return true;
+        }
+         if (!(o instanceof Booking)) {
+            return false;
+        }
+        Booking other = (Booking) o;
+        return id != null && id.equals(other.getId());
+    }
+
+	/**
+	 * Using the database ID as equals test!
+	 * @see https://vladmihalcea.com/the-best-way-to-implement-equals-hashcode-and-tostring-with-jpa-and-hibernate/
+	 */
+    @Override
+    public int hashCode() {
+        return 31;
+    }
+
 }

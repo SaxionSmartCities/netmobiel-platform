@@ -1,17 +1,16 @@
 package eu.netmobiel.rideshare.model;
 
 import java.io.Serializable;
+import java.time.Instant;
+import java.util.Objects;
 
 import javax.enterprise.inject.Vetoed;
+import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
@@ -32,19 +31,40 @@ public class Stop implements Serializable {
     private GeoLocation location;
 
     /**
-     * The ride the stop is connected to.
+     * The time the traveller will arrive at the place.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "ride", nullable = true, foreignKey = @ForeignKey(name = "stop_ride_fk"))
-    private Ride ride;
+	@Column(name = "arrival_time")
+    private Instant arrivalTime;
+
+    /**
+     * The time the traveller will depart from the place.
+     */
+	@Column(name = "departure_time")
+    private Instant departureTime;
 
 	public Stop() {
 	}
 	
 	public Stop(GeoLocation geoloc) {
-		this.location = geoloc;
+		this(geoloc, null, null);
 	}
 	
+	public Stop(GeoLocation geoloc, Instant anDepartureTime, Instant anArrivalTime) {
+		this.location = geoloc;
+		this.departureTime = anDepartureTime;
+		this.arrivalTime = anArrivalTime;
+	}
+
+	public Stop(Stop other) {
+    	this.location = new GeoLocation(other.location);
+    	this.arrivalTime = other.arrivalTime;
+    	this.departureTime = other.departureTime;
+    }
+
+    public Stop copy() {
+    	return new Stop(this);
+    }
+    
 	public Long getId() {
 		return id;
 	}
@@ -59,14 +79,6 @@ public class Stop implements Serializable {
 
 	public void setLocation(GeoLocation location) {
 		this.location = location;
-	}
-
-	public Ride getRide() {
-		return ride;
-	}
-
-	public void setRide(Ride ride) {
-		this.ride = ride;
 	}
 
 	public Double getLatitude() {
@@ -98,6 +110,43 @@ public class Stop implements Serializable {
 
 	public void setLabel(String label) {
 		setLocationThen().setLabel(label);
+	}
+
+	public Instant getArrivalTime() {
+		return arrivalTime;
+	}
+
+	public void setArrivalTime(Instant arrivalTime) {
+		this.arrivalTime = arrivalTime;
+	}
+
+	public Instant getDepartureTime() {
+		return departureTime;
+	}
+
+	public void setDepartureTime(Instant departureTime) {
+		this.departureTime = departureTime;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(arrivalTime, departureTime, location);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (obj == null) {
+			return false;
+		}
+		if (getClass() != obj.getClass()) {
+			return false;
+		}
+		Stop other = (Stop) obj;
+		return Objects.equals(arrivalTime, other.arrivalTime) && Objects.equals(departureTime, other.departureTime)
+				&& Objects.equals(location, other.location);
 	}
 
 	@Override

@@ -1,6 +1,6 @@
 package eu.netmobiel.rideshare.repository;
 
-import java.time.LocalDate;
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -58,7 +58,7 @@ public class BookingDao extends AbstractDao<Booking, Long> {
     	return exists != null && exists;
     }
     
-    public PagedResult<Long> findByPassenger(User passenger, LocalDate since, LocalDate until, boolean cancelledToo, Integer maxResults, Integer offset) {
+    public PagedResult<Long> findByPassenger(User passenger, Instant since, Instant until, boolean cancelledToo, Integer maxResults, Integer offset) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Booking> bookings = cq.from(Booking.class);
@@ -66,11 +66,11 @@ public class BookingDao extends AbstractDao<Booking, Long> {
         Predicate predPassenger = cb.equal(bookings.get(Booking_.passenger), passenger);
         predicates.add(predPassenger);
         if (since != null) {
-	        Predicate predSince = cb.greaterThanOrEqualTo(bookings.get(Booking_.ride).get(Ride_.departureTime), since.atStartOfDay());
+	        Predicate predSince = cb.greaterThanOrEqualTo(bookings.get(Booking_.ride).get(Ride_.departureTime), since);
 	        predicates.add(predSince);
         }        
         if (until != null) {
-	        Predicate predUntil = cb.lessThanOrEqualTo(bookings.get(Booking_.ride).get(Ride_.departureTime), until.atStartOfDay());
+	        Predicate predUntil = cb.lessThanOrEqualTo(bookings.get(Booking_.ride).get(Ride_.departureTime), until);
 	        predicates.add(predUntil);
         }        
         if (!cancelledToo) {

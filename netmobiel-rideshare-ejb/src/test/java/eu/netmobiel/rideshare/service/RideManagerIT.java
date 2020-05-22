@@ -1,0 +1,178 @@
+package eu.netmobiel.rideshare.service;
+
+
+import static org.junit.Assert.*;
+
+import java.time.DayOfWeek;
+import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.ZoneId;
+import java.util.List;
+
+import javax.inject.Inject;
+
+import org.jboss.arquillian.container.test.api.Deployment;
+import org.jboss.arquillian.junit.Arquillian;
+import org.jboss.shrinkwrap.api.Archive;
+import org.jboss.shrinkwrap.api.spec.WebArchive;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import eu.netmobiel.rideshare.model.Car;
+import eu.netmobiel.rideshare.model.Leg;
+import eu.netmobiel.rideshare.model.Recurrence;
+import eu.netmobiel.rideshare.model.Ride;
+import eu.netmobiel.rideshare.model.RideBase;
+import eu.netmobiel.rideshare.model.RideTemplate;
+import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.test.Fixture;
+import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
+
+@RunWith(Arquillian.class)
+public class RideManagerIT extends RideshareIntegrationTestBase {
+	
+    @Deployment
+    public static Archive<?> createTestArchive() {
+        WebArchive archive = createDeploymentBase()
+	            .addClass(RideManager.class);
+//   		System.out.println(archive.toString(true));
+		return archive;
+    }
+
+    @Inject
+    private RideManager rideManager;
+
+    private User driver1;
+    private Car car1;
+
+
+    @Override
+    protected void insertData() throws Exception {
+        driver1 = Fixture.createUser(loginContext);
+		em.persist(driver1);
+
+		car1 = Fixture.createCarFordThunderbird(driver1);
+		em.persist(car1);
+    }
+
+    private void verifyRideBase(RideBase r, RideBase rdb, Instant departureTime, Instant arrivalTime) {
+    	if (departureTime != null) {
+    		assertEquals(departureTime, rdb.getDepartureTime());
+    		assertNotNull(rdb.getArrivalTime());
+    		assertFalse(rdb.isArrivalTimePinned());
+    	} else {
+    		assertNotNull(rdb.getDepartureTime());
+    		assertEquals(arrivalTime, rdb.getArrivalTime());
+    		assertTrue(rdb.isArrivalTimePinned());
+    	}
+		assertEquals(r.getFrom(), rdb.getFrom());
+		assertEquals(r.getTo(), rdb.getTo());
+		assertEquals(r.getCar().getId(), rdb.getCar().getId());
+		assertEquals(r.getDriver().getId(), rdb.getCar().getDriver().getId());
+		assertNotNull(rdb.getCarthesianBearing());
+		assertNotNull(rdb.getCarthesianDistance());
+		if (car1.getCo2Emission() != null) {
+			assertNotNull(rdb.getCO2Emission());
+		} else {
+			assertNull(rdb.getCO2Emission());
+		}
+		assertNotNull(rdb.getCarRef());
+		assertNotNull(rdb.getDistance());
+		assertNotNull(rdb.getDriverRef());
+		assertNotNull(rdb.getDuration());
+		assertEquals(r.getMaxDetourMeters(), rdb.getMaxDetourMeters());
+		assertEquals(r.getMaxDetourSeconds(), rdb.getMaxDetourSeconds());
+		assertEquals(r.getNrSeatsAvailable(), rdb.getNrSeatsAvailable());
+		assertNull(rdb.getRemarks());
+		assertNotNull(rdb.getShareEligibility());
+    }
+
+    private void checkRideConsistency(Ride rdb) {
+		assertNotNull(rdb.getBookings());
+		assertEquals(0, rdb.getBookings().size());
+
+		assertNotNull(rdb.getLegs());
+		assertEquals(1, rdb.getLegs().size());
+		Leg leg = rdb.getLegs().get(0);
+		assertNotNull(leg);
+		assertNotNull(leg.getBookings());
+		assertEquals(0, leg.getBookings().size());
+		assertEquals(rdb.getDistance(), leg.getDistance());
+		assertEquals(rdb.getDuration(), leg.getDuration());
+		assertEquals(Integer.valueOf(0), leg.getLegIx());
+		assertEquals(rdb.getArrivalTime(), leg.getEndTime());
+		assertEquals(rdb.getDepartureTime(), leg.getStartTime());
+		assertNotNull(leg.getFrom());
+		assertEquals(rdb.getFrom(), leg.getFrom().getLocation());
+		assertEquals(rdb.getDepartureTime(), leg.getFrom().getDepartureTime());
+		assertNotNull(leg.getTo());
+		assertEquals(rdb.getTo(), leg.getTo().getLocation());
+		assertEquals(rdb.getArrivalTime(), leg.getTo().getArrivalTime());
+		assertNull(leg.getFrom().getArrivalTime());
+		assertNull(leg.getTo().getDepartureTime());
+		assertNotNull(leg.getLegGeometry());
+		assertNotNull(leg.getLegGeometryEncoded());
+
+		assertNotNull(rdb.getStops());
+		assertEquals(2, rdb.getStops().size());
+    }
+
+    @Test
+    public void createSimpleRide_Departure() throws Exception {
+    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Ride r = Fixture.createRide(car1, departureTime, null);
+		Long rideId = rideManager.createRide(r);
+		assertNotNull(rideId);
+		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		verifyRideBase(r, rdb, departureTime, null);
+		checkRideConsistency(rdb);
+    }
+
+    @Test
+    public void createSimpleRide_Arrival() throws Exception {
+    	Instant arrivalTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Ride r = Fixture.createRide(car1, null, arrivalTime);
+		Long rideId = rideManager.createRide(r);
+		assertNotNull(rideId);
+		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		verifyRideBase(r, rdb, null, arrivalTime);
+		checkRideConsistency(rdb);
+    }
+    
+    @Test
+    public void createRecurrentRide_Departure() throws Exception {
+    	// Choose a time around the wintertime/summertime change: March 29 2020 02:00:00 Europe/Amsterdam
+    	ZoneId myZone = ZoneId.of(Recurrence.DEFAULT_TIME_ZONE);
+    	LocalDateTime firstLocDep = LocalDateTime.parse("2020-03-25T10:00:00"); // A wednesday  
+    	LocalDate horizon = LocalDate.parse("2020-04-02");
+    	Instant departureTime = firstLocDep.atZone(myZone).toInstant();	
+    	Ride r = Fixture.createRide(car1, departureTime, null);
+    	RideTemplate rt = new RideTemplate(); 
+    	Recurrence rc = new Recurrence(1, Recurrence.dowMask(DayOfWeek.WEDNESDAY), horizon);
+    	rt.setRecurrence(rc);
+    	r.setRideTemplate(rt);
+		Long rideId = rideManager.createRide(r);
+		assertNotNull(rideId);
+		Ride firstRide = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		verifyRideBase(r, firstRide, departureTime, null);
+		checkRideConsistency(firstRide);
+		
+		List<Ride> rides = em.createQuery("from Ride where rideTemplate = :template", Ride.class)
+				.setParameter("template", firstRide.getRideTemplate())
+				.getResultList();
+		assertEquals(2, rides.size());
+		Ride lastRide = rides.get(1);
+		checkRideConsistency(lastRide);
+		LocalDateTime lastLocDep = LocalDateTime.ofInstant(lastRide.getDepartureTime(), myZone);
+		assertEquals(firstLocDep.plusWeeks(1), lastLocDep);
+    }
+
+
+}

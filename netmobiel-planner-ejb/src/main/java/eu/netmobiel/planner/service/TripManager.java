@@ -24,8 +24,6 @@ import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.TripDao;
-import eu.netmobiel.rideshare.model.Booking;
-import eu.netmobiel.rideshare.model.Stop;
 import eu.netmobiel.rideshare.service.BookingManager;
 
 @Stateless
@@ -164,15 +162,12 @@ public class TripManager {
     protected void startBookingProcessIfNecessary(User traveller, Trip trip, Leg leg) throws CreateException {
     	if (leg.getTraverseMode() == TraverseMode.RIDESHARE) {
     		leg.setState(TripState.BOOKING);
-        	Booking booking = new Booking();
-        	booking.setNrSeats(trip.getNrSeats());
-        	booking.setDropOff(new Stop());
-        	booking.setDropOff(new Stop(leg.getFrom().getLocation()));
 			try {
 				String bookingRef = bookingManager.createBooking(leg.getTripId(), traveller, 
-						leg.getFrom().getLocation(), leg.getTo().getLocation(), 1);
+						leg.getFrom().getLocation(), leg.getTo().getLocation(), trip.getNrSeats());
 				leg.setBookingId(bookingRef);
     			leg.setState(TripState.SCHEDULED);
+    			//FIXME Verify the actual timing and locations
 			} catch (NotFoundException | CreateException e) {
 				throw new CreateException("cannot create booking", e);
 			}

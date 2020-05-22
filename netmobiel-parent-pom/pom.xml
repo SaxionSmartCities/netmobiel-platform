@@ -151,21 +151,23 @@
 				<groupId>org.keycloak</groupId>
 				<artifactId>keycloak-authz-client</artifactId>
 				<version>${version.keycloak}</version>
-				<scope>provided</scope>
 			</dependency>
 			<dependency>
 				<groupId>org.keycloak</groupId>
 				<artifactId>keycloak-adapter-core</artifactId>
 				<version>${version.keycloak}</version>
-				<scope>provided</scope>
 			</dependency>
 			<!-- Add the SPI as well, otherwise maven will complain -->
 			<dependency>
 				<groupId>org.keycloak</groupId>
 				<artifactId>keycloak-adapter-spi</artifactId>
 				<version>${version.keycloak}</version>
-				<scope>provided</scope>
 			</dependency>
+	        <dependency>
+	            <groupId>org.keycloak</groupId>
+	            <artifactId>keycloak-jboss-adapter-core</artifactId>
+				<version>${version.keycloak}</version>
+	        </dependency>
 			<dependency>
 				<groupId>log4j</groupId>
 				<artifactId>log4j</artifactId>

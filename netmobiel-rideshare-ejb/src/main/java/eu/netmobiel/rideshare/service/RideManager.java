@@ -1,55 +1,66 @@
 package eu.netmobiel.rideshare.service;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
+import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.ZonedDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collection;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.stream.Collectors;
 
+import javax.annotation.Resource;
+import javax.annotation.security.PermitAll;
+import javax.ejb.LocalBean;
 import javax.ejb.Schedule;
+import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
 
+import org.jboss.ejb3.annotation.SecurityDomain;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
-import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.util.EllipseHelper;
-import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
+import eu.netmobiel.commons.util.ClosenessFilter;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.opentripplanner.api.model.Leg;
-import eu.netmobiel.opentripplanner.api.model.PlanResponse;
-import eu.netmobiel.opentripplanner.api.model.TraverseMode;
-import eu.netmobiel.opentripplanner.client.OpenTripPlannerClient;
+import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Car;
-import eu.netmobiel.rideshare.model.RecurrenceIterator;
+import eu.netmobiel.rideshare.model.Leg;
+import eu.netmobiel.rideshare.model.Recurrence;
 import eu.netmobiel.rideshare.model.Ride;
+import eu.netmobiel.rideshare.model.RideBase;
 import eu.netmobiel.rideshare.model.RideScope;
 import eu.netmobiel.rideshare.model.RideTemplate;
+import eu.netmobiel.rideshare.model.Stop;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.repository.CarDao;
+import eu.netmobiel.rideshare.repository.OpenTripPlannerDao;
 import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.repository.RideTemplateDao;
-import eu.netmobiel.rideshare.repository.StopDao;
 import eu.netmobiel.rideshare.repository.UserDao;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
-
+/**
+ * The manager for the rides. 
+ * 
+ * @author Jaap Reitsma
+ *
+ */
 @Stateless
 @Logging
+@LocalBean
 public class RideManager {
 	public static final Integer MAX_RESULTS = 10; 
 	public static final String AGENCY_NAME = "NetMobiel Rideshare Service";
 	public static final String AGENCY_ID = "NB:RS";
 	
-	private static final float DEFAULT_RELATIVE_MAX_DETOUR = 0.30f;
-	private static final float DEFAULT_NOMINAL_SPEED = 25 * 1000 / 3600; 	/* km/h --> m/s */
 	/**
 	 * The driver has a vector, the passenger has a vector. 
 	 * The difference in direction is limited for a match. Otherwise the driver has to drive in the
@@ -57,8 +68,10 @@ public class RideManager {
 	 * (driver bearing - diff, driver bearing + diff). 
 	 */
 	private static final int MAX_BEARING_DIFFERENCE = 60; 	/* degrees */
-	private static final Integer OTP_MAX_WALK_DISTANCE = 500;
+//	private static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
 	private static final int HORIZON_WEEKS = 8;
+	private static final int MAX_BOOKING_LOCATION_SHIFT = 100;	// Maximum 100 meter deviation of original pickup/drop-off
+	private static final int TEMPLATE_CURSOR_SIZE = 10;
 	@Inject
     private Logger log;
 
@@ -71,47 +84,77 @@ public class RideManager {
     @Inject
     private RideTemplateDao rideTemplateDao;
     @Inject
-    private StopDao stopDao;
-    @Inject
-    private OpenTripPlannerClient otpClient;
+    private OpenTripPlannerDao otpDao;
     
-    @Inject
-    private UserManager userManager;
+//    @Inject
+//    private UserManager userManager;
+
+    @Resource
+    private SessionContext context;
 
     /**
      * Updates all recurrent rides by moving the system horizon to the next day.
-     * To prevent to re-insert removed recurrent rides we have to limit the window to the previous horizon, i.e. yesterday  
+     * The state of the ride generation is saved in each template. Updating the tempalte and saving the generated rides
+     * are part of the same transaction. 
      */
 	@Schedule(info = "Ride Maintenance", hour = "2", minute = "15", second = "0", persistent = false /* non-critical job */)
 	public void instantiateRecurrentRides() {
 		try {
-			instantiateRecurrentRides(null);
+			// Retrieve a paged list of templates to update
+			int offset = 0;
+			int totalCount = 0;
+			int count = 0;
+			int errorCount = 0;
+			Instant systemHorizon = getDefaultSystemHorizon();
+			log.info(String.format("DB maintenance: Move horizon to %s, check starts at %s", DateTimeFormatter.ISO_INSTANT.format(systemHorizon)));
+			do {
+				List<RideTemplate> templates = rideTemplateDao.findOpenTemplates(systemHorizon, offset, TEMPLATE_CURSOR_SIZE);
+				count = templates.size();
+				for (RideTemplate template : templates) {
+					try {
+						// Force transaction demarcation
+						totalCount += context.getBusinessObject(RideManager.class).instantiateRecurrentRides(template, systemHorizon);
+					} catch (Exception ex) {
+						log.error("Error generating rides", ex);
+						errorCount++;
+						if (errorCount >= 3) {
+							log.error("Too many errors, aborting generation of ride instances");
+							break;
+						}
+					}
+				}
+			} while (count < TEMPLATE_CURSOR_SIZE);
+			log.info(String.format("DB maintenance: %d rides inserted in total", totalCount));
 		} catch (Exception ex) {
-			log.error("Error updating recurrence horizons: " + ex.toString());
+			log.error("Error fetching open ride templates: " + ex.toString());
 		}
 	}
-	
+
+	protected List<Ride> generateNonOverlappingRides(RideTemplate template, Instant systemHorizon) {
+		// Get the ride instances that overlap or are beyond the template ride
+		List<Ride> ridesBeyondTemplate  = rideDao.findRidesBeyondTemplate(template);
+		List<Ride> rides = template.generateRides(systemHorizon);
+		// Remove rides that overlap with existing future rides
+		rides.removeIf(ride -> ridesBeyondTemplate.stream().filter(r -> r.hasTemporalOverlap(ride)).findFirst().isPresent());
+		return rides;
+	}
+
+	protected Instant getDefaultSystemHorizon() {
+		return ZonedDateTime.now(ZoneOffset.UTC).plusWeeks(HORIZON_WEEKS).toInstant();
+	}
 	/**
-	 * Extends the recurrent rides, starting at the start date.
-     * @param startDate the first date to start the iteration.  
+	 * Extends the recurrent rides, starting at the state date. A new transaction is used for each template.
+     * @param template the template to generate the ride for, if required.
+     * @param systemHorizon the system horizon, do not create past the horizon
+     * @return the  number of rides created.  
 	 */
-	public void instantiateRecurrentRides(LocalDate startDate) {
-		int count = 0;
-		LocalDate horizon = LocalDate.now().plusWeeks(HORIZON_WEEKS);
-		if (startDate == null) {
-			startDate = horizon.minusDays(1);
+	@TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+	public int instantiateRecurrentRides(RideTemplate template, Instant systemHorizon) {
+		List<Ride> rides = generateNonOverlappingRides(template, systemHorizon);
+		for (Ride ride : rides) {
+        	rideDao.save(ride);
 		}
-		log.info(String.format("DB maintenance: Move horizon to %s, check starts at %s", horizon.toString(), startDate.toString()));
-		List<Ride> lastRecurrentRides = rideDao.findLastRecurrentRides();
-		log.debug(String.format("Found %d last recurrent rides", lastRecurrentRides.size()));
-		for (Ride ride : lastRecurrentRides) {
-    		Collection<Ride> rides = generateRides(ride, startDate, horizon);
-    		for (Ride r : rides) {
-            	rideDao.save(r);
-			}
-    		count += rides.size();
-		}
-		log.info(String.format("Added %d recurrent rides", count));
+		return rides.size();
 	}
 
     /**
@@ -119,9 +162,9 @@ public class RideManager {
      * @return A list of rides owned by the calling user.
      * @throws BadRequestException 
      */
-    public PagedResult<Ride> listRides(Long driverId, LocalDate since, LocalDate until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
+    public PagedResult<Ride> listRides(Long driverId, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
     	if (since == null) {
-    		since = LocalDate.now();
+    		since = Instant.now();
     	}
     	if (until != null && since != null && ! until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: The 'until' date must be greater than the 'since' date.");
@@ -146,7 +189,7 @@ public class RideManager {
     		driver = userDao.find(driverId)
     					.orElse(null);
     	} else {
-    		driver = userManager.findCallingUser();
+    		throw new BadRequestException("Constraint violation: 'driverId' is manadatory.");
     	}
     	List<Ride> results = Collections.emptyList();
         Long totalCount = 0L;
@@ -165,7 +208,7 @@ public class RideManager {
     	return new PagedResult<Ride>(results, maxResults, offset, totalCount);
     }
     
-    public PagedResult<Ride> search(GeoLocation fromPlace, GeoLocation toPlace, LocalDateTime fromDate, LocalDateTime toDate, Integer nrSeats, Integer maxResults, Integer offset) {
+    public PagedResult<Ride> search(GeoLocation fromPlace, GeoLocation toPlace, Instant earliestDeparture, Instant latestDeparture, Integer nrSeats, Integer maxResults, Integer offset) {
     	if (nrSeats == null) {
     		nrSeats = 1;
     	}
@@ -176,10 +219,10 @@ public class RideManager {
     		offset = 0;
     	}
     	List<Ride> results = Collections.emptyList();
-        PagedResult<Long> prs = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, fromDate, toDate, nrSeats, 0, 0);
+        PagedResult<Long> prs = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, earliestDeparture, latestDeparture, nrSeats, 0, 0);
         Long totalCount = prs.getTotalCount();
     	if (totalCount > 0 && maxResults > 0) {
-    		PagedResult<Long> rideIds = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, fromDate, toDate, nrSeats, maxResults, offset);
+    		PagedResult<Long> rideIds = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, earliestDeparture, latestDeparture, nrSeats, maxResults, offset);
         	if (! rideIds.getData().isEmpty()) {
         		results = rideDao.fetch(rideIds.getData(), Ride.SEARCH_RIDES_ENTITY_GRAPH);
         	}
@@ -188,122 +231,149 @@ public class RideManager {
     }
  
     private void validateCreateUpdateRide(Ride ride)  throws CreateException {
-    	if (ride.getRideTemplate() == null) {
-    		throw new CreateException("Constraint violation: A ride must have a template");
+//    	if (ride.getRideTemplate() == null) {
+//    		throw new CreateException("Constraint violation: A ride must have a template");
+//    	}
+    	if (ride.getDepartureTime() == null && ride.getArrivalTime() == null) {
+    		throw new CreateException("Constraint violation: A ride must have a 'departureTime' and/or an 'arrivalTime'");
     	}
-    	RideTemplate template = ride.getRideTemplate();
-    	if (template.getFromPlace() == null || template.getToPlace() == null) {
-    		throw new CreateException("Constraint violation: A new ride must have a 'fromPlace' and a 'toPlace'");
+    	if (ride.getFrom() == null || ride.getTo() == null) {
+    		throw new CreateException("Constraint violation: A new ride must have a 'from' and a 'to'");
     	}
     	if (ride.getBookings() != null && !ride.getBookings().isEmpty()) {
     		throw new CreateException("Constraint violation: A new ride cannot contain bookings");
     	}
-    	if (template.getCarRef() == null) {
+    	if (ride.getCarRef() == null) {
     		throw new CreateException("Constraint violation: A ride must have a car defined");
     	}
-    	if (template.getMaxDetourMeters() != null && template.getMaxDetourMeters() <= 0) {
+    	if (ride.getMaxDetourMeters() != null && ride.getMaxDetourMeters() <= 0) {
     		throw new CreateException("Constraint violation: The maximum detour in meters must be greater than 0");
     	}
-    	if (template.getMaxDetourSeconds() != null && template.getMaxDetourSeconds() <= 0) {
+    	if (ride.getMaxDetourSeconds() != null && ride.getMaxDetourSeconds() <= 0) {
     		throw new CreateException("Constraint violation: The maximum detour in seconds must be greater than 0");
     	}
     }
 
-    private void updateCarItinerary(Ride ride) {
-    	RideTemplate template = ride.getRideTemplate();
-    	EligibleArea ea = calculateShareEligibility(ride);
-    	template.setShareEligibility(ea.eligibleAreaGeometry);
-    	template.setCarthesianDistance(Math.toIntExact(Math.round(ea.carthesianDistance)));
-    	template.setCarthesianBearing(Math.toIntExact(Math.round(ea.carthesianBearing)));
-    	LocalDate date = ride.getDepartureTime().toLocalDate();
-    	LocalTime time = ride.getDepartureTime().toLocalTime();
-    	PlanResponse result = otpClient.createPlan(template.getFromPlace().getLocation(), template.getToPlace().getLocation(), 
-    			date, time, false, new TraverseMode[] { TraverseMode.CAR }, false, OTP_MAX_WALK_DISTANCE, null, 1);
-    	if (result.error != null) {
-			String msg = String.format("Unable to determine reference CAR plan due to OTP Planner Error: %s - %s", result.error.message, result.error.msg);
-			if (result.error.missing != null && result.error.missing.size() > 0) {
-				msg = String.format("%s Missing parameters [ %s ]", msg, String.join(",", result.error.missing));
-			}
-			throw new SystemException(msg);
+    private void updateCarItinerary(Ride ride) throws CreateException {
+    	// Create the route to drive and create the leg graph
+    	List<Leg> legs = null;
+    	try {
+			legs = Arrays.asList(otpDao.createItinerary(ride));
+		} catch (NotFoundException | BadRequestException e) {
+			throw new CreateException("Cannot compute itinerary", e);
+		}
+    	// Update the ride leg structure with the results from the planner. 
+    	// FIXME Allow transfer time for pickup and drop-off of the passenger
+    	// Remove all booking info from old legs
+    	ride.getLegs().forEach(leg -> leg.getBookings().clear());
+    	
+    	// Get the stops of the graph: The first departure and then all arrivals
+    	List<Stop> stops = new ArrayList<>();
+    	stops.add(legs.get(0).getFrom());
+    	legs.forEach(leg -> stops.add(leg.getTo()));
+    	// Set the sequence of the legs
+    	AtomicInteger index = new AtomicInteger(0);
+    	legs.forEach(leg -> leg.setLegIx(index.getAndIncrement()));
+
+    	// Replace the old leg structure
+    	for (int i = 0; i < ride.getLegs().size() && i < legs.size(); i++) {
+    		legs.get(i).setId(ride.getLegs().get(i).getId());
+    		
+		}
+        ride.setLegs(legs);
+        for (int i = 0; i < ride.getStops().size() && i < stops.size(); i++) {
+    		stops.get(i).setId(ride.getStops().get(i).getId());
+		}
+    	ride.setStops(stops);
+
+    	// Compute the leg - booking relationship
+    	// For each booking: Determine the first leg and the last leg, then add intermediate legs.
+    	// In case of a single booking there is always just one leg. 
+    	ClosenessFilter closenessFilter = new ClosenessFilter(MAX_BOOKING_LOCATION_SHIFT);    	
+    	for (Booking booking : ride.getBookings()) {
+    		if (booking.isDeleted()) {
+    			continue;
+    		}
+    		Leg start = ride.getLegs().stream()
+    				.filter(leg -> closenessFilter.test(leg.getFrom().getLocation(), booking.getPickup()))
+    				.findFirst()
+    				.orElseThrow(() -> new IllegalStateException("Cannot find first leg for booking"));
+    		Leg last = ride.getLegs().stream()
+    				.filter(leg -> closenessFilter.test(leg.getTo().getLocation(), booking.getDropOff()))
+    				.findFirst()
+    				.orElseThrow(() -> new IllegalStateException("Cannot find last leg for booking"));
+    		// Get the start, the end and everything in between ans them to the booking 
+			booking.getLegs().addAll(ride.getLegs().subList(ride.getLegs().indexOf(start), ride.getLegs().indexOf(last) + 1));
+		}
+    	int distance = ride.getLegs().stream().collect(Collectors.summingInt(Leg::getDistance));
+    	ride.setDistance(distance);
+    	// Old cars don't have the CO2 emission specification
+    	if (ride.getCar().getCo2Emission() != null) {
+    		ride.setCO2Emission(Math.toIntExact(Math.round(ride.getDistance() * ride.getCar().getCo2Emission() / 1000.0)));
+    	}
+    	if (ride.isArrivalTimePinned()) {
+    		Stop departureStop = ride.getLegs().get(0).getFrom();
+    		ride.setDepartureTime(departureStop.getDepartureTime());
     	} else {
-	    	if (log.isDebugEnabled()) {
-	        	log.debug("Create plan for ride: \n" + result.plan.toString());
-	    	}
-	    	Leg leg = result.plan.itineraries.get(0).legs.get(0);
-	    	template.setEstimatedDistance(Math.toIntExact(Math.round(leg.distance)));
-	    	template.setEstimatedDrivingTime(Math.toIntExact(Math.round(leg.getDuration())));
-	    	// Old cars don't have the CO2 emission specificiation
-	    	if (template.getCar().getCo2Emission() != null) {
-	    		template.setEstimatedCO2Emission(Math.toIntExact(Math.round(template.getEstimatedDistance() * template.getCar().getCo2Emission() / 1000.0)));
-	    	}
-			ride.updateEstimatedArrivalTime();
-    	}    	
+    		Stop arrivalStop = ride.getLegs().get(ride.getLegs().size() - 1).getTo();
+    		ride.setArrivalTime(arrivalStop.getArrivalTime());
+    	}
     }
+
     /**
-     * Creates a ride. In case recurrence is set, all following rides are created as well, up to 8 weeks in advance. 
-     * @param ride
+     * Creates a ride. In case recurrence is set, all following rides are created as well, up to 8 weeks in advance.
+     * A ride has a template only for recurrent rides.
+     * The owner of the ride is determined by the car. |Becasue of that, the driver does already exist in the local database.  
+     * @param ride The input from the application.
      * @return The ID of the ride just created.
      * @throws CreateException In case of trouble like wrong parameter values.
-     * @throws NotFoundException
+     * @throws NotFoundException If the car is not found.
      */
     public Long createRide(Ride ride) throws CreateException, NotFoundException {
-    	User caller = userManager.registerCallingUser();
+    	Car car = carDao.find(RideshareUrnHelper.getId(Car.URN_PREFIX, ride.getCarRef()))
+    			.orElseThrow(() -> new CreateException("Cannot find car: " + ride.getCarRef()));
+    	ride.setCar(car);
+    	ride.setDriver(car.getDriver());
     	validateCreateUpdateRide(ride);
-    	RideTemplate template = ride.getRideTemplate();
-    	Car car = carDao.find(RideshareUrnHelper.getId(Car.URN_PREFIX, template.getCarRef()))
-    			.orElseThrow(() -> new CreateException("Cannot find car: " + template.getCarRef()));
-    	if (! RideshareUrnHelper.getId(User.URN_PREFIX, car.getDriverRef()).equals(caller.getId())) {
+    	if (! RideshareUrnHelper.getId(User.URN_PREFIX, car.getDriverRef()).equals(ride.getDriver().getId())) {
     		throw new CreateException("Constraint violation: The car is not owned by the owner of the ride.");
     	}
-    	template.setDriver(caller);
-    	template.setCar(car);
+    	// If the ride contains no departure then, then the arrival time is important
+    	if (ride.getDepartureTime() == null) {
+    		ride.setArrivalTimePinned(true);
+    	}
+    	ride.updateShareEligibility();
+
+    	// Update the car itinerary from the route planner
     	updateCarItinerary(ride);
+    	
     	Long rideId = null;
-    	if (template.getRecurrence() == null) {
+    	if (ride.getRideTemplate() != null && ride.getRideTemplate().getRecurrence() == null) {
+    		log.warn("Inconsistence detected: Template defined without recurrency");
+    		ride.setRideTemplate(null);
+    	}
+    	if (ride.getRideTemplate() == null) {
         	rideDao.save(ride);
         	rideId = ride.getId();
     	} else {
-    		Collection<Ride> rides = generateRides(ride, ride.getDepartureTime().toLocalDate(), LocalDate.now().plusWeeks(HORIZON_WEEKS));
-    		for (Ride r : rides) {
-            	rideDao.save(r);
-            	if (rideId == null) {
-            		rideId = r.getId();
-            	}
+    		RideTemplate template = ride.getRideTemplate();
+    		// Copy the (new) ride to the template
+    		RideBase.copy(ride, template);
+    		// Copy the geometry obtained from the planner to the template
+    		// Note: The strategy is here to calculate the route of a recurrent ride only once.
+    		//       Alternative is to make the route time-dependent and to calculate the route for each generated ride.
+    		//       In the latter case the legGeometry does not need to be on the template.
+    		template.setLegGeometry(ride.getLegs().get(0).getLegGeometry());
+    		rideTemplateDao.save(template);
+			Instant systemHorizon = getDefaultSystemHorizon();
+			// Create rides including th einitial simple leg structure.
+			List<Ride> rides = generateNonOverlappingRides(template, systemHorizon);
+			for (Ride r : rides) {
+	        	rideDao.save(r);
 			}
+    		rideId = rides.get(0).getId();
     	}
     	return rideId;
-    }
-
-    protected Collection<Ride> generateRides(Ride ride, LocalDate firstDate,  LocalDate horizon) {
-    	List<Ride> rides = new ArrayList<>();
-		LocalTime time = ride.getDepartureTime().toLocalTime();
-    	RecurrenceIterator rix = new RecurrenceIterator(ride.getRideTemplate().getRecurrence(), ride.getDepartureTime().toLocalDate(), firstDate, horizon);
-    	while (rix.hasNext()) {
-			LocalDateTime dt = LocalDateTime.of(rix.next(), time); 
-			Ride r = Ride.createRide(ride.getRideTemplate(), dt);
-			rides.add(r);
-		}
-    	return rides;
-    }
-    
-    /**
-     * Calculates an ellipse with the property that the distance from one focal point (departure stop) to
-     * the border of the ellipse and then to the other focal point (arrival) is equal to the maximum detour distance.
-     * The distance is calculated from the nominal speed (m/s). 
-     * @param r the ride.
-     * @return a Geometry (polygon) object.
-     */
-    protected EligibleArea calculateShareEligibility(Ride r) {
-    	// See https://en.wikipedia.org/wiki/Ellipse
-    	Integer maxDetourDistance = null;
-    	if (r.getRideTemplate().getMaxDetourMeters() != null) {
-    		maxDetourDistance = r.getRideTemplate().getMaxDetourMeters();
-    	} else if (r.getRideTemplate().getMaxDetourSeconds() != null) {
-    		maxDetourDistance = Math.round(r.getRideTemplate().getMaxDetourSeconds() * DEFAULT_NOMINAL_SPEED);    		
-    	}
-    	return EllipseHelper.calculateEllipse(r.getRideTemplate().getFromPlace().getLocation().getPoint(), 
-    			r.getRideTemplate().getToPlace().getLocation().getPoint(), 
-    			maxDetourDistance != null ? maxDetourDistance / 2.0 : null, DEFAULT_RELATIVE_MAX_DETOUR / 2);
     }
 
     
@@ -319,39 +389,48 @@ public class RideManager {
     	return ridedb;
     }
 
-    public void updateRide(Long rideId, Ride ride) throws CreateException, NotFoundException {
-    	User caller = userManager.registerCallingUser();
-    	Ride ridedb = rideDao.find(rideId)
+    /**
+     * Updates an existing ride. If a booking is involved, it might change. The booking details themselves cannot be changed trough this call. 
+     * It is not possible to change the driver.
+     * @param ride The ride with the ID already provided
+     * @throws CreateException
+     * @throws NotFoundException
+     */
+    //FIXME
+    public void updateRide(Ride ride) throws CreateException, NotFoundException {
+    	Ride ridedb = rideDao.find(ride.getId())
     			.orElseThrow(NotFoundException::new);
-    	userManager.checkOwnership(ridedb.getRideTemplate().getDriver(), Ride.class.getSimpleName());
+    	ride.setDriver(ridedb.getDriver());
     	if (ridedb.getBookings().size() > 0) {
     		// What if there is already a booking
-    		throw new CreateException("THe ride has already bookings, an update is not allowed");
+    		throw new CreateException("The ride has already bookings, an update is not allowed");
     	}
     	validateCreateUpdateRide(ride);
-    	RideTemplate template = ride.getRideTemplate();
-    	ride.setId(ridedb.getId());
-    	Car car = carDao.find(RideshareUrnHelper.getId(Car.URN_PREFIX, template.getCarRef()))
-    			.orElseThrow(() -> new CreateException("Cannot find car: " + template.getCarRef()));
-    	if (! RideshareUrnHelper.getId(User.URN_PREFIX, car.getDriverRef()).equals(caller.getId())) {
+    	Car car = carDao.find(RideshareUrnHelper.getId(Car.URN_PREFIX, ride.getCarRef()))
+    			.orElseThrow(() -> new CreateException("Cannot find car: " + ride.getCarRef()));
+    	if (! car.getDriver().equals(ridedb.getDriver())) {
     		throw new CreateException("Constraint violation: The car is not owned by the owner of the ride.");
     	}
+    	Recurrence recc = ride.getRideTemplate() != null ? ride.getRideTemplate().getRecurrence() : null;  
     	// Set all relations
-    	template.setDriver(caller);
-    	template.setCar(car);
-    	template.setId(ridedb.getRideTemplate().getId());
-    	template.getFromPlace().setId(ridedb.getRideTemplate().getFromPlace().getId());
-    	template.getToPlace().setId(ridedb.getRideTemplate().getToPlace().getId());
+    	ride.setCar(ridedb.getCar());
+    	ride.setRideTemplate(ridedb.getRideTemplate());
+    	rideDao.merge(ride);
     	updateCarItinerary(ride);
+    	
     	// Now comes the difficult part with the recurrence
-    	// 1. No recurrence in DB nor update -> merge
-    	// 2. Recurrence in update only --> merge current ride, generate rides, starting with next day (the updated ride is the first)
+    	// 1. No recurrence in DB nor update -> no template
+    	// 2. Recurrence in update only --> create template and generate rides as with a new ride
     	// 3. Recurrence in DB only. 
-    	// 3.1. THIS Create a new template for this ride
-    	// 3.2. THIS_AND_FOLLOWING Set horizon at current template, remove all future rides
+    	// 3.1. THIS Remove template for this ride. Ride is no longer recurrent.
+    	// 3.2. THIS_AND_FOLLOWING Set horizon at current ride, remove future ride, save template. Remove template from ride.
     	// 4. Recurrence in DB and update
-    	// 4.1. THIS Create a new template for this ride, generata rides
-    	// 4.2. THIS_AND_FOLLOWING Set horizon at current template, remove all future rides (or reuse them) and generate rides
+    	// 4.1 Recurrence is same
+    	// 4.1.1. THIS Create a new template for this ride, generate rides
+    	// 4.1.2. THIS_AND_FOLLOWING Set horizon at current template, remove all future rides and generate rides
+    	// 4.2. Recurrence has changed - Remove all future unbooked rides
+    	// 4.2.1. THIS Create a new template for this ride, generate rides
+    	// 4.2.2. THIS_AND_FOLLOWING Set horizon at current template, remove all future rides (or reuse them) and generate rides
     	throw new UnsupportedOperationException("Update of a ride is not allowed");
     }
     
@@ -364,9 +443,9 @@ public class RideManager {
 	    		// Perform a soft delete
 	    		ridedb.setDeleted(true);
 	    		ridedb.getBookings().forEach(b -> b.markAsCancelled(reason, true));
+	    		// FIXME send message to passengers
 			} else {
 				rideDao.remove(ridedb);
-//	    		ridedb.getStops().forEach(s -> stopDao.remove(s));
 			}
 		} catch (NotFoundException e) {
 			log.warn(String.format("Ride %d not found, ignoring...", rideId));
@@ -387,21 +466,18 @@ public class RideManager {
     public void removeRide(Long rideId, final String reason, RideScope scope) throws NotFoundException {
     	Ride ridedb = rideDao.find(rideId)
     			.orElseThrow(NotFoundException::new);
-    	userManager.checkOwnership(ridedb.getRideTemplate().getDriver(), Ride.class.getSimpleName());
     	removeRide(rideId, reason);
-    	if (scope == RideScope.THIS_AND_FOLLOWING) {
+    	if (ridedb.getRideTemplate() != null && scope == RideScope.THIS_AND_FOLLOWING) {
     		// Deletes this ride and all that follow
     		rideDao.findFollowingRideIds(ridedb.getRideTemplate(), ridedb.getDepartureTime())
     			.forEach(rid -> removeRide(rid, reason));
     		// Set the horizon of the template to the departure date of this ride.
-    		ridedb.getRideTemplate().getRecurrence().setHorizon(LocalDate.from(ridedb.getDepartureTime().atZone(ZoneId.systemDefault())));
+    		ridedb.getRideTemplate().getRecurrence().setHorizon(ridedb.getDepartureTime());
     	}
     	// Check how many rides are attached to the template. If 0 then delete the template too.
     	if (rideTemplateDao.getNrRidesAttached(ridedb.getRideTemplate()) == 0L) {
     		rideTemplateDao.remove(ridedb.getRideTemplate());
-			stopDao.remove(ridedb.getRideTemplate().getFromPlace());
-			stopDao.remove(ridedb.getRideTemplate().getToPlace());
     	}
     }
- 
+
 }

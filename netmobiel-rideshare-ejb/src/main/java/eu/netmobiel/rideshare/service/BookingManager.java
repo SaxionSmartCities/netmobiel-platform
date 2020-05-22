@@ -1,6 +1,6 @@
 package eu.netmobiel.rideshare.service;
 
-import java.time.LocalDate;
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Objects;
@@ -13,8 +13,8 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
-import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
@@ -40,9 +40,9 @@ public class BookingManager {
     @Inject
     private UserManager userManager;
 
-    public PagedResult<Booking> listMyBookings(LocalDate since, LocalDate until, Integer maxResults, Integer offset) throws BadRequestException {
+    public PagedResult<Booking> listMyBookings(Instant since, Instant until, Integer maxResults, Integer offset) throws BadRequestException {
     	if (since == null) {
-    		since = LocalDate.now();
+    		since = Instant.now();
     	}
     	if (until != null && since != null && ! until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: The 'until' date must be greater than the 'since' date.");

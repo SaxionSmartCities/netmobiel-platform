@@ -29,22 +29,13 @@ import eu.netmobiel.rideshare.model.Ride;
 @RideMapperQualifier
 public interface RideMapper {
 	// Default mapping domain Ride --> Api Ride
-	@Mapping(target = "car", source = "rideTemplate.car") 
-	@Mapping(target = "carRef", source = "rideTemplate.carRef") 
-	@Mapping(target = "carthesianBearing", source = "rideTemplate.carthesianBearing") 
-	@Mapping(target = "carthesianDistance", source = "rideTemplate.carthesianDistance") 
-	@Mapping(target = "driver", source = "rideTemplate.driver") 
-	@Mapping(target = "driverRef", source = "rideTemplate.driverRef") 
-	@Mapping(target = "estimatedDistance", source = "rideTemplate.estimatedDistance") 
-	@Mapping(target = "estimatedDrivingTime", source = "rideTemplate.estimatedDrivingTime") 
-	@Mapping(target = "estimatedCO2Emission", source = "rideTemplate.estimatedCO2Emission") 
-	@Mapping(target = "fromPlace", source = "rideTemplate.fromPlace") 
-	@Mapping(target = "nrSeatsAvailable", source = "rideTemplate.nrSeatsAvailable") 
+	@Mapping(target = "estimatedArrivalTime", source = "arrivalTime") 
+	@Mapping(target = "estimatedDistance", source = "distance") 
+	@Mapping(target = "estimatedDrivingTime", source = "duration") 
+	@Mapping(target = "estimatedCO2Emission", source = "CO2Emission") 
+	@Mapping(target = "fromPlace", source = "from") 
 	@Mapping(target = "recurrence", source = "rideTemplate.recurrence") 
-	@Mapping(target = "remarks", source = "rideTemplate.remarks") 
-	@Mapping(target = "maxDetourMeters", source = "rideTemplate.maxDetourMeters") 
-	@Mapping(target = "maxDetourSeconds", source = "rideTemplate.maxDetourSeconds") 
-	@Mapping(target = "toPlace", source = "rideTemplate.toPlace") 
+	@Mapping(target = "toPlace", source = "to") 
 	@Mapping(target = "allowedLuggage", ignore = true)
 	eu.netmobiel.rideshare.api.model.Ride commonMap(Ride source);
 
@@ -52,9 +43,10 @@ public interface RideMapper {
 	@InheritInverseConfiguration(name = "commonMap")
 	@Mapping(target = "bookings", ignore = true)
 	@Mapping(target = "deleted", ignore = true)
-	@Mapping(target = "rideTemplate.car", ignore = true)
-	@Mapping(target = "rideTemplate.driver", ignore = true)
+	@Mapping(target = "car", ignore = true)
+	@Mapping(target = "driver", ignore = true)
 	@Mapping(target = "stops", ignore = true)
+	@Mapping(target = "legs", ignore = true)
 	Ride commonInverseMap(eu.netmobiel.rideshare.api.model.Ride source);
 
 	

@@ -68,6 +68,12 @@ public class User implements NetMobielUser, Serializable {
     	// No args constructor
     }
     
+    public User(String identity, String givenName, String familyName) {
+    	this.managedIdentity = identity;
+    	this.givenName = givenName;
+    	this.familyName = familyName;
+    }
+    
     /**
      * Copy constructor from general definition.
      * @param bu the basic user fields

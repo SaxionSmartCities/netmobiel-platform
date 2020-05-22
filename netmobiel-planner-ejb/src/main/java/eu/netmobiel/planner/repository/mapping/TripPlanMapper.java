@@ -67,6 +67,7 @@ public abstract class TripPlanMapper {
     @Mapping(target = "vehicleName", ignore = true)
     @Mapping(target = "vehicleLicensePlate", ignore = true)
     @Mapping(target = "guideSteps", source = "walkSteps")
+    @Mapping(target = "bookingId", ignore = true)
     public abstract eu.netmobiel.planner.model.Leg legToLeg(Leg leg);
     
     @Mapping(target = "name", source = "streetName")

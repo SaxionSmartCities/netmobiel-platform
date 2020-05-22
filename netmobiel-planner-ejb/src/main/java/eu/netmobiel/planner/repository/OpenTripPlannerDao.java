@@ -1,8 +1,6 @@
 package eu.netmobiel.planner.repository;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
-import java.time.ZoneId;
 import java.util.Arrays;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -101,18 +99,16 @@ public class OpenTripPlannerDao {
      * @throws NotFoundException When no itinerary could be found. 
      * @throws BadRequestException When the planner cannot plan due to the combination of parameters.
      */
-    public TripPlan createPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant departureTime, Instant arrivalTime, 
+    public TripPlan createPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean isArrivalPinned, 
     		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, List<GeoLocation> via, Integer maxItineraries) 
     				throws NotFoundException, BadRequestException {
-    	boolean useArrivalTime = arrivalTime != null;
-    	LocalDateTime localDateTime = (useArrivalTime ? arrivalTime : departureTime).atZone(ZoneId.systemDefault()).toLocalDateTime();  
     	eu.netmobiel.opentripplanner.api.model.TraverseMode[] otpModes = Arrays
     			.stream(modes)
     			.map(m -> eu.netmobiel.opentripplanner.api.model.TraverseMode.valueOf(m.name()))
     			.toArray(eu.netmobiel.opentripplanner.api.model.TraverseMode[]::new);
     	GeoLocation otpVia[] = via == null ? null : via.toArray(new GeoLocation[via.size()]);
-    	PlanResponse result = otpClient.createPlan(fromPlace, toPlace, localDateTime.toLocalDate(), localDateTime.toLocalTime(), 
-    					useArrivalTime, otpModes, showIntermediateStops, maxWalkDistance, otpVia, maxItineraries);
+    	PlanResponse result = otpClient.createPlan(fromPlace, toPlace, travelTime, isArrivalPinned, 
+    					otpModes, showIntermediateStops, maxWalkDistance, otpVia, maxItineraries);
 		if (result.error != null) {
 			String msg = String.format("OTP Planner Error: %s - %s", result.error.message, result.error.msg);
 			if (result.error.missing != null && result.error.missing.size() > 0) {

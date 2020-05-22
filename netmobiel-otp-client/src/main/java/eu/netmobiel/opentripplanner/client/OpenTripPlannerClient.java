@@ -11,6 +11,8 @@ import java.time.temporal.ChronoUnit;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.function.BiPredicate;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -44,7 +46,10 @@ public class OpenTripPlannerClient {
     
     private static final String OTP_GRAPHQL_REQUEST = "/routers/nl/index/graphql"; 
     private static final String OTP_PLAN_REQUEST = "/routers/nl/plan"; 
-    
+    public static final int MINIMUM_PLANNING_DISTANCE_METERS = 20;
+
+    public static final BiPredicate<GeoLocation, GeoLocation> tooClose = (locA, locB)-> locA.getDistanceFlat(locB) < MINIMUM_PLANNING_DISTANCE_METERS;
+
 //  https://otp.netmobiel.eu:8080/otp
     @Resource(lookup = "java:global/openTripPlanner/apiUrl")
     private String openTripPlannerApi;
@@ -217,4 +222,5 @@ public class OpenTripPlannerClient {
 		}
 		return result;
     }
+
 }

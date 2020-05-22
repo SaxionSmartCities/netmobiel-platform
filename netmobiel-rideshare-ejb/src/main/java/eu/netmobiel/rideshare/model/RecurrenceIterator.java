@@ -13,11 +13,13 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 	private Iterator<LocalDate> delegatedIterator = null;
 	
 	/**
-	 * Constructor for the iterator.
+	 * Constructor for the iterator. This iterator can be called one time too often to obtain the
+	 * next value that would be generated.
 	 * @param aPattern the pattern definition
 	 * @param reference the reference day, which must be a valid date for the iterator. 
-	 * 					If start if equal to reference, then reference is the first iteration value.
+	 * 					If start is equal to reference, then reference is the first iteration value.
 	 * @param start the date (inclusive) from which iteration values are returned, if any. 
+	 * 					If set to null then the reference date is the first date. 
 	 * @param horizon The horizon to use, may be null. The horizon date is exclusive. i.e. 
 	 *                every iteration value is before the horizon.
 	 */
@@ -34,7 +36,7 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 			throw new IllegalArgumentException("No reference date set!");
 		}
 		if (this.start == null) {
-			throw new IllegalArgumentException("No start date set!");
+			this.start = this.reference;
 		}
 		if (this.horizon == null) {
 			throw new IllegalArgumentException("No horizon in sight!");
@@ -42,8 +44,8 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 		if (! this.reference.isBefore(this.start) && ! this.reference.isEqual(this.start)) {
 			throw new IllegalArgumentException("Reference date must be before or equal to start date!");
 		}
-		if (aPattern.getHorizon() != null && aPattern.getHorizon().isBefore(horizon)) {
-			this.horizon = aPattern.getHorizon();  
+		if (aPattern.getHorizon() != null && aPattern.getLocalHorizon().isBefore(horizon)) {
+			this.horizon = aPattern.getLocalHorizon();  
 		}
 		if (aPattern.getUnit() == TimeUnit.DAY) {
 			delegatedIterator = new DayIterator();
@@ -66,6 +68,8 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 
 	private class DayIterator implements Iterator<LocalDate> {
 		private LocalDate cursor;
+		private boolean exhausted = false;
+		
 		public DayIterator() {
 			cursor = reference;
 			// Step up until the cursor is on or past the start date. 
@@ -85,7 +89,11 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 		@Override
 		public LocalDate next() {
 			if (! hasNext()) {
-				throw new NoSuchElementException("No more dates");
+				if (exhausted) {
+					throw new NoSuchElementException("No more dates");
+				} else {
+					exhausted = true;
+				}
 			}
 			LocalDate element = cursor;
 			findNext();
@@ -103,6 +111,7 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 		private int dowStart;
 		private int dowCursor;
 		private LocalDate dayCursor;
+		private boolean exhausted = false;
 		
 		public DayOfWeekIterator(LocalDate start) {
 			this.weekCursor = start;
@@ -134,7 +143,11 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 		@Override
 		public LocalDate next() {
 			if (! hasNext()) {
-				throw new NoSuchElementException("No more days in this week!");
+				if (exhausted) {
+					throw new NoSuchElementException("No more days in this week!");
+				} else {
+					exhausted = true;
+				}
 			}
 			LocalDate element = dayCursor;
 			dowCursor++;
@@ -146,6 +159,7 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 	private class WeekIterator implements Iterator<LocalDate> {
 		private LocalDate weekCursor;
 		private  DayOfWeekIterator dowCursor;
+		private boolean exhausted = false;
 		
 		public WeekIterator() {
 			weekCursor = reference;
@@ -189,7 +203,11 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 		@Override
 		public LocalDate next() {
 			if (! hasNext()) {
-				throw new NoSuchElementException("No more dates");
+				if (exhausted) {
+					throw new NoSuchElementException("No more dates");
+				} else {
+					exhausted = true;
+				}
 			}
 			LocalDate element = dowCursor.next();
 			findNext();

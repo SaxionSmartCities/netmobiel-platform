@@ -1,7 +1,6 @@
 package eu.netmobiel.rideshare.repository;
 
-import java.time.LocalDate;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
@@ -53,7 +52,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
 		return em;
 	}
 
-    public PagedResult<Long> findByDriver(User driver, LocalDate since, LocalDate until, Boolean deletedToo, Integer maxResults, Integer offset) {
+    public PagedResult<Long> findByDriver(User driver, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Ride> rides = cq.from(Ride.class);
@@ -61,11 +60,11 @@ public class RideDao extends AbstractDao<Ride, Long> {
         Predicate predDriver = cb.equal(rides.get(Ride_.rideTemplate).get(RideTemplate_.driver), driver);
         predicates.add(predDriver);
         if (since != null) {
-	        Predicate predSince = cb.greaterThanOrEqualTo(rides.get(Ride_.departureTime), since.atStartOfDay());
+	        Predicate predSince = cb.greaterThanOrEqualTo(rides.get(Ride_.departureTime), since);
 	        predicates.add(predSince);
         }        
         if (until != null) {
-	        Predicate predUntil = cb.lessThanOrEqualTo(rides.get(Ride_.departureTime), until.atStartOfDay());
+	        Predicate predUntil = cb.lessThanOrEqualTo(rides.get(Ride_.departureTime), until);
 	        predicates.add(predUntil);
         }        
         if (deletedToo == null || !deletedToo) {
@@ -92,36 +91,37 @@ public class RideDao extends AbstractDao<Ride, Long> {
 
     /**
      * Searches for matching rides. The following rules apply:<br/>
-     * 1. Pickup and dropoff are within eligibility area
-     * 2. The ride is in the future (near the specified date)
-     * 3. The car has enough seats available [restriction: only 1 booking allowed now]. 
-     * 4. The ride has not been deleted.
-     * 5. The passenger and driver should travel in the same direction: 
+     * 1. Pickup and drop-off are within eligibility area;
+     * 2. The ride is after <code>earliestDeparture</code> and before <code>latestDeparture</code>;
+     * 3. The car has enough seats available [restriction: only 1 booking allowed now]; 
+     * 4. The ride has not been deleted;
+     * 5. The passenger and driver should travel in more or less the same direction. 
      * @param fromPlace The location for pickup
      * @param toPlace The location for drop-off
-     * @param fromDate The (local) date and time to depart
-     * @param toDate The (local) date and time to arrive
-     * @param nrSeats the number of seats required
+     * @param earliestDeparture The date and time to depart earliest
+     * @param latestDeparture The date and time to depart latest 
+     * @param nrSeatsRequested the number of seats required
      * @param maxResults pagination: maximum number of results
      * @param offset pagination: The offset to start (start at 0)
      * @param graphName the graph name of the entity graph to use.
      * @return A list of potential matches.
      */
-    public PagedResult<Long> search(GeoLocation fromPlace, GeoLocation toPlace, int maxBearingDifference, LocalDateTime fromDate, LocalDateTime toDate, Integer nrSeats, Integer maxResults, Integer offset) {
+    public PagedResult<Long> search(GeoLocation fromPlace, GeoLocation toPlace, int maxBearingDifference, 
+    		Instant earliestDeparture, Instant latestDeparture, Integer nrSeatsRequested, Integer maxResults, Integer offset) {
     	int searchBearing = Math.toIntExact(Math.round(EllipseHelper.getBearing(fromPlace.getPoint(), toPlace.getPoint())));
     	if (logger.isDebugEnabled()) {
 	    	logger.debug(String.format("Search for ride from %s to %s D %s A %s #%d seats, bearing %d", fromPlace, toPlace, 
-	    			fromDate != null ? DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(fromDate) : "-",
-	    			toDate != null ? DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(toDate) : "-",
-	    			nrSeats, searchBearing));
+	    			earliestDeparture != null ? DateTimeFormatter.ISO_INSTANT.format(earliestDeparture) : "-",
+	    			latestDeparture != null ? DateTimeFormatter.ISO_INSTANT.format(latestDeparture) : "-",
+	    			nrSeatsRequested, searchBearing));
     	}
     	String baseQuery =     			
-    			"from Ride r where contains(r.rideTemplate.shareEligibility, :fromPoint) = true and " +
-    			"contains(r.rideTemplate.shareEligibility, :toPoint) = true and " +
-    			"abs(r.rideTemplate.carthesianBearing - :searchBearing) < :maxBearingDifference and " +
-    			"(CAST(:fromDate as java.lang.String) is null or r.departureTime >= :fromDate) and " +
-    			"(CAST(:toDate as java.lang.String) is null or r.departureTime < :toDate) and " +
-    			"r.rideTemplate.nrSeatsAvailable >= :nrSeats and " +
+    			"from Ride r where contains(r.shareEligibility, :fromPoint) = true and " +
+    			"contains(r.shareEligibility, :toPoint) = true and " +
+    			"abs(r.carthesianBearing - :searchBearing) < :maxBearingDifference and " +
+    			"(CAST(:fromDate as java.lang.String) is null or r.departureTime >= :earliestDeparture) and " +
+    			"(CAST(:toDate as java.lang.String) is null or r.departureTime < :latestDeparture) and " +
+    			"r.nrSeatsAvailable >= :nrSeatsRequested and " +
     			"(r.deleted is null or r.deleted = false)";
     	TypedQuery<Long> tq = null;
     	if (maxResults == 0) {
@@ -135,9 +135,9 @@ public class RideDao extends AbstractDao<Ride, Long> {
 			.setParameter("toPoint", toPlace.getPoint())
 			.setParameter("searchBearing", searchBearing)
 			.setParameter("maxBearingDifference", maxBearingDifference)
-			.setParameter("fromDate", fromDate)
-			.setParameter("toDate", toDate)
-			.setParameter("nrSeats", nrSeats);
+			.setParameter("earliestDeparture", earliestDeparture)
+			.setParameter("latestDeparture", latestDeparture)
+			.setParameter("nrSeatsRequested", nrSeatsRequested);
         Long totalCount = null;
         List<Long> results = Collections.emptyList();
         if (maxResults == 0) {
@@ -158,39 +158,36 @@ public class RideDao extends AbstractDao<Ride, Long> {
 		return ids.stream().map(id -> resultMap.get(id)).collect(Collectors.toList());
 	}
     
-    public List<Long> findFollowingRideIds(RideTemplate template, LocalDateTime departureTime) {
+    public List<Long> findFollowingRideIds(RideTemplate template, Instant departureTime) {
     	TypedQuery<Long> tq = em.createQuery(
-    			"select r.id from Ride r where r.rideTemplate = :template and r.departureTime > :departureTime and (r.deleted is null or r.deleted = false)", Long.class)
+    			"select r.id from Ride r where r.rideTemplate = :template and r.departureTime > :departureTime " + 
+    					"and (r.deleted is null or r.deleted = false)", Long.class)
     			.setParameter("template", template)
     			.setParameter("departureTime", departureTime);
     	return tq.getResultList();
     }
     
-    public List<Long> findPrecedingRideIds(RideTemplate template, LocalDateTime departureTime) {
+    public List<Long> findPrecedingRideIds(RideTemplate template, Instant departureTime) {
     	TypedQuery<Long> tq = em.createQuery(
-    			"select r.id from Ride r where r.template = :template and r.departureTime < :departureTime and (r.deleted is null or r.deleted = false)", Long.class)
+    			"select r.id from Ride r where r.template = :template and r.departureTime < :departureTime " + 
+    					"and (r.deleted is null or r.deleted = false)", Long.class)
     			.setParameter("template", template)
     			.setParameter("departureTime", departureTime);
     	return tq.getResultList();
     }
     
     /**
-     * Returns a list of all recurrent rides with an open horizon. Of each template with
-     * an open horizon (i.e, not set), the most future instance is returned.
-     * @return A list of recurrent rides with each a different template. 
+     * Finds all rides that have the same driver as in the template and have an overlap with the current template 
+     * or are more in the future than the current template.
+     * This call will also find the rides that are manually created and created with other templates.
+     * @param template The reference template 
+     * @return A list of rides, possibly empty.
      */
-    public List<Ride> findLastRecurrentRides() {
+    public List<Ride> findRidesBeyondTemplate(RideTemplate template) {
     	TypedQuery<Ride> tq = em.createQuery(
-    			"from Ride r1 where (r1.rideTemplate, r1.departureTime) in " +
-    			" (select rideTemplate, max(departureTime) from Ride where rideTemplate.recurrence.interval is not null and rideTemplate.recurrence.horizon is null group by rideTemplate)"
-    			, Ride.class);
+    			"from Ride r where r.driver = r.rideTemplate.driver and r.arrivalTime >= :templateDepartureTime"
+    			, Ride.class)
+    			.setParameter("templateDepartureTime", template.getDepartureTime());
     	return tq.getResultList();
     }
-    
-    // Source: https://dev.mysql.com/doc/refman/8.0/en/example-maximum-column-group-row.html
-    //    SELECT r1.* from otp_route AS r1 join (
-    //    		SELECT max(long_name) as long_name, ov_type
-    //    			FROM public.otp_route
-    //    			GROUP BY ov_type) AS r2 on r1.long_name = r2.long_name AND r1.ov_type = r2.ov_type}
-    // Problem: Can't do that in JPA. But subquery is ok.
 }

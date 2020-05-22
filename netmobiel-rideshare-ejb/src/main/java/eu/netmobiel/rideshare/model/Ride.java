@@ -1,8 +1,9 @@
 package eu.netmobiel.rideshare.model;
 
 import java.io.Serializable;
-import java.time.LocalDateTime;
+import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.enterprise.inject.Vetoed;
@@ -20,14 +21,21 @@ import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
 import javax.persistence.OrderColumn;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
+/**
+ * A Ride is simple or recurrent. A recurrent Ride is copied from a template. A simple Ride has no template.
+ *  
+ * @author Jaap Reitsma
+ *
+ */
 @NamedEntityGraph(
 	name = Ride.SEARCH_RIDES_ENTITY_GRAPH, 
 	attributeNodes = { 
@@ -69,7 +77,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 @Table(name = "ride")
 @Vetoed
 @SequenceGenerator(name = "ride_sg", sequenceName = "ride_id_seq", allocationSize = 1, initialValue = 50)
-public class Ride implements Serializable {
+public class Ride extends RideBase implements Serializable {
 	private static final long serialVersionUID = 4342765799358026502L;
 	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix("ride");
 	public static final String SEARCH_RIDES_ENTITY_GRAPH = "search-rides-graph";
@@ -83,50 +91,49 @@ public class Ride implements Serializable {
     private String rideRef;
 
     /**
-     * A ride template is shared by multiple rides. The pattern is used to instantiate new rides from the template(s), but also 
+     * A recurrent ride has a ride template, shared by multiple rides. The pattern is used to instantiate new rides from the template(s), but also 
      * the recognize the instances that were derived from the same template.
+     * A new template is saved before the ride is saved. Existing templates are not touched.
      */
-    @ManyToOne(cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
+    @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "ride_template", nullable = true, foreignKey = @ForeignKey(name = "ride_ride_template_fk"))
     private RideTemplate rideTemplate;
 
-    @NotNull
-    @Column(name = "departure_time", nullable = false)
-    private LocalDateTime departureTime;
-    
-    @NotNull
-    @Column(name = "estimated_arrival_time", nullable = false)
-    private LocalDateTime estimatedArrivalTime;
 
+    /**
+     * The reason for cancelling a ride.
+     */
+    @Size(max = 256)
+    @Column(name = "cancel_reason", length = 256)
+    private String cancelReason;
+    
+    /**
+     * If true the ride is soft-deleted. If a ride was only planned (no bookings), it will be hard deleted.
+     */
     @Column(name = "deleted")
     private Boolean deleted;
 
+    /**
+     * The bookings on this ride. Currently at most one.
+     */
     @OneToMany (mappedBy = "ride", fetch = FetchType.LAZY)
     private List<Booking> bookings;
 
-    @OneToMany(mappedBy = "ride", fetch = FetchType.LAZY )
-    @OrderColumn(name = "stops_order")
-    private List<Stop> stops;
-    
-    public RideTemplate getRideTemplate() {
-		return rideTemplate;
-	}
+    /**
+     * The stops (vertices) in this ride. The stops are ordered.
+     */
+	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	@JoinColumn(name = "ride", foreignKey = @ForeignKey(name = "stop_ride_fk"), nullable = false)
+	@OrderColumn(name = "stop_ix")
+	private List<Stop> stops;
 
-	public void setRideTemplate(RideTemplate rideTemplate) {
-		this.rideTemplate = rideTemplate;
-	}
-
-	public List<Stop> getStops() {
-		return stops;
-	}
-
-	public void setStops(List<Stop> stops) {
-		this.stops = stops;
-	}
-
-	public void setBookings(List<Booking> bookings) {
-		this.bookings = bookings;
-	}
+	/**
+     * The legs (edges) in this ride. The legs are ordered.
+     */
+	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
+	@JoinColumn(name = "ride", foreignKey = @ForeignKey(name = "leg_ride_fk"), nullable = false)
+	@OrderBy("legIx asc")
+	private List<Leg> legs;
 
 	public Long getId() {
 		return id;
@@ -136,24 +143,20 @@ public class Ride implements Serializable {
 		this.id = id;
 	}
 
-	public List<Booking> getBookings() {
-		return bookings;
+	public RideTemplate getRideTemplate() {
+		return rideTemplate;
 	}
 
-	public LocalDateTime getDepartureTime() {
-		return departureTime;
+	public void setRideTemplate(RideTemplate rideTemplate) {
+		this.rideTemplate = rideTemplate;
 	}
 
-	public void setDepartureTime(LocalDateTime departure) {
-		this.departureTime = departure;
+	public String getCancelReason() {
+		return cancelReason;
 	}
 
-	public LocalDateTime getEstimatedArrivalTime() {
-		return estimatedArrivalTime;
-	}
-
-	public void setEstimatedArrivalTime(LocalDateTime estimatedArrivalTime) {
-		this.estimatedArrivalTime = estimatedArrivalTime;
+	public void setCancelReason(String cancelReason) {
+		this.cancelReason = cancelReason;
 	}
 
 	public Boolean getDeleted() {
@@ -164,6 +167,39 @@ public class Ride implements Serializable {
 		this.deleted = deleted;
 	}
 
+	public List<Booking> getBookings() {
+		if (bookings == null) {
+			bookings = new ArrayList<>();
+		}
+		return bookings;
+	}
+
+	public void setBookings(List<Booking> bookings) {
+		this.bookings = bookings;
+	}
+
+	public List<Stop> getStops() {
+		if (stops == null) {
+			stops = new ArrayList<>();
+		}
+		return stops;
+	}
+
+	public void setStops(List<Stop> stops) {
+		this.stops = stops;
+	}
+
+	public List<Leg> getLegs() {
+		if (legs == null) {
+			legs = new ArrayList<>();
+		}
+		return legs;
+	}
+
+	public void setLegs(List<Leg> legs) {
+		this.legs = legs;
+	}
+
 	public String getRideRef() {
 		if (rideRef == null) {
     		rideRef = RideshareUrnHelper.createUrn(Ride.URN_PREFIX, getId());
@@ -171,41 +207,40 @@ public class Ride implements Serializable {
 		return rideRef;
 	}
 
-	public void updateEstimatedArrivalTime() {
-		if (getDepartureTime() == null || getRideTemplate() == null ) {
-			throw new IllegalStateException("Departure time and template must be set");
-		}
-		if (getRideTemplate().getEstimatedDrivingTime() != null) {
-			setEstimatedArrivalTime(getDepartureTime().plusSeconds(getRideTemplate().getEstimatedDrivingTime()));
-		}
-	}
-	
 	/**
-     * Instantiates a new ride from an existing template. 
-     * @return The new ride. 
-     */
-    public static Ride createRide(RideTemplate template, LocalDateTime departure) {
-    	Ride c = new Ride();
-		c.departureTime = departure;
-		c.rideTemplate = template;
-		c.updateEstimatedArrivalTime();
-		return c;
+	 * Returns true if the specified ride overlaps in time with this ride.
+	 * @param r the ride to compare.
+	 * @return true if there is an overlap in trip time
+	 */
+	public boolean hasTemporalOverlap(Ride r) {
+		return r.getDepartureTime().isBefore(getArrivalTime()) && r.getArrivalTime().isAfter(getDepartureTime());
 	}
 
-    private String formatTime(LocalDateTime ldt) {
-    	return DateTimeFormatter.ISO_TIME.format(ldt);
+    private String formatTime(Instant instant) {
+    	return DateTimeFormatter.ISO_INSTANT.format(instant);
     }
 
     @Override
     public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("Ride D ");
-		builder.append(formatTime(departureTime)).append(" A ");
-		builder.append(formatTime(estimatedArrivalTime)).append(" ");
-		builder.append(rideTemplate.getEstimatedDrivingTime()).append("s ");
-		builder.append(rideTemplate.getEstimatedDistance()).append("m ");
-		builder.append(rideTemplate.getFromPlace().toString()).append(" -> ");
-		builder.append(rideTemplate.getToPlace().toString());
+		builder.append(formatTime(getDepartureTime())).append(" A ");
+		builder.append(formatTime(getArrivalTime())).append(" ");
+		builder.append(getDuration()).append("s ");
+		builder.append(getDistance()).append("m ");
+		if (legs != null) {
+			Stop previous = null;
+			for (Leg leg : legs) {
+				if (previous == null) {
+					builder.append("\n\t\t").append(leg.getFrom());
+				} else if (! previous.equals(leg.getFrom())) {
+					builder.append("\n\t\t").append(leg.getFrom());
+				}
+				builder.append("\n\t\t\t").append(leg);
+				builder.append("\n\t\t").append(leg.getTo());
+				previous = leg.getTo();
+			}
+		}
 		return builder.toString();
     }
 }	
