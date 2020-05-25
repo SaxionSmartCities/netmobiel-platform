@@ -11,11 +11,11 @@ import javax.inject.Inject;
 import org.junit.Test;
 
 
-public class ExampleRunAsIntegrationTest {
+public class RunAsIntegrationTestExample {
     @Inject
     private ExampleService bookshelfService;
     @Inject
-    private ExampleRunAsManager manager;
+    private RunAsManagerExample manager;
 
 
     @Test

@@ -27,6 +27,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.ClosenessFilter;
@@ -366,7 +367,7 @@ public class RideManager {
     		template.setLegGeometry(ride.getLegs().get(0).getLegGeometry());
     		rideTemplateDao.save(template);
 			Instant systemHorizon = getDefaultSystemHorizon();
-			// Create rides including th einitial simple leg structure.
+			// Create rides including the initial simple leg structure.
 			List<Ride> rides = generateNonOverlappingRides(template, systemHorizon);
 			for (Ride r : rides) {
 	        	rideDao.save(r);
@@ -435,20 +436,23 @@ public class RideManager {
     }
     
     private void removeRide(Long rideId, final String reason) {
-    	Ride ridedb;
 		try {
-			ridedb = rideDao.find(rideId)
+			Ride ridedb = rideDao.find(rideId)
 					.orElseThrow(NotFoundException::new);
-	    	if (ridedb.getBookings().size() > 0) {
-	    		// Perform a soft delete
-	    		ridedb.setDeleted(true);
-	    		ridedb.getBookings().forEach(b -> b.markAsCancelled(reason, true));
-	    		// FIXME send message to passengers
-			} else {
-				rideDao.remove(ridedb);
-			}
+			removeRide(ridedb, reason);
 		} catch (NotFoundException e) {
 			log.warn(String.format("Ride %d not found, ignoring...", rideId));
+		}
+    }
+
+    private void removeRide(Ride ridedb, final String reason) {
+    	if (ridedb.getBookings().size() > 0) {
+    		// Perform a soft delete
+    		ridedb.setDeleted(true);
+    		ridedb.getBookings().forEach(b -> b.markAsCancelled(reason, true));
+    		// FIXME send message to passengers
+		} else {
+			rideDao.remove(ridedb);
 		}
     }
 
@@ -457,26 +461,33 @@ public class RideManager {
      * If a ride is recurring and the scope is set to <code>this-and-following</code> 
      * then all following rides are removed as well. The <code>horizon</code> date of the
      * preceding rides of the same template, if any, is set to the day of the departure 
-     * date of the ride being deleted.
+     * date of the ride being deleted. 
+     * If the ride is already deleted the  
      * @param rideId The ride to remove.
      * @param reason The reason why it was cancelled (optional).
-     * @param scope The extent of deletion in case of a recurrent ride. 
-     * @throws NotFoundException
+     * @param scope The extent of deletion in case of a recurrent ride. Default RideScope.THIS.  
+     * @throws NotFoundException In case the rideId is not found
      */
-    public void removeRide(Long rideId, final String reason, RideScope scope) throws NotFoundException {
+    public void removeRide(Long rideId, final String reason, RideScope scope) throws NotFoundException, SoftRemovedException {
     	Ride ridedb = rideDao.find(rideId)
     			.orElseThrow(NotFoundException::new);
-    	removeRide(rideId, reason);
-    	if (ridedb.getRideTemplate() != null && scope == RideScope.THIS_AND_FOLLOWING) {
-    		// Deletes this ride and all that follow
-    		rideDao.findFollowingRideIds(ridedb.getRideTemplate(), ridedb.getDepartureTime())
-    			.forEach(rid -> removeRide(rid, reason));
-    		// Set the horizon of the template to the departure date of this ride.
-    		ridedb.getRideTemplate().getRecurrence().setHorizon(ridedb.getDepartureTime());
+    	if (ridedb.isDeleted()) {
+    		throw new SoftRemovedException();
     	}
-    	// Check how many rides are attached to the template. If 0 then delete the template too.
-    	if (rideTemplateDao.getNrRidesAttached(ridedb.getRideTemplate()) == 0L) {
-    		rideTemplateDao.remove(ridedb.getRideTemplate());
+    	removeRide(ridedb, reason);
+    	if (ridedb.getRideTemplate() != null) {
+    		// Recurrent ride
+    		if (scope == RideScope.THIS_AND_FOLLOWING) {
+	    		// Deletes this ride and all that follow
+	    		rideDao.findFollowingRideIds(ridedb.getRideTemplate(), ridedb.getDepartureTime())
+	    			.forEach(rid -> removeRide(rid, reason));
+	    		// Set the horizon of the template to the departure date of this ride.
+	    		ridedb.getRideTemplate().getRecurrence().setHorizon(ridedb.getDepartureTime());
+    		}
+	    	// Check how many rides are attached to the template. If 0 then delete the template too.
+	    	if (rideTemplateDao.getNrRidesAttached(ridedb.getRideTemplate()) == 0L) {
+	    		rideTemplateDao.remove(ridedb.getRideTemplate());
+	    	}
     	}
     }
 

@@ -11,6 +11,7 @@ import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.representations.AccessToken;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.CarType;
 import eu.netmobiel.rideshare.model.Recurrence;
@@ -134,5 +135,12 @@ public class Fixture {
 		r.setMaxDetourMeters(5000);
 		r.setNrSeatsAvailable(3);
 		return r;
+	}
+	
+	public static Booking createBooking(Ride r, User p, Instant departureTime, Instant arrivalTime) {
+		Booking b = new Booking(r, p, Fixture.placeZieuwentRKKerk, Fixture.placeSlingeland, 1);
+		b.setDepartureTime(departureTime);
+		b.setArrivalTime(arrivalTime);
+		return b;
 	}
 }

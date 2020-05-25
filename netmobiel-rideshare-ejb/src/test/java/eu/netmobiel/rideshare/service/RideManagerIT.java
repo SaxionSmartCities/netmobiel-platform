@@ -7,6 +7,7 @@ import java.time.DayOfWeek;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.time.ZoneId;
 import java.util.List;
 
@@ -19,11 +20,15 @@ import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.SoftRemovedException;
+import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.Leg;
 import eu.netmobiel.rideshare.model.Recurrence;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideBase;
+import eu.netmobiel.rideshare.model.RideScope;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.test.Fixture;
@@ -35,6 +40,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     @Deployment
     public static Archive<?> createTestArchive() {
         WebArchive archive = createDeploymentBase()
+//	            .addAsResource("logging.properties")
 	            .addClass(RideManager.class);
 //   		System.out.println(archive.toString(true));
 		return archive;
@@ -45,15 +51,19 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 
     private User driver1;
     private Car car1;
+    private User passenger1;
 
 
     @Override
     protected void insertData() throws Exception {
-        driver1 = Fixture.createUser(loginContext);
+        driver1 = Fixture.createUser(loginContextDriver);
 		em.persist(driver1);
 
 		car1 = Fixture.createCarFordThunderbird(driver1);
 		em.persist(car1);
+
+		passenger1 = Fixture.createUser(loginContextPassenger);
+		em.persist(passenger1);
     }
 
     private void verifyRideBase(RideBase r, RideBase rdb, Instant departureTime, Instant arrivalTime) {
@@ -174,5 +184,134 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		assertEquals(firstLocDep.plusWeeks(1), lastLocDep);
     }
 
+    @Test
+    public void removeSimpleRide_NotFound() throws Exception {
+		Long rideId = 1000L;
+		assertNotNull(rideId);
+		Long count = em.createQuery("select count(r) from Ride r where id = :id", Long.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		assertEquals(0L, count.longValue());
+    }
+
+    @Test
+    public void removeSimpleRide_NoBooking() throws Exception {
+    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Ride r = Fixture.createRide(car1, departureTime, null);
+		Long rideId = rideManager.createRide(r);
+		assertNotNull(rideId);
+		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		assertNotNull(rdb);
+//		flush();
+		rideManager.removeRide(rideId, null, null);
+		Long count = em.createQuery("select count(r) from Ride r where id = :id", Long.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		assertEquals(0L, count.longValue());
+		try {
+			rideManager.removeRide(rideId, null, null);
+			fail("Expected a NotFoundException");
+		} catch (Exception ex) {
+			assertTrue(ex instanceof NotFoundException);
+		}
+    }
+
+    @Test
+    public void removeSimpleRide_WithBooking() throws Exception {
+    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Instant arrivalTime = Instant.parse("2020-05-01T01:00:00Z");
+    	Ride r = Fixture.createRide(car1, departureTime, null);
+		Long rideId = rideManager.createRide(r);
+		assertNotNull(rideId);
+		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		assertNotNull(rdb);
+		Booking b = Fixture.createBooking(rdb, passenger1, departureTime, arrivalTime);
+		em.persist(b);
+		flush();
+		rideManager.removeRide(rideId, null, null);
+		Long count = em.createQuery("select count(r) from Ride r where r.id = :id and r.deleted = true", Long.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		assertEquals(1L, count.longValue());
+		flush();
+		try {
+			rideManager.removeRide(rideId, null, null);
+			fail("Expected a SoftRemovedException");
+		} catch (Exception ex) {
+			assertTrue(ex instanceof SoftRemovedException);
+		}
+    }
+    
+    public Long createRecurrentRides(int nrRides) throws Exception {
+    	// Choose a time around the wintertime/summertime change: March 29 2020 02:00:00 Europe/Amsterdam
+    	ZoneId myZone = ZoneId.of(Recurrence.DEFAULT_TIME_ZONE);
+    	LocalDate tomorrow = LocalDate.now().plusDays(1L);
+    	LocalDateTime firstDepartureTime = LocalDateTime.of(tomorrow, LocalTime.parse("10:00:00"));  
+    	LocalDate horizon = tomorrow.plusDays(nrRides);
+    	Instant departureTime = firstDepartureTime.atZone(myZone).toInstant();	
+    	Ride r = Fixture.createRide(car1, departureTime, null);
+    	RideTemplate rt = new RideTemplate(); 
+    	Recurrence rc = new Recurrence(1, horizon);
+    	rt.setRecurrence(rc);
+    	r.setRideTemplate(rt);
+		return rideManager.createRide(r);
+    }
+
+    @Test
+    public void removeRecurrentRide_This() throws Exception {
+    	int nrRides = 7;
+		Long rideId = createRecurrentRides(nrRides);
+		assertNotNull(rideId);
+		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		assertNotNull(rdb);
+		RideTemplate template = rdb.getRideTemplate(); 
+		Long count = em.createQuery("select count(r) from Ride r where r.rideTemplate = :template", Long.class)
+				.setParameter("template", template)
+				.getSingleResult();
+		assertEquals(nrRides, count.longValue());
+		
+		rideManager.removeRide(rideId, null, null);
+		count = em.createQuery("select count(r) from Ride r where r.rideTemplate = :template", Long.class)
+				.setParameter("template", template)
+				.getSingleResult();
+		assertEquals(nrRides - 1, count.longValue());
+
+		count = em.createQuery("select count(rt) from RideTemplate rt where rt = :template", Long.class)
+				.setParameter("template", template)
+				.getSingleResult();
+		assertEquals(1, count.longValue());
+}
+
+    @Test
+    public void removeRecurrentRide_ThisAndFollowing() throws Exception {
+    	int nrRides = 7;
+		Long rideId = createRecurrentRides(nrRides);
+		assertNotNull(rideId);
+		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		assertNotNull(rdb);
+		RideTemplate template = rdb.getRideTemplate(); 
+		Long count = em.createQuery("select count(r) from Ride r where r.rideTemplate = :template", Long.class)
+				.setParameter("template", template)
+				.getSingleResult();
+		assertEquals(nrRides, count.longValue());
+		
+		rideManager.removeRide(rideId, null, RideScope.THIS_AND_FOLLOWING);
+		count = em.createQuery("select count(r) from Ride r where r.rideTemplate = :template", Long.class)
+				.setParameter("template", template)
+				.getSingleResult();
+		assertEquals(0, count.longValue());
+		count = em.createQuery("select count(rt) from RideTemplate rt where rt = :template", Long.class)
+				.setParameter("template", template)
+				.getSingleResult();
+		assertEquals(0, count.longValue());
+    }
 
 }

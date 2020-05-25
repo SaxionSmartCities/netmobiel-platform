@@ -37,7 +37,7 @@ public class UserManagerIT extends RideshareIntegrationTestBase {
 
     @Override
     protected void insertData() throws Exception {
-        driver1 = Fixture.createUser(loginContext);
+        driver1 = Fixture.createUser(loginContextDriver);
 		em.persist(driver1);
 
 		car1 = Fixture.createCarFordThunderbird(driver1);

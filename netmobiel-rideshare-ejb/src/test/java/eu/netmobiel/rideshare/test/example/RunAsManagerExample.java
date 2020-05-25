@@ -14,7 +14,7 @@ import javax.annotation.security.RunAs;
 //@Stateless
 @RunAs("Manager")
 @PermitAll
-public class ExampleRunAsManager {
+public class RunAsManagerExample {
     public <V> V call(Callable<V> callable) throws Exception {
         return callable.call();
     }

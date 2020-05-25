@@ -163,6 +163,10 @@ public class Ride extends RideBase implements Serializable {
 		return deleted;
 	}
 
+	public boolean isDeleted() {
+		return Boolean.TRUE == getDeleted();
+	}
+	
 	public void setDeleted(Boolean deleted) {
 		this.deleted = deleted;
 	}

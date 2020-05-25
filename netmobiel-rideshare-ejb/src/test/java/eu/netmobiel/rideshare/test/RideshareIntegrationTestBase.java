@@ -68,11 +68,22 @@ public abstract class RideshareIntegrationTestBase {
     protected Logger log;
     
 	//  private AccessToken driverAccessToken;
-    protected LoginContext loginContext;
+    protected LoginContext loginContextDriver;
+    protected LoginContext loginContextPassenger;
   
+	public void prepareSecurity() throws Exception {
+		prepareDriverLogin();
+		preparePassengerLogin();
+	}
+
+	public void finishSecurity() throws Exception {
+		loginContextDriver.logout();
+		loginContextPassenger.logout();
+	}
+
 	@Before
 	public void prepareTest() throws Exception {
-		prepareLogin();
+		prepareSecurity();
 		clearData();
 		prepareData();
 		startTransaction();
@@ -81,24 +92,37 @@ public abstract class RideshareIntegrationTestBase {
 	@After
 	public void finishTest() throws Exception {
 		commitTransaction();
+		finishSecurity();
 	}
 
 	protected void commitTransaction() throws Exception {
 		utx.commit();
-		loginContext.logout();
 	}
 
-	protected void prepareLogin() throws Exception {
+	protected void prepareDriverLogin() throws Exception {
 		Properties props = new Properties();
 		try (InputStream inputStream = Thread.currentThread().getContextClassLoader()
 				.getResourceAsStream("test-setup.properties")) {
 			props.load(inputStream);
 		}
 		LoginContextFactory factory = new LoginContextFactory("keycloak.json");
-		loginContext = factory.createDirectGrantLoginContext(
+		loginContextDriver = factory.createDirectGrantLoginContext(
 				props.getProperty(DRIVER_USERNAME),
 				props.getProperty(DRIVER_PASSWORD), null);
-		loginContext.login();
+		loginContextDriver.login();
+	}
+
+	protected void preparePassengerLogin() throws Exception {
+		Properties props = new Properties();
+		try (InputStream inputStream = Thread.currentThread().getContextClassLoader()
+				.getResourceAsStream("test-setup.properties")) {
+			props.load(inputStream);
+		}
+		LoginContextFactory factory = new LoginContextFactory("keycloak.json");
+		loginContextPassenger = factory.createDirectGrantLoginContext(
+				props.getProperty(PASSENGER_USERNAME),
+				props.getProperty(PASSENGER_PASSWORD), null);
+		loginContextPassenger.login();
 	}
 
 	protected void clearData() throws Exception {
@@ -134,4 +158,11 @@ public abstract class RideshareIntegrationTestBase {
 		em.joinTransaction();
 	}
 
+	protected void flush() throws Exception {
+		utx.commit();
+		// clear the persistence context (first-level cache)
+		em.clear();
+		utx.begin();
+		em.joinTransaction();
+	}
 }
