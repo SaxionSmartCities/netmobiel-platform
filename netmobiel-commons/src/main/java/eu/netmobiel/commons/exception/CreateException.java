@@ -1,7 +1,7 @@
 package eu.netmobiel.commons.exception;
 
 /**
- * Exception for signaling a situation where a new record could not be created in the store.
+ * Exception for signaling a situation where a new record could not be created.
  *
  * @author Jaap.Reitsma
  *

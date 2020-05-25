@@ -1,7 +1,7 @@
 package eu.netmobiel.commons.exception;
 
 /**
- * Exception for signaling a situation where an existing record could not be modified in the store.
+ * Exception for signaling a situation where an existing record could not be modified.
  *
  * @author Jaap.Reitsma
  *

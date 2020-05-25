@@ -1,7 +1,7 @@
 package eu.netmobiel.commons.exception;
 
 /**
- * This exception is thrown when an entity already exists in the database or data store, based on it's unique key.
+ * This exception is thrown when an entity already exists in the database, based on it's unique key.
  * @author Jaap Reitsma
  *
  */

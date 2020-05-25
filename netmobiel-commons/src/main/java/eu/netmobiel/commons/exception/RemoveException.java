@@ -1,7 +1,7 @@
 package eu.netmobiel.commons.exception;
 
 /**
- * Exception for signaling a situation where a record could not be removed in the store.
+ * Exception for signaling a situation where a record could not be removed.
  *
  * @author Jaap.Reitsma
  *

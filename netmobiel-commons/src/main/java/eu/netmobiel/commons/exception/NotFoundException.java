@@ -1,7 +1,7 @@
 package eu.netmobiel.commons.exception;
 
 /**
- * Exception for signaling an HTTP 404 Not Found.
+ * Exception for signaling that an object could not be found.
  *
  * @author Jaap.Reitsma
  *
