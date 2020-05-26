@@ -25,6 +25,7 @@ public class RideTest {
     	r.setArrivalTime(referenceRide.getArrivalTime());
 
     	assertTrue(r.hasTemporalOverlap(referenceRide));
+    	assertTrue(referenceRide.hasTemporalOverlap(r));
 	}
 
 	@Test
@@ -34,6 +35,7 @@ public class RideTest {
     	r.setArrivalTime(referenceRide.getArrivalTime().minusSeconds(15 * 60));
 
     	assertTrue(r.hasTemporalOverlap(referenceRide));
+    	assertTrue(referenceRide.hasTemporalOverlap(r));
 	}
 
 	@Test
@@ -43,6 +45,7 @@ public class RideTest {
     	r.setArrivalTime(referenceRide.getArrivalTime().plusSeconds(15 * 60));
 
     	assertTrue(r.hasTemporalOverlap(referenceRide));
+    	assertTrue(referenceRide.hasTemporalOverlap(r));
 	}
 
 	@Test
@@ -52,6 +55,7 @@ public class RideTest {
     	r.setArrivalTime(referenceRide.getArrivalTime().minusSeconds(15 * 60));
 
     	assertTrue(r.hasTemporalOverlap(referenceRide));
+    	assertTrue(referenceRide.hasTemporalOverlap(r));
 	}
 
 	@Test
@@ -61,6 +65,7 @@ public class RideTest {
     	r.setArrivalTime(referenceRide.getArrivalTime().plusSeconds(15 * 60));
 
     	assertTrue(r.hasTemporalOverlap(referenceRide));
+    	assertTrue(referenceRide.hasTemporalOverlap(r));
 	}
 
 	@Test
@@ -70,6 +75,7 @@ public class RideTest {
     	r.setArrivalTime(referenceRide.getDepartureTime().minusSeconds(15 * 60));
 
     	assertFalse(r.hasTemporalOverlap(referenceRide));
+    	assertFalse(referenceRide.hasTemporalOverlap(r));
 	}
 
 	@Test
@@ -79,5 +85,6 @@ public class RideTest {
     	r.setArrivalTime(referenceRide.getArrivalTime().plusSeconds(120 * 60));
 
     	assertFalse(r.hasTemporalOverlap(referenceRide));
+    	assertFalse(referenceRide.hasTemporalOverlap(r));
 	}
 }

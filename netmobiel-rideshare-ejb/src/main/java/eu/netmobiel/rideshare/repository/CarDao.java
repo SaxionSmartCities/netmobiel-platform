@@ -69,4 +69,11 @@ public class CarDao extends AbstractDao<Car, Long> {
     	return tq.getSingleResult();
     }
 
+    public boolean isDrivenBy(Car car, User driver) {
+    	return em.createQuery("select count(*) from Car c " + 
+    			"where c = :car and c.driver = :driver", Long.class)
+    			.setParameter("car", car)
+    			.setParameter("driver", driver)
+    			.getSingleResult() == 1;
+    }
 }

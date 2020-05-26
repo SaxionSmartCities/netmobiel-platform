@@ -125,7 +125,7 @@ public class Ride extends RideBase implements Serializable {
      * The life cycle of a stop differs from a ride. The stops are updated with each change in the itinerary.
      * Stops cannot exists outside a ride. 
      */
-	@OneToMany(mappedBy="ride", cascade = CascadeType.PERSIST, orphanRemoval = true, fetch = FetchType.LAZY)
+	@OneToMany(mappedBy="ride", cascade = { CascadeType.REMOVE }, fetch = FetchType.LAZY)
 	@OrderColumn(name = "stop_ix")
 	private List<Stop> stops;
 
@@ -134,7 +134,7 @@ public class Ride extends RideBase implements Serializable {
      * The life cycle of a leg differs from a ride. The legs are updated with each change in the itinerary.
      * Legs cannot exists outside a ride. 
      */
-	@OneToMany(mappedBy="ride", cascade = CascadeType.PERSIST, orphanRemoval = true, fetch = FetchType.LAZY)
+	@OneToMany(mappedBy="ride", cascade = { CascadeType.REMOVE }, fetch = FetchType.LAZY)
 	@OrderBy("legIx asc")
 	private List<Leg> legs;
 

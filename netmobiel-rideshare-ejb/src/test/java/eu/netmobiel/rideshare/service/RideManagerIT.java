@@ -176,7 +176,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		verifyRideBase(r, firstRide, departureTime, null);
 		checkRideConsistency(firstRide);
 		
-		List<Ride> rides = em.createQuery("from Ride where rideTemplate = :template", Ride.class)
+		List<Ride> rides = em.createQuery("from Ride r where r.rideTemplate = :template order by r.departureTime", Ride.class)
 				.setParameter("template", firstRide.getRideTemplate())
 				.getResultList();
 		assertEquals(2, rides.size());
@@ -381,4 +381,25 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		assertEquals(2, r2.getLegs().size());
     }
     
+//    @Test
+//    public void updateSimpleRide_Departure() throws Exception {
+//    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+//    	Ride r = Fixture.createRide(car1, departureTime, null);
+//		Long rideId = rideManager.createRide(r);
+//		assertNotNull(rideId);
+//		flush();
+//		Instant oldArrivalTime =  r.getArrivalTime();
+//		int delay = 60 * 30;
+//    	departureTime = departureTime.plusSeconds(delay);
+//    	r = Fixture.createRide(car1, departureTime, null);
+//    	r.setId(rideId);
+//    	rideManager.updateRide(r, RideScope.THIS);
+//    	flush();
+//		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
+//				.setParameter("id", rideId)
+//				.getSingleResult();
+//		assertEquals(oldArrivalTime.plusSeconds(delay), rdb.getArrivalTime());
+//		verifyRideBase(r, rdb, departureTime, null);
+//		checkRideConsistency(rdb);
+//    }
 }
