@@ -510,33 +510,45 @@ public class RideManager {
     	ride.setCar(ridedb.getCar());
     	ride.setRideTemplate(ridedb.getRideTemplate());
     	// If the ride contains no departure then, then the arrival time is important
+    	// Assure both departure and arrival time are set, to avoid database constraint failure. 
     	if (ride.getDepartureTime() == null) {
     		ride.setArrivalTimePinned(true);
+    		ride.setDepartureTime(ride.getArrivalTime());
+    	} else {
+    		ride.setArrivalTime(ride.getDepartureTime());
     	}
     	ride.updateShareEligibility();
-    	rideDao.merge(ride);
+    	ridedb = rideDao.merge(ride);
     	// ride and ridedb refer to the same object now
-    	updateRideItinerary(ride);
+    	updateRideItinerary(ridedb);
 
     	// Now comes the difficult part with the recurrence
     	if (ridedb.getRideTemplate() == null && newRecurrence == null) {
         	// 1. No recurrence in DB nor update -> no template
+    		// Done.
     	} else if (ridedb.getRideTemplate() == null && newRecurrence != null) {
     		// 2. Recurrence in update only --> create template and generate rides as with a new ride
+    		throw new UnsupportedOperationException("Update with recurrence is not yet supported");
     	} else if (ridedb.getRideTemplate() != null && newRecurrence == null) {
 	    	// 3. Recurrence in DB only. 
 	    	// 3.1. THIS Remove template for this ride. Ride is no longer recurrent.
 	    	// 3.2. THIS_AND_FOLLOWING Set horizon at current ride, remove future rides, save template. Remove template from ride.
+    		//		Keep booked rides though
+    		throw new UnsupportedOperationException("Update with removal of recurrence is not yet supported");
     	} else {
 	    	// 4. Recurrence in DB and update
     		if (newRecurrence.equals(ridedb.getRideTemplate().getRecurrence())) {
     	    	// 4.1 Recurrence is same
     	    	// 4.1.1. THIS Create a new template for this ride, generate rides
     	    	// 4.1.2. THIS_AND_FOLLOWING Set horizon at current template, remove all future rides and generate rides
+        		//  	  Keep booked rides though
+        		throw new UnsupportedOperationException("Update of recurrent rides is not yet supported");
     		} else {
     	    	// 4.2. Recurrence has changed - Remove all future unbooked rides
     	    	// 4.2.1. THIS Create a new template for this ride, generate rides
     	    	// 4.2.2. THIS_AND_FOLLOWING Set horizon at current template, remove all future rides (or reuse them) and generate rides
+        		//		  Keep booked rides though
+        		throw new UnsupportedOperationException("Update with modiefied recurrence is not yet supported");
     		}
     	}
     }
