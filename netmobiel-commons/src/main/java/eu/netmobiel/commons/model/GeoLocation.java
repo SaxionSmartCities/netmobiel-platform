@@ -107,6 +107,9 @@ public class GeoLocation implements Serializable {
 	}
 
 	public Double getLatitude() {
+		if (latitude == null) {
+			updateLatLon();
+		}
 		return latitude;
 	}
 
@@ -116,6 +119,9 @@ public class GeoLocation implements Serializable {
 	}
 
 	public Double getLongitude() {
+		if (longitude == null) {
+			updateLatLon();
+		}
 		return longitude;
 	}
 
@@ -134,17 +140,17 @@ public class GeoLocation implements Serializable {
 
 	@Transient
 	public double getLatitudeRad() {
-		return latitude * GeometryHelper.TO_RADIANS_RATIO;
+		return getLatitude() * GeometryHelper.TO_RADIANS_RATIO;
 	}
 
 	@Transient
 	public double getLongitudeRad() {
-		return longitude * GeometryHelper.TO_RADIANS_RATIO;
+		return getLongitude() * GeometryHelper.TO_RADIANS_RATIO;
 	}
 	
 	@Transient
 	public boolean isDefined() {
-		return latitude != null && longitude != null;
+		return getLatitude() != null && getLongitude() != null;
 	}
 
 	/**
@@ -339,7 +345,7 @@ public class GeoLocation implements Serializable {
 	 * @return the angle in radians.
 	 */
 	public double getAngle(GeoLocation origin) {
-		return Angle.angle(origin.getPoint().getCoordinate(), point.getCoordinate());
+		return Angle.angle(origin.getPoint().getCoordinate(), getPoint().getCoordinate());
 	}
 	
 	/**
