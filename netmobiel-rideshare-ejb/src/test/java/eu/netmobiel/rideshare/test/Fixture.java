@@ -143,4 +143,10 @@ public class Fixture {
 		b.setArrivalTime(arrivalTime);
 		return b;
 	}
+	public static Booking createBooking(Ride r, User p, GeoLocation pickup, Instant departureTime, GeoLocation dropoff, Instant arrivalTime) {
+		Booking b = new Booking(r, p, pickup, dropoff, 1);
+		b.setDepartureTime(departureTime);
+		b.setArrivalTime(arrivalTime);
+		return b;
+	}
 }

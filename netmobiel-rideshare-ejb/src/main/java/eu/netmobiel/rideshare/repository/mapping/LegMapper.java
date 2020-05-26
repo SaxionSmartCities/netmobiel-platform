@@ -29,6 +29,7 @@ public abstract class LegMapper {
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "arrivalTime", source = "arrival")
     @Mapping(target = "departureTime", source = "departure")
+    @Mapping(target = "ride", ignore = true)
     public abstract Stop placeToStop(Place source);
 
     @Mapping(target = "id", ignore = true)
@@ -36,6 +37,7 @@ public abstract class LegMapper {
     @Mapping(target = "legGeometryEncoded", source = "legGeometry")
     @Mapping(target = "bookings", ignore = true)
     @Mapping(target = "legIx", ignore = true)
+    @Mapping(target = "ride", ignore = true)
     public abstract eu.netmobiel.rideshare.model.Leg legToLeg(Leg leg);
     
     public abstract eu.netmobiel.rideshare.model.Leg[] legsToLegs(Leg[] leg);
@@ -53,8 +55,11 @@ public abstract class LegMapper {
     		leg.setLegIx(ix++);
     		if (previous == null) {
     			// keep the stop
-    		} else if (! previous.equals(leg.getFrom())) {
-    			log.warn(String.format("Leg connecting stop inconsistency detected: Arrival stop was %s, departure stop is %s", previous.toString(), leg.getFrom().toString()));
+    		} else {
+    			if (! previous.equals(leg.getFrom()) && !previous.isDistanceLessThan(leg.getFrom(), 100)) {
+    				log.warn(String.format("Leg connecting stop inconsistency detected: Arrival stop was %s, departure stop is %s, distance is %d", 
+    					previous.toString(), leg.getFrom().toString(), leg.getFrom().getLocation().getDistanceFlat(previous.getLocation())));
+    			}
     			// Hmmm well, ignore the difference for, just connect. What else can we do?
     			leg.setFrom(previous);
     		}

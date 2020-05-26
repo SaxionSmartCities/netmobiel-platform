@@ -79,9 +79,9 @@ public class RideTemplate extends RideBase implements Serializable {
 		// Create the simple single leg structure for a driver.
 		// Add stops and leg and connect them
 		Stop from = new Stop(getFrom(), getDepartureTime(), null);
-		r.getStops().add(from);
+		r.addStop(from);
 		Stop to = new Stop(getTo(), null, getArrivalTime());
-		r.getStops().add(to);
+		r.addStop(to);
 		Leg leg = new Leg();
 		leg.setFrom(from);
 		leg.setTo(to);
@@ -89,7 +89,8 @@ public class RideTemplate extends RideBase implements Serializable {
 		leg.setDuration(getDuration());
 		leg.setLegGeometry(getLegGeometry());
 		leg.setLegIx(0);
-		r.getLegs().add(leg);
+		r.addLeg(leg);
+		
 		return r;
 	}
 

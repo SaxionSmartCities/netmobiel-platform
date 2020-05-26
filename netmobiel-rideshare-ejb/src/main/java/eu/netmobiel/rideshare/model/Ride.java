@@ -95,7 +95,7 @@ public class Ride extends RideBase implements Serializable {
      * the recognize the instances that were derived from the same template.
      * A new template is saved before the ride is saved. Existing templates are not touched.
      */
-    @ManyToOne(fetch = FetchType.LAZY)
+    @ManyToOne(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
 	@JoinColumn(name = "ride_template", nullable = true, foreignKey = @ForeignKey(name = "ride_ride_template_fk"))
     private RideTemplate rideTemplate;
 
@@ -114,24 +114,27 @@ public class Ride extends RideBase implements Serializable {
     private Boolean deleted;
 
     /**
-     * The bookings on this ride. Currently at most one.
+     * The bookings on this ride. Currently at most one non-deleted (cancelled) booking.
+     * Once a booking is present, a ride is no longer hard removed.
      */
     @OneToMany (mappedBy = "ride", fetch = FetchType.LAZY)
     private List<Booking> bookings;
 
     /**
      * The stops (vertices) in this ride. The stops are ordered.
+     * The life cycle of a stop differs from a ride. The stops are updated with each change in the itinerary.
+     * Stops cannot exists outside a ride. 
      */
-	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-	@JoinColumn(name = "ride", foreignKey = @ForeignKey(name = "stop_ride_fk"), nullable = false)
+	@OneToMany(mappedBy="ride", cascade = CascadeType.PERSIST, orphanRemoval = true, fetch = FetchType.LAZY)
 	@OrderColumn(name = "stop_ix")
 	private List<Stop> stops;
 
 	/**
      * The legs (edges) in this ride. The legs are ordered.
+     * The life cycle of a leg differs from a ride. The legs are updated with each change in the itinerary.
+     * Legs cannot exists outside a ride. 
      */
-	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-	@JoinColumn(name = "ride", foreignKey = @ForeignKey(name = "leg_ride_fk"), nullable = false)
+	@OneToMany(mappedBy="ride", cascade = CascadeType.PERSIST, orphanRemoval = true, fetch = FetchType.LAZY)
 	@OrderBy("legIx asc")
 	private List<Leg> legs;
 
@@ -224,6 +227,26 @@ public class Ride extends RideBase implements Serializable {
     	return DateTimeFormatter.ISO_INSTANT.format(instant);
     }
 
+    public void addStop(Stop stop) {
+        getStops().add(stop);
+        stop.setRide(this);
+    }
+ 
+    public void removeStop(Stop stop) {
+        getStops().remove(stop);
+        stop.setRide(null);
+    }
+
+    public void addLeg(Leg leg) {
+        getLegs().add(leg);
+        leg.setRide(this);
+    }
+ 
+    public void removeLeg(Leg leg) {
+        getLegs().remove(leg);
+        leg.setRide(null);
+    }
+
     @Override
     public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -232,18 +255,16 @@ public class Ride extends RideBase implements Serializable {
 		builder.append(formatTime(getArrivalTime())).append(" ");
 		builder.append(getDuration()).append("s ");
 		builder.append(getDistance()).append("m ");
-		if (legs != null) {
-			Stop previous = null;
-			for (Leg leg : legs) {
-				if (previous == null) {
-					builder.append("\n\t\t").append(leg.getFrom());
-				} else if (! previous.equals(leg.getFrom())) {
-					builder.append("\n\t\t").append(leg.getFrom());
-				}
-				builder.append("\n\t\t\t").append(leg);
-				builder.append("\n\t\t").append(leg.getTo());
-				previous = leg.getTo();
+		Stop previous = null;
+		for (Leg leg : getLegs()) {
+			if (previous == null) {
+				builder.append("\n\t\t").append(leg.getFrom());
+			} else if (! previous.equals(leg.getFrom())) {
+				builder.append("\n\t\t").append(leg.getFrom());
 			}
+			builder.append("\n\t\t\t").append(leg);
+			builder.append("\n\t\t").append(leg.getTo());
+			previous = leg.getTo();
 		}
 		return builder.toString();
     }

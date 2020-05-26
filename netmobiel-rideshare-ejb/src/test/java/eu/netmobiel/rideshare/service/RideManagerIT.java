@@ -30,6 +30,7 @@ import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideBase;
 import eu.netmobiel.rideshare.model.RideScope;
 import eu.netmobiel.rideshare.model.RideTemplate;
+import eu.netmobiel.rideshare.model.Stop;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
@@ -168,6 +169,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	r.setRideTemplate(rt);
 		Long rideId = rideManager.createRide(r);
 		assertNotNull(rideId);
+		flush();
 		Ride firstRide = em.createQuery("from Ride where id = :id", Ride.class)
 				.setParameter("id", rideId)
 				.getSingleResult();
@@ -314,4 +316,69 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		assertEquals(0, count.longValue());
     }
 
+    @Test
+    public void updateRide_Identity() throws Exception {
+    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Ride r = Fixture.createRide(car1, departureTime, null);
+		Long rideId = rideManager.createRide(r);
+		assertNotNull(rideId);
+		Ride r1 = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		assertNotNull(r1);
+		rideManager.onUpdateRideItinerary(r1);
+		// End the transaction and start new session
+		flush();
+		// Now assure that no database identities have changed, i.e., no unnecessary new database objects.
+		Ride r2 = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		assertFalse(r1 == r2);
+		assertEquals(r1.getId(), r2.getId());
+		assertEquals(r1.getLegs().size(), r2.getLegs().size());
+		for (int i = 0; i < r1.getLegs().size(); i++) {
+			Leg leg1 = r1.getLegs().get(i);
+			Leg leg2 = r2.getLegs().get(i);
+			assertEquals(leg1, leg2);
+			assertFalse(leg1 == leg2);
+		}
+		assertEquals(r1.getStops().size(), r2.getStops().size());
+		for (int i = 0; i < r1.getStops().size(); i++) {
+			Stop stop1 = r1.getStops().get(i);
+			Stop stop2 = r2.getStops().get(i);
+			assertEquals(stop1, stop2);
+			assertFalse(stop1 == stop2);
+		}
+		assertEquals(r1.getBookings().size(), r2.getBookings().size());
+		for (int i = 0; i < r1.getBookings().size(); i++) {
+			Booking booking1 = r1.getBookings().get(i);
+			Booking booking2 = r2.getBookings().get(i);
+			assertEquals(booking1, booking2);
+			assertFalse(booking1 == booking2);
+		}
+    }
+
+    @Test
+    public void updateRide_AfterBooking() throws Exception {
+    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Instant arrivalTime = Instant.parse("2020-05-01T01:00:00Z");
+    	Ride r = Fixture.createRide(car1, departureTime, null);
+		Long rideId = rideManager.createRide(r);
+		assertNotNull(rideId);
+		Ride r1 = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		assertNotNull(r1);
+		Booking b = Fixture.createBooking(r1, passenger1, Fixture.placeZieuwentRKKerk, departureTime, Fixture.placeSlingeland, arrivalTime);
+		assertNotEquals(r1.getFrom(), b.getPickup());
+		assertEquals(r1.getTo(), b.getDropOff());
+		em.persist(b);
+		flush();
+		rideManager.onUpdateRideItinerary(r1);
+		Ride r2 = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		assertEquals(2, r2.getLegs().size());
+    }
+    
 }

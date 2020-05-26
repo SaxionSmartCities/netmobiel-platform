@@ -3,9 +3,10 @@ package eu.netmobiel.rideshare.service;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
-import java.util.Objects;
+import java.util.stream.Collectors;
 
 import javax.ejb.Stateless;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -23,6 +24,7 @@ import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.repository.BookingDao;
 import eu.netmobiel.rideshare.repository.RideDao;
+import eu.netmobiel.rideshare.repository.UserDao;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @Stateless
@@ -38,9 +40,23 @@ public class BookingManager {
 	@Inject
 	private BookingDao bookingDao;
     @Inject
-    private UserManager userManager;
-
-    public PagedResult<Booking> listMyBookings(Instant since, Instant until, Integer maxResults, Integer offset) throws BadRequestException {
+    private UserDao userDao;
+    
+    @Inject
+    private Event<Ride> rideUpdatedEvent;
+    
+    /**
+     * Search for bookings.
+     * @param userId
+     * @param since
+     * @param until
+     * @param maxResults
+     * @param offset
+     * @return
+     * @throws NotFoundException
+     * @throws BadRequestException
+     */
+    public PagedResult<Booking> listBookings(Long userId, Instant since, Instant until, Integer maxResults, Integer offset) throws NotFoundException, BadRequestException {
     	if (since == null) {
     		since = Instant.now();
     	}
@@ -62,21 +78,20 @@ public class BookingManager {
         if (offset == null) {
         	offset = 0;
         }
-    	User caller = userManager.findCallingUser();
+    	User passenger= userDao.find(userId)
+				.orElseThrow(() -> new NotFoundException("No such user: " + userId));
         List<Booking> results = Collections.emptyList();
         Long totalCount = 0L;
         // Assure user exists in database
-    	if (caller != null && caller.getId() != null) {
-    		PagedResult<Long> prs = bookingDao.findByPassenger(caller, since, until, false, 0, 0);
-    		totalCount = prs.getTotalCount();
-        	if (totalCount > 0 && maxResults > 0) {
-        		// Get the actual data
-        		PagedResult<Long> bookingIds = bookingDao.findByPassenger(caller, since, until, false, maxResults, offset);
-        		if (!bookingIds.getData().isEmpty()) {
-        			results = bookingDao.fetch(bookingIds.getData(), null);
-        		}
-        	}
-    	} 
+		PagedResult<Long> prs = bookingDao.findByPassenger(passenger, since, until, false, 0, 0);
+		totalCount = prs.getTotalCount();
+    	if (totalCount > 0 && maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> bookingIds = bookingDao.findByPassenger(passenger, since, until, false, maxResults, offset);
+    		if (!bookingIds.getData().isEmpty()) {
+    			results = bookingDao.fetch(bookingIds.getData(), null);
+    		}
+    	}
     	return new PagedResult<Booking>(results, maxResults, offset, totalCount);
     }
 
@@ -93,34 +108,43 @@ public class BookingManager {
      */
     public String createBooking(String rideRef, NetMobielUser traveller, 
     		GeoLocation pickupLocation, GeoLocation dropOffLocation, Integer nrSeats) throws CreateException, NotFoundException {
-		User travellerUser = userManager.register(traveller);
     	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideRef);
 		Ride ride = rideDao.find(rid)
     			.orElseThrow(() -> new NotFoundException("Ride not found: " + rideRef));
-		Booking booking = new Booking(ride, travellerUser, pickupLocation, dropOffLocation, nrSeats);
+    	User passenger = userDao.findByManagedIdentity(traveller.getManagedIdentity())
+				.orElse(null);
+    	if (passenger == null) {
+    		passenger = new User(traveller);
+    		userDao.save(passenger);
+    	}
+    	if (ride.getBookings().stream().filter(b -> !b.isDeleted()).collect(Collectors.counting()) > 0) {
+    		throw new CreateException("Ride has already one booking");
+    	}
+		Booking booking = new Booking(ride, passenger, pickupLocation, dropOffLocation, nrSeats);
     	booking.setState(BookingState.CONFIRMED);
     	bookingDao.save(booking);
+    	rideUpdatedEvent.fire(ride);
     	return RideshareUrnHelper.createUrn(Booking.URN_PREFIX, booking.getId());
     }
 
-    /**
-     * Create a booking for the calling user and assign it to a ride. 
-     * @param rideId The ride to assign the booking to
-     * @param booking the booking
-     * @return A booking ID
-     * @throws CreateException on error.
-     * @throws NotFoundException if the ride cannot be found.
-     */
-    public Long createBooking(Long rideId, Booking booking) throws CreateException, NotFoundException {
-		User caller = userManager.registerCallingUser();
-    	Ride ride = rideDao.find(rideId)
-    			.orElseThrow(NotFoundException::new);
-    	booking.setRide(ride);
-    	booking.setPassenger(caller);
-    	booking.setState(BookingState.CONFIRMED);
-    	bookingDao.save(booking);
-    	return booking.getId();
-    }
+//    /**
+//     * Create a booking for the calling user and assign it to a ride. 
+//     * @param rideId The ride to assign the booking to
+//     * @param booking the booking
+//     * @return A booking ID
+//     * @throws CreateException on error.
+//     * @throws NotFoundException if the ride cannot be found.
+//     */
+//    public Long createBooking(Long rideId, Booking booking) throws CreateException, NotFoundException {
+//		User caller = userManager.registerCallingUser();
+//    	Ride ride = rideDao.find(rideId)
+//    			.orElseThrow(NotFoundException::new);
+//    	booking.setRide(ride);
+//    	booking.setPassenger(caller);
+//    	booking.setState(BookingState.CONFIRMED);
+//    	bookingDao.save(booking);
+//    	return booking.getId();
+//    }
 
     /**
      * Retrieves a booking. Anyone can read a booking, given the id.
@@ -141,16 +165,18 @@ public class BookingManager {
      * @param reason An optional reason
      * @throws NotFoundException if the booking is not found in the database.
      */
-    public void removeBooking(Long bookingId, final String reason) throws NotFoundException {
+    public void removeBooking(User initiator, Long bookingId, final String reason) throws NotFoundException {
     	Booking bookingdb = bookingDao.find(bookingId)
     			.orElseThrow(NotFoundException::new);
-		User caller = userManager.findCallingUser();
-		User driver = bookingdb.getRide().getRideTemplate().getDriver();
-		if (Objects.equals(caller.getId(), bookingdb.getPassenger().getId()) || Objects.equals(caller.getId(), driver.getId())) {
-	    	boolean cancelledByDriver = Objects.equals(caller.getId(), driver.getId());
+		User initiatorDb = userDao.find(initiator.getId())
+				.orElseThrow(() -> new NotFoundException("No such user: " + initiator.toString()));
+		User driver = bookingdb.getRide().getDriver();
+    	boolean cancelledByDriver = initiatorDb.equals(driver);
+		if (initiatorDb.equals(bookingdb.getPassenger()) || cancelledByDriver) {
 	   		bookingdb.markAsCancelled(reason, cancelledByDriver);
+	    	rideUpdatedEvent.fire(bookingdb.getRide());
 		} else {
-    		throw new SecurityException(String.format("Removal of %s %d is not allowed by calling user", Booking.class.getSimpleName(), bookingdb.getId()));
+    		throw new SecurityException(String.format("Removal of %s %d is only allowed by drive or passenger", Booking.class.getSimpleName(), bookingdb.getId()));
 		}
     }
  

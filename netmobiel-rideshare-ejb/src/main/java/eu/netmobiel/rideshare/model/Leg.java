@@ -46,6 +46,10 @@ public class Leg implements Serializable {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "leg_sg")
     private Long id;
 
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "ride", foreignKey = @ForeignKey(name = "leg_ride_fk"), nullable = false)
+	private Ride ride;
+
 	/**
 	 * Ordering of the legs.
 	 */
@@ -128,6 +132,14 @@ public class Leg implements Serializable {
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public Ride getRide() {
+		return ride;
+	}
+
+	public void setRide(Ride ride) {
+		this.ride = ride;
 	}
 
 	public Integer getLegIx() {
@@ -239,6 +251,7 @@ public class Leg implements Serializable {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("Leg ");
+		builder.append(id).append(" ");
 		builder.append(duration).append("s ");
 		builder.append(distance).append("m ");
 		return builder.toString();

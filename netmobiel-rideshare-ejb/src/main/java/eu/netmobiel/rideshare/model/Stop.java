@@ -2,15 +2,18 @@ package eu.netmobiel.rideshare.model;
 
 import java.io.Serializable;
 import java.time.Instant;
-import java.util.Objects;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
+import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 
@@ -26,6 +29,10 @@ public class Stop implements Serializable {
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "stop_sg")
     private Long id;
+
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "ride", foreignKey = @ForeignKey(name = "stop_ride_fk"), nullable = false)
+	private Ride ride;
 
     @Embedded
     private GeoLocation location;
@@ -71,6 +78,14 @@ public class Stop implements Serializable {
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public Ride getRide() {
+		return ride;
+	}
+
+	public void setRide(Ride ride) {
+		this.ride = ride;
 	}
 
 	public GeoLocation getLocation() {
@@ -128,29 +143,33 @@ public class Stop implements Serializable {
 		this.departureTime = departureTime;
 	}
 
-	@Override
-	public int hashCode() {
-		return Objects.hash(arrivalTime, departureTime, location);
+	public boolean isDistanceLessThan(Stop other, int distanceInMeters) {
+		return getLocation().getDistanceFlat(other.getLocation()) < distanceInMeters / 1000.0;
 	}
 
+	/**
+	 * Using the database ID as equals test!
+	 * @see https://vladmihalcea.com/the-best-way-to-implement-equals-hashcode-and-tostring-with-jpa-and-hibernate/
+	 */
 	@Override
-	public boolean equals(Object obj) {
-		if (this == obj) {
-			return true;
-		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
-			return false;
-		}
-		Stop other = (Stop) obj;
-		return Objects.equals(arrivalTime, other.arrivalTime) && Objects.equals(departureTime, other.departureTime)
-				&& Objects.equals(location, other.location);
+    public boolean equals(Object o) {
+        if (this == o) {
+        	return true;
+        }
+        if (!(o instanceof Stop)) {
+            return false;
+        }
+        Stop other = (Stop) o;
+        return id != null && id.equals(other.getId());
+    }
+	
+	@Override
+	public int hashCode() {
+		return 31;
 	}
 
 	@Override
 	public String toString() {
-		return location.toString();
+		return id + "|" + location.toString();
 	}
 }
