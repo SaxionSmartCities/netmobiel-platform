@@ -774,69 +774,6 @@ components:
           description: If true then the car has been deleted by the user. The car
             may still be referenced in ride templates.
           type: boolean
-    Booking:
-      description: A booking of a ride by a passenger.
-      required:
-      - pickup
-      - dropOff
-      - id
-      - state
-      type: object
-      properties:
-        pickup:
-          $ref: '#/components/schemas/Stop'
-          description: The pickup location of the passenger.
-        dropOff:
-          $ref: '#/components/schemas/Stop'
-          description: The drop-off location of the passenger.
-        id:
-          format: int64
-          description: 'The id of the booking. References to a booking use the URN
-            format: urn:nb:rs:booking:<id>'
-          type: integer
-        state:
-          description: The state of the booking.
-          enum:
-          - New
-          - Requested
-          - Confirmed
-          - Cancelled
-          type: string
-        cancelReason:
-          description: If the booking was cancelled, the reason why. Optional field.
-          type: string
-        cancelledByDriver:
-          description: If set this flag indicates the driver has cancelled the ride,
-            thereby also cancelling the bookings.
-          type: boolean
-        passengerRef:
-          description: 'The passenger who wants to join the ride. The format is a
-            URN: urn:nb:rs:user:<id>'
-          type: string
-        passenger:
-          $ref: '#/components/schemas/User'
-          description: The passenger who booked the ride.
-        nrSeats:
-          description: The number of seats requested for this booking. Default is
-            1.
-          type: integer
-      example:
-        dropOff:
-          label: Station Zutphen
-          latitude: 52.145119
-          longitude: 6.192722
-        id: 1
-        nrSeats: 1
-        passenger:
-          familyName: Otto
-          givenName: Otto
-          id: 2
-          managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
-        pickup:
-          label: Station Enschede
-          latitude: 52.221609
-          longitude: 6.887536
-        state: CONFIRMED
     User:
       description: "A user in the ride share service. A user can have a role as a\
         \ driver or as a passenger. \nThe role is contextually assigned."
@@ -878,33 +815,6 @@ components:
         givenName: Otto
         id: 2
         managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
-    Stop:
-      description: A place where a driver will/can stop to pickup or drop-off a passenger.
-      required:
-      - latitude
-      - longitude
-      type: object
-      properties:
-        id:
-          format: int64
-          description: 'The unique id of the stop. When reference use the URN form:
-            urn:nb:rs:stop:<id>'
-          type: integer
-        label:
-          description: Short name for the location.
-          type: string
-        latitude:
-          format: double
-          description: GPS latitude value.
-          type: number
-        longitude:
-          format: double
-          description: GPS longitude value.
-          type: number
-      example:
-        label: Station Enschede
-        latitude: 52.221609
-        longitude: 6.887536
     Error:
       title: Root Type for Error
       description: A object returned when an error occurred. The status code is 4xx
@@ -930,12 +840,11 @@ components:
       description: A Ride object specifies a ride with a car by a driver on a certain.
         The retour can be specified as well.
       required:
-      - departureTime
       - nrSeatsAvailable
       - carRef
-      - allowedLuggage
       - fromPlace
       - toPlace
+      - legs
       type: object
       properties:
         nrSeatsAvailable:
@@ -947,17 +856,21 @@ components:
           type: string
         id:
           format: int64
-          description: 'Read-only. The unique id of this ride, assigned by the system.
+          description: '(Read-only) The unique id of this ride, assigned by the system.
             When referenced use the URN notation: urn:nb:rs:ride:<id>'
           type: integer
         allowedLuggage:
           description: The luggage the driver is allowing on the ride.
           enum:
-          - Buggy
-          - Suitcase
+          - HANDLUGGAGE
+          - PET
+          - WALKER
+          - STROLLER
+          - WHEELCHAIR
+          - GROCERIES
           type: string
         bookings:
-          description: Read-only. A list of bookings for this `Ride`.
+          description: (Read-only) A list of bookings for this `Ride`.
           type: array
           items:
             $ref: '#/components/schemas/Booking'
@@ -975,10 +888,10 @@ components:
             \ the ride. \nFormat is a URN according urn:nb:rs:user:<id>."
           type: string
         fromPlace:
-          $ref: '#/components/schemas/Stop'
+          $ref: '#/components/schemas/Location'
           description: The place (a stop) to depart from.
         toPlace:
-          $ref: '#/components/schemas/Stop'
+          $ref: '#/components/schemas/Location'
           description: The final destination a stop for the ride.
         maxDetourSeconds:
           description: The time in seconds the driver is prepared to detour to pickup
@@ -986,44 +899,63 @@ components:
             meters. The maximum detour is converted to meters using a system defined
             nominal speed (around 30) km/h.
           type: integer
-        estimatedArrivalTime:
-          description: "The estimated time of arrival (normal traffic conditions),\
-            \ \nformatted according ISO 8601."
-          type: string
-        estimatedCO2Emission:
-          description: The amount of CO2 emitted by the car in this trip.
-          type: integer
-        estimatedDistance:
-          description: The estimated distance in meter.
-          type: integer
-        estimatedDrivingTime:
-          description: The estimation duration of the trip.
-          type: integer
         rideRef:
-          description: The reference to a ride. Format is a URN according urn:nb:rs:ride:<id>.
+          description: (Read-only) The reference to a ride. Format is a URN according
+            urn:nb:rs:ride:<id>.
           type: string
         carthesianBearing:
-          description: The compass direction of the ride (as the crow flies))
+          description: (Read-only) The compass direction of the ride (as the crow
+            flies))
           type: integer
         carthesianDistance:
-          description: Distance as the crow flies (flat earth approximation)
+          description: (Read-only) Distance as the crow flies (flat earth approximation)
           type: integer
         recurrence:
           $ref: '#/components/schemas/Recurrence'
           description: The recurrence pattern of a ride. Optional.
         driver:
           $ref: '#/components/schemas/User'
-          description: The driver of the car used for this ride.
+          description: (Read-only) The driver of the car used for this ride.
         car:
           $ref: '#/components/schemas/Car'
-          description: The car used for this ride.
+          description: (Read-only) The car used for this ride.
         deleted:
-          description: If true then the ride was deleted / cancelled.
+          description: (Read-only) If true then the ride was deleted / cancelled.
           type: boolean
         departureTime:
-          description: The local departure date and time of the trip, formatted according
-            ISO 8601.
+          format: date-time
+          description: The departure date and time of the trip, formatted according
+            ISO 8601. On creation or update of a ride either departure or arrival
+            must be set. If both are given then departure time prevails.
           type: string
+        legs:
+          description: '(Read-only) The ride split up in legs and stops. The legs
+            and stops are calculated by the service from the initial ride information
+            and the optional booking(s). '
+          type: array
+          items:
+            $ref: '#/components/schemas/Leg'
+        arrivalTime:
+          format: date-time
+          description: The time of arrival (under normal traffic conditions), formatted
+            according ISO 8601. On creation or update of a ride either departure or
+            arrival must be set. If both are given then departure time prevails.
+          type: string
+        co2Emission:
+          description: (Read-only) The amount of CO2 emitted by the car in this trip.
+          type: integer
+        distance:
+          description: (Read-only) The estimated distance in meter.
+          type: integer
+        drivingTime:
+          description: (Read-only) The estimation duration of the trip.
+          type: integer
+        arrivalTimeIsPinned:
+          description: (Read-only) Flag to signal whether the original request is
+            made use the departure time as input (false) or the arrival time (true).
+            This flag is used when recalculating the route when a booking is added.
+            Either departure or arrival time will change then.
+          type: boolean
       example:
         bookings: []
         car:
@@ -1032,11 +964,11 @@ components:
         carRef: urn:nb:rs:car:5
         carthesianBearing: 265
         carthesianDistance: 19009
-        departureTime: 2019-11-02T11:30:00
-        estimatedArrivalTime: 2019-11-02T11:58:40
-        estimatedCO2Emission: 5055
-        estimatedDistance: 23295
-        estimatedDrivingTime: 1720
+        departureTime: 2019-11-02T11:30:00Z
+        arrivalTime: 2019-11-02T11:58:40Z
+        co2Emission: 5055
+        distance: 23295
+        drivingTime: 1720
         fromPlace:
           label: Rapenburgsestraat Lichtenvoorde
           latitude: 51.987757
@@ -1072,11 +1004,16 @@ components:
             7 for Monday to Sunday. The number of the weekday corresponds with the
             bit number plus one, i.e., bit 0 corresponds with Monday.'
           type: integer
+        timeZone:
+          description: 'The time zone of the recurrence. The zone is required to calculate
+            the local time, as it is the local departure/arrival time that is repeated.
+            Default: Europe/Amsterdam. '
       example:
         interval: 2
         unit: WEEK
         daysOfWeek: 62
         horizon: 2019-12-31
+        timeZone: Europe/Amsterdam
     Page:
       title: Root Type for Page
       description: A page from a result set. For smaller sets the page contains the
@@ -1109,6 +1046,219 @@ components:
         start: 32
         count: 16
         data: []
+    Location:
+      description: A place where a driver will/can stop to pickup or drop-off a passenger.
+      required:
+      - latitude
+      - longitude
+      type: object
+      properties:
+        id:
+          format: int64
+          description: 'The unique id of the stop. When reference use the URN form:
+            urn:nb:rs:stop:<id>'
+          type: integer
+        label:
+          description: Short name for the location.
+          type: string
+        latitude:
+          format: double
+          description: GPS latitude value.
+          type: number
+        longitude:
+          format: double
+          description: GPS longitude value.
+          type: number
+      example:
+        label: Station Enschede
+        latitude: 52.221609
+        longitude: 6.887536
+    Stop:
+      title: Root Type for Stop
+      description: A stop is extended location on a map, comprising of a GPS coordinate
+        and optional a descriptional label for human display. A stop contains also
+        a timestamp for departure and/or arrival.
+      type: object
+      properties:
+        latitude:
+          format: double
+          description: The latitude of this place.
+          type: number
+        longitude:
+          format: double
+          description: The longitude of this place.
+          type: number
+        label:
+          description: A descriptive label of the place.
+          type: string
+        departureTime:
+          format: date-time
+          description: The time of departure in UTC time.
+          type: string
+        arrivalTime:
+          format: date-time
+          description: The time of arrival in UTC time.
+          type: string
+      example:
+        departureTime: 2020-05-14T10:00:00.000Z
+        latitude: 52.004166
+        longitude: 6.517835
+        label: Zieuwent,Kennedystraat
+    EncodedPolyline:
+      description: A list of coordinates encoded as a string. See Encoded polyline
+        algorithm format (http://code.google.com/apis/maps/documentation/polylinealgorithm.html).
+      required:
+      - points
+      - length
+      type: object
+      properties:
+        points:
+          description: The encoded points of the polyline.
+          type: string
+        levels:
+          description: Levels describes which points should be shown at various zoom
+            levels. OpenTripPlanner shows all points at all zoom levels.
+          type: string
+        length:
+          description: The number of points in the string
+          type: integer
+      example:
+        length: 11
+        points: _al|Hm_xf@?U?WHe@D_AF{@?QAQEW[iAs@@
+    Leg:
+      description: 'A leg is a displacement one location to another. '
+      required:
+      - from
+      - to
+      - duration
+      - distance
+      type: object
+      properties:
+        startTime:
+          format: date-time
+          description: The time of departure in UTC time.
+          type: string
+        endTime:
+          format: date-time
+          description: Time of arrival at destination in UTC time.
+          type: string
+        duration:
+          description: The total duration of the leg in seconds.
+          type: integer
+        distance:
+          description: The distance travelled in meters.
+          type: integer
+        from:
+          $ref: '#/components/schemas/Stop'
+          description: Departure location.
+        to:
+          $ref: '#/components/schemas/Stop'
+          description: Arrival location
+        legGeometry:
+          $ref: '#/components/schemas/EncodedPolyline'
+          description: An encoded description of the leg in GPS coordinates.
+        bookings:
+          description: An array of references to bookings on this leg. Currently at
+            most one.
+          type: array
+          items:
+            type: string
+      example:
+        distance: 152
+        duration: 123
+        from:
+          departureTime: 2020-05-14T10:00:00.000Z
+          latitude: 52.004166
+          longitude: 6.517835
+          label: Zieuwent,Kennedystraat
+        legGeometry:
+          length: 11
+          points: _al|Hm_xf@?U?WHe@D_AF{@?QAQEW[iAs@@
+        to:
+          arrivalTime: 2020-05-14T10:01:00.000Z
+          latitude: 52.004485
+          longitude: 6.519542
+          label: Zieuwent, R.K. Kerk
+    Booking:
+      description: A booking of a ride by a passenger.
+      required:
+      - pickup
+      - dropOff
+      - id
+      - state
+      type: object
+      properties:
+        arrivalTime:
+          format: date-time
+          description: 'The (desired) time of arrival, formatted according ISO 8601. '
+          type: string
+        departureTime:
+          format: date-time
+          description: 'The (desired) time of departure, formatted according ISO 8601. '
+          type: string
+        pickup:
+          $ref: '#/components/schemas/Location'
+          description: The pickup location of the passenger.
+        dropOff:
+          $ref: '#/components/schemas/Location'
+          description: The drop-off location of the passenger.
+        id:
+          format: int64
+          description: 'The id of the booking. References to a booking use the URN
+            format: urn:nb:rs:booking:<id>'
+          type: integer
+        state:
+          description: The state of the booking.
+          enum:
+          - New
+          - Requested
+          - Confirmed
+          - Cancelled
+          type: string
+        cancelReason:
+          description: If the booking was cancelled, the reason why. Optional field.
+          type: string
+        cancelledByDriver:
+          description: If set this flag indicates the driver has cancelled the ride,
+            thereby also cancelling the bookings.
+          type: boolean
+        passengerRef:
+          description: 'The passenger who wants to join the ride. The format is a
+            URN: urn:nb:rs:user:<id>'
+          type: string
+        passenger:
+          $ref: '#/components/schemas/User'
+          description: The passenger who booked the ride.
+        nrSeats:
+          description: The number of seats requested for this booking. Default is
+            1.
+          type: integer
+        legs:
+          description: An array of leg references for this booking.
+          type: array
+          items:
+            type: string
+      example:
+        departureTime: 2020-05-27T10:00:00Z
+        arrivalTime: 2020-05-27T10:45:00Z
+        dropOff:
+          label: Station Zutphen
+          latitude: 52.145119
+          longitude: 6.192722
+        id: 1
+        nrSeats: 1
+        passenger:
+          familyName: Otto
+          givenName: Otto
+          id: 2
+          managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+        pickup:
+          label: Station Enschede
+          latitude: 52.221609
+          longitude: 6.887536
+        state: CONFIRMED
+        legs:
+        - urn:nb:rs:leg:54
   responses:
     InternalServerError:
       content:
