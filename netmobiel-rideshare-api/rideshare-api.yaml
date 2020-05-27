@@ -941,21 +941,21 @@ components:
             according ISO 8601. On creation or update of a ride either departure or
             arrival must be set. If both are given then departure time prevails.
           type: string
-        co2Emission:
-          description: (Read-only) The amount of CO2 emitted by the car in this trip.
-          type: integer
         distance:
           description: (Read-only) The estimated distance in meter.
           type: integer
         drivingTime:
           description: (Read-only) The estimation duration of the trip.
           type: integer
-        arrivalTimeIsPinned:
+        arrivalTimePinned:
           description: (Read-only) Flag to signal whether the original request is
             made use the departure time as input (false) or the arrival time (true).
             This flag is used when recalculating the route when a booking is added.
             Either departure or arrival time will change then.
           type: boolean
+        CO2Emission:
+          description: (Read-only) The amount of CO2 emitted by the car in this trip.
+          type: integer
       example:
         bookings: []
         car:
