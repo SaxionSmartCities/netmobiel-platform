@@ -124,6 +124,7 @@ public class BookingManager {
     	booking.setState(BookingState.CONFIRMED);
     	bookingDao.save(booking);
     	rideUpdatedEvent.fire(ride);
+    	// TODO Also add bookingAddedEvent for informing the driver.
     	return RideshareUrnHelper.createUrn(Booking.URN_PREFIX, booking.getId());
     }
 
