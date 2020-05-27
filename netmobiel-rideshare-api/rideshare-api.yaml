@@ -1053,11 +1053,6 @@ components:
       - longitude
       type: object
       properties:
-        id:
-          format: int64
-          description: 'The unique id of the stop. When reference use the URN form:
-            urn:nb:rs:stop:<id>'
-          type: integer
         label:
           description: Short name for the location.
           type: string
@@ -1163,6 +1158,9 @@ components:
           type: array
           items:
             type: string
+        legRef:
+          description: The leg reference urn.
+          type: string
       example:
         distance: 152
         duration: 123
@@ -1184,7 +1182,6 @@ components:
       required:
       - pickup
       - dropOff
-      - id
       - state
       type: object
       properties:
@@ -1202,11 +1199,6 @@ components:
         dropOff:
           $ref: '#/components/schemas/Location'
           description: The drop-off location of the passenger.
-        id:
-          format: int64
-          description: 'The id of the booking. References to a booking use the URN
-            format: urn:nb:rs:booking:<id>'
-          type: integer
         state:
           description: The state of the booking.
           enum:
@@ -1228,7 +1220,8 @@ components:
           type: string
         passenger:
           $ref: '#/components/schemas/User'
-          description: The passenger who booked the ride.
+          description: The passenger who booked the ride. The information is included
+            to avoid a lookup.
         nrSeats:
           description: The number of seats requested for this booking. Default is
             1.
@@ -1238,6 +1231,9 @@ components:
           type: array
           items:
             type: string
+        bookingRef:
+          description: The booking reference URN.
+          type: string
       example:
         departureTime: 2020-05-27T10:00:00Z
         arrivalTime: 2020-05-27T10:45:00Z
