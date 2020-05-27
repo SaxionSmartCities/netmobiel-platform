@@ -2,7 +2,7 @@ package eu.netmobiel.rideshare.api.resource;
 
 import java.util.stream.Collectors;
 
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
@@ -14,7 +14,7 @@ import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.service.UserManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
-@ApplicationScoped
+@RequestScoped
 @Path("/users")
 public class UserResource implements UsersApi {
 

@@ -14,7 +14,6 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
-import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
@@ -106,11 +105,13 @@ public class BookingManager {
      * @throws CreateException on error.
      * @throws NotFoundException if the ride cannot be found.
      */
-    public String createBooking(String rideRef, NetMobielUser traveller, 
-    		GeoLocation pickupLocation, GeoLocation dropOffLocation, Integer nrSeats) throws CreateException, NotFoundException {
+    public String createBooking(String rideRef, NetMobielUser traveller, Booking booking) throws CreateException, NotFoundException {
     	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideRef);
 		Ride ride = rideDao.find(rid)
     			.orElseThrow(() -> new NotFoundException("Ride not found: " + rideRef));
+		if (traveller.getManagedIdentity() == null) {
+			throw new CreateException("Traveller identity is mandatory");
+		}
     	User passenger = userDao.findByManagedIdentity(traveller.getManagedIdentity())
 				.orElse(null);
     	if (passenger == null) {
@@ -120,7 +121,8 @@ public class BookingManager {
     	if (ride.getBookings().stream().filter(b -> !b.isDeleted()).collect(Collectors.counting()) > 0) {
     		throw new CreateException("Ride has already one booking");
     	}
-		Booking booking = new Booking(ride, passenger, pickupLocation, dropOffLocation, nrSeats);
+		booking.setRide(ride);
+		booking.setPassenger(passenger);
     	booking.setState(BookingState.CONFIRMED);
     	bookingDao.save(booking);
     	rideUpdatedEvent.fire(ride);

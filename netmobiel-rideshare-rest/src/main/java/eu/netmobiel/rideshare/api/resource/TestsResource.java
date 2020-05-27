@@ -1,8 +1,6 @@
 package eu.netmobiel.rideshare.api.resource;
 
-import java.time.LocalDate;
-
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.GET;
@@ -19,7 +17,7 @@ import eu.netmobiel.rideshare.service.RideManager;
 import eu.netmobiel.rideshare.service.UserManager;
 
 @Path("/tests")
-@ApplicationScoped
+@RequestScoped
 public class TestsResource {
     @Inject
     private UserManager userManager;
@@ -79,11 +77,7 @@ public class TestsResource {
     @GET
     @Path("/doRideMaintenance")
     public Response doRideMaintenance(@QueryParam("start") String startDate) {
-    	LocalDate start = null;
-    	if (startDate != null) {
-    		start = LocalDate.parse(startDate);
-    	}
-    	rideManager.instantiateRecurrentRides(start);
+    	rideManager.instantiateRecurrentRides();
     	return Response.status(Status.OK).build();
     	
     }

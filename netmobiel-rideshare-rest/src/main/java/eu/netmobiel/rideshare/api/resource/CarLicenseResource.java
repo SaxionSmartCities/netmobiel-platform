@@ -2,7 +2,7 @@ package eu.netmobiel.rideshare.api.resource;
 
 import java.io.IOException;
 
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.NotFoundException;
@@ -19,7 +19,7 @@ import eu.netmobiel.rideshare.service.LicensePlateService;
 /**
  * License plate decoder API.
  */
-@ApplicationScoped
+@RequestScoped
 public class CarLicenseResource implements CarLicensesApi {
 
     @SuppressWarnings("unused")

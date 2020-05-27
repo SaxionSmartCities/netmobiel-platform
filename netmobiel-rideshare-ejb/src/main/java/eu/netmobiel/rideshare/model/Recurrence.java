@@ -36,7 +36,7 @@ public class Recurrence implements Serializable {
 
 	/**
 	 * The horizon as local date. This attribute specifies the local horizon after
-	 * which the recurrence stops.
+	 * which the recurrence stops. It is translated to the absolute horizon by taking the local start of day time.
 	 * 
 	 */
 	@Transient
@@ -98,6 +98,7 @@ public class Recurrence implements Serializable {
 		this.unit = aUnit;
 		this.daysOfWeekMask = someDaysOfWeekMask;
 		this.horizon = localToInstant(aHorizon);
+		this.timeZone = DEFAULT_TIME_ZONE;
 	}
 
 	public Recurrence(Integer anInterval, TimeUnit aUnit, Byte someDaysOfWeekMask, Instant aHorizon) {
@@ -105,6 +106,7 @@ public class Recurrence implements Serializable {
 		this.unit = aUnit;
 		this.daysOfWeekMask = someDaysOfWeekMask;
 		this.horizon = aHorizon;
+		this.timeZone = DEFAULT_TIME_ZONE;
 	}
 
 	public static byte dowMask(DayOfWeek... dows) {

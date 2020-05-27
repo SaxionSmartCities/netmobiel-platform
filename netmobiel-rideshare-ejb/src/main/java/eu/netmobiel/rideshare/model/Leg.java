@@ -29,6 +29,7 @@ import com.vividsolutions.jts.geom.MultiPoint;
 import eu.netmobiel.commons.api.EncodedPolylineBean;
 import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.commons.util.PolylineEncoder;
+import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 /**
  * One leg of a trip -- that is, a temporally continuous piece of the journey that takes place on a
@@ -41,10 +42,14 @@ import eu.netmobiel.commons.util.PolylineEncoder;
 @SequenceGenerator(name = "leg_sg", sequenceName = "leg_id_seq", allocationSize = 1, initialValue = 50)
 public class Leg implements Serializable {
 	private static final long serialVersionUID = -3789784762166689720L;
+	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix("leg");
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "leg_sg")
     private Long id;
+
+    @Transient
+    private String legRef;
 
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "ride", foreignKey = @ForeignKey(name = "leg_ride_fk"), nullable = false)
@@ -132,6 +137,13 @@ public class Leg implements Serializable {
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public String getLegRef() {
+		if (legRef == null) {
+    		legRef = RideshareUrnHelper.createUrn(Leg.URN_PREFIX, getId());
+		}
+		return legRef;
 	}
 
 	public Ride getRide() {

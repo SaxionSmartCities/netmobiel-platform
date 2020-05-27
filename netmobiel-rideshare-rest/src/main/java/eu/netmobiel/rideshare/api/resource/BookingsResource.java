@@ -1,8 +1,9 @@
 package eu.netmobiel.rideshare.api.resource;
 
-import java.time.LocalDate;
+import java.time.Instant;
+import java.time.OffsetDateTime;
 
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
@@ -15,10 +16,11 @@ import eu.netmobiel.rideshare.api.BookingsApi;
 import eu.netmobiel.rideshare.api.mapping.BookingMapper;
 import eu.netmobiel.rideshare.api.mapping.PageMapper;
 import eu.netmobiel.rideshare.model.Booking;
+import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
-@ApplicationScoped
+@RequestScoped
 public class BookingsResource implements BookingsApi {
 
 	@Inject
@@ -30,15 +32,20 @@ public class BookingsResource implements BookingsApi {
 	@Inject
     private BookingManager bookingManager;
 
-    /**
+	private Instant toInstant(OffsetDateTime odt) {
+		return odt == null ? null : odt.toInstant();
+	}
+
+	/**
      * Lists the bookings driven by the calling user.
      * @return an array of bookings.
      */
-    public Response getBookings(LocalDate sinceDate, LocalDate untilDate, Integer maxResults, Integer offset) {
+    public Response getBookings(OffsetDateTime sinceDate, OffsetDateTime untilDate, Integer maxResults, Integer offset) {
     	PagedResult<Booking> bookings;
+    	Long userId = 0L;
 		try {
-			bookings = bookingManager.listMyBookings( sinceDate, untilDate, maxResults, offset);
-		} catch (BadRequestException e) {
+			bookings = bookingManager.listBookings(userId, toInstant(sinceDate), toInstant(untilDate), maxResults, offset);
+		} catch (BadRequestException | eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new WebApplicationException(e);
 		} 
     	return Response.ok(pageMapper.mapMyBookings(bookings)).build();
@@ -52,14 +59,15 @@ public class BookingsResource implements BookingsApi {
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new NotFoundException();
 		}
-    	return Response.ok(mapper.map(booking)).build();
+    	return Response.ok(mapper.mapInDetail(booking)).build();
     }
 
     public Response deleteBooking(String bookingId, String reason) {
     	Response rsp = null;
     	try {
         	Long cid = RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingId);
-			bookingManager.removeBooking(cid, reason);
+        	User initiator = null;
+			bookingManager.removeBooking(initiator, cid, reason);
 			rsp = Response.noContent().build();
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 	    	rsp = Response.status(Status.GONE).build();

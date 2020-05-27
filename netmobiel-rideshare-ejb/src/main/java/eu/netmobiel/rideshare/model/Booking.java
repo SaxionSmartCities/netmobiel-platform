@@ -50,6 +50,9 @@ public class Booking implements Serializable {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "booking_sg")
     private Long id;
 
+    @Transient
+    private String bookingRef;
+
 	/**
 	 * The state of the booking.
 	 */
@@ -166,6 +169,13 @@ public class Booking implements Serializable {
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public String getBookingRef() {
+		if (bookingRef == null) {
+			bookingRef = RideshareUrnHelper.createUrn(Booking.URN_PREFIX, getId());
+		}
+		return bookingRef;
 	}
 
 	public BookingState getState() {

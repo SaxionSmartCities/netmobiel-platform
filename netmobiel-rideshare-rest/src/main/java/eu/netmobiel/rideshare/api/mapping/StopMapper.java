@@ -1,7 +1,10 @@
 package eu.netmobiel.rideshare.api.mapping;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
+import java.time.ZoneOffset;
+
 import org.mapstruct.Mapper;
-import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 import eu.netmobiel.rideshare.model.Stop;
@@ -13,15 +16,14 @@ import eu.netmobiel.rideshare.model.Stop;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
-public interface StopMapper {
+public abstract class StopMapper {
 
 	// Domain Stop --> API Stop
-	@Mapping(target = "id", ignore = true)
-	eu.netmobiel.rideshare.api.model.Stop map(Stop source);
+	public abstract eu.netmobiel.rideshare.api.model.Stop map(Stop source);
 
-//	@Mapping(target = "ride", ignore = true)
-	@Mapping(target = "location", ignore = true)
-	@Mapping(target = "id", ignore = true)
-	Stop map(eu.netmobiel.rideshare.api.model.Stop source);
-
+    // Instant --> OffsetDateTime
+    public  OffsetDateTime map(Instant instant) {
+    	return instant == null ? null : instant.atOffset(ZoneOffset.UTC);
+    }
+   
 }

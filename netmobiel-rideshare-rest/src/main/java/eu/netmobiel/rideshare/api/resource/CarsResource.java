@@ -3,7 +3,7 @@ package eu.netmobiel.rideshare.api.resource;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.PathParam;
@@ -18,7 +18,7 @@ import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.service.UserManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
-@ApplicationScoped
+@RequestScoped
 public class CarsResource implements CarsApi {
 
 	@Inject

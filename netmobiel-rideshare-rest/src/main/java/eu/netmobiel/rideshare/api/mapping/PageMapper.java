@@ -6,7 +6,7 @@ import org.mapstruct.ReportingPolicy;
 
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.rideshare.api.mapping.annotation.BookingMapperQualifier;
-import eu.netmobiel.rideshare.api.mapping.annotation.BookingMyDetails;
+import eu.netmobiel.rideshare.api.mapping.annotation.BookingNestedMine;
 import eu.netmobiel.rideshare.api.mapping.annotation.RideDetails;
 import eu.netmobiel.rideshare.api.mapping.annotation.RideMapperQualifier;
 import eu.netmobiel.rideshare.api.mapping.annotation.RideMyDetails;
@@ -37,6 +37,6 @@ public abstract class PageMapper {
 	public abstract eu.netmobiel.rideshare.api.model.Page mapSearch(PagedResult<Ride> source);
 
 	// Domain page with rides --> Api page of rides
-	@Mapping(target = "data", source = "data", qualifiedBy = { BookingMapperQualifier.class, BookingMyDetails.class } )
+	@Mapping(target = "data", source = "data", qualifiedBy = { BookingMapperQualifier.class, BookingNestedMine.class } )
 	public abstract eu.netmobiel.rideshare.api.model.Page mapMyBookings(PagedResult<Booking> source);
 }

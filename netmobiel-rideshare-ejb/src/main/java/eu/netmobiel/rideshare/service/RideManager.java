@@ -103,8 +103,8 @@ public class RideManager {
     private SessionContext context;
 
     /**
-     * Updates all recurrent rides by moving the system horizon to the next day.
-     * The state of the ride generation is saved in each template. Updating the tempalte and saving the generated rides
+     * Updates all recurrent rides by advancing the system horizon to a predefined offset with reference to the calling time.
+     * The state of the ride generation is saved in each template. Updating the template and saving the generated rides from that template
      * are part of the same transaction. 
      */
 	@Schedule(info = "Ride Maintenance", hour = "2", minute = "15", second = "0", persistent = false /* non-critical job */)

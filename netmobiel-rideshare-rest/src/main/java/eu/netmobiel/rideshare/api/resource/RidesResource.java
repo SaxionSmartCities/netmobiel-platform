@@ -1,17 +1,21 @@
 package eu.netmobiel.rideshare.api.resource;
 
+import java.time.Instant;
 import java.time.LocalDate;
+import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.NotFoundException;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.rideshare.api.RidesApi;
 import eu.netmobiel.rideshare.api.mapping.BookingMapper;
@@ -25,7 +29,7 @@ import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.service.RideManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
-@ApplicationScoped
+@RequestScoped
 public class RidesResource implements RidesApi {
 
     @Inject
@@ -42,11 +46,16 @@ public class RidesResource implements RidesApi {
     
     @Inject
     private PageMapper pageMapper;
+    
+	private Instant toInstant(OffsetDateTime odt) {
+		return odt == null ? null : odt.toInstant();
+	}
+
     /**
      * List all rides owned by the calling user. Soft deleted rides are omitted.
      * @return A list of rides owned by the calling user.
      */
-    public Response listRides(String driverId, LocalDate sinceDate, LocalDate untilDate, Boolean deletedToo, Integer maxResults, Integer offset) {
+    public Response listRides(String driverId, OffsetDateTime sinceDate, OffsetDateTime untilDate, Boolean deletedToo, Integer maxResults, Integer offset) {
 //    	LocalDate sinceDate = since != null ? LocalDate.parse(since) : null;
 //    	LocalDate untilDate =  until != null ? LocalDate.parse(until) : null;
     	PagedResult<Ride> rides;
@@ -55,9 +64,9 @@ public class RidesResource implements RidesApi {
 			if (driverId != null) {
 				did = RideshareUrnHelper.getId(User.URN_PREFIX, driverId);
 			}
-			rides = rideManager.listRides(did, sinceDate, untilDate, deletedToo, maxResults, offset);
-		} catch (eu.netmobiel.commons.exception.BadRequestException e) {
-			throw new BadRequestException("Error listing rides", e);
+			rides = rideManager.listRides(did, toInstant(sinceDate), toInstant(untilDate), deletedToo, maxResults, offset);
+		} catch (eu.netmobiel.commons.exception.BadRequestException | eu.netmobiel.commons.exception.NotFoundException e) {
+			throw new WebApplicationException("Error listing rides", e);
 		}
 		// Map the rides as my rides: Brand/model car only, no driver info (because it is the specified driver)
     	return Response.ok(pageMapper.mapMine(rides)).build();
@@ -145,6 +154,8 @@ public class RidesResource implements RidesApi {
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
+	    	rsp = Response.status(Status.NOT_FOUND).build();
+		} catch (SoftRemovedException e) {
 	    	rsp = Response.status(Status.GONE).build();
 		}
     	return rsp;
@@ -160,9 +171,10 @@ public class RidesResource implements RidesApi {
 	public Response createBooking(String rideId, eu.netmobiel.rideshare.api.model.Booking bookingdt)  {
     	Response rsp = null;
 		try {
-        	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideId);
+        	// FIXME passenger resolution
+        	User passenger = null;
         	Booking booking = bookingMapper.map(bookingdt);
-			String newBookingId = RideshareUrnHelper.createUrn(Booking.URN_PREFIX, bookingManager.createBooking(rid, booking));
+			String newBookingId = bookingManager.createBooking(rideId, passenger, booking);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newBookingId)).build();
 		} catch (ApplicationException e) {
 			throw new BadRequestException("Error creating booking for ride " + rideId, e);
