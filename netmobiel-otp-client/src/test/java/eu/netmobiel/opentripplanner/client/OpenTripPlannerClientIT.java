@@ -68,6 +68,7 @@ public class OpenTripPlannerClientIT {
         assertEquals(toPlace.getLongitude(), plan.to.lon);
     }
 
+//    @InSequence
     @Test
     public void testPlanDeparture() throws Exception {
     	log.debug("testPlanDeparture");
@@ -219,5 +220,73 @@ public class OpenTripPlannerClientIT {
     	// Expect an error due to traverse problems in OTP
         assertNull(plan);
         assertNotNull(result.error);
+    }
+    
+    @Test
+    public void testPlanDepartAndArriveSamePlace() throws Exception {
+    	log.debug("testPlanDepartAndArriveSamePlace");
+    	GeoLocation fromPlace = GeoLocation.fromString("Enschede Overijssel::52.223610,6.895510");
+    	GeoLocation  toPlace = fromPlace;
+    	Instant travelTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+    	boolean useTimeAsArriveBy = false;
+    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR /*, TraverseMode.WALK */}; 
+    	Integer maxWalkDistance = 1000;
+  	    Integer maxItineraries = 1;
+  	    try {
+  	    	client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
+  	    	fail("Expected NotFoundException");
+  	    } catch (eu.netmobiel.commons.exception.NotFoundException ex) {
+  	    	log.debug("testPlanDepartAndArriveSamePlace " + ex.toString());
+  	    }
+    }
+
+    @Test
+    public void testPlanArrivalViaAlmostSame() throws Exception {
+    	log.debug("testPlanArrivalViaAlmostSame");
+    	GeoLocation fromPlace = GeoLocation.fromString("Enschede Overijssel::52.223610,6.895510");
+    	GeoLocation  toPlace = GeoLocation.fromString("Deventer Overijssel::52.251030,6.159900");
+    	Instant travelTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+    	GeoLocation[] via = new GeoLocation[] { 
+    			GeoLocation.fromString("Enschede Overijssel::52.223610,6.895511"),
+    			GeoLocation.fromString("Deventer Overijssel::52.251030,6.159901")
+    	}; 
+    	boolean useTimeAsArriveBy = false;
+    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR /*, TraverseMode.WALK */}; 
+    	Integer maxWalkDistance = 1000;
+  	    Integer maxItineraries = 1;
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
+    	TripPlan plan = result.plan;
+
+    	assertNotNull(plan);
+        log.debug(plan.toString());
+        assertPlan(fromPlace, toPlace, travelTime, plan);
+        assertEquals(1, plan.itineraries.size());
+        Itinerary it = plan.itineraries.get(0);
+        assertEquals(1, it.legs.size());
+    }
+
+    @Test
+    public void testPlanArrivalViaOneSame() throws Exception {
+    	log.debug("testPlanArrivalViaAlmostSame");
+    	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+    	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
+    	Instant travelTime = Instant.now().truncatedTo(ChronoUnit.SECONDS);
+    	GeoLocation[] via = new GeoLocation[] { 
+    			GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517836"),
+    			GeoLocation.fromString("Rabobank Zutphen::52.148125, 6.196966")
+    	}; 
+    	boolean useTimeAsArriveBy = false;
+    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR /*, TraverseMode.WALK */}; 
+    	Integer maxWalkDistance = 1000;
+  	    Integer maxItineraries = 1;
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
+    	TripPlan plan = result.plan;
+
+    	assertNotNull(plan);
+        log.debug(plan.toString());
+        assertPlan(fromPlace, toPlace, travelTime, plan);
+        assertEquals(1, plan.itineraries.size());
+        Itinerary it = plan.itineraries.get(0);
+        assertEquals(2, it.legs.size());
     }
 }

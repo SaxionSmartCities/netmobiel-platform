@@ -28,6 +28,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.opentripplanner.client.OpenTripPlannerClient;
 
 @MappedSuperclass
 @Vetoed
@@ -281,12 +282,12 @@ public class Itinerary implements Serializable {
 			Leg leg = it.legs.get(ix);
 			if (startIx < 0) {
 				// If within x meter it must be the start (a bit shady)
-				if (from.getDistanceFlat(leg.getFrom().getLocation()) < 0.020) {
+				if (from.getDistanceFlat(leg.getFrom().getLocation()) < (OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS * 2 / 1000.0)) {
 					startIx = ix;
 				}
 			} 
 			// If within x meter it must be the end
-			if (startIx >= 0 && to.getDistanceFlat(leg.getTo().getLocation()) < 0.020) {
+			if (startIx >= 0 && to.getDistanceFlat(leg.getTo().getLocation()) < (OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS * 2 / 1000.0)) {
 				endIx = ix + 1;
 				break;
 			}

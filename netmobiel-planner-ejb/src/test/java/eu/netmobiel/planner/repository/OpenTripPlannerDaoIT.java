@@ -70,7 +70,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR }; 
     	try {
-			TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, null, null, 1);
+			TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, null, 1);
 			assertNotNull(plan);
 			assertEquals(1, plan.getItineraries().size());
 			Itinerary it = plan.getItineraries().get(0);
@@ -95,7 +95,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR }; 
     	try {
-			TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, null, Arrays.asList(via), 1);
+			TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, Arrays.asList(via), 1);
 			assertNotNull(plan);
 			assertEquals(1, plan.getItineraries().size());
 			Itinerary it = plan.getItineraries().get(0);
@@ -121,7 +121,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT };
     	try {
-    		otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, null, null, 1);
+    		otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, null, 1);
 			fail("Expected a BadRequest");
 		} catch (NotFoundException e) {
 			fail("Did not expect " + e);
@@ -140,7 +140,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR };
     	try {
-    		otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, null, null, 1);
+    		otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, null, 1);
 			fail("Expected a BadRequest");
 		} catch (NotFoundException e) {
 			fail("Did not expect " + e);
@@ -159,7 +159,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK };
     	try {
-    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, 10, null, 1);
+    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, 10, null, 1);
     		Leg leg = plan.getItineraries().get(0).getLegs().get(0);
 //        	String wkt = GeometryHelper.createWKT(leg.getLegGeometry());
 //        	System.out.println(wkt);
@@ -181,7 +181,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK };
     	try {
-    		otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, 100, null, 1);
+    		otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, 100, null, 1);
 			fail("Expected a NotFound");
 		} catch (NotFoundException e) {
 			assertNotNull(e.getVendorCode());
@@ -199,7 +199,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK };
     	try {
-    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, null, modes, false, 1000, null, 1);
+    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, 1000, null, 1);
 			assertNotNull(plan);
 			assertEquals(1, plan.getItineraries().size());
     		Leg leg = plan.getItineraries().get(0).getLegs().get(0);

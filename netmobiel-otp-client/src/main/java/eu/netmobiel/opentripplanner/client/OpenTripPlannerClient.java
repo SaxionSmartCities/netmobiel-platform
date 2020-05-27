@@ -8,11 +8,11 @@ import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiPredicate;
-import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
@@ -35,7 +35,9 @@ import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.util.MinumumDistanceFilter;
 import eu.netmobiel.opentripplanner.api.model.Itinerary;
 import eu.netmobiel.opentripplanner.api.model.Leg;
 import eu.netmobiel.opentripplanner.api.model.PlanResponse;
@@ -149,10 +151,27 @@ public class OpenTripPlannerClient {
     }
 
     public PlanResponse createPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean useTimeAsArriveBy, 
-    		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, GeoLocation[] via, Integer maxItineraries) {
+    		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, GeoLocation[] via, Integer maxItineraries) throws NotFoundException {
 		PlanResponse result = null;
+		
+    	List<GeoLocation> places = new ArrayList<>();
+    	places.add(fromPlace);
+    	if (via != null) {
+    		places.addAll(Arrays.asList(via));
+    	}
+    	places.add(toPlace);
+    	// Remove places that are too close, OTP will not accept
+    	places = places.stream()
+    			.filter(new MinumumDistanceFilter(OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS))
+    			.collect(Collectors.toList());
+    	if (places.size() < 2) {
+    		// This can only mean that the ride has from an do very close
+    		throw new NotFoundException("Ride departure and arrival location are too close");
+    	}
+   		List<GeoLocation> vias = places.subList(1, places.size() - 1);
+		
 		boolean forcedDepartureTime = false;
-		if (via != null && via.length > 0) {
+		if (vias != null && vias.size() > 0) {
 			if (useTimeAsArriveBy && ! TraverseMode.containsTransit(modes)) {
 				forcedDepartureTime = true;
 				useTimeAsArriveBy = false;
@@ -183,8 +202,8 @@ public class OpenTripPlannerClient {
 		if (maxItineraries != null) {
 			ub.queryParam("numItineraries", maxItineraries.toString());
 		}
-		if (via != null) {
-			Arrays.stream(via).forEach(loc -> ub.queryParam("intermediatePlaces", loc.toString()));
+		if (vias != null) {
+			vias.forEach(loc -> ub.queryParam("intermediatePlaces", loc.toString()));
 		}
 		WebTarget target = client.target(ub);
 		if (log.isDebugEnabled()) {

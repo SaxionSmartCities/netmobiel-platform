@@ -24,6 +24,7 @@ import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.TripDao;
+import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.service.BookingManager;
 
 @Stateless
@@ -163,8 +164,13 @@ public class TripManager {
     	if (leg.getTraverseMode() == TraverseMode.RIDESHARE) {
     		leg.setState(TripState.BOOKING);
 			try {
-				String bookingRef = bookingManager.createBooking(leg.getTripId(), traveller, 
-						leg.getFrom().getLocation(), leg.getTo().getLocation(), trip.getNrSeats());
+				Booking b = new Booking();
+				b.setDepartureTime(leg.getStartTime());
+				b.setPickup(leg.getFrom().getLocation());
+				b.setArrivalTime(leg.getEndTime());
+				b.setDropOff(leg.getTo().getLocation());
+				b.setNrSeats(trip.getNrSeats());
+				String bookingRef = bookingManager.createBooking(leg.getTripId(), traveller, b);
 				leg.setBookingId(bookingRef);
     			leg.setState(TripState.SCHEDULED);
     			//FIXME Verify the actual timing and locations

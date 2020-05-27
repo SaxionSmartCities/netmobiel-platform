@@ -15,7 +15,6 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.GeoLocation;
-import eu.netmobiel.commons.util.MinumumDistanceFilter;
 import eu.netmobiel.opentripplanner.api.model.PlanResponse;
 import eu.netmobiel.opentripplanner.api.model.TraverseMode;
 import eu.netmobiel.opentripplanner.client.OpenTripPlannerClient;
@@ -56,29 +55,18 @@ public class OpenTripPlannerDao {
     		throw new IllegalStateException("Only 1 active booking is allowed per ride");
     	}
 
-    	List<GeoLocation> places = new ArrayList<>();
-    	places.add(ride.getFrom());
+    	final List<GeoLocation> via = new ArrayList<>();
+    	//TODO With more bookings it is necessary to verify the sequence of pickups and dropoffs 
    		for (Booking b: bookings) {
-   			places.add(b.getPickup());
-   			places.add(b.getDropOff());
+   			via.add(b.getPickup());
+   			via.add(b.getDropOff());
 		}
-    	places.add(ride.getTo());
-    	// Remove places that are too close, OTP will not accept
-    	places = places.stream()
-    			.filter(new MinumumDistanceFilter(OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS))
-    			.collect(Collectors.toList());
-    	if (places.size() < 2) {
-    		// This can only mean that the ride has from an dto very close
-    		new NotFoundException("Ride departure and arrival location are too close");
-    	}
-
     	Instant travelTime = ride.isArrivalTimePinned() ? ride.getArrivalTime() : ride.getDepartureTime();
-    	// If there are bookings, then there are probably, nut not necessarily, intermediate stops, for 1 booking that can be 0, 1 or 2 stops. 
-   		List<GeoLocation> vias = places.subList(1, places.size() - 1);
+    	// If there are bookings, then there are probably, but not necessarily, intermediate stops, for 1 booking that can be 0, 1 or 2 stops. 
    		
     	PlanResponse result = otpClient.createPlan(ride.getFrom(), ride.getTo(), 
     			travelTime, ride.isArrivalTimePinned(), new TraverseMode[] { TraverseMode.CAR }, 
-    			false, OTP_MAX_WALK_DISTANCE, vias.toArray(new GeoLocation[vias.size()]), 1);
+    			false, OTP_MAX_WALK_DISTANCE, via.toArray(new GeoLocation[via.size()]), 1);
 		if (result.error != null) {
 			String msg = String.format("OTP Planner Error: %s - %s", result.error.message, result.error.msg);
 			if (result.error.missing != null && result.error.missing.size() > 0) {

@@ -71,14 +71,14 @@ public class PlannerManager {
     	return null;
     }
     
-    private List<GeoLocation> filterIntermediatePlaces(Ride ride, GeoLocation[] places, int distanceInMeters) {
-    	double distanceInKm = distanceInMeters / 1000.0;
-    	GeoLocation from = ride.getRideTemplate().getFromPlace().getLocation();
-    	GeoLocation to = ride.getRideTemplate().getToPlace().getLocation();
-    	return Arrays.stream(places)
-				.filter(loc -> loc.getDistanceFlat(from) > distanceInKm && loc.getDistanceFlat(to) > distanceInKm)
-			.collect(Collectors.toList());
-    }
+//    private List<GeoLocation> filterIntermediatePlaces(Ride ride, GeoLocation[] places, int distanceInMeters) {
+//    	double distanceInKm = distanceInMeters / 1000.0;
+//    	GeoLocation from = ride.getRideTemplate().getFromPlace().getLocation();
+//    	GeoLocation to = ride.getRideTemplate().getToPlace().getLocation();
+//    	return Arrays.stream(places)
+//				.filter(loc -> loc.getDistanceFlat(from) > distanceInKm && loc.getDistanceFlat(to) > distanceInKm)
+//			.collect(Collectors.toList());
+//    }
     
     private String formatDateTime(Instant instant) {
     	return DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
@@ -97,46 +97,50 @@ public class PlannerManager {
 		return sb.toString();
     }
     
-    public List<Itinerary> searchRideshareOnly(GeoLocation fromPlace, GeoLocation toPlace, 
+	/**
+	 * Try to find a ride from passenger departure to passenger destination. Each
+	 * possibility is an itinerary. For traverse mode CAR we assume (as approximation) the travel
+	 * time is independent of the departure time. This is correct for OTP. Only more
+	 * advanced planners include the congestion dimension. We need to make a
+	 * spatiotemporal selection from the possible rides. The spatial dimension is
+	 * covered by the ellipse estimator. For the temporal dimension we have to set
+	 * an eligibility interval: A difficult issue as we do not know the passengers
+	 * intentions and concerns. A few rules then: 
+	 * - The departure time of the driver is beyond now. No, omit this one for now, 
+	 * 	 we can search in the past if we wish to. 
+	 * - The departure time is on the same day as fromDate or toDate.
+	 * 
+	 * @param fromPlace The departure location of the passenger 
+	 * @param toPlace The arrival location of the passenger
+	 * @param fromDate ?
+	 * @param toDate ?
+	 * @param maxWalkDistance The maximum distance the passenger is prepared to walk
+	 * @param nrSeats The number of seates required
+	 * @return A list of possible itineraries.
+	 */
+    protected List<Itinerary> searchRideshareOnly(GeoLocation fromPlace, GeoLocation toPlace, 
     		Instant fromDate, Instant toDate, Integer maxWalkDistance, Integer nrSeats) {
-    	// Try to find a ride from passenger departure to passenger destination
-    	// Each possibility is an itinerary
-    	// For CAR we assume (as approximation) the travel time is independent of the departure time. This is correct for OTP. 
-    	// Only more advanced planners include the congestion dimension.
-    	// We need to make a spatiotemporal selection from the possible ride. The spatial dimension is covered by the ellipse estimator.
-    	// For the temporal dimension we have to set an eligibility interval: A difficult issue as we do not know the passengers 
-    	// intentions and concerns. 
-    	// A few rules then:
-    	// - The departure time of the driver is beyond now. No, omit this one for now, we can search in the past if we wish to. 
-    	// - The departure time is on the same day as fromDate or toDate
-    	// 
-    	LocalDateTime startldt = (fromDate != null ? fromDate : toDate).atZone(ZoneId.systemDefault()).toLocalDateTime();
-    	LocalDateTime endldt = (fromDate != null ? fromDate : toDate).atZone(ZoneId.systemDefault()).toLocalDateTime();
-    	
-    	LocalDateTime startOfDay = startldt.toLocalDate().atStartOfDay();
-    	LocalDateTime endOfDay = endldt.toLocalDate().atStartOfDay().plusDays(1);
-    	PagedResult<Ride> rides = rideManager.search(fromPlace, toPlace,  startOfDay, endOfDay, nrSeats, MAX_RIDESHARES, 0);
+    	PagedResult<Ride> rides = rideManager.search(fromPlace, toPlace,  fromDate, toDate, nrSeats, MAX_RIDESHARES, 0);
     	// These are potential candidates. Now try to determine the complete route, including the intermediate places for pickup and dropoff
-    	// The passenger is only involved in some (one) of the legs: the pickup or the drop-off. We assume the car is for the first or last mile.
+    	// The passenger is only involved in some (one) of the legs: the pickup or the drop-off. We assume the car is for the first or last mile of the passenger.
     	// What if the pickup point and the driver's departure point are the same? A test revealed that we get an error TOO_CLOSE. Silly.
-    	// So... Add intermediatePlaces only if far enough away. How far? More than 10 meter, let's take 20 meter.
-    	
+    	// A minimum distance filter is added in the OTP client. We don't care here, but do not make expectations about the number of legs 
+    	// in the itinerary.
+
+		List<GeoLocation> intermediatePlaces = Arrays.asList(new GeoLocation[] { fromPlace, toPlace });
     	List<Itinerary> itineraries = new ArrayList<>();
     	for (Ride ride : rides.getData()) {
     		if (log.isDebugEnabled()) {
     			log.debug("Ride option: " + ride.toString());
     		}
-    		RideTemplate ride_t = ride.getRideTemplate(); 
-    		// Only accept intermediateLocations that are far enough away from departure and arrival of rider. 
-    		List<GeoLocation> intermediatePlaces = filterIntermediatePlaces(ride, new GeoLocation[] { fromPlace, toPlace }, 20);
     		// Use always the riders departure time. The itineraries will be scored later on.
-        	GeoLocation from = ride_t.getFromPlace().getLocation();
-        	GeoLocation to = ride_t.getToPlace().getLocation();
+        	GeoLocation from = ride.getFrom();
+        	GeoLocation to = ride.getTo();
         	TraverseMode[] modes = new TraverseMode[] { TraverseMode.WALK, TraverseMode.CAR };
         	TripPlan ridePlan = null;
         	try {
-        		Instant rideDepTime = ride.getDepartureTime().atZone(ZoneId.systemDefault()).toInstant();
-            	ridePlan = otpDao.createPlan(from, to, rideDepTime,  null, modes, false, maxWalkDistance, intermediatePlaces, 1);
+        		Instant rideDepTime = ride.getDepartureTime();
+            	ridePlan = otpDao.createPlan(from, to, rideDepTime,  false, modes, false, maxWalkDistance, intermediatePlaces, 1);
             	ridePlan.setDepartureTime(fromDate);
             	ridePlan.setArrivalTime(toDate);
             	ridePlan.setMaxWalkDistance(maxWalkDistance);
@@ -152,25 +156,25 @@ public class PlannerManager {
             	if (log.isDebugEnabled()) {
             		log.debug("Ride plan: \n" + ridePlan.toString());
             	}
-        		if (ride_t.getMaxDetourMeters() != null) {
+        		if (ride.getMaxDetourMeters() != null) {
         			// Determine new distance
         			double distance = ridePlan.getItineraries().get(0).getLegs().stream().mapToDouble(leg -> leg.getDistance()).sum();
-        			int detour = (int)Math.round(distance - ride_t.getEstimatedDistance());
+        			int detour = (int)Math.round(distance - ride.getDistance());
 //        			log.debug(String.format("Ride %d detour %d meter",  ride.getId(), detour));
-        			if (detour > ride_t.getMaxDetourMeters()) {
+        			if (detour > ride.getMaxDetourMeters()) {
         				log.debug(String.format("Reject ride %d, detour is exceeded by %d meters (%d%%)", ride.getId(), 
-        						detour - ride_t.getMaxDetourMeters(), (detour * 100) / ride_t.getMaxDetourMeters()));
+        						detour - ride.getMaxDetourMeters(), (detour * 100) / ride.getMaxDetourMeters()));
         			} else {
         				accepted = true;
         			}
         		}
-        		if (ride_t.getMaxDetourSeconds() != null) {
+        		if (ride.getMaxDetourSeconds() != null) {
         			double duration = ridePlan.getItineraries().get(0).getLegs().stream().mapToDouble(leg -> leg.getDuration()).sum();
-        			int detour = (int)Math.round(duration - ride_t.getEstimatedDrivingTime());
+        			int detour = (int)Math.round(duration - ride.getDuration());
         			log.debug(String.format("Ride %d exceeeded detour %s seconds",  ride.getId(), detour));
-        			if (detour > ride_t.getMaxDetourSeconds()) {
+        			if (detour > ride.getMaxDetourSeconds()) {
         				log.debug(String.format("Reject ride %d, detour is exceeded by %d seconds (%d%%)", ride.getId(), 
-        						detour - ride_t.getMaxDetourSeconds(), (detour * 100) / ride_t.getMaxDetourSeconds()));
+        						detour - ride.getMaxDetourSeconds(), (detour * 100) / ride.getMaxDetourSeconds()));
         			} else {
         				accepted = true;
         			}
@@ -182,11 +186,11 @@ public class PlannerManager {
             		passengerRideIt.getLegs().forEach(leg -> {
             			leg.setAgencyName(RideManager.AGENCY_NAME);
             			leg.setAgencyId(RideManager.AGENCY_ID);
-            			leg.setDriverId(ride_t.getDriverRef());
-            			leg.setDriverName(ride_t.getDriver().getName());
-            			leg.setVehicleId(ride_t.getCarRef());
-            			leg.setVehicleLicensePlate(ride_t.getCar().getLicensePlate());
-            			leg.setVehicleName(ride_t.getCar().getName());
+            			leg.setDriverId(ride.getDriverRef());
+            			leg.setDriverName(ride.getDriver().getName());
+            			leg.setVehicleId(ride.getCarRef());
+            			leg.setVehicleLicensePlate(ride.getCar().getLicensePlate());
+            			leg.setVehicleName(ride.getCar().getName());
             			leg.setTraverseMode(TraverseMode.RIDESHARE);
             			leg.setTripId(ride.getRideRef());
             		});
@@ -232,11 +236,16 @@ public class PlannerManager {
     	if (arrTime == null) {
     		throw new IllegalArgumentException("Only a search with an arrival time is supported now");
     	}
-
+    	boolean arrivalTimeIsPinned = false;
+    	Instant travelTime = depTime;
+    	if (travelTime == null) {
+    		travelTime = arrTime;
+    		arrivalTimeIsPinned = true;
+    	}
     	// Get a reference route for the passenger
     	TripPlan thePlan = null;
 		try {
-			thePlan = otpDao.createPlan(fromPlace, toPlace, depTime,  arrTime, 
+			thePlan = otpDao.createPlan(fromPlace, toPlace, travelTime, arrivalTimeIsPinned, 
 					new TraverseMode[] { TraverseMode.WALK, TraverseMode.TRANSIT }, false, maxWalkDistance, null, null);
 		} catch (NotFoundException e) {
 			log.warn(String.format("No reference plan found from %s to %s - %s", fromPlace, toPlace, e.getMessage()));
@@ -284,7 +293,7 @@ public class PlannerManager {
             	Instant transitStart  = dit.getLegs().get(0).getEndTime().plusSeconds(CAR_TO_TRANSIT_SLACK);
         		TraverseMode[] modes = new TraverseMode[] { TraverseMode.WALK, TraverseMode.TRANSIT };
             	try {
-            		TripPlan transitPlan = otpDao.createPlan(place.getLocation(), toPlace, transitStart,  null, modes, 
+            		TripPlan transitPlan = otpDao.createPlan(place.getLocation(), toPlace, transitStart,  false, modes, 
 		        			false, maxWalkDistance, null, 2 /* To see repeating */);
 		        	if (log.isDebugEnabled()) {
 		        		log.debug("Car -> Transit plan: \n" + transitPlan.toString());
@@ -309,7 +318,7 @@ public class PlannerManager {
         		Instant transitEnd  = dit.getLegs().get(0).getEndTime().plusSeconds(CAR_TO_TRANSIT_SLACK);
         		TraverseMode[] modes = new TraverseMode[] { TraverseMode.WALK, TraverseMode.TRANSIT };
             	try {
-	            	TripPlan transitPlan = otpDao.createPlan(fromPlace, place.getLocation(), null,  transitEnd, modes,  
+	            	TripPlan transitPlan = otpDao.createPlan(fromPlace, place.getLocation(), transitEnd, true, modes,  
 	            			false, maxWalkDistance, null, 2 /* To see repeating */);
 	            	if (log.isDebugEnabled()) {
 	            		log.debug("Transit -> Car plan: \n" + transitPlan.toString());
