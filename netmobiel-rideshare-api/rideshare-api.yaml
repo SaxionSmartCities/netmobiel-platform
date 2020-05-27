@@ -248,7 +248,8 @@ paths:
       operationId: createBooking
       summary: Creates a booking.
       description: 'Creates a booking for a ride for the calling user. Required are:
-        pickup, dropOff'
+        pickup, dropOff, (desired) departureTime, (desired) arrivalTime. The actual
+        departure time  and arrivalTime are calculated from the driver''s route.'
   /carLicenses:
     summary: Get license plate details
     description: 'In case of NL: Retrieve the car details from the RDW.'
@@ -404,9 +405,9 @@ paths:
           Example:
             value: 2019-10-23T09:30
         name: fromDate
-        description: The local date and time of intended departure. The format is
-          ISO8601. The system will use midnight as start of the search.
+        description: 'The date and time of intended departure. The format is ISO8601. '
         schema:
+          format: date-time
           type: string
         in: query
       - examples:
@@ -429,9 +430,9 @@ paths:
           Example:
             value: 2019-10-23T12:15
         name: toDate
-        description: The date and time of the intended arrival time. The system will
-          use the end-of-day midnight as limit.
+        description: 'The date and time of the intended arrival time. '
         schema:
+          format: date-time
           type: string
         in: query
       - name: nrSeats
@@ -530,7 +531,7 @@ paths:
         description: "The departure date at which to start the listing. Default is\
           \ today (local date), effectively listing all rides \nsince midnight."
         schema:
-          format: date
+          format: date-time
           type: string
         in: query
       - examples:
@@ -541,7 +542,7 @@ paths:
           rides. The until date must be after the since parameter. Default is not
           set, meaning all available rides (after since).
         schema:
-          format: date
+          format: date-time
           type: string
         in: query
       - name: deletedToo
@@ -663,7 +664,7 @@ paths:
         description: The departure date at which to start the listing. Default is
           today (local date), effectively listing all bookings since midnight.
         schema:
-          format: date
+          format: date-time
           type: string
         in: query
       - examples:
@@ -674,7 +675,7 @@ paths:
           bookings. The until date must be after the since parameter. Default is not
           set, meaning all available bookings (after since).
         schema:
-          format: date
+          format: date-time
           type: string
         in: query
       - name: maxResults
@@ -994,8 +995,9 @@ components:
           type: string
         horizon:
           format: date
-          description: 'Optional: the horizon date limits the recurrence to a future
-            date where the ride is no longer repeated. The horizon date is exclusive.'
+          description: 'Optional: the horizon date (a local date!) limits the recurrence
+            to a future date where the ride is no longer repeated. The horizon date
+            is exclusive.'
           type: string
         daysOfWeekMask:
           format: int32
