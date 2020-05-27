@@ -1008,6 +1008,7 @@ components:
           description: 'The time zone of the recurrence. The zone is required to calculate
             the local time, as it is the local departure/arrival time that is repeated.
             Default: Europe/Amsterdam. '
+          type: string
       example:
         interval: 2
         unit: WEEK
