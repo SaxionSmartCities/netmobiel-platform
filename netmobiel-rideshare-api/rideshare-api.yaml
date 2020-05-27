@@ -944,9 +944,6 @@ components:
         distance:
           description: (Read-only) The estimated distance in meter.
           type: integer
-        drivingTime:
-          description: (Read-only) The estimation duration of the trip.
-          type: integer
         arrivalTimePinned:
           description: (Read-only) Flag to signal whether the original request is
             made use the departure time as input (false) or the arrival time (true).
@@ -955,6 +952,9 @@ components:
           type: boolean
         CO2Emission:
           description: (Read-only) The amount of CO2 emitted by the car in this trip.
+          type: integer
+        duration:
+          description: (Read-only) The estimation duration of the trip.
           type: integer
       example:
         bookings: []
@@ -968,7 +968,7 @@ components:
         arrivalTime: 2019-11-02T11:58:40Z
         co2Emission: 5055
         distance: 23295
-        drivingTime: 1720
+        duration: 1720
         fromPlace:
           label: Rapenburgsestraat Lichtenvoorde
           latitude: 51.987757
