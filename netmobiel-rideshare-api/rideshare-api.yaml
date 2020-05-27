@@ -1152,15 +1152,15 @@ components:
         legGeometry:
           $ref: '#/components/schemas/EncodedPolyline'
           description: An encoded description of the leg in GPS coordinates.
-        bookings:
+        legRef:
+          description: The leg reference urn.
+          type: string
+        bookingRefs:
           description: An array of bookings on this leg. Currently at most one. Only
             the booking reference will be present.
           type: array
           items:
-            $ref: '#/components/schemas/Booking'
-        legRef:
-          description: The leg reference urn.
-          type: string
+            type: string
       example:
         distance: 152
         duration: 123
