@@ -1153,11 +1153,11 @@ components:
           $ref: '#/components/schemas/EncodedPolyline'
           description: An encoded description of the leg in GPS coordinates.
         bookings:
-          description: An array of references to bookings on this leg. Currently at
-            most one.
+          description: An array of bookings on this leg. Currently at most one. Only
+            the booking reference will be present.
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/Booking'
         legRef:
           description: The leg reference urn.
           type: string
@@ -1229,16 +1229,10 @@ components:
         bookingRef:
           description: The booking reference URN.
           type: string
-        legRefs:
-          description: An array of leg references for this booking. Either this property
-            is valued or the `legs` property. This one is used in case of listing
-            a ride.
-          type: array
-          items:
-            type: string
         legs:
-          description: The legs and stops involved in the booking. Only present when
-            a booking is listed.
+          description: The legs and stops involved in the booking. Only present in
+            full detail when a booking is listed. As part of a ride only the leg reference
+            is present.
           type: array
           items:
             $ref: '#/components/schemas/Leg'
