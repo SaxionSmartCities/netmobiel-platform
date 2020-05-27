@@ -161,9 +161,7 @@ public class RideManager {
 	@TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
 	public int instantiateRecurrentRides(RideTemplate template, Instant systemHorizon) {
 		List<Ride> rides = generateNonOverlappingRides(template, systemHorizon);
-		for (Ride ride : rides) {
-        	rideDao.save(ride);
-		}
+		rides.forEach(r -> saveNewRide(r));
 		return rides.size();
 	}
 
@@ -289,6 +287,7 @@ public class RideManager {
     	// We do not touch the collection side of legs and stops.
     	// FIXME Allow transfer time for pickup and drop-off of the passenger
     	
+    	//TODO verify the order of the stops as retrieved. Does it follow the orderby column?
     	List<Stop> oldStops = stopDao.listStops(ride);
     	List<Leg> oldLegs = legDao.listLegs(ride);
     	ride.getStops().clear();
@@ -383,6 +382,16 @@ public class RideManager {
     }
 
     /**
+     * Saves a fresh new ride, including the legs and stops.
+     * @param r
+     */
+    private void saveNewRide(Ride r) {
+    	rideDao.save(r);
+    	r.getStops().forEach(stop -> stopDao.save(stop));
+    	r.getLegs().forEach(leg -> legDao.save(leg));
+    }
+
+    /**
      * Creates a ride. In case recurrence is set, all following rides are created as well, up to 8 weeks in advance.
      * A ride has a template only for recurrent rides.
      * The owner of the ride is determined by the car. |Becasue of that, the driver does already exist in the local database.  
@@ -455,17 +464,12 @@ public class RideManager {
 					firstRide = firstGeneratedRide;
 				}
 				// No rides in the list are in the persistence context 
-				for (Ride r : rides) {
-		        	rideDao.save(r);
-		        	r.getStops().forEach(stop -> stopDao.save(stop));
-		        	r.getLegs().forEach(leg -> legDao.save(leg));
-				}
+				rides.forEach(r -> saveNewRide(r));
 			}
     	}
     	return firstRide.getId();
     }
 
-    
     /**
      * Retrieves a ride. Anyone can read a ride, given the id. All details are retrieved.
      * @param id
