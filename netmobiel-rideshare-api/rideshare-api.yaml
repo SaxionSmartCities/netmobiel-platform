@@ -1226,14 +1226,22 @@ components:
           description: The number of seats requested for this booking. Default is
             1.
           type: integer
-        legs:
-          description: An array of leg references for this booking.
-          type: array
-          items:
-            type: string
         bookingRef:
           description: The booking reference URN.
           type: string
+        legRefs:
+          description: An array of leg references for this booking. Either this property
+            is valued or the `legs` property. This one is used in case of listing
+            a ride.
+          type: array
+          items:
+            type: string
+        legs:
+          description: The legs and stops involved in the booking. Only present when
+            a booking is listed.
+          type: array
+          items:
+            $ref: '#/components/schemas/Leg'
       example:
         departureTime: 2020-05-27T10:00:00Z
         arrivalTime: 2020-05-27T10:45:00Z
@@ -1253,7 +1261,7 @@ components:
           latitude: 52.221609
           longitude: 6.887536
         state: CONFIRMED
-        legs:
+        legRefs:
         - urn:nb:rs:leg:54
   responses:
     InternalServerError:
