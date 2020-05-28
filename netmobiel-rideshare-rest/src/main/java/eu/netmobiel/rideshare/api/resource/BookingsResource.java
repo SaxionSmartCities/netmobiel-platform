@@ -18,6 +18,7 @@ import eu.netmobiel.rideshare.api.mapping.PageMapper;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.service.BookingManager;
+import eu.netmobiel.rideshare.service.UserManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @RequestScoped
@@ -32,7 +33,10 @@ public class BookingsResource implements BookingsApi {
 	@Inject
     private BookingManager bookingManager;
 
-	private Instant toInstant(OffsetDateTime odt) {
+    @Inject
+    private UserManager userManager;
+
+    private Instant toInstant(OffsetDateTime odt) {
 		return odt == null ? null : odt.toInstant();
 	}
 
@@ -42,9 +46,13 @@ public class BookingsResource implements BookingsApi {
      */
     public Response getBookings(OffsetDateTime sinceDate, OffsetDateTime untilDate, Integer maxResults, Integer offset) {
     	PagedResult<Booking> bookings;
-    	Long userId = 0L;
+    	Long userId = userManager.findCallingUser().getId();
 		try {
-			bookings = bookingManager.listBookings(userId, toInstant(sinceDate), toInstant(untilDate), maxResults, offset);
+			if (userId == null) {
+				bookings = new PagedResult<Booking>();
+			} else {
+				bookings = bookingManager.listBookings(userId, toInstant(sinceDate), toInstant(untilDate), maxResults, offset);
+			}
 		} catch (BadRequestException | eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new WebApplicationException(e);
 		} 
@@ -66,7 +74,7 @@ public class BookingsResource implements BookingsApi {
     	Response rsp = null;
     	try {
         	Long cid = RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingId);
-        	User initiator = null;
+        	User initiator = userManager.findCallingUser();
 			bookingManager.removeBooking(initiator, cid, reason);
 			rsp = Response.noContent().build();
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {

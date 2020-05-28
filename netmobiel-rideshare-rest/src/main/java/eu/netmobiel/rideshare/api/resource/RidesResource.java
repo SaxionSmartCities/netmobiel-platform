@@ -1,7 +1,6 @@
 package eu.netmobiel.rideshare.api.resource;
 
 import java.time.Instant;
-import java.time.LocalDate;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 
@@ -27,6 +26,7 @@ import eu.netmobiel.rideshare.model.RideScope;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.service.RideManager;
+import eu.netmobiel.rideshare.service.UserManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @RequestScoped
@@ -47,6 +47,9 @@ public class RidesResource implements RidesApi {
     @Inject
     private PageMapper pageMapper;
     
+    @Inject
+    private UserManager userManager;
+    
 	private Instant toInstant(OffsetDateTime odt) {
 		return odt == null ? null : odt.toInstant();
 	}
@@ -63,8 +66,14 @@ public class RidesResource implements RidesApi {
 			Long did = null;
 			if (driverId != null) {
 				did = RideshareUrnHelper.getId(User.URN_PREFIX, driverId);
+			} else {
+				did = userManager.findCallingUser().getId();
 			}
-			rides = rideManager.listRides(did, toInstant(sinceDate), toInstant(untilDate), deletedToo, maxResults, offset);
+			if (did != null) {
+				rides = rideManager.listRides(did, toInstant(sinceDate), toInstant(untilDate), deletedToo, maxResults, offset);
+			} else {
+				rides = new PagedResult<Ride>();
+			}
 		} catch (eu.netmobiel.commons.exception.BadRequestException | eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new WebApplicationException("Error listing rides", e);
 		}
@@ -83,6 +92,7 @@ public class RidesResource implements RidesApi {
     	Response rsp = null;
 		try {
 			Ride ride = mapper.map(ridedt);
+			// The owner of the ride will be the owner of the car.
 			String newRideId = RideshareUrnHelper.createUrn(Ride.URN_PREFIX, rideManager.createRide(ride));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newRideId)).build();
 		} catch (ApplicationException e) {
@@ -110,7 +120,7 @@ public class RidesResource implements RidesApi {
     }
 
     /**
-     * Updates a ride. A ride with a booking cannot be updated.
+     * Updates a ride. 
      * @param rideId The ride id.  Both the primary key (a number) as the urn format are accepted.
      * @param scope The scope of the delete action in case of a recurrent ride: Only this one or this one and all following.
      * 		If not set then the scope is set to THIS.
@@ -118,19 +128,25 @@ public class RidesResource implements RidesApi {
      * @return
      */
     public Response updateRide(String rideId, String scope, eu.netmobiel.rideshare.api.model.Ride ridedt) {
-    	throw new UnsupportedOperationException("updateRide");
-//    	Response rsp = null;
-//    	try {
-//			Ride ride = mapper.map(ridedt, Ride.class, "default");
-//        	Long cid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
-//			rideManager.updateRide(cid, ride);
-//			rsp = Response.noContent().build();
-//		} catch (ObjectNotFoundException e) {
-//			rsp = Response.status(Status.NOT_FOUND).build();
-//		}
-//    	return rsp;
+    	Response rsp = null;
+    	try {
+			Ride ride = mapper.map(ridedt);
+    		RideScope rs = readRideScope(scope);
+			rideManager.updateRide(ride, rs);
+			rsp = Response.noContent().build();
+		} catch (ApplicationException e) {
+			throw new WebApplicationException(e);
+		}
+    	return rsp;
     }
 
+    private RideScope readRideScope(String scope) {
+		return scope == null ? RideScope.THIS : Stream.of(RideScope.values())
+		          .filter(c -> c.getCode().equals(scope))
+		          .findFirst()
+		          .orElseThrow(() -> new IllegalArgumentException("No such scope: " + scope));
+    }
+    
     /**
      * Deletes a ride. If a ride is already booked then the ride is soft deleted. Soft deleted rides are 
      * default not listed and can never be found.
@@ -144,10 +160,7 @@ public class RidesResource implements RidesApi {
 	public Response deleteRide(String rideId, String reason, String scope) {
     	Response rsp = null;
     	try {
-    		RideScope rs = scope == null ? RideScope.THIS : Stream.of(RideScope.values())
-    		          .filter(c -> c.getCode().equals(scope))
-    		          .findFirst()
-    		          .orElseThrow(() -> new IllegalArgumentException("No such scope: " + scope));
+    		RideScope rs = readRideScope(scope);
         	Long cid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideId);
 			rideManager.removeRide(cid, reason, rs);
 			rsp = Response.noContent().build();
@@ -171,8 +184,7 @@ public class RidesResource implements RidesApi {
 	public Response createBooking(String rideId, eu.netmobiel.rideshare.api.model.Booking bookingdt)  {
     	Response rsp = null;
 		try {
-        	// FIXME passenger resolution
-        	User passenger = null;
+			User passenger = userManager.registerCallingUser();
         	Booking booking = bookingMapper.map(bookingdt);
 			String newBookingId = bookingManager.createBooking(rideId, passenger, booking);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newBookingId)).build();
