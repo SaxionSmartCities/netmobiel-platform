@@ -11,7 +11,9 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.api.ErrorResponse;
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.util.ExceptionUtil;
 
 /**
@@ -40,6 +42,10 @@ public class ApplicationExceptionMapper implements
 			status = Response.Status.BAD_REQUEST;
 		} else if (e instanceof NotFoundException) {
 			status = Response.Status.NOT_FOUND;
+		} else if (e instanceof CreateException) {
+			status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
+		} else if (e instanceof UpdateException) {
+			status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
 		}
 		ErrorResponse err = new ErrorResponse(status, e.getVendorCode(), String.join(" - ", msgs));
 		rsp =  Response.status(status).type(MediaType.APPLICATION_JSON).entity(err).build();
