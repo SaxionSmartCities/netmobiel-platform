@@ -13,7 +13,7 @@ import javax.persistence.TypedQuery;
 //@Stateless
 public class ExampleService {
 
-    @PersistenceContext(unitName = "bookshelfManager")
+//    @PersistenceContext(unitName = "bookshelfManager")
     private EntityManager entityManager;
 
     @RolesAllowed({ "User", "Manager" })

@@ -124,13 +124,19 @@ public class RideDaoIT {
         utx.commit();
     }
     
+    private void saveNewRide(Ride r) {
+    	rideDao.save(r);
+    	r.getStops().forEach(stop -> em.persist(stop));
+    	r.getLegs().forEach(leg -> em.persist(leg));
+    }
+
     public void findRidesBeyondTemplateSetup(int depShift, int expectedCount) {
     	Instant departureTime = Instant.parse("2020-06-01T00:00:00Z");
     	RideTemplate t = Fixture.createTemplate(car1, departureTime, null);
     	em.persist(t);
 
     	Ride r1 = Fixture.createRide(t, departureTime.plusSeconds(depShift));
-    	em.persist(r1);
+    	saveNewRide(r1);
     	
     	List<Ride> rides = rideDao.findRidesBeyondTemplate(t);
     	assertNotNull(rides);

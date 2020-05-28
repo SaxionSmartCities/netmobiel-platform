@@ -5,13 +5,11 @@ import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Resource;
-import javax.annotation.security.PermitAll;
 import javax.ejb.EJBAccessException;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
-import org.jboss.ejb3.annotation.SecurityDomain;
 import org.keycloak.KeycloakPrincipal;
 import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.representations.AccessToken;

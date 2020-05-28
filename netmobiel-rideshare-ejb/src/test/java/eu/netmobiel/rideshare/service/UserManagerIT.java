@@ -48,7 +48,7 @@ public class UserManagerIT extends RideshareIntegrationTestBase {
     public void testListUsers() throws Exception {
         List<User> users = userManager.listUsers();
         assertNotNull(users);
-        assertEquals(2, users.size());
+        assertEquals(1, users.size());
         log.info("List users: #" + users.size());
         users.forEach(u -> log.debug(u.toString()));
     }
