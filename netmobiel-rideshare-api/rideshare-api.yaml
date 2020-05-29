@@ -1124,7 +1124,8 @@ components:
         length: 11
         points: _al|Hm_xf@?U?WHe@D_AF{@?QAQEW[iAs@@
     Leg:
-      description: 'A leg is a displacement one location to another. '
+      description: A leg is a displacement along a certain route from one location
+        to another at a specific time with specific duration.
       required:
       - from
       - to
@@ -1158,12 +1159,6 @@ components:
         legRef:
           description: The leg reference urn.
           type: string
-        bookingRefs:
-          description: An array of bookings on this leg. Currently at most one. Only
-            the booking reference will be present.
-          type: array
-          items:
-            type: string
       example:
         distance: 152
         duration: 123
