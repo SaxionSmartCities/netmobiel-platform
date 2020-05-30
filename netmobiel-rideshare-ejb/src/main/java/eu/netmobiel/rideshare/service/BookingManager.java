@@ -130,25 +130,6 @@ public class BookingManager {
     	return RideshareUrnHelper.createUrn(Booking.URN_PREFIX, booking.getId());
     }
 
-//    /**
-//     * Create a booking for the calling user and assign it to a ride. 
-//     * @param rideId The ride to assign the booking to
-//     * @param booking the booking
-//     * @return A booking ID
-//     * @throws CreateException on error.
-//     * @throws NotFoundException if the ride cannot be found.
-//     */
-//    public Long createBooking(Long rideId, Booking booking) throws CreateException, NotFoundException {
-//		User caller = userManager.registerCallingUser();
-//    	Ride ride = rideDao.find(rideId)
-//    			.orElseThrow(NotFoundException::new);
-//    	booking.setRide(ride);
-//    	booking.setPassenger(caller);
-//    	booking.setState(BookingState.CONFIRMED);
-//    	bookingDao.save(booking);
-//    	return booking.getId();
-//    }
-
     /**
      * Retrieves a booking. Anyone can read a booking, given the id.
      * @param id
@@ -169,17 +150,21 @@ public class BookingManager {
      * @throws NotFoundException if the booking is not found in the database.
      */
     public void removeBooking(User initiator, Long bookingId, final String reason) throws NotFoundException, BadRequestException {
-    	Booking bookingdb = bookingDao.find(bookingId)
-    			.orElseThrow(NotFoundException::new);
+    	Booking bookingdb = bookingDao.fetchGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
 		User initiatorDb = userDao.find(initiator.getId())
 				.orElseThrow(() -> new NotFoundException("No such user: " + initiator.toString()));
 		User driver = bookingdb.getRide().getDriver();
+//		if (log.isDebugEnabled()) {
+//			log.debug(String.format("removeBooking: Driver %s, Initiator %s, Passenger %s", 
+//				driver.toString(), initiatorDb.toString(), bookingdb.getPassenger().toString()));
+//		}
     	boolean cancelledByDriver = initiatorDb.equals(driver);
-		if (initiatorDb.equals(bookingdb.getPassenger()) || cancelledByDriver) {
+		if (bookingdb.getPassenger().equals(initiatorDb) || cancelledByDriver) {
 	   		bookingdb.markAsCancelled(reason, cancelledByDriver);
 	    	rideItineraryHelper.updateRideItinerary(bookingdb.getRide());
 		} else {
-    		throw new SecurityException(String.format("Removal of %s %d is only allowed by drive or passenger", Booking.class.getSimpleName(), bookingdb.getId()));
+    		throw new SecurityException(String.format("Removal of %s %d is only allowed by driver or passenger", Booking.class.getSimpleName(), bookingdb.getId()));
 		}
     }
  

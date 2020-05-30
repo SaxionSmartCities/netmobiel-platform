@@ -21,6 +21,7 @@ import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.rideshare.model.Booking;
@@ -89,6 +90,27 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     }		
 
     @Test
+    public void createBooking_Multiple() throws Exception {
+    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Ride r = Fixture.createCompleteRide(car1, departureTime, null);
+    	rideItineraryHelper.saveNewRide(r);
+		Long rideId = r.getId();
+		assertNotNull(rideId);
+		flush();
+		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
+		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
+		assertNotNull(bookingRef);
+		flush();
+		try {
+			Booking booking2 = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
+			bookingManager.createBooking(r.getRideRef(), passenger1, booking2);
+			fail("Expected exception");
+		} catch (CreateException ex) {
+			
+		}
+    }		
+
+    @Test
     public void getBookingDetail() throws Exception {
     	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
     	Ride r = Fixture.createCompleteRide(car1, departureTime, null);
@@ -135,4 +157,70 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 //    	assertFalse(puu.isLoaded(but.getRide(), Ride_.LEGS));
     }
 
+    @Test
+    public void removeBooking() throws Exception {
+    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Ride r = Fixture.createCompleteRide(car1, departureTime, null);
+    	rideItineraryHelper.saveNewRide(r);
+		Long rideId = r.getId();
+		assertNotNull(rideId);
+		flush();
+		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
+		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
+		assertNotNull(bookingRef);
+		flush();
+		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
+				.setParameter("id", r.getId())
+				.getSingleResult();
+		assertNotNull(b);
+		assertFalse(b.isDeleted());
+		String reason = "Afspraak is verplaatst";
+		flush();
+		
+		bookingManager.removeBooking(passenger1, b.getId(), reason);
+		flush();
+		b = em.createQuery("from Booking where id = :id", Booking.class)
+				.setParameter("id", r.getId())
+				.getSingleResult();
+		assertNotNull(b);
+		assertTrue(b.isDeleted());
+		assertFalse(Boolean.TRUE == b.getCancelledByDriver());
+		assertEquals(reason, b.getCancelReason());
+		r = b.getRide();
+		assertEquals(1, r.getLegs().size());
+    }
+
+
+    @Test
+    public void removeBooking_ByDriver() throws Exception {
+    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Ride r = Fixture.createCompleteRide(car1, departureTime, null);
+    	rideItineraryHelper.saveNewRide(r);
+		Long rideId = r.getId();
+		assertNotNull(rideId);
+		flush();
+		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
+		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
+		assertNotNull(bookingRef);
+		flush();
+		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
+				.setParameter("id", r.getId())
+				.getSingleResult();
+		assertNotNull(b);
+		assertFalse(b.isDeleted());
+		String reason = "Ik rij niet meer, ik hoef er niet meer te zijn";
+		flush();
+		
+		bookingManager.removeBooking(driver1, b.getId(), reason);
+		flush();
+		b = em.createQuery("from Booking where id = :id", Booking.class)
+				.setParameter("id", r.getId())
+				.getSingleResult();
+		assertNotNull(b);
+		assertTrue(b.isDeleted());
+		assertTrue(Boolean.TRUE == b.getCancelledByDriver());
+		assertEquals(reason, b.getCancelReason());
+		r = b.getRide();
+		assertEquals(1, r.getLegs().size());
+    }
 }

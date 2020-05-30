@@ -161,12 +161,15 @@ public class User implements NetMobielUser, Serializable {
 	}
 	@Override
 	public String toString() {
-		return String.format("User [%s %s]", managedIdentity, email);
+		return String.format("User [%s %s %s]", managedIdentity, givenName, familyName);
 	}
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(managedIdentity);
+		final int prime = 31;
+		int result = 1;
+		result = prime * result + ((managedIdentity == null) ? 0 : managedIdentity.hashCode());
+		return result;
 	}
 
 	@Override
@@ -174,14 +177,20 @@ public class User implements NetMobielUser, Serializable {
 		if (this == obj) {
 			return true;
 		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (!(obj instanceof User)) {
 			return false;
 		}
 		User other = (User) obj;
-		return Objects.equals(managedIdentity, other.managedIdentity);
+		if (managedIdentity == null) {
+			if (other.managedIdentity != null) {
+				return false;
+			}
+		} else if (!managedIdentity.equals(other.managedIdentity)) {
+			return false;
+		}
+		return true;
 	}
+
+
     
 }

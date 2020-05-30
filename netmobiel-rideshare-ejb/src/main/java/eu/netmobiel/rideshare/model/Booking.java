@@ -49,7 +49,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 		attributeNodes = { 
 				@NamedAttributeNode(value = "state"),		
 				@NamedAttributeNode(value = "nrSeats"),		
-				@NamedAttributeNode(value = "passenger"),		
+				@NamedAttributeNode(value = "passenger", subgraph = "passenger-details"),		
 				@NamedAttributeNode(value = "departureTime"),		
 				@NamedAttributeNode(value = "arrivalTime"),		
 				@NamedAttributeNode(value = "pickup"),		
@@ -62,6 +62,13 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 						name = "leg-details",
 						attributeNodes = {
 								@NamedAttributeNode(value = "id")
+						}
+					),
+				@NamedSubgraph(
+						name = "passenger-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "id"),
+								@NamedAttributeNode(value = "managedIdentity")
 						}
 					)
 		}

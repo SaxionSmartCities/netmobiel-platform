@@ -7,7 +7,6 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Observes;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -82,6 +81,10 @@ public class RideItineraryHelper {
     	// Update the ride leg structure with the results from the planner.
     	// We do not touch the collection side of legs and stops.
     	// FIXME Allow transfer time for pickup and drop-off of the passenger
+
+    	// Get rid of the old leg references
+    	List<Booking> bookings = bookingDao.findByRide(ride);
+    	bookings.forEach(b -> b.getLegs().clear());
     	
     	//TODO verify the order of the stops as retrieved. Does it follow the orderby column?
     	List<Stop> oldStops = stopDao.listStops(ride);
@@ -98,7 +101,13 @@ public class RideItineraryHelper {
     	newLegs.forEach(leg -> newStops.add(leg.getTo()));
 
     	// Replace the old stop structure. Old stops are in persistence context by now.
-    	int i;
+    	// What would be quicker? Just a cascading delete and reinsert legs and stops or 
+    	// step by step update the structure?
+    	// Update method: Merge stops, add new stops. 
+    	//                Then update legs: update legs, add new legs. 
+    	//				  Finally remove legs, remove stops 
+    	// The sequence matters because of non-null constraints on leg.from and leg.to.
+    	int i, oldStepIx, oldLegIx;
         for (i = 0; i < oldStops.size() && i < newStops.size(); i++) {
         	Stop oldStop = oldStops.get(i);
         	Stop newStop = newStops.get(i);
@@ -107,12 +116,7 @@ public class RideItineraryHelper {
     		ride.addStop(newStop);
     		stopDao.merge(newStops.get(i));
 		}
-        // New list is shorter than old list
-        // Decrease the length of the list
-    	for (; i < oldStops.size(); i++) {
-    		Stop oldStop = oldStops.get(i);
-    		stopDao.remove(oldStop);
-		}
+        oldStepIx = i;
         // New list is longer than old list, add remaining stops
     	// Increase the length of the list
     	for (i = oldStops.size(); i < newStops.size(); i++) {
@@ -130,15 +134,24 @@ public class RideItineraryHelper {
     		ride.addLeg(newLeg);
     		legDao.merge(newLeg);
 		}
-    	for (; i < oldLegs.size(); i++) {
-    		Leg oldLeg = oldLegs.get(i);
-    		legDao.remove(oldLeg);
-		}
+        oldLegIx = i;
     	for (i = oldLegs.size(); i < newLegs.size(); i++) {
     		Leg newLeg = newLegs.get(i);
     		ride.addLeg(newLeg);
    			legDao.save(newLeg);
 		}
+
+    	// Finally, remove obsoleted legs and stops (in that sequence)
+    	for (i = oldLegIx; i < oldLegs.size(); i++) {
+    		Leg oldLeg = oldLegs.get(i);
+    		legDao.remove(oldLeg);
+		}
+        // Decrease the length of the list
+    	for (i = oldStepIx; i < oldStops.size(); i++) {
+    		Stop oldStop = oldStops.get(i);
+    		stopDao.remove(oldStop);
+		}
+    	
     	if (log.isDebugEnabled()) {
     		log.debug("Updated itinerary (connect booking): " + ride.toString());
     	}
@@ -146,13 +159,12 @@ public class RideItineraryHelper {
     	// For each booking: Determine the first leg and the last leg, then add intermediate legs.
     	// In case of a single booking there is always just one leg. 
     	ClosenessFilter closenessFilter = new ClosenessFilter(MAX_BOOKING_LOCATION_SHIFT);
-    	List<Booking> bookings = bookingDao.findByRide(ride);
     	for (Booking booking : bookings) {
     		if (booking.isDeleted()) {
     			continue;
     		}
     		// Do away with old relation
-    		booking.getLegs().clear();
+//    		booking.getLegs().clear();
     		Leg start = newLegs.stream()
     				.filter(leg -> closenessFilter.test(leg.getFrom().getLocation(), booking.getPickup()))
     				.findFirst()
