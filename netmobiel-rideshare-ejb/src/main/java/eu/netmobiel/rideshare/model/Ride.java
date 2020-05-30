@@ -39,32 +39,26 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 @NamedEntityGraph(
 	name = Ride.SEARCH_RIDES_ENTITY_GRAPH, 
 	attributeNodes = { 
-			@NamedAttributeNode(value = "legs", subgraph = "leg-details"),		
-//			@NamedAttributeNode(value = "stops", subgraph = "stop-details")		
+			@NamedAttributeNode(value = "car"),		
+			@NamedAttributeNode(value = "driver"),		
+			@NamedAttributeNode(value = "legs")
 	}
 )
 // Get the details of a ride: template recurrence, car, driver, legs. The legs do not specify bookings. 
 @NamedEntityGraph(
 	name = Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH, 
 	attributeNodes = { 
-		@NamedAttributeNode(value = "rideTemplate", subgraph = "template-details"),		
-//		@NamedAttributeNode(value = "bookings", subgraph = "booking-passenger-details"),		
 		@NamedAttributeNode(value = "car"),		
 		@NamedAttributeNode(value = "driver"),		
-		@NamedAttributeNode(value = "legs")		
+		@NamedAttributeNode(value = "legs"),		
+		@NamedAttributeNode(value = "rideTemplate", subgraph = "template-details")		
 	}, subgraphs = {
 			@NamedSubgraph(
 					name = "template-details",
 					attributeNodes = {
 							@NamedAttributeNode(value = "recurrence")
 					}
-				),
-//			@NamedSubgraph(
-//					name = "booking-passenger-details",
-//					attributeNodes = {
-//						@NamedAttributeNode(value = "passenger")
-//					}
-//				)
+				)
 	}
 )
 @Entity

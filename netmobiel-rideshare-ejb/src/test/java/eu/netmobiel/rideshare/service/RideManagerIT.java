@@ -23,6 +23,7 @@ import org.junit.runner.RunWith;
 
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SoftRemovedException;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Booking_;
 import eu.netmobiel.rideshare.model.Car;
@@ -469,4 +470,61 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	rut.getBookings().forEach(b -> b.getLegs().forEach(leg -> assertFalse(puu.isLoaded(leg, Leg_.TO))));
     }
 
+    @Test
+    public void listRides() throws Exception {
+    	int nrRides = 2;
+		Long rideId = createRecurrentRides(nrRides);
+		assertNotNull(rideId);
+		flush();
+    	PagedResult<Ride> ruts = rideManager.listRides(driver1.getId(), null, null, null, 10, 0);
+    	flush();
+    	assertEquals(nrRides, ruts.getTotalCount().intValue());
+    	Ride rut = ruts.getData().get(0);
+    	PersistenceUnitUtil puu = em.getEntityManagerFactory().getPersistenceUnitUtil();
+    	assertFalse(em.contains(rut));
+    	assertNotNull(rut);
+    	assertFalse(puu.isLoaded(rut, Ride_.BOOKINGS));
+    	assertTrue(puu.isLoaded(rut, Ride_.CAR));
+    	assertTrue(puu.isLoaded(rut, Ride_.DRIVER));
+    	assertTrue(puu.isLoaded(rut, Ride_.LEGS));
+    	assertTrue(puu.isLoaded(rut, Ride_.RIDE_TEMPLATE));
+
+    	assertNotNull(rut.getRideTemplate());
+    	assertNotNull(rut.getRideTemplate().getRecurrence().getInterval());
+    	assertNotNull(rut.getCar().getLicensePlate());
+    	assertNotNull(rut.getCarRef());
+    	assertNotNull(rut.getDriver().getManagedIdentity());
+    	assertNotNull(rut.getDriverRef());
+    	assertEquals(1, rut.getLegs().size());
+    }
+
+    @Test
+    public void searchRides() throws Exception {
+    	int nrRides = 2;
+		Long rideId = createRecurrentRides(nrRides);
+		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		assertNotNull(rideId);
+		flush();
+    	PagedResult<Ride> ruts = rideManager.search(Fixture.placeZieuwentRKKerk, Fixture.placeSlingeland, 
+    			rdb.getDepartureTime().minusSeconds(3600), rdb.getArrivalTime().plusSeconds(3600), 1, 10, 0);
+    	flush();
+    	assertEquals(1, ruts.getTotalCount().intValue());
+    	Ride rut = ruts.getData().get(0);
+    	PersistenceUnitUtil puu = em.getEntityManagerFactory().getPersistenceUnitUtil();
+    	assertFalse(em.contains(rut));
+    	assertNotNull(rut);
+    	assertFalse(puu.isLoaded(rut, Ride_.BOOKINGS));
+    	assertTrue(puu.isLoaded(rut, Ride_.CAR));
+    	assertTrue(puu.isLoaded(rut, Ride_.DRIVER));
+    	assertTrue(puu.isLoaded(rut, Ride_.LEGS));
+    	assertFalse(puu.isLoaded(rut, Ride_.RIDE_TEMPLATE));
+
+    	assertNotNull(rut.getCar().getLicensePlate());
+    	assertNotNull(rut.getCarRef());
+    	assertNotNull(rut.getDriver().getManagedIdentity());
+    	assertNotNull(rut.getDriverRef());
+    	assertEquals(1, rut.getLegs().size());
+    }
 }

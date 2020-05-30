@@ -119,8 +119,8 @@ public class RideDao extends AbstractDao<Ride, Long> {
     			"from Ride r where contains(r.shareEligibility, :fromPoint) = true and " +
     			"contains(r.shareEligibility, :toPoint) = true and " +
     			"abs(r.carthesianBearing - :searchBearing) < :maxBearingDifference and " +
-    			"(CAST(:fromDate as java.lang.String) is null or r.departureTime >= :earliestDeparture) and " +
-    			"(CAST(:toDate as java.lang.String) is null or r.departureTime < :latestDeparture) and " +
+    			"(CAST(:earliestDeparture as java.lang.String) is null or r.departureTime >= :earliestDeparture) and " +
+    			"(CAST(:latestDeparture as java.lang.String) is null or r.departureTime < :latestDeparture) and " +
     			"r.nrSeatsAvailable >= :nrSeatsRequested and " +
     			"(r.deleted is null or r.deleted = false)";
     	TypedQuery<Long> tq = null;

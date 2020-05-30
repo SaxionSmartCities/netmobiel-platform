@@ -3,13 +3,7 @@ package eu.netmobiel.rideshare.service;
 
 import static org.junit.Assert.*;
 
-import java.time.DayOfWeek;
 import java.time.Instant;
-import java.time.LocalDate;
-import java.time.LocalDateTime;
-import java.time.LocalTime;
-import java.time.ZoneId;
-import java.util.List;
 
 import javax.inject.Inject;
 import javax.persistence.PersistenceUnitUtil;
@@ -22,20 +16,12 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import eu.netmobiel.commons.exception.CreateException;
-import eu.netmobiel.commons.exception.NotFoundException;
-import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Booking_;
 import eu.netmobiel.rideshare.model.Car;
-import eu.netmobiel.rideshare.model.Leg;
 import eu.netmobiel.rideshare.model.Leg_;
-import eu.netmobiel.rideshare.model.Recurrence;
 import eu.netmobiel.rideshare.model.Ride;
-import eu.netmobiel.rideshare.model.RideBase;
-import eu.netmobiel.rideshare.model.RideScope;
-import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.Ride_;
-import eu.netmobiel.rideshare.model.Stop;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.model.User_;
 import eu.netmobiel.rideshare.test.Fixture;
