@@ -6,7 +6,6 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.ejb.Stateless;
-import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -42,7 +41,7 @@ public class BookingManager {
     private UserDao userDao;
     
     @Inject
-    private Event<Ride> rideUpdatedEvent;
+    private RideItineraryHelper rideItineraryHelper;
     
     /**
      * Search for bookings.
@@ -105,7 +104,8 @@ public class BookingManager {
      * @throws CreateException on error.
      * @throws NotFoundException if the ride cannot be found.
      */
-    public String createBooking(String rideRef, NetMobielUser traveller, Booking booking) throws CreateException, NotFoundException {
+    public String createBooking(String rideRef, NetMobielUser traveller, Booking booking) 
+    		throws CreateException, NotFoundException, BadRequestException {
     	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideRef);
 		Ride ride = rideDao.find(rid)
     			.orElseThrow(() -> new NotFoundException("Ride not found: " + rideRef));
@@ -121,11 +121,11 @@ public class BookingManager {
     	if (ride.getBookings().stream().filter(b -> !b.isDeleted()).collect(Collectors.counting()) > 0) {
     		throw new CreateException("Ride has already one booking");
     	}
-		booking.setRide(ride);
+    	ride.addBooking(booking);
 		booking.setPassenger(passenger);
     	booking.setState(BookingState.CONFIRMED);
     	bookingDao.save(booking);
-    	rideUpdatedEvent.fire(ride);
+    	rideItineraryHelper.updateRideItinerary(ride);
     	// TODO Also add bookingAddedEvent for informing the driver.
     	return RideshareUrnHelper.createUrn(Booking.URN_PREFIX, booking.getId());
     }
@@ -156,8 +156,8 @@ public class BookingManager {
      * @throws NotFoundException
      */
     public Booking getBooking(Long id) throws NotFoundException {
-    	Booking bookingdb = bookingDao.find(id)
-    			.orElseThrow(NotFoundException::new);
+    	Booking bookingdb = bookingDao.fetchGraph(id, Booking.DEEP_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such booking: " + id));
     	return bookingdb;
     }
 
@@ -168,7 +168,7 @@ public class BookingManager {
      * @param reason An optional reason
      * @throws NotFoundException if the booking is not found in the database.
      */
-    public void removeBooking(User initiator, Long bookingId, final String reason) throws NotFoundException {
+    public void removeBooking(User initiator, Long bookingId, final String reason) throws NotFoundException, BadRequestException {
     	Booking bookingdb = bookingDao.find(bookingId)
     			.orElseThrow(NotFoundException::new);
 		User initiatorDb = userDao.find(initiator.getId())
@@ -177,7 +177,7 @@ public class BookingManager {
     	boolean cancelledByDriver = initiatorDb.equals(driver);
 		if (initiatorDb.equals(bookingdb.getPassenger()) || cancelledByDriver) {
 	   		bookingdb.markAsCancelled(reason, cancelledByDriver);
-	    	rideUpdatedEvent.fire(bookingdb.getRide());
+	    	rideItineraryHelper.updateRideItinerary(bookingdb.getRide());
 		} else {
     		throw new SecurityException(String.format("Removal of %s %d is only allowed by drive or passenger", Booking.class.getSimpleName(), bookingdb.getId()));
 		}

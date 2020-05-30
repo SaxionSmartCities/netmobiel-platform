@@ -103,7 +103,7 @@ public class Leg implements Serializable {
     /**
      * The legs this booking is involved in.
      */
-    @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE })
+    @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE }, fetch = FetchType.LAZY)
     @JoinTable(
     		name = "booked_legs",
     		joinColumns = @JoinColumn(name = "booking", foreignKey = @ForeignKey(name = "booked_legs_booking_fk")),

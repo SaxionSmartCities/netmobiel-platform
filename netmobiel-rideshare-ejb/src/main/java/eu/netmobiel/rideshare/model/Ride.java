@@ -39,38 +39,32 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 @NamedEntityGraph(
 	name = Ride.SEARCH_RIDES_ENTITY_GRAPH, 
 	attributeNodes = { 
-			@NamedAttributeNode(value = "rideTemplate", subgraph = "template-details")		
-	}, subgraphs = {
-			@NamedSubgraph(
-					name = "template-details",
-					attributeNodes = {
-							@NamedAttributeNode(value = "car"),
-							@NamedAttributeNode(value = "driver")
-					}
-				)
-			}
-
+			@NamedAttributeNode(value = "legs", subgraph = "leg-details"),		
+//			@NamedAttributeNode(value = "stops", subgraph = "stop-details")		
+	}
 )
+// Get the details of a ride: template recurrence, car, driver, legs. The legs do not specify bookings. 
 @NamedEntityGraph(
-	name = Ride.BOOKINGS_ENTITY_GRAPH, 
+	name = Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH, 
 	attributeNodes = { 
 		@NamedAttributeNode(value = "rideTemplate", subgraph = "template-details"),		
-		@NamedAttributeNode(value = "bookings", subgraph = "booking-passenger-details")		
+//		@NamedAttributeNode(value = "bookings", subgraph = "booking-passenger-details"),		
+		@NamedAttributeNode(value = "car"),		
+		@NamedAttributeNode(value = "driver"),		
+		@NamedAttributeNode(value = "legs")		
 	}, subgraphs = {
 			@NamedSubgraph(
 					name = "template-details",
 					attributeNodes = {
-							@NamedAttributeNode(value = "car"),
-							@NamedAttributeNode(value = "driver")
+							@NamedAttributeNode(value = "recurrence")
 					}
 				),
-			@NamedSubgraph(
-					name = "booking-passenger-details",
-					attributeNodes = {
-						@NamedAttributeNode(value = "passenger")
-					}
-				)
-			
+//			@NamedSubgraph(
+//					name = "booking-passenger-details",
+//					attributeNodes = {
+//						@NamedAttributeNode(value = "passenger")
+//					}
+//				)
 	}
 )
 @Entity
@@ -81,7 +75,7 @@ public class Ride extends RideBase implements Serializable {
 	private static final long serialVersionUID = 4342765799358026502L;
 	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix("ride");
 	public static final String SEARCH_RIDES_ENTITY_GRAPH = "search-rides-graph";
-	public static final String BOOKINGS_ENTITY_GRAPH = "bookings-graph";
+	public static final String DETAILS_WITH_LEGS_ENTITY_GRAPH = "ride-details-graph";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ride_sg")
@@ -247,6 +241,16 @@ public class Ride extends RideBase implements Serializable {
         leg.setRide(null);
     }
 
+    public void addBooking(Booking booking) {
+        getBookings().add(booking);
+        booking.setRide(this);
+    }
+ 
+    public void removeBooking(Booking booking) {
+        getBookings().remove(booking);
+        booking.setRide(null);
+    }
+    
     @Override
     public String toString() {
 		StringBuilder builder = new StringBuilder();

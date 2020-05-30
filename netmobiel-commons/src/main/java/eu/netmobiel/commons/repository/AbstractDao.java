@@ -8,6 +8,7 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.persistence.EntityGraph;
 import javax.persistence.EntityManager;
 import javax.persistence.PersistenceUnitUtil;
 import javax.persistence.TypedQuery;
@@ -180,12 +181,15 @@ public abstract class AbstractDao<T, ID> {
         return Collections.singletonMap(JPA_HINT_FETCH, getEntityManager().getEntityGraph(graphName));
     }
 
-    public T loadGraph(ID id, String graphName) {
-        return id == null ? null : getEntityManager().find(getPersistentClass(), id, createLoadHint(graphName));
+    public Optional<T> loadGraph(ID id, String graphName) {
+        return Optional.ofNullable(id == null ? null : getEntityManager().find(getPersistentClass(), id, createLoadHint(graphName)));
     }
 
-    public T fetchGraph(ID id, String graphName) {
-        return id == null ? null : getEntityManager().find(getPersistentClass(), id, createFetchHint(graphName));
+    public Optional<T> fetchGraph(ID id, String graphName) {
+        return Optional.ofNullable(id == null ? null : getEntityManager().find(getPersistentClass(), id, createFetchHint(graphName)));
     }
 
+    public EntityGraph<?> getEntityGraph(String graphName) {
+    	return getEntityManager().getEntityGraph(graphName);
+    }
 }

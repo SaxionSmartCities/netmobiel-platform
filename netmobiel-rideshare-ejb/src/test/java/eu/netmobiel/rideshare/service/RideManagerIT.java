@@ -12,6 +12,7 @@ import java.time.ZoneId;
 import java.util.List;
 
 import javax.inject.Inject;
+import javax.persistence.PersistenceUnitUtil;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -23,13 +24,16 @@ import org.junit.runner.RunWith;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.rideshare.model.Booking;
+import eu.netmobiel.rideshare.model.Booking_;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.Leg;
+import eu.netmobiel.rideshare.model.Leg_;
 import eu.netmobiel.rideshare.model.Recurrence;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideBase;
 import eu.netmobiel.rideshare.model.RideScope;
 import eu.netmobiel.rideshare.model.RideTemplate;
+import eu.netmobiel.rideshare.model.Ride_;
 import eu.netmobiel.rideshare.model.Stop;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.test.Fixture;
@@ -42,6 +46,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     public static Archive<?> createTestArchive() {
         WebArchive archive = createDeploymentBase()
 //	            .addAsResource("logging.properties")
+	            .addClass(RideItineraryHelper.class)
 	            .addClass(RideManager.class);
 //   		System.out.println(archive.toString(true));
 		return archive;
@@ -49,6 +54,8 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 
     @Inject
     private RideManager rideManager;
+    @Inject
+    private RideItineraryHelper rideItineraryHelper;
 
     private User driver1;
     private Car car1;
@@ -206,7 +213,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 				.setParameter("id", rideId)
 				.getSingleResult();
 		assertNotNull(rdb);
-//		flush();
+		flush();
 		rideManager.removeRide(rideId, null, null);
 		Long count = em.createQuery("select count(r) from Ride r where id = :id", Long.class)
 				.setParameter("id", rideId)
@@ -267,6 +274,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     public void removeRecurrentRide_This() throws Exception {
     	int nrRides = 7;
 		Long rideId = createRecurrentRides(nrRides);
+		flush();
 		assertNotNull(rideId);
 		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
 				.setParameter("id", rideId)
@@ -279,6 +287,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		assertEquals(nrRides, count.longValue());
 		
 		rideManager.removeRide(rideId, null, null);
+		flush();
 		count = em.createQuery("select count(r) from Ride r where r.rideTemplate = :template", Long.class)
 				.setParameter("template", template)
 				.getSingleResult();
@@ -294,6 +303,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     public void removeRecurrentRide_ThisAndFollowing() throws Exception {
     	int nrRides = 7;
 		Long rideId = createRecurrentRides(nrRides);
+		flush();
 		assertNotNull(rideId);
 		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
 				.setParameter("id", rideId)
@@ -306,6 +316,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		assertEquals(nrRides, count.longValue());
 		
 		rideManager.removeRide(rideId, null, RideScope.THIS_AND_FOLLOWING);
+		flush();
 		count = em.createQuery("select count(r) from Ride r where r.rideTemplate = :template", Long.class)
 				.setParameter("template", template)
 				.getSingleResult();
@@ -326,7 +337,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 				.setParameter("id", rideId)
 				.getSingleResult();
 		assertNotNull(r1);
-		rideManager.onUpdateRideItinerary(r1);
+		rideItineraryHelper.updateRideItinerary(r1);
 		// End the transaction and start new session
 		flush();
 		// Now assure that no database identities have changed, i.e., no unnecessary new database objects.
@@ -374,7 +385,11 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		assertEquals(r1.getTo(), b.getDropOff());
 		em.persist(b);
 		flush();
-		rideManager.onUpdateRideItinerary(r1);
+		r1 = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		rideItineraryHelper.updateRideItinerary(r1);
+		flush();
 		Ride r2 = em.createQuery("from Ride where id = :id", Ride.class)
 				.setParameter("id", rideId)
 				.getSingleResult();
@@ -402,4 +417,56 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		verifyRideBase(r, rdb, departureTime, null);
 		checkRideConsistency(rdb);
     }
+    
+    @Test
+    public void getRideDetail() throws Exception {
+		Long rideId = createRecurrentRides(1);
+		assertNotNull(rideId);
+		flush();
+    	Ride rut = rideManager.getRide(rideId);
+    	flush();
+    	PersistenceUnitUtil puu = em.getEntityManagerFactory().getPersistenceUnitUtil();
+    	assertFalse(em.contains(rut));
+    	assertNotNull(rut);
+    	assertNotNull(rut.getRideTemplate());
+    	assertNotNull(rut.getRideTemplate().getRecurrence().getInterval());
+    	assertNotNull(rut.getCar());
+    	assertTrue(puu.isLoaded(rut, Ride_.CAR));
+    	assertNotNull(rut.getCar().getLicensePlate());
+    	assertNotNull(rut.getCarRef());
+    	assertNotNull(rut.getDriver());
+    	assertNotNull(rut.getDriver().getManagedIdentity());
+    	assertNotNull(rut.getDriverRef());
+    	assertNotNull(rut.getBookings());
+    	assertEquals(0, rut.getBookings().size());
+    	assertNotNull(rut.getLegs());
+    	assertEquals(1, rut.getLegs().size());
+    	
+		Booking booking = Fixture.createBooking(rut, passenger1, Fixture.placeZieuwentRKKerk, rut.getDepartureTime(), Fixture.placeSlingeland, rut.getArrivalTime());
+		em.persist(booking);
+		flush();
+		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rut.getId())
+				.getSingleResult();
+		rideItineraryHelper.updateRideItinerary(rdb);
+		// Now the ride is recalculated. Verify the leg and booking attributes
+		flush();
+    	rut = rideManager.getRide(rideId);
+    	flush();
+    	assertFalse(em.contains(rut));
+    	assertNotNull(rut);
+    	assertTrue(puu.isLoaded(rut, Ride_.BOOKINGS));
+    	assertNotNull(rut.getBookings());
+    	assertEquals(1, rut.getBookings().size());
+    	assertNotNull(rut.getLegs());
+    	assertEquals(2, rut.getLegs().size());
+    	// The stops are never fetched, they are part of the legs
+    	rut.getLegs().forEach(leg -> assertFalse(puu.isLoaded(leg, Leg_.BOOKINGS)));
+    	rut.getBookings().forEach(b -> assertTrue(puu.isLoaded(b, Booking_.PASSENGER)));
+    	rut.getBookings().forEach(b -> assertTrue(puu.isLoaded(b, Booking_.LEGS)));
+    	rut.getBookings().forEach(b -> b.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.ID))));
+    	rut.getBookings().forEach(b -> b.getLegs().forEach(leg -> assertFalse(puu.isLoaded(leg, Leg_.FROM))));
+    	rut.getBookings().forEach(b -> b.getLegs().forEach(leg -> assertFalse(puu.isLoaded(leg, Leg_.TO))));
+    }
+
 }

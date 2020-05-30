@@ -71,7 +71,7 @@ public abstract class RideMapper {
 	
 	// Domain Ride --> Api Ride: All details, including car, driver, bookings 
 	@InheritConfiguration(name = "commonMap")
-	@Mapping(target = "car", source = "rideTemplate.car", 
+	@Mapping(target = "car", source = "car", 
 		qualifiedBy = { CarMapperQualifier.class, CarMyDetails.class } )
 	@Mapping(target = "bookings", source = "bookings", qualifiedBy = BookingShallow.class)
 	@Mapping(target = "legs", source = "legs", qualifiedBy = LegDetails.class)
@@ -82,7 +82,7 @@ public abstract class RideMapper {
 	@InheritConfiguration(name = "commonMap")
 	@Mapping(target = "driver", ignore = true)
 	@Mapping(target = "driverRef", ignore = true)
-	@Mapping(target = "car", source = "rideTemplate.car", 
+	@Mapping(target = "car", source = "car", 
 		qualifiedBy = { CarMapperQualifier.class, CarBrandModelDetails.class } )
 	@Mapping(target = "bookings", source = "bookings", qualifiedBy = BookingShallow.class)
 	@Mapping(target = "legs", source = "legs", qualifiedBy = LegDetails.class)

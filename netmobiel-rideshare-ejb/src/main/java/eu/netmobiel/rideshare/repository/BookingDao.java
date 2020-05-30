@@ -45,12 +45,18 @@ public class BookingDao extends AbstractDao<Booking, Long> {
 	}
 
     public List<Booking> findByRide(Ride ride) {
-    	return em.createQuery("from Booking where ride = :ride", Booking.class)
-    			.setParameter("ride", ride)
-    			.getResultList();
-
+    	return findByRide(ride, null, null);
     }
     
+    public List<Booking> findByRide(Ride ride, String hintName, Object hintValue) {
+    	TypedQuery<Booking> tq = em.createQuery("from Booking where ride = :ride", Booking.class)
+    			.setParameter("ride", ride);
+    	if (hintName != null) {
+    		tq.setHint(hintName, hintValue);
+    	}
+    	return tq.getResultList();
+    }
+
     public Boolean hasBookings(Ride ride) {
     	Boolean exists = em.createQuery("select exists(select 1 from Booking where ride = :ride)", Boolean.class)
     			.setParameter("ride", ride)

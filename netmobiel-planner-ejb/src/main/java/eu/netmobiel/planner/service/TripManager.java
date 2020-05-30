@@ -160,7 +160,7 @@ public class TripManager {
     	return createTrip(userManager.registerCallingUser(), trip, autobook);
     }
 
-    protected void startBookingProcessIfNecessary(User traveller, Trip trip, Leg leg) throws CreateException {
+    protected void startBookingProcessIfNecessary(User traveller, Trip trip, Leg leg) throws CreateException, BadRequestException {
     	if (leg.getTraverseMode() == TraverseMode.RIDESHARE) {
     		leg.setState(TripState.BOOKING);
 			try {

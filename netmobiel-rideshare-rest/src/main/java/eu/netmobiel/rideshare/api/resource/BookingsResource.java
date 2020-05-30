@@ -77,6 +77,8 @@ public class BookingsResource implements BookingsApi {
         	User initiator = userManager.findCallingUser();
 			bookingManager.removeBooking(initiator, cid, reason);
 			rsp = Response.noContent().build();
+		} catch (eu.netmobiel.commons.exception.BadRequestException e) {
+	    	rsp = Response.status(Status.BAD_REQUEST).build();
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 	    	rsp = Response.status(Status.GONE).build();
 		}

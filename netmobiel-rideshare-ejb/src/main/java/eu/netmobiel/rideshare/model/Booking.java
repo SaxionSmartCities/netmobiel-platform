@@ -2,6 +2,7 @@ package eu.netmobiel.rideshare.model;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.enterprise.inject.Vetoed;
@@ -18,6 +19,9 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedAttributeNode;
+import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedSubgraph;
 import javax.persistence.OrderBy;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
@@ -38,6 +42,65 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
  * @author Jaap Reitsma
  *
  */
+
+// Use with fetch graph
+@NamedEntityGraph(
+		name = Booking.SHALLOW_ENTITY_GRAPH, 
+		attributeNodes = { 
+				@NamedAttributeNode(value = "state"),		
+				@NamedAttributeNode(value = "nrSeats"),		
+				@NamedAttributeNode(value = "passenger"),		
+				@NamedAttributeNode(value = "departureTime"),		
+				@NamedAttributeNode(value = "arrivalTime"),		
+				@NamedAttributeNode(value = "pickup"),		
+				@NamedAttributeNode(value = "dropOff"),		
+				@NamedAttributeNode(value = "cancelReason"),		
+				@NamedAttributeNode(value = "cancelledByDriver"),		
+				@NamedAttributeNode(value = "legs", subgraph = "leg-details"),		
+		}, subgraphs = {
+				@NamedSubgraph(
+						name = "leg-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "id")
+						}
+					)
+		}
+	)
+//Use with fetch graph
+@NamedEntityGraph(
+		name = Booking.DEEP_ENTITY_GRAPH, 
+		attributeNodes = { 
+				@NamedAttributeNode(value = "state"),		
+				@NamedAttributeNode(value = "nrSeats"),		
+				@NamedAttributeNode(value = "passenger"),		
+				@NamedAttributeNode(value = "departureTime"),		
+				@NamedAttributeNode(value = "arrivalTime"),		
+				@NamedAttributeNode(value = "pickup"),		
+				@NamedAttributeNode(value = "dropOff"),		
+				@NamedAttributeNode(value = "cancelReason"),		
+				@NamedAttributeNode(value = "cancelledByDriver"),		
+				@NamedAttributeNode(value = "legs", subgraph = "leg-details"),		
+				@NamedAttributeNode(value = "ride", subgraph = "ride-details"),		
+		}, subgraphs = {
+				@NamedSubgraph(
+						name = "leg-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "id"),
+								@NamedAttributeNode(value = "distance"),
+								@NamedAttributeNode(value = "duration"),
+								@NamedAttributeNode(value = "from"),
+								@NamedAttributeNode(value = "to"),
+								@NamedAttributeNode(value = "legGeometry"),
+						}
+					),
+				@NamedSubgraph(
+						name = "ride-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "id")
+						}
+					)
+		}
+	)
 @Entity
 @Vetoed
 @Table(name = "booking")
@@ -45,6 +108,8 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 public class Booking implements Serializable {
 	private static final long serialVersionUID = 3727019200633708992L;
 	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix("booking");
+	public static final String SHALLOW_ENTITY_GRAPH = "booking-shallow-details-graph";
+	public static final String DEEP_ENTITY_GRAPH = "booking-deep-details-graph";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "booking_sg")
@@ -143,7 +208,7 @@ public class Booking implements Serializable {
     /**
      * The legs this booking is involved in.
      */
-    @ManyToMany(mappedBy = "bookings")
+    @ManyToMany(mappedBy = "bookings", fetch = FetchType.LAZY)
     @OrderBy("legIx asc")
     private List<Leg> legs;
     
@@ -270,6 +335,9 @@ public class Booking implements Serializable {
 		return getState() == BookingState.CANCELLED;
 	}
 	public List<Leg> getLegs() {
+		if (legs == null) {
+			legs = new ArrayList<>();
+		}
 		return legs;
 	}
 

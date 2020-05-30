@@ -137,6 +137,17 @@ public class Fixture {
 		return r;
 	}
 	
+	public static Ride createCompleteRide(Car car, Instant departureTime, Instant arrivalTime) {
+		Ride r = Fixture.createRide(car, departureTime, arrivalTime);
+		r.setDriver(car.getDriver());
+		r.setCar(car);
+		if (departureTime == null) {
+			r.setDepartureTime(arrivalTime.minusSeconds(60 * 60));
+		} else {
+			r.setArrivalTime(departureTime.plusSeconds(60 * 60));
+		}
+		return r;
+	}
 	public static Booking createBooking(Ride r, User p, Instant departureTime, Instant arrivalTime) {
 		Booking b = new Booking(r, p, Fixture.placeZieuwentRKKerk, Fixture.placeSlingeland, 1);
 		b.setDepartureTime(departureTime);
