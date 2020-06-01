@@ -193,6 +193,7 @@ public class RideManager {
     	return new PagedResult<Ride>(results, maxResults, offset, totalCount);
     }
     
+    //FIXME earliestDeparture latestDeparture? Should be latestArrival
     public PagedResult<Ride> search(GeoLocation fromPlace, GeoLocation toPlace, Instant earliestDeparture, Instant latestDeparture, Integer nrSeats, Integer maxResults, Integer offset) {
     	if (nrSeats == null) {
     		nrSeats = 1;
