@@ -1234,6 +1234,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Leg'
+        ride:
+          $ref: '#/components/schemas/Ride'
+          description: A short description of the ride, including the car and the
+            driver's name.
       example:
         departureTime: 2020-05-27T10:00:00Z
         arrivalTime: 2020-05-27T10:45:00Z
