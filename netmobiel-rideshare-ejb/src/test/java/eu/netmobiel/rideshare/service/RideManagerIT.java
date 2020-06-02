@@ -36,6 +36,7 @@ import eu.netmobiel.rideshare.model.RideScope;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.Ride_;
 import eu.netmobiel.rideshare.model.Stop;
+import eu.netmobiel.rideshare.model.TimeUnit;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
@@ -155,6 +156,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	Instant arrivalTime = Instant.parse("2020-05-01T00:00:00Z");
     	Ride r = Fixture.createRide(car1, null, arrivalTime);
 		Long rideId = rideManager.createRide(r);
+		flush();
 		assertNotNull(rideId);
 		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
 				.setParameter("id", rideId)
@@ -465,9 +467,10 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	rut.getLegs().forEach(leg -> assertFalse(puu.isLoaded(leg, Leg_.BOOKINGS)));
     	rut.getBookings().forEach(b -> assertTrue(puu.isLoaded(b, Booking_.PASSENGER)));
     	rut.getBookings().forEach(b -> assertTrue(puu.isLoaded(b, Booking_.LEGS)));
+    	rut.getBookings().forEach(b -> assertFalse(puu.isLoaded(b, Booking_.RIDE)));
     	rut.getBookings().forEach(b -> b.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.ID))));
-    	rut.getBookings().forEach(b -> b.getLegs().forEach(leg -> assertFalse(puu.isLoaded(leg, Leg_.FROM))));
-    	rut.getBookings().forEach(b -> b.getLegs().forEach(leg -> assertFalse(puu.isLoaded(leg, Leg_.TO))));
+    	rut.getBookings().forEach(b -> b.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.FROM))));
+    	rut.getBookings().forEach(b -> b.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.TO))));
     }
 
     @Test
@@ -526,5 +529,33 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	assertNotNull(rut.getCarRef());
     	assertNotNull(rut.getDriver().getManagedIdentity());
     	assertNotNull(rut.getDriverRef());
+    }
+
+    @Test
+    public void instantiateRides() throws Exception {
+		Long rideId = createRecurrentRides(1);
+		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
+				.setParameter("id", rideId)
+				.getSingleResult();
+		RideTemplate rt = rdb.getRideTemplate();
+		assertNotNull(rideId);
+//		flush();
+//		rt = em.find(RideTemplate.class, rt.getId());
+		assertEquals(1,  rt.getRecurrence().getInterval().intValue());
+		assertEquals(TimeUnit.DAY,  rt.getRecurrence().getUnit());
+		LocalDate horizon = rt.getRecurrence().getLocalHorizon();
+		horizon = horizon.plusDays(7);
+		rt.getRecurrence().setLocalHorizon(horizon);
+		flush();
+		Long count = em.createQuery("select count(r) from Ride r where r.rideTemplate = :template", Long.class)
+				.setParameter("template", rt)
+				.getSingleResult();
+		assertEquals(1, count.intValue());
+		rideManager.instantiateRecurrentRides();
+		count = em.createQuery("select count(r) from Ride r where r.rideTemplate = :template", Long.class)
+				.setParameter("template", rt)
+				.getSingleResult();
+		assertEquals(1 + 7, count.intValue());
+		
     }
 }

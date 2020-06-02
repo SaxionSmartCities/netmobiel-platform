@@ -132,9 +132,11 @@ public class Fixture {
 		if (departureTime != null) {
 			r.setDepartureTime(departureTime);
 			r.setArrivalTime(departureTime.plusSeconds(60 * 60));
+			r.setArrivalTimePinned(false);
 		} else {
 			r.setArrivalTime(arrivalTime);
 			r.setDepartureTime(arrivalTime.minusSeconds(60 * 60));
+			r.setArrivalTimePinned(true);
 		}
 		r.setFrom(placeZieuwent);
 		r.setTo(placeSlingeland);

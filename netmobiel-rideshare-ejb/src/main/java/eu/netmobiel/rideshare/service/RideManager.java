@@ -101,6 +101,7 @@ public class RideManager {
 			do {
 				List<RideTemplate> templates = rideTemplateDao.findOpenTemplates(systemHorizon, offset, TEMPLATE_CURSOR_SIZE);
 				count = templates.size();
+				log.debug(String.format("Found %d open templates", count));
 				for (RideTemplate template : templates) {
 					try {
 						// Force transaction demarcation
@@ -114,7 +115,7 @@ public class RideManager {
 						}
 					}
 				}
-			} while (count < TEMPLATE_CURSOR_SIZE);
+			} while (count >= TEMPLATE_CURSOR_SIZE);
 			log.info(String.format("DB maintenance: %d rides inserted in total", totalCount));
 		} catch (Exception ex) {
 			log.error("Error fetching open ride templates: " + ex.toString());
@@ -141,6 +142,8 @@ public class RideManager {
 	 */
 	@TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
 	public int instantiateRecurrentRides(RideTemplate template, Instant systemHorizon) {
+		// Load template into persistence context
+		template = rideTemplateDao.merge(template);
 		List<Ride> rides = generateNonOverlappingRides(template, systemHorizon);
 		rides.forEach(r -> rideItineraryHelper.saveNewRide(r));
 		return rides.size();
@@ -262,7 +265,7 @@ public class RideManager {
 //    	}
     	// If the ride contains no departure then, then the arrival time is important
     	// Assure both departure and arrival time are set, to avoid database constraint failure. 
-    	if (ride.getDepartureTime() == null) {
+    	if (ride.getDepartureTime() == null || ride.isArrivalTimePinned()) {
     		ride.setArrivalTimePinned(true);
     		ride.setDepartureTime(ride.getArrivalTime());
     	} else {
