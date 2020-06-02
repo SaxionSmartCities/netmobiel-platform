@@ -61,6 +61,10 @@ public class RidesResource implements RidesApi {
     public Response listRides(String driverId, OffsetDateTime sinceDate, OffsetDateTime untilDate, Boolean deletedToo, Integer maxResults, Integer offset) {
 //    	LocalDate sinceDate = since != null ? LocalDate.parse(since) : null;
 //    	LocalDate untilDate =  until != null ? LocalDate.parse(until) : null;
+    	if (sinceDate == null) {
+    		sinceDate = OffsetDateTime.now();
+    	}
+
     	PagedResult<Ride> rides;
 		try {
 			Long did = null;
@@ -151,13 +155,13 @@ public class RidesResource implements RidesApi {
      * Deletes a ride. If a ride is already booked then the ride is soft deleted. Soft deleted rides are 
      * default not listed and can never be found.
      * @param rideId The ride id.  Both the primary key (a number) as the urn format are accepted.
-     * @param reason The (optional) reason why the ride was cancelled.
      * @param scope The scope of the delete action in case of a recurrent ride: Only this one or this one and all following.
      * 		If not set then the scope is set to THIS.
+     * @param reason The (optional) reason why the ride was cancelled.
      * @return
      */
     @Override
-	public Response deleteRide(String rideId, String reason, String scope) {
+	public Response deleteRide(String rideId, String scope, String reason) {
     	Response rsp = null;
     	try {
     		RideScope rs = readRideScope(scope);

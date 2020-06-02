@@ -97,7 +97,7 @@ public class RideManager {
 			int count = 0;
 			int errorCount = 0;
 			Instant systemHorizon = getDefaultSystemHorizon();
-			log.info(String.format("DB maintenance: Move horizon to %s, check starts at %s", DateTimeFormatter.ISO_INSTANT.format(systemHorizon)));
+			log.info(String.format("DB maintenance: Move horizon to %s", DateTimeFormatter.ISO_INSTANT.format(systemHorizon)));
 			do {
 				List<RideTemplate> templates = rideTemplateDao.findOpenTemplates(systemHorizon, offset, TEMPLATE_CURSOR_SIZE);
 				count = templates.size();
@@ -152,17 +152,14 @@ public class RideManager {
      * @throws BadRequestException 
      */
     public PagedResult<Ride> listRides(Long driverId, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws NotFoundException, BadRequestException {
-    	if (since == null) {
-    		since = Instant.now();
-    	}
     	if (until != null && since != null && ! until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: The 'until' date must be greater than the 'since' date.");
     	}
     	if (maxResults != null && maxResults > 100) {
     		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
     	}
-    	if (maxResults != null && maxResults <= 0) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' > 0.");
+    	if (maxResults != null && maxResults < 0) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' >= 0.");
     	}
     	if (offset != null && offset < 0) {
     		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
@@ -187,7 +184,7 @@ public class RideManager {
     		// Get the actual data
     		PagedResult<Long> rideIds = rideDao.findByDriver(driver, since, until, deletedToo, maxResults, offset);
     		if (rideIds.getData().size() > 0) {
-    			results = rideDao.fetch(rideIds.getData(), Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH);
+    			results = rideDao.fetch(rideIds.getData(), Ride.LIST_RIDES_ENTITY_GRAPH);
     		}
     	}
     	return new PagedResult<Ride>(results, maxResults, offset, totalCount);

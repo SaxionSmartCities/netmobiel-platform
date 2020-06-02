@@ -16,6 +16,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Booking_;
 import eu.netmobiel.rideshare.model.Car;
@@ -73,6 +74,15 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
 		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
 		assertNotNull(bookingRef);
+		flush();
+		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
+				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
+				.getSingleResult();
+		assertNotNull(b);
+		assertNotNull(b.getRide());
+		assertNotNull(b.getPassenger());
+		assertNotNull(b.getLegs());
+		assertEquals(1, b.getLegs().size());
     }		
 
     @Test
@@ -125,19 +135,19 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     	assertNotNull(but.getPickup());
     	assertNotNull(but.getState());
     	assertTrue(puu.isLoaded(but, Booking_.LEGS));
-    	assertEquals(1, but.getLegs().size());
-    	but.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.ID)));
-    	but.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.FROM)));
-    	but.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.TO)));
-    	
     	assertTrue(puu.isLoaded(but, Booking_.PASSENGER));
     	assertTrue(puu.isLoaded(but.getPassenger(), User_.ID));
     	assertTrue(puu.isLoaded(but.getPassenger(), User_.GIVEN_NAME));
     	assertTrue(puu.isLoaded(but.getPassenger(), User_.FAMILY_NAME));
     	assertTrue(puu.isLoaded(but.getPassenger(), User_.MANAGED_IDENTITY));
-    	
     	assertTrue(puu.isLoaded(but, Booking_.RIDE));
     	assertTrue(puu.isLoaded(but.getRide(), Ride_.ID));
+
+    	assertEquals(1, but.getLegs().size());
+    	but.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.ID)));
+    	but.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.FROM)));
+    	but.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.TO)));
+    	
     	// The following should not be there, but they are.
 //    	assertFalse(puu.isLoaded(but.getRide(), Ride_.ARRIVAL_TIME));
 //    	assertFalse(puu.isLoaded(but.getRide(), Ride_.LEGS));
@@ -156,7 +166,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(bookingRef);
 		flush();
 		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
-				.setParameter("id", r.getId())
+				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
 		assertFalse(b.isDeleted());
@@ -166,7 +176,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		bookingManager.removeBooking(passenger1, b.getId(), reason);
 		flush();
 		b = em.createQuery("from Booking where id = :id", Booking.class)
-				.setParameter("id", r.getId())
+				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
 		assertTrue(b.isDeleted());
@@ -190,7 +200,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(bookingRef);
 		flush();
 		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
-				.setParameter("id", r.getId())
+				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
 		assertFalse(b.isDeleted());
@@ -200,7 +210,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		bookingManager.removeBooking(driver1, b.getId(), reason);
 		flush();
 		b = em.createQuery("from Booking where id = :id", Booking.class)
-				.setParameter("id", r.getId())
+				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
 		assertTrue(b.isDeleted());
@@ -209,4 +219,62 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		r = b.getRide();
 		assertEquals(1, r.getLegs().size());
     }
+
+    @Test
+    public void listBookings() throws Exception {
+    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Ride r = Fixture.createCompleteRide(car1, departureTime, null);
+    	rideItineraryHelper.saveNewRide(r);
+    	rideItineraryHelper.updateRideItinerary(r);
+		Long rideId = r.getId();
+		assertNotNull(rideId);
+		flush();
+		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
+		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
+		assertNotNull(bookingRef);
+		flush();
+		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
+				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
+				.getSingleResult();
+		assertNotNull(b);
+		flush();
+		
+		PagedResult<Booking> page = bookingManager.listBookings(passenger1.getId(), null, null, 10, 0);
+		flush();
+		assertNotNull(page);
+		assertEquals(1, page.getTotalCount().intValue());
+		
+    	PersistenceUnitUtil puu = em.getEntityManagerFactory().getPersistenceUnitUtil();
+    	Booking but = page.getData().get(0);
+    	assertFalse(em.contains(but));
+    	assertNotNull(but);
+    	assertTrue(puu.isLoaded(but, Booking_.PASSENGER));
+    	assertTrue(puu.isLoaded(but.getPassenger(), User_.ID));
+    	assertTrue(puu.isLoaded(but, Booking_.RIDE));
+    	assertTrue(puu.isLoaded(but.getRide(), Ride_.ID));
+    	assertTrue(puu.isLoaded(but, Booking_.LEGS));
+    	assertEquals(1, but.getLegs().size());
+    	but.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.ID)));
+    	but.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.FROM)));
+    	but.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.TO)));
+
+    	// Since
+		page = bookingManager.listBookings(passenger1.getId(), departureTime.minusSeconds(60), null, 0, 0);
+		assertNotNull(page);
+		assertEquals(1, page.getTotalCount().intValue());
+
+		page = bookingManager.listBookings(passenger1.getId(), departureTime.plusSeconds(60), null, 0, 0);
+		assertNotNull(page);
+		assertEquals(0, page.getTotalCount().intValue());
+
+		// until
+		page = bookingManager.listBookings(passenger1.getId(), null, departureTime.minusSeconds(60), 0, 0);
+		assertNotNull(page);
+		assertEquals(0, page.getTotalCount().intValue());
+
+		page = bookingManager.listBookings(passenger1.getId(), null, departureTime.plusSeconds(60), 0, 0);
+		assertNotNull(page);
+		assertEquals(1, page.getTotalCount().intValue());
+    }
+    
 }

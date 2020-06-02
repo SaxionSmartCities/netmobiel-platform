@@ -4,6 +4,8 @@
     <deployment>
         <dependencies>
         </dependencies>
+        <exclusions>
+        </exclusions>
     </deployment>
     <sub-deployment name="netmobiel-banker-ejb.jar">
         <dependencies>

@@ -25,6 +25,8 @@ public class Fixture {
 	public static final GeoLocation placeSlingeland = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
 	public static final GeoLocation placeRaboZutphen = GeoLocation.fromString("Rabobank Zutphen::52.148125, 6.196966");
 	public static final GeoLocation placeZieuwentRKKerk = GeoLocation.fromString("Zieuwent, R.K. Kerk::52.004485,6.519542");
+	public static final GeoLocation placeThuisLichtenvoorde  = GeoLocation.fromString("Rapenburgsestraat Lichtenvoorde::51.987757,6.564012");
+	public static final GeoLocation placeCentrumDoetinchem = GeoLocation.fromString("Catharina Parkeergarage Doetinchem::51.9670528,6.2894002");
 
 	private Fixture() {
 		// No instances allowed
@@ -124,16 +126,39 @@ public class Fixture {
 
 	public static Ride createRide(Car car, Instant departureTime, Instant arrivalTime) {
 		Ride r = new Ride();
-		r.setCarRef(RideshareUrnHelper.createUrn(Car.URN_PREFIX, car.getId()));;
+		r.setCarRef(RideshareUrnHelper.createUrn(Car.URN_PREFIX, car.getId()));
+		r.setCar(car);
+		r.setDriver(car.getDriver());
 		if (departureTime != null) {
 			r.setDepartureTime(departureTime);
+			r.setArrivalTime(departureTime.plusSeconds(60 * 60));
 		} else {
 			r.setArrivalTime(arrivalTime);
+			r.setDepartureTime(arrivalTime.minusSeconds(60 * 60));
 		}
 		r.setFrom(placeZieuwent);
 		r.setTo(placeSlingeland);
 		r.setMaxDetourMeters(5000);
 		r.setNrSeatsAvailable(3);
+		return r;
+	}
+	
+	/**
+	 * Creates a complete ride object, intended to insert directly in database.
+	 * @param car
+	 * @param departureTime
+	 * @param arrivalTime
+	 * @return
+	 */
+	public static Ride createRideObject(Car car, Instant departureTime, Instant arrivalTime) {
+		Ride r = createRide(car, departureTime, arrivalTime);
+		r.setCar(car);
+		r.setDriver(car.getDriver());
+		if (departureTime != null) {
+			r.setArrivalTime(departureTime.plusSeconds(60 * 60));
+		} else {
+			r.setDepartureTime(arrivalTime.minusSeconds(60 * 60));
+		}
 		return r;
 	}
 	

@@ -55,17 +55,14 @@ public class BookingManager {
      * @throws BadRequestException
      */
     public PagedResult<Booking> listBookings(Long userId, Instant since, Instant until, Integer maxResults, Integer offset) throws NotFoundException, BadRequestException {
-    	if (since == null) {
-    		since = Instant.now();
-    	}
     	if (until != null && since != null && ! until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: The 'until' date must be greater than the 'since' date.");
     	}
     	if (maxResults != null && maxResults > 100) {
     		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
     	}
-    	if (maxResults != null && maxResults <= 0) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' > 0.");
+    	if (maxResults != null && maxResults < 0) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' >= 0.");
     	}
     	if (offset != null && offset < 0) {
     		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
@@ -87,7 +84,7 @@ public class BookingManager {
     		// Get the actual data
     		PagedResult<Long> bookingIds = bookingDao.findByPassenger(passenger, since, until, false, maxResults, offset);
     		if (!bookingIds.getData().isEmpty()) {
-    			results = bookingDao.fetch(bookingIds.getData(), null);
+    			results = bookingDao.fetch(bookingIds.getData(), Booking.DEEP_ENTITY_GRAPH);
     		}
     	}
     	return new PagedResult<Booking>(results, maxResults, offset, totalCount);

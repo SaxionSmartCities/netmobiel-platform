@@ -483,19 +483,20 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	PersistenceUnitUtil puu = em.getEntityManagerFactory().getPersistenceUnitUtil();
     	assertFalse(em.contains(rut));
     	assertNotNull(rut);
-    	assertFalse(puu.isLoaded(rut, Ride_.BOOKINGS));
+    	assertTrue(puu.isLoaded(rut, Ride_.BOOKINGS));
     	assertTrue(puu.isLoaded(rut, Ride_.CAR));
     	assertTrue(puu.isLoaded(rut, Ride_.DRIVER));
-    	assertTrue(puu.isLoaded(rut, Ride_.LEGS));
+    	assertFalse(puu.isLoaded(rut, Ride_.LEGS));
     	assertTrue(puu.isLoaded(rut, Ride_.RIDE_TEMPLATE));
 
-    	assertNotNull(rut.getRideTemplate());
-    	assertNotNull(rut.getRideTemplate().getRecurrence().getInterval());
+    	assertEquals(0, rut.getBookings().size());
     	assertNotNull(rut.getCar().getLicensePlate());
     	assertNotNull(rut.getCarRef());
-    	assertNotNull(rut.getDriver().getManagedIdentity());
-    	assertNotNull(rut.getDriverRef());
-    	assertEquals(1, rut.getLegs().size());
+//    	assertNotNull(rut.getDriver().getManagedIdentity());
+//    	assertNotNull(rut.getDriverRef());
+//    	assertEquals(1, rut.getLegs().size());
+    	assertNotNull(rut.getRideTemplate());
+    	assertNotNull(rut.getRideTemplate().getRecurrence().getInterval());
     }
 
     @Test
@@ -518,13 +519,12 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	assertFalse(puu.isLoaded(rut, Ride_.BOOKINGS));
     	assertTrue(puu.isLoaded(rut, Ride_.CAR));
     	assertTrue(puu.isLoaded(rut, Ride_.DRIVER));
-    	assertTrue(puu.isLoaded(rut, Ride_.LEGS));
+    	assertFalse(puu.isLoaded(rut, Ride_.LEGS));
     	assertFalse(puu.isLoaded(rut, Ride_.RIDE_TEMPLATE));
 
     	assertNotNull(rut.getCar().getLicensePlate());
     	assertNotNull(rut.getCarRef());
     	assertNotNull(rut.getDriver().getManagedIdentity());
     	assertNotNull(rut.getDriverRef());
-    	assertEquals(1, rut.getLegs().size());
     }
 }

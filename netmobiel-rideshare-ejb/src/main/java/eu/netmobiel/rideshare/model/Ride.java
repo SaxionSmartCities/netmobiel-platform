@@ -40,10 +40,31 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 	name = Ride.SEARCH_RIDES_ENTITY_GRAPH, 
 	attributeNodes = { 
 			@NamedAttributeNode(value = "car"),		
-			@NamedAttributeNode(value = "driver"),		
-			@NamedAttributeNode(value = "legs")
+			@NamedAttributeNode(value = "driver")
 	}
 )
+@NamedEntityGraph(
+		name = Ride.LIST_RIDES_ENTITY_GRAPH, 
+		attributeNodes = { 
+				@NamedAttributeNode(value = "bookings", subgraph = "booking-details"),		
+				@NamedAttributeNode(value = "car"),		
+				@NamedAttributeNode(value = "driver"),
+				@NamedAttributeNode(value = "rideTemplate", subgraph = "template-details")		
+		}, subgraphs = {
+				@NamedSubgraph(
+						name = "template-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "recurrence")
+						}
+					),
+				@NamedSubgraph(
+						name = "booking-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "passenger")
+						}
+					)
+		}
+	)
 // Get the details of a ride: template recurrence, car, driver, legs. The legs do not specify bookings. 
 @NamedEntityGraph(
 	name = Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH, 
@@ -69,6 +90,7 @@ public class Ride extends RideBase implements Serializable {
 	private static final long serialVersionUID = 4342765799358026502L;
 	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix("ride");
 	public static final String SEARCH_RIDES_ENTITY_GRAPH = "search-rides-graph";
+	public static final String LIST_RIDES_ENTITY_GRAPH = "list-rides-graph";
 	public static final String DETAILS_WITH_LEGS_ENTITY_GRAPH = "ride-details-graph";
 
 	@Id

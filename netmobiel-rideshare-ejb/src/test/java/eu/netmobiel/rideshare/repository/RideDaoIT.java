@@ -25,6 +25,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.rideshare.Resources;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
@@ -124,6 +125,14 @@ public class RideDaoIT {
         utx.commit();
     }
     
+	protected void flush() throws Exception {
+		utx.commit();
+		// clear the persistence context (first-level cache)
+		em.clear();
+		utx.begin();
+		em.joinTransaction();
+	}
+
     private void saveNewRide(Ride r) {
     	rideDao.save(r);
     	r.getStops().forEach(stop -> em.persist(stop));
@@ -172,5 +181,73 @@ public class RideDaoIT {
     @Test
     public void findRidesBeyondTemplate_After() {
     	findRidesBeyondTemplateSetup(120 * 60, 1);
+    }
+
+    @Test
+    public void listRides_NoFilter() {
+    	Instant departureTime = Instant.parse("2020-06-02T00:00:00Z");
+    	Ride r1 = Fixture.createRideObject(car1, departureTime, null);
+    	saveNewRide(r1);
+    	
+    	PagedResult<Long> rides = rideDao.findByDriver(driver1, null, null, null, 0, 0);
+    	assertNotNull(rides);
+    	assertEquals(1, rides.getTotalCount().intValue());
+    }
+
+    @Test
+    public void listRides_Since() {
+    	Instant departureTime = Instant.parse("2020-06-02T00:00:00Z");
+    	Ride r1 = Fixture.createRideObject(car1, departureTime, null);
+    	saveNewRide(r1);
+    	
+    	Instant since = Instant.parse("2020-06-01T00:00:00Z");
+    	PagedResult<Long> rides = rideDao.findByDriver(driver1, since, null, null, 0, 0);
+    	assertNotNull(rides);
+    	assertEquals(1, rides.getTotalCount().intValue());
+
+    	since = Instant.parse("2020-06-03T00:00:00Z");
+    	rides = rideDao.findByDriver(driver1, since, null, null, 0, 0);
+    	assertNotNull(rides);
+    	assertEquals(0, rides.getTotalCount().intValue());
+    }
+
+    @Test
+    public void listRides_Until() {
+    	Instant departureTime = Instant.parse("2020-06-02T00:00:00Z");
+    	Ride r1 = Fixture.createRideObject(car1, departureTime, null);
+    	saveNewRide(r1);
+
+    	Instant until = Instant.parse("2020-06-01T00:00:00Z");
+    	PagedResult<Long> rides = rideDao.findByDriver(driver1, null, until, null, 0, 0);
+    	assertNotNull(rides);
+    	assertEquals(0, rides.getTotalCount().intValue());
+
+    	until = Instant.parse("2020-06-03T00:00:00Z");
+    	rides = rideDao.findByDriver(driver1, null, until, null, 0, 0);
+    	assertNotNull(rides);
+    	assertEquals(1, rides.getTotalCount().intValue());
+    }
+
+    @Test
+    public void listRides_Deleted() throws Exception {
+    	Instant departureTime = Instant.parse("2020-06-02T00:00:00Z");
+    	Ride r1 = Fixture.createRideObject(car1, departureTime, null);
+    	saveNewRide(r1);
+
+    	Boolean deletedToo = Boolean.FALSE;
+    	PagedResult<Long> rides = rideDao.findByDriver(driver1, null, null, deletedToo, 0, 0);
+    	assertNotNull(rides);
+    	assertEquals(1, rides.getTotalCount().intValue());
+
+    	r1.setDeleted(true);
+    	flush();
+    	rides = rideDao.findByDriver(driver1, null, null, deletedToo, 0, 0);
+    	assertNotNull(rides);
+    	assertEquals(0, rides.getTotalCount().intValue());
+
+    	deletedToo = Boolean.TRUE;
+    	rides = rideDao.findByDriver(driver1, null, null, deletedToo, 0, 0);
+    	assertNotNull(rides);
+    	assertEquals(1, rides.getTotalCount().intValue());
     }
 }

@@ -57,7 +57,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Ride> rides = cq.from(Ride.class);
         List<Predicate> predicates = new ArrayList<>();
-        Predicate predDriver = cb.equal(rides.get(Ride_.rideTemplate).get(RideTemplate_.driver), driver);
+        Predicate predDriver = cb.equal(rides.get(RideTemplate_.driver), driver);
         predicates.add(predDriver);
         if (since != null) {
 	        Predicate predSince = cb.greaterThanOrEqualTo(rides.get(Ride_.departureTime), since);

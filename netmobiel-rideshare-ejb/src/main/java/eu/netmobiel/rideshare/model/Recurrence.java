@@ -47,13 +47,13 @@ public class Recurrence implements Serializable {
 	 * weeks. Interval is a reserved word in Postgresql.
 	 */
 
-	@Column(name = "recurrence_interval")
+	@Column(name = "recurrence_interval", nullable = false)
 	private Integer interval;
 
 	/**
 	 * The unit of the interval.
 	 */
-	@Column(name = "recurrence_unit", length = 1)
+	@Column(name = "recurrence_unit", length = 1, nullable = false)
 	private TimeUnit unit;
 
 	/**

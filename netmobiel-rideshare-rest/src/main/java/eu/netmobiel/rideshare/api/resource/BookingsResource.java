@@ -45,6 +45,9 @@ public class BookingsResource implements BookingsApi {
      * @return an array of bookings.
      */
     public Response getBookings(OffsetDateTime sinceDate, OffsetDateTime untilDate, Integer maxResults, Integer offset) {
+    	if (sinceDate == null) {
+    		sinceDate = OffsetDateTime.now();
+    	}
     	PagedResult<Booking> bookings;
     	Long userId = userManager.findCallingUser().getId();
 		try {

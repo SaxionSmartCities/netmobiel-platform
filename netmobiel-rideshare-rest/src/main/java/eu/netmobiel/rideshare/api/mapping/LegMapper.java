@@ -3,9 +3,8 @@ package eu.netmobiel.rideshare.api.mapping;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
-import java.util.stream.Collectors;
 
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
@@ -34,10 +33,10 @@ public abstract class LegMapper {
     @LegDetails
 	public abstract eu.netmobiel.rideshare.api.model.Leg mapDetails(Leg source);
 
+    @BeanMapping(ignoreByDefault = true)
+    @Mapping(target = "legRef", source = "legRef")
     @LegReference
-	public List<String> mapReferences(List<Leg> source) {
-		return source.stream().map(Leg::getLegRef).collect(Collectors.toList());
-	}
+	public abstract eu.netmobiel.rideshare.api.model.Leg mapReferencesOnly(Leg source);
 
     // Instant --> OffsetDateTime
     public  OffsetDateTime map(Instant instant) {

@@ -25,7 +25,6 @@ import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Booking_;
 import eu.netmobiel.rideshare.model.Ride;
-import eu.netmobiel.rideshare.model.Ride_;
 import eu.netmobiel.rideshare.model.User;
 
 @ApplicationScoped
@@ -72,11 +71,11 @@ public class BookingDao extends AbstractDao<Booking, Long> {
         Predicate predPassenger = cb.equal(bookings.get(Booking_.passenger), passenger);
         predicates.add(predPassenger);
         if (since != null) {
-	        Predicate predSince = cb.greaterThanOrEqualTo(bookings.get(Booking_.ride).get(Ride_.departureTime), since);
+	        Predicate predSince = cb.greaterThanOrEqualTo(bookings.get(Booking_.departureTime), since);
 	        predicates.add(predSince);
         }        
         if (until != null) {
-	        Predicate predUntil = cb.lessThanOrEqualTo(bookings.get(Booking_.ride).get(Ride_.departureTime), until);
+	        Predicate predUntil = cb.lessThanOrEqualTo(bookings.get(Booking_.departureTime), until);
 	        predicates.add(predUntil);
         }        
         if (!cancelledToo) {
@@ -91,7 +90,7 @@ public class BookingDao extends AbstractDao<Booking, Long> {
             totalCount = em.createQuery(cq).getSingleResult();
         } else {
             cq.select(bookings.get(Booking_.id));
-            cq.orderBy(cb.desc(bookings.get(Booking_.ride).get(Ride_.departureTime)));
+            cq.orderBy(cb.desc(bookings.get(Booking_.departureTime)));
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
 			tq.setMaxResults(maxResults);

@@ -22,7 +22,7 @@ import eu.netmobiel.rideshare.model.Ride;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
-		uses = { RideMapper.class })
+		uses = { RideMapper.class, BookingMapper.class })
 public abstract class PageMapper {
 	// Domain page with rides --> Api page of rides
 	@Mapping(target = "data", source = "data", qualifiedBy = { RideMapperQualifier.class, RideDetails.class } )

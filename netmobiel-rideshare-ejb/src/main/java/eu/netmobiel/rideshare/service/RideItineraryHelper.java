@@ -82,13 +82,12 @@ public class RideItineraryHelper {
     	// We do not touch the collection side of legs and stops.
     	// FIXME Allow transfer time for pickup and drop-off of the passenger
 
-    	// Get rid of the old leg references
-    	List<Booking> bookings = bookingDao.findByRide(ride);
-    	bookings.forEach(b -> b.getLegs().clear());
     	
     	//TODO verify the order of the stops as retrieved. Does it follow the orderby column?
     	List<Stop> oldStops = stopDao.listStops(ride);
     	List<Leg> oldLegs = legDao.listLegs(ride);
+    	// Get rid of the old booking references
+    	ride.getLegs().forEach(leg -> leg.getBookings().clear());
     	ride.getStops().clear();
     	ride.getLegs().clear();
     	
@@ -159,22 +158,23 @@ public class RideItineraryHelper {
     	// For each booking: Determine the first leg and the last leg, then add intermediate legs.
     	// In case of a single booking there is always just one leg. 
     	ClosenessFilter closenessFilter = new ClosenessFilter(MAX_BOOKING_LOCATION_SHIFT);
+    	List<Booking> bookings = bookingDao.findByRide(ride);
     	for (Booking booking : bookings) {
     		if (booking.isDeleted()) {
     			continue;
     		}
-    		// Do away with old relation
-//    		booking.getLegs().clear();
-    		Leg start = newLegs.stream()
+    		Leg start = ride.getLegs().stream()
     				.filter(leg -> closenessFilter.test(leg.getFrom().getLocation(), booking.getPickup()))
     				.findFirst()
     				.orElseThrow(() -> new IllegalStateException("Cannot find first leg for booking"));
-    		Leg last = newLegs.stream()
+    		Leg last = ride.getLegs().stream()
     				.filter(leg -> closenessFilter.test(leg.getTo().getLocation(), booking.getDropOff()))
     				.findFirst()
     				.orElseThrow(() -> new IllegalStateException("Cannot find last leg for booking"));
     		// Get the start, the end and everything in between and add them to the booking 
-			booking.getLegs().addAll(ride.getLegs().subList(ride.getLegs().indexOf(start), ride.getLegs().indexOf(last) + 1));
+			ride.getLegs()
+				.subList(ride.getLegs().indexOf(start), ride.getLegs().indexOf(last) + 1)
+				.forEach(leg -> leg.getBookings().add(booking));
 		}
     	int distance = newLegs.stream().collect(Collectors.summingInt(Leg::getDistance));
     	ride.setDistance(distance);
