@@ -40,6 +40,7 @@ import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.MinumumDistanceFilter;
 import eu.netmobiel.opentripplanner.api.model.Itinerary;
 import eu.netmobiel.opentripplanner.api.model.Leg;
+import eu.netmobiel.opentripplanner.api.model.Message;
 import eu.netmobiel.opentripplanner.api.model.PlanResponse;
 import eu.netmobiel.opentripplanner.api.model.TraverseMode;
 
@@ -166,7 +167,7 @@ public class OpenTripPlannerClient {
     			.collect(Collectors.toList());
     	if (places.size() < 2) {
     		// This can only mean that the ride has from an do very close
-    		throw new NotFoundException("Ride departure and arrival location are too close");
+    		throw new NotFoundException("Ride departure and arrival location are too close", Message.TOO_CLOSE.name());
     	}
    		List<GeoLocation> vias = places.subList(1, places.size() - 1);
 		
