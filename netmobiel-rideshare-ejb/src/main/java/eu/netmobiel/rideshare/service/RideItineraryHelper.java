@@ -151,9 +151,6 @@ public class RideItineraryHelper {
     		stopDao.remove(oldStop);
 		}
     	
-    	if (log.isDebugEnabled()) {
-    		log.debug("Updated itinerary (connect booking): " + ride.toString());
-    	}
     	// Compute the leg - booking relationship
     	// For each booking: Determine the first leg and the last leg, then add intermediate legs.
     	// In case of a single booking there is always just one leg. 
@@ -189,6 +186,9 @@ public class RideItineraryHelper {
     	} else {
     		Stop arrivalStop = newLegs.get(newLegs.size() - 1).getTo();
     		ride.setArrivalTime(arrivalStop.getArrivalTime());
+    	}
+    	if (log.isDebugEnabled()) {
+    		log.debug("Updated itinerary: " + ride.toString());
     	}
     }
 
