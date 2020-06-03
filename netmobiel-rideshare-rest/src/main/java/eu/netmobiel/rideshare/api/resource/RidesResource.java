@@ -2,7 +2,6 @@ package eu.netmobiel.rideshare.api.resource;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.stream.Stream;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
@@ -135,7 +134,7 @@ public class RidesResource implements RidesApi {
     	Response rsp = null;
     	try {
 			Ride ride = mapper.map(ridedt);
-    		RideScope rs = readRideScope(scope);
+    		RideScope rs = scope == null ? RideScope.THIS: RideScope.lookup(scope);
 			rideManager.updateRide(ride, rs);
 			rsp = Response.noContent().build();
 		} catch (ApplicationException e) {
@@ -144,13 +143,6 @@ public class RidesResource implements RidesApi {
     	return rsp;
     }
 
-    private RideScope readRideScope(String scope) {
-		return scope == null ? RideScope.THIS : Stream.of(RideScope.values())
-		          .filter(c -> c.getCode().equals(scope))
-		          .findFirst()
-		          .orElseThrow(() -> new IllegalArgumentException("No such scope: " + scope));
-    }
-    
     /**
      * Deletes a ride. If a ride is already booked then the ride is soft deleted. Soft deleted rides are 
      * default not listed and can never be found.
@@ -164,7 +156,7 @@ public class RidesResource implements RidesApi {
 	public Response deleteRide(String rideId, String scope, String reason) {
     	Response rsp = null;
     	try {
-    		RideScope rs = readRideScope(scope);
+    		RideScope rs = scope == null ? RideScope.THIS: RideScope.lookup(scope);
         	Long cid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideId);
 			rideManager.removeRide(cid, reason, rs);
 			rsp = Response.noContent().build();
