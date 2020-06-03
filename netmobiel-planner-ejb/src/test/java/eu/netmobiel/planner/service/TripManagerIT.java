@@ -534,7 +534,7 @@ public class TripManagerIT {
         assertNotNull(trips);
         assertEquals(nrTripsStart + 1, trips.getData().size());
 
-        tripManager.removeTrip(id);
+        tripManager.removeTrip(id, null);
     	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
         assertNotNull(trips);
         assertEquals(nrTripsStart, trips.getData().size());
@@ -565,7 +565,7 @@ public class TripManagerIT {
         // Make it only soft-deletable. Auto book the trip so it will be scheduled.
     	Long id3 = tripManager.createTrip(traveller, trip3, true);
         assertNotNull(id3);
-        tripManager.removeTrip(id3);
+        tripManager.removeTrip(id3, "Ik ga toch maar niet op reis");
         
         // List all non-deleted trips
     	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
