@@ -192,88 +192,6 @@ paths:
       operationId: searchPlan
       summary: Search for itineraries for a trip.
       description: Search and retrieve matching itineraries.
-  /trips:
-    summary: Path used to manage the list of trips.
-    description: The REST endpoint/path used to list and create zero or more `Trip`
-      entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
-    get:
-      parameters:
-      - name: user
-        description: |-
-          the user id owning the trips. This parameter needs admin powers. The format of the user id is the database id of planner user, or an urn reference. Two formats are allowed:
-          urn:nb:pl:user:{primary-key}
-          urn:nb:kc:user:{managed-identity}
-        schema:
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-11-30T12:00:00+01:00
-        name: since
-        description: The departure date at which to start the listing. Default is
-          today (local server date), effectively listing all planned trips starting
-          last midnight.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-12-15T14:00:00+01:00
-        name: until
-        description: The departure date and later not to include in the listing of
-          trips. The `until` date must be after the `since` parameter. Default is
-          not set, meaning all trips (after since).
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: deletedToo
-        description: Set this flag to 'true' if deleted trips should be returned as
-          well. Default is false.
-        schema:
-          type: boolean
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a page with an array of `Trip`
-            entities.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      operationId: getTrips
-      summary: List All trips
-      description: Gets a list of all `Trip` entities owned by the calling user.
-    post:
-      requestBody:
-        description: A new `Trip` to be created.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Trip'
-        required: true
-      responses:
-        "201":
-          description: Successful response.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      operationId: createTrip
-      summary: Create a Trip
-      description: Creates a new instance of a `Trip`.
   /shout-outs:
     summary: Path used to manage the list of trips in planning state thate have unfulfilled
       legs.
@@ -428,6 +346,100 @@ paths:
       operationId: getGeocodeSuggestions
       summary: List All trips
       description: Gets a list of `GeocodeSuggestion` entities, given the parameters.
+  /trips:
+    summary: Path used to manage the list of trips.
+    description: The REST endpoint/path used to list and create zero or more `Trip`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - name: user
+        description: |-
+          the user id owning the trips. This parameter needs admin powers. The format of the user id is the database id of planner user, or an urn reference. Two formats are allowed:
+          urn:nb:pl:user:{primary-key}
+          urn:nb:kc:user:{managed-identity}
+        schema:
+          type: string
+        in: query
+      - name: state
+        description: The specific trip state to filter. To find the shout-out trips
+          specify `PLANNING`.
+        schema:
+          enum:
+          - PLANNING
+          - BOOKING
+          - SCHEDULED
+          - IN_TRANSIT
+          - COMPLETED
+          - CANCELLED
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The departure date at which to start the listing. Default is
+          now.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The departure date and later not to include in the listing of
+          trips. The `until` date must be after the `since` parameter. Default is
+          not set, meaning all trips (after since).
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: deletedToo
+        description: Set this flag to 'true' if deleted trips should be returned as
+          well. Default is false.
+        schema:
+          type: boolean
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a page with an array of `Trip`
+            entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: getTrips
+      summary: List All trips
+      description: Gets a list of all `Trip` entities owned by the calling user.
+    post:
+      requestBody:
+        description: A new `Trip` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: createTrip
+      summary: Create a Trip
+      description: Creates a new instance of a `Trip`.
 components:
   schemas:
     MaintenanceStatus:
