@@ -2,6 +2,7 @@ package eu.netmobiel.rideshare.model;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -387,5 +388,19 @@ public class Booking implements Serializable {
     public int hashCode() {
         return 31;
     }
+
+	@Override
+	public String toString() {
+		return String.format("Booking %d on Ride %d %s %s D %s A %s from %s to %s #%d seat(s)",
+				getId(),
+				getRide().getId(),
+				getPassenger().getManagedIdentity(), 
+				getState().name(), 
+				DateTimeFormatter.ISO_INSTANT.format(getDepartureTime()), 
+				DateTimeFormatter.ISO_INSTANT.format(getArrivalTime()),
+				getPickup().toString(), 
+				getDropOff().toString(),
+				getNrSeats());
+	}
 
 }
