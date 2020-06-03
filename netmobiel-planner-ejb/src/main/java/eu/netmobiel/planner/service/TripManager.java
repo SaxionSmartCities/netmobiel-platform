@@ -216,7 +216,7 @@ public class TripManager {
     public void removeTrip(Long tripId) throws NotFoundException {
     	Trip tripdb = tripDao.find(tripId)
     			.orElseThrow(NotFoundException::new);
-    	userManager.checkOwnership(tripdb.getTraveller(), Trip.class.getSimpleName());
+//    	userManager.checkOwnership(tripdb.getTraveller(), Trip.class.getSimpleName());
     	if (tripdb.getState() == TripState.PLANNING) {
     		// Hard delete
 			tripDao.remove(tripdb);
