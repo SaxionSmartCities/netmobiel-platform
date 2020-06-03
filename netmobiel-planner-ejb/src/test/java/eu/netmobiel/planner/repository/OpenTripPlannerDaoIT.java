@@ -30,7 +30,7 @@ import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
-import eu.netmobiel.rideshare.repository.mapping.LegMapper;
+import eu.netmobiel.planner.repository.mapping.TripPlanMapper;
 
 @RunWith(Arquillian.class)
 public class OpenTripPlannerDaoIT {
@@ -46,7 +46,7 @@ public class OpenTripPlannerDaoIT {
                 .addAsLibraries(deps)
 //                .addPackage(PlannerUrnHelper.class.getPackage())
             .addPackages(true, TripPlan.class.getPackage())
-            .addPackages(true, LegMapper.class.getPackage())
+            .addPackages(true, TripPlanMapper.class.getPackage())
             .addClass(OpenTripPlannerDao.class)
 //            .addClass(Resources.class)
         	.addAsWebInfResource("jboss-deployment-structure.xml")
@@ -143,10 +143,10 @@ public class OpenTripPlannerDaoIT {
     		otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, null, 1);
 			fail("Expected a BadRequest");
 		} catch (NotFoundException e) {
-			fail("Did not expect " + e);
-		} catch (BadRequestException e) {
 			assertNotNull(e.getVendorCode());
 			assertEquals("TOO_CLOSE", e.getVendorCode());
+		} catch (BadRequestException e) {
+			fail("Did not expect " + e);
 			
 		}
 	}
