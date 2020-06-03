@@ -70,12 +70,15 @@ public class TripsResource implements TripsApi {
     	Response rsp = null;
     	try {
         	Long tid = PlannerUrnHelper.getId(Trip.URN_PREFIX, tripId);
-			tripManager.removeTrip(tid);
+        	String reason = null;
+			tripManager.removeTrip(tid, reason);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);
 		} catch (NotFoundException e) {
 	    	rsp = Response.status(Status.GONE).build();
+		} catch (ApplicationException ex) {
+			throw new WebApplicationException(ex);
 		}
     	return rsp;
 	}
