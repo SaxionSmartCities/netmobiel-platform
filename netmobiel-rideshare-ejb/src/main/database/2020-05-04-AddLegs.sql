@@ -149,8 +149,8 @@ CREATE SEQUENCE public.leg_id_seq
 --ALTER SEQUENCE public.leg_id_seq OWNER TO rideshare;
 
 -- Create legs
-INSERT INTO leg (id, ride, distance, duration, from_stop, to_stop, leg_geometry)
-	SELECT nextval('leg_id_seq'),r.id, r.distance, rt.estimated_driving_time, null, null, null 
+INSERT INTO leg (id, ride, distance, duration, from_stop, to_stop, leg_geometry, leg_ix)
+	SELECT nextval('leg_id_seq'),r.id, r.distance, rt.estimated_driving_time, null, null, null, 0 
 	FROM ride r JOIN ride_template rt ON r.ride_template = rt.id
 ;
 
