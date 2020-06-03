@@ -13,6 +13,7 @@ import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.util.ExceptionUtil;
 
@@ -45,6 +46,8 @@ public class ApplicationExceptionMapper implements
 		} else if (e instanceof CreateException) {
 			status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
 		} else if (e instanceof UpdateException) {
+			status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
+		} else if (e instanceof RemoveException) {
 			status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
 		}
 		ErrorResponse err = new ErrorResponse(status, e.getVendorCode(), String.join(" - ", msgs));
