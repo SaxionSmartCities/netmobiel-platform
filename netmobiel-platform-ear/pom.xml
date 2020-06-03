@@ -78,6 +78,12 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-overseer-ejb</artifactId>
+			<version>${project.version}</version>
+			<type>ejb</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
 			<artifactId>netmobiel-planner-api</artifactId>
 			<version>${project.version}</version>
 			<type>jar</type>
@@ -167,6 +173,11 @@
 				<groupId>${project.groupId}</groupId>
 				<artifactId>netmobiel-communicator-ejb</artifactId>
               	<bundleFileName>netmobiel-communicator-ejb.jar</bundleFileName>
+            </ejbModule>
+		    <ejbModule>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-overseer-ejb</artifactId>
+              	<bundleFileName>netmobiel-overseer-ejb.jar</bundleFileName>
             </ejbModule>
 		    <ejbModule>
 				<groupId>${project.groupId}</groupId>

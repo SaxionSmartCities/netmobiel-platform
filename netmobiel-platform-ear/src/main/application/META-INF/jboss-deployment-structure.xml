@@ -43,6 +43,14 @@
             <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
         </exclusions>
     </sub-deployment>
+    <sub-deployment name="netmobiel-overseer-ejb.jar">
+        <dependencies>
+        	<module name="org.keycloak.keycloak-core"/>
+        </dependencies>
+        <exclusions>
+            <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
+        </exclusions>
+    </sub-deployment>
     <sub-deployment name="netmobiel-planner-ejb.jar">
         <dependencies>
         	<module name="org.keycloak.keycloak-core"/>
