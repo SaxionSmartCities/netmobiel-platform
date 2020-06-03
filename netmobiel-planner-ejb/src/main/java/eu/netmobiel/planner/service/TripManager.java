@@ -6,7 +6,6 @@ import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 
-import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
@@ -37,8 +36,6 @@ public class TripManager {
 
     @Inject
     private TripDao tripDao;
-    @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
-    private UserManager userManager;
 
     @Inject
     private BookingManager bookingManager;
@@ -47,7 +44,7 @@ public class TripManager {
      * List all trips owned by the specified user. Soft deleted trips are omitted.
      * @return A list of trips owned by the specified user.
      */
-    public PagedResult<Trip> listTrips(User traveller, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
+    public PagedResult<Trip> listTrips(User traveller, TripState state, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
     	if (until != null && since != null && !until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
     	}
@@ -69,46 +66,17 @@ public class TripManager {
         List<Trip> results = Collections.emptyList();
         Long totalCount = 0L;
     	if (traveller != null && traveller.getId() != null) {
-    		PagedResult<Long> prs = tripDao.findByTraveller(traveller, since, until, deletedToo, 0, 0);
+    		PagedResult<Long> prs = tripDao.findByTraveller(traveller, state, since, until, deletedToo, 0, 0);
     		totalCount = prs.getTotalCount();
         	if (totalCount > 0 && maxResults > 0) {
         		// Get the actual data
-        		PagedResult<Long> tripIds = tripDao.findByTraveller(traveller, since, until, deletedToo, maxResults, offset);
+        		PagedResult<Long> tripIds = tripDao.findByTraveller(traveller, state, since, until, deletedToo, maxResults, offset);
         		if (tripIds.getData().size() > 0) {
         			results = tripDao.fetch(tripIds.getData(), Trip.LIST_TRIPS_ENTITY_GRAPH);
         		}
         	}
     	} 
     	return new PagedResult<Trip>(results, maxResults, offset, totalCount);
-    }
-
-    /**
-     * List all trips owned by  the calling user. Soft deleted trips are omitted.
-     * @return A list of trips owned by the calling user.
-     */
-    public PagedResult<Trip> listMyTrips(Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
-    	return listTrips(userManager.findCallingUser(), since, until, deletedToo, maxResults, offset);
-    }
-    
-    /**
-     * List all trips owned by the specified. Soft deleted trips are omitted.
-     * @return A list of trips owned by the specified user.
-     */
-    public PagedResult<Trip> listTrips(String userRef, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
-    	User traveller = null;
-    	if (userRef == null) {
-    		traveller = userManager.findCallingUser();
-    	} else {
-    		traveller = userManager.resolveUrn(userRef).orElse(null);
-    	}
-    	PagedResult<Trip> results = null;
-    	if (traveller != null && traveller.getId() != null) {
-        	// Only retrieve if a user exists in the trip service
-    		results = listTrips(traveller, since, until, deletedToo, maxResults, offset);
-    	} else {
-    		results = PagedResult.<Trip>empty();
-    	}
-    	return results;
     }
 
     private void validateCreateUpdateTrip(Trip trip)  throws BadRequestException {
@@ -142,22 +110,6 @@ public class TripManager {
            	updateTripState(trip);
        	}
     	return trip.getId();
-    }
-
-    public Long createTrip(User traveller, Trip trip) throws BadRequestException, CreateException {
-    	return createTrip(traveller,  trip, true);
-    }
-    
-    /**
-     * Creates a trip. 
-     * @param trip the new trip
-     * @param autobook If set then start the booking process of each leg.
-     * @return The ID of the trip just created.
-     * @throws CreateException In case of trouble, like wrong parameter values.
-     * @throws BadRequestException In case of bad parameters.
-     */
-    public Long createTrip(Trip trip, boolean autobook) throws BadRequestException, CreateException {
-    	return createTrip(userManager.registerCallingUser(), trip, autobook);
     }
 
     protected void startBookingProcessIfNecessary(User traveller, Trip trip, Leg leg) throws CreateException, BadRequestException {

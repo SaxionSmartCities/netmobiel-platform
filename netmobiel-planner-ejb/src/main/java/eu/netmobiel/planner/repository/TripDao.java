@@ -53,13 +53,16 @@ public class TripDao extends AbstractDao<Trip, Long> {
 		return em;
 	}
 
-    public PagedResult<Long> findByTraveller(User traveller, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) {
+    public PagedResult<Long> findByTraveller(User traveller, TripState state, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Trip> trips = cq.from(Trip.class);
         List<Predicate> predicates = new ArrayList<>();
         Predicate predTraveller = cb.equal(trips.get(Trip_.traveller), traveller);
         predicates.add(predTraveller);
+        if (state != null) {
+            predicates.add(cb.equal(trips.get(Trip_.state), state));
+        }
         if (since != null) {
 	        Predicate predSince = cb.greaterThanOrEqualTo(trips.get(Trip_.departureTime), since);
 	        predicates.add(predSince);

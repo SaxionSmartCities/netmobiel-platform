@@ -1,7 +1,6 @@
 package eu.netmobiel.planner.service;
 
 import java.time.Instant;
-import java.time.LocalDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -37,7 +36,6 @@ import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.repository.OpenTripPlannerDao;
 import eu.netmobiel.planner.repository.OtpClusterDao;
 import eu.netmobiel.rideshare.model.Ride;
-import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.service.RideManager;
 
 @Stateless
