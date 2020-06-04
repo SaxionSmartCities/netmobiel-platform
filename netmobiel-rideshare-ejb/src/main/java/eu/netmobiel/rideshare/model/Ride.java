@@ -270,7 +270,8 @@ public class Ride extends RideBase implements Serializable {
     @Override
     public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("Ride D ");
+		builder.append("Ride ").append(getId());
+		builder.append(" D ");
 		builder.append(formatTime(getDepartureTime())).append(" A ");
 		builder.append(formatTime(getArrivalTime())).append(" ");
 		builder.append(getDuration()).append("s ");
