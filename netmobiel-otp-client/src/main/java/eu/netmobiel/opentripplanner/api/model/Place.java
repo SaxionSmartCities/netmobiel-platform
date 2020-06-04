@@ -2,7 +2,7 @@ package eu.netmobiel.opentripplanner.api.model;
 
 import java.text.DecimalFormat;
 import java.time.Instant;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
@@ -133,7 +133,7 @@ public class Place {
     }
     
     private String formatTime(Instant instant) {
-    	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
+    	return DateTimeFormatter.ISO_TIME.format(instant.atOffset(ZoneOffset.UTC));
     }
     
 	@Override

@@ -2,7 +2,7 @@ package eu.netmobiel.planner.model;
 
 import java.io.Serializable;
 import java.time.Instant;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
@@ -171,7 +171,7 @@ public class Stop implements Serializable {
 	}
 
     private String formatTime(Instant instant) {
-    	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
+    	return DateTimeFormatter.ISO_TIME.format(instant.atOffset(ZoneOffset.UTC));
     }
     
 	@Override

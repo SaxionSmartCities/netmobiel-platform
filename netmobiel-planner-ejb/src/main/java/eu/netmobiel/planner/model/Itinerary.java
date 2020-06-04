@@ -3,7 +3,7 @@ package eu.netmobiel.planner.model;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -209,19 +209,8 @@ public class Itinerary implements Serializable {
 		this.score = score;
 	}
 
-//    private String formatTime(Instant instant) {
-//    	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
-//    }
-//    
-//
-//	@Override
-//	public String toString() {
-//		return String.format("Itinerary [D %s A %s from %s to %s]",
-//				DateTimeFormatter.ISO_DATE_TIME.format(departureTime), DateTimeFormatter.ISO_DATE_TIME.format(departureTime));
-//	}
-
     private String formatTime(Instant instant) {
-    	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
+    	return DateTimeFormatter.ISO_TIME.format(instant.atOffset(ZoneOffset.UTC));
     }
 
     public String toStringCompact() {

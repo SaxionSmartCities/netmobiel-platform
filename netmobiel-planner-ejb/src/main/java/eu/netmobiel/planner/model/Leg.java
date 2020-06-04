@@ -523,10 +523,15 @@ public class Leg implements Serializable {
 		if (intermediateStops != null && !intermediateStops.isEmpty()) {
 			builder.append("\n\t\t\t").append(intermediateStops.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t\t\t"))).append("");
 		}
+		return builder.toString();
+	}
+    
+	public String toStringFull() {
+		StringBuilder builder = new StringBuilder();
+		builder.append(toString());
 		if (guideSteps != null && !guideSteps.isEmpty()) {
 			builder.append("\n\t\t\t\t").append(guideSteps.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t\t\t\t"))).append("");
 		}
 		return builder.toString();
 	}
-    
 }

@@ -1,7 +1,6 @@
 package eu.netmobiel.opentripplanner.api.model;
 
 import java.time.Instant;
-import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
@@ -33,7 +32,7 @@ public class TripPlan {
     }
 
     private String formatTime(Instant instant) {
-    	return DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(date.atZone(ZoneId.systemDefault()).toLocalDateTime());
+    	return DateTimeFormatter.ISO_INSTANT.format(date);
     }
     
     @Override
