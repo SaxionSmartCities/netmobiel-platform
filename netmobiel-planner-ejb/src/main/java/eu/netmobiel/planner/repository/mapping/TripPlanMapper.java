@@ -93,11 +93,15 @@ public abstract class TripPlanMapper {
     		if (previous == null) {
     			itinerary.setStops(new ArrayList<>());
     			itinerary.getStops().add(leg.getFrom());
-    		} else if (! previous.equals(leg.getFrom() )) {
-    			log.warn(String.format("Leg connecting stop inconsistency detected: Arrival stop was %s, departure stop is %s", previous.toString(), leg.getFrom().toString()));
-    			// Hmmm ok, keep the hole between the legs then, what else can we do?
-    			itinerary.getStops().add(leg.getFrom());
     		} else {
+    			if (! previous.equals(leg.getFrom() )) {
+        			long distance = Math.round(previous.getLocation().getDistanceFlat(leg.getFrom().getLocation()) * 1000);
+        			if (distance > 100) {
+        				log.warn(String.format("Leg connecting stop inconsistency detected: Arrival stop was %s, departure stop is %s, displacement = %d meter", 
+        						previous.toString(), leg.getFrom().toString(), distance));
+        			}
+    			}
+    			// Nevermind the gap, we must close the graph
     			leg.setFrom(previous);
     		}
 			itinerary.getStops().add(leg.getTo());
