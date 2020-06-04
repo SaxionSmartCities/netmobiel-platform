@@ -1,6 +1,9 @@
 package eu.netmobiel.commons.util;
 
 import java.io.Serializable;
+import java.lang.reflect.Array;
+import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.annotation.Priority;
 import javax.inject.Inject;
@@ -46,7 +49,15 @@ public class DebugLogger implements Serializable {
 					}
 					sb.append(" ");
 					try {
-						sb.append(StringUtils.abbreviate(o.toString(), 80));
+						String value;
+						if (o.getClass().isArray()) {
+							value = "{ "+ IntStream.range(0, Array.getLength(o))
+									.mapToObj(i -> Array.get(o, i).toString())
+									.collect(Collectors.joining(", ")) + " }";
+						} else {
+							value = o.toString();
+						}
+						sb.append(StringUtils.abbreviate(value, 80));
 					} catch (Exception ex) {
 						// Probably not initialized, ignore
 						sb.append("<proxy>");
