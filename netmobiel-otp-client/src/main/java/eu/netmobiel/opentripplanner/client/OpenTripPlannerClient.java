@@ -37,6 +37,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.MinumumDistanceFilter;
 import eu.netmobiel.opentripplanner.api.model.Itinerary;
 import eu.netmobiel.opentripplanner.api.model.Leg;
@@ -45,6 +46,7 @@ import eu.netmobiel.opentripplanner.api.model.PlanResponse;
 import eu.netmobiel.opentripplanner.api.model.TraverseMode;
 
 @ApplicationScoped
+@Logging
 public class OpenTripPlannerClient {
     
     private static final String OTP_GRAPHQL_REQUEST = "/routers/nl/index/graphql"; 
@@ -239,6 +241,14 @@ public class OpenTripPlannerClient {
 					leg.endTime = leg.endTime.minusSeconds(it.duration);
 				}
 			}
+		}
+		// Repair the invalid calculation of walk distance and walk duration
+		result.plan.itineraries.forEach(it -> {
+			it.walkDistance = it.legs.stream().filter(leg -> leg.mode == TraverseMode.WALK).mapToDouble(leg -> leg.getDuration()).sum(); 
+			it.walkTime = Math.round(it.legs.stream().filter(leg -> leg.mode == TraverseMode.WALK).mapToDouble(leg -> leg.getDuration()).sum()); 
+		});
+		if (log.isDebugEnabled()) {
+			log.debug("OTP plan: " + result.plan.toString());
 		}
 		return result;
     }
