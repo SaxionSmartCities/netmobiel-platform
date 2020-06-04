@@ -90,7 +90,6 @@ public abstract class RideMapper {
 	@InheritConfiguration(name = "commonMap")
 	@Mapping(target = "driver", ignore = true)
 	@Mapping(target = "driverRef", ignore = true)
-	@Mapping(target = "recurrence", ignore = true) 
 	@Mapping(target = "car", source = "car", 
 		qualifiedBy = { CarMapperQualifier.class, CarBrandModelDetails.class } )
 	@Mapping(target = "bookings", source = "bookings", qualifiedBy = { BookingMapperQualifier.class, BookingFlat.class })
