@@ -14,10 +14,12 @@ import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -82,6 +84,9 @@ public class RideManager {
 
     @Resource
     private SessionContext context;
+
+    @Inject @Removed
+    private Event<Booking> bookingRemovedEvent;
 
     /**
      * Updates all recurrent rides by advancing the system horizon to a predefined offset with reference to the calling time.
@@ -431,8 +436,10 @@ public class RideManager {
     		ridedb.setDeleted(true);
     		ridedb.getBookings().stream()
 	    		.filter(b -> ! b.isDeleted())
-	    		.forEach(b -> b.markAsCancelled(reason, true));
-    		// FIXME send message to passengers
+	    		.forEach(b -> {
+	    			b.markAsCancelled(reason, true);	
+	        		bookingRemovedEvent.fire(b);
+	    		});
 		} else {
 			rideDao.remove(ridedb);
 		}

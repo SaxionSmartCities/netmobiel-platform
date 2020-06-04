@@ -11,12 +11,14 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
@@ -30,7 +32,7 @@ import eu.netmobiel.rideshare.service.BookingManager;
 @Logging
 public class TripManager {
 	public static final Integer MAX_RESULTS = 10; 
-	@SuppressWarnings("unused")
+
 	@Inject
     private Logger log;
 
@@ -161,47 +163,44 @@ public class TripManager {
     
     /**
      * Removes a trip. Whether or not a trip is soft-deleted or hard-deleted depends on the trip state.
-     * 
+     * This method is supposedly to be called by the traveller. 
      * @param tripId The trip to remove.
      * @throws NotFoundException The trip does not exist.
      */
-    public void removeTrip(Long tripId) throws NotFoundException {
+    public void removeTrip(Long tripId, String reason) throws ApplicationException {
     	Trip tripdb = tripDao.find(tripId)
-    			.orElseThrow(NotFoundException::new);
-//    	userManager.checkOwnership(tripdb.getTraveller(), Trip.class.getSimpleName());
+    			.orElseThrow(() -> new NotFoundException("No such trip: " + tripId));
+       	if (tripdb.getLegs() != null) {
+       		for (Leg leg : tripdb.getLegs()) {
+				cancelBookingIfNecessary(tripdb.getTraveller(), leg, reason);
+			}
+       		updateTripState(tripdb);
+       	}
     	if (tripdb.getState() == TripState.PLANNING) {
     		// Hard delete
 			tripDao.remove(tripdb);
     	} else {
-    		// TODO Add cancelling of the legs!
-    		if (tripdb.getState() == TripState.BOOKING || tripdb.getState() == TripState.SCHEDULED) {
-    	       	if (tripdb.getLegs() != null) {
-    	       		for (Leg leg : tripdb.getLegs()) {
-//    					cancelBookingProcessIfNecessary(leg);
-    				}
-//    	           	updateTripState(trip);
-    	       	}
-    		}
     		tripdb.setDeleted(true);
     	}
     }
  
-//    protected void cancelBookingsIfNecessary(Leg leg) throws CreateException {
-//    	if (leg.getTraverseMode() == TraverseMode.RIDESHARE && 
-//    			(leg.getState() == TripState.BOOKING || leg.getState() == TripState.SCHEDULED)) {
-//    		leg.setState(TripState.CANCELLED);
-//			try {
-//				String bookingRef = bookingManager.createBooking(leg.getTripId(), traveller, 
-//						leg.getFrom().getLocation(), leg.getTo().getLocation(), 1);
-//				leg.setBookingId(bookingRef);
-//    			leg.setState(TripState.SCHEDULED);
-//			} catch (NotFoundException | CreateException e) {
-//				throw new CreateException("cannot create booking", e);
-//			}
-//    	} else {
-//			leg.setState(TripState.SCHEDULED);
-//    	}
-//    }
+    protected void cancelBookingIfNecessary(User initiator, Leg leg, String reason) throws ApplicationException {
+    	if (leg.getTraverseMode() == TraverseMode.RIDESHARE) {
+			if (leg.getState() != TripState.CANCELLED && leg.getState() != TripState.PLANNING) {
+				if (log.isDebugEnabled()) {
+					log.debug("Cancelling a booking");
+				}
+				// Omitted lookup of rideshare provider
+				bookingManager.removeBooking(initiator, UrnHelper.getId(Booking.URN_PREFIX, leg.getBookingId()), reason);
+			} else {
+				if (log.isDebugEnabled()) {
+					log.debug("Cancelling a booking, no action needed becasue of leg state: " + leg.getState().toString());
+				}
+
+			}
+    	}
+		leg.setState(TripState.CANCELLED);
+    }
 
     /**
      * Lists a page of trips in planning state (of anyone) that have a departure or arrival location within a circle with radius 

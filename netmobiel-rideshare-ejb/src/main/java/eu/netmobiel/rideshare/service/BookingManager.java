@@ -6,10 +6,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.ejb.Stateless;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.annotation.Created;
+import eu.netmobiel.commons.annotation.Removed;
+import eu.netmobiel.commons.annotation.Updated;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -43,6 +47,15 @@ public class BookingManager {
     @Inject
     private RideItineraryHelper rideItineraryHelper;
     
+    @Inject @Created
+    private Event<Booking> bookingCreatedEvent;
+    
+    @Inject @Updated
+    private Event<Booking> bookingUpdatedEvent;
+
+    @Inject @Removed
+    private Event<Booking> bookingRemovedEvent;
+
     /**
      * Search for bookings.
      * @param userId
@@ -123,7 +136,7 @@ public class BookingManager {
     	booking.setState(BookingState.CONFIRMED);
     	bookingDao.save(booking);
     	rideItineraryHelper.updateRideItinerary(ride);
-    	// TODO Also add bookingAddedEvent for informing the driver.
+    	bookingCreatedEvent.fire(booking);
     	return RideshareUrnHelper.createUrn(Booking.URN_PREFIX, booking.getId());
     }
 
@@ -146,10 +159,10 @@ public class BookingManager {
      * @param reason An optional reason
      * @throws NotFoundException if the booking is not found in the database.
      */
-    public void removeBooking(User initiator, Long bookingId, final String reason) throws NotFoundException, BadRequestException {
+    public void removeBooking(NetMobielUser initiator, Long bookingId, final String reason) throws NotFoundException, BadRequestException {
     	Booking bookingdb = bookingDao.fetchGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
-		User initiatorDb = userDao.find(initiator.getId())
+		User initiatorDb = userDao.findByManagedIdentity(initiator.getManagedIdentity())
 				.orElseThrow(() -> new NotFoundException("No such user: " + initiator.toString()));
 		User driver = bookingdb.getRide().getDriver();
 //		if (log.isDebugEnabled()) {
@@ -160,6 +173,7 @@ public class BookingManager {
 		if (bookingdb.getPassenger().equals(initiatorDb) || cancelledByDriver) {
 	   		bookingdb.markAsCancelled(reason, cancelledByDriver);
 	    	rideItineraryHelper.updateRideItinerary(bookingdb.getRide());
+	    	bookingRemovedEvent.fire(bookingdb);
 		} else {
     		throw new SecurityException(String.format("Removal of %s %d is only allowed by driver or passenger", Booking.class.getSimpleName(), bookingdb.getId()));
 		}
