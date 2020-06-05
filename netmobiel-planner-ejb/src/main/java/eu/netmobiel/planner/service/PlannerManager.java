@@ -1,7 +1,6 @@
 package eu.netmobiel.planner.service;
 
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -77,7 +76,7 @@ public class PlannerManager {
     }
     
     private String formatDateTime(Instant instant) {
-    	return DateTimeFormatter.ISO_TIME.format(instant.atOffset(ZoneOffset.UTC));
+    	return DateTimeFormatter.ISO_INSTANT.format(instant);
     }
     
     private String dumpPlanRequest(Instant fromDate, Instant toDate, GeoLocation fromPlace, GeoLocation toPlace, List<GeoLocation> intermediatePlaces, TraverseMode[] modes) {
@@ -172,15 +171,13 @@ public class PlannerManager {
 	 * @param nrSeats The number of seates required
 	 * @return A list of possible itineraries.
 	 */
-    protected List<Itinerary> searchRideshareOnly(GeoLocation fromPlace, GeoLocation toPlace, 
-    		Instant fromDate, Instant toDate, Integer maxWalkDistance, Integer nrSeats) {
-    	Instant earliestDeparture = fromDate;
-    	Instant latestArrival = toDate;
-    	if (earliestDeparture == null && latestArrival == null) {
-    		throw new IllegalArgumentException("Set fromDate and/or toDate");
-    	}
+    protected List<Itinerary> searchRideshareOnly(Instant now, GeoLocation fromPlace, GeoLocation toPlace, 
+    		Instant earliestDeparture, Instant latestArrival, Integer maxWalkDistance, Integer nrSeats) throws BadRequestException {
     	if (earliestDeparture == null) {
-    		earliestDeparture  = latestArrival.minusSeconds(24 * 60 * 60);	// One day
+    		earliestDeparture  = now;
+        	if (latestArrival != null && earliestDeparture.isAfter(latestArrival)) {
+        		throw new BadRequestException("Arrival time must be after now: " + formatDateTime(now));
+        	}
     	} else if (latestArrival == null) {
     		latestArrival = earliestDeparture.plusSeconds(24 * 60 * 60);
     	}
@@ -207,15 +204,15 @@ public class PlannerManager {
         	try {
         		Instant rideDepTime = ride.getDepartureTime();
             	ridePlan = otpDao.createPlan(from, to, rideDepTime,  false, modes, false, maxWalkDistance, intermediatePlaces, 1);
-            	ridePlan.setDepartureTime(fromDate);
-            	ridePlan.setArrivalTime(toDate);
+            	ridePlan.setDepartureTime(earliestDeparture);
+            	ridePlan.setArrivalTime(latestArrival);
             	ridePlan.setMaxWalkDistance(maxWalkDistance);
             	ridePlan.setNrSeats(nrSeats);
             	ridePlan.setTraverseModes(modes);
         	}  catch(Exception ex) {
         		log.error(ex.toString(), ex);
         		log.warn("Skip itinerary due to OTP error: " + 
-        				dumpPlanRequest(fromDate, toDate, from, to, intermediatePlaces, modes));
+        				dumpPlanRequest(earliestDeparture, latestArrival, from, to, intermediatePlaces, modes));
         	}
         	if (ridePlan != null && ridePlan.getItineraries() != null && !ridePlan.getItineraries().isEmpty()) {
             	if (log.isDebugEnabled()) {
@@ -249,11 +246,11 @@ public class PlannerManager {
     }
 
     
-    protected void addRideshareAsFirstLeg(TripPlan plan, Set<Stop> transitBoardingStops, TraverseMode[] transitModalities) {
+    protected void addRideshareAsFirstLeg(Instant now, TripPlan plan, Set<Stop> transitBoardingStops, TraverseMode[] transitModalities) throws BadRequestException {
     	log.debug("Search for first leg by Car");
     	for (Stop place : transitBoardingStops) {
     		// Try to find a shared ride from passenger's departure to a transit hub
-        	List<Itinerary> passengerCarItineraries = searchRideshareOnly(plan.getFrom(), place.getLocation(), 
+        	List<Itinerary> passengerCarItineraries = searchRideshareOnly(now, plan.getFrom(), place.getLocation(), 
         			plan.getDepartureTime(), plan.getArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
     		// Create a transit plan from shared ride dropoff to passenger's destination
     		// Add x minutes waiting time at drop off
@@ -278,13 +275,13 @@ public class PlannerManager {
 		}
     }
 
-    protected void addRideshareAsLastLeg(TripPlan plan, Set<Stop> transitAlightingStops, TraverseMode[] transitModalities) {
+    protected void addRideshareAsLastLeg(Instant now, TripPlan plan, Set<Stop> transitAlightingStops, TraverseMode[] transitModalities) throws BadRequestException {
     	// Try to find a ride from transit place to drop-off (last mile by car)
     	log.debug("Search for a last leg by Car");
     	//FIXME Should be in fact alighting stops 
     	for (Stop place : transitAlightingStops) {
     		// Try to find a shared ride from transit hub to passenger's destination
-        	List<Itinerary> passengerCarItineraries = searchRideshareOnly(place.getLocation(), plan.getTo(), 
+        	List<Itinerary> passengerCarItineraries = searchRideshareOnly(now, place.getLocation(), plan.getTo(), 
         		plan.getDepartureTime(), plan.getArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
     		// Create a transit plan from passenger departure to shared ride pickup
     		// Add x minutes waiting time at pick off
@@ -353,6 +350,7 @@ public class PlannerManager {
      * The passenger might be more flexible than the departure or arrival time. For that reason the itineraries for public transport
      * will be a good fit given departure or arrival time, but itineraries involving a shared ride vary much more in time.
      * An attempt is made to sort the itineraries by attractiveness to the passenger.   
+     * @param now The reference point of time. Planning must occur beyond this point.
      * @param fromPlace The departure point of the passenger
      * @param toPlace The destination of the passenger
      * @param depTime The (intended) departure time. Specify either departure or arrival time. 
@@ -362,15 +360,22 @@ public class PlannerManager {
      * @param nrSeats The number of seats the passenger wants to use in a car.
      * @return
      */
-    public TripPlan searchMultiModal(GeoLocation fromPlace, GeoLocation toPlace, 
+    public TripPlan searchMultiModal(Instant now, GeoLocation fromPlace, GeoLocation toPlace, 
     		Instant depTime, Instant arrTime, 
-    		TraverseMode[] modalities, Integer maxWalkDistance, Integer nrSeats) {
+    		TraverseMode[] modalities, Integer maxWalkDistance, Integer nrSeats) throws BadRequestException {
+    	if (depTime == null && arrTime == null) {
+    		depTime = now;
+    	}
+    	if (arrTime != null && depTime != null && depTime.isAfter(arrTime)) {
+    		throw new BadRequestException("Arrival time must be after depature time: " + formatDateTime(depTime));
+    	}
     	//FIXME For searching we need a earliestDeparture and latestArrival. For scoring we need to know a reference time and whether that is departure or arrival.
     	//FIXME Add also whether first mile or last mile mile (or both ) by rideshare are acceptable. MaxTransfer 1 could force it but that affects transit too.  
     	boolean allowRideshareForLastLeg = false;
     	boolean allowRideshareForFirstLeg = false;
     	if (log.isDebugEnabled()) {
-    		log.debug(String.format("searchMultiModal:\n D %s A %s from %s to %s; seats #%d, max walk distance %sm; modalities %s", 
+    		log.debug(String.format("searchMultiModal:\n Now %s D %s A %s from %s to %s; seats #%d, max walk distance %sm; modalities %s",
+    						formatDateTime(now),
     						depTime != null ? formatDateTime(depTime) : "*", 
     						arrTime != null ? formatDateTime(arrTime) : "*", 
     						fromPlace.toString(), 
@@ -405,7 +410,7 @@ public class PlannerManager {
 
 		if (rideshareEligable) {
 	    	// Add the RIDESHARE only itineraries
-	    	thePlan.getItineraries().addAll(searchRideshareOnly(fromPlace, toPlace, depTime, arrTime, maxWalkDistance, nrSeats));
+	    	thePlan.getItineraries().addAll(searchRideshareOnly(now, fromPlace, toPlace, depTime, arrTime, maxWalkDistance, nrSeats));
 
 			// If transit is an option too then collect possible pickup and drop-off places near transit stops
 	    	// FIXME Add maxNrTransers
@@ -418,10 +423,10 @@ public class PlannerManager {
 				//FIXME The ordering of the clusters depends probably on first oflast leg. Check.
 		    	transitBoardingStops = collectStops(thePlan, findTransitBoardingStops(transitReferencePlan), nearbyClusters);
 	    		if (allowRideshareForFirstLeg) {
-	        		addRideshareAsFirstLeg(thePlan, transitBoardingStops, otpModalities);
+	        		addRideshareAsFirstLeg(now, thePlan, transitBoardingStops, otpModalities);
 	    		}
 	    		if (allowRideshareForLastLeg) {
-	        		addRideshareAsLastLeg(thePlan, transitBoardingStops, otpModalities);
+	        		addRideshareAsLastLeg(now, thePlan, transitBoardingStops, otpModalities);
 	    		}
 			}
 		}

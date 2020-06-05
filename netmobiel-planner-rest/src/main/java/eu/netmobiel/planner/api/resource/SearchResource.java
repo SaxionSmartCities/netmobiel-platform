@@ -1,11 +1,13 @@
 package eu.netmobiel.planner.api.resource;
 
+import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
@@ -29,6 +31,10 @@ public class SearchResource implements SearchApi {
     @Inject
     private TripPlanMapper tripPlanMapper;
 
+	private Instant toInstant(OffsetDateTime odt) {
+		return odt == null ? null : odt.toInstant();
+	}
+
     public Response searchPlan(
     		String from, 
     		String to, 
@@ -36,13 +42,16 @@ public class SearchResource implements SearchApi {
     		OffsetDateTime arrivalTime,
     		String modalities,
     		Integer maxWalkDistance,
-    		Integer nrSeats
+    		Integer nrSeats,
+    		OffsetDateTime now
     	) {
     	
     	TripPlan plan = null;
-
-    	if (from == null || (departureTime == null && arrivalTime == null) || to == null) {
-    		throw new BadRequestException("Missing one or more mandatory parameters: from, to, departureTime or arrivalTime");
+    	if (now == null) {
+    		now = OffsetDateTime.now();
+    	}
+    	if (from == null || to == null) {
+    		throw new BadRequestException("Missing one or more mandatory parameters: from, to");
     	}
     	TraverseMode[] domainModalities = parseModalities(modalities);
     	if (domainModalities == null) {
@@ -60,20 +69,17 @@ public class SearchResource implements SearchApi {
     	} else {
     		nrSeats = 1;
     	}
-//    	plan = new TripPlan(GeoLocation.fromString(from), GeoLocation.fromString(to), 
-//		departureTime != null ? departureTime.toInstant() : null, arrivalTime != null ? arrivalTime.toInstant() : null, 
-//				domainModalities, maxWalkDistance, nrSeats);
-//        log.debug("TripPlan: " + plan.toString());
-    		try {
-	    		plan = plannerManager.searchMultiModal(GeoLocation.fromString(from), GeoLocation.fromString(to), 
-	    					departureTime == null ? null : departureTime.toInstant(), arrivalTime == null ? null : arrivalTime.toInstant(), 
-	    					domainModalities, maxWalkDistance, nrSeats);
-	    		if (log.isDebugEnabled()) {
-	    			log.debug("Multimodal plan: \n" + plan.toString());
-	    		}
-    		} catch (IllegalArgumentException ex) {
-    			throw new BadRequestException("Input parameter has unrecognized format", ex);
+		try {
+    		plan = plannerManager.searchMultiModal(toInstant(now), GeoLocation.fromString(from), GeoLocation.fromString(to), 
+    					toInstant(departureTime), toInstant(arrivalTime), domainModalities, maxWalkDistance, nrSeats);
+    		if (log.isDebugEnabled()) {
+    			log.debug("Multimodal plan: \n" + plan.toString());
     		}
+		} catch (eu.netmobiel.commons.exception.BadRequestException ex) {
+			throw new WebApplicationException(ex);
+		} catch (IllegalArgumentException ex) {
+			throw new BadRequestException("Input parameter has unrecognized format", ex);
+		}
     	return Response.ok(tripPlanMapper.map(plan)).build();
     }
     
