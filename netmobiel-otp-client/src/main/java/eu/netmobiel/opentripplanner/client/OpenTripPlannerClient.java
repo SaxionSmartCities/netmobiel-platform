@@ -227,28 +227,30 @@ public class OpenTripPlannerClient {
 //			}
 //			throw new WebApplicationException(msg, result.error.message.getStatus());
 //		}
-		if (result.plan != null && forcedDepartureTime) {
-			// Shift the plan in time (earlier) so that arrivalTime equals departureTime
-			// The plan header is ok. Just modify itinerary and legs. 
-			for (Itinerary it : result.plan.itineraries) {
-				it.startTime = it.startTime.minusSeconds(it.duration);  
-				it.endTime = it.endTime.minusSeconds(it.duration);
-				for (Leg leg : it.legs) {
-					if (leg.mode.isTransit()) {
-						throw new RuntimeException("Leg should not be shifted, it is time-dependent - " + leg.toString());
+		if (result.plan != null) {
+			if (forcedDepartureTime) {
+				// Shift the plan in time (earlier) so that arrivalTime equals departureTime
+				// The plan header is ok. Just modify itinerary and legs. 
+				for (Itinerary it : result.plan.itineraries) {
+					it.startTime = it.startTime.minusSeconds(it.duration);  
+					it.endTime = it.endTime.minusSeconds(it.duration);
+					for (Leg leg : it.legs) {
+						if (leg.mode.isTransit()) {
+							throw new RuntimeException("Leg should not be shifted, it is time-dependent - " + leg.toString());
+						}
+						leg.startTime = leg.startTime.minusSeconds(it.duration);  
+						leg.endTime = leg.endTime.minusSeconds(it.duration);
 					}
-					leg.startTime = leg.startTime.minusSeconds(it.duration);  
-					leg.endTime = leg.endTime.minusSeconds(it.duration);
 				}
 			}
-		}
-		// Repair the invalid calculation of walk distance and walk duration
-		result.plan.itineraries.forEach(it -> {
-			it.walkDistance = it.legs.stream().filter(leg -> leg.mode == TraverseMode.WALK).mapToDouble(leg -> leg.getDuration()).sum(); 
-			it.walkTime = Math.round(it.legs.stream().filter(leg -> leg.mode == TraverseMode.WALK).mapToDouble(leg -> leg.getDuration()).sum()); 
-		});
-		if (log.isDebugEnabled()) {
-			log.debug("OTP plan: " + result.plan.toString());
+			// Repair the invalid calculation of walk distance and walk duration
+			result.plan.itineraries.forEach(it -> {
+				it.walkDistance = it.legs.stream().filter(leg -> leg.mode == TraverseMode.WALK).mapToDouble(leg -> leg.getDuration()).sum(); 
+				it.walkTime = Math.round(it.legs.stream().filter(leg -> leg.mode == TraverseMode.WALK).mapToDouble(leg -> leg.getDuration()).sum()); 
+			});
+			if (log.isDebugEnabled()) {
+				log.debug("OTP plan: " + result.plan.toString());
+			}
 		}
 		return result;
     }

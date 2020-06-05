@@ -11,6 +11,7 @@ import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -212,7 +213,7 @@ public class PlannerManager {
             	ridePlan.setNrSeats(nrSeats);
             	ridePlan.setTraverseModes(modes);
         	}  catch(Exception ex) {
-        		log.error(ex.toString());
+        		log.error(ex.toString(), ex);
         		log.warn("Skip itinerary due to OTP error: " + 
         				dumpPlanRequest(fromDate, toDate, from, to, intermediatePlaces, modes));
         	}
@@ -266,6 +267,9 @@ public class PlannerManager {
 		        		log.debug("Car -> Transit plan: \n" + transitPlan.toString());
 		        	}
 		        	plan.getItineraries().addAll(dit.appendTransits(transitPlan.getItineraries()));
+        		} catch (NotFoundException ex) {
+            		log.error(ex.toString());
+            		log.warn("Skip itinerary due to OTP error: " + dumpPlanRequest(transitStart, null, place.getLocation(), plan.getTo(), null, transitModalities));
             	}  catch(Exception ex) {
             		log.error(ex.toString());
             		log.warn("Skip itinerary due to OTP error: " + dumpPlanRequest(transitStart, null, place.getLocation(), plan.getTo(), null, transitModalities));
@@ -294,8 +298,11 @@ public class PlannerManager {
 	            		log.debug("Transit -> Car plan: \n" + transitPlan.toString());
 	            	}
 	            	plan.getItineraries().addAll(dit.prependTransits(transitPlan.getItineraries()));
-            	}  catch(Exception ex) {
+        		} catch (NotFoundException ex) {
             		log.error(ex.toString());
+            		log.warn("Skip itinerary due to OTP error: " + dumpPlanRequest(null, transitEnd, plan.getFrom(), place.getLocation(), null, transitModalities));
+            	} catch(Exception ex) {
+            		log.error(ex.toString(), ex);
             		log.warn("Skip itinerary due to OTP error: " + dumpPlanRequest(null, transitEnd, plan.getFrom(), place.getLocation(), null, transitModalities));
             	}
 			}
@@ -317,7 +324,7 @@ public class PlannerManager {
     	return stops;
     }
 
-    protected TripPlan createTransitPlan(TripPlan plan, TraverseMode[] otpModalities, int maxWalkDistance) {
+    protected Optional<TripPlan> createTransitPlan(TripPlan plan, TraverseMode[] otpModalities, int maxWalkDistance) {
     	TripPlan transitPlan = null;
 		try {
 	    	boolean arrivalTimeIsPinned = false;
@@ -337,7 +344,7 @@ public class PlannerManager {
 		} catch (BadRequestException e) {
 			throw new SystemException("No transit plan could be created", e);
 		}
-		return transitPlan;
+		return Optional.ofNullable(transitPlan);
     }
     
     /**
@@ -392,8 +399,8 @@ public class PlannerManager {
 		boolean rideshareEligable = Arrays.stream(modalities).filter(m -> m == TraverseMode.RIDESHARE).findFirst().isPresent();
 		if (!transitModalities.isEmpty()) {
 			// Transit is eligable. Add the transit itineraries as calculated by OTP.
-			TripPlan transitPlan = createTransitPlan(thePlan, otpModalities, thePlan.getMaxWalkDistance());
-			thePlan.getItineraries().addAll(transitPlan.getItineraries());
+			Optional<TripPlan> transitPlan = createTransitPlan(thePlan, otpModalities, thePlan.getMaxWalkDistance());
+			transitPlan.ifPresent(plan -> thePlan.getItineraries().addAll(plan.getItineraries()));
 		}
 
 		if (rideshareEligable) {
@@ -403,10 +410,9 @@ public class PlannerManager {
 			// If transit is an option too then collect possible pickup and drop-off places near transit stops
 	    	// FIXME Add maxNrTransers
 			if (!transitModalities.isEmpty() && (allowRideshareForFirstLeg || allowRideshareForLastLeg) ) {
-		    	TripPlan transitReferencePlan = null;
 				Set<Stop> transitBoardingStops = null;
 				// Calculate a transit reference plan to find potential boarding or alighting places. 
-				transitReferencePlan = createTransitPlan(thePlan, otpModalities, 50000);
+				Optional<TripPlan> transitReferencePlan = createTransitPlan(thePlan, otpModalities, 50000);
 				List<OtpCluster> nearbyClusters = new ArrayList<>();
 				// Collect the stops. If there are no stops or too few, collect potential clusters
 				//FIXME The ordering of the clusters depends probably on first oflast leg. Check.
@@ -451,13 +457,14 @@ public class PlannerManager {
     			.collect(Collectors.toCollection(LinkedHashSet::new));
     }
     
-   	protected Set<Stop> findTransitBoardingStops(TripPlan otherPlan) {
-   		if (otherPlan == null) {
+   	protected Set<Stop> findTransitBoardingStops(Optional<TripPlan> otherPlan) {
+   		if (!otherPlan.isPresent()) {
    			return Collections.emptySet();
    		}
+   		
     	// Strategy A: Replace the first leg(s) with ride share options
     	Set<Stop> stops = new LinkedHashSet<>();
-    	for (Itinerary it : otherPlan.getItineraries()) {
+    	for (Itinerary it : otherPlan.get().getItineraries()) {
     		if (it.getTransfers() != null && it.getTransfers() > 1) {
     			for (int transfer = 0; transfer < it.getTransfers(); transfer++) {	
     				int skipTransitLegs = 0;
