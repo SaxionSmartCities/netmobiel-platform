@@ -38,6 +38,7 @@ import eu.netmobiel.rideshare.model.Ride_;
 import eu.netmobiel.rideshare.model.Stop;
 import eu.netmobiel.rideshare.model.TimeUnit;
 import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
 
@@ -48,6 +49,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     public static Archive<?> createTestArchive() {
         WebArchive archive = createDeploymentBase()
 //	            .addAsResource("logging.properties")
+                .addPackages(true, RideDao.class.getPackage())
 	            .addClass(RideItineraryHelper.class)
 	            .addClass(RideManager.class);
 //   		System.out.println(archive.toString(true));
@@ -63,6 +65,10 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     private Car car1;
     private User passenger1;
 
+    @Override
+    public boolean isSecurityRequired() {
+    	return true;
+    }
 
     @Override
     protected void insertData() throws Exception {
@@ -512,7 +518,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(rideId);
 		flush();
     	PagedResult<Ride> ruts = rideManager.search(Fixture.placeZieuwentRKKerk, Fixture.placeSlingeland, 
-    			rdb.getDepartureTime().minusSeconds(3600), rdb.getArrivalTime().plusSeconds(3600), 1, 10, 0);
+    			rdb.getDepartureTime().minusSeconds(3600), rdb.getArrivalTime().plusSeconds(3600), 1, false, 10, 0);
     	flush();
     	assertEquals(1, ruts.getTotalCount().intValue());
     	Ride rut = ruts.getData().get(0);

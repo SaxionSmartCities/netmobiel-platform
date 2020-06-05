@@ -68,7 +68,9 @@ public class SearchResource implements SearchApi {
     	} 
     	//FIXME EarliestDepartureTime, LatestArrivalTime
 		try {
-    		rides = rideManager.search(GeoLocation.fromString(fromPlace), GeoLocation.fromString(toPlace), toInstant(fromDate), toInstant(toDate), nrSeats, maxResults, offset);
+			Instant earliestDeparture = toInstant(fromDate);
+			Instant latestArrival = toInstant(toDate);
+    		rides = rideManager.search(GeoLocation.fromString(fromPlace), GeoLocation.fromString(toPlace), earliestDeparture, latestArrival, nrSeats, true, maxResults, offset);
 		} catch (DateTimeParseException ex) {
 			throw new BadRequestException("Date parameter has unrecognized format", ex);
 		} catch (IllegalArgumentException ex) {

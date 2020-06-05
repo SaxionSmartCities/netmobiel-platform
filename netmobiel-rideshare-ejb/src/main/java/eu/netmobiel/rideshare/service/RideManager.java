@@ -55,6 +55,7 @@ public class RideManager {
 	public static final Integer MAX_RESULTS = 10; 
 	public static final String AGENCY_NAME = "NetMobiel Rideshare Service";
 	public static final String AGENCY_ID = "NB:RS";
+	public static final Integer MAX_BOOKINGS = 1;
 	
 	/**
 	 * The driver has a vector, the passenger has a vector. 
@@ -198,8 +199,7 @@ public class RideManager {
     	return new PagedResult<Ride>(results, maxResults, offset, totalCount);
     }
     
-    //FIXME earliestDeparture latestDeparture? Should be latestArrival
-    public PagedResult<Ride> search(GeoLocation fromPlace, GeoLocation toPlace, Instant earliestDeparture, Instant latestDeparture, Integer nrSeats, Integer maxResults, Integer offset) {
+    public PagedResult<Ride> search(GeoLocation fromPlace, GeoLocation toPlace, Instant earliestDeparture, Instant latestArrival, Integer nrSeats, boolean lenient, Integer maxResults, Integer offset) {
     	if (nrSeats == null) {
     		nrSeats = 1;
     	}
@@ -210,10 +210,10 @@ public class RideManager {
     		offset = 0;
     	}
     	List<Ride> results = Collections.emptyList();
-        PagedResult<Long> prs = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, earliestDeparture, latestDeparture, nrSeats, 0, 0);
+        PagedResult<Long> prs = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, earliestDeparture, latestArrival, nrSeats, lenient, MAX_BOOKINGS, 0, 0);
         Long totalCount = prs.getTotalCount();
     	if (totalCount > 0 && maxResults > 0) {
-    		PagedResult<Long> rideIds = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, earliestDeparture, latestDeparture, nrSeats, maxResults, offset);
+    		PagedResult<Long> rideIds = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, earliestDeparture, latestArrival, nrSeats, lenient, MAX_BOOKINGS, maxResults, offset);
         	if (! rideIds.getData().isEmpty()) {
         		results = rideDao.fetch(rideIds.getData(), Ride.SEARCH_RIDES_ENTITY_GRAPH);
         	}

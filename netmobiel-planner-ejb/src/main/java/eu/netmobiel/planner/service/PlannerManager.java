@@ -1,17 +1,21 @@
 package eu.netmobiel.planner.service;
 
 import java.time.Instant;
-import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.ejb.EJBAccessException;
 import javax.ejb.Stateless;
@@ -44,6 +48,8 @@ public class PlannerManager {
 	private static final float PASSENGER_RELATIVE_MAX_DETOUR = 1.0f;
 	private static final Integer CAR_TO_TRANSIT_SLACK = 10 * 60; // [seconds]
 	private static final int MAX_RIDESHARES = 5;	
+	private static final boolean RIDESHARE_LENIENT_SEARCH = true;	
+
 	@Inject
     private Logger log;
 
@@ -69,17 +75,8 @@ public class PlannerManager {
     	return null;
     }
     
-//    private List<GeoLocation> filterIntermediatePlaces(Ride ride, GeoLocation[] places, int distanceInMeters) {
-//    	double distanceInKm = distanceInMeters / 1000.0;
-//    	GeoLocation from = ride.getRideTemplate().getFromPlace().getLocation();
-//    	GeoLocation to = ride.getRideTemplate().getToPlace().getLocation();
-//    	return Arrays.stream(places)
-//				.filter(loc -> loc.getDistanceFlat(from) > distanceInKm && loc.getDistanceFlat(to) > distanceInKm)
-//			.collect(Collectors.toList());
-//    }
-    
     private String formatDateTime(Instant instant) {
-    	return DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
+    	return DateTimeFormatter.ISO_TIME.format(instant.atOffset(ZoneOffset.UTC));
     }
     
     private String dumpPlanRequest(Instant fromDate, Instant toDate, GeoLocation fromPlace, GeoLocation toPlace, List<GeoLocation> intermediatePlaces, TraverseMode[] modes) {
@@ -95,6 +92,64 @@ public class PlannerManager {
 		return sb.toString();
     }
     
+    /**
+     * Filter for acceptable itineraries, testing on max detour in meters.
+     */
+    private class DetourMetersAcceptable implements Predicate<Itinerary> {
+    	private Ride ride;
+
+    	public DetourMetersAcceptable(Ride aRide) {
+    		this.ride = aRide;
+    	}
+    	
+		@Override
+		public boolean test(Itinerary it) {
+	       	boolean accepted = true;
+	    	Integer maxDetour = ride.getMaxDetourMeters();
+			if (maxDetour != null && maxDetour > 0) {
+				// Determine new distance
+				double distance = it.getLegs().stream().mapToDouble(leg -> leg.getDistance()).sum();
+				int detour = (int)Math.round(distance - ride.getDistance());
+//	    			log.debug(String.format("Ride %d detour %d meter",  ride.getId(), detour));
+				if (detour > ride.getMaxDetourMeters()) {
+					log.debug(String.format("Reject ride %d, detour is exceeded by %d meters (%d%%)", ride.getId(), 
+							detour - maxDetour, (detour * 100) / maxDetour));
+					accepted = false;
+				}
+			}
+			return accepted;
+		}
+    }
+
+    /**
+     * Filter for acceptable itineraries, testing on max detour in seconds.
+     */
+    private class DetourSecondsAcceptable implements Predicate<Itinerary> {
+    	private Ride ride;
+
+    	public DetourSecondsAcceptable(Ride aRide) {
+    		this.ride = aRide;
+    	}
+    	
+		@Override
+		public boolean test(Itinerary it) {
+	       	boolean accepted = true;
+	    	Integer maxDetour = ride.getMaxDetourSeconds();
+			if (maxDetour != null && maxDetour > 0) {
+				// Determine new distance
+				double duration = it.getLegs().stream().mapToDouble(leg -> leg.getDuration()).sum();
+				int detour = (int)Math.round(duration - ride.getDuration());
+				log.debug(String.format("Ride %d exceeeded detour %s seconds",  ride.getId(), detour));
+				if (detour > maxDetour) {
+					log.debug(String.format("Reject ride %d, detour is exceeded by %d seconds (%d%%)", ride.getId(), 
+							detour - maxDetour, (detour * 100) / maxDetour));
+					accepted = false;
+				}
+			}
+			return accepted;
+		}
+    }
+
 	/**
 	 * Try to find a ride from passenger departure to passenger destination. Each
 	 * possibility is an itinerary. For traverse mode CAR we assume (as approximation) the travel
@@ -118,7 +173,17 @@ public class PlannerManager {
 	 */
     protected List<Itinerary> searchRideshareOnly(GeoLocation fromPlace, GeoLocation toPlace, 
     		Instant fromDate, Instant toDate, Integer maxWalkDistance, Integer nrSeats) {
-    	PagedResult<Ride> rides = rideManager.search(fromPlace, toPlace,  fromDate, toDate, nrSeats, MAX_RIDESHARES, 0);
+    	Instant earliestDeparture = fromDate;
+    	Instant latestArrival = toDate;
+    	if (earliestDeparture == null && latestArrival == null) {
+    		throw new IllegalArgumentException("Set fromDate and/or toDate");
+    	}
+    	if (earliestDeparture == null) {
+    		earliestDeparture  = latestArrival.minusSeconds(24 * 60 * 60);	// One day
+    	} else if (latestArrival == null) {
+    		latestArrival = earliestDeparture.plusSeconds(24 * 60 * 60);
+    	}
+    	PagedResult<Ride> rides = rideManager.search(fromPlace, toPlace,  earliestDeparture, latestArrival, nrSeats, RIDESHARE_LENIENT_SEARCH, MAX_RIDESHARES, 0);
     	// These are potential candidates. Now try to determine the complete route, including the intermediate places for pickup and dropoff
     	// The passenger is only involved in some (one) of the legs: the pickup or the drop-off. We assume the car is for the first or last mile of the passenger.
     	// What if the pickup point and the driver's departure point are the same? A test revealed that we get an error TOO_CLOSE. Silly.
@@ -129,13 +194,15 @@ public class PlannerManager {
     	List<Itinerary> itineraries = new ArrayList<>();
     	for (Ride ride : rides.getData()) {
     		if (log.isDebugEnabled()) {
-    			log.debug("Ride option: " + ride.toString());
+    			log.debug("searchRides option: " + ride.toString());
     		}
     		// Use always the riders departure time. The itineraries will be scored later on.
         	GeoLocation from = ride.getFrom();
         	GeoLocation to = ride.getTo();
         	TraverseMode[] modes = new TraverseMode[] { TraverseMode.WALK, TraverseMode.CAR };
         	TripPlan ridePlan = null;
+        	// Calculate for each ride found the ride when the passenger would ride along, i.e., add the pickup and drop-off location
+        	// as intermediate places to the OTP planner and calculate the itinerary.
         	try {
         		Instant rideDepTime = ride.getDepartureTime();
             	ridePlan = otpDao.createPlan(from, to, rideDepTime,  false, modes, false, maxWalkDistance, intermediatePlaces, 1);
@@ -150,33 +217,13 @@ public class PlannerManager {
         				dumpPlanRequest(fromDate, toDate, from, to, intermediatePlaces, modes));
         	}
         	if (ridePlan != null && ridePlan.getItineraries() != null && !ridePlan.getItineraries().isEmpty()) {
-        		boolean accepted = false;
             	if (log.isDebugEnabled()) {
             		log.debug("Ride plan: \n" + ridePlan.toString());
             	}
-        		if (ride.getMaxDetourMeters() != null) {
-        			// Determine new distance
-        			double distance = ridePlan.getItineraries().get(0).getLegs().stream().mapToDouble(leg -> leg.getDistance()).sum();
-        			int detour = (int)Math.round(distance - ride.getDistance());
-//        			log.debug(String.format("Ride %d detour %d meter",  ride.getId(), detour));
-        			if (detour > ride.getMaxDetourMeters()) {
-        				log.debug(String.format("Reject ride %d, detour is exceeded by %d meters (%d%%)", ride.getId(), 
-        						detour - ride.getMaxDetourMeters(), (detour * 100) / ride.getMaxDetourMeters()));
-        			} else {
-        				accepted = true;
-        			}
-        		}
-        		if (ride.getMaxDetourSeconds() != null) {
-        			double duration = ridePlan.getItineraries().get(0).getLegs().stream().mapToDouble(leg -> leg.getDuration()).sum();
-        			int detour = (int)Math.round(duration - ride.getDuration());
-        			log.debug(String.format("Ride %d exceeeded detour %s seconds",  ride.getId(), detour));
-        			if (detour > ride.getMaxDetourSeconds()) {
-        				log.debug(String.format("Reject ride %d, detour is exceeded by %d seconds (%d%%)", ride.getId(), 
-        						detour - ride.getMaxDetourSeconds(), (detour * 100) / ride.getMaxDetourSeconds()));
-        			} else {
-        				accepted = true;
-        			}
-        		}
+        		Itinerary itinerary = ridePlan.getItineraries().get(0);
+        		boolean accepted = Stream.of(new DetourMetersAcceptable(ride), new DetourSecondsAcceptable(ride))
+        				.reduce(x -> true, Predicate::and)
+        				.test(itinerary);
             	if (accepted) {
     	        	// We have the plan for the driver now. Add the itineraries but keep only the intermediate leg(s).
             		Itinerary passengerRideIt = ridePlan.getItineraries().get(0);
@@ -199,6 +246,99 @@ public class PlannerManager {
     	// These are itineraries for the passenger, not the complete ones for the driver
     	return itineraries;
     }
+
+    
+    protected void addRideshareAsFirstLeg(TripPlan plan, Set<Stop> transitBoardingStops, TraverseMode[] transitModalities) {
+    	log.debug("Search for first leg by Car");
+    	for (Stop place : transitBoardingStops) {
+    		// Try to find a shared ride from passenger's departure to a transit hub
+        	List<Itinerary> passengerCarItineraries = searchRideshareOnly(plan.getFrom(), place.getLocation(), 
+        			plan.getDepartureTime(), plan.getArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
+    		// Create a transit plan from shared ride dropoff to passenger's destination
+    		// Add x minutes waiting time at drop off
+        	// Extract the leg for the passenger and create a complete itinerary for the passenger
+        	for (Itinerary dit : passengerCarItineraries) {
+            	Instant transitStart  = dit.getLegs().get(0).getEndTime().plusSeconds(CAR_TO_TRANSIT_SLACK);
+            	try {
+            		TripPlan transitPlan = otpDao.createPlan(place.getLocation(), plan.getTo(), transitStart,  false, transitModalities, 
+		        			false, plan.getMaxWalkDistance(), null, 2 /* To see repeating */);
+		        	if (log.isDebugEnabled()) {
+		        		log.debug("Car -> Transit plan: \n" + transitPlan.toString());
+		        	}
+		        	plan.getItineraries().addAll(dit.appendTransits(transitPlan.getItineraries()));
+            	}  catch(Exception ex) {
+            		log.error(ex.toString());
+            		log.warn("Skip itinerary due to OTP error: " + dumpPlanRequest(transitStart, null, place.getLocation(), plan.getTo(), null, transitModalities));
+            	}
+			}
+		}
+    }
+
+    protected void addRideshareAsLastLeg(TripPlan plan, Set<Stop> transitAlightingStops, TraverseMode[] transitModalities) {
+    	// Try to find a ride from transit place to drop-off (last mile by car)
+    	log.debug("Search for a last leg by Car");
+    	//FIXME Should be in fact alighting stops 
+    	for (Stop place : transitAlightingStops) {
+    		// Try to find a shared ride from transit hub to passenger's destination
+        	List<Itinerary> passengerCarItineraries = searchRideshareOnly(place.getLocation(), plan.getTo(), 
+        		plan.getDepartureTime(), plan.getArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
+    		// Create a transit plan from passenger departure to shared ride pickup
+    		// Add x minutes waiting time at pick off
+        	// Extract the leg for the passenger and create a complete itinerary for the passenger
+        	for (Itinerary dit : passengerCarItineraries) {
+        		Instant transitEnd  = dit.getLegs().get(0).getEndTime().plusSeconds(CAR_TO_TRANSIT_SLACK);
+            	try {
+	            	TripPlan transitPlan = otpDao.createPlan(plan.getFrom(), place.getLocation(), transitEnd, true, transitModalities,  
+	            			false, plan.getMaxWalkDistance(), null, 2 /* To see repeating */);
+	            	if (log.isDebugEnabled()) {
+	            		log.debug("Transit -> Car plan: \n" + transitPlan.toString());
+	            	}
+	            	plan.getItineraries().addAll(dit.prependTransits(transitPlan.getItineraries()));
+            	}  catch(Exception ex) {
+            		log.error(ex.toString());
+            		log.warn("Skip itinerary due to OTP error: " + dumpPlanRequest(null, transitEnd, plan.getFrom(), place.getLocation(), null, transitModalities));
+            	}
+			}
+		}
+    }
+
+    protected Set<Stop> collectStops(TripPlan plan, Set<Stop> transitStops, List<OtpCluster> nearbyClusters) {
+    	Set<Stop> stops = transitStops;
+    	if (stops.size() < 6) {
+	    	// Perhaps we should also query for the nearest hubs in case the number of places is small (e.g., just one)
+    		if (nearbyClusters.isEmpty()) {
+    			nearbyClusters.addAll(searchImportantTransitStops(plan.getFrom(), plan.getTo(), plan.getTraverseModes(), 10));
+    		}
+    		stops = combineClustersIntoStops(transitStops, nearbyClusters);
+    	}
+    	if (log.isDebugEnabled()) {
+    		log.debug("Collected stops: \n\t" + stops.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t")));
+    	}
+    	return stops;
+    }
+
+    protected TripPlan createTransitPlan(TripPlan plan, TraverseMode[] otpModalities, int maxWalkDistance) {
+    	TripPlan transitPlan = null;
+		try {
+	    	boolean arrivalTimeIsPinned = false;
+	    	Instant travelTime = plan.getDepartureTime();
+	    	if (travelTime == null) {
+	    		travelTime = plan.getArrivalTime();
+	    		arrivalTimeIsPinned = true;
+	    	}
+			// Perhaps add WALK?
+			transitPlan = otpDao.createPlan(plan.getFrom(), plan.getTo(), travelTime, arrivalTimeIsPinned, 
+					otpModalities, false, maxWalkDistance, null, null);
+	    	if (log.isDebugEnabled()) {
+	    		log.debug("Transit plan: \n" + transitPlan.toString());
+	    	}
+		} catch (NotFoundException e) {
+			log.warn(String.format("No transit plan found from %s to %s - %s", plan.getFrom(), plan.getTo(), e.getMessage()));
+		} catch (BadRequestException e) {
+			throw new SystemException("No transit plan could be created", e);
+		}
+		return transitPlan;
+    }
     
     /**
      * Creates a multi-modal travel plan for a passenger. Both ride share and transit options are considered.
@@ -218,6 +358,10 @@ public class PlannerManager {
     public TripPlan searchMultiModal(GeoLocation fromPlace, GeoLocation toPlace, 
     		Instant depTime, Instant arrTime, 
     		TraverseMode[] modalities, Integer maxWalkDistance, Integer nrSeats) {
+    	//FIXME For searching we need a earliestDeparture and latestArrival. For scoring we need to know a reference time and whether that is departure or arrival.
+    	//FIXME Add also whether first mile or last mile mile (or both ) by rideshare are acceptable. MaxTransfer 1 could force it but that affects transit too.  
+    	boolean allowRideshareForLastLeg = false;
+    	boolean allowRideshareForFirstLeg = false;
     	if (log.isDebugEnabled()) {
     		log.debug(String.format("searchMultiModal:\n D %s A %s from %s to %s; seats #%d, max walk distance %sm; modalities %s", 
     						depTime != null ? formatDateTime(depTime) : "*", 
@@ -230,102 +374,49 @@ public class PlannerManager {
     				)
     		);
     	}
-    	// Let's force the use of an arrival date
-    	if (arrTime == null) {
-    		throw new IllegalArgumentException("Only a search with an arrival time is supported now");
-    	}
-    	boolean arrivalTimeIsPinned = false;
-    	Instant travelTime = depTime;
-    	if (travelTime == null) {
-    		travelTime = arrTime;
-    		arrivalTimeIsPinned = true;
-    	}
-    	// Get a reference route for the passenger
-    	TripPlan thePlan = null;
-		try {
-			thePlan = otpDao.createPlan(fromPlace, toPlace, travelTime, arrivalTimeIsPinned, 
-					new TraverseMode[] { TraverseMode.WALK, TraverseMode.TRANSIT }, false, maxWalkDistance, null, null);
-		} catch (NotFoundException e) {
-			log.warn(String.format("No reference plan found from %s to %s - %s", fromPlace, toPlace, e.getMessage()));
-			thePlan = new TripPlan();
-			thePlan.setFrom(fromPlace);
-			thePlan.setTo(toPlace);
-		} catch (BadRequestException e) {
-			throw new SystemException("No reference plan found", e);
-		}
+    	// Create the basic trip plan
+    	TripPlan thePlan = new TripPlan();
+		thePlan.setFrom(fromPlace);
+		thePlan.setTo(toPlace);
 		thePlan.setArrivalTime(arrTime);
 		thePlan.setDepartureTime(depTime);
 		thePlan.setTraverseModes(modalities);
 		thePlan.setNrSeats(nrSeats);
 		thePlan.setMaxWalkDistance(maxWalkDistance);
-
-    	if (log.isDebugEnabled()) {
-    		log.debug("Reference plan: \n" + thePlan.toString());
-    	}
-    	Set<Stop> places = findTransitBoardingStops(thePlan);
-    	if (log.isDebugEnabled()) {
-    		log.debug("Onboarding places from reference plan: \n\t" + places.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t")));
-    	}
-    	if (places.size() < 6) {
-	    	// Perhaps we should also query for the 5 nearest hubs in case the number of places is small (just one)
-	    	List<OtpCluster> clusters = searchImportantTransitStops(fromPlace, toPlace, 10);
-	    	places = combineClustersIntoStops(places, clusters);
-	    	if (log.isDebugEnabled()) {
-	    		log.debug("Onboarding places extra: \n\t" + places.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t")));
-	    	}
-    	}
-
-    	// Extend the transit plan with CAR (ride sharing) modality and combinations of the ride and transit itineraries
-    	// Add all direct rides
-    	thePlan.getItineraries().addAll(searchRideshareOnly(fromPlace, toPlace, depTime, arrTime, maxWalkDistance, nrSeats));
-
-    	// Try to find a ride from pickup point to each transit place (first mile by car)
-    	log.debug("Search for first leg by Car");
-    	for (Stop place : places) {
-    		// Try to find a shared ride from passenger's departure to a transit hub
-        	List<Itinerary> passengerCarItineraries = searchRideshareOnly(fromPlace, place.getLocation(), depTime, arrTime, maxWalkDistance, nrSeats);
-    		// Create a transit plan from shared ride dropoff to passenger's destination
-    		// Add x minutes waiting time at drop off
-        	// Extract the leg for the passenger and create a complete itinerary for the passenger
-        	for (Itinerary dit : passengerCarItineraries) {
-            	Instant transitStart  = dit.getLegs().get(0).getEndTime().plusSeconds(CAR_TO_TRANSIT_SLACK);
-        		TraverseMode[] modes = new TraverseMode[] { TraverseMode.WALK, TraverseMode.TRANSIT };
-            	try {
-            		TripPlan transitPlan = otpDao.createPlan(place.getLocation(), toPlace, transitStart,  false, modes, 
-		        			false, maxWalkDistance, null, 2 /* To see repeating */);
-		        	if (log.isDebugEnabled()) {
-		        		log.debug("Car -> Transit plan: \n" + transitPlan.toString());
-		        	}
-		        	thePlan.getItineraries().addAll(dit.appendTransits(transitPlan.getItineraries()));
-            	}  catch(Exception ex) {
-            		log.error(ex.toString());
-            		log.warn("Skip itinerary due to OTP error: " + dumpPlanRequest(transitStart, null, place.getLocation(), toPlace, null, modes));
-            	}
-			}
+		// 
+		List<TraverseMode> transitModalities = Arrays.stream(modalities).filter(m -> m.isTransit()).collect(Collectors.toList());
+		List<TraverseMode> otpModalitiesList = new ArrayList<>(transitModalities);
+		// OTP needs WALK too
+		otpModalitiesList.add(TraverseMode.WALK);
+		TraverseMode[] otpModalities = otpModalitiesList.stream().toArray(TraverseMode[]::new);
+		boolean rideshareEligable = Arrays.stream(modalities).filter(m -> m == TraverseMode.RIDESHARE).findFirst().isPresent();
+		if (!transitModalities.isEmpty()) {
+			// Transit is eligable. Add the transit itineraries as calculated by OTP.
+			TripPlan transitPlan = createTransitPlan(thePlan, otpModalities, thePlan.getMaxWalkDistance());
+			thePlan.getItineraries().addAll(transitPlan.getItineraries());
 		}
 
-    	// Try to find a ride from transit place to drop-off (last mile by car)
-    	log.debug("Search for a last leg by Car");
-    	for (Stop place : places) {
-    		// Try to find a shared ride from transit hub to passenger's destination
-        	List<Itinerary> passengerCarItineraries = searchRideshareOnly(place.getLocation(), toPlace, depTime, arrTime, maxWalkDistance, nrSeats);
-    		// Create a transit plan from passenger departure to shared ride pickup
-    		// Add x minutes waiting time at pick off
-        	// Extract the leg for the passenger and create a complete itinerary for the passenger
-        	for (Itinerary dit : passengerCarItineraries) {
-        		Instant transitEnd  = dit.getLegs().get(0).getEndTime().plusSeconds(CAR_TO_TRANSIT_SLACK);
-        		TraverseMode[] modes = new TraverseMode[] { TraverseMode.WALK, TraverseMode.TRANSIT };
-            	try {
-	            	TripPlan transitPlan = otpDao.createPlan(fromPlace, place.getLocation(), transitEnd, true, modes,  
-	            			false, maxWalkDistance, null, 2 /* To see repeating */);
-	            	if (log.isDebugEnabled()) {
-	            		log.debug("Transit -> Car plan: \n" + transitPlan.toString());
-	            	}
-	            	thePlan.getItineraries().addAll(dit.prependTransits(transitPlan.getItineraries()));
-            	}  catch(Exception ex) {
-            		log.error(ex.toString());
-            		log.warn("Skip itinerary due to OTP error: " + dumpPlanRequest(null, transitEnd, fromPlace, place.getLocation(), null, modes));
-            	}
+		if (rideshareEligable) {
+	    	// Add the RIDESHARE only itineraries
+	    	thePlan.getItineraries().addAll(searchRideshareOnly(fromPlace, toPlace, depTime, arrTime, maxWalkDistance, nrSeats));
+
+			// If transit is an option too then collect possible pickup and drop-off places near transit stops
+	    	// FIXME Add maxNrTransers
+			if (!transitModalities.isEmpty() && (allowRideshareForFirstLeg || allowRideshareForLastLeg) ) {
+		    	TripPlan transitReferencePlan = null;
+				Set<Stop> transitBoardingStops = null;
+				// Calculate a transit reference plan to find potential boarding or alighting places. 
+				transitReferencePlan = createTransitPlan(thePlan, otpModalities, 50000);
+				List<OtpCluster> nearbyClusters = new ArrayList<>();
+				// Collect the stops. If there are no stops or too few, collect potential clusters
+				//FIXME The ordering of the clusters depends probably on first oflast leg. Check.
+		    	transitBoardingStops = collectStops(thePlan, findTransitBoardingStops(transitReferencePlan), nearbyClusters);
+	    		if (allowRideshareForFirstLeg) {
+	        		addRideshareAsFirstLeg(thePlan, transitBoardingStops, otpModalities);
+	    		}
+	    		if (allowRideshareForLastLeg) {
+	        		addRideshareAsLastLeg(thePlan, transitBoardingStops, otpModalities);
+	    		}
 			}
 		}
 
@@ -339,14 +430,31 @@ public class PlannerManager {
     	return thePlan;
     }
 
-    public void rankItineraries(TripPlan thePlan, Instant fromDate, Instant toDate) {
+    protected void rankItineraries(TripPlan thePlan, Instant fromDate, Instant toDate) {
     	BasicItineraryRankingAlgorithm ranker = new BasicItineraryRankingAlgorithm();
     	for (Itinerary it: thePlan.getItineraries()) {
     		ranker.calculateScore(it, fromDate, toDate);
     	}
     }
+
+    /**
+     * Finds all selected stops in a transit itinerary.  
+     * @param transitPlan
+     * @param stopSelector
+     * @return
+     */
+    protected Collection<Stop> findTransitStops(TripPlan transitPlan, Function<Leg, Stop> stopSelector) {
+    	return transitPlan.getItineraries().stream()
+    			.flatMap(it -> it.getLegs().stream())
+    			.filter(leg -> leg.getTraverseMode().isTransit())
+    			.map(stopSelector)
+    			.collect(Collectors.toCollection(LinkedHashSet::new));
+    }
     
-    public Set<Stop> findTransitBoardingStops(TripPlan otherPlan) {
+   	protected Set<Stop> findTransitBoardingStops(TripPlan otherPlan) {
+   		if (otherPlan == null) {
+   			return Collections.emptySet();
+   		}
     	// Strategy A: Replace the first leg(s) with ride share options
     	Set<Stop> stops = new LinkedHashSet<>();
     	for (Itinerary it : otherPlan.getItineraries()) {
@@ -374,14 +482,16 @@ public class PlannerManager {
     	return stops;
     }
     
-    public List<OtpCluster> searchImportantTransitStops(GeoLocation fromPlace, GeoLocation toPlace, int maxResults) {
+    protected List<OtpCluster> searchImportantTransitStops(GeoLocation fromPlace, GeoLocation toPlace, TraverseMode[] modes, int maxResults) {
     	EligibleArea ea = EllipseHelper.calculateEllipse(fromPlace.getPoint(), toPlace.getPoint(), null, PASSENGER_RELATIVE_MAX_DETOUR / 2);
 //    	log.debug("Passenger ellipse: " + GeometryHelper.createWKT(ea.eligibleAreaGeometry));
     	// Find all hub-alike transit clusters inside this ellipse
-    	return otpClusterDao.findImportantHubs(fromPlace, toPlace, ea.eligibleAreaGeometry, maxResults);
+//    	TraverseMode[] transitModes = Arrays.stream(modes).filter(mode -> mode.isTransit()).toArray(TraverseMode[]::new);
+    	return otpClusterDao.findImportantHubs(fromPlace, ea.eligibleAreaGeometry, maxResults);
+    	
     }
 
-	public Set<Stop> combineClustersIntoStops(Collection<Stop> otherStops, Collection<OtpCluster> clusters) {
+    protected Set<Stop> combineClustersIntoStops(Collection<Stop> otherStops, Collection<OtpCluster> clusters) {
 		List<Stop> stops = new ArrayList<>(otherStops);
 		for (OtpCluster c : clusters) {
 			boolean alreadyFound = false;

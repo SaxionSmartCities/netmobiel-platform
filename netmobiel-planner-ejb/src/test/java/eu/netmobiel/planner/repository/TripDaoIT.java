@@ -57,7 +57,6 @@ public class TripDaoIT {
                 .addPackages(true, TripStateConverter.class.getPackage())
                 .addPackages(true, WithinPredicate.class.getPackage())
             .addClass(TripDao.class)
-            .addClass(UserDao.class)
             .addClass(Resources.class)
             .addAsResource("META-INF/test-persistence.xml", "META-INF/persistence.xml")
             .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
@@ -67,8 +66,6 @@ public class TripDaoIT {
 
     @Inject
     private TripDao tripDao;
-    @Inject
-    private UserDao userDao;
 
     @PersistenceContext(unitName = "pu-planner")
     private EntityManager em;

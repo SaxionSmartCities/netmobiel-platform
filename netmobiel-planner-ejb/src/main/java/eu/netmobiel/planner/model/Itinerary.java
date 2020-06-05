@@ -210,7 +210,7 @@ public class Itinerary implements Serializable {
 	}
 
     private String formatTime(Instant instant) {
-    	return DateTimeFormatter.ISO_TIME.format(instant.atOffset(ZoneOffset.UTC));
+    	return DateTimeFormatter.ISO_INSTANT.format(instant);
     }
 
     public String toStringCompact() {

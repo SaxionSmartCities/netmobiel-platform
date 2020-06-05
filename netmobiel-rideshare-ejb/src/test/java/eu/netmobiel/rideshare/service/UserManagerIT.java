@@ -15,6 +15,7 @@ import org.junit.runner.RunWith;
 
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
 
@@ -23,6 +24,7 @@ public class UserManagerIT extends RideshareIntegrationTestBase {
     @Deployment
     public static Archive<?> createTestArchive() {
         WebArchive archive = createDeploymentBase()
+                .addPackages(true, RideDao.class.getPackage())
 	            .addClass(UserManager.class);
 //   		System.out.println(archive.toString(true));
 		return archive;
@@ -34,6 +36,10 @@ public class UserManagerIT extends RideshareIntegrationTestBase {
     private User driver1;
     private Car car1;
 
+    @Override
+    public boolean isSecurityRequired() {
+    	return true;
+    }
 
     @Override
     protected void insertData() throws Exception {

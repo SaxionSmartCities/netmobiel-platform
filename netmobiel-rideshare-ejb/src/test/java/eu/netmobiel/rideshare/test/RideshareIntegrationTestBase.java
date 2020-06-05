@@ -49,7 +49,6 @@ public abstract class RideshareIntegrationTestBase {
                 .addPackages(true, AbstractDao.class.getPackage())
                 .addPackages(true, BookingStateConverter.class.getPackage())
                 .addPackages(true, Fixture.class.getPackage())
-                .addPackages(true, RideDao.class.getPackage())
                 .addClass(Resources.class)
             	.addAsResource("test-setup.properties")
                 .addAsResource("keycloak.json", "keycloak.json")
@@ -71,7 +70,11 @@ public abstract class RideshareIntegrationTestBase {
     protected LoginContext loginContextDriver;
     protected LoginContext loginContextPassenger;
   
-	public void prepareSecurity() throws Exception {
+    public boolean isSecurityRequired() {
+    	return false;
+    }
+	
+    public void prepareSecurity() throws Exception {
 		prepareDriverLogin();
 		preparePassengerLogin();
 	}
@@ -83,7 +86,9 @@ public abstract class RideshareIntegrationTestBase {
 
 	@Before
 	public void prepareTest() throws Exception {
-		prepareSecurity();
+		if (isSecurityRequired()) {
+			prepareSecurity();
+		}
 		clearData();
 		prepareData();
 		startTransaction();
@@ -92,7 +97,9 @@ public abstract class RideshareIntegrationTestBase {
 	@After
 	public void finishTest() throws Exception {
 		commitTransaction();
-		finishSecurity();
+		if (isSecurityRequired()) {
+			finishSecurity();
+		}
 	}
 
 	protected void commitTransaction() throws Exception {

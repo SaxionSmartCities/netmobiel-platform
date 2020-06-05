@@ -92,37 +92,41 @@ public class RideDao extends AbstractDao<Ride, Long> {
     /**
      * Searches for matching rides. The following rules apply:<br/>
      * 1. Pickup and drop-off are within eligibility area;
-     * 2. The ride is after <code>earliestDeparture</code> and before <code>latestDeparture</code>;
+     * 2.1 lenient = false: The ride departs after <code>earliestDeparture</code> and arrives before <code>latestArrival</code>;
+     * 2.2 lenient = true: The ride arrives after <code>earliestDeparture</code> and departs before <code>latestArrival</code>;
      * 3. The car has enough seats available [restriction: only 1 booking allowed now]; 
      * 4. The ride has not been deleted;
      * 5. The passenger and driver should travel in more or less the same direction. 
      * @param fromPlace The location for pickup
      * @param toPlace The location for drop-off
+     * @param maxBearingDifference The maximum difference in bearing direction between driver and passenger vectors.
      * @param earliestDeparture The date and time to depart earliest
-     * @param latestDeparture The date and time to depart latest 
+     * @param latestArrival The date and time to arrive latest 
      * @param nrSeatsRequested the number of seats required
+     * @param lenient if true then also retrieve rides that partly overlap the passenger's travel window. Otherwise it must be fully inside the passenger's travel window. 
      * @param maxResults pagination: maximum number of results
      * @param offset pagination: The offset to start (start at 0)
      * @param graphName the graph name of the entity graph to use.
      * @return A list of potential matches.
      */
     public PagedResult<Long> search(GeoLocation fromPlace, GeoLocation toPlace, int maxBearingDifference, 
-    		Instant earliestDeparture, Instant latestDeparture, Integer nrSeatsRequested, Integer maxResults, Integer offset) {
+    		Instant earliestDeparture, Instant latestArrival, Integer nrSeatsRequested, boolean lenient, Integer maxBookings, Integer maxResults, Integer offset) {
     	int searchBearing = Math.toIntExact(Math.round(EllipseHelper.getBearing(fromPlace.getPoint(), toPlace.getPoint())));
     	if (logger.isDebugEnabled()) {
-	    	logger.debug(String.format("Search for ride from %s to %s D %s A %s #%d seats, bearing %d", fromPlace, toPlace, 
+	    	logger.debug(String.format("Search for ride from %s to %s D %s A %s #%d seats %s, bearing %d", fromPlace, toPlace, 
 	    			earliestDeparture != null ? DateTimeFormatter.ISO_INSTANT.format(earliestDeparture) : "-",
-	    			latestDeparture != null ? DateTimeFormatter.ISO_INSTANT.format(latestDeparture) : "-",
-	    			nrSeatsRequested, searchBearing));
+	    			latestArrival != null ? DateTimeFormatter.ISO_INSTANT.format(latestArrival) : "-",
+	    			nrSeatsRequested, lenient ? "lenient" : "strict", searchBearing));
     	}
     	String baseQuery =     			
     			"from Ride r where contains(r.shareEligibility, :fromPoint) = true and " +
     			"contains(r.shareEligibility, :toPoint) = true and " +
     			"abs(r.carthesianBearing - :searchBearing) < :maxBearingDifference and " +
-    			"(CAST(:earliestDeparture as java.lang.String) is null or r.departureTime >= :earliestDeparture) and " +
-    			"(CAST(:latestDeparture as java.lang.String) is null or r.departureTime < :latestDeparture) and " +
+    			"(CAST(:earliestDeparture as java.lang.String) is null or (:lenient = false and r.departureTime >= :earliestDeparture) or (:lenient = true and r.arrivalTime >= :earliestDeparture)) and " +
+    			"(CAST(:latestArrival as java.lang.String) is null or (:lenient = false and r.arrivalTime <= :latestArrival) or (:lenient = true and r.departureTime < :latestArrival)) and " +
     			"r.nrSeatsAvailable >= :nrSeatsRequested and " +
-    			"(r.deleted is null or r.deleted = false)";
+    			"(r.deleted is null or r.deleted = false) and " +
+    			"(:maxBookings is null or (select cast(count(b) as java.lang.Integer) from r.bookings b where b.state <> eu.netmobiel.rideshare.model.BookingState.CANCELLED) < :maxBookings)";
     	TypedQuery<Long> tq = null;
     	if (maxResults == 0) {
     		// Only request the possible number of results
@@ -136,8 +140,10 @@ public class RideDao extends AbstractDao<Ride, Long> {
 			.setParameter("searchBearing", searchBearing)
 			.setParameter("maxBearingDifference", maxBearingDifference)
 			.setParameter("earliestDeparture", earliestDeparture)
-			.setParameter("latestDeparture", latestDeparture)
-			.setParameter("nrSeatsRequested", nrSeatsRequested);
+			.setParameter("latestArrival", latestArrival)
+			.setParameter("nrSeatsRequested", nrSeatsRequested)
+			.setParameter("lenient", lenient)
+    		.setParameter("maxBookings", maxBookings);
         Long totalCount = null;
         List<Long> results = Collections.emptyList();
         if (maxResults == 0) {

@@ -174,13 +174,13 @@ public class TripManager {
        		for (Leg leg : tripdb.getLegs()) {
 				cancelBookingIfNecessary(tripdb.getTraveller(), leg, reason);
 			}
-       		updateTripState(tripdb);
        	}
     	if (tripdb.getState() == TripState.PLANNING) {
     		// Hard delete
 			tripDao.remove(tripdb);
     	} else {
     		tripdb.setDeleted(true);
+       		updateTripState(tripdb);
     	}
     }
  

@@ -49,15 +49,23 @@ public class Fixture {
 		return new User(token.getSubject(), token.getGivenName(), token.getFamilyName());
 	}
 
-	public static User createUser1() {
+	public static User createDriver1() {
 		return createUser("ID1", "Carla1", "Netmobiel");
 	}
 	
-	public static User createUser2() {
+	public static User createDriver2() {
 		return createUser("ID2", "Carla2", "Netmobiel");
 	}
-	public static User createUser3() {
+	public static User createDriver3() {
 		return createUser("ID3", "Carla3", "Netmobiel");
+	}
+
+	public static User createPassenger1() {
+		return createUser("IP1", "Simon1", "Netmobiel");
+	}
+	
+	public static User createPassenger2() {
+		return createUser("IP2", "Simon2", "Netmobiel");
 	}
 
 	public static Car createCarVolvo(User driver) {
@@ -125,23 +133,31 @@ public class Fixture {
 	}
 
 	public static Ride createRide(Car car, Instant departureTime, Instant arrivalTime) {
+		return createRide(car, placeZieuwent, departureTime, placeSlingeland, arrivalTime);
+	}
+
+	public static Ride createRide(Car car, GeoLocation from, Instant departureTime, GeoLocation to, Instant arrivalTime) {
 		Ride r = new Ride();
 		r.setCarRef(RideshareUrnHelper.createUrn(Car.URN_PREFIX, car.getId()));
 		r.setCar(car);
 		r.setDriver(car.getDriver());
-		if (departureTime != null) {
-			r.setDepartureTime(departureTime);
-			r.setArrivalTime(departureTime.plusSeconds(60 * 60));
-			r.setArrivalTimePinned(false);
-		} else {
-			r.setArrivalTime(arrivalTime);
+		r.setDepartureTime(departureTime);
+		r.setArrivalTime(arrivalTime);
+		r.setArrivalTimePinned(false);
+		if (departureTime == null && arrivalTime == null) {
+			throw new IllegalArgumentException();
+		}
+		if (departureTime == null) {
 			r.setDepartureTime(arrivalTime.minusSeconds(60 * 60));
 			r.setArrivalTimePinned(true);
+		} else if (arrivalTime == null) {
+			r.setArrivalTime(departureTime.plusSeconds(60 * 60));
 		}
-		r.setFrom(placeZieuwent);
-		r.setTo(placeSlingeland);
-		r.setMaxDetourMeters(5000);
+		r.setFrom(from);
+		r.setTo(to);
+		r.setMaxDetourMeters(10000);
 		r.setNrSeatsAvailable(3);
+		r.updateShareEligibility();
 		return r;
 	}
 	
@@ -156,10 +172,10 @@ public class Fixture {
 		Ride r = createRide(car, departureTime, arrivalTime);
 		r.setCar(car);
 		r.setDriver(car.getDriver());
-		if (departureTime != null) {
-			r.setArrivalTime(departureTime.plusSeconds(60 * 60));
-		} else {
+		if (departureTime == null) {
 			r.setDepartureTime(arrivalTime.minusSeconds(60 * 60));
+		} else {
+			r.setArrivalTime(departureTime.plusSeconds(60 * 60));
 		}
 		return r;
 	}
@@ -175,12 +191,14 @@ public class Fixture {
 		}
 		return r;
 	}
+	
 	public static Booking createBooking(Ride r, User p, Instant departureTime, Instant arrivalTime) {
 		Booking b = new Booking(r, p, Fixture.placeZieuwentRKKerk, Fixture.placeSlingeland, 1);
 		b.setDepartureTime(departureTime);
 		b.setArrivalTime(arrivalTime);
 		return b;
 	}
+	
 	public static Booking createBooking(Ride r, User p, GeoLocation pickup, Instant departureTime, GeoLocation dropoff, Instant arrivalTime) {
 		Booking b = new Booking(r, p, pickup, dropoff, 1);
 		b.setDepartureTime(departureTime);

@@ -100,7 +100,7 @@ public class RideTemplateDaoIT {
         utx.begin();
         em.joinTransaction();
         log.debug("Inserting records...");
-        driver1 = Fixture.createUser1();
+        driver1 = Fixture.createDriver1();
 		em.persist(driver1);
 //        driver2 = Fixture.createUser2();
 //		em.persist(driver2);

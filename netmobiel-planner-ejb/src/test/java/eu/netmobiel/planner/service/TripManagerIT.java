@@ -2,7 +2,6 @@ package eu.netmobiel.planner.service;
 
 import static org.junit.Assert.*;
 
-import java.io.File;
 import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
@@ -14,10 +13,7 @@ import javax.inject.Inject;
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.Archive;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.jboss.shrinkwrap.resolver.api.maven.Maven;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -26,9 +22,7 @@ import eu.netmobiel.commons.api.EncodedPolylineBean;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.GeometryHelper;
-import eu.netmobiel.planner.Resources;
 import eu.netmobiel.planner.model.AbsoluteDirection;
 import eu.netmobiel.planner.model.GuideStep;
 import eu.netmobiel.planner.model.Leg;
@@ -39,30 +33,15 @@ import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.UserDao;
-import eu.netmobiel.planner.util.PlannerUrnHelper;
+import eu.netmobiel.planner.test.PlannerIntegrationTestBase;
 
 @RunWith(Arquillian.class)
-public class TripManagerIT {
+public class TripManagerIT extends PlannerIntegrationTestBase {
     @Deployment
     public static Archive<?> createTestArchive() {
-    	File[] deps = Maven.configureResolver()
-				.loadPomFromFile("pom.xml")
-				.importCompileAndRuntimeDependencies() 
-				.resolve()
-				.withTransitivity()
-				.asFile();
-        WebArchive archive = ShrinkWrap.create(WebArchive.class, "test.war")
-                .addAsLibraries(deps)
-                .addPackage(PlannerUrnHelper.class.getPackage())
-                .addPackages(true, User.class.getPackage())
-                .addPackages(true, AbstractDao.class.getPackage())
-                .addPackages(true, UserDao.class.getPackage())
-            .addClass(TripManager.class)
-            .addClass(UserManager.class)
-            .addClass(Resources.class)
-            .addAsResource("META-INF/test-persistence.xml", "META-INF/persistence.xml")
-            .addAsResource("import.sql")
-            .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
+        WebArchive archive = createDeploymentBase()
+            .addPackages(true, UserDao.class.getPackage())
+            .addClass(TripManager.class);
 //		System.out.println(archive.toString(true));
 		return archive;
     }
@@ -73,6 +52,10 @@ public class TripManagerIT {
     @Inject
     private Logger log;
 
+    @Override
+    protected void insertData() throws Exception {
+    }
+    
     private Trip createEmptyTrip(String departureTimeIso, String arrivalTimeIso) {
         Trip trip = new Trip();
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
@@ -152,11 +135,12 @@ public class TripManagerIT {
     public void testGetTrip() throws Exception {
     	User traveller = new User();
     	traveller.setId(1L);
-        
+        flush();
         Trip trip = createEmptyTrip("2020-01-07T14:30:00+01:00", "2020-01-07T16:30:00+01:00");
     	Long id = tripManager.createTrip(traveller, trip, true);
         assertNotNull(id);
-
+        flush();
+        
         trip = tripManager.getTrip(id);
         assertNotNull(trip);
         assertEquals(id, trip.getId());
