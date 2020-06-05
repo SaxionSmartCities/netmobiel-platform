@@ -38,10 +38,12 @@ public class DebugLogger implements Serializable {
 			sb.append("(");
 			int count = 0;
 			for (Object o : ic.getParameters()) {
-				if (o != null) {
-					if (count > 0) {
-						sb.append(", ");
-					}
+				if (count > 0) {
+					sb.append(", ");
+				}
+				if (o == null) {
+					sb.append("<null>");
+				} else {
 					if (o.getClass() != null) {
 						sb.append(o.getClass().getSimpleName());
 					} else {
@@ -62,8 +64,8 @@ public class DebugLogger implements Serializable {
 						// Probably not initialized, ignore
 						sb.append("<proxy>");
 					}
-					count++;
 				}
+				count++;
 			}
 			sb.append(")");
 			logger.debug(sb.toString());
