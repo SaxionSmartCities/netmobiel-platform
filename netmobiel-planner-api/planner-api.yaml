@@ -123,7 +123,8 @@ paths:
         name: departureTime
         description: The requested date and time of the departure. At least one of
           departureTime or ArrivalTime are specified. If both are specified then it
-          is interpreted as a window for travelling. The time zone is always UTC.
+          is interpreted as a window for travelling. The departure time must be after
+          `now` if set, otherwise in the future.
         schema:
           format: date-time
           type: string
@@ -134,7 +135,8 @@ paths:
         name: arrivalTime
         description: The requested date and time of the arrival. At least one of departureTime
           or ArrivalTime are specified. If both are specified then it is interpreted
-          as a window for travelling. The time zone is always UTC.
+          as a window for travelling. The arrival  time must be after `now` if set,
+          otherwise in the future. It must also be after departure time, if set.
         schema:
           format: date-time
           type: string
@@ -163,6 +165,14 @@ paths:
         description: The number of seats required. Default is 1.
         schema:
           type: integer
+        in: query
+        required: false
+      - name: now
+        description: (Testing only). The point in time as reference for searching.
+          If not set then now is set to the actual time.
+        schema:
+          format: date-time
+          type: string
         in: query
         required: false
       responses:
