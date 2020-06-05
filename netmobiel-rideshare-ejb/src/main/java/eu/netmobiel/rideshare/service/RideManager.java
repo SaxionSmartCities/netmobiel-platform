@@ -16,6 +16,7 @@ import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
+import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 
@@ -198,8 +199,35 @@ public class RideManager {
     	}
     	return new PagedResult<Ride>(results, maxResults, offset, totalCount);
     }
-    
-    public PagedResult<Ride> search(GeoLocation fromPlace, GeoLocation toPlace, Instant earliestDeparture, Instant latestArrival, Integer nrSeats, boolean lenient, Integer maxResults, Integer offset) {
+
+    /**
+     * Searches for matching rides. The following rules apply:<br/>
+     * 1. Pickup and drop-off are within eligibility area of the ride (calculated on creation of the ride);
+     * 2.1 lenient = false: The ride departs after <code>earliestDeparture</code> and arrives before <code>latestArrival</code>;
+     * 2.2 lenient = true: The ride arrives after <code>earliestDeparture</code> and departs before <code>latestArrival</code>;
+     * 3. The car has enough seats available
+     * 4. The ride has not been deleted;
+     * 5. The passenger and driver should travel in more or less the same direction. 
+     * 6. The ride has less than <code>maxBookings</code> active bookings.
+     * 7. earliestDeparture is before latestArrival.  
+     * @param fromPlace The location for pickup
+     * @param toPlace The location for drop-off
+     * @param maxBearingDifference The maximum difference in bearing direction between driver and passenger vectors.
+     * @param earliestDeparture The date and time to depart earliest
+     * @param latestArrival The date and time to arrive latest 
+     * @param nrSeatsRequested the number of seats required
+     * @param lenient if true then also retrieve rides that partly overlap the passenger's travel window. Otherwise it must be fully inside the passenger's travel window. 
+     * @param maxResults pagination: maximum number of results
+     * @param offset pagination: The offset to start (start at 0)
+     * @param graphName the graph name of the entity graph to use.
+     * @return A list of potential matches.
+     */
+
+    public PagedResult<Ride> search(@NotNull GeoLocation fromPlace, @NotNull GeoLocation toPlace, Instant earliestDeparture, 
+    		Instant latestArrival, Integer nrSeats, boolean lenient, Integer maxResults, Integer offset) throws BadRequestException {
+    	if (earliestDeparture != null && latestArrival != null && earliestDeparture.isAfter(latestArrival)) {
+    		throw new BadRequestException("Departure time must be before arrival time");
+    	}
     	if (nrSeats == null) {
     		nrSeats = 1;
     	}

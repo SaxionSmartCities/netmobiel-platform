@@ -97,6 +97,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
      * 3. The car has enough seats available [restriction: only 1 booking allowed now]; 
      * 4. The ride has not been deleted;
      * 5. The passenger and driver should travel in more or less the same direction. 
+     * 6. The ride has less than <code>maxBookings</code> active bookings. 
      * @param fromPlace The location for pickup
      * @param toPlace The location for drop-off
      * @param maxBearingDifference The maximum difference in bearing direction between driver and passenger vectors.
