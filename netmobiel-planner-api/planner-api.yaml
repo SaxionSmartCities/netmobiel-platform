@@ -121,10 +121,9 @@ paths:
           Example:
             value: 2019-10-23T09:30+01:00
         name: departureTime
-        description: The requested date and time of the departure. At least one of
-          departureTime or ArrivalTime are specified. If both are specified then it
-          is interpreted as a window for travelling. The departure time must be after
-          `now` if set, otherwise in the future.
+        description: The requested date and time of the departure. The departure time
+          is set to `now` or to the current time if both departure time and arrival
+          time are omitted. Departure time must be before arrival time.
         schema:
           format: date-time
           type: string
@@ -133,10 +132,9 @@ paths:
           Example:
             value: 2019-10-23T10:30+01:00
         name: arrivalTime
-        description: The requested date and time of the arrival. At least one of departureTime
-          or ArrivalTime are specified. If both are specified then it is interpreted
-          as a window for travelling. The arrival  time must be after `now` if set,
-          otherwise in the future. It must also be after departure time, if set.
+        description: The requested date and time of the arrival. The arrival  time
+          must be after `now` if set, otherwise in the future. It must also be after
+          departure time, if set.
         schema:
           format: date-time
           type: string
