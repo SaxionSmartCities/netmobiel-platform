@@ -645,9 +645,10 @@ paths:
         required: true
       - examples:
           Example:
-            value: 2019-10-23T09:30
+            value: 2019-10-23T09:30+01:00
         name: fromDate
-        description: 'The date and time of intended departure. The format is ISO8601. '
+        description: The date and time of the earliest departure. The format is ISO8601.
+          The departure time must be after `now`.
         schema:
           format: date-time
           type: string
@@ -659,9 +660,10 @@ paths:
         in: query
       - examples:
           Example:
-            value: 2019-10-23T12:15
+            value: 2019-10-23T12:15+01:00
         name: toDate
-        description: 'The date and time of the intended arrival time. '
+        description: The date and time of the latest intended arrival time. The arrival
+          time must be after the departure time.
         schema:
           format: date-time
           type: string
@@ -681,6 +683,13 @@ paths:
         description: 'Paging: The zero-based offset in the result set to return.'
         schema:
           type: integer
+        in: query
+      - name: now
+        description: (Testing only). The point in time as reference for searching.
+          If not set then now is set to the actual time.
+        schema:
+          format: date-time
+          type: string
         in: query
       responses:
         "200":
