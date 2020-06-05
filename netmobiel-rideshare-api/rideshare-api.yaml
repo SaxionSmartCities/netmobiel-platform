@@ -647,23 +647,26 @@ paths:
           Example:
             value: 2019-10-23T09:30+01:00
         name: fromDate
-        description: 'The date and time of the earliest departure. The format is ISO8601. '
+        description: The date and time of the earliest departure. The format is ISO8601.
+          If not set then now is taken.
         schema:
           format: date-time
           type: string
         in: query
-        required: true
+        required: false
       - name: toPlace
         description: The end location (see fromPlace for format).
         schema:
           type: string
         in: query
+        required: true
       - examples:
           Example:
             value: 2019-10-23T12:15+01:00
         name: toDate
         description: The date and time of the latest intended arrival time. The arrival
-          time must be after the departure time.
+          time must be after the departure time. If not set the implicit latestArrivalTime  is
+          24 hours after the (earliest) departure time.
         schema:
           format: date-time
           type: string
