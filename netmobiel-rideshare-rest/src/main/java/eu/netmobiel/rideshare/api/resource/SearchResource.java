@@ -7,10 +7,12 @@ import java.time.format.DateTimeParseException;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.rideshare.api.SearchApi;
@@ -63,14 +65,18 @@ public class SearchResource implements SearchApi {
     		Integer offset
     	) {
     	PagedResult<Ride> rides = null;
-    	if (fromPlace == null || toPlace == null || (fromDate == null && toDate == null)) {
-    		throw new BadRequestException("Missing one or more mandatory parameters: fromPlace, toPlace, fromDate or toDate");
-    	} 
-    	//FIXME EarliestDepartureTime, LatestArrivalTime
+    	if (fromDate == null) {
+    		fromDate = OffsetDateTime.now();
+    	}
+    	if (fromPlace == null || toPlace == null) {
+    		throw new BadRequestException("Missing one or more mandatory parameters: fromPlace, toPlace");
+    	}
 		try {
 			Instant earliestDeparture = toInstant(fromDate);
 			Instant latestArrival = toInstant(toDate);
     		rides = rideManager.search(GeoLocation.fromString(fromPlace), GeoLocation.fromString(toPlace), earliestDeparture, latestArrival, nrSeats, true, maxResults, offset);
+		} catch (ApplicationException ex) {
+			throw new WebApplicationException(ex);
 		} catch (DateTimeParseException ex) {
 			throw new BadRequestException("Date parameter has unrecognized format", ex);
 		} catch (IllegalArgumentException ex) {
