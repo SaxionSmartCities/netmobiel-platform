@@ -647,12 +647,12 @@ paths:
           Example:
             value: 2019-10-23T09:30+01:00
         name: fromDate
-        description: The date and time of the earliest departure. The format is ISO8601.
-          The departure time must be after `now`.
+        description: 'The date and time of the earliest departure. The format is ISO8601. '
         schema:
           format: date-time
           type: string
         in: query
+        required: true
       - name: toPlace
         description: The end location (see fromPlace for format).
         schema:
@@ -683,13 +683,6 @@ paths:
         description: 'Paging: The zero-based offset in the result set to return.'
         schema:
           type: integer
-        in: query
-      - name: now
-        description: (Testing only). The point in time as reference for searching.
-          If not set then now is set to the actual time.
-        schema:
-          format: date-time
-          type: string
         in: query
       responses:
         "200":
