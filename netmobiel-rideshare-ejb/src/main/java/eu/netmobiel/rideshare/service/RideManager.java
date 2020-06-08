@@ -182,7 +182,7 @@ public class RideManager {
         }
     	User driver = null;
     	if (driverId == null) {
-    		throw new BadRequestException("Constraint violation: 'driverId' is manadatory.");
+    		throw new BadRequestException("Constraint violation: 'driverId' is mandatory.");
     	}
     	driver = userDao.find(driverId)
     				.orElseThrow(() -> new NotFoundException("No such user: " + driverId));
