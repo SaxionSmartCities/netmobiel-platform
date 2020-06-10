@@ -64,6 +64,11 @@
 		</dependency>
 		<dependency>
 		    <groupId>${project.groupId}</groupId>
+		    <artifactId>netmobiel-communicator-ejb</artifactId>
+		    <version>${project.version}</version>
+		</dependency>
+		<dependency>
+		    <groupId>${project.groupId}</groupId>
 		    <artifactId>netmobiel-otp-client</artifactId>
 		    <version>${project.version}</version>
 		</dependency>

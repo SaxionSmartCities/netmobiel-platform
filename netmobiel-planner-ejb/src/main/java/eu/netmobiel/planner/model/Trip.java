@@ -4,6 +4,7 @@ import java.io.Serializable;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Optional;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
@@ -43,7 +44,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 				@NamedSubgraph(
 						name = "leg-details",
 						attributeNodes = {
-								@NamedAttributeNode(value = "guideSteps")
+//								@NamedAttributeNode(value = "guideSteps")
 						}
 					)
 				}
@@ -200,8 +201,36 @@ public class Trip extends Itinerary implements Serializable {
 	public void setTo(GeoLocation to) {
 		this.to = to;
 	}
-	
-//    private String formatTime(Instant instant) {
+
+	/**
+	 * Searches through the legs of this trip for a leg with a specific tripId. The trip id is a reference from the transport provider
+	 * and refers to a specific ride of a vehicle, both in rideshare and in public transport. In public transport the tripId refers 
+	 * to a specific instance of a ride over a route in a day, but not necessarily unique over time. In rideshare the tripId is an unique id.  
+	 * @param tripId the trip id to find
+	 * @return An Optional with the leg containing the trip id or null if not found.  
+	 */
+	public Optional<Leg> findLegByTripId(String tripId) {
+		Leg leg = null;
+		if (getLegs() != null) {
+			leg = getLegs().stream().filter(lg -> tripId.equals(lg.getTripId())).findFirst().orElse(null);
+		}
+		return Optional.ofNullable(leg);
+	}
+
+	/**
+	 * Searches through the legs of this trip for a leg with a specific bookingId.  
+	 * @param bookingId the booking id to find
+	 * @return An Optional with the leg containing the booking id or null if not found.  
+	 */
+	public Optional<Leg> findLegByBookingId(String bookingId) {
+		Leg leg = null;
+		if (getLegs() != null) {
+			leg = getLegs().stream().filter(lg -> bookingId.equals(lg.getBookingId())).findFirst().orElse(null);
+		}
+		return Optional.ofNullable(leg);
+	}
+
+	//    private String formatTime(Instant instant) {
 //    	return DateTimeFormatter.ISO_DATE_TIME.format(instant.atOffset(ZoneOffset.UTC).toLocalDateTime());
 //    }
 

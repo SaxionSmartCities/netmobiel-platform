@@ -7,7 +7,6 @@ import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 import javax.ejb.Asynchronous;
-import javax.ejb.EJB;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
@@ -25,8 +24,10 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
+import eu.netmobiel.communicator.model.User;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
 import eu.netmobiel.communicator.repository.MessageDao;
+import eu.netmobiel.communicator.repository.UserDao;
 import eu.netmobiel.firebase.messaging.FirebaseMessagingClient;
 import eu.netmobiel.profile.client.ProfileClient;
 
@@ -45,8 +46,8 @@ public class PublisherService {
     @Inject
     private Logger logger;
 
-    @EJB(name = "java:app/netmobiel-communicator-ejb/UserManager")
-    private UserManager userManager;
+//    @EJB(name = "java:app/netmobiel-communicator-ejb/UserManager")
+//    private UserManager userManager;
 
     @Inject
     private EnvelopeDao envelopeDao;
@@ -55,21 +56,30 @@ public class PublisherService {
     private MessageDao messageDao;
 
     @Inject
+    private UserDao userDao;
+
+    @Inject
     private ProfileClient profileClient;
     
     @Inject
     private FirebaseMessagingClient firebaseMessagingClient;
     
+    private static final User SYSTEM_USER = new User("SYSTEM", "Netmobiel", "");
+
     public PublisherService() {
     }
 
+    public User findSystemUser() {
+    	return userDao.findByManagedIdentity(SYSTEM_USER.getManagedIdentity())
+    			.orElseGet(() -> userDao.save(SYSTEM_USER));
+    }
     /**
      * Sends a message and/or a notification to the recipients in the message envelopes.
      * This is an asynchronous call.  
      * @param msg the message to send to the recipients in the envelopes 
      */
     @Asynchronous
-    public void publish(Message msg) throws CreateException, BadRequestException {
+    public void publish(User sender, Message msg) throws CreateException, BadRequestException {
     	if (msg.getContext() == null) {
     		throw new BadRequestException("Constraint violation: 'context' must be set.");
     	}
@@ -84,19 +94,19 @@ public class PublisherService {
     	}
     	// The sender is always the calling user (for now)
     	msg.setCreationTime(Instant.now());
-    	msg.setSender(userManager.registerCallingUser());
+    	msg.setSender(sender != null ? sender : findSystemUser());
     	if (logger.isDebugEnabled()) {
             logger.debug(String.format("Send message from %s to %s: %s %s - %s", msg.getSender(), 
             		msg.getEnvelopes().stream().map(env -> env.getRecipient().getManagedIdentity()).collect(Collectors.joining(", ")), 
             		msg.getContext(), msg.getSubject(), msg.getBody()));
     	}
-    	// Assure all recipients are present in the database, replace transient instances off users with persistent instances.
+    	// Assure all recipients are present in the database, replace transient instances of users with persistent instances.
 		for (Envelope env : msg.getEnvelopes()) {
-			env.setId(null);
-			env.setAckTime(null);
-			env.setPushTime(null);
+			// Connect the child to the master for JPA
 			env.setMessage(msg);
-			env.setRecipient(userManager.register(env.getRecipient()));
+			User rcp = userDao.findByManagedIdentity(env.getRecipient().getManagedIdentity())
+	    			.orElseGet(() -> userDao.save(env.getRecipient()));
+			env.setRecipient(rcp);
 		}
 		msg.setId(null); 	// Assure it is a new message.
 		messageDao.save(msg);
@@ -188,11 +198,13 @@ public class PublisherService {
      * @param ackTime the timestamp, if <code>null</code> then the timestamp is removed.
      * @throws NotFoundException if the message does not exist.
      */
-    public void updateAcknowledgment(Long messageId, Instant ackTime) throws NotFoundException {
+    public void updateAcknowledgment(User initiator, Long messageId, Instant ackTime) throws NotFoundException {
     	String caller = sessionContext.getCallerPrincipal().getName();
     	try {
 	    	Envelope envdb = envelopeDao.findByMessageAndRecipient(messageId, caller);
-	    	userManager.checkOwnership(envdb.getRecipient(), Envelope.class.getSimpleName());
+	    	if (initiator == null || ! envdb.getRecipient().getId().equals(initiator.getId())) {
+	    		throw new SecurityException(Envelope.class.getSimpleName() + " is not owned by calling user");
+	    	}
 	    	envdb.setAckTime(ackTime);
 	    	envelopeDao.merge(envdb);
     	} catch (NoResultException ex) {

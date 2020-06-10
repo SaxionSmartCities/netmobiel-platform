@@ -14,7 +14,9 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.util.ClosenessFilter;
+import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
+import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Leg;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.Stop;
@@ -32,6 +34,7 @@ import eu.netmobiel.rideshare.repository.StopDao;
  *
  */
 @ApplicationScoped
+@Logging
 public class RideItineraryHelper {
 	private static final int MAX_BOOKING_LOCATION_SHIFT = 100;	// Maximum 100 meter deviation of original pickup/drop-off
 
@@ -157,7 +160,8 @@ public class RideItineraryHelper {
     	ClosenessFilter closenessFilter = new ClosenessFilter(MAX_BOOKING_LOCATION_SHIFT);
     	List<Booking> bookings = bookingDao.findByRide(ride);
     	for (Booking booking : bookings) {
-    		if (booking.isDeleted()) {
+    		// Only a confirmed booking can be part
+    		if (booking.getState() != BookingState.CONFIRMED) {
     			continue;
     		}
     		Leg start = ride.getLegs().stream()

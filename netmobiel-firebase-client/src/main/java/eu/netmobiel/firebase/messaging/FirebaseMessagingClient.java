@@ -6,6 +6,8 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
+import java.util.LinkedHashMap;
+import java.util.Map;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -102,6 +104,15 @@ public class FirebaseMessagingClient {
     	send(firebaseToken, msg, false);
     }
 
+    protected Map<String, String> createCustomDataMap(NetMobielMessage msg) {
+    	Map<String, String> map = new LinkedHashMap<>();
+        map.put("context", msg.getContext());
+        map.put("creationTime", DateTimeFormatter.ISO_INSTANT.format(msg.getCreationTime()));
+        map.put("senderId", msg.getSender().getManagedIdentity());
+        map.put("senderGivenName", msg.getSender().getGivenName());
+        map.put("senderFamilyName", msg.getSender().getFamilyName());
+    	return map;
+    }
     /**
      * Sends a single message to a recipient.
      * @param firebaseToken the firebase token of the recipient.
@@ -119,11 +130,7 @@ public class FirebaseMessagingClient {
 	    Message message = Message.builder()
 		        .setToken(firebaseToken)
 			    .setNotification(notification)
-		        .putData("context", msg.getContext())
-		        .putData("creationTime", DateTimeFormatter.ISO_INSTANT.format(msg.getCreationTime()))
-		        .putData("senderId", msg.getSender().getManagedIdentity())
-		        .putData("senderGivenName", msg.getSender().getGivenName())
-		        .putData("senderFamilyName", msg.getSender().getFamilyName())
+		        .putAllData(createCustomDataMap(msg))
 		        .build();
 		try {
 		    // Send a message to the device corresponding to the provided registration token.
@@ -161,11 +168,7 @@ public class FirebaseMessagingClient {
     	MulticastMessage message = MulticastMessage.builder()
         	    .addAllTokens(firebaseTokens)
     		    .setNotification(notification)
-    	        .putData("context", msg.getContext())
-    	        .putData("creationTime", DateTimeFormatter.ISO_INSTANT.format(msg.getCreationTime()))
-    	        .putData("senderId", msg.getSender().getManagedIdentity())
-    	        .putData("senderGivenName", msg.getSender().getGivenName())
-    	        .putData("senderFamilyName", msg.getSender().getFamilyName())
+		        .putAllData(createCustomDataMap(msg))
     	    .build();
 		try {
 	    	BatchResponse response = client.sendMulticast(message, dryRun);
@@ -203,11 +206,7 @@ public class FirebaseMessagingClient {
 	    Message message = Message.builder()
 		        .setTopic(fcmTopic)
 			    .setNotification(notification)
-		        .putData("context", msg.getContext())
-		        .putData("creationTime", DateTimeFormatter.ISO_INSTANT.format(msg.getCreationTime()))
-		        .putData("senderId", msg.getSender().getManagedIdentity())
-		        .putData("senderGivenName", msg.getSender().getGivenName())
-		        .putData("senderFamilyName", msg.getSender().getFamilyName())
+		        .putAllData(createCustomDataMap(msg))
 		        .build();
 		try {
 	    	// Send a message to the devices subscribed to the provided topic.

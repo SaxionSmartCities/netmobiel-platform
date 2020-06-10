@@ -32,6 +32,12 @@ public abstract class MessageMapper {
 	@Mapping(target = "id", ignore = true)
 	public abstract User map(eu.netmobiel.communicator.api.model.User source);
 
+	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "pushTime", ignore = true)
+	@Mapping(target = "ackTime", ignore = true)
+	@Mapping(target = "message", ignore = true)
+	public abstract Envelope map(eu.netmobiel.communicator.api.model.Envelope source);
+
 	public abstract eu.netmobiel.communicator.api.model.Envelope map(Envelope source);
 	
 	// Domain Envelope --> API Message 

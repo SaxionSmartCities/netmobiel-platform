@@ -56,7 +56,7 @@ public class UserManagerIT {
                 .addPackage(PlannerUrnHelper.class.getPackage())
                 .addPackages(true, User.class.getPackage())
                 .addPackages(true, AbstractDao.class.getPackage())
-                .addPackages(true, UserDao.class.getPackage())
+                .addClass(UserDao.class)
 //                .addPackage(BookingMappingBuilder.class.getPackage()) // Necessary, otherwise the Resources.class is not accepted (silent error)
             .addClass(UserManager.class)
             .addClass(Resources.class)

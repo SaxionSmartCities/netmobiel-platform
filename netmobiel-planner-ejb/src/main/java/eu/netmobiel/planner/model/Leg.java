@@ -45,11 +45,19 @@ import eu.netmobiel.commons.util.PolylineEncoder;
 @SequenceGenerator(name = "leg_sg", sequenceName = "leg_id_seq", allocationSize = 1, initialValue = 50)
 public class Leg implements Serializable {
 	private static final long serialVersionUID = -3789784762166689720L;
+//	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(Leg.class);
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "leg_sg")
     private Long id;
 
+	// Not sure whether a leg ID should be exportable, the ID is perhaps not stable with updates of trip, resulting is adding, updating and removing legs.
+//	/**
+//	 * Reference urn to the leg.
+//	 */
+//    @Transient
+//    private String legRef;
+    
     /**
      * The duration of the leg in seconds (in general endTime - startTime).
      */
@@ -178,6 +186,12 @@ public class Leg implements Serializable {
     private String bookingId;
 
     /**
+     * For bookable legs: Is booking required?
+     */
+    @Column(name = "booking_required")
+    private Boolean bookingRequired;
+
+    /**
      * The leg's geometry. This one is used only when storing trips into the database. 
      */
 	@Basic			// Add this annotation, otherwise no JPA ModelGen attribute is generated.
@@ -262,6 +276,13 @@ public class Leg implements Serializable {
 	public void setId(Long id) {
 		this.id = id;
 	}
+
+//	public String getLegRef() {
+//    	if (legRef == null) {
+//    		legRef = PlannerUrnHelper.createUrn(Leg.URN_PREFIX, getId());
+//    	}
+//		return legRef;
+//	}
 
 	public Instant getStartTime() {
 		return getFrom().getDepartureTime();
@@ -423,6 +444,18 @@ public class Leg implements Serializable {
 		this.bookingId = bookingId;
 	}
 
+	public Boolean getBookingRequired() {
+		return bookingRequired;
+	}
+
+	public void setBookingRequired(Boolean bookingRequired) {
+		this.bookingRequired = bookingRequired;
+	}
+
+	public boolean isBookingRequired() {
+		return bookingRequired == Boolean.TRUE;
+	}
+	
 	public MultiPoint getLegGeometry() {
 		return legGeometry;
 	}

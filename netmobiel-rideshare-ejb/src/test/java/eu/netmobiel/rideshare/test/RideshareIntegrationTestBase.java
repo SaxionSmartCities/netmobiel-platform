@@ -22,7 +22,6 @@ import eu.netmobiel.rideshare.Resources;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.RideTemplate_;
-import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.repository.converter.BookingStateConverter;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 

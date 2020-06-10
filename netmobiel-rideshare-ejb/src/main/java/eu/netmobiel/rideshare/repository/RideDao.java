@@ -26,6 +26,7 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
+import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.RideTemplate_;
@@ -196,5 +197,21 @@ public class RideDao extends AbstractDao<Ride, Long> {
     			, Ride.class)
     			.setParameter("templateDepartureTime", template.getDepartureTime());
     	return tq.getResultList();
+    }
+
+    /**
+     * Finds the ride of the specific booking.
+     * @param bookingId Th eID of the booking.
+     * @return The ride.
+     * @throws NoResultException when the booking does not exist
+     */
+    public Ride findRideByBookingId(Long bookingId) {
+    	Booking b = new Booking();
+    	b.setId(bookingId);
+    	TypedQuery<Ride> tq = em.createQuery(
+    			"from Ride r where :booking member of r.bookings"
+    			, Ride.class)
+    			.setParameter("booking", b);
+    	return tq.getSingleResult();
     }
 }

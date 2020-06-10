@@ -268,7 +268,7 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
     	// Can find a ride
     	testSimpleSearch(Fixture.placeZieuwent, Fixture.placeSlingeland, departureTime.plusSeconds(15 * 60), arrivalTime.minusSeconds(10 * 60), true, 1);
 
-    	Booking b1 = Fixture.createBooking(r1, passenger1, Fixture.placeZieuwent, departureTime.plusSeconds(15 * 60), Fixture.placeSlingeland, arrivalTime.minusSeconds(10 * 60));
+    	Booking b1 = Fixture.createBooking(r1, passenger1, Fixture.placeZieuwent, departureTime.plusSeconds(15 * 60), Fixture.placeSlingeland, arrivalTime.minusSeconds(10 * 60), "trip-1");
     	b1.setState(BookingState.CONFIRMED);
     	em.persist(b1);
     	flush();
@@ -282,7 +282,7 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
     	// Can find a ride again, it is a deleted booking
     	testSimpleSearch(Fixture.placeZieuwent, Fixture.placeSlingeland, null, null, true, 1, 1);
 
-    	Booking b2 = Fixture.createBooking(r1, passenger1, Fixture.placeZieuwent, departureTime.plusSeconds(15 * 60), Fixture.placeSlingeland, arrivalTime.minusSeconds(10 * 60));
+    	Booking b2 = Fixture.createBooking(r1, passenger1, Fixture.placeZieuwent, departureTime.plusSeconds(15 * 60), Fixture.placeSlingeland, arrivalTime.minusSeconds(10 * 60), "trip-2");
     	b2.setState(BookingState.CONFIRMED);
     	em.persist(b2);
     	flush();

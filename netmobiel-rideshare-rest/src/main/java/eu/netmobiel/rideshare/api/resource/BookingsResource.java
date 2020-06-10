@@ -16,7 +16,6 @@ import eu.netmobiel.rideshare.api.BookingsApi;
 import eu.netmobiel.rideshare.api.mapping.BookingMapper;
 import eu.netmobiel.rideshare.api.mapping.PageMapper;
 import eu.netmobiel.rideshare.model.Booking;
-import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.service.UserManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
@@ -76,9 +75,12 @@ public class BookingsResource implements BookingsApi {
     public Response deleteBooking(String bookingId, String reason) {
     	Response rsp = null;
     	try {
-        	Long cid = RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingId);
-        	User initiator = userManager.findCallingUser();
-			bookingManager.removeBooking(initiator, cid, reason);
+//        	Long cid = RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingId);
+//        	User initiator = userManager.findCallingUser();
+        	//FIXME who is calling? Can a driver call this interface?
+        	boolean isDriver = false;
+        	// FIXME add security
+			bookingManager.removeBooking(bookingId, reason, isDriver, true);
 			rsp = Response.noContent().build();
 		} catch (eu.netmobiel.commons.exception.BadRequestException e) {
 	    	rsp = Response.status(Status.BAD_REQUEST).build();

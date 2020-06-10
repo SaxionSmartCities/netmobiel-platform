@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.rideshare.model.Booking;
+import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Booking_;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.Leg_;
@@ -25,6 +26,13 @@ import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.Ride_;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.model.User_;
+import eu.netmobiel.rideshare.repository.BookingDao;
+import eu.netmobiel.rideshare.repository.LegDao;
+import eu.netmobiel.rideshare.repository.OpenTripPlannerDao;
+import eu.netmobiel.rideshare.repository.RideDao;
+import eu.netmobiel.rideshare.repository.StopDao;
+import eu.netmobiel.rideshare.repository.UserDao;
+import eu.netmobiel.rideshare.repository.mapping.LegMapper;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
@@ -35,6 +43,14 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     @Deployment
     public static Archive<?> createTestArchive() {
         WebArchive archive = createDeploymentBase()
+	            .addClass(BookingDao.class)
+	            .addClass(RideDao.class)
+	            .addClass(UserDao.class)
+	            .addClass(LegDao.class)
+	            .addClass(StopDao.class)
+	            .addClass(OpenTripPlannerDao.class)
+	            .addPackage(LegMapper.class.getPackage())
+	            .addClass(EventListenerHelper.class)
 	            .addClass(RideItineraryHelper.class)
 	            .addClass(BookingManager.class);
 //   		System.out.println(archive.toString(true));
@@ -45,11 +61,18 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     private RideItineraryHelper rideItineraryHelper;
     @Inject
     private BookingManager bookingManager;
+    
+    @Inject
+    private EventListenerHelper eventListenerHelper;
 
     private User driver1;
     private Car car1;
     private User passenger1;
 
+    @Override
+    public boolean isSecurityRequired() {
+    	return true;
+    }
 
     @Override
     protected void insertData() throws Exception {
@@ -61,17 +84,20 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 
 		passenger1 = Fixture.createUser(loginContextPassenger);
 		em.persist(passenger1);
+	
+		eventListenerHelper.reset();
     }
 
+
     @Test
-    public void createBooking() throws Exception {
+    public void createAutoConfirmedBooking() throws Exception {
     	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
     	Ride r = Fixture.createCompleteRide(car1, departureTime, null);
     	rideItineraryHelper.saveNewRide(r);
 		Long rideId = r.getId();
 		assertNotNull(rideId);
 		flush();
-		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
+		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "my-trip");
 		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
 		assertNotNull(bookingRef);
 		flush();
@@ -82,7 +108,17 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(b.getRide());
 		assertNotNull(b.getPassenger());
 		assertNotNull(b.getLegs());
-		assertEquals(1, b.getLegs().size());
+		assertEquals(0, b.getLegs().size());
+		// Auto confirm
+		assertEquals(BookingState.CONFIRMED, b.getState());
+		assertNull(eventListenerHelper.getLastBookingConfirmedEvent());
+		assertEquals(0, eventListenerHelper.getBookingConfirmedEventCount());
+		// The hook for the driver notification is called
+		assertNotNull(eventListenerHelper.getLastBookingCreatedEvent());
+		assertEquals(1, eventListenerHelper.getBookingCreatedEventCount());
+		// The itinerary is stale
+		assertNotNull(eventListenerHelper.getLastRideItineraryStaleEvent());
+		assertEquals(1, eventListenerHelper.getRideItineraryStaleEventCount());
     }		
 
     @Test
@@ -93,12 +129,12 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		Long rideId = r.getId();
 		assertNotNull(rideId);
 		flush();
-		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
+		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "trip-1");
 		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
 		assertNotNull(bookingRef);
 		flush();
 		try {
-			Booking booking2 = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
+			Booking booking2 = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "trip-2");
 			bookingManager.createBooking(r.getRideRef(), passenger1, booking2);
 			fail("Expected exception");
 		} catch (CreateException ex) {
@@ -111,14 +147,15 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
     	Ride r = Fixture.createCompleteRide(car1, departureTime, null);
     	rideItineraryHelper.saveNewRide(r);
-		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
+		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "trip-1");
 		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
     	flush();
-    	Booking but = bookingManager.getBooking(RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef));
 		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
 				.setParameter("id", r.getId())
 				.getSingleResult();
 		rideItineraryHelper.updateRideItinerary(rdb);
+    	flush();
+    	Booking but = bookingManager.getBooking(RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef));
     	flush();
 
     	// Now test the presence of the required fields
@@ -153,15 +190,14 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 //    	assertFalse(puu.isLoaded(but.getRide(), Ride_.LEGS));
     }
 
-    @Test
-    public void removeBooking() throws Exception {
+    private String prepareSimpleBooking() throws Exception {
     	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
     	Ride r = Fixture.createCompleteRide(car1, departureTime, null);
     	rideItineraryHelper.saveNewRide(r);
 		Long rideId = r.getId();
 		assertNotNull(rideId);
 		flush();
-		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
+		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "trip-1");
 		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
 		assertNotNull(bookingRef);
 		flush();
@@ -170,54 +206,70 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 				.getSingleResult();
 		assertNotNull(b);
 		assertFalse(b.isDeleted());
+		flush();
+		// Reset all the counters.
+		eventListenerHelper.reset();
+    	return b.getBookingRef();
+    }
+    
+    @Test
+    public void removeBookingByPassengerFromRideshare() throws Exception {
+    	String bookingRef = prepareSimpleBooking();
 		String reason = "Afspraak is verplaatst";
-		flush();
 		
-		bookingManager.removeBooking(passenger1, b.getId(), reason);
+		bookingManager.removeBooking(bookingRef, reason, false, true);
 		flush();
-		b = em.createQuery("from Booking where id = :id", Booking.class)
+		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
 				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
 		assertTrue(b.isDeleted());
 		assertFalse(Boolean.TRUE == b.getCancelledByDriver());
 		assertEquals(reason, b.getCancelReason());
-		r = b.getRide();
-		assertEquals(1, r.getLegs().size());
+		
+		assertEquals(1, eventListenerHelper.getBookingCancelledEventCount());
+		assertEquals(1, eventListenerHelper.getBookingRemovedEventCount());
+		assertEquals(1, eventListenerHelper.getRideItineraryStaleEventCount());
     }
 
-
     @Test
-    public void removeBooking_ByDriver() throws Exception {
-    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
-    	Ride r = Fixture.createCompleteRide(car1, departureTime, null);
-    	rideItineraryHelper.saveNewRide(r);
-		Long rideId = r.getId();
-		assertNotNull(rideId);
-		flush();
-		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
-		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
-		assertNotNull(bookingRef);
+    public void removeBookingByPassengerNotFromRideshare() throws Exception {
+    	String bookingRef = prepareSimpleBooking();
+		String reason = "Afspraak is verplaatst";
+		
+		bookingManager.removeBooking(bookingRef, reason, false, false);
 		flush();
 		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
 				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
-		assertFalse(b.isDeleted());
-		String reason = "Ik rij niet meer, ik hoef er niet meer te zijn";
-		flush();
+		assertTrue(b.isDeleted());
+		assertFalse(Boolean.TRUE == b.getCancelledByDriver());
+		assertEquals(reason, b.getCancelReason());
 		
-		bookingManager.removeBooking(driver1, b.getId(), reason);
+		assertEquals(0, eventListenerHelper.getBookingCancelledEventCount());
+		assertEquals(1, eventListenerHelper.getBookingRemovedEventCount());
+		assertEquals(1, eventListenerHelper.getRideItineraryStaleEventCount());
+    }
+
+    @Test
+    public void removeBookingByDriverFromRideshare() throws Exception {
+    	String bookingRef = prepareSimpleBooking();
+		String reason = "Ik rij niet meer, ik hoef er niet meer te zijn";
+		
+		bookingManager.removeBooking(bookingRef, reason, true, true);
 		flush();
-		b = em.createQuery("from Booking where id = :id", Booking.class)
+		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
 				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
 		assertTrue(b.isDeleted());
 		assertTrue(Boolean.TRUE == b.getCancelledByDriver());
 		assertEquals(reason, b.getCancelReason());
-		r = b.getRide();
-		assertEquals(1, r.getLegs().size());
+		
+		assertEquals(1, eventListenerHelper.getBookingCancelledEventCount());
+		assertEquals(0, eventListenerHelper.getBookingRemovedEventCount());
+		assertEquals(1, eventListenerHelper.getRideItineraryStaleEventCount());
     }
 
     @Test
@@ -225,18 +277,19 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
     	Ride r = Fixture.createCompleteRide(car1, departureTime, null);
     	rideItineraryHelper.saveNewRide(r);
-    	rideItineraryHelper.updateRideItinerary(r);
 		Long rideId = r.getId();
 		assertNotNull(rideId);
 		flush();
-		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime());
+		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "trip-1");
 		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
 		assertNotNull(bookingRef);
+		flush();
 		flush();
 		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
 				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
+    	rideItineraryHelper.updateRideItinerary(b.getRide());
 		flush();
 		
 		PagedResult<Booking> page = bookingManager.listBookings(passenger1.getId(), null, null, 10, 0);

@@ -32,6 +32,7 @@ import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.repository.TripDao;
 import eu.netmobiel.planner.repository.UserDao;
 import eu.netmobiel.planner.test.PlannerIntegrationTestBase;
 
@@ -40,7 +41,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     @Deployment
     public static Archive<?> createTestArchive() {
         WebArchive archive = createDeploymentBase()
-            .addPackages(true, UserDao.class.getPackage())
+            .addClass(TripDao.class)
             .addClass(TripManager.class);
 //		System.out.println(archive.toString(true));
 		return archive;

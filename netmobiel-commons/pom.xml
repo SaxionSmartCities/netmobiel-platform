@@ -73,6 +73,12 @@
             <artifactId>javax.persistence-api</artifactId>
             <scope>provided</scope>
         </dependency>
+		<!--  Bean validation -->
+		<dependency>
+	        <groupId>javax.validation</groupId>
+	        <artifactId>validation-api</artifactId>
+		    <scope>provided</scope>
+        </dependency>
 		<dependency>
 			<groupId>org.apache.commons</groupId>
 			<artifactId>commons-text</artifactId>

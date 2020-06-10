@@ -213,7 +213,7 @@ public class Booking implements Serializable {
 
 
     /**
-     * The reference to the passenger
+     * The reference to the passenger as known in the rideshare
      */
     @Transient
     private String passengerRef;
@@ -224,7 +224,13 @@ public class Booking implements Serializable {
     @ManyToMany(mappedBy = "bookings", fetch = FetchType.LAZY)
     @OrderBy("legIx asc")
     private List<Leg> legs;
-    
+
+	/**
+	 * The reference to the passenger's trip (a planner URN). 
+	 */
+    @Column(name = "passenger_trip_ref", length = 32, nullable = false)
+    private String passengerTripRef;
+
     /**
      * No-args constructor.
      */
@@ -356,6 +362,14 @@ public class Booking implements Serializable {
 
 	public void setLegs(List<Leg> legs) {
 		this.legs = legs;
+	}
+
+	public String getPassengerTripRef() {
+		return passengerTripRef;
+	}
+
+	public void setPassengerTripRef(String passengerTripRef) {
+		this.passengerTripRef = passengerTripRef;
 	}
 
 	public void markAsCancelled(String reason, boolean byDriver) {

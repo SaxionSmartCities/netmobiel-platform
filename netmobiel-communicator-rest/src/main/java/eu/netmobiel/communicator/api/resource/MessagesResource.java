@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 
+import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
@@ -18,7 +19,9 @@ import eu.netmobiel.communicator.api.MessagesApi;
 import eu.netmobiel.communicator.api.mapping.MessageMapper;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
+import eu.netmobiel.communicator.model.User;
 import eu.netmobiel.communicator.service.PublisherService;
+import eu.netmobiel.communicator.service.UserManager;
 
 @ApplicationScoped
 public class MessagesResource implements MessagesApi {
@@ -29,11 +32,16 @@ public class MessagesResource implements MessagesApi {
     @Inject
     private PublisherService publisherService;
 
+    @EJB(name = "java:app/netmobiel-communicator-ejb/UserManager")
+    private UserManager userManager;
+
+
     @Override
 	public Response sendMessage(eu.netmobiel.communicator.api.model.Message msg) {
     	Response rsp = null;
 		try {
-			publisherService.publish(mapper.map(msg));
+			User caller = userManager.registerCallingUser();
+			publisherService.publish(caller, mapper.map(msg));
 			rsp = Response.status(Status.ACCEPTED).build();
 		} catch (CreateException e) {
 			throw new InternalServerErrorException(e);
@@ -74,7 +82,8 @@ public class MessagesResource implements MessagesApi {
 	public Response acknowledgeMessage(Integer messageId) {
     	Response rsp = null;
     	try {
-			publisherService.updateAcknowledgment(messageId.longValue(), Instant.now());
+			User caller = userManager.findCallingUser();
+			publisherService.updateAcknowledgment(caller, messageId.longValue(), Instant.now());
 			rsp = Response.noContent().build();
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			rsp = Response.status(Status.NOT_FOUND).build();
@@ -86,7 +95,8 @@ public class MessagesResource implements MessagesApi {
 	public Response removeAcknowledgement(Integer messageId) {
     	Response rsp = null;
     	try {
-			publisherService.updateAcknowledgment(messageId.longValue(), null);
+			User caller = userManager.findCallingUser();
+			publisherService.updateAcknowledgment(caller, messageId.longValue(), null);
 			rsp = Response.noContent().build();
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			rsp = Response.status(Status.NOT_FOUND).build();

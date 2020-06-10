@@ -7,6 +7,7 @@ import java.util.List;
 import java.util.Optional;
 
 import javax.ejb.Stateless;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -17,16 +18,15 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.event.BookingCancelledEvent;
+import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.model.Leg;
-import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.TripDao;
-import eu.netmobiel.rideshare.model.Booking;
-import eu.netmobiel.rideshare.service.BookingManager;
+import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @Stateless
 @Logging
@@ -40,7 +40,10 @@ public class TripManager {
     private TripDao tripDao;
 
     @Inject
-    private BookingManager bookingManager;
+    private Event<BookingRequestedEvent> bookingRequestedEvent;
+
+    @Inject
+    private Event<BookingCancelledEvent> bookingCancelledEvent;
 
     /**
      * List all trips owned by the specified user. Soft deleted trips are omitted.
@@ -107,33 +110,59 @@ public class TripManager {
        	tripDao.flush();
        	if (autobook && trip.getLegs() != null) {
        		for (Leg leg : trip.getLegs()) {
-				startBookingProcessIfNecessary(traveller, trip, leg);
+       	    	if (leg.isBookingRequired()) {
+       	    		// Ok, we need to take additional steps before the leg can be scheduled. Start a booking procedure.
+       	    		leg.setState(TripState.BOOKING);
+       				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
+       				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
+       				BookingRequestedEvent b = new BookingRequestedEvent(traveller, trip.getTripRef(), leg.getTripId());
+       				b.setArrivalTime(leg.getEndTime());
+       				b.setDepartureTime(leg.getStartTime());
+       				b.setDropOff(leg.getTo().getLocation());
+       				b.setNrSeats(trip.getNrSeats());
+       				b.setPickup(leg.getFrom().getLocation());
+       				bookingRequestedEvent.fire(b);
+       				
+       	    	} else {
+       	    		// If no booking is required then no further action is required. Schedule the leg.
+       				leg.setState(TripState.SCHEDULED);
+       	    	}
 			}
+       		// So what is exactly the content of the persistence context after the firing of the event?
+       		// Should we merge/refresh?
            	updateTripState(trip);
        	}
     	return trip.getId();
     }
 
-    protected void startBookingProcessIfNecessary(User traveller, Trip trip, Leg leg) throws CreateException, BadRequestException {
-    	if (leg.getTraverseMode() == TraverseMode.RIDESHARE) {
-    		leg.setState(TripState.BOOKING);
-			try {
-				Booking b = new Booking();
-				b.setDepartureTime(leg.getStartTime());
-				b.setPickup(leg.getFrom().getLocation());
-				b.setArrivalTime(leg.getEndTime());
-				b.setDropOff(leg.getTo().getLocation());
-				b.setNrSeats(trip.getNrSeats());
-				String bookingRef = bookingManager.createBooking(leg.getTripId(), traveller, b);
-				leg.setBookingId(bookingRef);
-    			leg.setState(TripState.SCHEDULED);
-    			//FIXME Verify the actual timing and locations
-			} catch (NotFoundException | CreateException e) {
-				throw new CreateException("cannot create booking", e);
-			}
-    	} else {
-			leg.setState(TripState.SCHEDULED);
+    /**
+     * Assign a booking reference to the leg with the specified transport provider tripId.  
+     * @param tripRef The traveller trip reference, i.e. our  trip reference.
+     * @param transportProviderTripRef The transport provider's trip reference, i.e. their trip. 
+     * @param bookingRef The booking reference at the transport provider.
+     * @param bookingConfirmed If true the booking is already confirmed.
+     */
+    public void assignBookingReference(String tripRef, String transportProviderTripRef, String bookingRef, boolean bookingConfirmed) {
+    	Trip trip = tripDao.find(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef),
+    							tripDao.createLoadHint(Trip.LIST_TRIPS_ENTITY_GRAPH))
+    			.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripRef));
+    	Leg leg = trip.findLegByTripId(transportProviderTripRef)
+    			.orElseThrow(() -> new IllegalArgumentException("No such leg with tripId " + transportProviderTripRef));
+    	leg.setBookingId(bookingRef);
+    	if (bookingConfirmed) {
+    		leg.setState(TripState.SCHEDULED);
+    		updateTripState(trip);
     	}
+    }
+
+    public void cancelBooking(String tripRef, String bookingRef, String reason, boolean cancelledByDriver) {
+    	Trip trip = tripDao.find(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef),
+    							tripDao.createLoadHint(Trip.LIST_TRIPS_ENTITY_GRAPH))
+    			.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripRef));
+    	Leg leg = trip.findLegByBookingId(bookingRef)
+    			.orElseThrow(() -> new IllegalArgumentException("No such leg with bookingId " + bookingRef));
+		leg.setState(TripState.CANCELLED);
+		updateTripState(trip);
     }
 
     /**
@@ -172,7 +201,25 @@ public class TripManager {
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripId));
        	if (tripdb.getLegs() != null) {
        		for (Leg leg : tripdb.getLegs()) {
-				cancelBookingIfNecessary(tripdb.getTraveller(), leg, reason);
+		    	if (leg.getBookingId() != null) {
+					if (leg.getState() == TripState.BOOKING || leg.getState() == TripState.SCHEDULED) {
+						if (log.isDebugEnabled()) {
+							log.debug("Cancelling a booking. State = " + leg.getState());
+						}
+						BookingCancelledEvent bce = new BookingCancelledEvent(leg.getBookingId(), 
+								tripdb.getTraveller(), PlannerUrnHelper.createUrn(Trip.URN_PREFIX, tripId),
+								reason, false, false);
+						// For now use a synchronous removal
+						bookingCancelledEvent.fire(bce);						
+					} else {
+						log.warn(String.format("Cannot cancel booking %s, because of current state: %s", leg.getBookingId(), leg.getState()));
+					}
+		    	}
+		    	if (leg.getState() == TripState.IN_TRANSIT || leg.getState() == TripState.COMPLETED) {
+		    		log.warn("Removing a trip at an invalid moment: " + leg.getState() + "; leg not cancelled");
+				} else {
+					leg.setState(TripState.CANCELLED);
+				}
 			}
        	}
     	if (tripdb.getState() == TripState.PLANNING) {
@@ -184,24 +231,6 @@ public class TripManager {
     	}
     }
  
-    protected void cancelBookingIfNecessary(User initiator, Leg leg, String reason) throws ApplicationException {
-    	if (leg.getTraverseMode() == TraverseMode.RIDESHARE) {
-			if (leg.getState() != TripState.CANCELLED && leg.getState() != TripState.PLANNING) {
-				if (log.isDebugEnabled()) {
-					log.debug("Cancelling a booking");
-				}
-				// Omitted lookup of rideshare provider
-				bookingManager.removeBooking(initiator, UrnHelper.getId(Booking.URN_PREFIX, leg.getBookingId()), reason);
-			} else {
-				if (log.isDebugEnabled()) {
-					log.debug("Cancelling a booking, no action needed becasue of leg state: " + leg.getState().toString());
-				}
-
-			}
-    	}
-		leg.setState(TripState.CANCELLED);
-    }
-
     /**
      * Lists a page of trips in planning state (of anyone) that have a departure or arrival location within a circle with radius 
      * <code>arrdepRadius</code> meter around the <code>location</code> and where both departure and arrival location are within

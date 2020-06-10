@@ -25,6 +25,7 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.rideshare.model.Booking;
+import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Booking_;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.Leg;
@@ -51,6 +52,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 //	            .addAsResource("logging.properties")
                 .addPackages(true, RideDao.class.getPackage())
 	            .addClass(RideItineraryHelper.class)
+	            .addClass(EventListenerHelper.class)
 	            .addClass(RideManager.class);
 //   		System.out.println(archive.toString(true));
 		return archive;
@@ -64,6 +66,8 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     private User driver1;
     private Car car1;
     private User passenger1;
+    @Inject
+    private EventListenerHelper eventListenerHelper;
 
     @Override
     public boolean isSecurityRequired() {
@@ -80,6 +84,8 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 
 		passenger1 = Fixture.createUser(loginContextPassenger);
 		em.persist(passenger1);
+		
+		eventListenerHelper.reset();
     }
 
     private void verifyRideBase(RideBase r, RideBase rdb, Instant departureTime, Instant arrivalTime) {
@@ -234,6 +240,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		} catch (Exception ex) {
 			assertTrue(ex instanceof NotFoundException);
 		}
+		assertEquals(0, eventListenerHelper.getRideRemovedEventCount());
     }
 
     @Test
@@ -247,7 +254,8 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 				.setParameter("id", rideId)
 				.getSingleResult();
 		assertNotNull(rdb);
-		Booking b = Fixture.createBooking(rdb, passenger1, departureTime, arrivalTime);
+		Booking b = Fixture.createBooking(rdb, passenger1, departureTime, arrivalTime, "trip-1");
+		b.setState(BookingState.CONFIRMED);
 		em.persist(b);
 		flush();
 		rideManager.removeRide(rideId, null, null);
@@ -255,6 +263,8 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 				.setParameter("id", rideId)
 				.getSingleResult();
 		assertEquals(1L, count.longValue());
+		eventListenerHelper.reset();
+		// Test starts here
 		flush();
 		try {
 			rideManager.removeRide(rideId, null, null);
@@ -262,6 +272,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		} catch (Exception ex) {
 			assertTrue(ex instanceof SoftRemovedException);
 		}
+		assertEquals(0, eventListenerHelper.getRideRemovedEventCount());
     }
     
     public Long createRecurrentRides(int nrRides) throws Exception {
@@ -389,7 +400,8 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 				.setParameter("id", rideId)
 				.getSingleResult();
 		assertNotNull(r1);
-		Booking b = Fixture.createBooking(r1, passenger1, Fixture.placeZieuwentRKKerk, departureTime, Fixture.placeSlingeland, arrivalTime);
+		Booking b = Fixture.createBooking(r1, passenger1, Fixture.placeZieuwentRKKerk, departureTime, Fixture.placeSlingeland, arrivalTime, "trip-1");
+		b.setState(BookingState.CONFIRMED);
 		assertNotEquals(r1.getFrom(), b.getPickup());
 		assertEquals(r1.getTo(), b.getDropOff());
 		em.persist(b);
@@ -451,7 +463,8 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	assertNotNull(rut.getLegs());
     	assertEquals(1, rut.getLegs().size());
     	
-		Booking booking = Fixture.createBooking(rut, passenger1, Fixture.placeZieuwentRKKerk, rut.getDepartureTime(), Fixture.placeSlingeland, rut.getArrivalTime());
+		Booking booking = Fixture.createBooking(rut, passenger1, Fixture.placeZieuwentRKKerk, rut.getDepartureTime(), Fixture.placeSlingeland, rut.getArrivalTime(), "trip-1");
+		booking.setState(BookingState.CONFIRMED);
 		em.persist(booking);
 		flush();
 		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)

@@ -19,6 +19,7 @@ import eu.netmobiel.opentripplanner.api.model.PlanResponse;
 import eu.netmobiel.opentripplanner.api.model.TraverseMode;
 import eu.netmobiel.opentripplanner.client.OpenTripPlannerClient;
 import eu.netmobiel.rideshare.model.Booking;
+import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Leg;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.repository.mapping.LegMapper;
@@ -27,7 +28,6 @@ import eu.netmobiel.rideshare.repository.mapping.LegMapper;
 public class OpenTripPlannerDao {
 	private static final Integer OTP_MAX_WALK_DISTANCE = 500;
 
-	@SuppressWarnings("unused")
 	@Inject
     private Logger log;
     
@@ -49,7 +49,7 @@ public class OpenTripPlannerDao {
      */
     public Leg[] createItinerary(Ride ride) throws NotFoundException, BadRequestException {
     	List<Booking> bookings = ride.getBookings().stream()
-    			.filter(b -> !b.isDeleted())
+    			.filter(b -> b.getState() == BookingState.CONFIRMED)
     			.collect(Collectors.toList());
     	if (bookings.size() > 1) {
     		throw new IllegalStateException("Only 1 active booking is allowed per ride");

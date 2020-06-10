@@ -8,19 +8,21 @@ import java.util.Collections;
 import java.util.List;
 
 import javax.annotation.Resource;
-import javax.ejb.LocalBean;
 import javax.ejb.Schedule;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
+import javax.enterprise.event.Observes;
+import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.annotation.Removed;
+import eu.netmobiel.commons.annotation.Updated;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -51,7 +53,6 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
  */
 @Stateless
 @Logging
-@LocalBean
 public class RideManager {
 	public static final Integer MAX_RESULTS = 10; 
 	public static final String AGENCY_NAME = "NetMobiel Rideshare Service";
@@ -88,8 +89,11 @@ public class RideManager {
     private SessionContext context;
 
     @Inject @Removed
-    private Event<Booking> bookingRemovedEvent;
+    private Event<Ride> rideRemovedEvent;
 
+//    @Inject
+//    private Event<BookingCancelledEvent> bookingCancelledEvent;
+    
     /**
      * Updates all recurrent rides by advancing the system horizon to a predefined offset with reference to the calling time.
      * The state of the ride generation is saved in each template. Updating the template and saving the generated rides from that template
@@ -443,7 +447,7 @@ public class RideManager {
     	    	// 4.2.1. THIS Create a new template for this ride, generate rides
     	    	// 4.2.2. THIS_AND_FOLLOWING Set horizon at current template, remove all future rides (or reuse them) and generate rides
         		//		  Keep booked rides though
-        		throw new UnsupportedOperationException("Update with modiefied recurrence is not yet supported");
+        		throw new UnsupportedOperationException("Update with modified recurrence is not yet supported");
     		}
     	}
     }
@@ -462,12 +466,9 @@ public class RideManager {
     	if (ridedb.getBookings().size() > 0) {
     		// Perform a soft delete
     		ridedb.setDeleted(true);
-    		ridedb.getBookings().stream()
-	    		.filter(b -> ! b.isDeleted())
-	    		.forEach(b -> {
-	    			b.markAsCancelled(reason, true);	
-	        		bookingRemovedEvent.fire(b);
-	    		});
+    		ridedb.setCancelReason(reason);
+    		// Allow other parties such as the booking manager to do their job too
+    		rideRemovedEvent.fire(ridedb);
 		} else {
 			rideDao.remove(ridedb);
 		}
@@ -506,6 +507,22 @@ public class RideManager {
 	    		rideTemplateDao.remove(ridedb.getRideTemplate());
 	    	}
     	}
+    }
+
+    public void onStaleItinerary(@Observes(during = TransactionPhase.IN_PROGRESS) @Updated Ride ride) {
+    	try {
+    		if (ride.isDeleted()) {
+    			log.debug("Ride is already deleted, ignoring update intinerary request: " + ride.getRideRef());
+    		} else {
+    			rideItineraryHelper.updateRideItinerary(ride);
+    		}
+		} catch (BadRequestException e ) {
+			log.error("Error updating itinerary: " + e.toString());
+			context.setRollbackOnly();
+		} catch (Exception e) {
+			context.setRollbackOnly();
+			log.error("Error updating itinerary: ", e);
+		}
     }
 
 }

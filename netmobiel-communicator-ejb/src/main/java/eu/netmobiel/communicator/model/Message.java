@@ -3,6 +3,7 @@ package eu.netmobiel.communicator.model;
 import java.io.Serializable;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.enterprise.inject.Vetoed;
@@ -25,6 +26,7 @@ import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
 import eu.netmobiel.commons.model.NetMobielMessage;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @NamedEntityGraph(
@@ -158,11 +160,19 @@ public class Message implements NetMobielMessage, Serializable {
 	}
 
 	public List<Envelope> getEnvelopes() {
+		if (envelopes == null) {
+			envelopes = new ArrayList<>();
+		}
 		return envelopes;
 	}
 
 	public void setEnvelopes(List<Envelope> envelopes) {
 		this.envelopes = envelopes;
+	}
+
+	public void addRecipient(NetMobielUser nmu) {
+		User rcp = new User(nmu.getManagedIdentity(), nmu.getGivenName(), nmu.getFamilyName()); 
+		getEnvelopes().add(new Envelope(this, rcp));
 	}
 
 	@Override

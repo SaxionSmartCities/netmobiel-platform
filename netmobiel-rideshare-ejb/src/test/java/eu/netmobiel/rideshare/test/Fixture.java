@@ -192,17 +192,15 @@ public class Fixture {
 		return r;
 	}
 	
-	public static Booking createBooking(Ride r, User p, Instant departureTime, Instant arrivalTime) {
-		Booking b = new Booking(r, p, Fixture.placeZieuwentRKKerk, Fixture.placeSlingeland, 1);
-		b.setDepartureTime(departureTime);
-		b.setArrivalTime(arrivalTime);
-		return b;
+	public static Booking createBooking(Ride r, User p, Instant departureTime, Instant arrivalTime, String passengerTripRef) {
+		return createBooking(r, p, Fixture.placeZieuwentRKKerk, departureTime, Fixture.placeSlingeland, arrivalTime, passengerTripRef);
 	}
 	
-	public static Booking createBooking(Ride r, User p, GeoLocation pickup, Instant departureTime, GeoLocation dropoff, Instant arrivalTime) {
+	public static Booking createBooking(Ride r, User p, GeoLocation pickup, Instant departureTime, GeoLocation dropoff, Instant arrivalTime, String passengerTripRef) {
 		Booking b = new Booking(r, p, pickup, dropoff, 1);
 		b.setDepartureTime(departureTime);
 		b.setArrivalTime(arrivalTime);
+		b.setPassengerTripRef(passengerTripRef);
 		return b;
 	}
 }
