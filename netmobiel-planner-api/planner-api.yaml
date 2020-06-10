@@ -999,6 +999,10 @@ components:
 
             Note: The tripId is an identifier from OTP, it has nothing to do with the word trip as used as a journey by a traveller elsewhere in this API.
           type: string
+        bookingRequired:
+          description: 'Flag to signal whether the transport provider requires a booking
+            of the transport. '
+          type: boolean
       example:
         distance: 152
         duration: 123
