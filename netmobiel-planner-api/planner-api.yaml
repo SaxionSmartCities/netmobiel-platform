@@ -90,137 +90,6 @@ paths:
         type: string
       in: path
       required: true
-  /search/plan:
-    summary: Search for possible itineraries, combining various modalities..
-    description: Search the Rideshare service and OpenTripPlanner for itineraries.
-    get:
-      parameters:
-      - examples:
-          Station-Borne:
-            value: Station Borne::52.298417,6.749157
-        name: from
-        description: The location to depart from, comprising of a latitude and longitude
-          pair in degrees according WGS84. For logging purposes you may prepend the
-          coordinates with a place label followed by two colons.
-        schema:
-          type: string
-        in: query
-        required: true
-      - examples:
-          Station-Borne:
-            value: Station Borne::52.298417,6.749157
-        name: to
-        description: The location to arrive at, comprising of a latitude and longitude
-          pair in degrees according WGS84. For logging purposes you may prepend the
-          coordinates with a place label followed by two colons.
-        schema:
-          type: string
-        in: query
-        required: true
-      - examples:
-          Example:
-            value: 2019-10-23T09:30+01:00
-        name: departureTime
-        description: The requested date and time of the departure. The departure time
-          is set to `now` or to the current time if both departure time and arrival
-          time are omitted. Departure time must be before arrival time.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Example:
-            value: 2019-10-23T10:30+01:00
-        name: arrivalTime
-        description: The requested date and time of the arrival. The arrival  time
-          must be after `now` if set, otherwise in the future. It must also be after
-          departure time, if set.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Example:
-            value: WALK, RIDESHARE, BUS, RAIL
-        name: modalities
-        description: |-
-          A comma-separated list of eligible modalities. Select one or from the following:
-          AIRPLANE, BICYCLE, BUS, CABLE_CAR, CAR, FERRY, FUNICULAR, GONDOLA, RAIL, RIDESHARE, SUBWAY, TRAM, TRANSIT, WALK
-          The transit modality includes all public transport modalities.
-          CAR is useful to test a road route (based on Open Streetmap).
-          Default is [WALK, RIDESHARE, TRANSIT]
-        schema:
-          type: string
-        in: query
-        required: false
-      - name: maxWalkDistance
-        description: Maximum distance to walk to and from a station and between transfers.
-          Default is 1000 meter.
-        schema:
-          type: integer
-        in: query
-      - name: nrSeats
-        description: The number of seats required. Default is 1.
-        schema:
-          type: integer
-        in: query
-        required: false
-      - name: now
-        description: (Testing only). The point in time as reference for searching.
-          If not set then now is set to the actual time.
-        schema:
-          format: date-time
-          type: string
-        in: query
-        required: false
-      - name: maxTransfers
-        description: 'The maximum number of transfers (that is, one plus the maximum
-          number of boardings) that a trip will be allowed. Larger values will slow
-          performance, but could give better routes. '
-        schema:
-          type: integer
-        in: query
-      - name: firstLegRideshare
-        description: Flag to enable Rideshare as an option for a first leg in combination
-          with public transport. The search is time-consuming. Default is not enabled.
-          No effect if Rideshare is not one of the eligable modalities.
-        schema:
-          type: boolean
-        in: query
-      - name: lastLegRideshare
-        description: Flag to enable Rideshare as an option for the last leg in combination
-          with public transport. This is a time-consumiomg search. Default this flag
-          is disabled. No effect if Rideshare is not one of the eligable modalities.
-        schema:
-          type: boolean
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TripPlan'
-          description: Successfull call.
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                BadRequest:
-                  value:
-                    message: 'Missing one or more mandatory parameters: fromPlace,
-                      toPlace, fromDate or toDate'
-                    reasonPhrase: Bad Request
-                    status: 400
-          description: |-
-            When not the minimal required search parameters are specified. Required for search are:
-            * fromPlace
-            * toPlace
-            * fromDate
-      operationId: searchPlan
-      summary: Search for itineraries for a trip.
-      description: Search and retrieve matching itineraries.
   /shout-outs:
     summary: Path used to manage the list of trips in planning state thate have unfulfilled
       legs.
@@ -469,6 +338,137 @@ paths:
       operationId: createTrip
       summary: Create a Trip
       description: Creates a new instance of a `Trip`.
+  /search/plan:
+    summary: Search for possible itineraries, combining various modalities..
+    description: Search the Rideshare service and OpenTripPlanner for itineraries.
+    get:
+      parameters:
+      - examples:
+          Station-Borne:
+            value: Station Borne::52.298417,6.749157
+        name: from
+        description: The location to depart from, comprising of a latitude and longitude
+          pair in degrees according WGS84. For logging purposes you may prepend the
+          coordinates with a place label followed by two colons.
+        schema:
+          type: string
+        in: query
+        required: true
+      - examples:
+          Station-Borne:
+            value: Station Borne::52.298417,6.749157
+        name: to
+        description: The location to arrive at, comprising of a latitude and longitude
+          pair in degrees according WGS84. For logging purposes you may prepend the
+          coordinates with a place label followed by two colons.
+        schema:
+          type: string
+        in: query
+        required: true
+      - examples:
+          Example:
+            value: 2019-10-23T09:30+01:00
+        name: departureTime
+        description: The requested date and time of the departure. The departure time
+          is set to `now` or to the current time if both departure time and arrival
+          time are omitted. Departure time must be before arrival time.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Example:
+            value: 2019-10-23T10:30+01:00
+        name: arrivalTime
+        description: The requested date and time of the arrival. The arrival  time
+          must be after `now` if set, otherwise in the future. It must also be after
+          departure time, if set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Example:
+            value: WALK, RIDESHARE, BUS, RAIL
+        name: modalities
+        description: |-
+          A comma-separated list of eligible modalities. Select one or from the following:
+          AIRPLANE, BICYCLE, BUS, CABLE_CAR, CAR, FERRY, FUNICULAR, GONDOLA, RAIL, RIDESHARE, SUBWAY, TRAM, TRANSIT, WALK
+          The transit modality includes all public transport modalities.
+          CAR is useful to test a road route (based on Open Streetmap).
+          Default is [WALK, RIDESHARE, TRANSIT]
+        schema:
+          type: string
+        in: query
+        required: false
+      - name: maxWalkDistance
+        description: Maximum distance to walk to and from a station and between transfers.
+          Default is 1000 meter.
+        schema:
+          type: integer
+        in: query
+      - name: nrSeats
+        description: The number of seats required. Default is 1.
+        schema:
+          type: integer
+        in: query
+        required: false
+      - name: now
+        description: (Testing only). The point in time as reference for searching.
+          If not set then now is set to the actual time.
+        schema:
+          format: date-time
+          type: string
+        in: query
+        required: false
+      - name: maxTransfers
+        description: |-
+          The maximum number of transfers (that is, one plus the maximum number of boardings) that a trip will be allowed. Larger values will slow performance, but could give better routes.
+          NOT SUPPORTED in the current version of OpenTripPlanner.
+        schema:
+          type: integer
+        in: query
+      - name: firstLegRideshare
+        description: Flag to enable Rideshare as an option for a first leg in combination
+          with public transport. The search is time-consuming. Default is not enabled.
+          No effect if Rideshare is not one of the eligable modalities.
+        schema:
+          type: boolean
+        in: query
+      - name: lastLegRideshare
+        description: Flag to enable Rideshare as an option for the last leg in combination
+          with public transport. This is a time-consumiomg search. Default this flag
+          is disabled. No effect if Rideshare is not one of the eligable modalities.
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPlan'
+          description: Successfull call.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                BadRequest:
+                  value:
+                    message: 'Missing one or more mandatory parameters: fromPlace,
+                      toPlace, fromDate or toDate'
+                    reasonPhrase: Bad Request
+                    status: 400
+          description: |-
+            When not the minimal required search parameters are specified. Required for search are:
+            * fromPlace
+            * toPlace
+            * fromDate
+      operationId: searchPlan
+      summary: Search for itineraries for a trip.
+      description: Search and retrieve matching itineraries.
 components:
   schemas:
     MaintenanceStatus:
@@ -501,66 +501,6 @@ components:
         message: This is a really bad request
         reasonPhrase: Bad Request
         status: 400
-    TripPlan:
-      description: A plan consisting of one or more itineraries. The header of the
-        plan contains the parameters as requestes.
-      required:
-      - from
-      - to
-      type: object
-      properties:
-        from:
-          $ref: '#/components/schemas/Location'
-          description: Departure location.
-        to:
-          $ref: '#/components/schemas/Location'
-          description: Arrival location
-        itineraries:
-          description: A proposal for a trip comprising one or more legs.
-          type: array
-          items:
-            $ref: '#/components/schemas/Itinerary'
-        nrSeats:
-          description: The number of seats requested.
-          type: integer
-        arrivalTime:
-          format: date-time
-          description: The requested date and time of the arrival. At least one of
-            departureTime or ArrivalTime are specified. If both are specified then
-            it is interpreted as a window for travelling. The time zone is always
-            UTC.
-          type: string
-        departureTime:
-          format: date-time
-          description: The requested date and time of the departure. At least one
-            of departureTime or ArrivalTime are specified. If both are specified then
-            it is interpreted as a window for travelling. The time zone is always
-            UTC.
-          type: string
-        maxWalkDistance:
-          description: The maximum distance to walk to the station etc. and between
-            transfers.
-          type: integer
-        modalities:
-          description: |
-            An array of eligible modalities:
-            AIRPLANE, BICYCLE, BUS, CABLE_CAR, CAR, FERRY, FUNICULAR, GONDOLA, RAIL, RIDESHARE, SUBWAY, TRAM, TRANSIT, WALK
-            The transit modality includes all public transport modalities.
-          type: array
-          items:
-            type: string
-      example:
-        from:
-          label: Zieuwent,Kennedystraat
-          latitude: 52.004166
-          longitude: 6.517835
-        itineraries: []
-        arrivalTime: 2019-12-17T14:00:00Z
-        departureTime: 2019-12-17T12:00:00Z
-        to:
-          label: Slingeland,hoofdingang
-          latitude: 51.976426
-          longitude: 6.285741
     Stop:
       title: Root Type for Place
       description: A stop is extended location on a map, comprising of a GPS coordinate
@@ -1135,6 +1075,78 @@ components:
         resultType: place
         id: 528u1kck-c0a80b682f9643c8a75942f82d5c7ea8
         distance: 108045
+    TripPlan:
+      description: A plan consisting of one or more itineraries. The header of the
+        plan contains the parameters as requestes.
+      required:
+      - from
+      - to
+      type: object
+      properties:
+        from:
+          $ref: '#/components/schemas/Location'
+          description: Departure location.
+        to:
+          $ref: '#/components/schemas/Location'
+          description: Arrival location
+        itineraries:
+          description: A proposal for a trip comprising one or more legs.
+          type: array
+          items:
+            $ref: '#/components/schemas/Itinerary'
+        nrSeats:
+          description: The number of seats requested.
+          type: integer
+        arrivalTime:
+          format: date-time
+          description: The requested date and time of the arrival. At least one of
+            departureTime or ArrivalTime are specified. If both are specified then
+            it is interpreted as a window for travelling. The time zone is always
+            UTC.
+          type: string
+        departureTime:
+          format: date-time
+          description: The requested date and time of the departure. At least one
+            of departureTime or ArrivalTime are specified. If both are specified then
+            it is interpreted as a window for travelling. The time zone is always
+            UTC.
+          type: string
+        maxWalkDistance:
+          description: The maximum distance to walk to the station etc. and between
+            transfers.
+          type: integer
+        modalities:
+          description: |
+            An array of eligible modalities:
+            AIRPLANE, BICYCLE, BUS, CABLE_CAR, CAR, FERRY, FUNICULAR, GONDOLA, RAIL, RIDESHARE, SUBWAY, TRAM, TRANSIT, WALK
+            The transit modality includes all public transport modalities.
+          type: array
+          items:
+            type: string
+        maxTransfers:
+          description: |
+            The maximum number of transfers (that is, one plus the maximum number of boardings) that a trip will be allowed. Larger values will slow performance, but could give better routes.
+          type: integer
+        firstLegRideshare:
+          description: |
+            Flag to enable Rideshare as an option for a first leg in combination with public transport.
+          type: boolean
+        lastLegRideshare:
+          description: |
+            Flag to enable Rideshare as an option for the last leg in combination with public transport.
+          type: boolean
+      example:
+        from:
+          label: Zieuwent,Kennedystraat
+          latitude: 52.004166
+          longitude: 6.517835
+        itineraries: []
+        arrivalTime: 2019-12-17T14:00:00Z
+        departureTime: 2019-12-17T12:00:00Z
+        to:
+          label: Slingeland,hoofdingang
+          latitude: 51.976426
+          longitude: 6.285741
   responses:
     InternalServerError:
       content:
