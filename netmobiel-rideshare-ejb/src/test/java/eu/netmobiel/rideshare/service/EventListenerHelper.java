@@ -52,7 +52,7 @@ public class EventListenerHelper {
     }
     public void onBookingConfirmedEvent(@Observes BookingConfirmedEvent bce) {
     	lastBookingConfirmedEvent = bce;
-    	bookingCancelledEventCount++;
+    	bookingConfirmedEventCount++;
     }
 
     public void onBookingCancelledEvent(@Observes BookingCancelledEvent bce) {
