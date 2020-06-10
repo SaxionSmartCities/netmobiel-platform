@@ -477,7 +477,7 @@ ALTER TABLE ONLY public.stop
 --
 
 ALTER TABLE ONLY public.booked_legs
-    ADD CONSTRAINT booked_legs_booking_fk FOREIGN KEY (booking) REFERENCES public.leg(id);
+    ADD CONSTRAINT booked_legs_booking_fk FOREIGN KEY (booking) REFERENCES public.booking(id);
 
 
 --
@@ -486,7 +486,7 @@ ALTER TABLE ONLY public.booked_legs
 --
 
 ALTER TABLE ONLY public.booked_legs
-    ADD CONSTRAINT booked_legs_leg_fk FOREIGN KEY (leg) REFERENCES public.booking(id);
+    ADD CONSTRAINT booked_legs_leg_fk FOREIGN KEY (leg) REFERENCES public.leg(id);
 
 
 --

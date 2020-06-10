@@ -177,8 +177,8 @@ CREATE TABLE public.booked_legs
 (
     booking bigint NOT NULL,
     leg bigint NOT NULL,
-    CONSTRAINT booked_legs_booking_fk FOREIGN KEY (booking) REFERENCES public.leg (id),
-    CONSTRAINT booked_legs_leg_fk FOREIGN KEY (leg) REFERENCES public.booking (id)
+    CONSTRAINT booked_legs_booking_fk FOREIGN KEY (booking) REFERENCES public.booking (id),
+    CONSTRAINT booked_legs_leg_fk FOREIGN KEY (leg) REFERENCES public.leg (id)
 )
 WITH (
     OIDS = FALSE

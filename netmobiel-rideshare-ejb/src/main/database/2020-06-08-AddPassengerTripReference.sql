@@ -2,7 +2,7 @@
 ALTER TABLE public.booking ADD COLUMN passenger_trip_ref VARCHAR(32);
     
 -- Goto the planner and issue the query
-SELECT lg.id, lg.state, lg.traverse_mode, lg.booking_id, s.departure_time
+SELECT lg.trip, lg.state, lg.traverse_mode, lg.booking_id, s.departure_time
 	FROM public.leg lg join stop s on lg.from_stop = s.id 
 	where lg.traverse_mode = 'RS' order by lg.booking_id;
 	
