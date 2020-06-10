@@ -407,7 +407,7 @@ public class Booking implements Serializable {
 	public String toString() {
 		return String.format("Booking %d on Ride %d %s %s D %s A %s from %s to %s #%d seat(s)",
 				getId(),
-				getRide().getId(),
+				getRide() != null ? getRide().getId() : "<null>",
 				getPassenger().getManagedIdentity(), 
 				getState().name(), 
 				DateTimeFormatter.ISO_INSTANT.format(getDepartureTime()), 
