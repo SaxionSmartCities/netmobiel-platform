@@ -46,6 +46,21 @@ public class TripPlan {
     private Integer maxWalkDistance;
 
     /**
+     * Maximum number of transfers
+     */
+    private Integer maxTransfers;
+
+    /**
+     * If true then rideshare is an option as first leg in a multi-leg trip with public transport.
+     */
+    private Boolean firstLegRideshare;
+
+    /**
+     * If true then rideshare is an option as last leg in a multi-leg trip with public transport.
+     */
+    private Boolean lastLegRideshare;
+
+    /**
      * Numbers of seats required.
      */
     private Integer nrSeats;
@@ -157,5 +172,29 @@ public class TripPlan {
     			.min(Instant::compareTo)
     			.orElse(null);
     }
+
+	public Integer getMaxTransfers() {
+		return maxTransfers;
+	}
+
+	public void setMaxTransfers(Integer maxTransfers) {
+		this.maxTransfers = maxTransfers;
+	}
+
+	public Boolean getFirstLegRideshare() {
+		return firstLegRideshare;
+	}
+
+	public void setFirstLegRideshare(Boolean firstLegRideshare) {
+		this.firstLegRideshare = firstLegRideshare;
+	}
+
+	public Boolean getLastLegRideshare() {
+		return lastLegRideshare;
+	}
+
+	public void setLastLegRideshare(Boolean lastLegRideshare) {
+		this.lastLegRideshare = lastLegRideshare;
+	}
 
 }

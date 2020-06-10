@@ -79,7 +79,8 @@ public class OpenTripPlannerClientIT {
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 3;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
+    	Integer maxTransfers = null;
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
     	TripPlan plan = result.plan;
         assertNotNull(plan);
         log.debug(plan.toString());
@@ -100,7 +101,8 @@ public class OpenTripPlannerClientIT {
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 3;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
+    	Integer maxTransfers = null;
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
@@ -123,7 +125,8 @@ public class OpenTripPlannerClientIT {
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 3;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
+    	Integer maxTransfers = null;
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
@@ -146,7 +149,8 @@ public class OpenTripPlannerClientIT {
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
     	Integer maxWalkDistance = 2000;
   	    Integer maxItineraries = 3;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
+    	Integer maxTransfers = null;
+   	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
     	TripPlan plan = result.plan;
         assertNotNull(plan);
         log.debug(plan.toString());
@@ -167,7 +171,8 @@ public class OpenTripPlannerClientIT {
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK }; 
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 1;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
+    	Integer maxTransfers = null;
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
@@ -188,7 +193,8 @@ public class OpenTripPlannerClientIT {
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK }; 
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 1;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
+    	Integer maxTransfers = null;
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
@@ -212,7 +218,8 @@ public class OpenTripPlannerClientIT {
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR /*, TraverseMode.WALK */}; 
     	Integer maxWalkDistance = 1000;
   	    Integer maxItineraries = 1;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
+    	Integer maxTransfers = null;
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
     	if (result.error != null) {
     		log.error("Planner error: " + result.error.msg);
     	}
@@ -232,8 +239,9 @@ public class OpenTripPlannerClientIT {
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR /*, TraverseMode.WALK */}; 
     	Integer maxWalkDistance = 1000;
   	    Integer maxItineraries = 1;
-  	    try {
-  	    	client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, null, maxItineraries);
+    	Integer maxTransfers = null;
+ 	    try {
+  	    	client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
   	    	fail("Expected NotFoundException");
   	    } catch (eu.netmobiel.commons.exception.NotFoundException ex) {
   	    	log.debug("testPlanDepartAndArriveSamePlace " + ex.toString());
@@ -254,7 +262,8 @@ public class OpenTripPlannerClientIT {
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR /*, TraverseMode.WALK */}; 
     	Integer maxWalkDistance = 1000;
   	    Integer maxItineraries = 1;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
+    	Integer maxTransfers = null;
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
@@ -279,7 +288,8 @@ public class OpenTripPlannerClientIT {
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR /*, TraverseMode.WALK */}; 
     	Integer maxWalkDistance = 1000;
   	    Integer maxItineraries = 1;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, via, maxItineraries);
+    	Integer maxTransfers = null;
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);

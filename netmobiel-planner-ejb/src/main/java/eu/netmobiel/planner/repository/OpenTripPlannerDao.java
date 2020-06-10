@@ -93,6 +93,7 @@ public class OpenTripPlannerDao {
      * @param modes An array of traversel modes like rail, bus etc.
      * @param showIntermediateStops if true then list the intermediate stops too.
      * @param maxWalkDistance the maximum distance to walk to and from transfers.
+     * @param maxTransfers the maximum number of transfers one is allowed to take.
      * @param via a list of places that must be part of the itineraries.
      * @param maxItineraries The maximum number of itineraries to list.
      * @return A trip plan with 1 or more itineraries.
@@ -100,7 +101,7 @@ public class OpenTripPlannerDao {
      * @throws BadRequestException When the planner cannot plan due to the combination of parameters.
      */
     public TripPlan createPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean isArrivalPinned, 
-    		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, List<GeoLocation> via, Integer maxItineraries) 
+    		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, Integer maxTransfers, List<GeoLocation> via, Integer maxItineraries) 
     				throws NotFoundException, BadRequestException {
     	eu.netmobiel.opentripplanner.api.model.TraverseMode[] otpModes = Arrays
     			.stream(modes)
@@ -108,7 +109,7 @@ public class OpenTripPlannerDao {
     			.toArray(eu.netmobiel.opentripplanner.api.model.TraverseMode[]::new);
     	GeoLocation otpVia[] = via == null ? null : via.toArray(new GeoLocation[via.size()]);
     	PlanResponse result = otpClient.createPlan(fromPlace, toPlace, travelTime, isArrivalPinned, 
-    					otpModes, showIntermediateStops, maxWalkDistance, otpVia, maxItineraries);
+    					otpModes, showIntermediateStops, maxWalkDistance, maxTransfers, otpVia, maxItineraries);
 		if (result.error != null) {
 			String msg = String.format("OTP Planner Error: %s - %s", result.error.message, result.error.msg);
 			if (result.error.missing != null && result.error.missing.size() > 0) {

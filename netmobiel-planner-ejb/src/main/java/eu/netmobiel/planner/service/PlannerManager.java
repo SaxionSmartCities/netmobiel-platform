@@ -203,7 +203,7 @@ public class PlannerManager {
         	// as intermediate places to the OTP planner and calculate the itinerary.
         	try {
         		Instant rideDepTime = ride.getDepartureTime();
-            	ridePlan = otpDao.createPlan(from, to, rideDepTime,  false, modes, false, maxWalkDistance, intermediatePlaces, 1);
+            	ridePlan = otpDao.createPlan(from, to, rideDepTime,  false, modes, false, maxWalkDistance, null, intermediatePlaces, 1);
             	ridePlan.setDepartureTime(earliestDeparture);
             	ridePlan.setArrivalTime(latestArrival);
             	ridePlan.setMaxWalkDistance(maxWalkDistance);
@@ -252,8 +252,12 @@ public class PlannerManager {
     }
 
     
-    protected void addRideshareAsFirstLeg(Instant now, TripPlan plan, Set<Stop> transitBoardingStops, TraverseMode[] transitModalities) throws BadRequestException {
+    protected void addRideshareAsFirstLeg(Instant now, TripPlan plan, Set<Stop> transitBoardingStops, TraverseMode[] transitModalities, Integer maxTransfers) throws BadRequestException {
     	log.debug("Search for first leg by Car");
+    	if (maxTransfers != null && maxTransfers <= 0) {
+    		throw new IllegalArgumentException("maxTransfers cannot be 0 at this point");
+    	}
+    	Integer maxPublicTransportTransfers = maxTransfers == null ? null : maxTransfers - 1;
     	for (Stop place : transitBoardingStops) {
     		// Try to find a shared ride from passenger's departure to a transit hub
         	List<Itinerary> passengerCarItineraries = searchRideshareOnly(now, plan.getFrom(), place.getLocation(), 
@@ -265,7 +269,7 @@ public class PlannerManager {
             	Instant transitStart  = dit.getLegs().get(0).getEndTime().plusSeconds(CAR_TO_TRANSIT_SLACK);
             	try {
             		TripPlan transitPlan = otpDao.createPlan(place.getLocation(), plan.getTo(), transitStart,  false, transitModalities, 
-		        			false, plan.getMaxWalkDistance(), null, 2 /* To see repeating */);
+		        			false, plan.getMaxWalkDistance(), maxPublicTransportTransfers, null, 2 /* To see repeating */);
 		        	if (log.isDebugEnabled()) {
 		        		log.debug("Car -> Transit plan: \n" + transitPlan.toString());
 		        	}
@@ -281,9 +285,13 @@ public class PlannerManager {
 		}
     }
 
-    protected void addRideshareAsLastLeg(Instant now, TripPlan plan, Set<Stop> transitAlightingStops, TraverseMode[] transitModalities) throws BadRequestException {
+    protected void addRideshareAsLastLeg(Instant now, TripPlan plan, Set<Stop> transitAlightingStops, TraverseMode[] transitModalities, Integer maxTransfers) throws BadRequestException {
     	// Try to find a ride from transit place to drop-off (last mile by car)
     	log.debug("Search for a last leg by Car");
+    	if (maxTransfers != null && maxTransfers <= 0) {
+    		throw new IllegalArgumentException("maxTransfers cannot be 0 at this point");
+    	}
+    	Integer maxPublicTransportTransfers = maxTransfers == null ? null : maxTransfers - 1;
     	//FIXME Should be in fact alighting stops 
     	for (Stop place : transitAlightingStops) {
     		// Try to find a shared ride from transit hub to passenger's destination
@@ -296,7 +304,7 @@ public class PlannerManager {
         		Instant transitEnd  = dit.getLegs().get(0).getEndTime().plusSeconds(CAR_TO_TRANSIT_SLACK);
             	try {
 	            	TripPlan transitPlan = otpDao.createPlan(plan.getFrom(), place.getLocation(), transitEnd, true, transitModalities,  
-	            			false, plan.getMaxWalkDistance(), null, 2 /* To see repeating */);
+	            			false, plan.getMaxWalkDistance(), maxPublicTransportTransfers, null, 2 /* To see repeating */);
 	            	if (log.isDebugEnabled()) {
 	            		log.debug("Transit -> Car plan: \n" + transitPlan.toString());
 	            	}
@@ -324,10 +332,11 @@ public class PlannerManager {
     	if (log.isDebugEnabled()) {
     		log.debug("Collected stops: \n\t" + stops.stream().map(p -> p.toString()).collect(Collectors.joining("\n\t")));
     	}
+    	// TODO Sort on distance, limit the number
     	return stops;
     }
 
-    protected Optional<TripPlan> createTransitPlan(TripPlan plan, TraverseMode[] otpModalities, int maxWalkDistance) {
+    protected Optional<TripPlan> createTransitPlan(TripPlan plan, TraverseMode[] otpModalities, int maxWalkDistance, Integer maxTransfers) {
     	TripPlan transitPlan = null;
 		try {
 	    	boolean arrivalTimeIsPinned = false;
@@ -338,7 +347,7 @@ public class PlannerManager {
 	    	}
 			// Perhaps add WALK?
 			transitPlan = otpDao.createPlan(plan.getFrom(), plan.getTo(), travelTime, arrivalTimeIsPinned, 
-					otpModalities, false, maxWalkDistance, null, null);
+					otpModalities, false, maxWalkDistance, maxTransfers, null, null);
 	    	if (log.isDebugEnabled()) {
 	    		log.debug("Transit plan: \n" + transitPlan.toString());
 	    	}
@@ -368,7 +377,8 @@ public class PlannerManager {
      */
     public TripPlan searchMultiModal(Instant now, GeoLocation fromPlace, GeoLocation toPlace, 
     		Instant depTime, Instant arrTime, 
-    		TraverseMode[] modalities, Integer maxWalkDistance, Integer nrSeats) throws BadRequestException {
+    		TraverseMode[] modalities, Integer maxWalkDistance, Integer nrSeats,
+    		Integer maxTransfers, Boolean firstLegRideshare, Boolean lastLegRideshare) throws BadRequestException {
     	if (depTime == null && arrTime == null) {
     		depTime = now;
     	}
@@ -376,11 +386,10 @@ public class PlannerManager {
     		throw new BadRequestException("Arrival time must be after depature time: " + formatDateTime(depTime));
     	}
     	//FIXME For searching we need a earliestDeparture and latestArrival. For scoring we need to know a reference time and whether that is departure or arrival.
-    	//FIXME Add also whether first mile or last mile mile (or both ) by rideshare are acceptable. MaxTransfer 1 could force it but that affects transit too.  
-    	boolean allowRideshareForLastLeg = false;
-    	boolean allowRideshareForFirstLeg = false;
+    	boolean allowRideshareForFirstLeg = firstLegRideshare != null ? firstLegRideshare : false;
+    	boolean allowRideshareForLastLeg = lastLegRideshare != null ? lastLegRideshare : false;
     	if (log.isDebugEnabled()) {
-    		log.debug(String.format("searchMultiModal:\n Now %s D %s A %s from %s to %s; seats #%d, max walk distance %sm; modalities %s",
+    		log.debug(String.format("searchMultiModal:\n Now %s D %s A %s from %s to %s; seats #%d, max walk distance %sm; modalities %s; maxTransfers %s; first/lastLegRS %s/%s",
     						formatDateTime(now),
     						depTime != null ? formatDateTime(depTime) : "*", 
     						arrTime != null ? formatDateTime(arrTime) : "*", 
@@ -388,8 +397,11 @@ public class PlannerManager {
     						toPlace.toString(),
     						nrSeats != null ? nrSeats : 1, 
     						maxWalkDistance != null ? maxWalkDistance.toString() : "?",
-    						modalities != null ? Arrays.stream(modalities).map(tm -> tm.name()).collect(Collectors.joining(", ")) : "*"
-    				)
+    						modalities != null ? Arrays.stream(modalities).map(tm -> tm.name()).collect(Collectors.joining(", ")) : "*",
+    						maxTransfers != null ? maxTransfers.toString() : "-",
+    						allowRideshareForFirstLeg ? "Y" : "N",
+    	    				allowRideshareForLastLeg ? "Y" : "N"
+   						)
     		);
     	}
     	// Create the basic trip plan
@@ -401,6 +413,9 @@ public class PlannerManager {
 		thePlan.setTraverseModes(modalities);
 		thePlan.setNrSeats(nrSeats);
 		thePlan.setMaxWalkDistance(maxWalkDistance);
+		thePlan.setMaxTransfers(maxTransfers);
+		thePlan.setFirstLegRideshare(firstLegRideshare);
+		thePlan.setLastLegRideshare(lastLegRideshare);
 		// 
 		List<TraverseMode> transitModalities = Arrays.stream(modalities).filter(m -> m.isTransit()).collect(Collectors.toList());
 		List<TraverseMode> otpModalitiesList = new ArrayList<>(transitModalities);
@@ -410,7 +425,7 @@ public class PlannerManager {
 		boolean rideshareEligable = Arrays.stream(modalities).filter(m -> m == TraverseMode.RIDESHARE).findFirst().isPresent();
 		if (!transitModalities.isEmpty()) {
 			// Transit is eligable. Add the transit itineraries as calculated by OTP.
-			Optional<TripPlan> transitPlan = createTransitPlan(thePlan, otpModalities, thePlan.getMaxWalkDistance());
+			Optional<TripPlan> transitPlan = createTransitPlan(thePlan, otpModalities, thePlan.getMaxWalkDistance(), maxTransfers);
 			transitPlan.ifPresent(plan -> thePlan.getItineraries().addAll(plan.getItineraries()));
 		}
 
@@ -419,20 +434,20 @@ public class PlannerManager {
 	    	thePlan.getItineraries().addAll(searchRideshareOnly(now, fromPlace, toPlace, depTime, arrTime, maxWalkDistance, nrSeats));
 
 			// If transit is an option too then collect possible pickup and drop-off places near transit stops
-	    	// FIXME Add maxNrTransers
-			if (!transitModalities.isEmpty() && (allowRideshareForFirstLeg || allowRideshareForLastLeg) ) {
+			if (!transitModalities.isEmpty() && 
+					((allowRideshareForFirstLeg || allowRideshareForLastLeg) && (maxTransfers == null || maxTransfers >= 1))) {
 				Set<Stop> transitBoardingStops = null;
 				// Calculate a transit reference plan to find potential boarding or alighting places. 
-				Optional<TripPlan> transitReferencePlan = createTransitPlan(thePlan, otpModalities, 50000);
+				Optional<TripPlan> transitReferencePlan = createTransitPlan(thePlan, otpModalities, 50000, maxTransfers);
 				List<OtpCluster> nearbyClusters = new ArrayList<>();
 				// Collect the stops. If there are no stops or too few, collect potential clusters
 				//FIXME The ordering of the clusters depends probably on first oflast leg. Check.
 		    	transitBoardingStops = collectStops(thePlan, findTransitBoardingStops(transitReferencePlan), nearbyClusters);
 	    		if (allowRideshareForFirstLeg) {
-	        		addRideshareAsFirstLeg(now, thePlan, transitBoardingStops, otpModalities);
+	        		addRideshareAsFirstLeg(now, thePlan, transitBoardingStops, otpModalities, maxTransfers);
 	    		}
 	    		if (allowRideshareForLastLeg) {
-	        		addRideshareAsLastLeg(now, thePlan, transitBoardingStops, otpModalities);
+	        		addRideshareAsLastLeg(now, thePlan, transitBoardingStops, otpModalities, maxTransfers);
 	    		}
 			}
 		}

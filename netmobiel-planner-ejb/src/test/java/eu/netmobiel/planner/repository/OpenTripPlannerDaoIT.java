@@ -70,7 +70,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR }; 
     	try {
-			TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, null, 1);
+			TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, null, null, 1);
 			assertNotNull(plan);
 			assertEquals(1, plan.getItineraries().size());
 			Itinerary it = plan.getItineraries().get(0);
@@ -95,7 +95,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR }; 
     	try {
-			TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, Arrays.asList(via), 1);
+			TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, null, Arrays.asList(via), 1);
 			assertNotNull(plan);
 			assertEquals(1, plan.getItineraries().size());
 			Itinerary it = plan.getItineraries().get(0);
@@ -121,7 +121,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT };
     	try {
-    		otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, null, 1);
+    		otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, null, null, 1);
 			fail("Expected a BadRequest");
 		} catch (NotFoundException e) {
 			fail("Did not expect " + e);
@@ -140,7 +140,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR };
     	try {
-    		otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, null, 1);
+    		otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, null, null, null, 1);
 			fail("Expected a BadRequest");
 		} catch (NotFoundException e) {
 			assertNotNull(e.getVendorCode());
@@ -159,7 +159,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK };
     	try {
-    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, 10, null, 1);
+    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, 10, null, null, 1);
     		Leg leg = plan.getItineraries().get(0).getLegs().get(0);
 //        	String wkt = GeometryHelper.createWKT(leg.getLegGeometry());
 //        	System.out.println(wkt);
@@ -181,7 +181,7 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK };
     	try {
-    		otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, 100, null, 1);
+    		otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, 100, null, null, 1);
 			fail("Expected a NotFound");
 		} catch (NotFoundException e) {
 			assertNotNull(e.getVendorCode());
@@ -199,13 +199,75 @@ public class OpenTripPlannerDaoIT {
     	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
     	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK };
     	try {
-    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, 1000, null, 1);
+    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, 1000, null, null, 1);
 			assertNotNull(plan);
 			assertEquals(1, plan.getItineraries().size());
     		Leg leg = plan.getItineraries().get(0).getLegs().get(0);
         	int distance = leg.getDestinationStopDistance();
         	log.debug("Distance to destination is " + distance);
         	assertTrue("Remaining distance is < 10 meter", distance < 10);
+		} catch (NotFoundException e) {
+			fail("Did not expect " + e);
+		} catch (BadRequestException e) {
+			fail("Did not expect " + e);
+		}
+	}
+
+	// ****** MaxTransfers is NOT supported with the current routing algoritm! ******
+
+//	@Test
+//	public void testPlan_MaxTransfers_0() {
+//    	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+//    	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
+//    	LocalDate date = LocalDate.now();
+//    	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
+//    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK };
+//    	Integer maxTransfers = 0;
+//    	try {
+//    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, 1000, maxTransfers, null, 5);
+//			assertNotNull(plan);
+////			log.debug(String.format("maxTransfers = %d: %s", maxTransfers, plan.toString()));
+//			assertEquals(0, plan.getItineraries().size());
+//		} catch (NotFoundException e) {
+//			fail("Did not expect " + e);
+//		} catch (BadRequestException e) {
+//			fail("Did not expect " + e);
+//		}
+//	}
+
+	@Test
+	public void testPlan_MaxTransfers_1() {
+    	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+    	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
+    	LocalDate date = LocalDate.now();
+    	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
+    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK };
+    	Integer maxTransfers = 1;
+    	try {
+    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, 1000, maxTransfers, null, 5);
+			assertNotNull(plan);
+//			log.debug(String.format("maxTransfers = %d: %s", maxTransfers, plan.toString()));
+			assertEquals(0, plan.getItineraries().size());
+		} catch (NotFoundException e) {
+			fail("Did not expect " + e);
+		} catch (BadRequestException e) {
+			fail("Did not expect " + e);
+		}
+	}
+
+	@Test
+	public void testPlan_MaxTransfers_2() {
+    	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+    	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
+    	LocalDate date = LocalDate.now();
+    	Instant departureTime = OffsetDateTime.of(date, LocalTime.parse("12:00:00"), ZoneOffset.UTC).toInstant();
+    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.TRANSIT, TraverseMode.WALK };
+    	Integer maxTransfers = 2;
+    	try {
+    		TripPlan plan = otpDao.createPlan(fromPlace, toPlace, departureTime, false, modes, false, 1000, maxTransfers, null, 5);
+			assertNotNull(plan);
+//			log.debug(String.format("maxTransfers = %d: %s", maxTransfers, plan.toString()));
+			assertEquals(0, plan.getItineraries().size());
 		} catch (NotFoundException e) {
 			fail("Did not expect " + e);
 		} catch (BadRequestException e) {

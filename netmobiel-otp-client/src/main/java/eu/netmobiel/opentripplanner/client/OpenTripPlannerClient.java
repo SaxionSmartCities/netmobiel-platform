@@ -154,7 +154,7 @@ public class OpenTripPlannerClient {
     }
 
     public PlanResponse createPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean useTimeAsArriveBy, 
-    		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, GeoLocation[] via, Integer maxItineraries) throws NotFoundException {
+    		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, Integer maxTransfers, GeoLocation[] via, Integer maxItineraries) throws NotFoundException {
 		PlanResponse result = null;
 		
     	List<GeoLocation> places = new ArrayList<>();
@@ -201,6 +201,10 @@ public class OpenTripPlannerClient {
 				.collect(Collectors.joining(",")));
 		if (maxWalkDistance != null) {
 			ub.queryParam("maxWalkDistance", String.valueOf(maxWalkDistance));
+		}
+		if (maxTransfers != null) {
+			ub.queryParam("maxTransfers", maxTransfers.toString());
+			throw new IllegalArgumentException("This version of OTP does not support maxTransfers!");
 		}
 		if (maxItineraries != null) {
 			ub.queryParam("numItineraries", maxItineraries.toString());

@@ -43,7 +43,10 @@ public class SearchResource implements SearchApi {
     		String modalities,
     		Integer maxWalkDistance,
     		Integer nrSeats,
-    		OffsetDateTime now
+    		OffsetDateTime now,
+    		Integer maxTransfers,
+    		Boolean firstLegRideshare,
+    		Boolean lastLegRideshare
     	) {
     	
     	TripPlan plan = null;
@@ -71,7 +74,8 @@ public class SearchResource implements SearchApi {
     	}
 		try {
     		plan = plannerManager.searchMultiModal(toInstant(now), GeoLocation.fromString(from), GeoLocation.fromString(to), 
-    					toInstant(departureTime), toInstant(arrivalTime), domainModalities, maxWalkDistance, nrSeats);
+    					toInstant(departureTime), toInstant(arrivalTime), domainModalities, maxWalkDistance, nrSeats,
+    					maxTransfers, firstLegRideshare, lastLegRideshare);
     		if (log.isDebugEnabled()) {
     			log.debug("Multimodal plan: \n" + plan.toString());
     		}

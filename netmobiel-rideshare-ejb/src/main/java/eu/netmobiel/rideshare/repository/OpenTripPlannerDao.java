@@ -66,7 +66,7 @@ public class OpenTripPlannerDao {
    		
     	PlanResponse result = otpClient.createPlan(ride.getFrom(), ride.getTo(), 
     			travelTime, ride.isArrivalTimePinned(), new TraverseMode[] { TraverseMode.CAR }, 
-    			false, OTP_MAX_WALK_DISTANCE, via.toArray(new GeoLocation[via.size()]), 1);
+    			false, OTP_MAX_WALK_DISTANCE, null, via.toArray(new GeoLocation[via.size()]), 1);
 		if (result.error != null) {
 			String msg = String.format("OTP Planner Error: %s - %s", result.error.message, result.error.msg);
 			if (result.error.missing != null && result.error.missing.size() > 0) {
