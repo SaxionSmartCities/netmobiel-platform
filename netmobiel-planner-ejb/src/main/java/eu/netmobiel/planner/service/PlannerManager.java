@@ -239,6 +239,10 @@ public class PlannerManager {
             			leg.setBookingRequired(true);
             			leg.setTripId(ride.getRideRef());
             		});
+            		// Set the arrival time of the first stop to null
+            		// Set the departure time of the last stop to null
+            		passengerRideIt.getLegs().get(0).getFrom().setArrivalTime(null);
+            		passengerRideIt.getLegs().get(passengerRideIt.getLegs().size() - 1).getTo().setDepartureTime(null);
     	        	itineraries.add(passengerRideIt);
             	}
         	}
