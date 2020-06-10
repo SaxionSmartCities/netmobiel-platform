@@ -173,6 +173,27 @@ paths:
           type: string
         in: query
         required: false
+      - name: maxTransfers
+        description: 'The maximum number of transfers (that is, one plus the maximum
+          number of boardings) that a trip will be allowed. Larger values will slow
+          performance, but could give better routes. '
+        schema:
+          type: integer
+        in: query
+      - name: firstLegRideshare
+        description: Flag to enable Rideshare as an option for a first leg in combination
+          with public transport. The search is time-consuming. Default is not enabled.
+          No effect if Rideshare is not one of the eligable modalities.
+        schema:
+          type: boolean
+        in: query
+      - name: lastLegRideshare
+        description: Flag to enable Rideshare as an option for the last leg in combination
+          with public transport. This is a time-consumiomg search. Default this flag
+          is disabled. No effect if Rideshare is not one of the eligable modalities.
+        schema:
+          type: boolean
+        in: query
       responses:
         "200":
           content:
