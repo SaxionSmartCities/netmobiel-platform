@@ -224,7 +224,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 				.getSingleResult();
 		assertNotNull(b);
 		assertTrue(b.isDeleted());
-		assertFalse(Boolean.TRUE == b.getCancelledByDriver());
+		assertFalse(Boolean.TRUE.equals(b.getCancelledByDriver()));
 		assertEquals(reason, b.getCancelReason());
 		
 		assertEquals(1, eventListenerHelper.getBookingCancelledEventCount());
@@ -244,7 +244,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 				.getSingleResult();
 		assertNotNull(b);
 		assertTrue(b.isDeleted());
-		assertFalse(Boolean.TRUE == b.getCancelledByDriver());
+		assertFalse(Boolean.TRUE.equals(b.getCancelledByDriver()));
 		assertEquals(reason, b.getCancelReason());
 		
 		assertEquals(0, eventListenerHelper.getBookingCancelledEventCount());
@@ -264,7 +264,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 				.getSingleResult();
 		assertNotNull(b);
 		assertTrue(b.isDeleted());
-		assertTrue(Boolean.TRUE == b.getCancelledByDriver());
+		assertTrue(Boolean.TRUE.equals(b.getCancelledByDriver()));
 		assertEquals(reason, b.getCancelReason());
 		
 		assertEquals(1, eventListenerHelper.getBookingCancelledEventCount());
