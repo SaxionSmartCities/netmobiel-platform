@@ -106,8 +106,8 @@ public class Leg implements Serializable {
     @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE }, fetch = FetchType.LAZY)
     @JoinTable(
     		name = "booked_legs",
-    		joinColumns = @JoinColumn(name = "booking", foreignKey = @ForeignKey(name = "booked_legs_booking_fk")),
-    		inverseJoinColumns = @JoinColumn(name= "leg", foreignKey = @ForeignKey(name = "booked_legs_leg_fk"))
+    		joinColumns = @JoinColumn(name= "leg", foreignKey = @ForeignKey(name = "booked_legs_leg_fk")),
+    		inverseJoinColumns = @JoinColumn(name = "booking", foreignKey = @ForeignKey(name = "booked_legs_booking_fk"))
     )    
     private List<Booking> bookings;
 
