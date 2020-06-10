@@ -1186,6 +1186,7 @@ components:
       - pickup
       - dropOff
       - state
+      - passengerTripRef
       type: object
       properties:
         arrivalTime:
@@ -1243,6 +1244,11 @@ components:
           $ref: '#/components/schemas/Ride'
           description: A short description of the ride, including the car and the
             driver's name.
+        passengerTripRef:
+          description: The reference (a planner URN) to the passenger's trip. To find
+            the actual leg, itereate through legs to find the rideshare trip id or
+            the booking id.
+          type: string
       example:
         departureTime: 2020-05-27T10:00:00Z
         arrivalTime: 2020-05-27T10:45:00Z
@@ -1264,6 +1270,7 @@ components:
         state: CONFIRMED
         legRefs:
         - urn:nb:rs:leg:54
+        passengerTripRef: urn:nb:pl:trip:568
   responses:
     InternalServerError:
       content:
