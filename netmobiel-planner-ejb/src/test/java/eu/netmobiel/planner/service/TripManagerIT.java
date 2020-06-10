@@ -6,6 +6,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Optional;
 
 import javax.ejb.EJB;
 import javax.inject.Inject;
@@ -33,7 +34,6 @@ import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.TripDao;
-import eu.netmobiel.planner.repository.UserDao;
 import eu.netmobiel.planner.test.PlannerIntegrationTestBase;
 
 @RunWith(Arquillian.class)
@@ -41,6 +41,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     @Deployment
     public static Archive<?> createTestArchive() {
         WebArchive archive = createDeploymentBase()
+            .addClass(EventListenerHelper.class)
             .addClass(TripDao.class)
             .addClass(TripManager.class);
 //		System.out.println(archive.toString(true));
@@ -51,10 +52,14 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     private TripManager tripManager;
 
     @Inject
+    private EventListenerHelper eventListenerHelper;
+
+    @Inject
     private Logger log;
 
     @Override
     protected void insertData() throws Exception {
+		eventListenerHelper.reset();
     }
     
     private Trip createEmptyTrip(String departureTimeIso, String arrivalTimeIso) {
@@ -443,14 +448,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
         assertEquals(nrTripsStart + 1, trips.getData().size());
     }
 
-    @Test
-    public void testCreateRideshareTrip() throws Exception {
-    	User traveller = new User();
-    	traveller.setId(1L);
-    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
-        assertNotNull(trips);
-        int nrTripsStart = trips.getData().size();
-        
+    private Trip createRideshareTrip(String rideRef) {
         Trip trip = new Trip();
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
@@ -486,21 +484,119 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
 
     	leg1.setState(TripState.PLANNING);
     	leg1.setTraverseMode(TraverseMode.RIDESHARE);
-    	leg1.setTripId("urn:nb:rs:ride:354");
+    	leg1.setTripId(rideRef);
     	leg1.setDriverId("urn:nb:rs:user:1");
     	leg1.setDriverName("Piet Pietersma");
     	leg1.setVehicleId("urn.nb:rs:car:5");
     	leg1.setVehicleLicensePlate("52-PH-VD");
     	leg1.setVehicleName("Volvo V70");
+    	// For rideshare booking is always required
+		leg1.setBookingRequired(true);
+		return trip;
+    }
 
+    @Test
+    public void testCreateRideshareTrip_NoAutoBook() throws Exception {
+    	User traveller = new User();
+    	traveller.setId(1L);
+    	String rideRef = "urn:nb:rs:ride:354";
+        Trip trip = createRideshareTrip(rideRef);
+
+		// Set autobook false
     	Long id = tripManager.createTrip(traveller, trip, false);
         assertNotNull(id);
+		Trip tripdb = em.createQuery("from Trip where id = :id", Trip.class)
+				.setParameter("id", id)
+				.getSingleResult();
+		assertEquals(TripState.PLANNING, tripdb.getState());
+		assertEquals(0, eventListenerHelper.getBookingRequestedEventCount());
+    }
+
+    @Test
+    public void testCreateRideshareTrip_AutoBook() throws Exception {
+    	User traveller = new User();
+    	traveller.setId(1L);
+    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+        assertNotNull(trips);
+        int nrTripsStart = trips.getData().size();
+    	String rideRef = "urn:nb:rs:ride:354";
+        Trip trip = createRideshareTrip(rideRef);
+
+		// Set autobook true
+    	Long id = tripManager.createTrip(traveller, trip, true);
+        assertNotNull(id);
+		Trip tripdb = em.createQuery("from Trip where id = :id", Trip.class)
+				.setParameter("id", id)
+				.getSingleResult();
+		assertEquals(TripState.BOOKING, tripdb.getState());
+		assertEquals(1, eventListenerHelper.getBookingRequestedEventCount());
         
     	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
         assertNotNull(trips);
         log.info("List trips: #" + trips.getData().size());
         trips.getData().stream().filter(t -> t.getId() == id).findFirst().ifPresent(t -> log.debug(t.toString()));
         assertEquals(nrTripsStart + 1, trips.getData().size());
+
+    }
+
+    @Test
+    public void testAssignRideshareBookingRef() throws Exception {
+    	User traveller = new User();
+    	traveller.setId(1L);
+    	String rideRef = "urn:nb:rs:ride:354";
+        Trip trip = createRideshareTrip(rideRef);
+		Optional<Leg> leg = trip.findLegByTripId(rideRef);
+		assertTrue(leg.isPresent());
+		assertNull(leg.get().getBookingId());
+
+		// Set autobook true
+    	Long id = tripManager.createTrip(traveller, trip, true);
+    	flush();
+        assertNotNull(id);
+		Trip tripdb = em.createQuery("select t from Trip t join fetch t.legs where t.id = :id", Trip.class)
+				.setParameter("id", id)
+				.getSingleResult();
+		leg = tripdb.findLegByTripId(rideRef);
+		assertTrue(leg.isPresent());
+		assertNull(leg.get().getBookingId());
+		flush();
+
+		String bookingRef = "urn:nb:rs:booking:12345";
+		// Assign, without confirmation yet
+    	tripManager.assignBookingReference(trip.getTripRef(), rideRef, bookingRef, false);
+		flush();
+		tripdb = em.createQuery("select t from Trip t join fetch t.legs where t.id = :id", Trip.class)
+				.setParameter("id", id)
+				.getSingleResult();
+		assertEquals(TripState.BOOKING, tripdb.getState());
+		assertEquals(1, eventListenerHelper.getBookingRequestedEventCount());
+		assertTrue(tripdb.findLegByTripId(rideRef).isPresent());
+		assertTrue(tripdb.findLegByBookingId(bookingRef).isPresent());
+    }
+
+    @Test
+    public void testRemoveRideshareTrip_WhileBooking() throws Exception {
+    	User traveller = new User();
+    	traveller.setId(1L);
+    	String rideRef = "urn:nb:rs:ride:354";
+        Trip trip = createRideshareTrip(rideRef);
+		// Set autobook true
+    	Long id = tripManager.createTrip(traveller, trip, true);
+		String bookingRef = "urn:nb:rs:booking:12345";
+		// Assign, without confirmation yet
+    	tripManager.assignBookingReference(trip.getTripRef(), rideRef, bookingRef, false);
+		eventListenerHelper.reset();
+		flush();
+		String reason = "Ik ga toch maar niet";
+        tripManager.removeTrip(id, reason);
+		assertEquals(1, eventListenerHelper.getBookingCancelledEventCount());
+		// Trip is not hard removed.
+		assertEquals(1, em.createQuery("select count(*) from Trip where id = :id", Long.class).setParameter("id", id).getSingleResult().intValue());
+		Trip tripdb = em.createQuery("from Trip where id = :id", Trip.class)
+				.setParameter("id", id)
+				.getSingleResult();
+		assertEquals(TripState.CANCELLED, tripdb.getState());
+		assertEquals(reason, tripdb.getCancelReason());
     }
 
     @Test

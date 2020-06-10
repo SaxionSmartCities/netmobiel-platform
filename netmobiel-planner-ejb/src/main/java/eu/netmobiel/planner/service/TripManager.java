@@ -194,14 +194,17 @@ public class TripManager {
      * Removes a trip. Whether or not a trip is soft-deleted or hard-deleted depends on the trip state.
      * This method is supposedly to be called by the traveller. 
      * @param tripId The trip to remove.
+     * @param reason The reason for cancelling the trip (optional).
      * @throws NotFoundException The trip does not exist.
      */
     public void removeTrip(Long tripId, String reason) throws ApplicationException {
     	Trip tripdb = tripDao.find(tripId)
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripId));
+    	tripdb.setCancelReason(reason);
        	if (tripdb.getLegs() != null) {
        		for (Leg leg : tripdb.getLegs()) {
 		    	if (leg.getBookingId() != null) {
+		    		// There is a booking being request or already confirmed. Cancel it.
 					if (leg.getState() == TripState.BOOKING || leg.getState() == TripState.SCHEDULED) {
 						if (log.isDebugEnabled()) {
 							log.debug("Cancelling a booking. State = " + leg.getState());
@@ -214,6 +217,11 @@ public class TripManager {
 					} else {
 						log.warn(String.format("Cannot cancel booking %s, because of current state: %s", leg.getBookingId(), leg.getState()));
 					}
+		    	} else {
+		    		// There is a small opening between setting Booking and the setting of a booking ID.
+		    		if (leg.getState() == TripState.BOOKING) {
+		    			log.warn("Trip is in BOOKING state, but no booking reference has been set!");
+		    		}
 		    	}
 		    	if (leg.getState() == TripState.IN_TRANSIT || leg.getState() == TripState.COMPLETED) {
 		    		log.warn("Removing a trip at an invalid moment: " + leg.getState() + "; leg not cancelled");
