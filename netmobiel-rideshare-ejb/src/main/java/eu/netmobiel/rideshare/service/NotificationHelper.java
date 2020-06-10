@@ -4,7 +4,9 @@ import java.text.MessageFormat;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.Locale;
 
+import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
@@ -35,12 +37,20 @@ import eu.netmobiel.rideshare.model.Ride;
 @Logging
 public class NotificationHelper {
 	private static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
+	private static final String DEFAULT_LOCALE = "nl-NL";
 
     @Inject
     private PublisherService publisherService;
 
     @Inject
 	private Logger logger;
+
+    private Locale defaultLocale;
+    
+    @PostConstruct
+    public void initialize() {
+    	defaultLocale = Locale.forLanguageTag(DEFAULT_LOCALE);
+    }
 
     protected Message createMessage(Booking booking, String subject, String messageText) {
 		Ride ride = booking.getRide();
@@ -51,7 +61,7 @@ public class NotificationHelper {
 		msg.setSubject(subject);
 		msg.setBody(
 				MessageFormat.format(messageText, 
-						DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).format(ride.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
+						DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(ride.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
 						ride.getTo().getLabel(), 
 						booking.getPassenger().getGivenName()
 						)

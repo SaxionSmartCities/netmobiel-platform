@@ -4,7 +4,9 @@ import java.text.MessageFormat;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
+import java.util.Locale;
 
+import javax.annotation.PostConstruct;
 import javax.annotation.security.RunAs;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
@@ -47,6 +49,7 @@ import eu.netmobiel.rideshare.service.BookingManager;
 @RunAs("system") 
 public class BookingProcessor {
 	private static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
+	private static final String DEFAULT_LOCALE = "nl-NL";
 	
     @Inject
     private PublisherService publisherService;
@@ -59,6 +62,13 @@ public class BookingProcessor {
 
     @Inject
     private Logger logger;
+    
+    private Locale defaultLocale;
+    
+    @PostConstruct
+    public void initialize() {
+    	defaultLocale = Locale.forLanguageTag(DEFAULT_LOCALE);
+    }
     
 //    @Asynchronous
     public void onBookingRequestedEvent(@Observes(during = TransactionPhase.IN_PROGRESS) BookingRequestedEvent event) {
@@ -73,7 +83,6 @@ public class BookingProcessor {
     	b.setNrSeats(event.getNrSeats());
     	b.setPassengerTripRef(event.getTravellerTripRef());
     	b.setPickup(event.getPickup());
-    	logger.info("New booking created: " + b.toString());
     	try {
 			String bookingRef = bookingManager.createBooking(event.getProviderTripRef(), event.getTraveller(), b);
 			// Check whether auto conform is enabled or that we have long conversation
@@ -114,7 +123,7 @@ public class BookingProcessor {
     				msg.setSubject("Chauffeur heeft geannuleerd.");
     				msg.setBody(
     						MessageFormat.format("Voor jouw reis op {0} naar {1} kun je helaas meer met {2} meerijden.", 
-    								DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).format(trip.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
+    								DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(trip.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
     								trip.getTo().getLabel(), 
     								leg.getDriverName()
     								)
