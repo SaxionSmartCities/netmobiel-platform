@@ -21,7 +21,7 @@
 				<configuration>
 					<archive>
 						<manifestEntries>
-							<!-- Unable to add this dependency in jboss-deplymnet-structure, put it here instead -->
+							<!-- Unable to add this dependency in jboss-deployment-structure, put it here instead -->
 							<Dependencies>org.keycloak.keycloak-core, org.keycloak.keycloak-authz-client</Dependencies>
 						</manifestEntries>
 					</archive>

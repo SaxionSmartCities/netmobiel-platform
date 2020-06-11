@@ -12,6 +12,7 @@ import javax.persistence.Id;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
@@ -89,6 +90,12 @@ public class User implements NetMobielUser, Serializable {
 
 	public void setFamilyName(String familyName) {
 		this.familyName = familyName;
+	}
+
+	@Transient
+	@Override
+	public String getEmail() {
+		return null;
 	}
 
 	@Override

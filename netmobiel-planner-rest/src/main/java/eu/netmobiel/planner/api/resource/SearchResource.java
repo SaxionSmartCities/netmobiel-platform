@@ -4,22 +4,26 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.NetMobielUser;
+import eu.netmobiel.commons.security.SecurityContextHelper;
 import eu.netmobiel.planner.api.SearchApi;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.PlannerManager;
 
-@ApplicationScoped
+@RequestScoped
 public class SearchResource implements SearchApi {
 	private static final int DEFAULT_MAX_WALK_DISTANCE = 1000;
 	@Inject
@@ -31,6 +35,9 @@ public class SearchResource implements SearchApi {
     @Inject
     private TripPlanMapper tripPlanMapper;
 
+    @Context
+    private SecurityContext securityContext;
+    
 	private Instant toInstant(OffsetDateTime odt) {
 		return odt == null ? null : odt.toInstant();
 	}
@@ -73,11 +80,12 @@ public class SearchResource implements SearchApi {
     		nrSeats = 1;
     	}
 		try {
+			NetMobielUser user = SecurityContextHelper.getUserContext(securityContext.getUserPrincipal());
     		plan = plannerManager.searchMultiModal(toInstant(now), GeoLocation.fromString(from), GeoLocation.fromString(to), 
     					toInstant(departureTime), toInstant(arrivalTime), domainModalities, maxWalkDistance, nrSeats,
     					maxTransfers, firstLegRideshare, lastLegRideshare);
     		if (log.isDebugEnabled()) {
-    			log.debug("Multimodal plan: \n" + plan.toString());
+    			log.debug("Multimodal plan for " + user.getEmail() + ":\n" + plan.toString());
     		}
 		} catch (eu.netmobiel.commons.exception.BadRequestException ex) {
 			throw new WebApplicationException(ex);
