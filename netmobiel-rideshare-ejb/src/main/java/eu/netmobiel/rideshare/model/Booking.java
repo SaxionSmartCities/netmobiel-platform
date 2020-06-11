@@ -181,7 +181,7 @@ public class Booking implements Serializable {
     @NotNull
     @Embedded
     @AttributeOverrides({ 
-    	@AttributeOverride(name = "label", column = @Column(name = "from_label", length = 128)), 
+    	@AttributeOverride(name = "label", column = @Column(name = "from_label", length = 256)), 
     	@AttributeOverride(name = "point", column = @Column(name = "from_point")), 
    	} )
     private GeoLocation pickup;
@@ -192,7 +192,7 @@ public class Booking implements Serializable {
     @NotNull
     @Embedded
     @AttributeOverrides({ 
-    	@AttributeOverride(name = "label", column = @Column(name = "to_label", length = 128)), 
+    	@AttributeOverride(name = "label", column = @Column(name = "to_label", length = 256)), 
     	@AttributeOverride(name = "point", column = @Column(name = "to_point")), 
    	} )
     private GeoLocation dropOff;
