@@ -34,3 +34,4 @@ build.metadata
 .openapi-generator
 /.tern-project
 Releases
+.vscode
