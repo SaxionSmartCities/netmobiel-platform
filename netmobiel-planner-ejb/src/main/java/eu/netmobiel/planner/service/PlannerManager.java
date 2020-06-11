@@ -49,7 +49,8 @@ public class PlannerManager {
 	private static final Integer CAR_TO_TRANSIT_SLACK = 10 * 60; // [seconds]
 	private static final int MAX_RIDESHARES = 5;	
 	private static final boolean RIDESHARE_LENIENT_SEARCH = true;	
-
+	private static final int RIDESHARE_MAX_SLACK_BACKWARD = 24;	// hours
+	private static final int RIDESHARE_MAX_SLACK_FORWARD = 24;	// hours
 	@Inject
     private Logger log;
 
@@ -158,15 +159,15 @@ public class PlannerManager {
 	 * spatiotemporal selection from the possible rides. The spatial dimension is
 	 * covered by the ellipse estimator. For the temporal dimension we have to set
 	 * an eligibility interval: A difficult issue as we do not know the passengers
-	 * intentions and concerns. A few rules then: 
-	 * - The departure time of the driver is beyond now. No, omit this one for now, 
-	 * 	 we can search in the past if we wish to. 
-	 * - The departure time is on the same day as fromDate or toDate.
+	 * intentions and concerns. Therefore we use earliestDeparture and latestArrival.
 	 * 
+	 * @param now The reference point in time. A search before <code>now</code> is not allowed.
 	 * @param fromPlace The departure location of the passenger 
 	 * @param toPlace The arrival location of the passenger
-	 * @param fromDate ?
-	 * @param toDate ?
+	 * @param earliestDeparture The earliest possible departure time. If not set then it will be set to
+	 * 						 RIDESHARE_MAX_SLACK_BACKWARD hours before arrival time, with <code>now<code> as minimum.
+	 * @param latestArrival The latest possible arrival time. If not set then ir will be set to
+	 * 						 RIDESHARE_MAX_SLACK_FORWARD hours after earliest departure time.
 	 * @param maxWalkDistance The maximum distance the passenger is prepared to walk
 	 * @param nrSeats The number of seates required
 	 * @return A list of possible itineraries.
@@ -174,13 +175,22 @@ public class PlannerManager {
     protected List<Itinerary> searchRideshareOnly(Instant now, GeoLocation fromPlace, GeoLocation toPlace, 
     		Instant earliestDeparture, Instant latestArrival, Integer maxWalkDistance, Integer nrSeats) throws BadRequestException {
     	if (earliestDeparture == null) {
-    		earliestDeparture  = now;
-        	if (latestArrival != null && earliestDeparture.isAfter(latestArrival)) {
+        	if (latestArrival == null) {
+        		earliestDeparture = now;
+        	} else if (now.isAfter(latestArrival)) { 
         		throw new BadRequestException("Arrival time must be after now: " + formatDateTime(now));
-        	}
-    	} else if (latestArrival == null) {
-    		latestArrival = earliestDeparture.plusSeconds(24 * 60 * 60);
+        	} else {
+        		earliestDeparture = latestArrival.minusSeconds(RIDESHARE_MAX_SLACK_BACKWARD * 60 * 60);
+    			if (earliestDeparture.isBefore(now)) {
+            		earliestDeparture = now;
+    			}
+    		}
+    	} 
+    	assert(earliestDeparture != null);
+    	if (latestArrival == null) {
+    		latestArrival = earliestDeparture.plusSeconds(RIDESHARE_MAX_SLACK_FORWARD * 60 * 60);
     	}
+    	assert(latestArrival != null);
     	PagedResult<Ride> rides = rideManager.search(fromPlace, toPlace,  earliestDeparture, latestArrival, nrSeats, RIDESHARE_LENIENT_SEARCH, MAX_RIDESHARES, 0);
     	// These are potential candidates. Now try to determine the complete route, including the intermediate places for pickup and dropoff
     	// The passenger is only involved in some (one) of the legs: the pickup or the drop-off. We assume the car is for the first or last mile of the passenger.
@@ -379,6 +389,9 @@ public class PlannerManager {
     		Instant depTime, Instant arrTime, 
     		TraverseMode[] modalities, Integer maxWalkDistance, Integer nrSeats,
     		Integer maxTransfers, Boolean firstLegRideshare, Boolean lastLegRideshare) throws BadRequestException {
+    	if (now == null) {
+    		throw new BadRequestException("Parameter 'now' is mandatory");
+    	}
     	if (depTime == null && arrTime == null) {
     		depTime = now;
     	}
