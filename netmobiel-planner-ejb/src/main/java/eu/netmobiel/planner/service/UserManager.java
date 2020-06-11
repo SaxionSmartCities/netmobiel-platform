@@ -1,6 +1,5 @@
 package eu.netmobiel.planner.service;
 
-import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -12,12 +11,11 @@ import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
-import org.keycloak.KeycloakPrincipal;
-import org.keycloak.KeycloakSecurityContext;
-import org.keycloak.representations.AccessToken;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.NetMobielModule;
+import eu.netmobiel.commons.model.NetMobielUser;
+import eu.netmobiel.commons.security.SecurityContextHelper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.model.User;
@@ -28,7 +26,6 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 @Logging
 public class UserManager {
 
-    @SuppressWarnings("unused")
 	@Inject
     private Logger log;
 
@@ -39,25 +36,11 @@ public class UserManager {
 	private SessionContext ctx;
 
     protected User createContextUser() {
-        User user = null;
-    	Principal p = ctx.getCallerPrincipal();
-    	if (p != null && p instanceof KeycloakPrincipal) {
-    		@SuppressWarnings("unchecked")
-			KeycloakPrincipal<KeycloakSecurityContext> kp = (KeycloakPrincipal<KeycloakSecurityContext>) p;
-            KeycloakSecurityContext ksc = kp.getKeycloakSecurityContext(); 
-//                log.debug("Is user in role admin? " +  httpReq.isUserInRole("admin"));
-            AccessToken token = ksc.getToken();
-            if (token != null) {
-                user = new User();
-                user.setManagedIdentity(token.getSubject()); // Same as kp.getName()
-                user.setFamilyName(token.getFamilyName());
-                user.setGivenName(token.getGivenName());
-            }
-    	}
+    	NetMobielUser nbuser = SecurityContextHelper.getUserContext(ctx.getCallerPrincipal());
     	if (log.isTraceEnabled()) {
-    		log.trace("createCallingUser: " + (user != null ? user.toString() : "<null>"));
+    		log.trace("createCallingUser: " + (nbuser != null ? nbuser.toString() : "<null>"));
     	}
-    	return user;
+    	return nbuser != null ? new User(nbuser) : null;
     }
     
 	public void checkOwnership(User owner, String objectName) {

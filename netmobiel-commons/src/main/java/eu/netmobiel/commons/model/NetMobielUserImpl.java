@@ -52,4 +52,9 @@ public class NetMobielUserImpl implements NetMobielUser {
 		this.email = email;
 	}
 	
+	@Override
+	public String toString() {
+		return String.format("NetMobielUser [%s %s %s %s]", managedIdentity, givenName, familyName, email);
+	}
+
 }

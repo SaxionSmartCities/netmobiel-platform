@@ -85,7 +85,7 @@ public class SearchResource implements SearchApi {
     					toInstant(departureTime), toInstant(arrivalTime), domainModalities, maxWalkDistance, nrSeats,
     					maxTransfers, firstLegRideshare, lastLegRideshare);
     		if (log.isDebugEnabled()) {
-    			log.debug("Multimodal plan for " + user.getEmail() + ":\n" + plan.toString());
+    			log.debug("Multimodal plan for " + (user != null ? user.getEmail() : "<unknown>") + ":\n" + plan.toString());
     		}
 		} catch (eu.netmobiel.commons.exception.BadRequestException ex) {
 			throw new WebApplicationException(ex);

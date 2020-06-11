@@ -54,6 +54,10 @@ public class User implements NetMobielUser, Serializable {
     	
     }
     
+    public User(NetMobielUser nbuser) {
+    	this(nbuser.getManagedIdentity(), nbuser.getGivenName(), nbuser.getFamilyName());
+    }
+    
     public User(String identity, String givenName, String familyName) {
     	this.managedIdentity = identity;
     	this.givenName = givenName;
