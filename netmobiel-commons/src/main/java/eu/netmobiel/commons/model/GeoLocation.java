@@ -50,7 +50,7 @@ public class GeoLocation implements Serializable {
 	/**
 	 * Explanatory label, non-normative.
 	 */
-	@Column(name = "label", length = 128)
+	@Column(name = "label", length = 256)
 	private String label;
 	
 	public GeoLocation() {

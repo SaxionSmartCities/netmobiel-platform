@@ -23,6 +23,7 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
@@ -220,8 +221,14 @@ public class PlannerManager {
             	ridePlan.setNrSeats(nrSeats);
             	ridePlan.setTraverseModes(modes);
         	}  catch(Exception ex) {
-        		log.error(ex.toString(), ex);
-        		log.warn("Skip itinerary due to OTP error: " + 
+        		if (ex instanceof ApplicationException) {
+        			// Short log
+            		log.error(ex.toString());
+        		} else {
+        			// Hmm, ok stackdump
+            		log.error(ex.toString(), ex);
+        		}
+        		log.warn("Skip ride due to OTP error: " + 
         				dumpPlanRequest(earliestDeparture, latestArrival, from, to, intermediatePlaces, modes));
         	}
         	if (ridePlan != null && ridePlan.getItineraries() != null && !ridePlan.getItineraries().isEmpty()) {

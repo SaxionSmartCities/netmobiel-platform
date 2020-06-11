@@ -61,6 +61,18 @@ ALTER TABLE public.ride_template
     ALTER COLUMN recurrence_horizon type timestamp without time zone
 ;
 
+ALTER TABLE public.ride_template
+	ADD COLUMN departure_time timestamp without time zone,
+	ADD COLUMN arrival_time timestamp without time zone,
+    ADD COLUMN leg_geometry geometry,
+    ADD COLUMN from_label character varying(128),
+    ADD COLUMN from_point geometry,
+    ADD COLUMN to_label character varying(128),
+    ADD COLUMN to_point geometry,
+    ADD COLUMN recurrence_time_zone character varying(32),
+    ALTER COLUMN recurrence_horizon type timestamp without time zone
+;
+
 -- Copy ride departure and arrival from stops to template
 UPDATE ride_template SET from_label = (SELECT s.label FROM stop s WHERE s.id = from_place);
 UPDATE ride_template SET from_point = (SELECT s.point FROM stop s WHERE s.id = from_place);
