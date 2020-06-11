@@ -32,6 +32,9 @@ public abstract class TripPlanMapper {
     @Mapping(target = "maxWalkDistance", ignore = true)
     @Mapping(target = "nrSeats", ignore = true)
     @Mapping(target = "traverseModes", ignore = true)
+    @Mapping(target = "maxTransfers", ignore = true)
+    @Mapping(target = "firstLegRideshare", ignore = true)
+    @Mapping(target = "lastLegRideshare", ignore = true)
     public abstract eu.netmobiel.planner.model.TripPlan map(TripPlan source );
 
     @Mapping(target = "label", source = "name")
@@ -68,6 +71,7 @@ public abstract class TripPlanMapper {
     @Mapping(target = "vehicleLicensePlate", ignore = true)
     @Mapping(target = "guideSteps", source = "walkSteps")
     @Mapping(target = "bookingId", ignore = true)
+    @Mapping(target = "bookingRequired", ignore = true)
     public abstract eu.netmobiel.planner.model.Leg legToLeg(Leg leg);
     
     @Mapping(target = "name", source = "streetName")
