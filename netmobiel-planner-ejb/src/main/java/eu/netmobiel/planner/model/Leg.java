@@ -235,6 +235,12 @@ public class Leg implements Serializable {
     public Leg() {
     }
 
+    public Leg(Stop from, Stop to) {
+    	this.from = from;
+    	this.to = to;
+    	// Other parameters are still unknown.
+    }
+
     public Leg(Leg other) {
 		this.distance = other.distance;
 		this.traverseMode = other.traverseMode;

@@ -66,8 +66,14 @@ public class Stop implements Serializable {
     public Stop() {
     }
 
-	public Stop(GeoLocation geoloc) {
+	public Stop(GeoLocation geoloc, Instant departureTime, Instant arrivalTime) {
 		this.location = geoloc;
+		this.departureTime = departureTime;
+		this.arrivalTime = arrivalTime;
+	}
+	
+	public Stop(GeoLocation geoloc) {
+		this(geoloc, null, null);
 	}
 	
     public Stop(Stop other) {

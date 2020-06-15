@@ -1,6 +1,7 @@
 package eu.netmobiel.planner.service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
@@ -20,8 +21,10 @@ import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
+import eu.netmobiel.commons.model.event.ShoutOutRequestedEvent;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.planner.model.Leg;
+import eu.netmobiel.planner.model.Stop;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
@@ -45,6 +48,9 @@ public class TripManager {
     @Inject
     private Event<BookingCancelledEvent> bookingCancelledEvent;
 
+    @Inject
+    private Event<ShoutOutRequestedEvent> shoutOutRequestedEvent;
+    
     /**
      * List all trips owned by the specified user. Soft deleted trips are omitted.
      * @return A list of trips owned by the specified user.
@@ -94,10 +100,25 @@ public class TripManager {
     }
 
     /**
+     * Fire a shout-out event asynchronously.
+     * @param trip The trip of the traveller
+     * @param leg the leg for which to issue a shout-out.
+     */
+    private void issueShoutOutRequest(Trip trip, Leg leg) {
+    	ShoutOutRequestedEvent sor = new ShoutOutRequestedEvent(trip.getTraveller(), trip.getTripRef());
+    	sor.setNrSeats(trip.getNrSeats());
+    	sor.setPickup(leg.getFrom().getLocation());
+    	sor.setDepartureTime(leg.getStartTime());
+    	sor.setDropOff(leg.getTo().getLocation());
+    	sor.setArrivalTime(leg.getEndTime());
+    	shoutOutRequestedEvent.fire(sor);
+    }
+
+    /**
      * Creates a trip on behalf of a user. If a trip contains bookable legs, the leg will automatically be booked  if the autobook flag is set. 
      * @param user the user for whom the trip is created
      * @param trip the new trip
-     * @param autobook If set then start the booking process of each leg.
+     * @param autobook If set then start the booking and scheduling process of each leg.
      * @return The ID of the trip just created.
      * @throws CreateException In case of trouble, like wrong parameter values.
      * @throws BadRequestException In case of bad parameters.
@@ -106,11 +127,27 @@ public class TripManager {
     	validateCreateUpdateTrip(trip);
     	trip.setTraveller(traveller);
     	trip.setState(TripState.PLANNING);
+       	if (trip.getLegs() == null || trip.getLegs().isEmpty()) {
+       		// There is no itinerary at all. Issue a shout-out.
+       		trip.setLegs(new ArrayList<>());
+       		trip.setStops(new ArrayList<>());
+       		Stop from = new Stop(trip.getFrom(), trip.getDepartureTime(), null);
+       		Stop to = new Stop(trip.getTo(), null, trip.getArrivalTime());
+       		Leg leg = new Leg(from, to);
+       		trip.getStops().add(from);
+       		trip.getStops().add(to);
+       		trip.getLegs().add(leg);
+			leg.setState(TripState.PLANNING);
+       	} 
        	tripDao.save(trip);
        	tripDao.flush();
-       	if (autobook && trip.getLegs() != null) {
-       		for (Leg leg : trip.getLegs()) {
-       	    	if (leg.isBookingRequired()) {
+   		for (Leg leg : trip.getLegs()) {
+    	    if (leg.getTraverseMode() == null) {
+    	    	// There is a leg, but the transport is undefined yet. Issue a shout-out. 
+    	    	// The trip is already persisted, so we have an ID 
+        		issueShoutOutRequest(trip, leg);
+    	    } else if (autobook) {
+    	    	if (leg.isBookingRequired()) {
        	    		// Ok, we need to take additional steps before the leg can be scheduled. Start a booking procedure.
        	    		leg.setState(TripState.BOOKING);
        				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
@@ -122,16 +159,17 @@ public class TripManager {
        				b.setNrSeats(trip.getNrSeats());
        				b.setPickup(leg.getFrom().getLocation());
        				bookingRequestedEvent.fire(b);
-       				
-       	    	} else {
+    	    	} else {
        	    		// If no booking is required then no further action is required. Schedule the leg.
        				leg.setState(TripState.SCHEDULED);
-       	    	}
-			}
+    	    	}
+   	    	} else {
+	    		log.warn(String.format("Trip %s Leg %s requires explicit booking", trip.getTripRef(), leg.getTripId()));
+   	    	}
        		// So what is exactly the content of the persistence context after the firing of the event?
        		// Should we merge/refresh?
-           	updateTripState(trip);
        	}
+       	updateTripState(trip);
     	return trip.getId();
     }
 

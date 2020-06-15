@@ -10,6 +10,7 @@ import java.util.Optional;
 
 import javax.ejb.EJB;
 import javax.inject.Inject;
+import javax.persistence.PersistenceUnitUtil;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -27,11 +28,13 @@ import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.planner.model.AbsoluteDirection;
 import eu.netmobiel.planner.model.GuideStep;
 import eu.netmobiel.planner.model.Leg;
+import eu.netmobiel.planner.model.Leg_;
 import eu.netmobiel.planner.model.RelativeDirection;
 import eu.netmobiel.planner.model.Stop;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
+import eu.netmobiel.planner.model.Trip_;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.TripDao;
 import eu.netmobiel.planner.test.PlannerIntegrationTestBase;
@@ -62,19 +65,18 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
 		eventListenerHelper.reset();
     }
     
-    private Trip createEmptyTrip(String departureTimeIso, String arrivalTimeIso) {
+    private Trip createShoutOutTrip(String departureTimeIso, String arrivalTimeIso) {
         Trip trip = new Trip();
     	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	Instant departureTime = OffsetDateTime.parse(departureTimeIso).toInstant();
-    	Instant arrivalTime = OffsetDateTime.parse(arrivalTimeIso).toInstant();
+    	Instant departureTime = departureTimeIso != null ? OffsetDateTime.parse(departureTimeIso).toInstant() : null;
+    	Instant arrivalTime = arrivalTimeIso != null ? OffsetDateTime.parse(arrivalTimeIso).toInstant() : null;
 //    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
     	trip.setFrom(fromPlace);
     	trip.setTo(toPlace);
     	trip.setState(TripState.PLANNING);
     	trip.setDepartureTime(departureTime);
     	trip.setArrivalTime(arrivalTime);
-    	trip.setDuration(Math.toIntExact(Duration.between(departureTime, arrivalTime).getSeconds()));
     	return trip;
     }
 
@@ -116,14 +118,14 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     }
 
     @Test
-    public void testCreateEmptyTrip() throws Exception {
+    public void testCreateShoutOutTrip() throws Exception {
     	User traveller = new User();
     	traveller.setId(1L);
     	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
         assertNotNull(trips);
         int nrTripsStart = trips.getData().size();
         
-        Trip trip = createEmptyTrip("2020-01-07T14:30:00+01:00", "2020-01-07T16:30:00+01:00");
+        Trip trip = createShoutOutTrip("2020-01-07T14:30:00+01:00", "2020-01-07T16:30:00+01:00");
     	Long id = tripManager.createTrip(traveller, trip, true);
         assertNotNull(id);
         
@@ -133,6 +135,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
         trips.getData().stream().filter(t -> t.getId() == id).findFirst().ifPresent(t -> log.debug(t.toString()));
         assertEquals(nrTripsStart + 1, trips.getData().size());
         
+		assertEquals(1, eventListenerHelper.getShoutOutRequestedEventCount());
         
     }
 
@@ -142,27 +145,26 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     	User traveller = new User();
     	traveller.setId(1L);
         flush();
-        Trip trip = createEmptyTrip("2020-01-07T14:30:00+01:00", "2020-01-07T16:30:00+01:00");
+        Trip trip = createSimpleTrip("2020-01-07T14:30:00+01:00", "2020-01-07T16:30:00+01:00");
     	Long id = tripManager.createTrip(traveller, trip, true);
         assertNotNull(id);
         flush();
+    	assertFalse(em.contains(trip));
         
         trip = tripManager.getTrip(id);
         assertNotNull(trip);
         assertEquals(id, trip.getId());
-        assertNotNull(trip.getLegs());
-        assertEquals(0, trip.getLegs().size());
-        // Check access
-        trip.getTraveller().getFamilyName();
-
-        trip = createSimpleTrip("2020-01-07T14:30:00+01:00", "2020-01-07T16:30:00+01:00");
-    	id = tripManager.createTrip(traveller, trip, true);
-        assertNotNull(id);
-        assertEquals(id, trip.getId());
+    	PersistenceUnitUtil puu = em.getEntityManagerFactory().getPersistenceUnitUtil();
+    	assertTrue(em.contains(trip));
+        flush();
+    	assertFalse(em.contains(trip));
+    	assertTrue(puu.isLoaded(trip, Trip_.LEGS));
+    	assertTrue(puu.isLoaded(trip, Trip_.STOPS));
+    	assertTrue(puu.isLoaded(trip, Trip_.TRAVELLER));
+    	trip.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.GUIDE_STEPS)));
         assertNotNull(trip.getLegs());
         assertEquals(1, trip.getLegs().size());
-        // Check access
-        trip.getTraveller().getFamilyName();
+
     }
     
     private Trip createLargeTrip() {
@@ -606,9 +608,10 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
         assertNotNull(trips);
         int nrTripsStart = trips.getData().size();
+        boolean autobook = false;
         
         Trip trip = createLargeTrip();
-        Long id = tripManager.createTrip(traveller, trip, false);
+        Long id = tripManager.createTrip(traveller, trip, autobook);
         assertNotNull(id);
         
     	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
@@ -620,11 +623,40 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
         assertNotNull(trips);
         assertEquals(nrTripsStart, trips.getData().size());
 
-        // Note it is hard deleted
+        // Note it is hard deleted because the autobook is switched off
     	trips = tripManager.listTrips(traveller, null, null, null, Boolean.TRUE, null, null);
         assertNotNull(trips);
         assertEquals(nrTripsStart, trips.getData().size());
     }
+
+    @Test
+    public void testRemoveShoutOutTrip() throws Exception {
+    	User traveller = new User();
+    	traveller.setId(1L);
+    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+        assertNotNull(trips);
+        int nrTripsStart = trips.getData().size();
+        boolean autobook = true;
+        
+        Trip trip = createShoutOutTrip("2020-01-07T14:30:00+01:00", "2020-01-07T16:30:00+01:00");
+        Long id = tripManager.createTrip(traveller, trip, autobook);
+        assertNotNull(id);
+        
+    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+        assertNotNull(trips);
+        assertEquals(nrTripsStart + 1, trips.getData().size());
+
+        tripManager.removeTrip(id, null);
+    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+        assertNotNull(trips);
+        assertEquals(nrTripsStart, trips.getData().size());
+
+        // Note it is hard deleted because it was still in planning status
+    	trips = tripManager.listTrips(traveller, null, null, null, Boolean.TRUE, null, null);
+        assertNotNull(trips);
+        assertEquals(nrTripsStart, trips.getData().size());
+    }
+
 
     @Test
     public void testListTrips() throws Exception {
@@ -634,11 +666,11 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
         assertNotNull(trips);
         assertEquals(0, trips.getData().size());
         
-        Trip trip1 = createEmptyTrip("2020-01-07T14:30:00+01:00", "2020-01-07T16:30:00+01:00");
+        Trip trip1 = createShoutOutTrip("2020-01-07T14:30:00+01:00", "2020-01-07T16:30:00+01:00");
     	Long id1 = tripManager.createTrip(traveller, trip1, true);
         assertNotNull(id1);
         
-        Trip trip2 = createEmptyTrip("2020-01-08T14:30:00+01:00", "2020-01-08T16:30:00+01:00");
+        Trip trip2 = createShoutOutTrip("2020-01-08T14:30:00+01:00", "2020-01-08T16:30:00+01:00");
     	Long id2 = tripManager.createTrip(traveller, trip2, true);
         assertNotNull(id2);
         

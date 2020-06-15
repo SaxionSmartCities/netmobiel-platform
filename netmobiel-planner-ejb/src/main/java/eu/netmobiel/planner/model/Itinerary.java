@@ -3,7 +3,6 @@ package eu.netmobiel.planner.model;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
-import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
