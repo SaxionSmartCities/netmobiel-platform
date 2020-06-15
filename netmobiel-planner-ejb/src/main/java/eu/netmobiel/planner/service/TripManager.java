@@ -19,6 +19,7 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.model.event.ShoutOutRequestedEvent;
@@ -55,7 +56,8 @@ public class TripManager {
      * List all trips owned by the specified user. Soft deleted trips are omitted.
      * @return A list of trips owned by the specified user.
      */
-    public PagedResult<Trip> listTrips(User traveller, TripState state, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws BadRequestException {
+    public PagedResult<Trip> listTrips(User traveller, TripState state, Instant since, Instant until, Boolean deletedToo, 
+    		SortDirection sortDirection, Integer maxResults, Integer offset) throws BadRequestException {
     	if (until != null && since != null && !until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
     	}
@@ -77,11 +79,11 @@ public class TripManager {
         List<Trip> results = Collections.emptyList();
         Long totalCount = 0L;
     	if (traveller != null && traveller.getId() != null) {
-    		PagedResult<Long> prs = tripDao.findByTraveller(traveller, state, since, until, deletedToo, 0, 0);
+    		PagedResult<Long> prs = tripDao.findByTraveller(traveller, state, since, until, deletedToo, sortDirection, 0, 0);
     		totalCount = prs.getTotalCount();
         	if (totalCount > 0 && maxResults > 0) {
         		// Get the actual data
-        		PagedResult<Long> tripIds = tripDao.findByTraveller(traveller, state, since, until, deletedToo, maxResults, offset);
+        		PagedResult<Long> tripIds = tripDao.findByTraveller(traveller, state, since, until, deletedToo, sortDirection, maxResults, offset);
         		if (tripIds.getData().size() > 0) {
         			results = tripDao.fetch(tripIds.getData(), Trip.LIST_TRIPS_ENTITY_GRAPH);
         		}

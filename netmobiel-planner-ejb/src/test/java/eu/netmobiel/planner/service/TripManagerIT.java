@@ -24,6 +24,7 @@ import eu.netmobiel.commons.api.EncodedPolylineBean;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.planner.model.AbsoluteDirection;
 import eu.netmobiel.planner.model.GuideStep;
@@ -121,7 +122,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     public void testCreateShoutOutTrip() throws Exception {
     	User traveller = new User();
     	traveller.setId(1L);
-    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         int nrTripsStart = trips.getData().size();
         
@@ -129,7 +130,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     	Long id = tripManager.createTrip(traveller, trip, true);
         assertNotNull(id);
         
-    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         log.info("List trips: #" + trips.getData().size());
         trips.getData().stream().filter(t -> t.getId() == id).findFirst().ifPresent(t -> log.debug(t.toString()));
@@ -435,7 +436,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     public void testCreateFullTrip() throws Exception {
     	User traveller = new User();
     	traveller.setId(1L);
-    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         int nrTripsStart = trips.getData().size();
         
@@ -443,7 +444,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
         Long id = tripManager.createTrip(traveller, trip, true);
         assertNotNull(id);
         
-    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         log.info("List trips: #" + trips.getData().size());
         trips.getData().stream().filter(t -> t.getId() == id).findFirst().ifPresent(t -> log.debug(t.toString()));
@@ -518,7 +519,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     public void testCreateRideshareTrip_AutoBook() throws Exception {
     	User traveller = new User();
     	traveller.setId(1L);
-    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         int nrTripsStart = trips.getData().size();
     	String rideRef = "urn:nb:rs:ride:354";
@@ -533,7 +534,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
 		assertEquals(TripState.BOOKING, tripdb.getState());
 		assertEquals(1, eventListenerHelper.getBookingRequestedEventCount());
         
-    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         log.info("List trips: #" + trips.getData().size());
         trips.getData().stream().filter(t -> t.getId() == id).findFirst().ifPresent(t -> log.debug(t.toString()));
@@ -605,7 +606,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     public void testRemoveFullTrip() throws Exception {
     	User traveller = new User();
     	traveller.setId(1L);
-    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         int nrTripsStart = trips.getData().size();
         boolean autobook = false;
@@ -614,17 +615,17 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
         Long id = tripManager.createTrip(traveller, trip, autobook);
         assertNotNull(id);
         
-    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         assertEquals(nrTripsStart + 1, trips.getData().size());
 
         tripManager.removeTrip(id, null);
-    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         assertEquals(nrTripsStart, trips.getData().size());
 
         // Note it is hard deleted because the autobook is switched off
-    	trips = tripManager.listTrips(traveller, null, null, null, Boolean.TRUE, null, null);
+    	trips = tripManager.listTrips(traveller, null, null, null, Boolean.TRUE, null, null, null);
         assertNotNull(trips);
         assertEquals(nrTripsStart, trips.getData().size());
     }
@@ -633,7 +634,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     public void testRemoveShoutOutTrip() throws Exception {
     	User traveller = new User();
     	traveller.setId(1L);
-    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         int nrTripsStart = trips.getData().size();
         boolean autobook = true;
@@ -642,17 +643,17 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
         Long id = tripManager.createTrip(traveller, trip, autobook);
         assertNotNull(id);
         
-    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         assertEquals(nrTripsStart + 1, trips.getData().size());
 
         tripManager.removeTrip(id, null);
-    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         assertEquals(nrTripsStart, trips.getData().size());
 
         // Note it is hard deleted because it was still in planning status
-    	trips = tripManager.listTrips(traveller, null, null, null, Boolean.TRUE, null, null);
+    	trips = tripManager.listTrips(traveller, null, null, null, Boolean.TRUE, null, null, null);
         assertNotNull(trips);
         assertEquals(nrTripsStart, trips.getData().size());
     }
@@ -662,7 +663,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     public void testListTrips() throws Exception {
     	User traveller = new User();
     	traveller.setId(2L);
-    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	PagedResult<Trip> trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         assertEquals(0, trips.getData().size());
         
@@ -681,11 +682,11 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
         tripManager.removeTrip(id3, "Ik ga toch maar niet op reis");
         
         // List all non-deleted trips
-    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, null, null, null, null, null, null);
         assertNotNull(trips);
         assertEquals(2, trips.getData().size());
-
-    	trips = tripManager.listTrips(traveller, null, null, null, Boolean.TRUE, null, null);
+        
+    	trips = tripManager.listTrips(traveller, null, null, null, Boolean.TRUE, null, null, null);
         assertNotNull(trips);
         assertEquals(3, trips.getData().size());
 
@@ -693,71 +694,79 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
         assertEquals(id1, trips.getData().get(0).getId());
         assertEquals(id2, trips.getData().get(1).getId());
         assertEquals(id3, trips.getData().get(2).getId());
+
+        // Check explicit sorting on departure time
+    	trips = tripManager.listTrips(traveller, null, null, null, null, SortDirection.ASC, null, null);
+        assertEquals(id1, trips.getData().get(0).getId());
+        assertEquals(id2, trips.getData().get(1).getId());
+    	trips = tripManager.listTrips(traveller, null, null, null, null, SortDirection.DESC, null, null);
+        assertEquals(id2, trips.getData().get(0).getId());
+        assertEquals(id1, trips.getData().get(1).getId());
         
-    	trips = tripManager.listTrips(traveller, null, null, null, Boolean.TRUE, 1, 0);
+    	trips = tripManager.listTrips(traveller, null, null, null, Boolean.TRUE, null, 1, 0);
         assertNotNull(trips);
         assertEquals(1, trips.getData().size());
         assertEquals(id1, trips.getData().get(0).getId());
 
-    	trips = tripManager.listTrips(traveller, null, null, null, Boolean.TRUE, 1, 1);
+    	trips = tripManager.listTrips(traveller, null, null, null, Boolean.TRUE, null, 1, 1);
         assertNotNull(trips);
         assertEquals(1, trips.getData().size());
         assertEquals(id2, trips.getData().get(0).getId());
 
-    	trips = tripManager.listTrips(traveller, TripState.PLANNING, null, null, null, null, null);
+    	trips = tripManager.listTrips(traveller, TripState.PLANNING, null, null, null, null, null, null);
         assertNotNull(trips);
         assertEquals(2, trips.getData().size());
 
-    	trips = tripManager.listTrips(traveller, TripState.BOOKING, null, null, null, null, null);
+    	trips = tripManager.listTrips(traveller, TripState.BOOKING, null, null, null, null, null, null);
         assertNotNull(trips);
         assertEquals(0, trips.getData().size());
 
         Instant since = OffsetDateTime.parse("2020-01-08T00:00:00+01:00").toInstant();
-    	trips = tripManager.listTrips(traveller, null, since, null, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, since, null, null, null, null, null);
         assertNotNull(trips);
         assertEquals(1, trips.getData().size());
         assertEquals(trips.getData().get(0).getId(), id2);
 
         Instant until = OffsetDateTime.parse("2020-01-08T00:00:00+01:00").toInstant();
-    	trips = tripManager.listTrips(traveller, null, null, until, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, null, until, null, null, null, null);
         assertNotNull(trips);
         assertEquals(1, trips.getData().size());
         assertEquals(trips.getData().get(0).getId(), id1);
 
         since = OffsetDateTime.parse("2020-01-08T00:00:00+01:00").toInstant();
         until = OffsetDateTime.parse("2020-01-09T00:00:00+01:00").toInstant();
-    	trips = tripManager.listTrips(traveller, null, since, until, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, since, until, null, null, null, null);
         assertNotNull(trips);
         assertEquals(1, trips.getData().size());
         assertEquals(trips.getData().get(0).getId(), id2);
 
         since = OffsetDateTime.parse("2020-01-08T14:30:00+01:00").toInstant();
         until = OffsetDateTime.parse("2020-01-08T14:30:00+01:00").toInstant().plusMillis(1);
-    	trips = tripManager.listTrips(traveller, null, since, until, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, since, until, null, null, null, null);
         assertNotNull(trips);
         assertEquals(1, trips.getData().size());
         assertEquals(trips.getData().get(0).getId(), id2);
 
         since = OffsetDateTime.parse("2020-01-08T00:00:00+01:00").toInstant();
         until = OffsetDateTime.parse("2020-01-08T14:30:00+01:00").toInstant();
-    	trips = tripManager.listTrips(traveller, null, since, until, null, null, null);
+    	trips = tripManager.listTrips(traveller, null, since, until, null, null, null, null);
         assertNotNull(trips);
         assertEquals(0, trips.getData().size());
 
         try {
-        	trips = tripManager.listTrips(traveller, null, null, null, null, 101, null);
+        	trips = tripManager.listTrips(traveller, null, null, null, null, null, 101, null);
         	fail("Expected a BadRequest on maxResults too high");
         } catch (BadRequestException ex) {
         	log.debug(ex.toString());
         }
         try {
-        	trips = tripManager.listTrips(traveller, null, null, null, null, 0, null);
+        	trips = tripManager.listTrips(traveller, null, null, null, null, null, 0, null);
         	fail("Expected a BadRequest on maxResults too low");
         } catch (BadRequestException ex) {
         	log.debug(ex.toString());
         }
         try {
-        	trips = tripManager.listTrips(traveller, null, null, null, null, 5, -1);
+        	trips = tripManager.listTrips(traveller, null, null, null, null, null, 5, -1);
         	fail("Expected a BadRequest on offset too low");
         } catch (BadRequestException ex) {
         	log.debug(ex.toString());

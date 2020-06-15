@@ -25,6 +25,7 @@ import com.vividsolutions.jts.geom.Polygon;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.GeoLocation_;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.planner.annotation.PlannerDatabase;
@@ -53,7 +54,8 @@ public class TripDao extends AbstractDao<Trip, Long> {
 		return em;
 	}
 
-    public PagedResult<Long> findByTraveller(User traveller, TripState state, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) {
+    public PagedResult<Long> findByTraveller(User traveller, TripState state, Instant since, Instant until, 
+    		Boolean deletedToo, SortDirection sortDirection, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Trip> trips = cq.from(Trip.class);
@@ -83,7 +85,11 @@ public class TripDao extends AbstractDao<Trip, Long> {
             totalCount = em.createQuery(cq).getSingleResult();
         } else {
             cq.select(trips.get(Trip_.id));
-	        cq.orderBy(cb.asc(trips.get(Trip_.departureTime)));
+            if (sortDirection == SortDirection.DESC) {
+            	cq.orderBy(cb.desc(trips.get(Trip_.departureTime)));
+            } else {
+            	cq.orderBy(cb.asc(trips.get(Trip_.departureTime)));
+            }
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
 			tq.setMaxResults(maxResults);
