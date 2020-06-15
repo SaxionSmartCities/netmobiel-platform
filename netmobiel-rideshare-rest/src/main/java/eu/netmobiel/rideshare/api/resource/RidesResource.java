@@ -15,6 +15,7 @@ import javax.ws.rs.core.UriBuilder;
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.rideshare.api.RidesApi;
 import eu.netmobiel.rideshare.api.mapping.BookingMapper;
 import eu.netmobiel.rideshare.api.mapping.PageMapper;
@@ -57,7 +58,7 @@ public class RidesResource implements RidesApi {
      * List all rides owned by the calling user. Soft deleted rides are omitted.
      * @return A list of rides owned by the calling user.
      */
-    public Response listRides(String driverId, OffsetDateTime sinceDate, OffsetDateTime untilDate, Boolean deletedToo, Integer maxResults, Integer offset) {
+    public Response listRides(String driverId, OffsetDateTime sinceDate, OffsetDateTime untilDate, Boolean deletedToo, String sortDir, Integer maxResults, Integer offset) {
 //    	LocalDate sinceDate = since != null ? LocalDate.parse(since) : null;
 //    	LocalDate untilDate =  until != null ? LocalDate.parse(until) : null;
     	if (sinceDate == null) {
@@ -73,7 +74,8 @@ public class RidesResource implements RidesApi {
 				did = userManager.findCallingUser().getId();
 			}
 			if (did != null) {
-				rides = rideManager.listRides(did, toInstant(sinceDate), toInstant(untilDate), deletedToo, maxResults, offset);
+				SortDirection sortDirection = sortDir == null ? SortDirection.ASC : SortDirection.valueOf(sortDir);
+				rides = rideManager.listRides(did, toInstant(sinceDate), toInstant(untilDate), deletedToo, sortDirection, maxResults, offset);
 			} else {
 				rides = new PagedResult<Ride>();
 			}

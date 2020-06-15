@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
@@ -53,7 +54,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
 		return em;
 	}
 
-    public PagedResult<Long> findByDriver(User driver, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) {
+    public PagedResult<Long> findByDriver(User driver, Instant since, Instant until, Boolean deletedToo, SortDirection sortDirection, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Ride> rides = cq.from(Ride.class);
@@ -80,7 +81,11 @@ public class RideDao extends AbstractDao<Ride, Long> {
             totalCount = em.createQuery(cq).getSingleResult();
         } else {
             cq.select(rides.get(Ride_.id));
-            cq.orderBy(cb.asc(rides.get(Ride_.departureTime)));
+            if (sortDirection == SortDirection.DESC) {
+            	cq.orderBy(cb.desc(rides.get(Ride_.departureTime)));
+            } else {
+            	cq.orderBy(cb.asc(rides.get(Ride_.departureTime)));
+            }
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
 			tq.setMaxResults(maxResults);
