@@ -93,8 +93,8 @@ public class TripManager {
     }
 
     private void validateCreateUpdateTrip(Trip trip)  throws BadRequestException {
-    	if (trip.getDepartureTime() == null) {
-    		throw new BadRequestException("Constraint violation: A new trip must have a 'departureTime'");
+    	if (trip.getDepartureTime() == null || trip.getArrivalTime() == null) {
+    		throw new BadRequestException("Constraint violation: A new trip must have a 'departureTime' as well as an 'arrivalTIme'");
     	}
     	if (trip.getFrom() == null || trip.getTo() == null) {
     		throw new BadRequestException("Constraint violation: A new trip must have a 'from' and a 'to'");
