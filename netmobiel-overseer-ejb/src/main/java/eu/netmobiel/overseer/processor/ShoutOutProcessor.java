@@ -78,35 +78,16 @@ public class ShoutOutProcessor {
 			if (! profiles.isEmpty()) {
 				Message msg = new Message();
 				msg.setContext(event.getTravellerTripRef());
-				msg.setSubject("Reiziger zoekt vervoer.");
-				String bodyText = null;
-				if (event.getArrivalTime() == null) {
-					MessageFormat.format("{0} zoekt vervoer op {1} (vertrek rond {2}) van {3} naar {4}. Wie wil hulp aanbieden?",
-							event.getTraveller().getGivenName(),
-							formatDate(event.getDepartureTime()),
-							formatTime(event.getDepartureTime()),
-							event.getPickup().getLabel(), 
-							event.getDropOff().getLabel() 
-							);
-				} else if (event.getDepartureTime() == null) {
-					MessageFormat.format("{0} zoekt vervoer op {1} (aankomst rond {2}) van {3} naar {4}. Wie kan hulp aanbieden?", 
-							event.getTraveller().getGivenName(),
-							formatDate(event.getArrivalTime()),
-							formatTime(event.getArrivalTime()),
-							event.getPickup().getLabel(), 
-							event.getDropOff().getLabel() 
-							);
-				} else {
-					MessageFormat.format("{0} zoekt vervoer op {1} (ergens tussen vertrek {2} en aankomst {3}) van {4} naar {5}. Wie wil hulp aanbieden?",
+				msg.setSubject("Rit gezocht!");
+				msg.setBody( 
+					MessageFormat.format("{0} zoekt vervoer op {1} (ergens tussen vertrek {2} en aankomst {3}) van {4} naar {5}. Wie kan helpen?",
 							event.getTraveller().getGivenName(),
 							formatDate(event.getDepartureTime()),
 							formatTime(event.getDepartureTime()),
 							formatTime(event.getArrivalTime()),
 							event.getPickup().getLabel(), 
 							event.getDropOff().getLabel() 
-							);
-				}
-				msg.setBody(bodyText);
+							));
 				msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
 				profiles.forEach(profile -> msg.addRecipient(new NetMobielUserImpl(profile.getId(), profile.getFirstName(), profile.getLastName(), profile.getEmail())));
 				publisherService.publish(null, msg);
