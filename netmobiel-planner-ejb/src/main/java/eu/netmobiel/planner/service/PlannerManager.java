@@ -461,7 +461,7 @@ public class PlannerManager {
 				Optional<TripPlan> transitReferencePlan = createTransitPlan(thePlan, otpModalities, 50000, maxTransfers);
 				List<OtpCluster> nearbyClusters = new ArrayList<>();
 				// Collect the stops. If there are no stops or too few, collect potential clusters
-				//FIXME The ordering of the clusters depends probably on first oflast leg. Check.
+				//FIXME The ordering of the clusters depends probably on first or last leg. Check.
 		    	transitBoardingStops = collectStops(thePlan, findTransitBoardingStops(transitReferencePlan), nearbyClusters);
 	    		if (allowRideshareForFirstLeg) {
 	        		addRideshareAsFirstLeg(now, thePlan, transitBoardingStops, otpModalities, maxTransfers);
