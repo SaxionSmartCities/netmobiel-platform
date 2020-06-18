@@ -10,4 +10,9 @@ public class PaymentLink {
     public final String paymentPage;
 
     public final String transactionId;
+
+	@Override
+	public String toString() {
+		return String.format("PaymentLink [page %s,  tid %s]", paymentPage, transactionId);
+	}
 }

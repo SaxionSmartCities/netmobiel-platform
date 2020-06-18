@@ -1,59 +1,65 @@
 package eu.netmobiel.payment.client;
 
+import java.net.URI;
+import java.util.Base64;
+import java.util.concurrent.TimeUnit;
+
+import javax.annotation.PostConstruct;
+import javax.annotation.PreDestroy;
+import javax.enterprise.context.ApplicationScoped;
+import javax.ws.rs.client.Entity;
+import javax.ws.rs.client.WebTarget;
+import javax.ws.rs.core.HttpHeaders;
+
+import org.jboss.resteasy.client.jaxrs.ResteasyClient;
+import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
+
 import eu.netmobiel.payment.client.model.OrderStatus;
 import eu.netmobiel.payment.client.model.PaymentLink;
 import eu.netmobiel.payment.client.model.PaymentLinkOptions;
 import eu.netmobiel.payment.client.model.PaymentStatus;
-import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
-
-import javax.annotation.PreDestroy;
-import javax.enterprise.context.ApplicationScoped;
-import javax.ws.rs.client.Client;
-import javax.ws.rs.client.Entity;
-import javax.ws.rs.client.Invocation;
-import java.net.URI;
-import java.util.Base64;
-import java.util.concurrent.TimeUnit;
 
 @ApplicationScoped
 public class PaymentClient {
 
     //TODO: It's unclear whether Client is thread-safe!
-    private final Client client = new ResteasyClientBuilder()
-            .connectionPoolSize(200)
-            .connectionCheckoutTimeout(5, TimeUnit.SECONDS)
-            .maxPooledPerRoute(20)
-            .property("resteasy.preferJacksonOverJsonB", true)
-            .build();
+    private ResteasyClient webClient;
 
-    //TODO: Resource injection
+    //TODO: Resource injection, should be a string probably
+//    @Resource(lookup = "java:global/paymentClient/abn/paymentLinkTarget")
     private final URI paymentLinkTarget = URI.create("https://api.online.emspay.eu/v1/paymentlinks");
 
     //id part is replaced by actual transaction id
+//    @Resource(lookup = "java:global/paymentClient/abn/paymentStatusTarget")
     private final URI paymentStatusTarget = URI.create("https://api.online.emspay.eu/v1/paymentlink/id");
 
     //id part is replaced by actual transaction id
-    private final URI orderStatusTarget = URI.create("https://api.online.emspay.eu/v1/orders/id");
+//    @Resource(lookup = "java:global/paymentClient/abn/orderStatusTarget")
+    @SuppressWarnings("unused")
+	private final URI orderStatusTarget = URI.create("https://api.online.emspay.eu/v1/orders/id");
 
     // API key for test account (this should not be in GIT repo!)
-    private final String API_KEY = "cd422b152bd94c468da25810debe7fe4";
+//  @Resource(lookup = "java:global/paymentClient/abn/apiKey")
+    private final String apiKey = "cd422b152bd94c468da25810debe7fe4";
 
-    private void addAPIKey(Invocation.Builder builder) {
-        // authorization header is API key, appended with a colon, in Base64
-        byte[] key = (API_KEY + ":").getBytes();
-        String authorization = "Basic " + Base64.getEncoder().encodeToString(key);
-        builder.header("Authorization", authorization);
-    }
-
+    private String authorizationValue;
+    
+	@PostConstruct
+	public void createClient() {
+		webClient = new ResteasyClientBuilder()
+				.connectionPoolSize(200)
+				.connectionCheckoutTimeout(5, TimeUnit.SECONDS)
+				.maxPooledPerRoute(20)
+				.build();
+		authorizationValue = "Basic " + Base64.getEncoder().encodeToString((apiKey + ":").getBytes());
+	}
+    
     @PreDestroy
     void cleanup() {
-        client.close();
+        webClient.close();
     }
 
     public PaymentLink getPaymentLink(PaymentLinkOptions options) {
-        // prepare POST request
-        Invocation.Builder builder = client.target(paymentLinkTarget).request();
-        addAPIKey(builder);
         // copy options to appropriate JSON request body
         PaymentLinkRequestBody body = new PaymentLinkRequestBody();
         // TODO: validate link options?
@@ -64,17 +70,25 @@ public class PaymentClient {
         body.expiration_period = "PT" + options.expirationMinutes + "M";
         body.return_url = options.returnAfterCompletion;
         body.webhook_url = options.informStatusUpdate;
+
         // send synchronous request to obtain payment link
-        PaymentLinkResponseBody response = builder.post(Entity.json(body), PaymentLinkResponseBody.class);
+        WebTarget target = webClient.target(paymentLinkTarget);
+        PaymentLinkResponseBody response = target.request()
+        	.header(HttpHeaders.AUTHORIZATION, authorizationValue)
+        	.post(Entity.json(body), PaymentLinkResponseBody.class);
         return new PaymentLink(response.payment_url, response.id);
     }
 
     public PaymentStatus getPaymentStatus(String id) {
         // prepare GET request
-        Invocation.Builder builder = client.target(paymentStatusTarget.resolve(id)).request();
-        addAPIKey(builder);
+        WebTarget target = webClient.target(paymentStatusTarget.resolve(id));
         // send synchronous request to obtain payment status
-        PaymentStatusResponseBody response = builder.get(PaymentStatusResponseBody.class);
+        PaymentStatusResponseBody response = target.request()
+    		.header(HttpHeaders.AUTHORIZATION, authorizationValue)
+    		.get(PaymentStatusResponseBody.class);
+        // Wat voor timestamps komen hieruit rollen? Zijn dat geen instants? (even spieken in de API) Ja, of OffsetDateTime, moet je even proberen.
+        // Kan wel zijn dat er een of andere factory geconfigureerd moet worden, ergens. Laat maar even weten. 
+        // Zonder geldige status kan ik het niet testen.
         return new PaymentStatus(
                 response.status,
                 response.created,
