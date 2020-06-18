@@ -1,4 +1,4 @@
-package eu.netmobiel.payment;
+package eu.netmobiel.payment.client.model;
 
 public class PaymentStatus {
     public PaymentStatus(

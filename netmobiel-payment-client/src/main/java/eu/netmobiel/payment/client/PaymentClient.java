@@ -1,12 +1,14 @@
-package eu.netmobiel.payment;
+package eu.netmobiel.payment.client;
 
+import eu.netmobiel.payment.client.model.OrderStatus;
+import eu.netmobiel.payment.client.model.PaymentLink;
+import eu.netmobiel.payment.client.model.PaymentLinkOptions;
+import eu.netmobiel.payment.client.model.PaymentStatus;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
-import org.junit.jupiter.api.Test;
 
 import javax.annotation.PreDestroy;
 import javax.enterprise.context.ApplicationScoped;
 import javax.ws.rs.client.Client;
-import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.Invocation;
 import java.net.URI;
@@ -14,7 +16,7 @@ import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
 @ApplicationScoped
-public class PaymentProvider {
+public class PaymentClient {
 
     //TODO: It's unclear whether Client is thread-safe!
     private final Client client = new ResteasyClientBuilder()
@@ -33,6 +35,7 @@ public class PaymentProvider {
     //id part is replaced by actual transaction id
     private final URI orderStatusTarget = URI.create("https://api.online.emspay.eu/v1/orders/id");
 
+    // API key for test account (this should not be in GIT repo!)
     private final String API_KEY = "cd422b152bd94c468da25810debe7fe4";
 
     private void addAPIKey(Invocation.Builder builder) {
@@ -63,7 +66,6 @@ public class PaymentProvider {
         body.webhook_url = options.informStatusUpdate;
         // send synchronous request to obtain payment link
         PaymentLinkResponseBody response = builder.post(Entity.json(body), PaymentLinkResponseBody.class);
-        System.out.println("Payment URL: " + response.payment_url);
         return new PaymentLink(response.payment_url, response.id);
     }
 
@@ -122,17 +124,5 @@ public class PaymentProvider {
         public String completed;
     }
 
-    @Test
-    public void testPaymentLink() {
-        PaymentProvider provider = new PaymentProvider();
-        PaymentLinkOptions options = new PaymentLinkOptions();
-        options.euroCents = 99;
-        options.description = "Test payment provider";
-        options.expirationMinutes = 15;
-        options.merchantOrder = "Unieke NetMobiel transactie id";
-        options.returnAfterCompletion = "https://emspay-test.glitch.com/return";
-        PaymentLink link = provider.getPaymentLink(options);
-        System.out.println(link);
-    }
 }
 
