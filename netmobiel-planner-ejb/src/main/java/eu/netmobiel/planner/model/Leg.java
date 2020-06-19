@@ -232,6 +232,10 @@ public class Leg implements Serializable {
     @Column(name = "state", length = 3)
     private TripState state;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "report", foreignKey = @ForeignKey(name = "leg_report_fk"))
+    private PlannerReport plannerReport;
+    
     public Leg() {
     }
 
@@ -508,6 +512,14 @@ public class Leg implements Serializable {
 
 	public void setState(TripState state) {
 		this.state = state;
+	}
+
+	public PlannerReport getPlannerReport() {
+		return plannerReport;
+	}
+
+	public void setPlannerReport(PlannerReport plannerReport) {
+		this.plannerReport = plannerReport;
 	}
 
 	/**

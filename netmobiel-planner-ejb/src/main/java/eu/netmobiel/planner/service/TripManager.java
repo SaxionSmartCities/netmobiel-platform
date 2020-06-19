@@ -1,9 +1,9 @@
 package eu.netmobiel.planner.service;
 
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -15,7 +15,6 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
-import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
@@ -24,12 +23,16 @@ import eu.netmobiel.commons.model.event.BookingCancelledEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.model.event.ShoutOutRequestedEvent;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
-import eu.netmobiel.planner.model.Stop;
+import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
+import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.TripDao;
+import eu.netmobiel.planner.repository.TripPlanDao;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @Stateless
@@ -42,6 +45,12 @@ public class TripManager {
 
     @Inject
     private TripDao tripDao;
+
+    @Inject
+    private ItineraryDao itineraryDao;
+    
+    @Inject
+    private TripPlanDao tripPlanDao;
 
     @Inject
     private Event<BookingRequestedEvent> bookingRequestedEvent;
@@ -85,20 +94,11 @@ public class TripManager {
         		// Get the actual data
         		PagedResult<Long> tripIds = tripDao.findByTraveller(traveller, state, since, until, deletedToo, sortDirection, maxResults, offset);
         		if (tripIds.getData().size() > 0) {
-        			results = tripDao.fetch(tripIds.getData(), Trip.LIST_TRIPS_ENTITY_GRAPH);
+        			results = tripDao.fetch(tripIds.getData(), null, Trip::getId);
         		}
         	}
     	} 
     	return new PagedResult<Trip>(results, maxResults, offset, totalCount);
-    }
-
-    private void validateCreateUpdateTrip(Trip trip)  throws BadRequestException {
-    	if (trip.getDepartureTime() == null || trip.getArrivalTime() == null) {
-    		throw new BadRequestException("Constraint violation: A new trip must have a 'departureTime' as well as an 'arrivalTIme'");
-    	}
-    	if (trip.getFrom() == null || trip.getTo() == null) {
-    		throw new BadRequestException("Constraint violation: A new trip must have a 'from' and a 'to'");
-    	}
     }
 
     /**
@@ -106,13 +106,13 @@ public class TripManager {
      * @param trip The trip of the traveller
      * @param leg the leg for which to issue a shout-out.
      */
-    private void issueShoutOutRequest(Trip trip, Leg leg) {
+    private void issueShoutOutRequest(Trip trip) {
     	ShoutOutRequestedEvent sor = new ShoutOutRequestedEvent(trip.getTraveller(), trip.getTripRef());
     	sor.setNrSeats(trip.getNrSeats());
-    	sor.setPickup(leg.getFrom().getLocation());
-    	sor.setDepartureTime(leg.getStartTime());
-    	sor.setDropOff(leg.getTo().getLocation());
-    	sor.setArrivalTime(leg.getEndTime());
+    	sor.setPickup(trip.getFrom());
+    	sor.setDepartureTime(trip.getTripPlan().getDepartureTime());
+    	sor.setDropOff(trip.getTo());
+    	sor.setArrivalTime(trip.getTripPlan().getArrivalTime());
     	shoutOutRequestedEvent.fire(sor);
     }
 
@@ -122,56 +122,62 @@ public class TripManager {
      * @param trip the new trip
      * @param autobook If set then start the booking and scheduling process of each leg.
      * @return The ID of the trip just created.
-     * @throws CreateException In case of trouble, like wrong parameter values.
+     * @throws NotFoundException In case one of the referenced object can not be found.
      * @throws BadRequestException In case of bad parameters.
      */
-    public Long createTrip(User traveller, Trip trip, boolean autobook) throws BadRequestException, CreateException {
-    	validateCreateUpdateTrip(trip);
+    public Long createTrip(User traveller, Trip trip, boolean autobook) throws NotFoundException, BadRequestException {
     	trip.setTraveller(traveller);
-    	trip.setState(TripState.PLANNING);
-       	if (trip.getLegs() == null || trip.getLegs().isEmpty()) {
-       		// There is no itinerary at all. Issue a shout-out.
-       		trip.setLegs(new ArrayList<>());
-       		trip.setStops(new ArrayList<>());
-       		Stop from = new Stop(trip.getFrom(), trip.getDepartureTime(), null);
-       		Stop to = new Stop(trip.getTo(), null, trip.getArrivalTime());
-       		Leg leg = new Leg(from, to);
-       		trip.getStops().add(from);
-       		trip.getStops().add(to);
-       		trip.getLegs().add(leg);
-			leg.setState(TripState.PLANNING);
-       	} 
+    	if (trip.getItineraryRef() != null) {
+    		// Create a trip for this itinerary
+        	Itinerary it = itineraryDao.find(PlannerUrnHelper.getId(Itinerary.URN_PREFIX, trip.getItineraryRef()))
+        			.orElseThrow(() -> new NotFoundException("No such itinerary: " + trip.getItineraryRef()));
+        	trip.setState(TripState.PLANNING);
+        	trip.setItinerary(it);
+    	} else if (trip.getTripPlanRef() != null) {
+    		// Create a shout-out
+        	TripPlan refPlan = tripPlanDao.find(PlannerUrnHelper.getId(TripPlan.URN_PREFIX, trip.getTripPlanRef()))
+        			.orElseThrow(() -> new NotFoundException("No such trip plan: " + trip.getTripPlanRef()));
+        	// Create a new trip plan and issue the shout-out
+        	TripPlan newPlan = new TripPlan(traveller, refPlan.getFrom(), refPlan.getTo(), 
+        			refPlan.getDepartureTime(), refPlan.getArrivalTime(), 
+        			new HashSet<TraverseMode>(), refPlan.getMaxWalkDistance(), refPlan.getNrSeats());
+        	tripPlanDao.save(newPlan);
+        	trip.setTripPlan(newPlan);
+        	trip.setState(TripState.REQUESTED);
+    	} else {
+    		throw new BadRequestException("Specify an itinerary or a plan reference");
+    	}
        	tripDao.save(trip);
        	tripDao.flush();
-   		for (Leg leg : trip.getLegs()) {
-    	    if (leg.getTraverseMode() == null) {
-    	    	// There is a leg, but the transport is undefined yet. Issue a shout-out. 
-    	    	// The trip is already persisted, so we have an ID 
-        		issueShoutOutRequest(trip, leg);
-    	    } else if (autobook) {
-    	    	if (leg.isBookingRequired()) {
-       	    		// Ok, we need to take additional steps before the leg can be scheduled. Start a booking procedure.
-       	    		leg.setState(TripState.BOOKING);
-       				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
-       				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
-       				BookingRequestedEvent b = new BookingRequestedEvent(traveller, trip.getTripRef(), leg.getTripId());
-       				b.setArrivalTime(leg.getEndTime());
-       				b.setDepartureTime(leg.getStartTime());
-       				b.setDropOff(leg.getTo().getLocation());
-       				b.setNrSeats(trip.getNrSeats());
-       				b.setPickup(leg.getFrom().getLocation());
-       				bookingRequestedEvent.fire(b);
-    	    	} else {
-       	    		// If no booking is required then no further action is required. Schedule the leg.
-       				leg.setState(TripState.SCHEDULED);
-    	    	}
-   	    	} else {
-	    		log.warn(String.format("Trip %s Leg %s requires explicit booking", trip.getTripRef(), leg.getTripId()));
-   	    	}
-       		// So what is exactly the content of the persistence context after the firing of the event?
-       		// Should we merge/refresh?
+       	if (trip.getState() == TripState.REQUESTED) {
+    		issueShoutOutRequest(trip);
+       	} else {
+	   		for (Leg leg : trip.getItinerary().getLegs()) {
+	    	    if (autobook) {
+	    	    	if (leg.isBookingRequired()) {
+	       	    		// Ok, we need to take additional steps before the leg can be scheduled. Start a booking procedure.
+	       	    		leg.setState(TripState.BOOKING);
+	       				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
+	       				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
+	       				BookingRequestedEvent b = new BookingRequestedEvent(traveller, trip.getTripRef(), leg.getTripId());
+	       				b.setArrivalTime(leg.getEndTime());
+	       				b.setDepartureTime(leg.getStartTime());
+	       				b.setDropOff(leg.getTo().getLocation());
+	       				b.setNrSeats(trip.getNrSeats());
+	       				b.setPickup(leg.getFrom().getLocation());
+	       				bookingRequestedEvent.fire(b);
+	    	    	} else {
+	       	    		// If no booking is required then no further action is required. Schedule the leg.
+	       				leg.setState(TripState.SCHEDULED);
+	    	    	}
+	   	    	} else {
+		    		log.warn(String.format("Trip %s Leg %s requires explicit booking", trip.getTripRef(), leg.getTripId()));
+	   	    	}
+	       		// So what is exactly the content of the persistence context after the firing of the event?
+	       		// Should we merge/refresh?
+	       	}
+	       	updateTripState(trip);
        	}
-       	updateTripState(trip);
     	return trip.getId();
     }
 
@@ -183,10 +189,9 @@ public class TripManager {
      * @param bookingConfirmed If true the booking is already confirmed.
      */
     public void assignBookingReference(String tripRef, String transportProviderTripRef, String bookingRef, boolean bookingConfirmed) {
-    	Trip trip = tripDao.find(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef),
-    							tripDao.createLoadHint(Trip.LIST_TRIPS_ENTITY_GRAPH))
+    	Trip trip = tripDao.find(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef))
     			.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripRef));
-    	Leg leg = trip.findLegByTripId(transportProviderTripRef)
+    	Leg leg = trip.getItinerary().findLegByTripId(transportProviderTripRef)
     			.orElseThrow(() -> new IllegalArgumentException("No such leg with tripId " + transportProviderTripRef));
     	leg.setBookingId(bookingRef);
     	if (bookingConfirmed) {
@@ -196,10 +201,9 @@ public class TripManager {
     }
 
     public void cancelBooking(String tripRef, String bookingRef, String reason, boolean cancelledByDriver) {
-    	Trip trip = tripDao.find(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef),
-    							tripDao.createLoadHint(Trip.LIST_TRIPS_ENTITY_GRAPH))
+    	Trip trip = tripDao.find(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef))
     			.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripRef));
-    	Leg leg = trip.findLegByBookingId(bookingRef)
+    	Leg leg = trip.getItinerary().findLegByBookingId(bookingRef)
     			.orElseThrow(() -> new IllegalArgumentException("No such leg with bookingId " + bookingRef));
 		leg.setState(TripState.CANCELLED);
 		updateTripState(trip);
@@ -210,10 +214,10 @@ public class TripManager {
      * @param trip the trip to analyze.
      */
    	protected void updateTripState(Trip trip) {
-   		if (trip.getLegs() == null) {
+   		if (trip.getItinerary().getLegs() == null) {
    			return;
    		}
-   		Optional<Leg> minleg = trip.getLegs().stream().min(Comparator.comparingInt(leg -> leg.getState().ordinal()));
+   		Optional<Leg> minleg = trip.getItinerary().getLegs().stream().min(Comparator.comparingInt(leg -> leg.getState().ordinal()));
    		minleg.ifPresent(leg -> trip.setState(leg.getState()));
    	}
 
@@ -225,13 +229,13 @@ public class TripManager {
      * @throws NotFoundException
      */
     public Trip getTrip(Long id) throws NotFoundException {
-    	Trip tripdb = tripDao.find(id, tripDao.createLoadHint(Trip.LIST_TRIP_DETAIL_ENTITY_GRAPH))
+    	Trip tripdb = tripDao.find(id)
     			.orElseThrow(NotFoundException::new);
     	return tripdb;
     }
     
     /**
-     * Removes a trip. Whether or not a trip is soft-deleted or hard-deleted depends on the trip state.
+     * Removes a trip. Trips are always soft-deleted for reasons of analysis.
      * This method is supposedly to be called by the traveller. 
      * @param tripId The trip to remove.
      * @param reason The reason for cancelling the trip (optional).
@@ -241,8 +245,8 @@ public class TripManager {
     	Trip tripdb = tripDao.find(tripId)
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripId));
     	tripdb.setCancelReason(reason);
-       	if (tripdb.getLegs() != null) {
-       		for (Leg leg : tripdb.getLegs()) {
+       	if (tripdb.getItinerary().getLegs() != null) {
+       		for (Leg leg : tripdb.getItinerary().getLegs()) {
 		    	if (leg.getBookingId() != null) {
 		    		// There is a booking being request or already confirmed. Cancel it.
 					if (leg.getState() == TripState.BOOKING || leg.getState() == TripState.SCHEDULED) {
@@ -270,13 +274,8 @@ public class TripManager {
 				}
 			}
        	}
-    	if (tripdb.getState() == TripState.PLANNING) {
-    		// Hard delete
-			tripDao.remove(tripdb);
-    	} else {
-    		tripdb.setDeleted(true);
-       		updateTripState(tripdb);
-    	}
+   		tripdb.setDeleted(true);
+   		updateTripState(tripdb);
     }
  
     /**
@@ -307,7 +306,7 @@ public class TripManager {
     		// Get the actual data
     		PagedResult<Long> tripIds = tripDao.findShoutOutTrips(location, startTime, depArrRadius, travelRadius, maxResults, offset);
     		if (tripIds.getData().size() > 0) {
-    			results = tripDao.fetch(tripIds.getData(), Trip.LIST_TRIP_DETAIL_ENTITY_GRAPH);
+    			results = tripDao.fetch(tripIds.getData(), null, Trip::getId);
     		}
     	}
     	return new PagedResult<Trip>(results, maxResults, offset, totalCount);

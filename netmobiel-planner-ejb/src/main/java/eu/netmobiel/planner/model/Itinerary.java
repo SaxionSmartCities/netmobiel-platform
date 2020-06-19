@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
@@ -14,12 +15,21 @@ import javax.persistence.AccessType;
 import javax.persistence.Basic;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
+import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
+import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.MappedSuperclass;
+import javax.persistence.ManyToOne;
+import javax.persistence.NamedAttributeNode;
+import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
 import javax.persistence.OrderColumn;
+import javax.persistence.SequenceGenerator;
+import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 
@@ -28,25 +38,80 @@ import org.slf4j.LoggerFactory;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.opentripplanner.client.OpenTripPlannerClient;
+import eu.netmobiel.planner.util.PlannerUrnHelper;
 
-@MappedSuperclass
+@NamedEntityGraph(
+		name = Itinerary.LIST_ITINERARIES_ENTITY_GRAPH, 
+		attributeNodes = { 
+				@NamedAttributeNode(value = "stops"),		
+				@NamedAttributeNode(value = "legs", subgraph = "leg-details")		
+		}, subgraphs = {
+				// Without this subgraph no leg details are retrieved
+				@NamedSubgraph(
+						name = "leg-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "guideSteps")
+						}
+					)
+				}
+
+	)
+@NamedEntityGraph(
+		name = Itinerary.LIST_ITINERARY_DETAIL_ENTITY_GRAPH, 
+		attributeNodes = { 
+				@NamedAttributeNode(value = "stops"),		
+				@NamedAttributeNode(value = "legs", subgraph = "leg-details"),		
+				@NamedAttributeNode(value = "traveller"),		
+		}, subgraphs = {
+				// Without this subgraph no leg details are retrieved
+				@NamedSubgraph(
+						name = "leg-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "guideSteps")
+						}
+					)
+				}
+
+	)
+
+@Entity
+@Table(name = "itinerary")
 @Vetoed
 @Access(AccessType.FIELD)
+@SequenceGenerator(name = "itinerary_sg", sequenceName = "itinerary_id_seq", allocationSize = 1, initialValue = 50)
 public class Itinerary implements Serializable {
 
 	private static final long serialVersionUID = 509814730629943904L;
+	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(Itinerary.class);
+	public static final String LIST_ITINERARIES_ENTITY_GRAPH = "list-itineraries-graph";
+	public static final String LIST_ITINERARY_DETAIL_ENTITY_GRAPH = "list-itinerary-detail-graph";
 
     private static final Logger log = LoggerFactory.getLogger(Itinerary.class);
 
+    @Id
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "itinerary_sg")
+    private Long id;
+
+    @Transient
+    private String itineraryRef;
+    
+
+    /**  
+     * The time and date of departure in this itinerary. Is by definition the same as the departure time from the first stop.   
+     */
     @NotNull
     @Column(name = "departure_time", nullable = false)
     private Instant departureTime;
 
+    /**  
+     * The time and date of arrival in this itinerary. Is by definition the same as the arrival time at the last stop.   
+     */
+    @NotNull
     @Column(name = "arrival_time", nullable = false)
     private Instant arrivalTime;
 
     /**
-     * Duration of the trip on this itinerary, in seconds.
+     * Duration of the trip on this itinerary, in seconds. Why is this field present?
      */
     @Basic
     private Integer duration;
@@ -62,11 +127,13 @@ public class Itinerary implements Serializable {
      */
     @Column(name = "walk_time")
     private Integer walkTime;
+    
     /**
      * How much time is spent on transit, in seconds.
      */
     @Column(name = "transit_time")
     private Integer transitTime;
+    
     /**
      * How much time is spent waiting for transit and other modalities to arrive, in seconds.
      */
@@ -83,7 +150,7 @@ public class Itinerary implements Serializable {
      * The stops (vertices) in this itinerary.
      */
 	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-	@JoinColumn(name = "trip", foreignKey = @ForeignKey(name = "stop_trip_fk"), nullable = false)
+	@JoinColumn(name = "itinerary", foreignKey = @ForeignKey(name = "stop_itinerary_fk"), nullable = false)
 	@OrderColumn(name = "stop_ix")
 	private List<Stop> stops;
 
@@ -91,13 +158,21 @@ public class Itinerary implements Serializable {
      * The legs (edges) in this itinerary.
      */
 	@OneToMany(cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-	@JoinColumn(name = "trip", foreignKey = @ForeignKey(name = "leg_trip_fk"), nullable = false)
+	@JoinColumn(name = "itinerary", foreignKey = @ForeignKey(name = "leg_itinerary_fk"), nullable = false)
 	@OrderColumn(name = "leg_ix")
 	private List<Leg> legs;
 
-	@Transient
+    @Column(name = "score")
     private Double score;
-    
+   
+	/** 
+	 * The plan this itinerary is part of.
+	 */
+    @ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "plan", foreignKey = @ForeignKey(name = "itinerary_plan_fk"), nullable = false)
+	private TripPlan plan;
+
+
 	public Itinerary() {
     	
     }
@@ -117,6 +192,21 @@ public class Itinerary implements Serializable {
     public Itinerary copy() {
     	return new Itinerary(this);
     }
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
+
+	public String getItineraryRef() {
+    	if (itineraryRef == null) {
+    		itineraryRef = PlannerUrnHelper.createUrn(Itinerary.URN_PREFIX, getId());
+    	}
+		return itineraryRef;
+	}
 
 
 	public Instant getDepartureTime() {
@@ -177,6 +267,9 @@ public class Itinerary implements Serializable {
 	}
 
 	public List<Stop> getStops() {
+		if (stops == null) {
+			stops = new ArrayList<>();
+		}
 		return stops;
 	}
 
@@ -185,6 +278,9 @@ public class Itinerary implements Serializable {
 	}
 
 	public List<Leg> getLegs() {
+		if (legs == null) {
+			legs = new ArrayList<>();
+		}
 		return legs;
 	}
 
@@ -206,6 +302,42 @@ public class Itinerary implements Serializable {
 
 	public void setScore(Double score) {
 		this.score = score;
+	}
+
+	public TripPlan getPlan() {
+		return plan;
+	}
+
+	public void setPlan(TripPlan plan) {
+		this.plan = plan;
+	}
+
+	/**
+	 * Searches through the legs of this trip for a leg with a specific tripId. The trip id is a reference from the transport provider
+	 * and refers to a specific ride of a vehicle, both in rideshare and in public transport. In public transport the tripId refers 
+	 * to a specific instance of a ride over a route in a day, but not necessarily unique over time. In rideshare the tripId is an unique id.  
+	 * @param tripId the trip id to find
+	 * @return An Optional with the leg containing the trip id or null if not found.  
+	 */
+	public Optional<Leg> findLegByTripId(String tripId) {
+		Leg leg = null;
+		if (getLegs() != null) {
+			leg = getLegs().stream().filter(lg -> tripId.equals(lg.getTripId())).findFirst().orElse(null);
+		}
+		return Optional.ofNullable(leg);
+	}
+
+	/**
+	 * Searches through the legs of this trip for a leg with a specific bookingId.  
+	 * @param bookingId the booking id to find
+	 * @return An Optional with the leg containing the booking id or null if not found.  
+	 */
+	public Optional<Leg> findLegByBookingId(String bookingId) {
+		Leg leg = null;
+		if (getLegs() != null) {
+			leg = getLegs().stream().filter(lg -> bookingId.equals(lg.getBookingId())).findFirst().orElse(null);
+		}
+		return Optional.ofNullable(leg);
 	}
 
     private String formatTime(Instant instant) {

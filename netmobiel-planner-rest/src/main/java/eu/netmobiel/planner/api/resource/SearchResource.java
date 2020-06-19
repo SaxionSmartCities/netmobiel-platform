@@ -3,6 +3,9 @@ package eu.netmobiel.planner.api.resource;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
@@ -63,9 +66,9 @@ public class SearchResource implements SearchApi {
     	if (from == null || to == null) {
     		throw new BadRequestException("Missing one or more mandatory parameters: from, to");
     	}
-    	TraverseMode[] domainModalities = parseModalities(modalities);
+    	Set<TraverseMode> domainModalities = parseModalities(modalities);
     	if (domainModalities == null) {
-    		domainModalities = new TraverseMode[] { TraverseMode.WALK, TraverseMode.RIDESHARE, TraverseMode.TRANSIT };
+    		domainModalities = new HashSet<>(Arrays.asList(new TraverseMode[] { TraverseMode.WALK, TraverseMode.RIDESHARE, TraverseMode.TRANSIT }));
     	}
     	if (maxWalkDistance == null) {
     		maxWalkDistance = DEFAULT_MAX_WALK_DISTANCE;
@@ -95,14 +98,14 @@ public class SearchResource implements SearchApi {
     	return Response.ok(tripPlanMapper.map(plan)).build();
     }
     
-    private TraverseMode[] parseModalities(String modalities) {
-    	TraverseMode[] traverseModes = null;
+    private Set<TraverseMode> parseModalities(String modalities) {
+    	Set<TraverseMode> traverseModes = new HashSet<>();
     	if (modalities != null && modalities.trim().length() > 0) {
         	try {
     	    	String modes[] = modalities.split("[,\\s]+");
     	    	traverseModes = Arrays.stream(modes)
     	    			.map(m -> TraverseMode.valueOf(m))
-    	    			.toArray(TraverseMode[]::new);
+    	    			.collect(Collectors.toSet());
         	} catch (IllegalArgumentException ex) {
         		throw new BadRequestException("Failed to parse modalities: " + modalities, ex);
         	}

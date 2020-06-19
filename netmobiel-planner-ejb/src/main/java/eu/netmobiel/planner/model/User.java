@@ -38,32 +38,53 @@ public class User implements NetMobielUser, Serializable {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_sg")
     private Long id;
 
+    @Transient
+    private String userRef;
+
     @NotNull
     @NotEmpty
     @Size(max = 36)
-    @Column(name = "managed_identity")
+    @Column(name = "managed_identity", length = 36)
     private String managedIdentity;
 
+    @Size(max = 32)
     @Column(name = "given_name", length = 32)
 	private String givenName;
     
+    @Size(max = 64)
     @Column(name = "family_name", length = 64)
 	private String familyName;
-	
+
+    @Size(max = 64)
+    @Column(name = "email", length = 64)
+	private String email;
+    
     public User() {
     	
     }
     
     public User(NetMobielUser nbuser) {
-    	this(nbuser.getManagedIdentity(), nbuser.getGivenName(), nbuser.getFamilyName());
+    	this(nbuser.getManagedIdentity(), nbuser.getGivenName(), nbuser.getFamilyName(), nbuser.getEmail());
     }
 
     public User(String identity, String givenName, String familyName) {
+    	this(identity, givenName, familyName, null);
+    }
+    
+    public User(String identity, String givenName, String familyName, String email) {
     	this.managedIdentity = identity;
     	this.givenName = givenName;
     	this.familyName = familyName;
+    	this.email = email;
     }
     
+	public String getUserRef() {
+    	if (userRef == null) {
+    		userRef = PlannerUrnHelper.createUrn(URN_PREFIX, getId());
+    	}
+		return userRef;
+	}
+
 	public Long getId() {
 		return id;
 	}
@@ -100,6 +121,10 @@ public class User implements NetMobielUser, Serializable {
 	@Override
 	public String getEmail() {
 		return null;
+	}
+
+	public void setEmail(String email) {
+		this.email = email;
 	}
 
 	@Override

@@ -4,9 +4,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -29,6 +26,7 @@ import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.planner.annotation.PlannerDatabase;
+import eu.netmobiel.planner.model.Itinerary_;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.Trip_;
@@ -66,11 +64,11 @@ public class TripDao extends AbstractDao<Trip, Long> {
             predicates.add(cb.equal(trips.get(Trip_.state), state));
         }
         if (since != null) {
-	        Predicate predSince = cb.greaterThanOrEqualTo(trips.get(Trip_.departureTime), since);
+	        Predicate predSince = cb.greaterThanOrEqualTo(trips.get(Trip_.itinerary).get(Itinerary_.departureTime), since);
 	        predicates.add(predSince);
         }        
         if (until != null) {
-	        Predicate predUntil = cb.lessThan(trips.get(Trip_.departureTime), until);
+	        Predicate predUntil = cb.lessThan(trips.get(Trip_.itinerary).get(Itinerary_.departureTime), until);
 	        predicates.add(predUntil);
         }        
         if (deletedToo == null || !deletedToo.booleanValue()) {
@@ -86,9 +84,9 @@ public class TripDao extends AbstractDao<Trip, Long> {
         } else {
             cq.select(trips.get(Trip_.id));
             if (sortDirection == SortDirection.DESC) {
-            	cq.orderBy(cb.desc(trips.get(Trip_.departureTime)));
+            	cq.orderBy(cb.desc(trips.get(Trip_.itinerary).get(Itinerary_.departureTime)));
             } else {
-            	cq.orderBy(cb.asc(trips.get(Trip_.departureTime)));
+            	cq.orderBy(cb.asc(trips.get(Trip_.itinerary).get(Itinerary_.departureTime)));
             }
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
@@ -123,7 +121,7 @@ public class TripDao extends AbstractDao<Trip, Long> {
         // Only trips in planning state
         predicates.add(cb.equal(trips.get(Trip_.state), TripState.PLANNING));
         // Only consider trips that depart after startTime
-        predicates.add(cb.greaterThanOrEqualTo(trips.get(Trip_.departureTime), startTime));
+        predicates.add(cb.greaterThanOrEqualTo(trips.get(Trip_.itinerary).get(Itinerary_.departureTime), startTime));
         // Skip deleted trips
         predicates.add(cb.or(cb.isNull(trips.get(Trip_.deleted)), cb.isFalse(trips.get(Trip_.deleted))));
         // Either departure or arrival location must be within the small circle
@@ -145,7 +143,7 @@ public class TripDao extends AbstractDao<Trip, Long> {
         } else {
             cq.select(trips.get(Trip_.id));
             // Order by increasing departure time
-	        cq.orderBy(cb.asc(trips.get(Trip_.departureTime)));
+	        cq.orderBy(cb.asc(trips.get(Trip_.itinerary).get(Itinerary_.departureTime)));
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
 			tq.setMaxResults(maxResults);
@@ -153,15 +151,5 @@ public class TripDao extends AbstractDao<Trip, Long> {
         }
         return new PagedResult<Long>(results, maxResults, offset, totalCount);
     }
-
-    @Override
-	public List<Trip> fetch(List<Long> ids, String graphName) {
-		// Create an identity map using the generic fetch. Rows are returned, but not necessarily in the same order
-		Map<Long, Trip> resultMap = super.fetch(ids, graphName).stream().collect(Collectors.toMap(Trip::getId, Function.identity()));
-		// Now return the rows in the same order as the ids.
-		return ids.stream().map(id -> resultMap.get(id)).collect(Collectors.toList());
-	}
-
-//  Map<Long, T> resultMap = tq.getResultList().stream().collect(Collectors.toMap(Trip::getId, ));
 
 }

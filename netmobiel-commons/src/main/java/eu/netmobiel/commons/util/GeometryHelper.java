@@ -1,6 +1,9 @@
 package eu.netmobiel.commons.util;
 
+import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.Geometry;
@@ -97,6 +100,16 @@ public class GeometryHelper {
 	
 	public static LineString createLine(Coordinate a, Coordinate b) {
 		return geometryFactory.createLineString(new Coordinate[] { a, b});
+	}
+	
+	public static LineString createLines(Coordinate a, Coordinate b, Coordinate[] via) {
+    	List<Coordinate> coords = new ArrayList<>();
+    	coords.add(a);
+    	if (via != null) {
+    		coords.addAll(Arrays.asList(via));
+    	}
+    	coords.add(b);
+		return geometryFactory.createLineString(coords.toArray(new Coordinate[coords.size()]));
 	}
 	
 	public static Geometry createCircle(Coordinate center, int distance_in_meters) {
