@@ -587,9 +587,6 @@ public class PlannerManager {
     	if (plan.getMaxTransfers() != null && plan.getMaxTransfers() < 0) {
     		throw new IllegalArgumentException("maxTransfers cannot be negative");
     	}
-    	if (plan.getNrSeats() == null) {
-    		plan.setNrSeats(1);
-    	}
     	if (plan.getTraverseModes() == null || plan.getTraverseModes().isEmpty()) {
     		plan.setTraverseModes(new HashSet<>(Arrays.asList(new TraverseMode[] { TraverseMode.WALK, TraverseMode.RIDESHARE, TraverseMode.TRANSIT })));
     	}
@@ -611,7 +608,7 @@ public class PlannerManager {
     						plan.getTravelTime(), 
     						plan.getFrom().toString(), 
     						plan.getTo().toString(),
-    						plan.getNrSeats() != null ? plan.getNrSeats() : 1, 
+    						plan.getNrSeats(), 
    							plan.getMaxWalkDistance(),
     						plan.getTraverseModes().stream().map(tm -> tm.name()).collect(Collectors.joining(", ")),
     						plan.getMaxTransfers() != null ? plan.getMaxTransfers().toString() : "-",

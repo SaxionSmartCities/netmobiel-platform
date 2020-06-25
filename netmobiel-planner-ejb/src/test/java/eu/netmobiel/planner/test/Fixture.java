@@ -75,7 +75,7 @@ public class Fixture {
 		return createUser("ID3", "Carla3", "Netmobiel");
 	}
 
-    public static TripPlan createLargePlan(User traveller) {
+    public static TripPlan createTransitPlan(User traveller) {
 		TripPlan plan = new TripPlan();
 		plan.setPlanType(PlanType.REGULAR);
 		plan.setRequestTime(OffsetDateTime.parse("2020-01-07T10:00:00+01:00").toInstant());

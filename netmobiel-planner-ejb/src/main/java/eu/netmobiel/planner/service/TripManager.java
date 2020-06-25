@@ -23,6 +23,7 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Trip;
+import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.ItineraryDao;
@@ -75,17 +76,15 @@ public class TripManager {
         }
         List<Trip> results = Collections.emptyList();
         Long totalCount = 0L;
-    	if (traveller != null && traveller.getId() != null) {
-    		PagedResult<Long> prs = tripDao.findByTraveller(traveller, state, since, until, deletedToo, sortDirection, 0, 0);
-    		totalCount = prs.getTotalCount();
-        	if (totalCount > 0 && maxResults > 0) {
-        		// Get the actual data
-        		PagedResult<Long> tripIds = tripDao.findByTraveller(traveller, state, since, until, deletedToo, sortDirection, maxResults, offset);
-        		if (tripIds.getData().size() > 0) {
-        			results = tripDao.fetch(tripIds.getData(), null, Trip::getId);
-        		}
-        	}
-    	} 
+		PagedResult<Long> prs = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 0, 0);
+		totalCount = prs.getTotalCount();
+    	if (totalCount > 0 && maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, maxResults, offset);
+    		if (tripIds.getData().size() > 0) {
+    			results = tripDao.fetch(tripIds.getData(), null, Trip::getId);
+    		}
+    	}
     	return new PagedResult<Trip>(results, maxResults, offset, totalCount);
     }
 
@@ -106,6 +105,12 @@ public class TripManager {
         			.orElseThrow(() -> new NotFoundException("No such itinerary: " + trip.getItineraryRef()));
         	trip.setState(TripState.PLANNING);
         	trip.setItinerary(it);
+        	// Load trip plan (lazy loaded, only plan itself)
+        	TripPlan plan = it.getPlan();
+            trip.setArrivalTimeIsPinned(plan.isUseAsArrivalTime());
+        	trip.setNrSeats(plan.getNrSeats());
+            trip.setFrom(plan.getFrom());
+            trip.setTo(plan.getTo());
     	} else {
     		throw new BadRequestException("Specify an itinerary reference");
     	}
@@ -188,7 +193,7 @@ public class TripManager {
      */
     public Trip getTrip(Long id) throws NotFoundException {
     	Trip tripdb = tripDao.find(id)
-    			.orElseThrow(NotFoundException::new);
+    			.orElseThrow(() -> new NotFoundException("No such trip: " + id));
     	return tripdb;
     }
     

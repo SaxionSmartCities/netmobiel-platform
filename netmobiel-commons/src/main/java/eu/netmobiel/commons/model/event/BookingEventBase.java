@@ -16,7 +16,7 @@ public abstract class BookingEventBase implements Serializable {
 	private static final long serialVersionUID = -6709947526702522195L;
 
 	/**
-	 * The reference to the trveller's booking at the transport provider (a transport provider specific urn). Only know after creation of the booking.
+	 * The reference to the traveller's booking at the transport provider (a transport provider specific urn). Only known after creation of the booking.
 	 */
     private String bookingRef;
 

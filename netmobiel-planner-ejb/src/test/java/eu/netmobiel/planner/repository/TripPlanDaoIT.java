@@ -80,7 +80,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     @Test
     public void saveLargeTripPlan() {
     	try {
-	    	TripPlan plan = Fixture.createLargePlan(user1);
+	    	TripPlan plan = Fixture.createTransitPlan(user1);
 	    	tripPlanDao.save(plan); 
 	    	flush();
 	    	plan = tripPlanDao.find(plan.getId()).orElseThrow(() -> new IllegalStateException("Should have an ID by now"));
@@ -240,7 +240,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
 
     @Test
     public void listTripPlans_ByType() throws Exception {
-    	TripPlan plan = Fixture.createLargePlan(user1);
+    	TripPlan plan = Fixture.createTransitPlan(user1);
     	tripPlanDao.save(plan); 
     	flush();
     	User traveller = null;

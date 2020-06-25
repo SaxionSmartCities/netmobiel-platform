@@ -201,7 +201,7 @@ public class TripPlan {
      */
     @Positive
     @Column(name = "nr_seats")
-    private Integer nrSeats;
+    private int nrSeats;
     
     /** 
      * A list of possible itineraries. 
@@ -227,7 +227,7 @@ public class TripPlan {
     }
 
     public TripPlan(User traveller, GeoLocation from, GeoLocation to, Instant travelTime, boolean useAsArrivalTime, 
-    		Set<TraverseMode> traverseModes, Integer maxWalkDistance, Integer nrSeats) {
+    		Set<TraverseMode> traverseModes, Integer maxWalkDistance, int nrSeats) {
     	this.requestTime = Instant.now();
     	this.traveller = traveller;
         this.from = from;
@@ -379,11 +379,11 @@ public class TripPlan {
 		this.maxWalkDistance = maxWalkDistance;
 	}
 
-	public Integer getNrSeats() {
+	public int getNrSeats() {
 		return nrSeats;
 	}
 
-	public void setNrSeats(Integer nrSeats) {
+	public void setNrSeats(int nrSeats) {
 		this.nrSeats = nrSeats;
 	}
 

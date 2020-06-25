@@ -46,7 +46,7 @@ public class TripDao extends AbstractDao<Trip, Long> {
 		return em;
 	}
 
-    public PagedResult<Long> findByTraveller(User traveller, TripState state, Instant since, Instant until, 
+    public PagedResult<Long> findTrips(User traveller, TripState state, Instant since, Instant until, 
     		Boolean deletedToo, SortDirection sortDirection, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);

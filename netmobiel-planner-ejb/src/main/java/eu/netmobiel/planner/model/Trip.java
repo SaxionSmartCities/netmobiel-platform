@@ -185,7 +185,14 @@ public class Trip implements Serializable {
     @Column(name = "arrival_time_is_pinned")
     private boolean arrivalTimeIsPinned;
 
-
+    public Trip() {
+    	
+    }
+    
+    public Trip(String itineraryRef) {
+    	this.itineraryRef = itineraryRef;
+    }
+    
 	public Long getId() {
 		return id;
 	}
@@ -268,7 +275,7 @@ public class Trip implements Serializable {
 	}
 
 	public String getItineraryRef() {
-		if (itineraryRef == null) {
+		if (itineraryRef == null && itinerary != null) {
 			itineraryRef = itinerary.getItineraryRef();
 		}
 		return itineraryRef;
