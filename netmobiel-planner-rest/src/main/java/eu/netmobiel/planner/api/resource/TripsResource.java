@@ -112,11 +112,8 @@ public class TripsResource implements TripsApi {
 	    	}
 	    	
 	    	PagedResult<Trip> results = null;
+        	// Only retrieve if a user exists in the trip service
 	    	if (traveller != null && traveller.getId() != null) {
-	        	// Only retrieve if a user exists in the trip service
-	    		if (since == null) {
-	    			since = OffsetDateTime.now();
-	    		}
 	    		results = tripManager.listTrips(traveller, state, toInstant(since), toInstant(until), deletedToo, sortDirection, maxResults, offset);
 	    	} else {
 	    		results = PagedResult.<Trip>empty();
