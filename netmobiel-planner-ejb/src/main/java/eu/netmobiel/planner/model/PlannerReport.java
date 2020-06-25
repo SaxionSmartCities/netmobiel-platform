@@ -55,7 +55,15 @@ public class PlannerReport implements Serializable {
     private Long id;
 
 	/**
-	 * The time of the call.
+	 * The creation time of the report. This field reflects actual point of time.  
+	 */
+    @NotNull
+    @Column(name = "creation_time", nullable = false)
+    private Instant creationTime;
+
+    /**
+	 * The time of the request of the plan. The request time is the reference point for validating other request parameters. For 
+	 * the planner the request time is the 'now'.  
 	 */
     @NotNull
     @Column(name = "request_time", nullable = false)
@@ -63,23 +71,31 @@ public class PlannerReport implements Serializable {
 
 
     /**  
-     * The time and date of departure. At least one of departure or arrival must be defined. 
+     * The time and date of the travel. This time can be used in the planner as time of departure or time of arrival, depending
+     * on the flag arrivalTimePinned. 
      */
-    @Column(name = "departure_time", nullable = true)
-    private Instant departureTime;
-
-    /**  
-     * The time and date of arrival. At least one of departure or arrival must be defined. 
-     */
-    @Column(name = "arrival_time", nullable = true)
-    private Instant arrivalTime;
+    @Column(name = "travel_time", nullable = false)
+    private Instant travelTime;
 
     /**
-     * If true then the arrival time is pinned, i.e. close to arrival time is better.
+     * If true then use the travel time as the arrival time, i.e. close to arrival time is better.
      * Otherwise departure time is more important.
      */
-    @Column(name = "arrival_time_pinned")
-    private Boolean arrivalTimePinned;
+    @Column(name = "use_as_arrival_time")
+    private boolean useAsArrivalTime;
+
+    /**  
+     * The time and date of earliest departure.  
+     */
+    @Column(name = "earliest_departure_time", nullable = true)
+    private Instant earliestDepartureTime;
+
+    /**  
+     * The time and date of latest arrival. 
+     */
+    @Column(name = "latest_arrival_time", nullable = true)
+    private Instant latestArrivalTime;
+    
 
     @NotNull
     @Embedded
@@ -101,8 +117,9 @@ public class PlannerReport implements Serializable {
      * The additional via points.
      */
     @ElementCollection()
-    @CollectionTable(name = "pr_via", foreignKey = @ForeignKey(foreignKeyDefinition = "via_planner_report_fk"))
-    private List<GeoLocation> via;
+    @CollectionTable(name = "report_via", foreignKey = @ForeignKey(foreignKeyDefinition = "via_report_fk"))
+    @Column(name = "via_location")
+    private List<GeoLocation> viaLocations;
 
     /**
      * Field to show the requested geometry in a single field, as a collection of lines.
@@ -121,7 +138,8 @@ public class PlannerReport implements Serializable {
      * The eligible traverse modes
      */
     @ElementCollection()
-    @CollectionTable(name = "pr_traverse_modes", foreignKey = @ForeignKey(foreignKeyDefinition = "traverse_mode_planner_report_fk"))
+    @CollectionTable(name = "report_traverse_mode", foreignKey = @ForeignKey(foreignKeyDefinition = "traverse_mode_report_fk"))
+    @Column(name = "traverse_mode")
     @OrderBy("ASC")
     private Set<TraverseMode> traverseModes;
 
@@ -148,8 +166,8 @@ public class PlannerReport implements Serializable {
      * The error text returned by the planner.
      */
     @Size(max = 512)
-    @Column(name = "error", length = 512)
-    private String error;
+    @Column(name = "error_text", length = 512)
+    private String errorText;
     
     /**
      * The maximum number of itineraries to calculate 
@@ -160,8 +178,8 @@ public class PlannerReport implements Serializable {
     /**
      * The offset in the result set (when applicable)
      */
-    @Column(name = "offset")
-    private Integer offset;
+    @Column(name = "start_position")
+    private Integer startPosition;
 
     /**
      * The number of itineraries returned 
@@ -185,7 +203,7 @@ public class PlannerReport implements Serializable {
     /**
      * The tool used for the planning
      */
-    @Column(name = "tool_type")
+    @Column(name = "tool_type", nullable = false)
     private ToolType toolType;
 
     @ManyToOne(fetch = FetchType.LAZY)
@@ -222,13 +240,14 @@ public class PlannerReport implements Serializable {
      * Textual reason for rejection
      */
     @Size(max = 256)
-    @Column(name = "rejected", length = 256)
+    @Column(name = "rejection_reason", length = 256)
     private String rejectionReason;
     
     @PrePersist
     protected void onCreate() {
+    	creationTime = Instant.now();
         if (requestTime == null) { 
-        	requestTime = Instant.now();
+        	requestTime = creationTime;
         }
     }
 
@@ -240,6 +259,10 @@ public class PlannerReport implements Serializable {
 		this.id = id;
 	}
 
+	public Instant getCreationTime() {
+		return creationTime;
+	}
+
 	public Instant getRequestTime() {
 		return requestTime;
 	}
@@ -248,20 +271,36 @@ public class PlannerReport implements Serializable {
 		this.requestTime = requestTime;
 	}
 
-	public Instant getDepartureTime() {
-		return departureTime;
+	public Instant getTravelTime() {
+		return travelTime;
 	}
 
-	public void setDepartureTime(Instant departureTime) {
-		this.departureTime = departureTime;
+	public void setTravelTime(Instant travelTime) {
+		this.travelTime = travelTime;
 	}
 
-	public Instant getArrivalTime() {
-		return arrivalTime;
+	public boolean isUseAsArrivalTime() {
+		return useAsArrivalTime;
 	}
 
-	public void setArrivalTime(Instant arrivalTime) {
-		this.arrivalTime = arrivalTime;
+	public void setUseAsArrivalTime(boolean useAsArrivalTime) {
+		this.useAsArrivalTime = useAsArrivalTime;
+	}
+
+	public Instant getEarliestDepartureTime() {
+		return earliestDepartureTime;
+	}
+
+	public void setEarliestDepartureTime(Instant earliestDepartureTime) {
+		this.earliestDepartureTime = earliestDepartureTime;
+	}
+
+	public Instant getLatestArrivalTime() {
+		return latestArrivalTime;
+	}
+
+	public void setLatestArrivalTime(Instant latestArrivalTime) {
+		this.latestArrivalTime = latestArrivalTime;
 	}
 
 	public GeoLocation getFrom() {
@@ -304,12 +343,12 @@ public class PlannerReport implements Serializable {
 		this.errorVendorCode = errorVendorCode;
 	}
 
-	public String getError() {
-		return error;
+	public String getErrorText() {
+		return errorText;
 	}
 
-	public void setError(String error) {
-		this.error = error;
+	public void setErrorText(String error) {
+		this.errorText = error;
 	}
 
 	public Integer getNrItineraries() {
@@ -336,12 +375,12 @@ public class PlannerReport implements Serializable {
 		this.nrSeats = nrSeats;
 	}
 
-	public List<GeoLocation> getVia() {
-		return via;
+	public List<GeoLocation> getViaLocations() {
+		return viaLocations;
 	}
 
-	public void setVia(List<GeoLocation> via) {
-		this.via = via;
+	public void setViaLocations(List<GeoLocation> viaLocations) {
+		this.viaLocations = viaLocations;
 	}
 
 	public TripPlan getPlan() {
@@ -368,18 +407,6 @@ public class PlannerReport implements Serializable {
 		this.toolType = toolType;
 	}
 
-	public boolean isArrivalTimePinned() {
-		return Boolean.TRUE.equals(arrivalTimePinned);
-	}
-
-	public boolean getArrivalTimePinned() {
-		return arrivalTimePinned;
-	}
-
-	public void setArrivalTimePinned(Boolean arrivalTimePinned) {
-		this.arrivalTimePinned = arrivalTimePinned;
-	}
-
 	public Integer getMaxResults() {
 		return maxResults;
 	}
@@ -388,12 +415,12 @@ public class PlannerReport implements Serializable {
 		this.maxResults = maxResults;
 	}
 
-	public Integer getOffset() {
-		return offset;
+	public Integer getStartPosition() {
+		return startPosition;
 	}
 
-	public void setOffset(Integer offset) {
-		this.offset = offset;
+	public void setStartPosition(Integer startPosition) {
+		this.startPosition = startPosition;
 	}
 
 	public int getStatusCode() {
@@ -451,19 +478,19 @@ public class PlannerReport implements Serializable {
     public String shortReport() {
 		StringBuilder sb = new StringBuilder();
 		sb.append(statusCode).append(" ").append(executionTime).append("ms");
-		sb.append(" D ").append(departureTime != null ? formatDateTime(departureTime) : "-");
-		sb.append(" A ").append(arrivalTime != null ? formatDateTime(arrivalTime) : "-");
+		sb.append(useAsArrivalTime ? " A " : " D ");
+		sb.append(formatDateTime(travelTime));
 		sb.append(" ").append(from.toString());
 		sb.append(" --> ").append(to.toString());
-		if (via != null) {
-			sb.append(" Via: ").append(via.stream().map(p -> p.toString()).collect(Collectors.joining(" ")));
+		if (viaLocations != null) {
+			sb.append(" Via: ").append(viaLocations.stream().map(p -> p.toString()).collect(Collectors.joining(" ")));
 		}
 		sb.append(" By: ").append(traverseModes.stream().map(m -> m.name()).collect(Collectors.joining(", ")));
 		if (errorVendorCode != null) {
 			sb.append(errorVendorCode).append(" ");
 		}
-		if (error != null) {
-			sb.append(error);
+		if (errorText != null) {
+			sb.append(errorText);
 		}
 		return sb.toString();
     }

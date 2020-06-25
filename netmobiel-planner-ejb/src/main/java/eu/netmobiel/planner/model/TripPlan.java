@@ -3,8 +3,6 @@ package eu.netmobiel.planner.model;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -27,6 +25,10 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedAttributeNode;
+import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedEntityGraphs;
+import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
 import javax.persistence.OrderColumn;
 import javax.persistence.PrePersist;
@@ -42,41 +44,109 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 /**
  * A TripPlan is a set of ways to get from point A to point B at time T.
  */
+@NamedEntityGraphs({
+	@NamedEntityGraph(
+			name = TripPlan.DETAILED_ENTITY_GRAPH, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "itineraries", subgraph = "subgraph.itinerary"),		
+					@NamedAttributeNode(value = "traveller"),		
+					@NamedAttributeNode(value = "traverseModes")
+			}, subgraphs = {
+					@NamedSubgraph(
+							name = "subgraph.itinerary",
+							attributeNodes = {
+									@NamedAttributeNode(value = "legs", subgraph = "subgraph.leg")
+							}
+					),
+					@NamedSubgraph(
+							name = "subgraph.leg",
+							attributeNodes = {
+									@NamedAttributeNode(value = "from"),
+									@NamedAttributeNode(value = "to"),
+									@NamedAttributeNode(value = "guideSteps")
+							}
+					)
+			}
+	),
+	@NamedEntityGraph(
+			name = TripPlan.SHOUT_OUT_ENTITY_GRAPH, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "traveller"),		
+					@NamedAttributeNode(value = "traverseModes")
+			}
+	)
+})
 @Entity
 @Table(name = "trip_plan")
 @Vetoed
 @Access(AccessType.FIELD)
 @SequenceGenerator(name = "trip_plan_sg", sequenceName = "trip_plan_id_seq", allocationSize = 1, initialValue = 50)
 public class TripPlan {
-	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(Itinerary.class);
+	public static final String DETAILED_ENTITY_GRAPH = "list-detailed-trip-plan-entity-graph";
+	public static final String SHOUT_OUT_ENTITY_GRAPH = "list-shout-out-trip-plan-entity-graph";
+	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(TripPlan.class);
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "trip_plan_sg")
     private Long id;
 
+    @Transient
+    private String planRef;
+
 	/**
-	 * The time of creation of the plan.
+	 * The creation time of the plan. This field reflects actual point of time.  
 	 */
     @NotNull
     @Column(name = "creation_time", nullable = false)
     private Instant creationTime;
 
+    /**
+	 * The time of the receiving request of the plan. The request time is the reference point for validating other request parameters. For 
+	 * the planner the request time is the 'now'.  
+	 */
+    @NotNull
+    @Column(name = "request_time", nullable = false)
+    private Instant requestTime;
+
+	/**
+	 * The time of completion of the plan. Regular plans are calculated real-time in a matter of seconds. Shout-out plans have a duration of hours or perhaps even days. 
+	 */
+    @Column(name = "request_duration", nullable = true)
+    private Long requestDuration;
+
+    /**
+     * The traveller applying the plan.
+     */
     @NotNull
     @ManyToOne (fetch = FetchType.LAZY)
 	@JoinColumn(name = "traveller", nullable = false, foreignKey = @ForeignKey(name = "trip_plan_traveller_fk"))
     private User traveller;
     
     /**  
-     * The time and date of departure. At least one of departure or arrival must be defined. 
+     * The time and date of the travel. This time can be used in the planner as time of departure or time of arrival, depending
+     * on the flag arrivalTimePinned. 
      */
-    @Column(name = "departure_time", nullable = true)
-    private Instant departureTime;
+    @Column(name = "travel_time", nullable = false)
+    private Instant travelTime;
+
+    /**
+     * If true then use the travel time as the arrival time, i.e. close to arrival time is better.
+     * Otherwise departure time is more important.
+     */
+    @Column(name = "use_as_arrival_time")
+    private boolean useAsArrivalTime;
 
     /**  
-     * The time and date of arrival. At least one of departure or arrival must be defined. 
+     * The time and date of earliest departure.  
      */
-    @Column(name = "arrival_time", nullable = true)
-    private Instant arrivalTime;
+    @Column(name = "earliest_departure_time", nullable = true)
+    private Instant earliestDepartureTime;
+
+    /**  
+     * The time and date of latest arrival. 
+     */
+    @Column(name = "latest_arrival_time", nullable = true)
+    private Instant latestArrivalTime;
     
     @NotNull
     @Embedded
@@ -97,8 +167,9 @@ public class TripPlan {
     /**
      * The eligible traverse modes
      */
-    @ElementCollection()
-    @CollectionTable(name = "pr_traverse_modes", foreignKey = @ForeignKey(foreignKeyDefinition = "traverse_mode_planner_report_fk"))
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "plan_traverse_mode", foreignKey = @ForeignKey(foreignKeyDefinition = "traverse_mode_trip_plan_fk"))
+    @Column(name = "traverse_mode")
     private Set<TraverseMode> traverseModes;
 
     /**
@@ -117,13 +188,13 @@ public class TripPlan {
      * If true then rideshare is an option as first leg in a multi-leg trip with public transport.
      */
     @Column(name = "first_leg_rs")
-    private Boolean firstLegRideshare;
+    private boolean firstLegRideshareAllowed;
 
     /**
      * If true then rideshare is an option as last leg in a multi-leg trip with public transport.
      */
     @Column(name = "last_leg_rs")
-    private Boolean lastLegRideshare;
+    private boolean lastLegRideshareAllowed;
 
     /**
      * Numbers of seats required.
@@ -146,15 +217,23 @@ public class TripPlan {
 	@OneToMany(mappedBy = "plan", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	private List<PlannerReport> plannerReports;
 
-    public TripPlan() { }
+	/**
+	 * The type of plan created.
+	 */
+	@Column(name = "plan_type", length = 3)
+	private PlanType planType;
+	
+	public TripPlan() { 
+    }
 
-    public TripPlan(User traveller, GeoLocation from, GeoLocation to, Instant departureTime, Instant arrivalTime, 
+    public TripPlan(User traveller, GeoLocation from, GeoLocation to, Instant travelTime, boolean useAsArrivalTime, 
     		Set<TraverseMode> traverseModes, Integer maxWalkDistance, Integer nrSeats) {
+    	this.requestTime = Instant.now();
     	this.traveller = traveller;
         this.from = from;
         this.to = to;
-        this.departureTime = departureTime;
-        this.arrivalTime = arrivalTime;
+       	this.travelTime = travelTime;
+        this.useAsArrivalTime = useAsArrivalTime;
         this.traverseModes = traverseModes;
         this.maxWalkDistance = maxWalkDistance;
         this.nrSeats = nrSeats; 
@@ -162,18 +241,29 @@ public class TripPlan {
 
     @PrePersist
     protected void onCreate() {
-        if (creationTime == null) { 
-        	creationTime = Instant.now();
+    	creationTime = Instant.now();
+        if (requestTime == null) { 
+        	requestTime = creationTime;
         }
     }
 
-
-	public Long getId() {
+    public Long getId() {
 		return id;
 	}
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public String getPlanRef() {
+    	if (planRef == null) {
+    		planRef = PlannerUrnHelper.createUrn(TripPlan.URN_PREFIX, getId());
+    	}
+		return planRef;
+	}
+
+	public Instant getCreationTime() {
+		return creationTime;
 	}
 
 	public User getTraveller() {
@@ -188,8 +278,33 @@ public class TripPlan {
 		this.traverseModes = traverseModes;
 	}
 
-	public Instant getCreationTime() {
-		return creationTime;
+	public Instant getRequestTime() {
+		return requestTime;
+	}
+
+	public void setRequestTime(Instant requestTime) {
+		this.requestTime = requestTime;
+	}
+
+
+	public Long getRequestDuration() {
+		return requestDuration;
+	}
+
+	public void setRequestDuration(Long requestDuration) {
+		this.requestDuration = requestDuration;
+	}
+
+	public boolean isInProgress() {
+		return getRequestDuration() == null;
+	}
+	
+	public PlanType getPlanType() {
+		return planType;
+	}
+
+	public void setPlanType(PlanType planType) {
+		this.planType = planType;
 	}
 
 	public void setTraveller(User traveller) {
@@ -224,20 +339,36 @@ public class TripPlan {
 		getItineraries().addAll(itineraries);
 	}
 
-	public Instant getDepartureTime() {
-		return departureTime;
+	public Instant getTravelTime() {
+		return travelTime;
 	}
 
-	public void setDepartureTime(Instant departureTime) {
-		this.departureTime = departureTime;
+	public void setTravelTime(Instant travelTime) {
+		this.travelTime = travelTime;
 	}
 
-	public Instant getArrivalTime() {
-		return arrivalTime;
+	public boolean isUseAsArrivalTime() {
+		return useAsArrivalTime;
 	}
 
-	public void setArrivalTime(Instant arrivalTime) {
-		this.arrivalTime = arrivalTime;
+	public void setUseAsArrivalTime(boolean useAsArrivalTime) {
+		this.useAsArrivalTime = useAsArrivalTime;
+	}
+
+	public Instant getEarliestDepartureTime() {
+		return earliestDepartureTime;
+	}
+
+	public void setEarliestDepartureTime(Instant earliestDepartureTime) {
+		this.earliestDepartureTime = earliestDepartureTime;
+	}
+
+	public Instant getLatestArrivalTime() {
+		return latestArrivalTime;
+	}
+
+	public void setLatestArrivalTime(Instant latestArrivalTime) {
+		this.latestArrivalTime = latestArrivalTime;
 	}
 
 	public Integer getMaxWalkDistance() {
@@ -256,17 +387,6 @@ public class TripPlan {
 		this.nrSeats = nrSeats;
 	}
 
-	private String formatTime(Instant instant) {
-    	return instant != null ? DateTimeFormatter.ISO_INSTANT.format(instant) : "*";
-    }
-    
-    @Override
-	public String toString() {
-		return String.format("TripPlan [%s - %s from %s to %s \n\t%s]", 
-				formatTime(departureTime), formatTime(arrivalTime), from, to, 
-				itineraries.stream().map(i -> i.toString()).collect(Collectors.joining("\n\t")));
-	}
-
 	public Integer getMaxTransfers() {
 		return maxTransfers;
 	}
@@ -275,20 +395,38 @@ public class TripPlan {
 		this.maxTransfers = maxTransfers;
 	}
 
-	public Boolean getFirstLegRideshare() {
-		return firstLegRideshare;
+
+	public boolean isFirstLegRideshareAllowed() {
+		return firstLegRideshareAllowed;
 	}
 
-	public void setFirstLegRideshare(Boolean firstLegRideshare) {
-		this.firstLegRideshare = firstLegRideshare;
+	public void setFirstLegRideshareAllowed(boolean firstLegRideshareAllowed) {
+		this.firstLegRideshareAllowed = firstLegRideshareAllowed;
 	}
 
-	public Boolean getLastLegRideshare() {
-		return lastLegRideshare;
+	public boolean isLastLegRideshareAllowed() {
+		return lastLegRideshareAllowed;
 	}
 
-	public void setLastLegRideshare(Boolean lastLegRideshare) {
-		this.lastLegRideshare = lastLegRideshare;
+	public void setLastLegRideshareAllowed(boolean lastLegRideshareAllowed) {
+		this.lastLegRideshareAllowed = lastLegRideshareAllowed;
+	}
+
+	public boolean isRideshareLegAllowed() {
+		return isFirstLegRideshareAllowed() || isLastLegRideshareAllowed();
+	}
+	
+	private String formatTime(Instant instant) {
+    	return instant != null ? DateTimeFormatter.ISO_INSTANT.format(instant) : "*";
+    }
+    
+    @Override
+	public String toString() {
+		return String.format("TripPlan [%s %s (%s %s) from %s to %s \n\t%s]",
+				useAsArrivalTime ? "A" : "D", formatTime(travelTime), 
+				formatTime(earliestDepartureTime), formatTime(latestArrivalTime), 
+				from, to, 
+				itineraries.stream().map(i -> i.toString()).collect(Collectors.joining("\n\t")));
 	}
 
 	public List<PlannerReport> getPlannerReports() {
@@ -303,4 +441,7 @@ public class TripPlan {
 		getPlannerReports().add(report);
 	}
 
+	public void close(Instant closeTime) {
+		setRequestDuration(closeTime.toEpochMilli() - getRequestTime().toEpochMilli());
+	}
 }

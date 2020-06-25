@@ -92,7 +92,7 @@ public class OpenTripPlannerDao {
     }
 
     /**
-     * Call the OTP the create a trip plan with a number of possible itineraries.
+     * Call the OTP to create a trip plan with a number of possible itineraries.
      * @param fromPlace The place to depart from.
      * @param toPlace the intended place of arrival.
      * @param departureTime the departure time. This is an instant, i.e. a precise moment in time.
@@ -107,22 +107,22 @@ public class OpenTripPlannerDao {
      * @throws NotFoundException When no itinerary could be found. 
      * @throws BadRequestException When the planner cannot plan due to the combination of parameters.
      */
-    public PlannerResult createPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean isArrivalPinned, 
+    public PlannerResult createPlan(Instant now, GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean isArrivalPinned, 
     		Set<TraverseMode> modes, boolean showIntermediateStops, Integer maxWalkDistance, Integer maxTransfers, List<GeoLocation> via, Integer maxItineraries) {
     	PlannerReport report = new PlannerReport();
-    	report.setArrivalTime(isArrivalPinned ? travelTime : null);
-    	report.setArrivalTimePinned(isArrivalPinned);
-    	report.setDepartureTime(isArrivalPinned ? null: travelTime);
+    	report.setRequestTime(now);
+    	report.setTravelTime(travelTime);
+    	report.setUseAsArrivalTime(isArrivalPinned);
     	report.setFrom(fromPlace);
     	report.setTo(toPlace);
     	report.setTraverseModes(modes);
     	report.setMaxWalkDistance(maxWalkDistance);
     	report.setToolType(ToolType.OPEN_TRIP_PLANNER);
     	report.setMaxResults(maxItineraries);
-    	report.setVia(via);
+    	report.setViaLocations(via);
     	report.setRequestGeometry(GeometryHelper.createLines(fromPlace.getPoint().getCoordinate(), 
     			toPlace.getPoint().getCoordinate(), 
-    			via.stream().map(loc -> loc.getPoint().getCoordinate()).toArray(Coordinate[]::new))
+    			via == null ? null : via.stream().map(loc -> loc.getPoint().getCoordinate()).toArray(Coordinate[]::new))
     	);
     	
     	eu.netmobiel.opentripplanner.api.model.TraverseMode[] otpModes = modes.stream()
@@ -139,7 +139,7 @@ public class OpenTripPlannerDao {
     			if (result.error.missing != null && result.error.missing.size() > 0) {
     				msg = String.format("%s Missing parameters [ %s ]", msg, String.join(",", result.error.missing));
     			}
-    			report.setError(msg);
+    			report.setErrorText(msg);
     			report.setErrorVendorCode(result.error.message.name());
     			report.setStatusCode(result.error.message.getStatus().getStatusCode());
     		} else {
@@ -148,12 +148,15 @@ public class OpenTripPlannerDao {
     			report.setNrItineraries(plan.getItineraries().size());
     			plannerResult.addItineraries(plan.getItineraries());
     		}
-        	
+    	} catch (NotFoundException ex) {
+			report.setErrorText(ex.getMessage());
+			report.setErrorVendorCode(ex.getVendorCode());
+			report.setStatusCode(Response.Status.NOT_FOUND.getStatusCode());
     	} catch (WebApplicationException ex) {
-			report.setError(ex.getMessage());
+			report.setErrorText(ex.getMessage());
 			report.setStatusCode(ex.getResponse().getStatus());
     	} catch (Exception ex) {
-			report.setError(String.join(" - ", ExceptionUtil.unwindExceptionMessage("Error calling OTP", ex)));
+			report.setErrorText(String.join(" - ", ExceptionUtil.unwindExceptionMessage("Error calling OTP", ex)));
 			report.setErrorVendorCode(ex.getClass().getSimpleName());
 			report.setStatusCode(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
     	}

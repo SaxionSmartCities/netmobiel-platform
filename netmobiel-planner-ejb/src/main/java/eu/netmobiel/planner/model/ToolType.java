@@ -14,7 +14,11 @@ public enum ToolType {
 	/**
 	 * The Rideshare in NetMobiel 
 	 */
-	NETMOBIEL_RIDESHARE("NRS");
+	NETMOBIEL_RIDESHARE("NRS"),
+	/**
+	 * Manually crafted, for testing etc. 
+	 */
+	MANUAL("MAN");
 ;
 
 	private String code;

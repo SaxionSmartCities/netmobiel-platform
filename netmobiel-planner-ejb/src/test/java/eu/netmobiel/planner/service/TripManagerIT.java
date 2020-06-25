@@ -34,10 +34,12 @@ import eu.netmobiel.planner.model.RelativeDirection;
 import eu.netmobiel.planner.model.Stop;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
+import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.Trip_;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.TripDao;
+import eu.netmobiel.planner.test.Fixture;
 import eu.netmobiel.planner.test.PlannerIntegrationTestBase;
 
 @RunWith(Arquillian.class)
@@ -451,50 +453,9 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
         assertEquals(nrTripsStart + 1, trips.getData().size());
     }
 
-    private Trip createRideshareTrip(String rideRef) {
-        Trip trip = new Trip();
-    	GeoLocation fromPlace = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
-    	GeoLocation  toPlace = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
-    	Instant departureTime = OffsetDateTime.parse("2020-01-07T14:30:00+01:00").toInstant();
-    	Instant arrivalTime = OffsetDateTime.parse("2020-01-07T15:15:00+01:00").toInstant();
-//    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
-    	trip.setFrom(fromPlace);
-    	trip.setTo(toPlace);
-    	trip.setState(TripState.PLANNING);
-    	trip.setDepartureTime(departureTime);
-    	trip.setArrivalTime(arrivalTime);
-    	trip.setDuration(Math.toIntExact(Duration.between(departureTime, arrivalTime).getSeconds()));
-    	trip.setStops(new ArrayList<>());
-    	trip.setLegs(new ArrayList<>());
-
-    	Leg leg1 = new Leg();
-    	trip.getLegs().add(leg1);
-    	leg1.setAgencyId("NB:RS1234");
-    	leg1.setAgencyName("Netmobiel Rideshare Services");
-    	leg1.setAgencyTimeZoneOffset(3600000);
-    	leg1.setDistance(30000);
-    	leg1.setDuration(trip.getDuration());
-    	
-    	Stop stop1F = new Stop(fromPlace);
-    	stop1F.setDepartureTime(departureTime);
-    	leg1.setFrom(stop1F);		
-    	trip.getStops().add(stop1F);
-    	
-    	Stop stop1T = new Stop(toPlace);
-    	stop1T.setArrivalTime(stop1F.getDepartureTime().plusSeconds(leg1.getDuration()));
-    	leg1.setTo(stop1T);
-    	trip.getStops().add(stop1T);
-
-    	leg1.setState(TripState.PLANNING);
-    	leg1.setTraverseMode(TraverseMode.RIDESHARE);
-    	leg1.setTripId(rideRef);
-    	leg1.setDriverId("urn:nb:rs:user:1");
-    	leg1.setDriverName("Piet Pietersma");
-    	leg1.setVehicleId("urn.nb:rs:car:5");
-    	leg1.setVehicleLicensePlate("52-PH-VD");
-    	leg1.setVehicleName("Volvo V70");
-    	// For rideshare booking is always required
-		leg1.setBookingRequired(true);
+    private Trip createRideshareTrip(User traveller, String rideRef) {
+    	TripPlan plan = Fixture.createRidesharePlan(traveller, "2020-01-06T13:30:00Z", Fixture.placeZieuwent, Fixture.placeSlingeland, "2020-01-07T13:30:00Z", false, 60 * 35, "urn:nb:rs:ride:354");
+    	Trip trip = Fixture.createTrip(traveller, plan);
 		return trip;
     }
 
@@ -503,7 +464,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     	User traveller = new User();
     	traveller.setId(1L);
     	String rideRef = "urn:nb:rs:ride:354";
-        Trip trip = createRideshareTrip(rideRef);
+        Trip trip = createRideshareTrip(traveller, rideRef);
 
 		// Set autobook false
     	Long id = tripManager.createTrip(traveller, trip, false);
@@ -548,7 +509,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
     	traveller.setId(1L);
     	String rideRef = "urn:nb:rs:ride:354";
         Trip trip = createRideshareTrip(rideRef);
-		Optional<Leg> leg = trip.findLegByTripId(rideRef);
+		Optional<Leg> leg = trip.getItinerary().findLegByTripId(rideRef);
 		assertTrue(leg.isPresent());
 		assertNull(leg.get().getBookingId());
 
@@ -559,7 +520,7 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
 		Trip tripdb = em.createQuery("select t from Trip t join fetch t.legs where t.id = :id", Trip.class)
 				.setParameter("id", id)
 				.getSingleResult();
-		leg = tripdb.findLegByTripId(rideRef);
+		leg = tripdb.getItinerary().findLegByTripId(rideRef);
 		assertTrue(leg.isPresent());
 		assertNull(leg.get().getBookingId());
 		flush();
@@ -573,8 +534,8 @@ public class TripManagerIT extends PlannerIntegrationTestBase {
 				.getSingleResult();
 		assertEquals(TripState.BOOKING, tripdb.getState());
 		assertEquals(1, eventListenerHelper.getBookingRequestedEventCount());
-		assertTrue(tripdb.findLegByTripId(rideRef).isPresent());
-		assertTrue(tripdb.findLegByBookingId(bookingRef).isPresent());
+		assertTrue(tripdb.getItinerary().findLegByTripId(rideRef).isPresent());
+		assertTrue(tripdb.getItinerary().findLegByBookingId(bookingRef).isPresent());
     }
 
     @Test

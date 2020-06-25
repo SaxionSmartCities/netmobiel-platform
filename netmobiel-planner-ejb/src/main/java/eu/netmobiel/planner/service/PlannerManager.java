@@ -19,12 +19,14 @@ import java.util.stream.Stream;
 
 import javax.ejb.EJBAccessException;
 import javax.ejb.Stateless;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EllipseHelper;
@@ -35,6 +37,7 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.OtpCluster;
+import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.PlannerReport;
 import eu.netmobiel.planner.model.PlannerResult;
 import eu.netmobiel.planner.model.RideshareResult;
@@ -42,29 +45,38 @@ import eu.netmobiel.planner.model.Stop;
 import eu.netmobiel.planner.model.ToolType;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
+import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.OpenTripPlannerDao;
 import eu.netmobiel.planner.repository.OtpClusterDao;
+import eu.netmobiel.planner.repository.TripPlanDao;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.service.RideManager;
 
 @Stateless
 @Logging
 public class PlannerManager {
+	public static final Integer MAX_RESULTS = 10; 
 	private static final float PASSENGER_RELATIVE_MAX_DETOUR = 1.0f;
 	private static final Integer CAR_TO_TRANSIT_SLACK = 10 * 60; // [seconds]
 	private static final int MAX_RIDESHARES = 5;	
 	private static final boolean RIDESHARE_LENIENT_SEARCH = true;	
-	private static final int RIDESHARE_MAX_SLACK_BACKWARD = 24;	// hours
-	private static final int RIDESHARE_MAX_SLACK_FORWARD = 24;	// hours
+	private static final int RIDESHARE_MAX_SLACK_BACKWARD = 6;	// hours
+	private static final int RIDESHARE_MAX_SLACK_FORWARD = 6;	// hours
+	private static final int DEFAULT_MAX_WALK_DISTANCE = 1000;
 	@Inject
     private Logger log;
 
+    @Inject
+    private TripPlanDao tripPlanDao;
     @Inject
     private RideManager rideManager;
     @Inject
     private OpenTripPlannerDao otpDao;
     @Inject
     private OtpClusterDao otpClusterDao;
+    
+    @Inject
+    private Event<TripPlan> shoutOutRequestedEvent;
     
     protected List<Stop> filterImportantStops(TripPlan plan) {
     	List<Stop> places = new ArrayList<>(); 
@@ -156,43 +168,27 @@ public class PlannerManager {
 			return accepted;
 		}
     }
-
-    protected RideshareResult searchRides(Instant now, GeoLocation fromPlace, GeoLocation toPlace, 
+    
+    protected RideshareResult searchRides(Instant now, GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean useAsArrivalTime,
     		Instant earliestDeparture, Instant latestArrival, Integer nrSeats, boolean lenient, Integer maxResults, Integer offset) {
     	PlannerReport report = new PlannerReport();
-    	report.setArrivalTime(latestArrival);
-    	report.setDepartureTime(earliestDeparture);
+    	report.setRequestTime(now);
+    	report.setTravelTime(travelTime);
+    	report.setUseAsArrivalTime(useAsArrivalTime);
+    	report.setEarliestDepartureTime(latestArrival);
+    	report.setLatestArrivalTime(earliestDeparture);
     	report.setFrom(fromPlace);
     	report.setTo(toPlace);
     	report.setToolType(ToolType.NETMOBIEL_RIDESHARE);
     	report.setMaxResults(maxResults);
-    	report.setOffset(offset);
+    	report.setStartPosition(offset);
     	report.setNrSeats(nrSeats);
     	report.setLenientSearch(lenient);
     	report.setRequestGeometry(GeometryHelper.createLines(fromPlace.getPoint().getCoordinate(), toPlace.getPoint().getCoordinate(), null));
     	RideshareResult result = new RideshareResult(report);
     	PagedResult<Ride> ridePage = null;;
     	long start = System.currentTimeMillis();
-    	try {
-        	if (earliestDeparture == null) {
-            	if (latestArrival == null) {
-            		earliestDeparture = now;
-            	} else if (now.isAfter(latestArrival)) { 
-            		throw new BadRequestException("Arrival time must be after now: " + formatDateTime(now));
-            	} else {
-            		earliestDeparture = latestArrival.minusSeconds(RIDESHARE_MAX_SLACK_BACKWARD * 60 * 60);
-        			if (earliestDeparture.isBefore(now)) {
-                		earliestDeparture = now;
-        			}
-        		}
-        	} 
-        	assert(earliestDeparture != null);
-        	if (latestArrival == null) {
-        		latestArrival = earliestDeparture.plusSeconds(RIDESHARE_MAX_SLACK_FORWARD * 60 * 60);
-        	}
-        	assert(latestArrival != null);
-        	report.setArrivalTime(latestArrival);
-        	report.setDepartureTime(earliestDeparture);
+    	try { 
     		ridePage = rideManager.search(fromPlace, toPlace,  earliestDeparture, latestArrival, nrSeats, lenient, maxResults, offset);
 			report.setStatusCode(Response.Status.OK.getStatusCode());
 	    	report.setNrItineraries(ridePage.getCount());
@@ -204,10 +200,10 @@ public class PlannerManager {
     	// in the itinerary.
     		result.setPage(ridePage);
     	} catch (BadRequestException ex) {
-			report.setError(ex.getMessage());
+			report.setErrorText(ex.getMessage());
 			report.setStatusCode(Response.Status.BAD_REQUEST.getStatusCode());
     	} catch (Exception ex) {
-			report.setError(String.join(" - ", ExceptionUtil.unwindExceptionMessage("Error calling Rideshare", ex)));
+			report.setErrorText(String.join(" - ", ExceptionUtil.unwindExceptionMessage("Error calling Rideshare", ex)));
 			report.setErrorVendorCode(ex.getClass().getSimpleName());
 			report.setStatusCode(Response.Status.INTERNAL_SERVER_ERROR.getStatusCode());
     	}
@@ -228,7 +224,6 @@ public class PlannerManager {
 	 * an eligibility interval: A difficult issue as we do not know the passengers
 	 * intentions and concerns. Therefore we use earliestDeparture and latestArrival.
 	 * 
-	 * @param now The reference point in time. A search before <code>now</code> is not allowed.
 	 * @param fromPlace The departure location of the passenger 
 	 * @param toPlace The arrival location of the passenger
 	 * @param earliestDeparture The earliest possible departure time. If not set then it will be set to
@@ -239,9 +234,9 @@ public class PlannerManager {
 	 * @param nrSeats The number of seates required
 	 * @return A list of possible itineraries.
 	 */
-    protected List<PlannerResult> searchRideshareOnly(Instant now, GeoLocation fromPlace, GeoLocation toPlace, 
+    protected List<PlannerResult> searchRideshareOnly(Instant now, GeoLocation fromPlace, GeoLocation toPlace,  Instant travelTime, boolean useAsArrivalTime,
     		Instant earliestDeparture, Instant latestArrival, Integer maxWalkDistance, Integer nrSeats) {
-    	RideshareResult ridesResult = searchRides(now, fromPlace, toPlace,  earliestDeparture, latestArrival, nrSeats, RIDESHARE_LENIENT_SEARCH, MAX_RIDESHARES, 0);
+    	RideshareResult ridesResult = searchRides(now, fromPlace, toPlace,  travelTime, useAsArrivalTime, earliestDeparture, latestArrival, nrSeats, RIDESHARE_LENIENT_SEARCH, MAX_RIDESHARES, 0);
 		List<GeoLocation> intermediatePlaces = Arrays.asList(new GeoLocation[] { fromPlace, toPlace });
 		List<PlannerResult> results = new ArrayList<>();
 		results.add(new PlannerResult(ridesResult.getReport()));
@@ -256,7 +251,7 @@ public class PlannerManager {
         	// Calculate for each ride found the ride when the passenger would ride along, i.e., add the pickup and drop-off location
         	// as intermediate places to the OTP planner and calculate the itinerary.
     		Instant rideDepTime = ride.getDepartureTime();
-        	PlannerResult planResult = otpDao.createPlan(from, to, rideDepTime,  false, modes, false, maxWalkDistance, null, intermediatePlaces, 1);
+        	PlannerResult planResult = otpDao.createPlan(now, from, to, rideDepTime,  false, modes, false, maxWalkDistance, null, intermediatePlaces, 1);
         	results.add(planResult);
     		if (planResult.hasError()) {
         		log.warn("Skip itinerary (RS) due to OTP error: " + planResult.getReport().shortReport());
@@ -296,16 +291,16 @@ public class PlannerManager {
     }
 
     
-    protected void addRideshareAsFirstLeg(Instant now, TripPlan plan, Set<Stop> transitBoardingStops, Set<TraverseMode> transitModalities, Integer maxTransfers) {
+    protected void addRideshareAsFirstLeg(TripPlan plan, Set<Stop> transitBoardingStops, Set<TraverseMode> transitModalities) {
     	log.debug("Search for first leg by Car");
-    	if (maxTransfers != null && maxTransfers <= 0) {
+    	if (plan.getMaxTransfers() != null && plan.getMaxTransfers() < 0) {
     		throw new IllegalArgumentException("maxTransfers cannot be 0 at this point");
     	}
-    	Integer maxPublicTransportTransfers = maxTransfers == null ? null : maxTransfers - 1;
+    	Integer maxPublicTransportTransfers = plan.getMaxTransfers() == null ? null : plan.getMaxTransfers() - 1;
     	for (Stop place : transitBoardingStops) {
     		// Try to find a shared ride from passenger's departure to a transit hub
-        	List<PlannerResult> rideResults = searchRideshareOnly(now, plan.getFrom(), place.getLocation(), 
-        			plan.getDepartureTime(), plan.getArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
+        	List<PlannerResult> rideResults = searchRideshareOnly(plan.getRequestTime(), plan.getFrom(), place.getLocation(), plan.getTravelTime(), false,
+        			plan.getEarliestDepartureTime(), plan.getLatestArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
         	// Add all reports
         	rideResults.stream().forEach(pr -> plan.addPlannerReport(pr.getReport()));
         	// Collect all possible rides 
@@ -317,7 +312,7 @@ public class PlannerManager {
         	// Extract the leg for the passenger and create a complete itinerary for the passenger
         	for (Itinerary dit : passengerCarItineraries) {
             	Instant transitStart  = dit.getLegs().get(0).getEndTime().plusSeconds(CAR_TO_TRANSIT_SLACK);
-        		PlannerResult transitResult = otpDao.createPlan(place.getLocation(), plan.getTo(), transitStart,  false, transitModalities, 
+        		PlannerResult transitResult = otpDao.createPlan(plan.getRequestTime(), place.getLocation(), plan.getTo(), transitStart,  false, transitModalities, 
 	        			false, plan.getMaxWalkDistance(), maxPublicTransportTransfers, null, 2 /* To see repeating */);
         		plan.addPlannerReport(transitResult.getReport());
         		if (transitResult.hasError()) {
@@ -329,18 +324,18 @@ public class PlannerManager {
 		}
     }
 
-    protected void addRideshareAsLastLeg(Instant now, TripPlan plan, Set<Stop> transitAlightingStops, Set<TraverseMode> transitModalities, Integer maxTransfers) {
+    protected void addRideshareAsLastLeg(TripPlan plan, Set<Stop> transitAlightingStops, Set<TraverseMode> transitModalities) {
     	// Try to find a ride from transit place to drop-off (last mile by car)
     	log.debug("Search for a last leg by Car");
-    	if (maxTransfers != null && maxTransfers <= 0) {
+    	if (plan.getMaxTransfers() != null && plan.getMaxTransfers() < 0) {
     		throw new IllegalArgumentException("maxTransfers cannot be 0 at this point");
     	}
-    	Integer maxPublicTransportTransfers = maxTransfers == null ? null : maxTransfers - 1;
+    	Integer maxPublicTransportTransfers = plan.getMaxTransfers() == null ? null : plan.getMaxTransfers() - 1;
     	//FIXME Should be in fact alighting stops 
     	for (Stop place : transitAlightingStops) {
     		// Try to find a shared ride from transit hub to passenger's destination
-    		List<PlannerResult> rideResults = searchRideshareOnly(now, place.getLocation(), plan.getTo(), 
-        		plan.getDepartureTime(), plan.getArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
+    		List<PlannerResult> rideResults = searchRideshareOnly(plan.getRequestTime(), place.getLocation(), plan.getTo(), plan.getTravelTime(), true,
+        		plan.getEarliestDepartureTime(), plan.getLatestArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
         	// Add all reports
         	rideResults.stream().forEach(pr -> plan.addPlannerReport(pr.getReport()));
         	// Collect all possible rides 
@@ -352,7 +347,7 @@ public class PlannerManager {
         	// Extract the leg for the passenger and create a complete itinerary for the passenger
         	for (Itinerary dit : passengerCarItineraries) {
         		Instant transitEnd  = dit.getLegs().get(0).getEndTime().plusSeconds(CAR_TO_TRANSIT_SLACK);
-        		PlannerResult transitResult = otpDao.createPlan(plan.getFrom(), place.getLocation(), transitEnd, true, transitModalities,  
+        		PlannerResult transitResult = otpDao.createPlan(plan.getRequestTime(), plan.getFrom(), place.getLocation(), transitEnd, true, transitModalities,  
             			false, plan.getMaxWalkDistance(), maxPublicTransportTransfers, null, 2 /* To see repeating */);
         		plan.addPlannerReport(transitResult.getReport());
         		if (transitResult.hasError()) {
@@ -380,17 +375,11 @@ public class PlannerManager {
     	return stops;
     }
 
-    protected PlannerResult createTransitPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant departureTime, Instant arrivalTime, 
+    protected PlannerResult createTransitPlan(Instant now, GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean isArrivalTime, 
     		Set<TraverseMode> modes, Integer maxWalkDistance, Integer maxTransfers, Integer maxItineraries) {
-    	boolean arrivalTimeIsPinned = false;
-    	Instant travelTime = departureTime;
-    	if (travelTime == null) {
-    		travelTime = arrivalTime;
-    		arrivalTimeIsPinned = true;
-    	}
     	// For transit walk is necessary
 		modes.add(TraverseMode.WALK);
-		return otpDao.createPlan(fromPlace, toPlace, travelTime, arrivalTimeIsPinned, 
+		return otpDao.createPlan(now, fromPlace, toPlace, travelTime, isArrivalTime, 
 					modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
     }
     
@@ -410,110 +399,70 @@ public class PlannerManager {
      * @param nrSeats The number of seats the passenger wants to use in a car.
      * @return
      */
-    public TripPlan searchMultiModal(Instant now, GeoLocation fromPlace, GeoLocation toPlace, 
-    		Instant depTime, Instant arrTime, 
-    		Set<TraverseMode> modalities, Integer maxWalkDistance, Integer nrSeats,
-    		Integer maxTransfers, Boolean firstLegRideshare, Boolean lastLegRideshare) throws BadRequestException {
-    	if (now == null) {
-    		throw new BadRequestException("Parameter 'now' is mandatory");
-    	}
-    	if (depTime == null && arrTime == null) {
-    		depTime = now;
-    	}
-    	if (arrTime != null && depTime != null && depTime.isAfter(arrTime)) {
-    		throw new BadRequestException("Arrival time must be after depature time: " + formatDateTime(depTime));
-    	}
-    	//FIXME For searching we need a earliestDeparture and latestArrival. For scoring we need to know a reference time and whether that is departure or arrival.
-    	boolean allowRideshareForFirstLeg = firstLegRideshare != null ? firstLegRideshare : false;
-    	boolean allowRideshareForLastLeg = lastLegRideshare != null ? lastLegRideshare : false;
-    	if (log.isDebugEnabled()) {
-    		log.debug(String.format("searchMultiModal:\n Now %s D %s A %s from %s to %s; seats #%d, max walk distance %sm; modalities %s; maxTransfers %s; first/lastLegRS %s/%s",
-    						formatDateTime(now),
-    						depTime != null ? formatDateTime(depTime) : "*", 
-    						arrTime != null ? formatDateTime(arrTime) : "*", 
-    						fromPlace.toString(), 
-    						toPlace.toString(),
-    						nrSeats != null ? nrSeats : 1, 
-    						maxWalkDistance != null ? maxWalkDistance.toString() : "?",
-    						modalities != null ? modalities.stream().map(tm -> tm.name()).collect(Collectors.joining(", ")) : "*",
-    						maxTransfers != null ? maxTransfers.toString() : "-",
-    						allowRideshareForFirstLeg ? "Y" : "N",
-    	    				allowRideshareForLastLeg ? "Y" : "N"
-   						)
-    		);
-    	}
-    	// Create the basic trip plan
-    	TripPlan thePlan = new TripPlan();
-		thePlan.setFrom(fromPlace);
-		thePlan.setTo(toPlace);
-		thePlan.setArrivalTime(arrTime);
-		thePlan.setDepartureTime(depTime);
-		thePlan.setTraverseModes(modalities);
-		thePlan.setNrSeats(nrSeats);
-		thePlan.setMaxWalkDistance(maxWalkDistance);
-		thePlan.setMaxTransfers(maxTransfers);
-		thePlan.setFirstLegRideshare(firstLegRideshare);
-		thePlan.setLastLegRideshare(lastLegRideshare);
+    protected TripPlan searchMultiModal(TripPlan plan) throws BadRequestException {
 		// 
-		Set<TraverseMode> transitModalities = modalities.stream().filter(m -> m.isTransit()).collect(Collectors.toSet());
-		boolean rideshareEligable = modalities.stream().filter(m -> m == TraverseMode.RIDESHARE).findFirst().isPresent();
+		Set<TraverseMode> transitModalities = plan.getTraverseModes().stream().filter(m -> m.isTransit()).collect(Collectors.toSet());
+		boolean rideshareEligable = plan.getTraverseModes().contains(TraverseMode.RIDESHARE);
 		if (!transitModalities.isEmpty()) {
 			// Transit is eligable. Add the transit itineraries as calculated by OTP.
-			PlannerResult transitResult = createTransitPlan(fromPlace, toPlace, depTime, arrTime, transitModalities, maxWalkDistance, maxTransfers, null);
-    		thePlan.addPlannerReport(transitResult.getReport());
+			PlannerResult transitResult = createTransitPlan(plan.getRequestTime(), plan.getFrom(), plan.getTo(), plan.getTravelTime(), plan.isUseAsArrivalTime(), 
+					transitModalities, plan.getMaxWalkDistance(), plan.getMaxTransfers(), null);
+    		plan.addPlannerReport(transitResult.getReport());
     		if (transitResult.hasError()) {
         		log.warn("Skip itineraries (transit) due to OTP error: " + transitResult.getReport().shortReport());
     		} else {
-    			thePlan.addItineraries(transitResult.getItineraries());
+    			plan.addItineraries(transitResult.getItineraries());
     		}
 		}
 
 		if (rideshareEligable) {
 	    	// Add the RIDESHARE only itineraries
-			List<PlannerResult> rideResults = searchRideshareOnly(now, fromPlace, toPlace, depTime, arrTime, maxWalkDistance, nrSeats);
-        	rideResults.stream().forEach(pr -> thePlan.addPlannerReport(pr.getReport()));
+			List<PlannerResult> rideResults = searchRideshareOnly(plan.getRequestTime(), plan.getFrom(), plan.getTo(), plan.getTravelTime(), plan.isUseAsArrivalTime(),
+					plan.getEarliestDepartureTime(), plan.getLatestArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
+        	rideResults.stream().forEach(pr -> plan.addPlannerReport(pr.getReport()));
         	List<Itinerary> passengerItineraries = rideResults.stream()
         			.flatMap(pr -> pr.getItineraries().stream())
         			.collect(Collectors.toList());
-	    	thePlan.getItineraries().addAll(passengerItineraries);
+	    	plan.getItineraries().addAll(passengerItineraries);
 
 			// If transit is an option too then collect possible pickup and drop-off places near transit stops
-			if (!transitModalities.isEmpty() && 
-					((allowRideshareForFirstLeg || allowRideshareForLastLeg) && (maxTransfers == null || maxTransfers >= 1))) {
+			if (!transitModalities.isEmpty() && plan.isRideshareLegAllowed() && 
+					(plan.getMaxTransfers() == null || plan.getMaxTransfers() >= 1)) {
 				Set<Stop> transitBoardingStops = null;
 				// Calculate a transit reference plan to find potential boarding or alighting places. 
-				PlannerResult transitRefResult = createTransitPlan(fromPlace, toPlace, depTime, arrTime, transitModalities, 50000, maxTransfers, 2);
+				PlannerResult transitRefResult = createTransitPlan(plan.getRequestTime(), plan.getFrom(), plan.getTo(), plan.getTravelTime(), plan.isUseAsArrivalTime(),
+						transitModalities, 50000, plan.getMaxTransfers() == null ? null : plan.getMaxTransfers() - 1, 2);
 	    		if (transitRefResult.hasError()) {
 	        		log.warn("Skip itineraries (transit reference) due to OTP error: " + transitRefResult.getReport().shortReport());
 	    		} else {
 					List<OtpCluster> nearbyClusters = new ArrayList<>();
 					// Collect the stops. If there are no stops or too few, collect potential clusters
 					//FIXME The ordering of the clusters depends probably on first or last leg. Check.
-			    	transitBoardingStops = collectStops(thePlan, findTransitBoardingStops(transitRefResult.getItineraries()), nearbyClusters);
-		    		if (allowRideshareForFirstLeg) {
-		        		addRideshareAsFirstLeg(now, thePlan, transitBoardingStops, transitModalities, maxTransfers);
+			    	transitBoardingStops = collectStops(plan, findTransitBoardingStops(transitRefResult.getItineraries()), nearbyClusters);
+		    		if (plan.isFirstLegRideshareAllowed()) {
+		        		addRideshareAsFirstLeg(plan, transitBoardingStops, transitModalities);
 		    		}
-		    		if (allowRideshareForLastLeg) {
-		        		addRideshareAsLastLeg(now, thePlan, transitBoardingStops, transitModalities, maxTransfers);
+		    		if (plan.isLastLegRideshareAllowed()) {
+		        		addRideshareAsLastLeg(plan, transitBoardingStops, transitModalities);
 		    		}
 	    		}
 			}
 		}
 
-    	rankItineraries(thePlan, depTime, arrTime);
-    	thePlan.getItineraries().sort(new Comparator<Itinerary>() {
+    	rankItineraries(plan);
+    	plan.getItineraries().sort(new Comparator<Itinerary>() {
 			@Override
 			public int compare(Itinerary it1, Itinerary it2) {
 				return -Double.compare(it1.getScore(), it2.getScore());
 			}
 		});
-    	return thePlan;
+    	return plan;
     }
 
-    protected void rankItineraries(TripPlan thePlan, Instant fromDate, Instant toDate) {
+    protected void rankItineraries(TripPlan plan) {
     	BasicItineraryRankingAlgorithm ranker = new BasicItineraryRankingAlgorithm();
-    	for (Itinerary it: thePlan.getItineraries()) {
-    		ranker.calculateScore(it, fromDate, toDate);
+    	for (Itinerary it: plan.getItineraries()) {
+    		ranker.calculateScore(it, plan.getTravelTime(), plan.isUseAsArrivalTime());
     	}
     }
 
@@ -593,4 +542,170 @@ public class PlannerManager {
     public void throwAccessException() {
     	throw new EJBAccessException("Can't access this!");
     }
+
+    protected void sanitizePlanInput(TripPlan plan) throws BadRequestException {
+    	if (plan.getId() != null) {
+    		throw new IllegalStateException("New plan should not have a persistent ID");
+    	}
+    	Instant now = plan.getRequestTime();
+    	if (now == null) {
+    		throw new BadRequestException("Parameter 'now' is mandatory");
+    	}
+    	if (plan.getTravelTime() == null) {
+    		plan.setTravelTime(now);
+    		plan.setUseAsArrivalTime(false);
+    	}
+    	if (plan.getEarliestDepartureTime() == null) {
+        	if (plan.getLatestArrivalTime() == null) {
+        		plan.setEarliestDepartureTime(now);
+        	} else if (now.isAfter(plan.getLatestArrivalTime())) { 
+        		throw new BadRequestException("Latest arrival time must be after now: " + formatDateTime(now));
+        	} else {
+        		plan.setEarliestDepartureTime(plan.getTravelTime().minusSeconds(RIDESHARE_MAX_SLACK_BACKWARD * 60 * 60));
+    			if (plan.getEarliestDepartureTime().isBefore(now)) {
+            		plan.setEarliestDepartureTime(now);
+    			}
+    		}
+    	} 
+    	assert(plan.getEarliestDepartureTime() != null);
+    	if (plan.getLatestArrivalTime() == null) {
+    		plan.setLatestArrivalTime(plan.getEarliestDepartureTime().plusSeconds(RIDESHARE_MAX_SLACK_FORWARD * 60 * 60));
+    	}
+    	assert(plan.getLatestArrivalTime() != null);
+    	if (plan.getTravelTime().isBefore(plan.getEarliestDepartureTime())) {
+    		throw new BadRequestException("Earliest departure time must be before travel time: " + formatDateTime(plan.getTravelTime()));
+    	}
+    	if (plan.getTravelTime().isAfter(plan.getLatestArrivalTime())) {
+    		throw new BadRequestException("Latest arrival time must be after travel time: " + formatDateTime(plan.getTravelTime()));
+    	}
+    	if (plan.getPlanType() == null) {
+    		plan.setPlanType(PlanType.REGULAR);
+    	}
+    	if (plan.getMaxWalkDistance() == null) {
+    		plan.setMaxWalkDistance(DEFAULT_MAX_WALK_DISTANCE);
+    	}
+    	if (plan.getMaxTransfers() != null && plan.getMaxTransfers() < 0) {
+    		throw new IllegalArgumentException("maxTransfers cannot be negative");
+    	}
+    	if (plan.getNrSeats() == null) {
+    		plan.setNrSeats(1);
+    	}
+    	if (plan.getTraverseModes() == null || plan.getTraverseModes().isEmpty()) {
+    		plan.setTraverseModes(new HashSet<>(Arrays.asList(new TraverseMode[] { TraverseMode.WALK, TraverseMode.RIDESHARE, TraverseMode.TRANSIT })));
+    	}
+    	if (! plan.getTraverseModes().contains(TraverseMode.RIDESHARE)) {
+    		plan.setFirstLegRideshareAllowed(false);
+    		plan.setLastLegRideshareAllowed(false);
+    	}
+    }
+
+    public TripPlan createAndReturnTripPlan(User traveller, TripPlan plan, Instant now) throws NotFoundException, BadRequestException {
+    	plan.setTraveller(traveller);
+    	plan.setRequestTime(now);
+    	sanitizePlanInput(plan);
+    	if (log.isDebugEnabled()) {
+    		log.debug(String.format("searchMultiModal:\n Now %s %s D %s A %s from %s to %s; seats #%d, max walk distance %sm; modalities %s; maxTransfers %s; first/lastLegRS %s/%s",
+    						formatDateTime(plan.getRequestTime()),
+    						plan.getPlanType().toString(),
+    						plan.isUseAsArrivalTime() ? "A" : "D",
+    						plan.getTravelTime(), 
+    						plan.getFrom().toString(), 
+    						plan.getTo().toString(),
+    						plan.getNrSeats() != null ? plan.getNrSeats() : 1, 
+   							plan.getMaxWalkDistance(),
+    						plan.getTraverseModes().stream().map(tm -> tm.name()).collect(Collectors.joining(", ")),
+    						plan.getMaxTransfers() != null ? plan.getMaxTransfers().toString() : "-",
+    						plan.isFirstLegRideshareAllowed() ? "Y" : "N",
+    	    				plan.isLastLegRideshareAllowed() ? "Y" : "N"
+   						)
+    		);
+    	}
+       	if (plan.getPlanType() != PlanType.SHOUT_OUT) {
+       		// Start a search
+       		plan = searchMultiModal(plan);
+        	plan.setRequestDuration(Instant.now().toEpochMilli() - plan.getRequestTime().toEpochMilli());
+       	}
+       	tripPlanDao.save(plan);
+       	if (plan.getPlanType() == PlanType.SHOUT_OUT) {
+       		shoutOutRequestedEvent.fire(plan);
+       		// Note:the plan remains open, itineraries will hopefully arrive, one by one.
+       	}
+    	return plan;
+    }
+    
+    /**
+     * Creates a trip plan on behalf of a user. If the type of the plan is a shout-out, then a shout-out event is sent. 
+     * Otherwise the planner is called and a list of possible itineraries is prepared. 
+     * @param user the user for whom the plan is created
+     * @param plan the new plan
+     * @return The ID of the plan just created.
+     * @throws NotFoundException In case one of the referenced object cannot be found.
+     * @throws BadRequestException In case of bad parameters.
+     */
+    public Long createTripPlan(User traveller, TripPlan plan, Instant now) throws NotFoundException, BadRequestException {
+    	return createAndReturnTripPlan(traveller, plan, now).getId();
+    }
+
+    /**
+     * Closes a trip plan, i.e., the plan is no longer receivibng itineraries in case of a shout-out. 
+     * @param id the id of the trip plan
+     * @throws NotFoundException In case of an invalid trip plan ID.
+     */
+    public void closeTripPlan(Long id) throws NotFoundException {
+    	TripPlan plandb = tripPlanDao.find(id)
+    			.orElseThrow(() -> new NotFoundException("No such trip plan: " + id));
+    	plandb.setRequestDuration(Instant.now().toEpochMilli() - plandb.getRequestTime().toEpochMilli());
+    }
+    
+
+    /**
+     * Retrieves a trip plan. All available details are retrieved.
+     * @param id the id of the trip plan
+     * @return The TripPlan object
+     * @throws NotFoundException In case of an invalid trip plan ID.
+     */
+    public TripPlan getTripPlan(Long id) throws NotFoundException {
+    	TripPlan plandb = tripPlanDao.fetchGraph(id, TripPlan.DETAILED_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such trip plan: " + id));
+    	return plandb;
+    }
+    
+
+    /**
+     * Lists a page of trip plans in progress of the shout-out type that have a departure or arrival location within a circle with radius 
+     * <code>arrdepRadius</code> meter around the <code>location</code> and where both departure and arrival location are within
+     * a circle with radius <code>travelRadius</code> meter. Consider only plans with a travel time beyond now.
+     * For a shout-out we have two option: Drive to the nearby departure, then to the drop-off, then back home. The other way around is
+     * also feasible. This why the small circle must included either departure or arrival location!
+     * @param location the reference location of the driver asking for the trips.
+     * @param startTime the time from where to start the search. 
+     * @param depArrRadius the small circle containing at least departure or arrival location of the traveller.
+     * @param travelRadius the larger circle containing both departure and arrival location of the traveller.
+     * @param maxResults For paging: maximum results.
+     * @param offset For paging: the offset in the results to return.
+     * @return A list of trips matching the parameters.
+     */
+    public PagedResult<TripPlan> listShoutOuts(GeoLocation location, Instant startTime, Integer depArrRadius, 
+    		Integer travelRadius, Integer maxResults, Integer offset) {
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+        List<TripPlan> results = Collections.emptyList();
+        Long totalCount = 0L;
+   		PagedResult<Long> prs = tripPlanDao.findShoutOutPlans(location, startTime, depArrRadius, travelRadius, 0, 0);
+		totalCount = prs.getTotalCount();
+    	if (totalCount > 0 && maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> tripIds = tripPlanDao.findShoutOutPlans(location, startTime, depArrRadius, travelRadius, maxResults, offset);
+    		if (tripIds.getData().size() > 0) {
+    			// Return the plan and the traveller 
+    			results = tripPlanDao.fetch(tripIds.getData(), null, TripPlan::getId);
+    		}
+    	}
+    	return new PagedResult<TripPlan>(results, maxResults, offset, totalCount);
+    }
+
 }

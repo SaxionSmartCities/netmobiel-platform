@@ -168,7 +168,7 @@ public class OpenTripPlannerClient {
     			.filter(new MinumumDistanceFilter(OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS))
     			.collect(Collectors.toList());
     	if (places.size() < 2) {
-    		// This can only mean that the ride has from an do very close
+    		// This can only mean that the from and to places very close, too close
     		throw new NotFoundException("Ride departure and arrival location are too close", Message.TOO_CLOSE.name());
     	}
    		List<GeoLocation> vias = places.subList(1, places.size() - 1);

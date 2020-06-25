@@ -27,14 +27,22 @@ public abstract class TripPlanMapper {
 	@Inject
 	private Logger log;
 
-	@Mapping(target = "departureTime", ignore = true)
-    @Mapping(target = "arrivalTime", ignore = true)
+	@Mapping(target = "earliestDepartureTime", ignore = true)
+    @Mapping(target = "latestArrivalTime", ignore = true)
     @Mapping(target = "maxWalkDistance", ignore = true)
     @Mapping(target = "nrSeats", ignore = true)
     @Mapping(target = "traverseModes", ignore = true)
     @Mapping(target = "maxTransfers", ignore = true)
-    @Mapping(target = "firstLegRideshare", ignore = true)
-    @Mapping(target = "lastLegRideshare", ignore = true)
+    @Mapping(target = "firstLegRideshareAllowed", ignore = true)
+    @Mapping(target = "lastLegRideshareAllowed", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "planType", ignore = true)
+    @Mapping(target = "requestTime", ignore = true)
+    @Mapping(target = "requestDuration", ignore = true)
+    @Mapping(target = "travelTime", source = "date")
+    @Mapping(target = "traveller", ignore = true)
+    @Mapping(target = "plannerReports", ignore = true)
+    @Mapping(target = "useAsArrivalTime", ignore = true)
     public abstract eu.netmobiel.planner.model.TripPlan map(TripPlan source );
 
     @Mapping(target = "label", source = "name")
@@ -56,6 +64,8 @@ public abstract class TripPlanMapper {
     @Mapping(target = "departureTime", source = "startTime")
     @Mapping(target = "score", ignore = true)
     @Mapping(target = "stops", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "plan", ignore = true)
     public abstract eu.netmobiel.planner.model.Itinerary itineraryToItinerary(Itinerary itinerary);
 
     
@@ -72,6 +82,7 @@ public abstract class TripPlanMapper {
     @Mapping(target = "guideSteps", source = "walkSteps")
     @Mapping(target = "bookingId", ignore = true)
     @Mapping(target = "bookingRequired", ignore = true)
+    @Mapping(target = "plannerReport", ignore = true)
     public abstract eu.netmobiel.planner.model.Leg legToLeg(Leg leg);
     
     @Mapping(target = "name", source = "streetName")

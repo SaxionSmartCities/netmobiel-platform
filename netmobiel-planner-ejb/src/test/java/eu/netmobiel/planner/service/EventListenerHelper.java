@@ -5,8 +5,8 @@ import javax.enterprise.event.Observes;
 
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
-import eu.netmobiel.commons.model.event.ShoutOutRequestedEvent;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.planner.model.TripPlan;
 
 /**
  * Help class for listening to events in the Planner classes. 
@@ -21,16 +21,16 @@ public class EventListenerHelper {
     private int bookingRequestedEventCount;
     private BookingCancelledEvent lastBookingCancelledEvent;
     private int bookingCancelledEventCount;
-    private ShoutOutRequestedEvent lastShoutOutRequestedEvent;
-    private int shoutOutRequestedEventCount;
+    private TripPlan lastTripPlan;
+    private int TripPlanCount;
     
     public void reset() {
 		lastBookingCancelledEvent = null;
 		bookingCancelledEventCount = 0;
 		lastBookingRequestedEvent = null;
 		bookingRequestedEventCount = 0;
-		lastShoutOutRequestedEvent = null;
-		shoutOutRequestedEventCount = 0;
+		lastTripPlan = null;
+		TripPlanCount = 0;
     }
 
     public void onBookingRequestedEvent(@Observes BookingRequestedEvent bce) {
@@ -43,9 +43,9 @@ public class EventListenerHelper {
     	bookingCancelledEventCount++;
     }
     
-	public void onShoutOutRequestedEvent(@Observes ShoutOutRequestedEvent sor) {
-    	lastShoutOutRequestedEvent = sor;
-    	shoutOutRequestedEventCount++;
+	public void onTripPlan(@Observes TripPlan plan) {
+    	lastTripPlan = plan;
+    	TripPlanCount++;
     }
 
 	public BookingRequestedEvent getLastBookingRequestedEvent() {
@@ -64,12 +64,12 @@ public class EventListenerHelper {
 		return bookingCancelledEventCount;
 	}
 
-	public ShoutOutRequestedEvent getLastShoutOutRequestedEvent() {
-		return lastShoutOutRequestedEvent;
+	public TripPlan getLastTripPlan() {
+		return lastTripPlan;
 	}
 
-	public int getShoutOutRequestedEventCount() {
-		return shoutOutRequestedEventCount;
+	public int getTripPlanCount() {
+		return TripPlanCount;
 	}
 	
 }

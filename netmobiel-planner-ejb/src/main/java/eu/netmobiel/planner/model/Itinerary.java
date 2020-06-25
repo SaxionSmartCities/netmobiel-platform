@@ -60,8 +60,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 		name = Itinerary.LIST_ITINERARY_DETAIL_ENTITY_GRAPH, 
 		attributeNodes = { 
 				@NamedAttributeNode(value = "stops"),		
-				@NamedAttributeNode(value = "legs", subgraph = "leg-details"),		
-				@NamedAttributeNode(value = "traveller"),		
+				@NamedAttributeNode(value = "legs", subgraph = "leg-details")		
 		}, subgraphs = {
 				// Without this subgraph no leg details are retrieved
 				@NamedSubgraph(
@@ -111,7 +110,7 @@ public class Itinerary implements Serializable {
     private Instant arrivalTime;
 
     /**
-     * Duration of the trip on this itinerary, in seconds. Why is this field present?
+     * Duration of the trip on this itinerary, in seconds. Why is this field present? Because it is much easier to use in JPQL queries.
      */
     @Basic
     private Integer duration;

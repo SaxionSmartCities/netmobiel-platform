@@ -8,10 +8,6 @@ package eu.netmobiel.planner.model;
  */
 public enum TripState {
 	/**
-	 * A trip is being requested through a shout-out in the community
-	 */
-	REQUESTED("RQS"),
-	/**
 	 * A trip is being planned, i.e. departure and destination places are known, departure or arrival time too, but not all means of transport are known yet.
 	 */
 	PLANNING("PLN"),

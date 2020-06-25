@@ -114,7 +114,7 @@ public class BookingProcessor {
     			// The booking is cancelled by rideshare
     			tripManager.cancelBooking(event.getTravellerTripRef(), event.getBookingRef(), event.getCancelReason(), event.isCancelledByDriver());
     			Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, event.getTravellerTripRef()));
-    			Leg leg = trip.findLegByBookingId(event.getBookingRef())
+    			Leg leg = trip.getItinerary().findLegByBookingId(event.getBookingRef())
     					.orElseThrow(() -> new NotFoundException("No such booking in leg: " + event.getBookingRef()));
     			if (event.isCancelledByDriver()) {
     				// Notify the passenger
@@ -123,7 +123,7 @@ public class BookingProcessor {
     				msg.setSubject("Chauffeur heeft geannuleerd.");
     				msg.setBody(
     						MessageFormat.format("Voor jouw reis op {0} naar {1} kun je helaas meer met {2} meerijden.", 
-    								DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(trip.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
+    								DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(trip.getItinerary().getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
     								trip.getTo().getLabel(), 
     								leg.getDriverName()
     								)

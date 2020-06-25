@@ -20,10 +20,15 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedAttributeNode;
+import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedEntityGraphs;
+import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
+import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
@@ -47,8 +52,8 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
  * With the flag the last trip state is kept, so that we can analyse in which state a trip is cancelled.
  * Alternative: Maintain a log of the trip state change.
  * 
- * A trip is created with a reference to an itinerary as calculated earlier by the planner. When a user does not get 
- * satisfactory results, he can issue a shout-out. A shout-out creates a trip, copies a reference plan as sets the 
+ * A trip is created with a reference to an itinerary as calculated earlier by the planner. When a traveller does not get 
+ * satisfactory results, he or she can issue a shout-out. A shout-out creates a trip plan, sets the 
  * modality to rideshare and posts then all potential drivers with the request. A driver can respond by offering a ride. 
  * The ride will be added as a itinerary in the shout-out plan. At some point in time the traveller will decide which 
  * ride (that is: itinerary) to select. From that on the process continues as with a ordinary planning: In case of rideshare 
@@ -57,15 +62,61 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
  *  Once it is time, the trip will become in transit. When the traveller arrives, the trip is completed.  
  * 
  */
+@NamedEntityGraphs({
+	@NamedEntityGraph(
+			name = Trip.DETAILED_ENTITY_GRAPH, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "itinerary", subgraph = "subgraph.itinerary"),		
+					@NamedAttributeNode(value = "traveller")		
+			}, subgraphs = {
+					@NamedSubgraph(
+							name = "subgraph.itinerary",
+							attributeNodes = {
+									@NamedAttributeNode(value = "legs", subgraph = "subgraph.leg")
+							}
+					),
+					@NamedSubgraph(
+							name = "subgraph.leg",
+							attributeNodes = {
+									@NamedAttributeNode(value = "from"),
+									@NamedAttributeNode(value = "to"),
+									@NamedAttributeNode(value = "guideSteps")
+							}
+					)
+			}
+	),
+	@NamedEntityGraph(
+			name = Trip.MY_LEGS_ENTITY_GRAPH, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "itinerary", subgraph = "subgraph.itinerary"),		
+			}, subgraphs = {
+					@NamedSubgraph(
+							name = "subgraph.itinerary",
+							attributeNodes = {
+									@NamedAttributeNode(value = "legs", subgraph = "subgraph.leg")
+							}
+					),
+					@NamedSubgraph(
+							name = "subgraph.leg",
+							attributeNodes = {
+									@NamedAttributeNode(value = "from"),
+									@NamedAttributeNode(value = "to")
+							}
+					)
+			}
+	)
+
+})
 @Entity
-@Table(name = "trip")
+@Table(name = "trip", uniqueConstraints = @UniqueConstraint(name = "trip_itinerary_uc", columnNames= { "itinerary" } ))
 @Vetoed
 @Access(AccessType.FIELD)
 @SequenceGenerator(name = "trip_sg", sequenceName = "trip_id_seq", allocationSize = 1, initialValue = 50)
 public class Trip implements Serializable {
 
 	private static final long serialVersionUID = -3789784762166689720L;
-
+	public static final String DETAILED_ENTITY_GRAPH = "detailed-trip-entity-graph";
+	public static final String MY_LEGS_ENTITY_GRAPH = "my-legs-trip-entity-graph";
 	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(Trip.class);
 	
 	@Id
@@ -75,6 +126,9 @@ public class Trip implements Serializable {
     @Transient
     private String tripRef;
 
+    /**
+     * The departure location from the original planning request.
+     */
     @NotNull
     @Embedded
     @AttributeOverrides({ 
@@ -83,6 +137,9 @@ public class Trip implements Serializable {
    	} )
     private GeoLocation from;
     
+    /**
+     * The arrival location from the original planning request.
+     */
     @NotNull
     @Embedded
     @AttributeOverrides({ 
@@ -100,20 +157,13 @@ public class Trip implements Serializable {
     @Column(name = "state", length = 3)
     private TripState state;
 
-    @OneToOne(fetch = FetchType.EAGER)
-	@JoinColumn(name = "itinerary", nullable = true, foreignKey = @ForeignKey(name = "trip_itinerary_fk"))
+    @OneToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "itinerary", nullable = false, foreignKey = @ForeignKey(name = "trip_itinerary_fk"))
     private Itinerary itinerary;
 
     @Transient
     private String itineraryRef;
     
-    @OneToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "plan", nullable = true, foreignKey = @ForeignKey(name = "trip_plan_fk"))
-    private TripPlan tripPlan;
-
-    @Transient
-    private String tripPlanRef;
-
     @Size(max = 256)
     @Column(name = "cancel_reason", length = 256)
     private String cancelReason;
@@ -128,6 +178,12 @@ public class Trip implements Serializable {
     @Column(name = "nr_seats")
     private int nrSeats = 1;
 
+    /**
+     * If true then the arrival time is more important in this trip.
+     * Otherwise departure time is more important.
+     */
+    @Column(name = "arrival_time_is_pinned")
+    private boolean arrivalTimeIsPinned;
 
 
 	public Long getId() {
@@ -223,26 +279,12 @@ public class Trip implements Serializable {
 		this.itinerary = null;
 	}
 
-	public TripPlan getTripPlan() {
-		return tripPlan;
+	public boolean isArrivalTimeIsPinned() {
+		return arrivalTimeIsPinned;
 	}
 
-	public void setTripPlan(TripPlan tripPlan) {
-		this.tripPlan = tripPlan;
-		this.tripPlanRef = null;
-	}
-
-	public String getTripPlanRef() {
-		// Better not pull the plan if it is not there.
-//		if (tripPlanRef == null) {
-//			tripPlanRef = tripPlan.getTripPlanRef();
-//		}
-		return tripPlanRef;
-	}
-
-	public void setTripPlanRef(String tripPlanRef) {
-		this.tripPlanRef = tripPlanRef;
-		this.tripPlan = null;
+	public void setArrivalTimeIsPinned(boolean arrivalTimeIsPinned) {
+		this.arrivalTimeIsPinned = arrivalTimeIsPinned;
 	}
 
 	private String formatTime(Instant instant) {

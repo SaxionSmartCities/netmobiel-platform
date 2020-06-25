@@ -7,6 +7,7 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
+import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
@@ -18,13 +19,13 @@ import javax.ws.rs.core.SecurityContext;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
-import eu.netmobiel.commons.model.NetMobielUser;
-import eu.netmobiel.commons.security.SecurityContextHelper;
 import eu.netmobiel.planner.api.SearchApi;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
+import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.service.PlannerManager;
+import eu.netmobiel.planner.service.UserManager;
 
 @RequestScoped
 public class SearchResource implements SearchApi {
@@ -34,6 +35,9 @@ public class SearchResource implements SearchApi {
  
 	@Inject
     private PlannerManager plannerManager;
+
+    @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
+    private UserManager userManager;
 
     @Inject
     private TripPlanMapper tripPlanMapper;
@@ -59,7 +63,7 @@ public class SearchResource implements SearchApi {
     		Boolean lastLegRideshare
     	) {
     	
-    	TripPlan plan = null;
+    	TripPlan plan = new TripPlan();
     	if (now == null) {
     		now = OffsetDateTime.now();
     	}
@@ -83,14 +87,29 @@ public class SearchResource implements SearchApi {
     		nrSeats = 1;
     	}
 		try {
-			NetMobielUser user = SecurityContextHelper.getUserContext(securityContext.getUserPrincipal());
-    		plan = plannerManager.searchMultiModal(toInstant(now), GeoLocation.fromString(from), GeoLocation.fromString(to), 
-    					toInstant(departureTime), toInstant(arrivalTime), domainModalities, maxWalkDistance, nrSeats,
-    					maxTransfers, firstLegRideshare, lastLegRideshare);
+			User traveller = userManager.registerCallingUser();
+			plan.setTraveller(traveller);
+			plan.setFrom(GeoLocation.fromString(from));
+			plan.setTo(GeoLocation.fromString(to));
+			if (departureTime != null) {
+				plan.setTravelTime(toInstant(departureTime));
+				plan.setUseAsArrivalTime(false);
+			} else {
+				plan.setTravelTime(toInstant(arrivalTime));
+				plan.setUseAsArrivalTime(true);
+			}
+			plan.setTraverseModes(domainModalities);
+			plan.setMaxWalkDistance(maxWalkDistance);
+			plan.setNrSeats(nrSeats);
+			plan.setMaxTransfers(maxTransfers);
+			plan.setFirstLegRideshareAllowed(firstLegRideshare);
+			plan.setLastLegRideshareAllowed(lastLegRideshare);
+			
+    		plan = plannerManager.createAndReturnTripPlan(traveller, plan, toInstant(now));
     		if (log.isDebugEnabled()) {
-    			log.debug("Multimodal plan for " + (user != null ? user.getEmail() : "<unknown>") + ":\n" + plan.toString());
+    			log.debug("Multimodal plan for " + traveller.getEmail() + ":\n" + plan.toString());
     		}
-		} catch (eu.netmobiel.commons.exception.BadRequestException ex) {
+		} catch (eu.netmobiel.commons.exception.ApplicationException ex) {
 			throw new WebApplicationException(ex);
 		} catch (IllegalArgumentException ex) {
 			throw new BadRequestException("Input parameter has unrecognized format", ex);

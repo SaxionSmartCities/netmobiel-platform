@@ -13,7 +13,7 @@ public class BasicItineraryRankingAlgorithm {
 	private final static double DEPARTURE_PENALTY = -0.5f;
 	private final static double ARRIVAL_PENALTY = -0.5f;
 	
-	public void calculateScore(Itinerary it, Instant fromDate, Instant toDate) {
+	public void calculateScore(Itinerary it, Instant travelTime, boolean isArriveTime) {
 		// The score is based on:
 		// # of transfers: less is better
 		// waiting time: less is better
@@ -23,11 +23,10 @@ public class BasicItineraryRankingAlgorithm {
 				it.getWaitingTime() * WAITING_TIME_PENALTY +
 				it.getWalkDistance() * WALK_DISTANCE_PENALTY +
 				it.getDuration() * DURATION_PENALTY;
-		if (fromDate != null) {
-			score += Math.abs(Duration.between(fromDate, it.getDepartureTime()).getSeconds()) * DEPARTURE_PENALTY; 
-		}
-		if (toDate != null) {
-			score += Math.abs(Duration.between(toDate, it.getArrivalTime()).getSeconds()) * ARRIVAL_PENALTY; 
+		if (isArriveTime) {
+			score += Math.abs(Duration.between(travelTime, it.getArrivalTime()).getSeconds()) * ARRIVAL_PENALTY; 
+		} else {
+			score += Math.abs(Duration.between(travelTime, it.getDepartureTime()).getSeconds()) * DEPARTURE_PENALTY; 
 		}
 		it.setScore(score);
 	}

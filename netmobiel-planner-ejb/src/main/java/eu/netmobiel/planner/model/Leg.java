@@ -232,6 +232,10 @@ public class Leg implements Serializable {
     @Column(name = "state", length = 3)
     private TripState state;
 
+    /**
+     * Reference to the report of the planner that created the leg.
+     * In some cases the report may be absent, e.g., when legs are created manually.  
+     */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "report", foreignKey = @ForeignKey(name = "leg_report_fk"))
     private PlannerReport plannerReport;

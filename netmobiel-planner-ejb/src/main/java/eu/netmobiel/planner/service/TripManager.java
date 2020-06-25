@@ -3,7 +3,6 @@ package eu.netmobiel.planner.service;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.Comparator;
-import java.util.HashSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -16,23 +15,18 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
-import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
-import eu.netmobiel.commons.model.event.ShoutOutRequestedEvent;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
-import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
-import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.TripDao;
-import eu.netmobiel.planner.repository.TripPlanDao;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @Stateless
@@ -50,17 +44,11 @@ public class TripManager {
     private ItineraryDao itineraryDao;
     
     @Inject
-    private TripPlanDao tripPlanDao;
-
-    @Inject
     private Event<BookingRequestedEvent> bookingRequestedEvent;
 
     @Inject
     private Event<BookingCancelledEvent> bookingCancelledEvent;
 
-    @Inject
-    private Event<ShoutOutRequestedEvent> shoutOutRequestedEvent;
-    
     /**
      * List all trips owned by the specified user. Soft deleted trips are omitted.
      * @return A list of trips owned by the specified user.
@@ -102,27 +90,12 @@ public class TripManager {
     }
 
     /**
-     * Fire a shout-out event asynchronously.
-     * @param trip The trip of the traveller
-     * @param leg the leg for which to issue a shout-out.
-     */
-    private void issueShoutOutRequest(Trip trip) {
-    	ShoutOutRequestedEvent sor = new ShoutOutRequestedEvent(trip.getTraveller(), trip.getTripRef());
-    	sor.setNrSeats(trip.getNrSeats());
-    	sor.setPickup(trip.getFrom());
-    	sor.setDepartureTime(trip.getTripPlan().getDepartureTime());
-    	sor.setDropOff(trip.getTo());
-    	sor.setArrivalTime(trip.getTripPlan().getArrivalTime());
-    	shoutOutRequestedEvent.fire(sor);
-    }
-
-    /**
      * Creates a trip on behalf of a user. If a trip contains bookable legs, the leg will automatically be booked  if the autobook flag is set. 
      * @param user the user for whom the trip is created
      * @param trip the new trip
      * @param autobook If set then start the booking and scheduling process of each leg.
      * @return The ID of the trip just created.
-     * @throws NotFoundException In case one of the referenced object can not be found.
+     * @throws NotFoundException In case one of the referenced object cannot be found.
      * @throws BadRequestException In case of bad parameters.
      */
     public Long createTrip(User traveller, Trip trip, boolean autobook) throws NotFoundException, BadRequestException {
@@ -133,51 +106,36 @@ public class TripManager {
         			.orElseThrow(() -> new NotFoundException("No such itinerary: " + trip.getItineraryRef()));
         	trip.setState(TripState.PLANNING);
         	trip.setItinerary(it);
-    	} else if (trip.getTripPlanRef() != null) {
-    		// Create a shout-out
-        	TripPlan refPlan = tripPlanDao.find(PlannerUrnHelper.getId(TripPlan.URN_PREFIX, trip.getTripPlanRef()))
-        			.orElseThrow(() -> new NotFoundException("No such trip plan: " + trip.getTripPlanRef()));
-        	// Create a new trip plan and issue the shout-out
-        	TripPlan newPlan = new TripPlan(traveller, refPlan.getFrom(), refPlan.getTo(), 
-        			refPlan.getDepartureTime(), refPlan.getArrivalTime(), 
-        			new HashSet<TraverseMode>(), refPlan.getMaxWalkDistance(), refPlan.getNrSeats());
-        	tripPlanDao.save(newPlan);
-        	trip.setTripPlan(newPlan);
-        	trip.setState(TripState.REQUESTED);
     	} else {
-    		throw new BadRequestException("Specify an itinerary or a plan reference");
+    		throw new BadRequestException("Specify an itinerary reference");
     	}
        	tripDao.save(trip);
        	tripDao.flush();
-       	if (trip.getState() == TripState.REQUESTED) {
-    		issueShoutOutRequest(trip);
-       	} else {
-	   		for (Leg leg : trip.getItinerary().getLegs()) {
-	    	    if (autobook) {
-	    	    	if (leg.isBookingRequired()) {
-	       	    		// Ok, we need to take additional steps before the leg can be scheduled. Start a booking procedure.
-	       	    		leg.setState(TripState.BOOKING);
-	       				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
-	       				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
-	       				BookingRequestedEvent b = new BookingRequestedEvent(traveller, trip.getTripRef(), leg.getTripId());
-	       				b.setArrivalTime(leg.getEndTime());
-	       				b.setDepartureTime(leg.getStartTime());
-	       				b.setDropOff(leg.getTo().getLocation());
-	       				b.setNrSeats(trip.getNrSeats());
-	       				b.setPickup(leg.getFrom().getLocation());
-	       				bookingRequestedEvent.fire(b);
-	    	    	} else {
-	       	    		// If no booking is required then no further action is required. Schedule the leg.
-	       				leg.setState(TripState.SCHEDULED);
-	    	    	}
-	   	    	} else {
-		    		log.warn(String.format("Trip %s Leg %s requires explicit booking", trip.getTripRef(), leg.getTripId()));
-	   	    	}
-	       		// So what is exactly the content of the persistence context after the firing of the event?
-	       		// Should we merge/refresh?
-	       	}
-	       	updateTripState(trip);
+   		for (Leg leg : trip.getItinerary().getLegs()) {
+    	    if (autobook) {
+    	    	if (leg.isBookingRequired()) {
+       	    		// Ok, we need to take additional steps before the leg can be scheduled. Start a booking procedure.
+       	    		leg.setState(TripState.BOOKING);
+       				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
+       				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
+       				BookingRequestedEvent b = new BookingRequestedEvent(traveller, trip.getTripRef(), leg.getTripId());
+       				b.setArrivalTime(leg.getEndTime());
+       				b.setDepartureTime(leg.getStartTime());
+       				b.setDropOff(leg.getTo().getLocation());
+       				b.setNrSeats(trip.getNrSeats());
+       				b.setPickup(leg.getFrom().getLocation());
+       				bookingRequestedEvent.fire(b);
+    	    	} else {
+       	    		// If no booking is required then no further action is required. Schedule the leg.
+       				leg.setState(TripState.SCHEDULED);
+    	    	}
+   	    	} else {
+	    		log.warn(String.format("Trip %s Leg %s requires explicit booking", trip.getTripRef(), leg.getTripId()));
+   	    	}
+       		// So what is exactly the content of the persistence context after the firing of the event?
+       		// Should we merge/refresh?
        	}
+       	updateTripState(trip);
     	return trip.getId();
     }
 
@@ -278,38 +236,4 @@ public class TripManager {
    		updateTripState(tripdb);
     }
  
-    /**
-     * Lists a page of trips in planning state (of anyone) that have a departure or arrival location within a circle with radius 
-     * <code>arrdepRadius</code> meter around the <code>location</code> and where both departure and arrival location are within
-     * a circle with radius <code>travelRadius</code> meter. 
-     * @param location the reference location of the driver asking for the trips.
-     * @param startTime the time from where to start the search. 
-     * @param depArrRadius the small circle containing at least departure or arrival location of the traveller.
-     * @param travelRadius the larger circle containing both departure and arrival location of the traveller.
-     * @param maxResults For paging: maximum results.
-     * @param offset For paging: the offset in the results to return.
-     * @return A list of trips matching the parameters.
-     */
-    public PagedResult<Trip> listShoutOuts(GeoLocation location, Instant startTime, Integer depArrRadius, 
-    		Integer travelRadius, Integer maxResults, Integer offset) {
-        if (maxResults == null) {
-        	maxResults = MAX_RESULTS;
-        }
-        if (offset == null) {
-        	offset = 0;
-        }
-        List<Trip> results = Collections.emptyList();
-        Long totalCount = 0L;
-   		PagedResult<Long> prs = tripDao.findShoutOutTrips(location, startTime, depArrRadius, travelRadius, 0, 0);
-		totalCount = prs.getTotalCount();
-    	if (totalCount > 0 && maxResults > 0) {
-    		// Get the actual data
-    		PagedResult<Long> tripIds = tripDao.findShoutOutTrips(location, startTime, depArrRadius, travelRadius, maxResults, offset);
-    		if (tripIds.getData().size() > 0) {
-    			results = tripDao.fetch(tripIds.getData(), null, Trip::getId);
-    		}
-    	}
-    	return new PagedResult<Trip>(results, maxResults, offset, totalCount);
-    }
-
 }
