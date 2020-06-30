@@ -29,6 +29,7 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
 import eu.netmobiel.commons.util.ExceptionUtil;
@@ -54,14 +55,14 @@ import eu.netmobiel.rideshare.service.RideManager;
 
 @Stateless
 @Logging
-public class PlannerManager {
+public class TripPlanManager {
 	public static final Integer MAX_RESULTS = 10; 
 	private static final float PASSENGER_RELATIVE_MAX_DETOUR = 1.0f;
 	private static final Integer CAR_TO_TRANSIT_SLACK = 10 * 60; // [seconds]
 	private static final int MAX_RIDESHARES = 5;	
 	private static final boolean RIDESHARE_LENIENT_SEARCH = true;	
-	private static final int RIDESHARE_MAX_SLACK_BACKWARD = 6;	// hours
-	private static final int RIDESHARE_MAX_SLACK_FORWARD = 6;	// hours
+	private static final int DEPARTURE_MAX_SLACK_BACKWARD = 6;	// hours
+	private static final int ARRIVAL_MAX_SLACK_FORWARD = 6;	// hours
 	private static final int DEFAULT_MAX_WALK_DISTANCE = 1000;
 	@Inject
     private Logger log;
@@ -77,7 +78,45 @@ public class PlannerManager {
     
     @Inject
     private Event<TripPlan> shoutOutRequestedEvent;
-    
+
+    /**
+     * List all trip plans owned by the specified user. 
+     * @return A list of trips matching tjhe criteria.
+     */
+    public PagedResult<TripPlan> listTripPlans(User traveller, PlanType planType, Instant since, Instant until, Boolean inProgressToo, 
+    		SortDirection sortDirection, Integer maxResults, Integer offset) throws BadRequestException {
+    	if (until != null && since != null && !until.isAfter(since)) {
+    		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
+    	}
+    	if (maxResults != null && maxResults > 100) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
+    	}
+    	if (maxResults != null && maxResults <= 0) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' > 0.");
+    	}
+    	if (offset != null && offset < 0) {
+    		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
+    	}
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+        List<TripPlan> results = Collections.emptyList();
+        Long totalCount = 0L;
+		PagedResult<Long> prs = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressToo, sortDirection, 0, 0);
+		totalCount = prs.getTotalCount();
+    	if (totalCount > 0 && maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> tripIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressToo, sortDirection, maxResults, offset);
+    		if (tripIds.getData().size() > 0) {
+    			results = tripPlanDao.fetch(tripIds.getData(), null, TripPlan::getId);
+    		}
+    	}
+    	return new PagedResult<TripPlan>(results, maxResults, offset, totalCount);
+    }
+
     protected List<Stop> filterImportantStops(TripPlan plan) {
     	List<Stop> places = new ArrayList<>(); 
     	for (Itinerary it: plan.getItineraries()) {
@@ -561,7 +600,7 @@ public class PlannerManager {
         	} else if (now.isAfter(plan.getLatestArrivalTime())) { 
         		throw new BadRequestException("Latest arrival time must be after now: " + formatDateTime(now));
         	} else {
-        		plan.setEarliestDepartureTime(plan.getTravelTime().minusSeconds(RIDESHARE_MAX_SLACK_BACKWARD * 60 * 60));
+        		plan.setEarliestDepartureTime(plan.getTravelTime().minusSeconds(DEPARTURE_MAX_SLACK_BACKWARD * 60 * 60));
     			if (plan.getEarliestDepartureTime().isBefore(now)) {
             		plan.setEarliestDepartureTime(now);
     			}
@@ -569,7 +608,7 @@ public class PlannerManager {
     	} 
     	assert(plan.getEarliestDepartureTime() != null);
     	if (plan.getLatestArrivalTime() == null) {
-    		plan.setLatestArrivalTime(plan.getEarliestDepartureTime().plusSeconds(RIDESHARE_MAX_SLACK_FORWARD * 60 * 60));
+    		plan.setLatestArrivalTime(plan.getEarliestDepartureTime().plusSeconds(ARRIVAL_MAX_SLACK_FORWARD * 60 * 60));
     	}
     	assert(plan.getLatestArrivalTime() != null);
     	if (plan.getTravelTime().isBefore(plan.getEarliestDepartureTime())) {

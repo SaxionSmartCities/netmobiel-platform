@@ -142,7 +142,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     	Instant until = null; 
 		Boolean inProgressOnly = null;
 		SortDirection sortDirection = null;
-    	PagedResult<Long> planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	PagedResult<Long> planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	assertNotNull(planIds);
     	assertEquals(4, planIds.getCount());
     	List<TripPlan> plans = tripPlanDao.fetch(planIds.getData(), null, TripPlan::getId);
@@ -153,7 +153,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     	);
     	
     	sortDirection = SortDirection.ASC;
-    	planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	List<TripPlan> plans2 = tripPlanDao.fetch(planIds.getData(), null, TripPlan::getId);
     	assertTrue(IntStream
     			.range(0, plans2.size() - 1)
@@ -161,7 +161,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     	);
 
     	sortDirection = SortDirection.DESC;
-    	planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	List<TripPlan> plans3 = tripPlanDao.fetch(planIds.getData(), null, TripPlan::getId);
     	assertTrue(IntStream
     			.range(0, plans3.size() - 1)
@@ -178,7 +178,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     	Instant until = null; 
 		Boolean inProgressOnly = true;
 		SortDirection sortDirection = null;
-    	PagedResult<Long> planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	PagedResult<Long> planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	assertNotNull(planIds);
     	assertEquals(3, planIds.getCount());
     }
@@ -191,7 +191,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     	Instant until = null; 
 		Boolean inProgressOnly = null;
 		SortDirection sortDirection = null;
-    	PagedResult<Long> planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	PagedResult<Long> planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	assertNotNull(planIds);
     	assertEquals(2, planIds.getCount());
     }
@@ -204,16 +204,16 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     	Instant until = null; 
 		Boolean inProgressOnly = null;
 		SortDirection sortDirection = null;
-    	PagedResult<Long> planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	PagedResult<Long> planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	assertNotNull(planIds);
     	assertEquals(2, planIds.getCount());
     	
     	since = Instant.parse("2020-03-20T12:00:00Z");
-    	planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	assertEquals(1, planIds.getCount());
 
     	since = Instant.parse("2020-03-22T12:00:00Z");
-    	planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	assertEquals(0, planIds.getCount());
     }
 
@@ -225,16 +225,16 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     	Instant until = Instant.parse("2020-03-19T12:00:00Z"); 
 		Boolean inProgressOnly = null;
 		SortDirection sortDirection = null;
-    	PagedResult<Long> planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	PagedResult<Long> planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	assertNotNull(planIds);
     	assertEquals(0, planIds.getCount());
     	
     	until = Instant.parse("2020-03-20T12:00:00Z");
-    	planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	assertEquals(1, planIds.getCount());
 
     	until = Instant.parse("2020-03-22T12:00:00Z");
-    	planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	assertEquals(2, planIds.getCount());
     }
 
@@ -249,12 +249,12 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     	Instant until = null; 
 		Boolean inProgressOnly = null;
 		SortDirection sortDirection = null;
-    	PagedResult<Long> planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	PagedResult<Long> planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	assertNotNull(planIds);
     	assertEquals(1, planIds.getCount());
 
     	planType = PlanType.SHOUT_OUT;
-    	planIds = tripPlanDao.findByTraveller(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
+    	planIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 10, 0);
     	assertEquals(4, planIds.getCount());
 
     }
