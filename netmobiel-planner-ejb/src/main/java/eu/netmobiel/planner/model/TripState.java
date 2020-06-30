@@ -41,4 +41,16 @@ public enum TripState {
     public String getCode() {
         return code;
     }
+    
+    public boolean isPreTravelState() {
+    	return this == PLANNING || this == BOOKING || this == SCHEDULED;
+    }
+
+    public boolean isPostTravelState() {
+    	return this == COMPLETED;
+    }
+    
+    public boolean isFinalState() {
+    	return this == COMPLETED || this == CANCELLED;
+    }
 }

@@ -99,9 +99,8 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
 	}
 
 	@Test
-	public void testSaveTrip() throws Exception {
-		Trip trip = trip1;
-		trip = em.find(Trip.class, trip.getId());
+	public void testLoadTrip_Default() throws Exception {
+		Trip trip = em.find(Trip.class, trip1.getId());
 		assertNotNull(trip);
 		assertEquals(trip.getId(), PlannerUrnHelper.getId(Trip.URN_PREFIX, trip.getTripRef()));
 		flush();
@@ -114,10 +113,14 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     	assertNotNull(trip);
     	assertFalse(puu.isLoaded(trip, Trip_.ITINERARY));
     	assertFalse(puu.isLoaded(trip, Trip_.TRAVELLER));
+	}
 
+	@Test
+	public void testLoadTrip_Detailed() throws Exception {
     	// Check loading of the detailed object 
-    	trip = tripDao.loadGraph(trip.getId(), Trip.DETAILED_ENTITY_GRAPH).orElseThrow(() -> new IllegalStateException("Should have an ID by now"));
+    	Trip trip = tripDao.loadGraph(trip1.getId(), Trip.DETAILED_ENTITY_GRAPH).orElseThrow(() -> new IllegalStateException("Should have an ID by now"));
     	flush();
+    	PersistenceUnitUtil puu = em.getEntityManagerFactory().getPersistenceUnitUtil();
     	assertFalse(em.contains(trip));
     	assertNotNull(trip);
     	assertTrue(puu.isLoaded(trip, Trip_.ITINERARY));
@@ -135,23 +138,27 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     	assertTrue(puu.isLoaded(leg, Leg_.TO));
     	assertFalse(puu.isLoaded(leg, Leg_.PLANNER_REPORT));
     	assertTrue(puu.isLoaded(leg, Leg_.GUIDE_STEPS));
-
+	}
+	
+	@Test
+	public void testLoadTrip_MyLegs() throws Exception {
     	// Check loading of the legs-only object, assuming they are mine 
-    	trip = tripDao.loadGraph(trip.getId(), Trip.MY_LEGS_ENTITY_GRAPH).orElseThrow(() -> new IllegalStateException("Should have an ID by now"));
+    	Trip trip = tripDao.loadGraph(trip1.getId(), Trip.MY_LEGS_ENTITY_GRAPH).orElseThrow(() -> new IllegalStateException("Should have an ID by now"));
     	flush();
     	assertFalse(em.contains(trip));
     	assertNotNull(trip);
+    	PersistenceUnitUtil puu = em.getEntityManagerFactory().getPersistenceUnitUtil();
     	assertTrue(puu.isLoaded(trip, Trip_.ITINERARY));
     	assertFalse(puu.isLoaded(trip, Trip_.TRAVELLER));
 
-    	it = trip.getItinerary();
+    	Itinerary it = trip.getItinerary();
     	assertTrue(puu.isLoaded(it, Itinerary_.LEGS));
     	assertFalse(puu.isLoaded(it, Itinerary_.STOPS));
     	assertFalse(puu.isLoaded(it, Itinerary_.PLAN));
     	
-    	legs = it.getLegs();
+    	List<Leg> legs = it.getLegs();
     	assertEquals(1, legs.size());
-    	leg = legs.get(0);
+    	Leg leg = legs.get(0);
     	assertTrue(puu.isLoaded(leg, Leg_.FROM));
     	assertTrue(puu.isLoaded(leg, Leg_.TO));
     	assertFalse(puu.isLoaded(leg, Leg_.PLANNER_REPORT));

@@ -15,6 +15,7 @@ import org.slf4j.LoggerFactory;
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
@@ -76,8 +77,8 @@ public class TripManagerTest {
 		Integer maxResults = 9;
 		Integer offset = 1;
 		new Expectations() {{
-//			tripDao.findTrips(traveller, state, since, until, deletedToo, sortDir, maxResults, offset);
-//			result = PagedResult.empty();
+			tripDao.findTrips(traveller, state, since, until, deletedToo, sortDir, 0, 0);
+			result = PagedResult.empty();
 		}};
 		try {
 			tested.listTrips(traveller, state, since, until, deletedToo, sortDir, maxResults, offset);
@@ -85,21 +86,11 @@ public class TripManagerTest {
 			fail("Unexpected exception: " + ex);
 		}
 		new Verifications() {{
-			User user2;
-			TripState state2;
-			Instant since2;
-			Instant until2;
-			Boolean deletedToo2;
-			SortDirection sortDir2;
-			tripDao.findTrips(user2 = withCapture(), state2 = withCapture(), since2 = withCapture(), 
-					until2 = withCapture(), deletedToo2 = withCapture(), sortDir2 = withCapture(), 
-					maxResults, offset);
-//			assertSame(traveller, user2);
-			assertSame(state, state2);
-			assertSame(since, since2);
-			assertSame(until, until2);
-			assertSame(deletedToo, deletedToo2);
-			assertSame(sortDir, sortDir2);
+			// Verify call to DAO. No results returned, so no second call.
+			tripDao.findTrips(traveller, state, since, until, deletedToo, sortDir, 0, 0);
+			times = 1;
+//			tripDao.findTrips(traveller, state, since, until, deletedToo, sortDir, maxResults, offset);
+//			times = 1;
 		}};
 	}
 
@@ -208,10 +199,13 @@ public class TripManagerTest {
 
 	@Test
 	public void testAssignBookingReference() {
-		TripPlan plan = Fixture.createRidesharePlan(traveller, "2020-03-20T13:00:00Z", Fixture.placeZieuwent, Fixture.placeSlingeland, "2020-03-20T15:00:00Z", false, 60 * 35, "urn:nb:rs:ride:364");
+		TripPlan plan = Fixture.createRidesharePlan(traveller, "2020-03-20T13:00:00Z", Fixture.placeZieuwent, 
+				Fixture.placeSlingeland, "2020-03-20T15:00:00Z", false, 60 * 35, "urn:nb:rs:ride:364");
 		Trip trip = Fixture.createTrip(traveller, plan);
 		trip.setId(55L);
+		trip.setState(TripState.BOOKING);
 		Leg leg = trip.getItinerary().getLegs().get(0);
+		leg.setState(TripState.BOOKING);
 		assertNull(leg.getBookingId());
 		assertNotNull(leg.getTripId());
 		String bookingRef = UrnHelper.createUrn("urn:nb:myservice:booking", 42L);
@@ -219,9 +213,37 @@ public class TripManagerTest {
 			tripDao.find(trip.getId());
 			result = trip;
 		}};
-		tested.assignBookingReference(trip.getTripRef(), leg.getTripId(), bookingRef, true);
+		try {
+			tested.assignBookingReference(trip.getTripRef(), leg.getTripId(), bookingRef, true);
+		} catch (UpdateException ex) {
+			fail("Unexpected exception: " + ex);
+		}
 		assertEquals(bookingRef, leg.getBookingId());
 		assertEquals(TripState.SCHEDULED, trip.getState());
+	}
+
+	@Test
+	public void testAssignBookingReference_CancelledInBetween() {
+		TripPlan plan = Fixture.createRidesharePlan(traveller, "2020-03-20T13:00:00Z", Fixture.placeZieuwent, 
+				Fixture.placeSlingeland, "2020-03-20T15:00:00Z", false, 60 * 35, "urn:nb:rs:ride:364");
+		Trip trip = Fixture.createTrip(traveller, plan);
+		trip.setId(55L);
+		trip.setState(TripState.CANCELLED);
+		Leg leg = trip.getItinerary().getLegs().get(0);
+		leg.setState(TripState.CANCELLED);
+		assertNull(leg.getBookingId());
+		assertNotNull(leg.getTripId());
+		String bookingRef = UrnHelper.createUrn("urn:nb:myservice:booking", 42L);
+		new Expectations() {{
+			tripDao.find(trip.getId());
+			result = trip;
+		}};
+		try {
+			tested.assignBookingReference(trip.getTripRef(), leg.getTripId(), bookingRef, true);
+			fail("Expected UpdateException because of invalid state");
+		} catch (UpdateException ex) {
+			log.debug("Anticipated exception: " + ex);
+		}
 	}
 
 	@Test
@@ -272,8 +294,47 @@ public class TripManagerTest {
 		}
 	}
 	@Test
-	public void testRemoveTrip() {
-		fail("Not yet implemented");
+	public void testRemoveTrip_NotFound() {
+		try {
+			tested.removeTrip(34L, null);
+			fail("Expected exception: NotFound");
+		} catch (NotFoundException ex) {
+			log.debug("Anticipated exception: " + ex);
+		}
 	}
 
+	@Test
+	public void testRemoveTrip_Booked() {
+		TripPlan plan = Fixture.createRidesharePlan(traveller, "2020-03-20T13:00:00Z", Fixture.placeZieuwent, Fixture.placeSlingeland, "2020-03-20T15:00:00Z", false, 60 * 35, "urn:nb:rs:ride:364");
+		Trip trip = Fixture.createTrip(traveller, plan);
+		trip.setId(55L);
+		Leg leg = trip.getItinerary().getLegs().get(0);
+		leg.setState(TripState.SCHEDULED);
+		trip.updateTripState();
+		String bookingRef = UrnHelper.createUrn("urn:nb:myservice:booking", 42L);
+		leg.setBookingId(bookingRef);
+		String reason = "Ik wil niet meer";
+		new Expectations() {{
+			tripDao.find(trip.getId());
+			result = trip;
+		}};
+		try {
+			tested.removeTrip(trip.getId(), reason);
+		} catch (NotFoundException ex) {
+			fail("Unexpected exception: " + ex);
+		}
+		assertTrue(trip.isDeleted());
+		assertEquals(TripState.CANCELLED, trip.getState());
+		assertEquals(TripState.CANCELLED, leg.getState());
+		new Verifications() {{
+			BookingCancelledEvent event;
+			bookingCancelledEvent.fire(event = withCapture());
+			assertEquals(reason, event.getCancelReason());
+			assertEquals(bookingRef, event.getBookingRef());
+			assertEquals(traveller, event.getTraveller());
+			assertEquals(trip.getTripRef(), event.getTravellerTripRef());
+			assertEquals(false, event.isCancelledByDriver());
+			assertEquals(false, event.isCancelledFromTransportProvider());
+		}};
+	}
 }

@@ -4,6 +4,8 @@ import java.io.Serializable;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Comparator;
+import java.util.Optional;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
@@ -242,6 +244,9 @@ public class Trip implements Serializable {
 		this.deleted = deleted;
 	}
 
+	public boolean isDeleted() {
+		return Boolean.TRUE.equals(getDeleted());
+	}
 	public GeoLocation getFrom() {
 		return from;
 	}
@@ -306,6 +311,18 @@ public class Trip implements Serializable {
 				getFrom().toString(), getTo().toString(),
 				itinerary.toStringCompact());
 	}
+
+    /**
+     * Assigns the lowest leg state (in ordinal terms) to the overall trip state. 
+     * If there are no legs then the state remains as is.
+     */
+   	public void updateTripState() {
+   		if (getItinerary() == null || getItinerary().getLegs() == null) {
+   			return;
+   		}
+   		Optional<Leg> minleg = getItinerary().getLegs().stream().min(Comparator.comparingInt(leg -> leg.getState().ordinal()));
+   		minleg.ifPresent(leg -> setState(leg.getState()));
+   	}
 
 
 }
