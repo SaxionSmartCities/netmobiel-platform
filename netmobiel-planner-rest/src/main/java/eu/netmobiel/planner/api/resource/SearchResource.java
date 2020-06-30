@@ -24,7 +24,7 @@ import eu.netmobiel.planner.api.mapping.TripPlanMapper;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.User;
-import eu.netmobiel.planner.service.PlannerManager;
+import eu.netmobiel.planner.service.TripPlanManager;
 import eu.netmobiel.planner.service.UserManager;
 
 @RequestScoped
@@ -34,7 +34,7 @@ public class SearchResource implements SearchApi {
     private Logger log;
  
 	@Inject
-    private PlannerManager plannerManager;
+    private TripPlanManager plannerManager;
 
     @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
     private UserManager userManager;
