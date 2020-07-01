@@ -91,10 +91,10 @@ paths:
       in: path
       required: true
   /shout-outs:
-    summary: Path used to manage the list of trips in planning state thate have unfulfilled
-      legs.
-    description: The REST endpoint/path used to list and `Trip` entities that are
-      in planning state. Those trips are eligible for reconciliation with a shared
+    summary: Path used to manage the list of trip plans that are active and unfulfilled
+      yet.
+    description: The REST endpoint/path used to list and `TripPlan` entities that
+      are of type SHOUT_OUT. Those plans are eligible for reconciliation with a shared
       ride. This path contains a `GET` operation to perform the list task.
     get:
       parameters:
@@ -149,14 +149,15 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Page'
-          description: Successful response - returns a page with an array of `Trip`
+          description: Successful response - returns a page with an array of `TripPlan`
             entities.
         "400":
           $ref: '#/components/responses/BadRequest'
       operationId: listShoutOuts
       summary: List the shout-outs.
-      description: List the trips that are in planning state and are eligible for
-        a shared ride.
+      description: |-
+        List the trip plans that are unfulfilled and are eligible for a shared ride.
+        This endpoint is intended for drivers to find passengers.
   /geocode-suggestions:
     summary: Get suggestions for geographics places.
     description: The REST endpoint/path used to list `GeocodeSuggestion` entities.  This
@@ -244,137 +245,6 @@ paths:
       operationId: getGeocodeSuggestions
       summary: List All trips
       description: Gets a list of `GeocodeSuggestion` entities, given the parameters.
-  /search/plan:
-    summary: Search for possible itineraries, combining various modalities..
-    description: Search the Rideshare service and OpenTripPlanner for itineraries.
-    get:
-      parameters:
-      - examples:
-          Station-Borne:
-            value: Station Borne::52.298417,6.749157
-        name: from
-        description: The location to depart from, comprising of a latitude and longitude
-          pair in degrees according WGS84. For logging purposes you may prepend the
-          coordinates with a place label followed by two colons.
-        schema:
-          type: string
-        in: query
-        required: true
-      - examples:
-          Station-Borne:
-            value: Station Borne::52.298417,6.749157
-        name: to
-        description: The location to arrive at, comprising of a latitude and longitude
-          pair in degrees according WGS84. For logging purposes you may prepend the
-          coordinates with a place label followed by two colons.
-        schema:
-          type: string
-        in: query
-        required: true
-      - examples:
-          Example:
-            value: 2019-10-23T09:30+01:00
-        name: departureTime
-        description: The requested date and time of the departure. The departure time
-          is set to `now` or to the current time if both departure time and arrival
-          time are omitted. Departure time must be before arrival time.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Example:
-            value: 2019-10-23T10:30+01:00
-        name: arrivalTime
-        description: The requested date and time of the arrival. The arrival  time
-          must be after `now` if set, otherwise in the future. It must also be after
-          departure time, if set.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Example:
-            value: WALK, RIDESHARE, BUS, RAIL
-        name: modalities
-        description: |-
-          A comma-separated list of eligible modalities. Select one or from the following:
-          AIRPLANE, BICYCLE, BUS, CABLE_CAR, CAR, FERRY, FUNICULAR, GONDOLA, RAIL, RIDESHARE, SUBWAY, TRAM, TRANSIT, WALK
-          The transit modality includes all public transport modalities.
-          CAR is useful to test a road route (based on Open Streetmap).
-          Default is [WALK, RIDESHARE, TRANSIT]
-        schema:
-          type: string
-        in: query
-        required: false
-      - name: maxWalkDistance
-        description: Maximum distance to walk to and from a station and between transfers.
-          Default is 1000 meter.
-        schema:
-          type: integer
-        in: query
-      - name: nrSeats
-        description: The number of seats required. Default is 1.
-        schema:
-          type: integer
-        in: query
-        required: false
-      - name: now
-        description: (Testing only). The point in time as reference for searching.
-          If not set then now is set to the actual time.
-        schema:
-          format: date-time
-          type: string
-        in: query
-        required: false
-      - name: maxTransfers
-        description: |-
-          The maximum number of transfers (that is, one plus the maximum number of boardings) that a trip will be allowed. Larger values will slow performance, but could give better routes.
-          NOT SUPPORTED in the current version of OpenTripPlanner.
-        schema:
-          type: integer
-        in: query
-      - name: firstLegRideshare
-        description: Flag to enable Rideshare as an option for a first leg in combination
-          with public transport. The search is time-consuming. Default is not enabled.
-          No effect if Rideshare is not one of the eligable modalities.
-        schema:
-          type: boolean
-        in: query
-      - name: lastLegRideshare
-        description: Flag to enable Rideshare as an option for the last leg in combination
-          with public transport. This is a time-consumiomg search. Default this flag
-          is disabled. No effect if Rideshare is not one of the eligable modalities.
-        schema:
-          type: boolean
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TripPlan'
-          description: Successfull call.
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-              examples:
-                BadRequest:
-                  value:
-                    message: 'Missing one or more mandatory parameters: fromPlace,
-                      toPlace, fromDate or toDate'
-                    reasonPhrase: Bad Request
-                    status: 400
-          description: |-
-            When not the minimal required search parameters are specified. Required for search are:
-            * fromPlace
-            * toPlace
-            * fromDate
-      operationId: searchPlan
-      summary: Search for itineraries for a trip.
-      description: Search and retrieve matching itineraries.
   /trips:
     summary: Path used to manage the list of trips.
     description: The REST endpoint/path used to list and create zero or more `Trip`
@@ -481,6 +351,278 @@ paths:
       operationId: createTrip
       summary: Create a Trip
       description: Creates a new instance of a `Trip`.
+  /plans:
+    summary: Path used to manage the list of trip plans.
+    description: The REST endpoint/path used to list and create zero or more `TripPlan`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - name: user
+        description: |-
+          the user id owning the trip plans. This parameter needs admin powers. The format of the user id is the database id of planner user, or an urn reference. Two formats are allowed:
+          urn:nb:pl:user:{primary-key}
+          urn:nb:kc:user:{managed-identity}
+        schema:
+          type: string
+        in: query
+      - name: planType
+        description: The specific trip plan type to filter. To find the shout-out
+          trip plans specify `SHOUT_OUT`.
+        schema:
+          enum:
+          - REGULAR
+          - SHOUT_OUT
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The travel time at which to start the listing of the plans.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The travel time and later not to include in the listing of trip
+          plans. The `until` date must be after the `since` parameter. Default is
+          not set, meaning all plans  (after since).
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: inProgressOnly
+        description: Set this flag to 'true' if only plans that are still running
+          deleted trips should be returned. Default is false.
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting on travel time. Choose either \nascending\
+          \ (ASC, default) or descending (DESC)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Normal response. A `Page`of `TripPlan` objects will be returned.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: listPlans
+      summary: List trip plans
+      description: "Gets a list of `TripPlan` entities matching the filter criteria.\
+        \ The trip plans are\nsorted by the travel time. Default is in ascending order,\
+        \ \nbut that can be reversed through the `sortDir` parameter."
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TripPlan'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+      operationId: createPlan
+      summary: Create a TripPlan
+      description: |-
+        Creates a new instance of a `TripPlan`. Only plans with type `SHOUT_OUT` can be created through this call.
+        A plan created through this call cannot have itineraries.
+  /plans/{planId}:
+    summary: Path used to manage a single TripPlan.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `TripPlan`.  This path contains `GET`, `PUT`, and `DELETE` operations
+      used to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPlan'
+          description: Successful response - returns a single `TripPlan`. The trip
+            plan can be evolving in case of a shout-out. In that case the attribute
+            `requestDuration` is not set yet.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getPlan
+      summary: Get a TripPlan
+      description: |
+        Gets the details of a single instance of a `TripPlan`. Only the traveller and the system administrator can see all itineraries.
+    parameters:
+    - name: planId
+      description: A unique identifier for a `TripPlan`. This can be a database identifier
+        or a urn.
+      in: path
+      required: true
+  /search/plan:
+    summary: Search for possible itineraries, combining various modalities..
+    description: Search the Rideshare service and OpenTripPlanner for itineraries.
+    get:
+      parameters:
+      - examples:
+          Station-Borne:
+            value: Station Borne::52.298417,6.749157
+        name: from
+        description: The location to depart from, comprising of a latitude and longitude
+          pair in degrees according WGS84. For logging purposes you may prepend the
+          coordinates with a place label followed by two colons.
+        schema:
+          type: string
+        in: query
+        required: true
+      - examples:
+          Station-Borne:
+            value: Station Borne::52.298417,6.749157
+        name: to
+        description: The location to arrive at, comprising of a latitude and longitude
+          pair in degrees according WGS84. For logging purposes you may prepend the
+          coordinates with a place label followed by two colons.
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: travelTime
+        description: "The desired time to depart or arrive. The meaning depends on\
+          \ the flag 'useAsArrivalTime'. \nThe value is set to `now` or to the current\
+          \ time if  omitted. "
+        schema:
+          format: date-time
+          type: string
+        in: query
+        required: true
+      - name: useAsArrivalTime
+        description: Flag to indicate whether the `travelTime` is the time to depart
+          (false) or the time to arrive (true). Default is false.
+        schema:
+          type: boolean
+        in: query
+        required: false
+      - examples:
+          Example:
+            value: 2019-10-23T09:30+01:00
+        name: earliestDepartureTime
+        description: The earliest desirable date and time of the departure. Departure
+          time must be before travelTime and before arrival time.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Example:
+            value: 2019-10-23T10:30+01:00
+        name: latestArrivalTime
+        description: The latest acceptable date and time of arrival. The arrival time
+          must be after the travelTime, otherwise in the future. It must also be after
+          departure time, if set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Example:
+            value: WALK, RIDESHARE, BUS, RAIL
+        name: modalities
+        description: |-
+          A comma-separated list of eligible modalities. Select one or from the following:
+          AIRPLANE, BICYCLE, BUS, CABLE_CAR, CAR, FERRY, FUNICULAR, GONDOLA, RAIL, RIDESHARE, SUBWAY, TRAM, TRANSIT, WALK
+          The transit modality includes all public transport modalities.
+          CAR is useful to test a road route (based on Open Streetmap).
+          Default is [WALK, RIDESHARE, TRANSIT]
+        schema:
+          type: string
+        in: query
+        required: false
+      - name: maxWalkDistance
+        description: Maximum distance to walk to and from a station and between transfers.
+          Default is 1000 meter.
+        schema:
+          type: integer
+        in: query
+      - name: nrSeats
+        description: The number of seats required. Default is 1.
+        schema:
+          type: integer
+        in: query
+        required: false
+      - name: now
+        description: (Testing only). The point in time as reference for searching.
+          If not set then now is set to the actual time.
+        schema:
+          format: date-time
+          type: string
+        in: query
+        required: false
+      - name: maxTransfers
+        description: |-
+          The maximum number of transfers (that is, one plus the maximum number of boardings) that a trip will be allowed. Larger values will slow performance, but could give better routes.
+          NOT SUPPORTED in the current version of OpenTripPlanner.
+        schema:
+          type: integer
+        in: query
+      - name: firstLegRideshare
+        description: Flag to enable Rideshare as an option for a first leg in combination
+          with public transport. The search is time-consuming. Default is not enabled.
+          No effect if Rideshare is not one of the eligable modalities.
+        schema:
+          type: boolean
+        in: query
+      - name: lastLegRideshare
+        description: Flag to enable Rideshare as an option for the last leg in combination
+          with public transport. This is a time-consumiomg search. Default this flag
+          is disabled. No effect if Rideshare is not one of the eligable modalities.
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPlan'
+          description: Successfull call.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+              examples:
+                BadRequest:
+                  value:
+                    message: 'Missing one or more mandatory parameters: fromPlace,
+                      toPlace, fromDate or toDate'
+                    reasonPhrase: Bad Request
+                    status: 400
+          description: |-
+            When not the minimal required search parameters are specified. Required for search are:
+            * fromPlace
+            * toPlace
+            * fromDate
+      operationId: searchPlan
+      summary: Search for itineraries for a trip.
+      description: Search and retrieve matching itineraries.
 components:
   schemas:
     MaintenanceStatus:
@@ -655,10 +797,10 @@ components:
         managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
     Trip:
       title: Root Type for Trip
-      description: A Trip is a plan that will be or has been effectuated.
-      required:
-      - from
-      - to
+      description: A Trip is a journey in which you go somewhere, usually for a short
+        time. In NetMobiel a trip a a one-way journey. To get home you have to plan
+        another trip. A trip refers to an itinerary calculated by the trip planner.
+      required: []
       type: object
       properties:
         state:
@@ -715,40 +857,6 @@ components:
             longitude:
               format: double
               type: number
-        departureTime:
-          format: date-time
-          description: The time of departure in ISO8601 format.
-          type: string
-        arrivalTime:
-          format: date-time
-          description: Time of arrival at destination in milliseonds since epoch time.
-          type: string
-        duration:
-          description: The total duration of the trip in seconds.
-          type: integer
-        transfers:
-          description: The number of transfers from one modality to another. Walking
-            does not count for a transfer.
-          type: integer
-        transitTime:
-          description: The duration of travelling with transit modalities (tran, bus,
-            rail etc.).
-          type: integer
-        waitingTime:
-          description: The time spend on waiting for a modality to arrive.
-          type: integer
-        walkDistance:
-          description: The total distance spend on walking in meters.
-          type: integer
-        walkTime:
-          description: The time spend on walking in seconds.
-          type: integer
-        legs:
-          description: An array of legs, where each leg is a consecutive transport
-            by a singel means.
-          type: array
-          items:
-            $ref: '#/components/schemas/Leg'
         id:
           format: int64
           description: 'The unique trip id. If referenced use the URN notation: urn:nb:pn:trip:<id>'
@@ -759,6 +867,16 @@ components:
         tripRef:
           description: The reference urn of the trip. Format is urn:nb:pl:trip:{id}.
           type: string
+        arrivalTimeIsPinned:
+          description: If true then the arrival time is leadibng for the passenger,
+            otherwise departure time.
+          type: boolean
+        itinerary:
+          $ref: '#/components/schemas/Itinerary'
+          description: The itinerary of this trip as calculated by the planner.
+        itineraryRef:
+          description: A reference urn to the itinerary.
+          type: string
       example:
         from:
           label: Rapenburgsestraat Lichtenvoorde
@@ -768,11 +886,11 @@ components:
           label: Rabobank Zutphen
           latitude: 52.148125
           longitude: 6.196966
-        departureTime: 2019-11-30T13:00:00
-        duration: 2124
-        legs: []
+        itinerary:
+          departureTime: 2019-11-30T13:00:00
+          duration: 2124
+          legs: []
         state: Scheduled
-        cancelReason: ""
         travellerRef: urn:nb:pl:User:234
         traveller:
           managedIdentity: 1234-5678-9012
@@ -1093,6 +1211,7 @@ components:
       required:
       - from
       - to
+      - travelTime
       type: object
       properties:
         from:
@@ -1107,54 +1226,81 @@ components:
           items:
             $ref: '#/components/schemas/Itinerary'
         nrSeats:
-          description: The number of seats requested.
+          description: 'The number of seats requested. Default: 1 seat.'
           type: integer
-        arrivalTime:
+        travelTime:
           format: date-time
-          description: The requested date and time of the arrival. At least one of
-            departureTime or ArrivalTime are specified. If both are specified then
-            it is interpreted as a window for travelling. The time zone is always
-            UTC.
+          description: 'The requested date and time to travel. '
           type: string
-        departureTime:
+        latestArrivalTime:
           format: date-time
-          description: The requested date and time of the departure. At least one
-            of departureTime or ArrivalTime are specified. If both are specified then
-            it is interpreted as a window for travelling. The time zone is always
-            UTC.
+          description: 'The latest date and time of the arrival.  '
+          type: string
+        earliestdepartureTime:
+          format: date-time
+          description: 'The earliest date and time of the departure.  '
           type: string
         maxWalkDistance:
           description: The maximum distance to walk to the station etc. and between
-            transfers.
+            transfers. Default is 1000 meter.
           type: integer
         modalities:
-          description: |
+          description: |-
             An array of eligible modalities:
             AIRPLANE, BICYCLE, BUS, CABLE_CAR, CAR, FERRY, FUNICULAR, GONDOLA, RAIL, RIDESHARE, SUBWAY, TRAM, TRANSIT, WALK
             The transit modality includes all public transport modalities.
+            Default: WALK, TRANSIT, RIDESHARE.
           type: array
           items:
             type: string
         maxTransfers:
           description: |
-            The maximum number of transfers (that is, one plus the maximum number of boardings) that a trip will be allowed. Larger values will slow performance, but could give better routes.
+            The maximum number of transfers (that is, one plus the maximum number of boardings) that a trip will be allowed. Larger values will slow performance, but could give better routes. Currently NOT SUPPORTED.
           type: integer
         firstLegRideshare:
-          description: |
+          description: |-
             Flag to enable Rideshare as an option for a first leg in combination with public transport.
+            Default: false.
           type: boolean
         lastLegRideshare:
-          description: |
+          description: |-
             Flag to enable Rideshare as an option for the last leg in combination with public transport.
+            Default: false.
           type: boolean
+        useAsArrivalTime:
+          description: If `true` the use `travelTime` as intended to arrive at the
+            destination. Otherwise use `travelTime` as time to depart. Default value
+            is `false`.
+          type: boolean
+        planType:
+          description: (Read-only). The type of the trip plan.
+          enum:
+          - REGULAR
+          - SHOUT_OUT
+          type: string
+        creationTime:
+          format: date-time
+          description: '(Read-only). The timestamp when the plan qas created. '
+          type: string
+        requestTime:
+          format: date-time
+          description: (Read-only). The timestamp reflecting the reference time of
+            the request. This can be in the past or in the future. This parameter
+            is added for testing the planner functionality.
+          type: string
+        requestDuration:
+          format: int64
+          description: '(Read-only). The duration in milliseconds to complete the
+            plan. A plan without this parameter is still evolving. '
+          type: integer
       example:
         from:
           label: Zieuwent,Kennedystraat
           latitude: 52.004166
           longitude: 6.517835
         itineraries: []
-        arrivalTime: 2019-12-17T14:00:00Z
-        departureTime: 2019-12-17T12:00:00Z
+        travelTime: 2019-12-17T15:00:00+02:00
+        useAsArrivalTime: true
         to:
           label: Slingeland,hoofdingang
           latitude: 51.976426
