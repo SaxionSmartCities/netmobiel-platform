@@ -1236,10 +1236,6 @@ components:
           format: date-time
           description: 'The latest date and time of the arrival.  '
           type: string
-        earliestdepartureTime:
-          format: date-time
-          description: 'The earliest date and time of the departure.  '
-          type: string
         maxWalkDistance:
           description: The maximum distance to walk to the station etc. and between
             transfers. Default is 1000 meter.
@@ -1293,6 +1289,10 @@ components:
           description: '(Read-only). The duration in milliseconds to complete the
             plan. A plan without this parameter is still evolving. '
           type: integer
+        earliestDepartureTime:
+          format: date-time
+          description: 'The earliest date and time of the departure.  '
+          type: string
       example:
         from:
           label: Zieuwent,Kennedystraat
