@@ -475,6 +475,8 @@ paths:
     - name: planId
       description: A unique identifier for a `TripPlan`. This can be a database identifier
         or a urn.
+      schema:
+        type: string
       in: path
       required: true
   /search/plan:
