@@ -94,15 +94,15 @@ public class SearchResource implements SearchApi {
 			plan.setFrom(GeoLocation.fromString(from));
 			plan.setTo(GeoLocation.fromString(to));
 			plan.setTravelTime(toInstant(travelTime));
-			plan.setUseAsArrivalTime(useAsArrivalTime);
+			plan.setUseAsArrivalTime(Boolean.TRUE.equals(useAsArrivalTime));
 			plan.setEarliestDepartureTime(toInstant(earliestDepartureTime));
 			plan.setLatestArrivalTime(toInstant(latestArrivalTime));
 			plan.setTraverseModes(domainModalities);
 			plan.setMaxWalkDistance(maxWalkDistance);
 			plan.setNrSeats(nrSeats);
 			plan.setMaxTransfers(maxTransfers);
-			plan.setFirstLegRideshareAllowed(firstLegRideshare);
-			plan.setLastLegRideshareAllowed(lastLegRideshare);
+			plan.setFirstLegRideshareAllowed(Boolean.TRUE.equals(firstLegRideshare));
+			plan.setLastLegRideshareAllowed(Boolean.TRUE.equals(lastLegRideshare));
     		plan.setPlanType(PlanType.REGULAR);
 
     		plan = plannerManager.createAndReturnTripPlan(traveller, plan, toInstant(now));

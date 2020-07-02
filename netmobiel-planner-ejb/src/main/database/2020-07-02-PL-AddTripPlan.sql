@@ -10,6 +10,41 @@ create sequence trip_plan_id_seq start 50 increment 1;
 ALTER SEQUENCE public.trip_plan_id_seq
     OWNER TO planner;
 
+CREATE TABLE public.trip_plan
+(
+    id bigint NOT NULL,
+    creation_time timestamp without time zone NOT NULL,
+    earliest_departure_time timestamp without time zone,
+    first_leg_rs boolean,
+    from_label character varying(256) COLLATE pg_catalog."default",
+    from_point geometry NOT NULL,
+    last_leg_rs boolean,
+    latest_arrival_time timestamp without time zone,
+    max_walk_distance integer,
+    nr_seats integer,
+    plan_type character varying(3) COLLATE pg_catalog."default",
+    request_duration bigint,
+    request_time timestamp without time zone NOT NULL,
+    to_label character varying(256) COLLATE pg_catalog."default",
+    to_point geometry NOT NULL,
+    travel_time timestamp without time zone NOT NULL,
+    use_as_arrival_time boolean,
+    traveller bigint NOT NULL,
+    CONSTRAINT trip_plan_pkey PRIMARY KEY (id),
+    CONSTRAINT trip_plan_traveller_fk FOREIGN KEY (traveller)
+        REFERENCES public.pl_user (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE NO ACTION
+)
+WITH (
+    OIDS = FALSE
+)
+TABLESPACE pg_default;
+
+ALTER TABLE public.trip_plan
+    OWNER to planner
+;
+
 CREATE TABLE public.itinerary
 (
     id bigint NOT NULL,
@@ -34,6 +69,10 @@ WITH (
     OIDS = FALSE
 )
 TABLESPACE pg_default;
+ALTER TABLE public.itinerary
+    OWNER to planner
+;
+
 
 CREATE TABLE public.plan_traverse_mode
 (
@@ -135,47 +174,12 @@ ALTER TABLE public.report_via
     OWNER to planner
 ;
 
-CREATE TABLE public.trip_plan
-(
-    id bigint NOT NULL,
-    creation_time timestamp without time zone NOT NULL,
-    earliest_departure_time timestamp without time zone,
-    first_leg_rs boolean,
-    from_label character varying(256) COLLATE pg_catalog."default",
-    from_point geometry NOT NULL,
-    last_leg_rs boolean,
-    latest_arrival_time timestamp without time zone,
-    max_walk_distance integer,
-    nr_seats integer,
-    plan_type character varying(3) COLLATE pg_catalog."default",
-    request_duration bigint,
-    request_time timestamp without time zone NOT NULL,
-    to_label character varying(256) COLLATE pg_catalog."default",
-    to_point geometry NOT NULL,
-    travel_time timestamp without time zone NOT NULL,
-    use_as_arrival_time boolean,
-    traveller bigint NOT NULL,
-    CONSTRAINT trip_plan_pkey PRIMARY KEY (id),
-    CONSTRAINT trip_plan_traveller_fk FOREIGN KEY (traveller)
-        REFERENCES public.pl_user (id) MATCH SIMPLE
-        ON UPDATE NO ACTION
-        ON DELETE NO ACTION
-)
-WITH (
-    OIDS = FALSE
-)
-TABLESPACE pg_default;
-
-ALTER TABLE public.trip_plan
-    OWNER to planner
-;
-
 alter table public.leg 
-	ADD COLUMN report bigint;
+	ADD COLUMN report bigint,
 	ADD COLUMN itinerary bigint;
 ;
-alter table public leg add constraint leg_report_fk foreign key (report) references public.planner_report;
-alter table public leg add constraint leg_itinerary_fk foreign key (itinerary) references public.itinerary;
+alter table public.leg add constraint leg_report_fk foreign key (report) references public.planner_report;
+alter table public.leg add constraint leg_itinerary_fk foreign key (itinerary) references public.itinerary;
 
 alter table public.trip add column itinerary bigint;
 alter table public.trip add constraint trip_itinerary_fk foreign key (itinerary) references public.itinerary;
@@ -194,10 +198,19 @@ SELECT setval('itinerary_id_seq', (SELECT MAX(id) from public.itinerary), TRUE);
 
 UPDATE leg SET itinerary = trip;
 
+ALTER TABLE public.stop
+	DROP CONSTRAINT stop_trip_fk
+;
+ALTER TABLE public.stop
+	RENAME COLUMN trip TO itinerary
+;
+ALTER TABLE public.stop ADD CONSTRAINT stop_itinerary_fk FOREIGN KEY (itinerary) references public.itinerary;
+
 -- Decouple the legs from the trip
 ALTER TABLE public.leg
-	DROP CONSTRAINT leg_trip_fk;
-	DROP COLUMN trip;
+	DROP CONSTRAINT leg_trip_fk,
+	DROP COLUMN trip
+;
 
 -- Drop the itinerary columhns from the trip
 ALTER TABLE public.trip

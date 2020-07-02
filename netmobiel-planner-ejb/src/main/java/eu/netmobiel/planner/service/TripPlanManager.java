@@ -1,6 +1,10 @@
 package eu.netmobiel.planner.service;
 
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.LocalDateTime;
+import java.time.LocalTime;
+import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -64,6 +68,14 @@ public class TripPlanManager {
 	private static final int DEPARTURE_MAX_SLACK_BACKWARD = 6;	// hours
 	private static final int ARRIVAL_MAX_SLACK_FORWARD = 6;	// hours
 	private static final int DEFAULT_MAX_WALK_DISTANCE = 1000;
+	
+	public static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
+	public static final LocalTime DAY_START = LocalTime.parse("08:00");
+	public static final LocalTime DAY_END = LocalTime.parse("18:00");
+	public static final int DAY_TIME_SLACK = 3;	// hours
+	public static final int REST_TIME_SLACK = 1;	// hours
+	public static final int STANDARD_TRAVEL_DURATION = 3600;	// seconds
+
 	@Inject
     private Logger log;
 
@@ -544,6 +556,68 @@ public class TripPlanManager {
     	throw new EJBAccessException("Can't access this!");
     }
 
+    /**
+     * Heuristically determine a earliest departure time. Rules:
+     * If travelling during the day (8-18) then I can depart DAY_TIME_SLACK hours earlier, at other time of the day
+     * I can depart at most REST_TIME_SLACK hours earlier.
+     * @param travelTime the time to depart or arrive
+     * @param useAsArrivalTime If true then subtract STANDARD_TRAVEL_DURATION from the travel time to compensate for
+     * 		the travelling time.
+     * @return The earliest departure time.
+     */
+    protected Instant calculateEarliestDepartureTime(Instant travelTime, boolean useAsArrivalTime) {
+    	if (useAsArrivalTime) {
+    		travelTime = travelTime.minusSeconds(STANDARD_TRAVEL_DURATION);
+    	}
+    	LocalTime localTravelTime = LocalTime.from(travelTime.atZone(ZoneId.of(DEFAULT_TIME_ZONE)));
+    	Instant earliestTime;
+    	if (localTravelTime.isBefore(DAY_START)) {
+    		earliestTime = travelTime.minusSeconds(REST_TIME_SLACK * 60 * 60); 
+    	} else if (localTravelTime.isAfter(DAY_END)) {
+    		earliestTime = travelTime.minusSeconds(REST_TIME_SLACK * 60 * 60); 
+    	} else {
+    		int slack = DAY_TIME_SLACK * 60 * 60;
+    		if (localTravelTime.minusSeconds(slack).isAfter(DAY_START.minusSeconds(REST_TIME_SLACK * 60 * 60))) {
+        		earliestTime = travelTime.minusSeconds(slack);
+    		} else {
+    			LocalDate date = LocalDate.from(travelTime.atZone(ZoneId.of(DEFAULT_TIME_ZONE))); 
+        		earliestTime = LocalDateTime.of(date, DAY_START.minusSeconds(REST_TIME_SLACK * 60 * 60)).atZone(ZoneId.of(DEFAULT_TIME_ZONE)).toInstant();
+    		}
+    	}
+    	return earliestTime;
+    }
+    
+    /**
+     * Heuristically determine a latest arrival time. Rules:
+     * If travelling during the day (8-18) then I can arrive DAY_TIME_SLACK hours later, at other time of the day
+     * I want to arrive at most REST_TIME_SLACK hours later.
+     * @param travelTime the time to depart or arrive
+     * @param useAsArrivalTime If false then add STANDARD_TRAVEL_DURATION to the travel time to compensate for
+     * 		the travelling time.
+     * @return The earliest departure time.
+     */
+    protected Instant calculateLatestArrivalTime(Instant travelTime, boolean useAsArrivalTime) {
+    	if (!useAsArrivalTime) {
+    		travelTime = travelTime.plusSeconds(STANDARD_TRAVEL_DURATION);
+    	}
+    	LocalTime localTravelTime = LocalTime.from(travelTime.atZone(ZoneId.of(DEFAULT_TIME_ZONE)));
+    	Instant latestTime;
+    	if (localTravelTime.isAfter(DAY_END)) {
+    		latestTime = travelTime.plusSeconds(REST_TIME_SLACK * 60 * 60); 
+    	} else if (localTravelTime.isBefore(DAY_START)) {
+    		latestTime = travelTime.plusSeconds(REST_TIME_SLACK * 60 * 60); 
+    	} else {
+    		int slack = DAY_TIME_SLACK * 60 * 60;
+    		if (localTravelTime.plusSeconds(slack).isBefore(DAY_END.plusSeconds(REST_TIME_SLACK * 60 * 60))) {
+        		latestTime = travelTime.plusSeconds(slack);
+    		} else {
+    			LocalDate date = LocalDate.from(travelTime.atZone(ZoneId.of(DEFAULT_TIME_ZONE))); 
+        		latestTime = LocalDateTime.of(date, DAY_END.plusSeconds(REST_TIME_SLACK * 60 * 60)).atZone(ZoneId.of(DEFAULT_TIME_ZONE)).toInstant();
+    		}
+    	}
+    	return latestTime;
+    }
+
     protected void sanitizePlanInput(TripPlan plan) throws BadRequestException {
     	if (plan.getId() != null) {
     		throw new IllegalStateException("New plan should not have a persistent ID");
@@ -555,29 +629,35 @@ public class TripPlanManager {
     	if (plan.getTravelTime() == null) {
     		plan.setTravelTime(now);
     		plan.setUseAsArrivalTime(false);
+    	} else if (plan.getTravelTime().isBefore(now)) {
+    		throw new BadRequestException(String.format("Travel time %s cannot be before now %s", 
+    				formatDateTime(plan.getTravelTime()), formatDateTime(now)));
+    		
     	}
+
     	if (plan.getEarliestDepartureTime() == null) {
-        	if (plan.getLatestArrivalTime() == null) {
-        		plan.setEarliestDepartureTime(now);
-        	} else if (now.isAfter(plan.getLatestArrivalTime())) { 
-        		throw new BadRequestException("Latest arrival time must be after now: " + formatDateTime(now));
-        	} else {
-        		plan.setEarliestDepartureTime(plan.getTravelTime().minusSeconds(DEPARTURE_MAX_SLACK_BACKWARD * 60 * 60));
-    			if (plan.getEarliestDepartureTime().isBefore(now)) {
-            		plan.setEarliestDepartureTime(now);
-    			}
-    		}
+    		plan.setEarliestDepartureTime(calculateEarliestDepartureTime(plan.getTravelTime(), plan.isUseAsArrivalTime()));
+   			if (plan.getEarliestDepartureTime().isBefore(now)) {
+           		plan.setEarliestDepartureTime(now);
+   			}
     	} 
     	assert(plan.getEarliestDepartureTime() != null);
     	if (plan.getLatestArrivalTime() == null) {
-    		plan.setLatestArrivalTime(plan.getEarliestDepartureTime().plusSeconds(ARRIVAL_MAX_SLACK_FORWARD * 60 * 60));
+    		plan.setLatestArrivalTime(calculateLatestArrivalTime(plan.getTravelTime(), plan.isUseAsArrivalTime()));
     	}
     	assert(plan.getLatestArrivalTime() != null);
+    	// Verify input
+    	if (plan.getEarliestDepartureTime().isBefore(now)) {
+    		throw new BadRequestException(String.format("Earliest departure time %s cannot be before %s", 
+    				formatDateTime(plan.getEarliestDepartureTime()), formatDateTime(now)));
+    	}
     	if (plan.getTravelTime().isBefore(plan.getEarliestDepartureTime())) {
-    		throw new BadRequestException("Earliest departure time must be before travel time: " + formatDateTime(plan.getTravelTime()));
+    		throw new BadRequestException(String.format("Earliest departure time %s must be before travel time %s", 
+    				formatDateTime(plan.getEarliestDepartureTime()), formatDateTime(plan.getTravelTime())));
     	}
     	if (plan.getTravelTime().isAfter(plan.getLatestArrivalTime())) {
-    		throw new BadRequestException("Latest arrival time must be after travel time: " + formatDateTime(plan.getTravelTime()));
+    		throw new BadRequestException(String.format("Latest arrival time %s must be after travel time %s", 
+    				formatDateTime(plan.getLatestArrivalTime()), formatDateTime(plan.getTravelTime())));
     	}
     	if (plan.getPlanType() == null) {
     		plan.setPlanType(PlanType.REGULAR);
