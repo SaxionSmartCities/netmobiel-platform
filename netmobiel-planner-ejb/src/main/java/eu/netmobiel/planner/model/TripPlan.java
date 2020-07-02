@@ -31,7 +31,6 @@ import javax.persistence.NamedEntityGraphs;
 import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
 import javax.persistence.OrderColumn;
-import javax.persistence.PrePersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -225,11 +224,13 @@ public class TripPlan {
 	private PlanType planType;
 	
 	public TripPlan() { 
+    	this.creationTime = Instant.now();
+       	this.requestTime = creationTime;
     }
 
     public TripPlan(User traveller, GeoLocation from, GeoLocation to, Instant travelTime, boolean useAsArrivalTime, 
     		Set<TraverseMode> traverseModes, Integer maxWalkDistance, int nrSeats) {
-    	this.requestTime = Instant.now();
+    	this();
     	this.traveller = traveller;
         this.from = from;
         this.to = to;
@@ -238,14 +239,6 @@ public class TripPlan {
         this.traverseModes = traverseModes;
         this.maxWalkDistance = maxWalkDistance;
         this.nrSeats = nrSeats; 
-    }
-
-    @PrePersist
-    protected void onCreate() {
-    	creationTime = Instant.now();
-        if (requestTime == null) { 
-        	requestTime = creationTime;
-        }
     }
 
     public Long getId() {
@@ -442,7 +435,7 @@ public class TripPlan {
 		getPlannerReports().add(report);
 	}
 
-	public void close(Instant closeTime) {
-		setRequestDuration(closeTime.toEpochMilli() - getRequestTime().toEpochMilli());
+	public void close() {
+		setRequestDuration(Instant.now().toEpochMilli() - getCreationTime().toEpochMilli());
 	}
 }

@@ -78,8 +78,6 @@ public class TripsResource implements TripsApi {
 			throw new javax.ws.rs.BadRequestException(e);
 		} catch (NotFoundException e) {
 	    	rsp = Response.status(Status.GONE).build();
-		} catch (ApplicationException ex) {
-			throw new WebApplicationException(ex);
 		}
     	return rsp;
 	}

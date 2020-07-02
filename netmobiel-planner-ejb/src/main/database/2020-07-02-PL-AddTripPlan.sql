@@ -197,6 +197,8 @@ INSERT INTO itinerary (id, arrival_time, departure_time, duration, score,
 SELECT setval('itinerary_id_seq', (SELECT MAX(id) from public.itinerary), TRUE);
 
 UPDATE leg SET itinerary = trip;
+-- Trip id and itinerary id are the same according the insert above.
+UPDATE trip SET itinerary = id;
 
 ALTER TABLE public.stop
 	DROP CONSTRAINT stop_trip_fk

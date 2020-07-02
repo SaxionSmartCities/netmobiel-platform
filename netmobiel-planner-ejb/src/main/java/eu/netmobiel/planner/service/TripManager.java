@@ -80,7 +80,7 @@ public class TripManager {
     		// Get the actual data
     		PagedResult<Long> tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, maxResults, offset);
     		if (tripIds.getData().size() > 0) {
-    			results = tripDao.fetch(tripIds.getData(), null, Trip::getId);
+    			results = tripDao.fetch(tripIds.getData(), Trip.DETAILED_ENTITY_GRAPH, Trip::getId);
     		}
     	}
     	return new PagedResult<Trip>(results, maxResults, offset, totalCount);
@@ -190,7 +190,7 @@ public class TripManager {
      * @throws NotFoundException
      */
     public Trip getTrip(Long id) throws NotFoundException {
-    	Trip tripdb = tripDao.find(id)
+    	Trip tripdb = tripDao.loadGraph(id, Trip.DETAILED_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such trip: " + id));
     	return tripdb;
     }

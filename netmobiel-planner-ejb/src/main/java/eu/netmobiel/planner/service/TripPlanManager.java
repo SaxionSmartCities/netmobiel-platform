@@ -65,8 +65,6 @@ public class TripPlanManager {
 	private static final Integer CAR_TO_TRANSIT_SLACK = 10 * 60; // [seconds]
 	private static final int MAX_RIDESHARES = 5;	
 	private static final boolean RIDESHARE_LENIENT_SEARCH = true;	
-	private static final int DEPARTURE_MAX_SLACK_BACKWARD = 6;	// hours
-	private static final int ARRIVAL_MAX_SLACK_FORWARD = 6;	// hours
 	private static final int DEFAULT_MAX_WALK_DISTANCE = 1000;
 	
 	public static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
@@ -701,7 +699,7 @@ public class TripPlanManager {
        	if (plan.getPlanType() != PlanType.SHOUT_OUT) {
        		// Start a search
        		plan = searchMultiModal(plan);
-        	plan.setRequestDuration(Instant.now().toEpochMilli() - plan.getRequestTime().toEpochMilli());
+        	plan.close();
        	}
        	tripPlanDao.save(plan);
        	if (plan.getPlanType() == PlanType.SHOUT_OUT) {
@@ -780,7 +778,7 @@ public class TripPlanManager {
     		// Get the actual data
     		PagedResult<Long> tripIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, maxResults, offset);
     		if (tripIds.getData().size() > 0) {
-    			results = tripPlanDao.fetch(tripIds.getData(), null, TripPlan::getId);
+    			results = tripPlanDao.fetch(tripIds.getData(), TripPlan.DETAILED_ENTITY_GRAPH, TripPlan::getId);
     		}
     	}
     	return new PagedResult<TripPlan>(results, maxResults, offset, totalCount);

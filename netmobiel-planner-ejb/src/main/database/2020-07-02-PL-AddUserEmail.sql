@@ -1,3 +1,3 @@
 -- email for easy debugging and logging
-ALTER TABLE public.pl_user
-    ADD COLUMN email character varying(64);
+ALTER TABLE public.trip
+    ADD COLUMN arrival_time_is_pinned boolean default false;
