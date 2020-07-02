@@ -1301,6 +1301,9 @@ components:
           format: date-time
           description: 'The earliest date and time of the departure.  '
           type: string
+        planRef:
+          description: The urn of the plan.
+          type: string
       example:
         from:
           label: Zieuwent,Kennedystraat
