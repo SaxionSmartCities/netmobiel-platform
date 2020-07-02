@@ -8,7 +8,10 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.planner.api.mapping.annotation.TripDetails;
 import eu.netmobiel.planner.api.mapping.annotation.TripMapperQualifier;
 import eu.netmobiel.planner.api.mapping.annotation.TripMyDetails;
+import eu.netmobiel.planner.api.mapping.annotation.TripPlanDetails;
+import eu.netmobiel.planner.api.mapping.annotation.TripPlanMapperQualifier;
 import eu.netmobiel.planner.model.Trip;
+import eu.netmobiel.planner.model.TripPlan;
 
 /**
  * This mapper defines the mapping from the domain PagedResult to the API PagedResult as defined by OpenAPI.
@@ -18,7 +21,7 @@ import eu.netmobiel.planner.model.Trip;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
-		uses = { TripMapper.class })
+		uses = { TripPlanMapper.class , TripMapper.class })
 public abstract class PageMapper {
 	// Domain page with trips --> Api page of trips
 	@Mapping(target = "data", source = "data", qualifiedBy = { TripMapperQualifier.class, TripDetails.class } )
@@ -27,4 +30,6 @@ public abstract class PageMapper {
 	@Mapping(target = "data", source = "data", qualifiedBy = { TripMapperQualifier.class, TripMyDetails.class } )
 	public abstract eu.netmobiel.planner.api.model.Page mapMine(PagedResult<Trip> source);
 
+	@Mapping(target = "data", source = "data", qualifiedBy = { TripPlanMapperQualifier.class, TripPlanDetails.class } )
+	public abstract eu.netmobiel.planner.api.model.Page mapPlans(PagedResult<TripPlan> source);
 }

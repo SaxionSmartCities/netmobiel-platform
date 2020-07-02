@@ -65,7 +65,7 @@ public abstract class TripPlanMapper {
     @Mapping(target = "score", ignore = true)
     @Mapping(target = "stops", ignore = true)
     @Mapping(target = "id", ignore = true)
-    @Mapping(target = "plan", ignore = true)
+    @Mapping(target = "tripPlan", ignore = true)
     public abstract eu.netmobiel.planner.model.Itinerary itineraryToItinerary(Itinerary itinerary);
 
     

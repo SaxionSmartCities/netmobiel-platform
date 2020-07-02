@@ -68,7 +68,7 @@ public class TripPlanManagerTest {
 	}
 
 	@Test
-	public void testListTrips() {
+	public void testListTripPlans() {
 		PlanType planType = PlanType.REGULAR;
 		Instant since = Instant.parse("2020-06-24T00:00:00Z");
 		Instant until = Instant.parse("2020-06-25T00:00:00Z");
@@ -89,8 +89,6 @@ public class TripPlanManagerTest {
 			// Verify call to DAO. No results returned, so no second call.
 			tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDir, 0, 0);
 			times = 1;
-//			tripDao.findTrips(traveller, state, since, until, deletedToo, sortDir, maxResults, offset);
-//			times = 1;
 		}};
 	}
 
@@ -111,8 +109,6 @@ public class TripPlanManagerTest {
 			// Verify call to DAO. No results returned, so no second call.
 			tripPlanDao.findShoutOutPlans(location, start, depArrRadius, travelRadius, 0, 0);
 			times = 1;
-//    			tripDao.findTrips(traveller, state, since, until, deletedToo, sortDir, maxResults, offset);
-//    			times = 1;
 		}};
 	}
 }

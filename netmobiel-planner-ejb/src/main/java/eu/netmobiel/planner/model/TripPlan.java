@@ -109,7 +109,7 @@ public class TripPlan {
     private Instant requestTime;
 
 	/**
-	 * The time of completion of the plan. Regular plans are calculated real-time in a matter of seconds. Shout-out plans have a duration of hours or perhaps even days. 
+	 * The time it took to complete the plan. Regular plans are calculated real-time in a matter of seconds. Shout-out plans have a duration of hours or perhaps even days. 
 	 */
     @Column(name = "request_duration", nullable = true)
     private Long requestDuration;
@@ -151,7 +151,7 @@ public class TripPlan {
     @NotNull
     @Embedded
     @AttributeOverrides({ 
-    	@AttributeOverride(name = "label", column = @Column(name = "from_label")), 
+    	@AttributeOverride(name = "label", column = @Column(name = "from_label", length = GeoLocation.MAX_LABEL_LENGTH)), 
     	@AttributeOverride(name = "point", column = @Column(name = "from_point", nullable = false)), 
    	} )
     private GeoLocation from;
@@ -159,7 +159,7 @@ public class TripPlan {
     @NotNull
     @Embedded
     @AttributeOverrides({ 
-    	@AttributeOverride(name = "label", column = @Column(name = "to_label")), 
+    	@AttributeOverride(name = "label", column = @Column(name = "to_label", length = GeoLocation.MAX_LABEL_LENGTH)), 
     	@AttributeOverride(name = "point", column = @Column(name = "to_point", nullable = false)), 
    	} )
     private GeoLocation to;
@@ -168,8 +168,10 @@ public class TripPlan {
      * The eligible traverse modes
      */
     @ElementCollection(fetch = FetchType.LAZY)
-    @CollectionTable(name = "plan_traverse_mode", foreignKey = @ForeignKey(foreignKeyDefinition = "traverse_mode_trip_plan_fk"))
-    @Column(name = "traverse_mode")
+    @CollectionTable(name = "plan_traverse_mode", joinColumns = { 
+        	@JoinColumn(name = "plan_id", foreignKey = @ForeignKey(foreignKeyDefinition = "traverse_mode_trip_plan_fk")) 
+    })
+    @Column(name = "traverse_mode", length = 2)
     private Set<TraverseMode> traverseModes;
 
     /**
@@ -206,8 +208,7 @@ public class TripPlan {
     /** 
      * A list of possible itineraries. 
      */
-	@OneToMany(cascade = CascadeType.PERSIST, orphanRemoval = true, fetch = FetchType.LAZY)
-	@JoinColumn(name = "trip_plan", foreignKey = @ForeignKey(name = "itinerary_trip__plan_fk"), nullable = false)
+	@OneToMany(mappedBy = "tripPlan", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
 	@OrderColumn(name = "itinerary_ix")
     private List<Itinerary> itineraries;
 
@@ -335,7 +336,7 @@ public class TripPlan {
 	}
 
 	public void addItineraries(List<Itinerary> itineraries) {
-		itineraries.forEach(it -> it.setPlan(this));
+		itineraries.forEach(it -> it.setTripPlan(this));
 		getItineraries().addAll(itineraries);
 	}
 

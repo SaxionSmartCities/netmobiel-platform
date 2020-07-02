@@ -168,8 +168,8 @@ public class Itinerary implements Serializable {
 	 * The plan this itinerary is part of.
 	 */
     @ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "plan", foreignKey = @ForeignKey(name = "itinerary_plan_fk"), nullable = false)
-	private TripPlan plan;
+	@JoinColumn(name = "trip_plan", foreignKey = @ForeignKey(name = "itinerary_trip_plan_fk"), nullable = true)
+	private TripPlan tripPlan;
 
 
 	public Itinerary() {
@@ -303,12 +303,12 @@ public class Itinerary implements Serializable {
 		this.score = score;
 	}
 
-	public TripPlan getPlan() {
-		return plan;
+	public TripPlan getTripPlan() {
+		return tripPlan;
 	}
 
-	public void setPlan(TripPlan plan) {
-		this.plan = plan;
+	public void setTripPlan(TripPlan plan) {
+		this.tripPlan = plan;
 	}
 
 	/**

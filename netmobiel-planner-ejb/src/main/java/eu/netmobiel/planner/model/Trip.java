@@ -134,7 +134,7 @@ public class Trip implements Serializable {
     @NotNull
     @Embedded
     @AttributeOverrides({ 
-    	@AttributeOverride(name = "label", column = @Column(name = "from_label")), 
+    	@AttributeOverride(name = "label", column = @Column(name = "from_label", length = GeoLocation.MAX_LABEL_LENGTH)), 
     	@AttributeOverride(name = "point", column = @Column(name = "from_point")), 
    	} )
     private GeoLocation from;
@@ -145,7 +145,7 @@ public class Trip implements Serializable {
     @NotNull
     @Embedded
     @AttributeOverrides({ 
-    	@AttributeOverride(name = "label", column = @Column(name = "to_label")), 
+    	@AttributeOverride(name = "label", column = @Column(name = "to_label", length = GeoLocation.MAX_LABEL_LENGTH)), 
     	@AttributeOverride(name = "point", column = @Column(name = "to_point")), 
    	} )
     private GeoLocation to;
@@ -154,7 +154,6 @@ public class Trip implements Serializable {
     @ManyToOne (fetch = FetchType.LAZY)
 	@JoinColumn(name = "traveller", nullable = false, foreignKey = @ForeignKey(name = "trip_traveller_fk"))
     private User traveller;
-
 
     @Column(name = "state", length = 3)
     private TripState state;

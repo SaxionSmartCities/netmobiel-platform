@@ -20,6 +20,7 @@ import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.util.Logging;
@@ -93,7 +94,7 @@ public class BookingProcessor {
 			if (bdb.getState() != BookingState.CONFIRMED) {
 				logger.warn("Expecting booking AutoConfirm! Other situations are not handled!");
 			}
-		} catch (CreateException | NotFoundException | BadRequestException e) {
+		} catch (CreateException | NotFoundException | BadRequestException| UpdateException e) {
 			logger.error("Unable to create a booking: " + e.toString());
 		}
     }

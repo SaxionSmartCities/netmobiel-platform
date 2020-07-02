@@ -8,13 +8,13 @@ import java.lang.annotation.Target;
 
 import org.mapstruct.Qualifier;
 /**
- * Qualifier to show only the attributes of the leg and its stops.
+ * Qualifier to show all attributes of the leg, including the nested objects.
  * @author Jaap Reitsma
  *
  */
 @Qualifier
 @Retention(CLASS)
 @Target(METHOD)
-public @interface LegShallow {
+public @interface LegDetails {
 
 }

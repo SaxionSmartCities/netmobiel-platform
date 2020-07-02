@@ -79,44 +79,6 @@ public class TripPlanManager {
     @Inject
     private Event<TripPlan> shoutOutRequestedEvent;
 
-    /**
-     * List all trip plans owned by the specified user. 
-     * @return A list of trips matching tjhe criteria.
-     */
-    public PagedResult<TripPlan> listTripPlans(User traveller, PlanType planType, Instant since, Instant until, Boolean inProgressToo, 
-    		SortDirection sortDirection, Integer maxResults, Integer offset) throws BadRequestException {
-    	if (until != null && since != null && !until.isAfter(since)) {
-    		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
-    	}
-    	if (maxResults != null && maxResults > 100) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
-    	}
-    	if (maxResults != null && maxResults <= 0) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' > 0.");
-    	}
-    	if (offset != null && offset < 0) {
-    		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
-    	}
-        if (maxResults == null) {
-        	maxResults = MAX_RESULTS;
-        }
-        if (offset == null) {
-        	offset = 0;
-        }
-        List<TripPlan> results = Collections.emptyList();
-        Long totalCount = 0L;
-		PagedResult<Long> prs = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressToo, sortDirection, 0, 0);
-		totalCount = prs.getTotalCount();
-    	if (totalCount > 0 && maxResults > 0) {
-    		// Get the actual data
-    		PagedResult<Long> tripIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressToo, sortDirection, maxResults, offset);
-    		if (tripIds.getData().size() > 0) {
-    			results = tripPlanDao.fetch(tripIds.getData(), null, TripPlan::getId);
-    		}
-    	}
-    	return new PagedResult<TripPlan>(results, maxResults, offset, totalCount);
-    }
-
     protected List<Stop> filterImportantStops(TripPlan plan) {
     	List<Stop> places = new ArrayList<>(); 
     	for (Itinerary it: plan.getItineraries()) {
@@ -706,6 +668,43 @@ public class TripPlanManager {
     	return plandb;
     }
     
+    /**
+     * List all trip plans owned by the specified user. 
+     * @return A list of trips matching tjhe criteria.
+     */
+    public PagedResult<TripPlan> listTripPlans(User traveller, PlanType planType, Instant since, Instant until, Boolean inProgressOnly, 
+    		SortDirection sortDirection, Integer maxResults, Integer offset) throws BadRequestException {
+    	if (until != null && since != null && !until.isAfter(since)) {
+    		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
+    	}
+    	if (maxResults != null && maxResults > 100) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
+    	}
+    	if (maxResults != null && maxResults <= 0) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' > 0.");
+    	}
+    	if (offset != null && offset < 0) {
+    		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
+    	}
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+        List<TripPlan> results = Collections.emptyList();
+        Long totalCount = 0L;
+		PagedResult<Long> prs = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 0, 0);
+		totalCount = prs.getTotalCount();
+    	if (totalCount > 0 && maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> tripIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, maxResults, offset);
+    		if (tripIds.getData().size() > 0) {
+    			results = tripPlanDao.fetch(tripIds.getData(), null, TripPlan::getId);
+    		}
+    	}
+    	return new PagedResult<TripPlan>(results, maxResults, offset, totalCount);
+    }
 
     /**
      * Lists a page of trip plans in progress of the shout-out type that have a departure or arrival location within a circle with radius 

@@ -476,14 +476,21 @@ public class Leg implements Serializable {
 
 	public void setLegGeometry(MultiPoint  legGeometry) {
 		this.legGeometry = legGeometry;
+		this.legGeometryEncoded = null;
 	}
 
 	public EncodedPolylineBean getLegGeometryEncoded() {
+    	if (legGeometry != null && legGeometryEncoded == null) {
+    		legGeometryEncoded = PolylineEncoder.createEncodings(legGeometry);
+    	}
 		return legGeometryEncoded;
 	}
 
 	public void setLegGeometryEncoded(EncodedPolylineBean legGeometryEncoded) {
 		this.legGeometryEncoded = legGeometryEncoded;
+    	if (this.legGeometryEncoded != null) {
+    		this.legGeometry = GeometryHelper.createLegGeometry(this.legGeometryEncoded);
+    	}
 	}
 
 	public List<GuideStep> getGuideSteps() {
@@ -534,16 +541,7 @@ public class Leg implements Serializable {
         return traverseMode == null ? null : traverseMode.isTransit();
     }
 
-    public void decodeLegGeometry() {
-    	if (getLegGeometryEncoded() != null) {
-    		setLegGeometry(GeometryHelper.createLegGeometry(getLegGeometryEncoded()));
-    	}
-    }
-    
     public int getDestinationStopDistance() {
-    	if (getLegGeometry() == null) { 
-    		decodeLegGeometry();
-    	}
     	Coordinate lastCoord = getLegGeometry().getCoordinates()[getLegGeometry().getCoordinates().length - 1];
     	GeoLocation lastPoint = new GeoLocation(GeometryHelper.createPoint(lastCoord));
     	return Math.toIntExact(Math.round(to.getLocation().getDistanceFlat(lastPoint) * 1000));

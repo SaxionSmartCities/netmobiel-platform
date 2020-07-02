@@ -21,6 +21,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.planner.api.SearchApi;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
+import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.User;
@@ -52,8 +53,10 @@ public class SearchResource implements SearchApi {
     public Response searchPlan(
     		String from, 
     		String to, 
-    		OffsetDateTime departureTime,
-    		OffsetDateTime arrivalTime,
+    		OffsetDateTime travelTime,
+    		Boolean useAsArrivalTime,
+    		OffsetDateTime earliestDepartureTime,
+    		OffsetDateTime latestArrivalTime,
     		String modalities,
     		Integer maxWalkDistance,
     		Integer nrSeats,
@@ -88,23 +91,20 @@ public class SearchResource implements SearchApi {
     	}
 		try {
 			User traveller = userManager.registerCallingUser();
-			plan.setTraveller(traveller);
 			plan.setFrom(GeoLocation.fromString(from));
 			plan.setTo(GeoLocation.fromString(to));
-			if (departureTime != null) {
-				plan.setTravelTime(toInstant(departureTime));
-				plan.setUseAsArrivalTime(false);
-			} else {
-				plan.setTravelTime(toInstant(arrivalTime));
-				plan.setUseAsArrivalTime(true);
-			}
+			plan.setTravelTime(toInstant(travelTime));
+			plan.setUseAsArrivalTime(useAsArrivalTime);
+			plan.setEarliestDepartureTime(toInstant(earliestDepartureTime));
+			plan.setLatestArrivalTime(toInstant(latestArrivalTime));
 			plan.setTraverseModes(domainModalities);
 			plan.setMaxWalkDistance(maxWalkDistance);
 			plan.setNrSeats(nrSeats);
 			plan.setMaxTransfers(maxTransfers);
 			plan.setFirstLegRideshareAllowed(firstLegRideshare);
 			plan.setLastLegRideshareAllowed(lastLegRideshare);
-			
+    		plan.setPlanType(PlanType.REGULAR);
+
     		plan = plannerManager.createAndReturnTripPlan(traveller, plan, toInstant(now));
     		if (log.isDebugEnabled()) {
     			log.debug("Multimodal plan for " + traveller.getEmail() + ":\n" + plan.toString());

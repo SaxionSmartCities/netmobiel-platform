@@ -104,7 +104,10 @@ public class TripManager {
         	trip.setState(TripState.PLANNING);
         	trip.setItinerary(it);
         	// Load trip plan (lazy loaded, only plan itself)
-        	TripPlan plan = it.getPlan();
+        	TripPlan plan = it.getTripPlan();
+        	if (plan == null) {
+        		throw new NotFoundException("Itinerary has no plan attached!: " + trip.getItineraryRef());
+        	}
             trip.setArrivalTimeIsPinned(plan.isUseAsArrivalTime());
         	trip.setNrSeats(plan.getNrSeats());
             trip.setFrom(plan.getFrom());

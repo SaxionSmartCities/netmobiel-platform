@@ -129,7 +129,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     	Itinerary it = trip.getItinerary();
     	assertTrue(puu.isLoaded(it, Itinerary_.LEGS));
     	assertFalse(puu.isLoaded(it, Itinerary_.STOPS));
-    	assertFalse(puu.isLoaded(it, Itinerary_.PLAN));
+    	assertFalse(puu.isLoaded(it, Itinerary_.TRIP_PLAN));
     	
     	List<Leg> legs = it.getLegs();
     	assertEquals(1, legs.size());
@@ -154,7 +154,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     	Itinerary it = trip.getItinerary();
     	assertTrue(puu.isLoaded(it, Itinerary_.LEGS));
     	assertFalse(puu.isLoaded(it, Itinerary_.STOPS));
-    	assertFalse(puu.isLoaded(it, Itinerary_.PLAN));
+    	assertFalse(puu.isLoaded(it, Itinerary_.TRIP_PLAN));
     	
     	List<Leg> legs = it.getLegs();
     	assertEquals(1, legs.size());

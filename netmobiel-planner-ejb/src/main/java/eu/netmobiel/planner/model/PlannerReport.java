@@ -100,7 +100,7 @@ public class PlannerReport implements Serializable {
     @NotNull
     @Embedded
     @AttributeOverrides({ 
-    	@AttributeOverride(name = "label", column = @Column(name = "from_label")), 
+    	@AttributeOverride(name = "label", column = @Column(name = "from_label", length = GeoLocation.MAX_LABEL_LENGTH)), 
     	@AttributeOverride(name = "point", column = @Column(name = "from_point", nullable = false)), 
    	} )
     private GeoLocation from;
@@ -108,7 +108,7 @@ public class PlannerReport implements Serializable {
     @NotNull
     @Embedded
     @AttributeOverrides({ 
-    	@AttributeOverride(name = "label", column = @Column(name = "to_label")), 
+    	@AttributeOverride(name = "label", column = @Column(name = "to_label", length = GeoLocation.MAX_LABEL_LENGTH)), 
     	@AttributeOverride(name = "point", column = @Column(name = "to_point", nullable = false)), 
    	} )
     private GeoLocation to;
@@ -117,7 +117,9 @@ public class PlannerReport implements Serializable {
      * The additional via points.
      */
     @ElementCollection()
-    @CollectionTable(name = "report_via", foreignKey = @ForeignKey(foreignKeyDefinition = "via_report_fk"))
+    @CollectionTable(name = "report_via", joinColumns = { 
+    		@JoinColumn(name = "report_id", foreignKey = @ForeignKey(foreignKeyDefinition = "via_report_fk"))
+	})
     @Column(name = "via_location")
     private List<GeoLocation> viaLocations;
 
@@ -129,17 +131,14 @@ public class PlannerReport implements Serializable {
     @Column(name = "request_geometry", nullable = false)
     private LineString requestGeometry; 
 
-//    @NotNull
-//    @ManyToOne (fetch = FetchType.LAZY)
-//	@JoinColumn(name = "traveller", nullable = false, foreignKey = @ForeignKey(name = "trip_traveller_fk"))
-//    private User traveller;
-
     /**
      * The eligible traverse modes
      */
     @ElementCollection()
-    @CollectionTable(name = "report_traverse_mode", foreignKey = @ForeignKey(foreignKeyDefinition = "traverse_mode_report_fk"))
-    @Column(name = "traverse_mode")
+    @CollectionTable(name = "report_traverse_mode", joinColumns = { 
+    	@JoinColumn(name = "report_id", foreignKey = @ForeignKey(foreignKeyDefinition = "traverse_mode_report_fk")) 
+    })
+    @Column(name = "traverse_mode", length = 2)
     @OrderBy("ASC")
     private Set<TraverseMode> traverseModes;
 
@@ -203,7 +202,7 @@ public class PlannerReport implements Serializable {
     /**
      * The tool used for the planning
      */
-    @Column(name = "tool_type", nullable = false)
+    @Column(name = "tool_type", nullable = false, length = 3)
     private ToolType toolType;
 
     @ManyToOne(fetch = FetchType.LAZY)

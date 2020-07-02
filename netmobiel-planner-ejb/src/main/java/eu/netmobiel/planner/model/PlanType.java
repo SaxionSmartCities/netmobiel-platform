@@ -14,12 +14,7 @@ public enum PlanType {
 	/**
 	 * The Shout-Out plan, i.e., a request to the community for transport.  
 	 */
-	SHOUT_OUT("SHO"),
-	/**
-	 * A plan used for testing and evaluating the system  
-	 */
-	INTERNAL("INT");
-
+	SHOUT_OUT("SHO");
 
 	private String code;
 	 

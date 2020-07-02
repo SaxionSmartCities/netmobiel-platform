@@ -32,7 +32,7 @@ import eu.netmobiel.commons.util.GeometryHelper;
 public class GeoLocation implements Serializable {
 	public static final GeoLocation NORTH_POLE = GeoLocation.fromDegrees( GeometryHelper.LATITUDE_DEGREE_MAX, 0 );
 	public static final GeoLocation SOUTH_POLE = GeoLocation.fromDegrees( GeometryHelper.LATITUDE_DEGREE_MIN, 0 );	
-
+	public static final int MAX_LABEL_LENGTH = 256;
 	/**
 	 * 
 	 */
@@ -50,7 +50,7 @@ public class GeoLocation implements Serializable {
 	/**
 	 * Explanatory label, non-normative.
 	 */
-	@Column(name = "label", length = 256)
+	@Column(name = "label", length = MAX_LABEL_LENGTH)
 	private String label;
 	
 	public GeoLocation() {

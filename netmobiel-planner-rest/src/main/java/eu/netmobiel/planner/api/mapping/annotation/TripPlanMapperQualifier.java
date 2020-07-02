@@ -7,14 +7,10 @@ import java.lang.annotation.Retention;
 import java.lang.annotation.Target;
 
 import org.mapstruct.Qualifier;
-/**
- * Qualifier to show only the attributes of the leg and its stops.
- * @author Jaap Reitsma
- *
- */
+
 @Qualifier
 @Retention(CLASS)
-@Target(METHOD)
-public @interface LegShallow {
+@Target({ TYPE, METHOD })
+public @interface TripPlanMapperQualifier {
 
 }

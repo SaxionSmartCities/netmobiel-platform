@@ -109,7 +109,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
 	    	Itinerary it = its.get(0);
 	    	assertTrue(puu.isLoaded(it, Itinerary_.LEGS));
 	    	assertFalse(puu.isLoaded(it, Itinerary_.STOPS));
-	    	assertTrue(puu.isLoaded(it, Itinerary_.PLAN)); 	// Apparently implicitly loaded, because this field refers to the loaded plan
+	    	assertTrue(puu.isLoaded(it, Itinerary_.TRIP_PLAN)); 	// Apparently implicitly loaded, because this field refers to the loaded plan
 	    	
 	    	List<Leg> legs = it.getLegs();
 	    	assertEquals(5, legs.size());
