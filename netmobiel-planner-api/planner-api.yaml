@@ -730,6 +730,8 @@ components:
         at a specified departure time.
       required:
       - arrivalTime
+      - itineraryRef
+      - departureTime
       type: object
       properties:
         departureTime:
@@ -770,6 +772,10 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Leg'
+        itineraryRef:
+          description: A reference to the itinerary. Use this reference to create
+            a trip.
+          type: string
     User:
       description: 'A user in the planner service. '
       required:
