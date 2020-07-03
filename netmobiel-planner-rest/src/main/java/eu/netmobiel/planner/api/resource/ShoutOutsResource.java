@@ -44,7 +44,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
 			PagedResult<TripPlan> result = tripPlanManager.listShoutOuts(GeoLocation.fromString(location), 
 					startTime != null ? startTime.toInstant() : Instant.now(), 
 					smallRadius, travelRadius != null ? travelRadius : smallRadius, maxResults, offset);
-			rsp = Response.ok(pageMapper.mapPlans(result)).build();
+			rsp = Response.ok(pageMapper.mapShoutOutPlans(result)).build();
 		} catch (Exception e) {
 			throw new InternalServerErrorException(e);
 		}

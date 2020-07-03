@@ -815,7 +815,7 @@ public class TripPlanManager {
     		PagedResult<Long> tripIds = tripPlanDao.findShoutOutPlans(location, startTime, depArrRadius, travelRadius, maxResults, offset);
     		if (tripIds.getData().size() > 0) {
     			// Return the plan and the traveller 
-    			results = tripPlanDao.fetch(tripIds.getData(), null, TripPlan::getId);
+    			results = tripPlanDao.fetch(tripIds.getData(), TripPlan.SHOUT_OUT_ENTITY_GRAPH, TripPlan::getId);
     		}
     	}
     	return new PagedResult<TripPlan>(results, maxResults, offset, totalCount);

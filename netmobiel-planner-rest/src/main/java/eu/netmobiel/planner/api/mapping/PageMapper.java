@@ -10,6 +10,7 @@ import eu.netmobiel.planner.api.mapping.annotation.TripMapperQualifier;
 import eu.netmobiel.planner.api.mapping.annotation.TripMyDetails;
 import eu.netmobiel.planner.api.mapping.annotation.TripPlanDetails;
 import eu.netmobiel.planner.api.mapping.annotation.TripPlanMapperQualifier;
+import eu.netmobiel.planner.api.mapping.annotation.TripPlanShallow;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
 
@@ -32,4 +33,7 @@ public abstract class PageMapper {
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { TripPlanMapperQualifier.class, TripPlanDetails.class } )
 	public abstract eu.netmobiel.planner.api.model.Page mapPlans(PagedResult<TripPlan> source);
+
+	@Mapping(target = "data", source = "data", qualifiedBy = { TripPlanMapperQualifier.class, TripPlanShallow.class } )
+	public abstract eu.netmobiel.planner.api.model.Page mapShoutOutPlans(PagedResult<TripPlan> source);
 }

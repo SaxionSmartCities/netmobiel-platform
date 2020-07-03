@@ -8,6 +8,7 @@ import org.mapstruct.ReportingPolicy;
 import eu.netmobiel.planner.api.mapping.annotation.ItineraryMapperQualifier;
 import eu.netmobiel.planner.api.mapping.annotation.TripPlanDetails;
 import eu.netmobiel.planner.api.mapping.annotation.TripPlanMapperQualifier;
+import eu.netmobiel.planner.api.mapping.annotation.TripPlanShallow;
 import eu.netmobiel.planner.model.TripPlan;
 
 /**
@@ -27,7 +28,14 @@ public interface TripPlanMapper {
     @TripPlanDetails
     eu.netmobiel.planner.api.model.TripPlan map(TripPlan source );
 
-    @InheritInverseConfiguration
+    @Mapping(target = "modalities", source = "traverseModes")
+    @Mapping(target = "firstLegRideshare", ignore = true)
+    @Mapping(target = "lastLegRideshare", ignore = true)
+    @Mapping(target = "itineraries", ignore = true)
+    @TripPlanShallow
+    eu.netmobiel.planner.api.model.TripPlan mapShoutOuts(TripPlan source );
+
+    @InheritInverseConfiguration(name = "map")
     @Mapping(target = "itineraries", ignore = true)
     @Mapping(target = "plannerReports", ignore = true)
     @Mapping(target = "id", ignore = true)
