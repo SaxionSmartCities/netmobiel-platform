@@ -276,7 +276,7 @@ public class TripManagerTest {
 		Trip trip = Fixture.createTrip(traveller, plan);
 		trip.setId(55L);
 		new Expectations() {{
-			tripDao.find(trip.getId());
+			tripDao.loadGraph(trip.getId(), Trip.DETAILED_ENTITY_GRAPH);
 			result = trip;
 		}};
 		try {
