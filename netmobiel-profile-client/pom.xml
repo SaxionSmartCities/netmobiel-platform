@@ -81,6 +81,15 @@
 		    <artifactId>jackson-datatype-jsr310</artifactId>
 			<scope>provided</scope>
 		</dependency>
+		<!-- Needed to prevent enum warnings: 
+		     [WARNING] unknown enum constant javax.persistence.AccessType.FIELD
+  			reason: class file for javax.persistence.AccessType not found 
+  		-->
+        <dependency>
+            <groupId>javax.persistence</groupId>
+            <artifactId>javax.persistence-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
 		<dependency>
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-authz-client</artifactId>
