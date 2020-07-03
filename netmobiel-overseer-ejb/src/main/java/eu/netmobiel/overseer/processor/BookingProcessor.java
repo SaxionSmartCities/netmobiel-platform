@@ -7,7 +7,9 @@ import java.time.format.FormatStyle;
 import java.util.Locale;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
+import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
@@ -61,6 +63,9 @@ public class BookingProcessor {
     @Inject
     private TripManager tripManager;
 
+    @Resource
+    private SessionContext context;
+
     @Inject
     private Logger logger;
     
@@ -96,6 +101,7 @@ public class BookingProcessor {
 			}
 		} catch (CreateException | NotFoundException | BadRequestException| UpdateException e) {
 			logger.error("Unable to create a booking: " + e.toString());
+			context.setRollbackOnly();
 		}
     }
 
@@ -109,7 +115,7 @@ public class BookingProcessor {
     			event.getBookingRef(),
     			event.isCancelledFromTransportProvider() ? "Transport Provider" : "NetMobiel",
     			event.isCancelledByDriver() ? "Driver" : "Passenger",
-    			event.getCancelReason()));
+    			event.getCancelReason() != null ? event.getCancelReason() : "---"));
     	try {
     		if (event.isCancelledFromTransportProvider()) {
     			// The booking is cancelled by rideshare
@@ -142,6 +148,8 @@ public class BookingProcessor {
     		
 		} catch (ApplicationException e) {
 			logger.error("Error cancelling booking: " + e.toString());
+			// Do not rollback, just proceed with the cancelling, probably that was some inconsistency.
+//			context.setRollbackOnly();
 		}
     	
     }

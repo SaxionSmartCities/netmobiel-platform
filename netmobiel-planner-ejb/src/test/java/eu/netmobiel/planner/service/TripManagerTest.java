@@ -261,9 +261,13 @@ public class TripManagerTest {
 		}};
 		String reason = "verkeerde dag gekozen";
 		boolean cancelledByDriver = false;
-		tested.cancelBooking(trip.getTripRef(), bookingRef, reason, cancelledByDriver);
-		assertEquals(TripState.CANCELLED, trip.getState());
-		assertEquals(TripState.CANCELLED, leg.getState());
+		try {
+			tested.cancelBooking(trip.getTripRef(), bookingRef, reason, cancelledByDriver);
+			assertEquals(TripState.CANCELLED, trip.getState());
+			assertEquals(TripState.CANCELLED, leg.getState());
+		} catch (NotFoundException ex) {
+			fail("Unexpected exception: " + ex);
+		}
 	}
 
 	@Test

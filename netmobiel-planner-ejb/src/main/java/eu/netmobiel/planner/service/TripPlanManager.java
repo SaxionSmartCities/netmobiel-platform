@@ -253,7 +253,7 @@ public class TripPlanManager {
 		results.add(new PlannerResult(ridesResult.getReport()));
     	for (Ride ride : ridesResult.getPage().getData()) {
     		if (log.isDebugEnabled()) {
-    			log.debug("searchRides option: " + ride.toString());
+    			log.debug("searchRides option: " + ride.toStringShallow());
     		}
     		// Use always the riders departure time. The itineraries will be scored later on.
         	GeoLocation from = ride.getFrom();
@@ -262,19 +262,20 @@ public class TripPlanManager {
         	// Calculate for each ride found the ride when the passenger would ride along, i.e., add the pickup and drop-off location
         	// as intermediate places to the OTP planner and calculate the itinerary.
     		Instant rideDepTime = ride.getDepartureTime();
-        	PlannerResult planResult = otpDao.createPlan(now, from, to, rideDepTime,  false, modes, false, maxWalkDistance, null, intermediatePlaces, 1);
-        	results.add(planResult);
-    		if (planResult.hasError()) {
-        		log.warn("Skip itinerary (RS) due to OTP error: " + planResult.getReport().shortReport());
+        	PlannerResult driverSharedRidePlanResult = otpDao.createPlan(now, from, to, rideDepTime,  false, modes, false, maxWalkDistance, null, intermediatePlaces, 1);
+        	PlannerResult passengerSharedRidePlanResult = new PlannerResult(driverSharedRidePlanResult.getReport());
+        	results.add(passengerSharedRidePlanResult);
+    		if (driverSharedRidePlanResult.hasError()) {
+        		log.warn("Skip itinerary (RS) due to OTP error: " + driverSharedRidePlanResult.getReport().shortReport());
     		} else {
-        		Itinerary itinerary = planResult.getItineraries().get(0);
-        		boolean accepted = Stream.of(new DetourMetersAcceptable(ride, planResult.getReport()), new DetourSecondsAcceptable(ride, planResult.getReport()))
+        		Itinerary driverItinerary = driverSharedRidePlanResult.getItineraries().get(0);
+        		boolean accepted = Stream.of(new DetourMetersAcceptable(ride, driverSharedRidePlanResult.getReport()), new DetourSecondsAcceptable(ride, driverSharedRidePlanResult.getReport()))
         				.reduce(x -> true, Predicate::and)
-        				.test(itinerary);
+        				.test(driverItinerary);
             	if (accepted) {
-    	        	// We have the plan for the driver now. Add the itineraries but keep only the intermediate leg(s).
-            		itinerary = itinerary.filterLegs(fromPlace, toPlace);
-            		itinerary.getLegs().forEach(leg -> {
+    	        	// We have the plan for the driver now. Add the itineraries but keep only the intermediate leg(s). This is a shallow copy !
+            		Itinerary passengerItinerary = driverItinerary.subItinerary(fromPlace, toPlace);
+            		passengerItinerary.getLegs().forEach(leg -> {
             			leg.setAgencyName(RideManager.AGENCY_NAME);
             			leg.setAgencyId(RideManager.AGENCY_ID);
             			leg.setDriverId(ride.getDriverRef());
@@ -287,13 +288,14 @@ public class TripPlanManager {
             			leg.setBookingRequired(true);
             			leg.setTripId(ride.getRideRef());
             		});
-            		// Set the arrival time of the first stop to null
+            		// Set the arrival time of the first stop to null (this will have a side effect on the drivers itinerary too)
             		// Set the departure time of the last stop to null
-            		Leg firstLeg = itinerary.getLegs().get(0);
+            		Leg firstLeg = passengerItinerary.getLegs().get(0);
             		firstLeg.getFrom().setArrivalTime(null);
-            		Leg lastLeg = itinerary.getLegs().get(itinerary.getLegs().size() - 1);  
+            		Leg lastLeg = passengerItinerary.getLegs().get(passengerItinerary.getLegs().size() - 1);  
             		lastLeg.getTo().setDepartureTime(null);
-            		planResult.addItineraries(Collections.singletonList(itinerary));
+            		passengerItinerary.updateCharacteristics();
+            		passengerSharedRidePlanResult.addItineraries(Collections.singletonList(passengerItinerary));
             	}
     		}
 		}
@@ -329,7 +331,10 @@ public class TripPlanManager {
         		if (transitResult.hasError()) {
             		log.warn("Skip itinerary (RS first) due to OTP error: " + transitResult.getReport().shortReport());
         		} else {
-        			plan.addItineraries(dit.appendTransits(transitResult.getItineraries()));
+        			plan.addItineraries(transitResult.getItineraries()
+        					.stream()
+        					.map(it -> dit.append(it))
+        					.collect(Collectors.toList()));
         		}
 			}
 		}
@@ -364,7 +369,10 @@ public class TripPlanManager {
         		if (transitResult.hasError()) {
             		log.warn("Skip itinerary (RS last) due to OTP error: " + transitResult.getReport().shortReport());
         		} else {
-        			plan.addItineraries(dit.prependTransits(transitResult.getItineraries()));
+        			plan.addItineraries(transitResult.getItineraries()
+        					.stream()
+        					.map(it -> dit.prepend(it))
+        					.collect(Collectors.toList()));
         		}
 			}
 		}
@@ -434,7 +442,7 @@ public class TripPlanManager {
         	List<Itinerary> passengerItineraries = rideResults.stream()
         			.flatMap(pr -> pr.getItineraries().stream())
         			.collect(Collectors.toList());
-	    	plan.getItineraries().addAll(passengerItineraries);
+	    	plan.addItineraries(passengerItineraries);
 
 			// If transit is an option too then collect possible pickup and drop-off places near transit stops
 			if (!transitModalities.isEmpty() && plan.isRideshareLegAllowed() && 

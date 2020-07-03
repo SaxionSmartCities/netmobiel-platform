@@ -1,6 +1,7 @@
 package eu.netmobiel.planner.model;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -225,5 +226,8 @@ public class Stop implements Serializable {
 				&& Objects.equals(stopCode, other.stopCode) && Objects.equals(stopId, other.stopId);
 	}
 
-	
+
+	public int getWaitingTime() {
+		return departureTime == null || arrivalTime == null ? 0 : Math.toIntExact(Duration.between(departureTime, arrivalTime).getSeconds());
+	}
 }

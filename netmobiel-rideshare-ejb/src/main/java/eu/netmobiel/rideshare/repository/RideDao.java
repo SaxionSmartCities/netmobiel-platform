@@ -39,6 +39,7 @@ import eu.netmobiel.rideshare.model.User;
 public class RideDao extends AbstractDao<Ride, Long> {
 	public static final Integer DEFAULT_PAGE_SIZE = 10; 
 
+	@SuppressWarnings("unused")
 	@Inject
     private Logger logger;
     
@@ -119,12 +120,12 @@ public class RideDao extends AbstractDao<Ride, Long> {
     public PagedResult<Long> search(GeoLocation fromPlace, GeoLocation toPlace, int maxBearingDifference, 
     		Instant earliestDeparture, Instant latestArrival, Integer nrSeatsRequested, boolean lenient, Integer maxBookings, Integer maxResults, Integer offset) {
     	int searchBearing = Math.toIntExact(Math.round(EllipseHelper.getBearing(fromPlace.getPoint(), toPlace.getPoint())));
-    	if (logger.isDebugEnabled()) {
-	    	logger.debug(String.format("Search for ride from %s to %s D %s A %s #%d seats %s, bearing %d", fromPlace, toPlace, 
-	    			earliestDeparture != null ? DateTimeFormatter.ISO_INSTANT.format(earliestDeparture) : "-",
-	    			latestArrival != null ? DateTimeFormatter.ISO_INSTANT.format(latestArrival) : "-",
-	    			nrSeatsRequested, lenient ? "lenient" : "strict", searchBearing));
-    	}
+//    	if (logger.isDebugEnabled()) {
+//	    	logger.debug(String.format("Search for ride from %s to %s D %s A %s #%d seats %s, bearing %d, max %s ", fromPlace, toPlace, 
+//	    			earliestDeparture != null ? DateTimeFormatter.ISO_INSTANT.format(earliestDeparture) : "-",
+//	    			latestArrival != null ? DateTimeFormatter.ISO_INSTANT.format(latestArrival) : "-",
+//	    			nrSeatsRequested, lenient ? "lenient" : "strict", searchBearing, maxResults != null ? maxResults.toString() : "?"));
+//    	}
     	String baseQuery =     			
     			"from Ride r where contains(r.shareEligibility, :fromPoint) = true and " +
     			"contains(r.shareEligibility, :toPoint) = true and " +

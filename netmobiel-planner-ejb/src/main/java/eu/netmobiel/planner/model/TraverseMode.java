@@ -30,8 +30,8 @@ public enum TraverseMode {
     }
 
     public boolean isTransit() {
-        return this == TRAM || this == SUBWAY || this == RAIL || this == BUS || this == FERRY
-                || this == CABLE_CAR || this == GONDOLA || this == FUNICULAR || this == TRANSIT
+        return this == TRANSIT || this == RAIL || this == BUS || this == TRAM || this == SUBWAY 
+        		|| this == FERRY || this == CABLE_CAR || this == GONDOLA || this == FUNICULAR 
                 || this == AIRPLANE;
     }
 

@@ -21,7 +21,6 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OrderColumn;
-import javax.persistence.PostLoad;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -250,35 +249,35 @@ public class Leg implements Serializable {
     }
 
     public Leg(Leg other) {
-		this.distance = other.distance;
-		this.traverseMode = other.traverseMode;
 		this.agencyId = other.agencyId;
 		this.agencyName = other.agencyName;
 		this.agencyTimeZoneOffset = other.agencyTimeZoneOffset;
-		this.routeType = other.routeType;
-		this.routeId = other.routeId;
-		this.headsign = other.headsign;
-		this.from = other.from.copy();
-		this.to = other.to.copy();
-		this.legGeometry = other.legGeometry;
-		this.routeShortName = other.routeShortName;
-		this.routeLongName = other.routeLongName;
+		this.bookingId = other.bookingId;
+		this.bookingRequired = other.bookingRequired;
+		this.distance = other.distance;
 		this.driverId = other.driverId;
 		this.driverName = other.driverName;
+		this.duration = other.duration;
+		this.from = other.from.copy();
+		// Copy by value
+		this.guideSteps = new ArrayList<>(other.getGuideSteps().stream().map(GuideStep::copy).collect(Collectors.toList()));
+		this.headsign = other.headsign;
+		this.legGeometry = other.legGeometry;
+		this.plannerReport = other.plannerReport; 
+		this.routeType = other.routeType;
+		this.routeId = other.routeId;
+		this.routeLongName = other.routeLongName;
+		this.routeShortName = other.routeShortName;
+		this.routeType = other.routeType;
+		this.state = other.state;
+		this.to = other.to.copy();
+		this.traverseMode = other.traverseMode;
 		this.tripId = other.tripId;
 		this.vehicleId = other.vehicleId;
-		this.vehicleName = other.vehicleName;
 		this.vehicleLicensePlate = other.vehicleLicensePlate;
-		// Copy by value
-		this.guideSteps = new ArrayList<>(other.guideSteps.stream().map(GuideStep::copy).collect(Collectors.toList()));
+		this.vehicleName = other.vehicleName;
 	}
 
-    @PostLoad
-    private void encodeLegGeometry() {
-    	if (legGeometry != null) {
-    		legGeometryEncoded = PolylineEncoder.createEncodings(legGeometry);
-    	}
-    }
     public Leg copy() {
     	return new Leg(this);
     }
@@ -494,6 +493,9 @@ public class Leg implements Serializable {
 	}
 
 	public List<GuideStep> getGuideSteps() {
+		if (guideSteps == null) {
+			guideSteps = new ArrayList<>();
+		}
 		return guideSteps;
 	}
 

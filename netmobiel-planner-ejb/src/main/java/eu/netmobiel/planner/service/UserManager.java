@@ -65,6 +65,7 @@ public class UserManager {
     				user.setId(null);
     				return userDao.save(user);	
     			});
+    	dbuser.setEmail(user.getEmail()); 
     	dbuser.setFamilyName(user.getFamilyName()); 
     	dbuser.setGivenName(user.getGivenName()); 
     	return dbuser;

@@ -82,6 +82,7 @@ public class UserManager {
     public User register(NetMobielUser user) {
     	User dbuser = userDao.findByManagedIdentity(user.getManagedIdentity())
     			.orElseGet(() -> userDao.save(new User(user)));
+    	dbuser.setEmail(user.getEmail()); 
     	dbuser.setFamilyName(user.getFamilyName()); 
     	dbuser.setGivenName(user.getGivenName()); 
     	return dbuser;

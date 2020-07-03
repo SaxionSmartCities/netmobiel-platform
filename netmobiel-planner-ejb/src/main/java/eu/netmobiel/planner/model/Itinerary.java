@@ -5,9 +5,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
-import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
@@ -37,6 +38,7 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.util.ClosenessFilter;
 import eu.netmobiel.opentripplanner.client.OpenTripPlannerClient;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
@@ -86,6 +88,8 @@ public class Itinerary implements Serializable {
 	public static final String LIST_ITINERARY_DETAIL_ENTITY_GRAPH = "list-itinerary-detail-graph";
 
     private static final Logger log = LoggerFactory.getLogger(Itinerary.class);
+	private static final ClosenessFilter connectingStopCheck = 
+			new ClosenessFilter(OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS * 2);
 
     @Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "itinerary_sg")
@@ -177,22 +181,43 @@ public class Itinerary implements Serializable {
     }
 
     public Itinerary(Itinerary other) {
-		this.duration = other.duration;
-		this.departureTime = other.departureTime;
 		this.arrivalTime = other.arrivalTime;
-		this.walkTime = other.walkTime;
+		this.departureTime = other.departureTime;
+		this.duration = other.duration;
+		this.transfers = other.transfers;
 		this.transitTime = other.transitTime;
 		this.waitingTime = other.waitingTime;
 		this.walkDistance = other.walkDistance;
-		this.transfers = other.transfers;
+		this.walkTime = other.walkTime;
 		this.legs = new ArrayList<>(other.legs);
+		this.stops = new ArrayList<>(other.stops);
     }
     
     public Itinerary copy() {
     	return new Itinerary(this);
     }
 
-	public Long getId() {
+    public Itinerary deepCopy() {
+    	Itinerary copy = new Itinerary(this);
+    	List<Leg> legs = copy.getLegs();
+    	copy.setLegs(new ArrayList<>());
+    	copy.getStops().clear();
+    	Stop lastStop = null;
+    	for (Leg oldLeg : legs) {
+    		// Deep copy, convert to graph
+			Leg newLeg = new Leg(oldLeg);
+			if (lastStop != null) {
+				newLeg.setFrom(lastStop);
+			}
+			lastStop = newLeg.getTo();
+			copy.getLegs().add(newLeg);
+		}
+    	copy.getStops().add(copy.getLegs().get(0).getFrom());
+		copy.getStops().addAll(copy.getLegs().stream().map(leg -> leg.getTo()).collect(Collectors.toList()));
+    	return copy;
+    }
+
+    public Long getId() {
 		return id;
 	}
 
@@ -393,67 +418,167 @@ public class Itinerary implements Serializable {
 		return builder.toString();
 	}
 
-	public Itinerary filterLegs(GeoLocation from, GeoLocation to) {
-		Itinerary it = new Itinerary(this);
-		int startIx = -1;
-		int endIx = it.legs.size();
-		for (int ix = 0; ix < it.legs.size(); ix++) {
-			Leg leg = it.legs.get(ix);
-			if (startIx < 0) {
-				// If within x meter it must be the start (a bit shady)
-				if (from.getDistanceFlat(leg.getFrom().getLocation()) < (OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS * 2 / 1000.0)) {
-					startIx = ix;
-				}
-			} 
-			// If within x meter it must be the end
-			if (startIx >= 0 && to.getDistanceFlat(leg.getTo().getLocation()) < (OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS * 2 / 1000.0)) {
-				endIx = ix + 1;
-				break;
-			}
-		}
-		if (startIx < 0) {
-			log.warn("Unable to find starting position of car leg, using whole itinerary");
-			startIx = 0;
-		}
-		it.legs = it.legs.subList(startIx, endIx);
-		return it;
-		
-	}
-	
-	public List<Itinerary> appendTransits(Collection<Itinerary> transitItineraries) {
-		List<Itinerary> carTransitIts = new ArrayList<>();
-		for (Itinerary transitIt: transitItineraries) {
-			Itinerary mmit = new Itinerary(this); 
-			mmit.legs.addAll(transitIt.legs);
-			mmit.arrivalTime = transitIt.arrivalTime;
-			mmit.duration = Math.toIntExact(Duration.between(mmit.departureTime, mmit.arrivalTime).getSeconds());
-			mmit.transfers = transitIt.transfers + 1;
-			mmit.transitTime = transitIt.transitTime;
-			double legsDuration = transitIt.legs.stream().mapToDouble(leg -> leg.getDuration()).sum();
-			mmit.waitingTime = Math.toIntExact(Math.round(mmit.duration - legsDuration));
-			mmit.walkDistance = transitIt.walkDistance;
-			mmit.walkTime = transitIt.walkTime;
-	    	carTransitIts.add(mmit);
-		}
-		return carTransitIts;
+	/**
+	 * Waiting is the time spent waiting for transit to arrive, in seconds. 
+	 */
+	void updateWaitingTime() {
+		waitingTime = getLegs().stream()
+				.filter(leg -> leg.getTraverseMode().isTransit())
+				.map(leg -> leg.getFrom().getWaitingTime())
+				.collect(Collectors.summingInt(Integer::intValue));
 	}
 
-	public List<Itinerary> prependTransits(Collection<Itinerary> transitItineraries) {
-		List<Itinerary> carTransitIts = new ArrayList<>();
-		for (Itinerary transitIt: transitItineraries) {
-			Itinerary mmit = new Itinerary(this); 
-			mmit.legs.addAll(0, transitIt.legs);
-			mmit.departureTime = transitIt.departureTime;
-			mmit.duration = Math.toIntExact(Duration.between(mmit.departureTime, mmit.arrivalTime).getSeconds());
-			mmit.transfers = transitIt.transfers + 1;
-			mmit.transitTime = transitIt.transitTime;
-			double legsDuration = transitIt.legs.stream().mapToDouble(leg -> leg.getDuration()).sum();
-			mmit.waitingTime = Math.toIntExact(Math.round(mmit.duration - legsDuration));
-			mmit.walkDistance = transitIt.walkDistance;
-			mmit.walkTime = transitIt.walkTime;
-	    	carTransitIts.add(mmit);
+	/**
+	 * WalkDistance is how far the traveller has to walk, in meters. 
+	 */
+	void updateWalkDistance() {
+		walkDistance = getLegs().stream()
+				.filter(leg -> leg.getTraverseMode() == TraverseMode.WALK)
+				.map(leg -> leg.getDistance())
+				.collect(Collectors.summingInt(Integer::intValue));
+	}
+
+	/**
+	 * WalkTime is how much time is spent walking, in seconds. 
+	 */
+	void updateWalkTime() {
+		walkTime = getLegs().stream()
+				.filter(leg -> leg.getTraverseMode() == TraverseMode.WALK)
+				.map(leg -> leg.getDuration())
+				.collect(Collectors.summingInt(Integer::intValue));
+	}
+
+	/**
+	 * TransitTime is how much time is spent in travelling with transit, in seconds. 
+	 */
+	void updateTransitTime() {
+		transitTime = getLegs().stream()
+				.filter(leg -> leg.getTraverseMode().isTransit())
+				.map(leg -> leg.getDuration())
+				.collect(Collectors.summingInt(Integer::intValue));
+	}
+
+	/**
+	 * Transfers is the number of switches between different vehicles.
+	 * It is calculated by counting the number of <traveseMode, tripId> combinations, minus 1.  
+	 */
+	public void updateTransfers() {
+		Set<String> transferNames = getLegs().stream()
+				.filter(leg -> leg.getTraverseMode().isDriving() || leg.getTraverseMode().isTransit())
+				.map(leg -> leg.getTraverseMode().toString() + leg.getTripId())
+				.collect(Collectors.toSet());
+		transfers = transferNames.isEmpty() ? 0 : transferNames.size() - 1;
+	}
+
+	public void updateCharacteristics( ) {
+		Leg firstLeg = getLegs().get(0);
+		Leg lastLeg = getLegs().get(getLegs().size() - 1);
+		setDepartureTime(firstLeg.getFrom().getDepartureTime());
+		setArrivalTime(lastLeg.getTo().getArrivalTime());
+		setDuration(Math.toIntExact(Duration.between(getDepartureTime(), getArrivalTime()).getSeconds()));
+		updateTransfers();
+		updateTransitTime();
+		updateWaitingTime();
+		updateWalkDistance();
+		updateWalkTime();
+	}
+
+	/**
+	 * Extract an itinerary from this itinerary using the the specifief locations.
+	 * @param from the location to start from 
+	 * @param to the destination location
+	 * @return the sub itinerary. This is a shallow copy. The original graph will be altered (first and last stop).
+	 */
+	public Itinerary subItinerary(GeoLocation from, GeoLocation to) {
+		Itinerary it = new Itinerary();
+		// If within x meter it must be the right stop (a bit shady)
+    	ClosenessFilter closenessFilter = new ClosenessFilter(OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS * 2);
+		Stop fromStop = getStops().stream()
+				.filter(s -> closenessFilter.test(s.getLocation(), from))
+				.findFirst()
+				.orElse(null);
+		Stop toStop = getStops().stream()
+				.filter(s -> closenessFilter.test(s.getLocation(), to))
+				.findFirst()
+				.orElse(null);
+		Leg firstLeg = getLegs().stream().filter(leg -> leg.getFrom() == fromStop).findFirst().orElse(null);
+		Leg lastLeg = getLegs().stream().filter(leg -> leg.getTo() == toStop).findFirst().orElse(null);
+		if (firstLeg == null) {
+			log.warn("Unable to find start leg, using whole itinerary");
+			it = new Itinerary(this);
+		} else if (lastLeg == null) {
+			log.warn("Unable to find last leg, using whole itinerary");
+			it = new Itinerary(this);
+		} else {
+			it = new Itinerary();
+			// Copy the legs
+			it.getLegs().addAll(getLegs().subList(getLegs().indexOf(firstLeg), getLegs().indexOf(lastLeg) + 1));
+			// Copy the stops, the first from, and then all to's
+			it.getStops().add(it.getLegs().get(0).getFrom());
+			it.getStops().addAll(it.getLegs().stream().map(leg -> leg.getTo()).collect(Collectors.toList()));
+			updateCharacteristics();
 		}
-		return carTransitIts;
+		return it;
+	}
+
+	/**
+	 * Create new itinerary by appending the specified itinerary to this one.
+	 * This itinerary is unchanged, a deep copy is made. The appended itinerary is altered slightly. 
+	 * The append and prepend are not commutative because the this object stays unchanged only. 
+	 * The stop objects in the appended graph all stay.
+	 * @param other the appended itinerary. 
+	 * @return A new itinerary comprising this one and the appended other one
+	 */
+	public Itinerary append(Itinerary other) {
+		Itinerary it = this.deepCopy();
+		Stop arrivingStop = it.getStops().get(it.getStops().size() - 1);
+		Stop departingStop = other.getStops().get(0);
+		if (!connectingStopCheck.test(arrivingStop.getLocation(), departingStop.getLocation())) {
+			log.warn(String.format("Appending a non-connected itinerary: %s <--> %s", arrivingStop, departingStop));
+		}
+		// To connect the graph, one of the stops has to go. The first stop of the connecting itinerary stays.
+		departingStop.setArrivalTime(arrivingStop.getArrivalTime());
+		it.getLegs().get(it.getLegs().size() - 1).setTo(departingStop);
+		// Remove the arriving stop
+		it.getStops().remove(arrivingStop);
+		// ... and add the new departing stop instead
+		it.getStops().add(departingStop);
+		// Add all legs
+		it.getLegs().addAll(other.getLegs());
+		// Add all new stops
+		it.getStops().addAll(other.getLegs().stream().map(leg -> leg.getTo()).collect(Collectors.toList()));
+		it.updateCharacteristics();
+		return it;
+	}
+
+	/**
+	 * Create new itinerary by prepending the specified itinerary to this one.
+	 * This itinerary is unchanged, a deep copy is made. The prepended itinerary is altered slightly.
+	 * The append and prepend are not commutative because the this object stays unchanged only. 
+	 * The stop objects in the prepended graph all stay.
+	 * @param other the itinerary to prepend this one. 
+	 * @return A new itinerary comprising other one and this one
+	 */
+	public Itinerary prepend(Itinerary other) {
+		Itinerary it = this.deepCopy();
+		Stop arrivingStop = other.getStops().get(other.getStops().size() - 1);
+		Stop departingStop = it.getStops().get(0);
+		if (!connectingStopCheck.test(arrivingStop.getLocation(), departingStop.getLocation())) {
+			log.warn(String.format("Appending a non-connected itinerary: %s <--> %s", arrivingStop, departingStop));
+		}
+		// To connect the graph, one of the stops has to go. The last stop of the connecting itinerary stays.
+		arrivingStop.setDepartureTime(departingStop.getDepartureTime());
+		it.getLegs().get(0).setFrom(arrivingStop);
+		// Remove the departing stop
+		it.getStops().remove(departingStop);
+		// Add all new legs
+		it.getLegs().addAll(0, other.getLegs());
+		// Add all new arriving stops
+		it.getStops().addAll(0, other.getLegs().stream().map(leg -> leg.getTo()).collect(Collectors.toList()));
+		// Prepend departing stop too
+		it.getStops().add(0, other.getLegs().get(0).getFrom());
+		it.updateCharacteristics();
+		return it;
 	}
 
 }

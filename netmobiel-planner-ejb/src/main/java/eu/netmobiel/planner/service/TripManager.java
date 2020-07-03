@@ -1,6 +1,7 @@
 package eu.netmobiel.planner.service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
@@ -117,6 +118,7 @@ public class TripManager {
     	}
        	tripDao.save(trip);
        	tripDao.flush();
+       	List<BookingRequestedEvent> bookingEvents = new ArrayList<>();
    		for (Leg leg : trip.getItinerary().getLegs()) {
     	    if (autobook) {
     	    	if (leg.isBookingRequired()) {
@@ -130,7 +132,7 @@ public class TripManager {
        				b.setDropOff(leg.getTo().getLocation());
        				b.setNrSeats(trip.getNrSeats());
        				b.setPickup(leg.getFrom().getLocation());
-       				bookingRequestedEvent.fire(b);
+       				bookingEvents.add(b);
     	    	} else {
        	    		// If no booking is required then no further action is required. Schedule the leg.
        				leg.setState(TripState.SCHEDULED);
@@ -142,6 +144,8 @@ public class TripManager {
        		// Should we merge/refresh?
        	}
        	trip.updateTripState();
+       	// Update the trip state before sending the event. Just for consistency.
+       	bookingEvents.stream().forEach(event -> bookingRequestedEvent.fire(event));
     	return trip.getId();
     }
 
@@ -159,12 +163,12 @@ public class TripManager {
     	Leg leg = trip.getItinerary().findLegByTripId(transportProviderTripRef)
     			.orElseThrow(() -> new IllegalArgumentException("No such leg with tripId " + transportProviderTripRef));
     	if (trip.getState() != TripState.BOOKING) {
-    		throw new UpdateException(String.format("Cannot not assign booking %s to trip %s, trip has now state %s", 
-    				bookingRef, tripRef, trip.getState().toString()));
+    		throw new UpdateException(String.format("Unexpected trip state %s, expected BOOKING; cannot assign booking %s to trip %s", 
+    				trip.getState().toString(), bookingRef, tripRef));
     	}
     	if (!leg.getTripId().equals(transportProviderTripRef)) {
-    		throw new UpdateException(String.format("Cannot not assign booking %s from %s to trip %s, leg has now provider %s", 
-    				bookingRef, transportProviderTripRef, tripRef, leg.getTripId()));
+    		throw new UpdateException(String.format("Unexpected leg tripId %s, expected %s; cannot assign booking %s to trip %s", 
+    				leg.getTripId(), transportProviderTripRef, bookingRef, tripRef));
     	}
     	leg.setBookingId(bookingRef);
     	if (bookingConfirmed) {
@@ -173,11 +177,11 @@ public class TripManager {
     	}
     }
 
-    public void cancelBooking(String tripRef, String bookingRef, String reason, boolean cancelledByDriver) {
+    public void cancelBooking(String tripRef, String bookingRef, String reason, boolean cancelledByDriver) throws NotFoundException {
     	Trip trip = tripDao.find(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef))
-    			.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripRef));
+    			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
     	Leg leg = trip.getItinerary().findLegByBookingId(bookingRef)
-    			.orElseThrow(() -> new IllegalArgumentException("No such leg with bookingId " + bookingRef));
+    			.orElseThrow(() -> new NotFoundException("No such leg with bookingId " + bookingRef));
 		leg.setState(TripState.CANCELLED);
 		trip.updateTripState();
     }

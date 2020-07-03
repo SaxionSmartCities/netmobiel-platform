@@ -267,8 +267,7 @@ public class Ride extends RideBase implements Serializable {
         booking.setRide(null);
     }
     
-    @Override
-    public String toString() {
+    public String toStringShallow() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("Ride ").append(getId());
 		builder.append(" D ");
@@ -276,6 +275,13 @@ public class Ride extends RideBase implements Serializable {
 		builder.append(formatTime(getArrivalTime())).append(" ");
 		builder.append(getDuration()).append("s ");
 		builder.append(getDistance()).append("m ");
+		return builder.toString();
+    }
+
+    @Override
+    public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append(toStringShallow());
 		Stop previous = null;
 		for (Leg leg : getLegs()) {
 			if (previous == null) {
