@@ -625,6 +625,74 @@ paths:
       operationId: searchPlan
       summary: Search for itineraries for a trip.
       description: Search and retrieve matching itineraries.
+  /shout-outs/{planId}/plan:
+    summary: Path used to find a plan to combine the shout-out with a driver's ride.
+    description: The REST endpoint/path used to get a single instances of a `TripPlan`,
+      matching the shout-out plan of the traveller in one of the legs.  This path
+      contains a `GET` operations used to perform the get tasks.
+    get:
+      parameters:
+      - examples:
+          Station-Borne:
+            value: Station Borne::52.298417,6.749157
+        name: from
+        description: |-
+          The driver's location to depart from, comprising of a latitude and longitude pair in degrees according WGS84. For logging purposes you may prepend the coordinates with a place label followed by two colons.
+          If omitted, the home location of the driver (the calling user) is chosen.
+        schema:
+          type: string
+        in: query
+        required: false
+      - examples:
+          Station-Borne:
+            value: Station Borne::52.298417,6.749157
+        name: to
+        description: |-
+          The driver's location to arrive at, comprising of a latitude and longitude pair in degrees according WGS84. For logging purposes you may prepend the coordinates with a place label followed by two colons.
+
+          If omitted the arrival location is the drop-off location of the passenger.
+        schema:
+          type: string
+        in: query
+        required: false
+      - name: travelTime
+        description: "The desired time to depart or arrive. The meaning depends on\
+          \ the flag 'useAsArrivalTime'. \nIf omitted the travelTime is chosen as\
+          \ the estimated departure  time to arrive in time at\nthe pickup location\
+          \ of the passenger at the time as defined by the passenger'strip plan."
+        schema:
+          format: date-time
+          type: string
+        in: query
+        required: false
+      - name: useAsArrivalTime
+        description: Flag to indicate whether the `travelTime` is the time to depart
+          (false) or the time to arrive (true). Default is false.
+        schema:
+          type: boolean
+        in: query
+        required: false
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPlan'
+          description: Succes response. A `TripPlan` is returned that resolves the
+            shout-out of the passenger.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: createMatchingPlan
+      summary: Creates a matching plan.
+      description: Creates a plan that can resolve the shout-out of the traveller.
+    parameters:
+    - name: planId
+      description: A reference to the shout-out plan of the traveller. The reference
+        can be a database ID or a proper URN.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     MaintenanceStatus:
