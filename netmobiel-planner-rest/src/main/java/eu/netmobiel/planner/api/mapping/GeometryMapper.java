@@ -26,6 +26,9 @@ public interface GeometryMapper {
 
 	// MultiPoint -> EncodedPolylineBean 
 	default EncodedPolyline map(MultiPoint geometry) {
+		if (geometry == null) {
+			return null;
+		}
 		EncodedPolylineBean bean = PolylineEncoder.createEncodings(geometry);
 		return map(bean);
 	}
