@@ -776,33 +776,6 @@ components:
           description: A reference to the itinerary. Use this reference to create
             a trip.
           type: string
-    User:
-      description: 'A user in the planner service. '
-      required:
-      - managedIdentity
-      - givenName
-      - familyName
-      type: object
-      properties:
-        id:
-          format: int64
-          description: 'The unique user id. If referenced use the URN notation: urn:nb:pn:user:<id>'
-          type: integer
-        managedIdentity:
-          description: The user is as known by the IDM (Keycloak). The format is determined
-            by the IDM.
-          type: string
-        givenName:
-          description: The first name of the driver.
-          type: string
-        familyName:
-          description: The family name of the driver.
-          type: string
-      example:
-        familyName: Normalverbraucher
-        givenName: Otto
-        id: 2
-        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
     Trip:
       title: Root Type for Trip
       description: A Trip is a journey in which you go somewhere, usually for a short
@@ -829,8 +802,8 @@ components:
           type: string
         traveller:
           $ref: '#/components/schemas/User'
-          description: The user owning this plan. The traveller is determine when
-            the trip is saved.
+          description: 'The user owning and using this trip. The user or traveller
+            is determined when the trip is saved: it is the calling user.'
           properties:
             managedIdentity:
               type: string
@@ -876,7 +849,7 @@ components:
           description: The reference urn of the trip. Format is urn:nb:pl:trip:{id}.
           type: string
         arrivalTimeIsPinned:
-          description: If true then the arrival time is leadibng for the passenger,
+          description: If true then the arrival time is leading for the passenger,
             otherwise departure time.
           type: boolean
         itinerary:
@@ -1213,6 +1186,37 @@ components:
         resultType: place
         id: 528u1kck-c0a80b682f9643c8a75942f82d5c7ea8
         distance: 108045
+    User:
+      description: A user in the planner service. This can be a driver or a traveller
+        (or both, but not at the same time).
+      required:
+      - managedIdentity
+      - givenName
+      - familyName
+      type: object
+      properties:
+        id:
+          format: int64
+          description: 'The unique user id. If referenced use the URN notation: urn:nb:pn:user:<id>'
+          type: integer
+        managedIdentity:
+          description: The user is as known by the IDM (Keycloak). The format is determined
+            by the IDM.
+          type: string
+        givenName:
+          description: The first name of the user.
+          type: string
+        familyName:
+          description: The family name of the user.
+          type: string
+        email:
+          description: The email address of the user.
+          type: string
+      example:
+        familyName: Normalverbraucher
+        givenName: Otto
+        id: 2
+        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
     TripPlan:
       description: A plan consisting of one or more itineraries. The header of the
         plan contains the parameters as requestes.
@@ -1272,9 +1276,9 @@ components:
             Default: false.
           type: boolean
         useAsArrivalTime:
-          description: If `true` the use `travelTime` as intended to arrive at the
-            destination. Otherwise use `travelTime` as time to depart. Default value
-            is `false`.
+          description: If `true` the use `travelTime` as intended arrival time at
+            the destination. Otherwise use `travelTime` as time to depart. Default
+            value is `false`.
           type: boolean
         planType:
           description: (Read-only). The type of the trip plan.
@@ -1304,6 +1308,14 @@ components:
         planRef:
           description: The urn of the plan.
           type: string
+        travellerRef:
+          description: 'A reference to the travelling user. It is a URN with the format:
+            urn:nb:pl:user:12345'
+          type: string
+        traveller:
+          $ref: '#/components/schemas/User'
+          description: The user owning this plan. The traveller is determined when
+            the plan is saved.
       example:
         from:
           label: Zieuwent,Kennedystraat
