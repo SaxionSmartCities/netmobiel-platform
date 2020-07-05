@@ -88,7 +88,7 @@ public class Itinerary implements Serializable {
 	public static final String LIST_ITINERARY_DETAIL_ENTITY_GRAPH = "list-itinerary-detail-graph";
 
     private static final Logger log = LoggerFactory.getLogger(Itinerary.class);
-	private static final ClosenessFilter connectingStopCheck = 
+	public static final ClosenessFilter connectingStopCheck = 
 			new ClosenessFilter(OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS * 2);
 
     @Id
@@ -581,4 +581,9 @@ public class Itinerary implements Serializable {
 		return it;
 	}
 
+	public void shiftLinear(Duration delta) {
+		departureTime = departureTime.plus(delta);
+		arrivalTime = arrivalTime.plus(delta);
+		getStops().forEach(stop -> stop.shiftLinear(delta));
+	}
 }

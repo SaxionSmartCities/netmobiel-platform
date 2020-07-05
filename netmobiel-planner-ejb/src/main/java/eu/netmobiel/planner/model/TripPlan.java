@@ -438,4 +438,9 @@ public class TripPlan {
 	public void close() {
 		setRequestDuration(Instant.now().toEpochMilli() - getCreationTime().toEpochMilli());
 	}
+
+	public void addPlannerResult(PlannerResult result) {
+		addItineraries(result.getItineraries());
+		addPlannerReport(result.getReport());
+	}
 }

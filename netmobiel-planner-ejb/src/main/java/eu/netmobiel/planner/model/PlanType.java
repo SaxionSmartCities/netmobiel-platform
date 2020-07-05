@@ -14,7 +14,12 @@ public enum PlanType {
 	/**
 	 * The Shout-Out plan, i.e., a request to the community for transport.  
 	 */
-	SHOUT_OUT("SHO");
+	SHOUT_OUT("SHO"),
+	/**
+	 * A reference plan by a driver to resolve a Shout-Out, a potential solution.  
+	 */
+	SHOUT_OUT_SOLUTION("SOS");
+;
 
 	private String code;
 	 

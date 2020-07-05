@@ -230,4 +230,13 @@ public class Stop implements Serializable {
 	public int getWaitingTime() {
 		return departureTime == null || arrivalTime == null ? 0 : Math.toIntExact(Duration.between(departureTime, arrivalTime).getSeconds());
 	}
+
+	public void shiftLinear(Duration delta) {
+		if (departureTime != null) {
+			departureTime = departureTime.plus(delta);
+		}
+		if (arrivalTime != null) {
+			arrivalTime = arrivalTime.plus(delta);
+		}
+	}
 }

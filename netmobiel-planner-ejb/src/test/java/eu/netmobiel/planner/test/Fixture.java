@@ -25,6 +25,7 @@ import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.PlannerReport;
+import eu.netmobiel.planner.model.PlannerResult;
 import eu.netmobiel.planner.model.RelativeDirection;
 import eu.netmobiel.planner.model.Stop;
 import eu.netmobiel.planner.model.ToolType;
@@ -472,5 +473,63 @@ public class Fixture {
     	return trip;
     }
     
+	public static PlannerResult createShoutOutSolution(GeoLocation from, GeoLocation to, TripPlan shoutOutplan) {
+		if (shoutOutplan.isUseAsArrivalTime()) {
+			throw new IllegalStateException("Fixture method does not support useAsArrivalTime");
+		}
+		Itinerary it = new Itinerary();
+    	it.setStops(new ArrayList<>());
+    	it.setLegs(new ArrayList<>());
+
+    	Leg leg1 = new Leg();
+    	it.getLegs().add(leg1);
+    	leg1.setDistance(10000);
+    	leg1.setDuration(60 * 15);
+    	
+    	Stop stop1 = new Stop(from);
+    	stop1.setDepartureTime(shoutOutplan.getTravelTime());
+    	leg1.setFrom(stop1);		
+    	it.getStops().add(stop1);
+    	
+    	Stop stop2 = new Stop(shoutOutplan.getFrom());
+    	stop2.setArrivalTime(stop1.getDepartureTime().plusSeconds(leg1.getDuration()));
+    	stop2.setDepartureTime(stop2.getArrivalTime());
+    	leg1.setTo(stop2);
+    	it.getStops().add(stop2);
+
+    	Leg leg2 = new Leg();
+    	it.getLegs().add(leg2);
+    	leg2.setDistance(30000);
+    	leg2.setDuration(60 * 45);
+    	leg2.setFrom(stop2);		
+
+    	Stop stop3 = new Stop(shoutOutplan.getTo());
+    	stop3.setArrivalTime(stop2.getDepartureTime().plusSeconds(leg2.getDuration()));
+    	leg2.setTo(stop3);
+    	it.getStops().add(stop3);
+
+    	if (to != null) {
+        	stop3.setDepartureTime(stop3.getArrivalTime());
+        	Leg leg3 = new Leg();
+        	it.getLegs().add(leg3);
+        	leg2.setDistance(10000);
+        	leg2.setDuration(60 * 15);
+        	leg2.setFrom(stop3);		
+
+        	Stop stop4 = new Stop(to);
+        	stop4.setArrivalTime(stop3.getDepartureTime().plusSeconds(leg3.getDuration()));
+        	leg3.setTo(stop4);
+        	it.getStops().add(stop4);
+    	}
+    	it.getLegs().forEach(leg -> leg.setTraverseMode(TraverseMode.RIDESHARE));
+    	it.updateCharacteristics();
+    	PlannerReport report = new PlannerReport();
+    	report.setFrom(from);
+    	report.setTo(to);
+    	report.setTravelTime(shoutOutplan.getTravelTime());
+    	PlannerResult result = new PlannerResult(report);
+    	result.addItineraries(Collections.singletonList(it));
+    	return result;
+	}
 
 }

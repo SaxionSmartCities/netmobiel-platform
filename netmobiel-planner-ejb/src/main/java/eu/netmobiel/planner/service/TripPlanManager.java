@@ -1,5 +1,6 @@
 package eu.netmobiel.planner.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -15,6 +16,7 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -29,6 +31,7 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
@@ -54,6 +57,7 @@ import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.OpenTripPlannerDao;
 import eu.netmobiel.planner.repository.OtpClusterDao;
 import eu.netmobiel.planner.repository.TripPlanDao;
+import eu.netmobiel.planner.util.PlannerUrnHelper;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.service.RideManager;
 
@@ -85,6 +89,7 @@ public class TripPlanManager {
     private OpenTripPlannerDao otpDao;
     @Inject
     private OtpClusterDao otpClusterDao;
+
     
     @Inject
     private Event<TripPlan> shoutOutRequestedEvent;
@@ -829,4 +834,60 @@ public class TripPlanManager {
     	return new PagedResult<TripPlan>(results, maxResults, offset, totalCount);
     }
 
+
+    /**
+     * Resolves a shout-out by issuing a trip plan as a potential solution for the shout-out by a ride by the driver. 
+     * @param now The reference point in time. Especially used for testing.
+     * @param driver The driver asking to verify a shout-out. 
+     * @param shoutOutPlanRef A reference to the shout-out of a traveller.
+     * @param driverPlan The input parameters of the driver
+     * @return A trip plan calculated  to fill-in the shout-out.
+     * @throws NotFoundException In case the shout-out could not be found.
+     */
+    public TripPlan resolveShoutOut(Instant now, User driver, String shoutOutPlanRef, TripPlan driverPlan) throws NotFoundException, ApplicationException {
+    	Long pid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanRef);
+    	TripPlan travPlan = tripPlanDao.find(pid).orElseThrow(() -> new NotFoundException("No such TripPlan: " + shoutOutPlanRef));
+    	boolean adjustDepartureTime = false;
+    	driverPlan.setTraveller(driver);
+    	driverPlan.setRequestTime(now);
+    	if (driverPlan.getFrom() == null) {
+    		throw new IllegalArgumentException("Driver needs to specify a departure location");
+    	}
+    	if (driverPlan.getTo() == null) {
+    		driverPlan.setTo(travPlan.getTo());
+    	}
+    	if (driverPlan.getTravelTime() == null) {
+    		driverPlan.setTravelTime(travPlan.getTravelTime());
+    		driverPlan.setUseAsArrivalTime(travPlan.isUseAsArrivalTime());
+    		adjustDepartureTime = true;
+    	}
+    	driverPlan.setNrSeats(travPlan.getNrSeats());
+    	driverPlan.setMaxWalkDistance(travPlan.getMaxWalkDistance());
+    	driverPlan.setTraverseModes(Collections.singleton(TraverseMode.RIDESHARE));
+    	List<GeoLocation> intermediatePlaces = new ArrayList<>();
+    	intermediatePlaces.add(travPlan.getFrom());
+    	intermediatePlaces.add(travPlan.getTo());
+    	PlannerResult result = otpDao.createPlan(now, driverPlan.getFrom(), driverPlan.getTo(), 
+    			driverPlan.getTravelTime(),  driverPlan.isUseAsArrivalTime(), driverPlan.getTraverseModes(), false, driverPlan.getMaxWalkDistance(), null, intermediatePlaces, 1);
+    	if (adjustDepartureTime && result.getItineraries().size() > 0) {
+    		// Shift the plan times such the pickup or drop-off time matches the traveltime of the proposed passenger
+    		Itinerary it = result.getItineraries().get(0);
+    		GeoLocation refLoc = travPlan.isUseAsArrivalTime() ? travPlan.getTo() : travPlan.getFrom();
+    		Optional<Stop> refStopOpt = it.getStops().stream()
+    				.filter(stop -> Itinerary.connectingStopCheck.test(refLoc, stop.getLocation()))
+    				.findFirst();
+    		if (refStopOpt.isPresent()) {
+    			Stop refStop = refStopOpt.get();
+    			Instant currTime = travPlan.isUseAsArrivalTime() ? refStop.getArrivalTime() : refStop.getDepartureTime();
+    			Duration delta = Duration.between(currTime, travPlan.getTravelTime());
+    			it.shiftLinear(delta);
+    			result.getReport().shiftLinear(delta);
+    		}
+    	}
+    	driverPlan.setPlanType(PlanType.SHOUT_OUT_SOLUTION);
+    	driverPlan.addPlannerResult(result);
+       	tripPlanDao.save(driverPlan);
+       	return driverPlan;
+    }
+    
 }

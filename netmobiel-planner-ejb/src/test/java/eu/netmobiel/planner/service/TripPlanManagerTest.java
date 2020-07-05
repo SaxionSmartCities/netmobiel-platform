@@ -8,6 +8,9 @@ import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
+import java.util.Arrays;
+import java.util.Collections;
+import java.util.List;
 
 import javax.enterprise.event.Event;
 
@@ -22,13 +25,16 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.PlanType;
+import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.repository.OpenTripPlannerDao;
 import eu.netmobiel.planner.repository.OtpClusterDao;
 import eu.netmobiel.planner.repository.TripPlanDao;
 import eu.netmobiel.planner.test.Fixture;
+import eu.netmobiel.planner.util.PlannerUrnHelper;
 import eu.netmobiel.rideshare.service.RideManager;
 import mockit.Expectations;
 import mockit.Injectable;
@@ -62,10 +68,13 @@ public class TripPlanManagerTest {
 
 	@Injectable
 	private User traveller;
+	@Injectable
+	private User driver;
 	
 	@Before
 	public void setUp() throws Exception {
 		traveller = new User("ID1", "Pietje", "Puk", "pietje@puk.me");
+		driver = new User("ID2", "Jan", "Chauffeur", "jan@chauffeurs.me");
 	}
 
 	@After
@@ -280,5 +289,32 @@ public class TripPlanManagerTest {
 			fail("Unexpected exception: " + ex);
 		}
 
+	}
+
+	@Test
+	public void testResolveShoutOut() {
+		Long pid = 54L;
+		String shoutOutRef = PlannerUrnHelper.createUrn(TripPlan.URN_PREFIX, pid);
+		Instant now = Instant.parse("2020-07-05T14:00:00Z"); 
+		TripPlan shoutOutPlan = Fixture.createShoutOutTripPlan(traveller, "2020-07-04T18:00:00Z", 
+				Fixture.placeZieuwent, Fixture.placeRaboZutphen, "2020-07-06T10:00:00Z", false, null);
+		TripPlan driverPlan = new TripPlan();
+		driverPlan.setFrom(Fixture.placeThuisLichtenvoorde);
+		new Expectations() {{
+			tripPlanDao.find(pid);
+			result = shoutOutPlan;
+			List<GeoLocation> via = Arrays.asList(new GeoLocation[] { shoutOutPlan.getFrom(), shoutOutPlan.getTo() });
+			otpDao.createPlan(now, driverPlan.getFrom(), shoutOutPlan.getTo(), shoutOutPlan.getTravelTime(), shoutOutPlan.isUseAsArrivalTime(), 
+					Collections.singleton(TraverseMode.RIDESHARE), false, shoutOutPlan.getMaxWalkDistance(), null, via, 1);
+			result = Fixture.createShoutOutSolution(driverPlan.getFrom(), null, shoutOutPlan); 
+		}};
+		try {
+			TripPlan plan = tested.resolveShoutOut(now, driver, shoutOutRef, driverPlan);
+			assertEquals(1, plan.getItineraries().size());
+			Itinerary it = plan.getItineraries().get(0);
+			log.debug("Itinerary: " + it.toString());
+		} catch (ApplicationException e) {
+			fail("Unexpected exception: " + e);
+		}
 	}
 }

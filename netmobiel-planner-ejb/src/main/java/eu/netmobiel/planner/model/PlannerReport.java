@@ -1,6 +1,7 @@
 package eu.netmobiel.planner.model;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -494,4 +495,7 @@ public class PlannerReport implements Serializable {
 		return sb.toString();
     }
 
+	public void shiftLinear(Duration delta) {
+		this.travelTime = travelTime.plus(delta);
+	}
 }
