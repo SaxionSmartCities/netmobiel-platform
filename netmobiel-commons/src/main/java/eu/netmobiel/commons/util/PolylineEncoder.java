@@ -32,8 +32,9 @@ public class PolylineEncoder {
     }
 
     public static EncodedPolylineBean createEncodings(Geometry geometry) {
-        if (geometry instanceof LineString) {
-
+        if (geometry == null) {
+            throw new IllegalArgumentException("Geometry cannot be null");
+        } else if (geometry instanceof LineString) {
             LineString string = (LineString) geometry;
             Coordinate[] coordinates = string.getCoordinates();
             return createEncodings(new CoordinateList(coordinates));
@@ -44,7 +45,7 @@ public class PolylineEncoder {
             MultiPoint mp = (MultiPoint) geometry;
             return createEncodings(new CoordinateList(mp.getCoordinates()));
         } else {
-            throw new IllegalArgumentException("Unsupported geometry:" + geometry.toString());
+            throw new IllegalArgumentException("Unsupported geometry:" + geometry.getClass().getName());
         }
     }
 
