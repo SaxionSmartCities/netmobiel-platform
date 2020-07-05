@@ -1353,6 +1353,7 @@ components:
           enum:
           - REGULAR
           - SHOUT_OUT
+          - SHOUT_OUT_SOLUTION
           type: string
         creationTime:
           format: date-time
