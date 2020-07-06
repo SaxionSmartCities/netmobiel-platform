@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.ArrayList;
 
 import org.junit.After;
 import org.junit.Before;
@@ -11,6 +12,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.planner.test.Fixture;
 
 public class ItineraryTest {
@@ -118,6 +120,83 @@ public class ItineraryTest {
 		// The prepended itinerary is modified to reflect the new situation
 		assertEquals(stop1B.getArrivalTime(), leg3_2.getFrom().getArrivalTime());
 		assertSame(leg3_1.getTo(), leg3_2.getFrom());
+	}
+
+	@Test
+	public void testshiftItinerayTimimg() {
+		Itinerary it = new Itinerary();
+    	it.setStops(new ArrayList<>());
+    	it.setLegs(new ArrayList<>());
+
+    	Stop stop1 = new Stop(Fixture.placeThuisLichtenvoorde);
+    	stop1.setDepartureTime(Instant.parse("2020-07-06T14:00:00Z"));
+    	it.getStops().add(stop1);
+    	
+    	Stop stop2 = new Stop(Fixture.placeZieuwent);
+    	stop2.setArrivalTime(Instant.parse("2020-07-06T14:15:00Z"));
+    	stop2.setDepartureTime(stop2.getArrivalTime().plusSeconds(5 * 60));
+    	it.getStops().add(stop2);
+
+    	Stop stop3 = new Stop(Fixture.placeRaboZutphen);
+    	stop3.setArrivalTime(Instant.parse("2020-07-06T15:00:00Z"));
+    	stop3.setDepartureTime(stop3.getArrivalTime().plusSeconds(5 * 60));
+    	it.getStops().add(stop3);
+
+    	Stop stop4 = new Stop(Fixture.placeRozenkwekerijZutphen);
+    	stop4.setArrivalTime(Instant.parse("2020-07-06T15:15:00Z"));
+    	it.getStops().add(stop4);
+
+    	Leg leg1 = new Leg();
+    	it.getLegs().add(leg1);
+    	leg1.setDistance(10000);
+    	leg1.setDuration(Math.toIntExact(Duration.between(stop1.getDepartureTime(), stop2.getArrivalTime()).getSeconds()));
+    	leg1.setFrom(stop1);		
+    	leg1.setTo(stop2);
+
+    	Leg leg2 = new Leg();
+    	it.getLegs().add(leg2);
+    	leg2.setDistance(30000);
+    	leg2.setDuration(Math.toIntExact(Duration.between(stop2.getDepartureTime(), stop3.getArrivalTime()).getSeconds()));
+    	leg2.setFrom(stop2);		
+    	leg2.setTo(stop3);
+
+    	Leg leg3 = new Leg();
+    	it.getLegs().add(leg3);
+    	leg3.setDistance(10000);
+    	leg3.setDuration(Math.toIntExact(Duration.between(stop3.getDepartureTime(), stop4.getArrivalTime()).getSeconds()));
+    	leg3.setFrom(stop3);		
+    	leg3.setTo(stop4);
+
+    	it.getLegs().forEach(leg -> leg.setTraverseMode(TraverseMode.CAR));
+    	it.updateCharacteristics();
+
+    	assertEquals(stop1.getDepartureTime(), it.getDepartureTime());
+    	assertEquals(stop4.getArrivalTime(), it.getArrivalTime());
+    	log.debug("testshiftItinerayTimimg before: " + it.toString());
+    	boolean useAsArrivalTime = false;
+    	GeoLocation refLoc = useAsArrivalTime ? stop3.getLocation() : stop2.getLocation();
+    	Instant targetTime = Instant.parse("2020-07-06T15:00:00Z");
+    	it.shiftItineraryTiming(refLoc, targetTime, useAsArrivalTime);
+    	log.debug("testshiftItinerayTimimg after 1: " + it.toString());
+    	assertEquals(targetTime, stop2.getDepartureTime());
+    	assertEquals(stop1.getDepartureTime(), it.getDepartureTime());
+    	assertEquals(stop4.getArrivalTime(), it.getArrivalTime());
+    	
+    	useAsArrivalTime = true;
+    	refLoc = useAsArrivalTime ? stop3.getLocation() : stop2.getLocation();
+    	targetTime = Instant.parse("2020-07-06T16:00:00Z");
+    	it.shiftItineraryTiming(refLoc, targetTime, useAsArrivalTime);
+    	log.debug("testshiftItinerayTimimg after 2: " + it.toString());
+    	assertEquals(targetTime, stop3.getArrivalTime());
+    	assertEquals(stop1.getDepartureTime(), it.getDepartureTime());
+    	assertEquals(stop4.getArrivalTime(), it.getArrivalTime());
+    	
+    	targetTime = Instant.parse("2020-07-06T14:00:00Z");
+    	it.shiftItineraryTiming(refLoc, targetTime, useAsArrivalTime);
+    	log.debug("testshiftItinerayTimimg after 2: " + it.toString());
+    	assertEquals(targetTime, stop3.getArrivalTime());
+    	assertEquals(stop1.getDepartureTime(), it.getDepartureTime());
+    	assertEquals(stop4.getArrivalTime(), it.getArrivalTime());
 	}
 
 }

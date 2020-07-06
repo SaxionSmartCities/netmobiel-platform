@@ -586,4 +586,25 @@ public class Itinerary implements Serializable {
 		arrivalTime = arrivalTime.plus(delta);
 		getStops().forEach(stop -> stop.shiftLinear(delta));
 	}
+
+	/**
+	 * Shifts the timing of an itinerary such that the arrival or departure time of the
+	 * reference stop will be equal to the specified target time.  
+	 * @param referenceStop The stop to use as reference for the target time
+	 * @param targetTime The time to arrive at or depart from the reference stop
+	 * @param useAsArrivalTime If true then use target time as arrival time.
+	 */
+	public void shiftItineraryTiming(GeoLocation referenceStop, Instant targetTime, boolean useAsArrivalTime) {
+		Optional<Stop> refStopOpt = getStops().stream()
+				.filter(stop -> Itinerary.connectingStopCheck.test(referenceStop, stop.getLocation()))
+				.findFirst();
+		if (refStopOpt.isPresent()) {
+			Stop refStop = refStopOpt.get();
+			Instant currTime = useAsArrivalTime ? refStop.getArrivalTime() : refStop.getDepartureTime();
+			Duration delta = Duration.between(currTime, targetTime);
+			shiftLinear(delta);
+		} else {
+			log.warn("Cannot find connecting stop: " + referenceStop.toString());
+		}
+	}
 }
