@@ -117,10 +117,9 @@ public class User implements NetMobielUser, Serializable {
 		this.familyName = familyName;
 	}
 
-	@Transient
 	@Override
 	public String getEmail() {
-		return null;
+		return email;
 	}
 
 	public void setEmail(String email) {

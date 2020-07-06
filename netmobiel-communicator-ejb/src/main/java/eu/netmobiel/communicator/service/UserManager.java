@@ -66,7 +66,7 @@ public class UserManager {
     }
 
     public User registerCallingUser() {
-    	User caller = findCallingUser();
+    	User caller = createContextUser();
     	if (caller != null) {
     		caller = register(caller);
     	} else {
