@@ -74,7 +74,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
 			TripPlan driverPlan = new TripPlan();
 			driverPlan.setFrom(GeoLocation.fromString(from));
 			if (to != null) {
-				driverPlan.setFrom(GeoLocation.fromString(to));
+				driverPlan.setTo(GeoLocation.fromString(to));
 			}
 			driverPlan.setTravelTime(travelTime != null ? travelTime.toInstant() : null);
 			driverPlan.setUseAsArrivalTime(Boolean.TRUE.equals(useAsArrivalTime));

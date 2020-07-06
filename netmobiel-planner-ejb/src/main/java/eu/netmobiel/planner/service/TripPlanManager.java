@@ -33,6 +33,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
@@ -847,6 +848,9 @@ public class TripPlanManager {
     public TripPlan resolveShoutOut(Instant now, User driver, String shoutOutPlanRef, TripPlan driverPlan) throws NotFoundException, ApplicationException {
     	Long pid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanRef);
     	TripPlan travPlan = tripPlanDao.find(pid).orElseThrow(() -> new NotFoundException("No such TripPlan: " + shoutOutPlanRef));
+    	if (!travPlan.isInProgress()) {
+    		throw new CreateException("Shout-out has already been closed");
+    	}
     	boolean adjustDepartureTime = false;
     	driverPlan.setTraveller(driver);
     	driverPlan.setRequestTime(now);
@@ -861,16 +865,23 @@ public class TripPlanManager {
     		driverPlan.setUseAsArrivalTime(travPlan.isUseAsArrivalTime());
     		adjustDepartureTime = true;
     	}
+    	if (driverPlan.getTravelTime().isBefore(now)) {
+    		throw new BadRequestException(String.format("Travel time %s cannot be before now %s", 
+    				formatDateTime(driverPlan.getTravelTime()), formatDateTime(now)));
+    		
+    	}
+
     	driverPlan.setNrSeats(travPlan.getNrSeats());
     	driverPlan.setMaxWalkDistance(travPlan.getMaxWalkDistance());
     	driverPlan.setTraverseModes(Collections.singleton(TraverseMode.RIDESHARE));
+    	Set<TraverseMode> otpModalities = new HashSet<>(Arrays.asList(new TraverseMode[] { TraverseMode.WALK, TraverseMode.CAR }));
     	List<GeoLocation> intermediatePlaces = new ArrayList<>();
     	intermediatePlaces.add(travPlan.getFrom());
     	intermediatePlaces.add(travPlan.getTo());
     	PlannerResult result = otpDao.createPlan(now, driverPlan.getFrom(), driverPlan.getTo(), 
-    			driverPlan.getTravelTime(),  driverPlan.isUseAsArrivalTime(), driverPlan.getTraverseModes(), false, driverPlan.getMaxWalkDistance(), null, intermediatePlaces, 1);
+    			driverPlan.getTravelTime(),  driverPlan.isUseAsArrivalTime(), otpModalities, false, driverPlan.getMaxWalkDistance(), null, intermediatePlaces, 1);
     	if (adjustDepartureTime && result.getItineraries().size() > 0) {
-    		// Shift the plan times such the pickup or drop-off time matches the traveltime of the proposed passenger
+    		// Shift all the timestamps in the plan in such a way that the pickup or drop-off time matches the travel time of the proposed passenger
     		Itinerary it = result.getItineraries().get(0);
     		GeoLocation refLoc = travPlan.isUseAsArrivalTime() ? travPlan.getTo() : travPlan.getFrom();
     		Optional<Stop> refStopOpt = it.getStops().stream()
@@ -881,11 +892,18 @@ public class TripPlanManager {
     			Instant currTime = travPlan.isUseAsArrivalTime() ? refStop.getArrivalTime() : refStop.getDepartureTime();
     			Duration delta = Duration.between(currTime, travPlan.getTravelTime());
     			it.shiftLinear(delta);
-    			result.getReport().shiftLinear(delta);
+        		// Fix the travel time of the driver and set it to the departure time of the first leg
+    			driverPlan.setTravelTime(it.getDepartureTime());
+    			driverPlan.setUseAsArrivalTime(false);
+    			result.getReport().setTravelTime(driverPlan.getTravelTime());
+    			result.getReport().setUseAsArrivalTime(driverPlan.isUseAsArrivalTime());
+    		} else {
+    			log.warn("Cannot find connecting stop in shoutout plan: " + refLoc.toString());
     		}
     	}
     	driverPlan.setPlanType(PlanType.SHOUT_OUT_SOLUTION);
     	driverPlan.addPlannerResult(result);
+    	driverPlan.close();
        	tripPlanDao.save(driverPlan);
        	return driverPlan;
     }

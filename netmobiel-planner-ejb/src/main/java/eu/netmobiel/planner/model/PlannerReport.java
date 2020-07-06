@@ -495,7 +495,4 @@ public class PlannerReport implements Serializable {
 		return sb.toString();
     }
 
-	public void shiftLinear(Duration delta) {
-		this.travelTime = travelTime.plus(delta);
-	}
 }
