@@ -625,24 +625,32 @@ paths:
       operationId: searchPlan
       summary: Search for itineraries for a trip.
       description: Search and retrieve matching itineraries.
-  /shout-outs/{planId}/plan:
+  /shout-outs/{shoutOutPlanId}/plan:
     summary: Path used to find a plan to combine the shout-out with a driver's ride.
     description: The REST endpoint/path used to get a single instances of a `TripPlan`,
       matching the shout-out plan of the traveller in one of the legs.  This path
       contains a `GET` operations used to perform the get tasks.
     get:
       parameters:
+      - name: now
+        description: (Testing only). The point in time as reference for searching.
+          If not set then now is set to the actual time.
+        schema:
+          format: date-time
+          type: string
+        in: query
+        required: false
       - examples:
           Station-Borne:
             value: Station Borne::52.298417,6.749157
         name: from
-        description: |-
-          The driver's location to depart from, comprising of a latitude and longitude pair in degrees according WGS84. For logging purposes you may prepend the coordinates with a place label followed by two colons.
-          If omitted, the home location of the driver (the calling user) is chosen.
+        description: The driver's location to depart from, comprising of a latitude
+          and longitude pair in degrees according WGS84. For logging purposes you
+          may prepend the coordinates with a place label followed by two colons.
         schema:
           type: string
         in: query
-        required: false
+        required: true
       - examples:
           Station-Borne:
             value: Station Borne::52.298417,6.749157
@@ -682,11 +690,11 @@ paths:
             shout-out of the passenger.
         "404":
           $ref: '#/components/responses/NotFound'
-      operationId: createMatchingPlan
+      operationId: resolveShoutOut
       summary: Creates a matching plan.
       description: Creates a plan that can resolve the shout-out of the traveller.
     parameters:
-    - name: planId
+    - name: shoutOutPlanId
       description: A reference to the shout-out plan of the traveller. The reference
         can be a database ID or a proper URN.
       schema:
