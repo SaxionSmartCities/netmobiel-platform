@@ -61,13 +61,16 @@ public class ShoutOutsResource implements ShoutOutsApi {
 	}
 
 	@Override
-	public Response createMatchingPlan(String planId, String from, String to, OffsetDateTime travelTime, Boolean useAsArrivalTime) {
+	public Response resolveShoutOut(String planId, OffsetDateTime now, String from, String to, OffsetDateTime travelTime, Boolean useAsArrivalTime) {
     	Response rsp = null;
     	if (planId == null) {
     		throw new BadRequestException("Missing mandatory path parameter: planId");
     	}
     	if (from == null) {
     		throw new BadRequestException("Missing mandatory parameter: from");
+     	}
+    	if (now == null) {
+    		now = OffsetDateTime.now();
      	}
 		try {
 			User driver = userManager.registerCallingUser();
@@ -78,7 +81,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
 			}
 			driverPlan.setTravelTime(travelTime != null ? travelTime.toInstant() : null);
 			driverPlan.setUseAsArrivalTime(Boolean.TRUE.equals(useAsArrivalTime));
-			driverPlan = tripPlanManager.resolveShoutOut(Instant.now(), driver, planId, driverPlan);
+			driverPlan = tripPlanManager.resolveShoutOut(now.toInstant(), driver, planId, driverPlan);
 			rsp = Response.ok(tripPlanMapper.map(driverPlan)).build();
 		} catch (Exception e) {
 			throw new WebApplicationException(e);
