@@ -122,4 +122,12 @@ public class Itinerary {
 		return builder.toString();
 	}
 
+	/**
+	 * Recalculates some characteristics of an itinerary from the legs.
+	 */
+	public void updateCharacteristics( ) {
+		walkDistance = legs.stream().filter(leg -> leg.mode == TraverseMode.WALK).mapToDouble(leg -> leg.distance).sum(); 
+		walkTime = Math.round(legs.stream().filter(leg -> leg.mode == TraverseMode.WALK).mapToDouble(leg -> leg.getDuration()).sum()); 
+
+	}
 }

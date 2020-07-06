@@ -83,12 +83,16 @@ public class OpenTripPlannerClientIT {
     	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
     	TripPlan plan = result.plan;
         assertNotNull(plan);
-        log.debug(plan.toString());
         assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);
         assertEquals(travelTime, it.startTime);
         assertEquals(1, it.legs.size());
+        Leg leg = it.legs.get(0);
+        assertEquals(it.startTime, leg.startTime);
+        assertEquals(it.endTime, leg.endTime);
+        assertEquals(leg.startTime, leg.from.departure);
+        assertEquals(leg.endTime, leg.to.arrival);
     }
 
     @Test
@@ -106,12 +110,16 @@ public class OpenTripPlannerClientIT {
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
-        log.debug(plan.toString());
         assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);
         assertEquals(travelTime, it.endTime);
         assertEquals(1, it.legs.size());
+        Leg leg = it.legs.get(0);
+        assertEquals(it.startTime, leg.startTime);
+        assertEquals(it.endTime, leg.endTime);
+        assertEquals(leg.startTime, leg.from.departure);
+        assertEquals(leg.endTime, leg.to.arrival);
     }
 
     @Test
@@ -130,12 +138,20 @@ public class OpenTripPlannerClientIT {
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
-        log.debug(plan.toString());
         assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);
         assertEquals(travelTime, it.startTime);
         assertEquals(2, it.legs.size());
+
+        Leg leg1 = it.legs.get(0);
+        Leg leg2 = it.legs.get(1);
+        assertEquals(it.startTime, leg1.startTime);
+        assertEquals(it.endTime, leg2.endTime);
+        assertEquals(leg1.startTime, leg1.from.departure);
+        assertEquals(leg2.endTime, leg2.to.arrival);
+        assertEquals(leg1.to.arrival, leg2.from.arrival);
+        assertEquals(leg1.to.departure, leg2.from.departure);
     }
 
     @Test
@@ -150,15 +166,23 @@ public class OpenTripPlannerClientIT {
     	Integer maxWalkDistance = 2000;
   	    Integer maxItineraries = 3;
     	Integer maxTransfers = null;
-   	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
+    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
     	TripPlan plan = result.plan;
         assertNotNull(plan);
-        log.debug(plan.toString());
         assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);
         assertEquals(travelTime, it.endTime);
         assertEquals(2, it.legs.size());
+
+        Leg leg1 = it.legs.get(0);
+        Leg leg2 = it.legs.get(1);
+        assertEquals(it.startTime, leg1.startTime);
+        assertEquals(it.endTime, leg2.endTime);
+        assertEquals(leg1.startTime, leg1.from.departure);
+        assertEquals(leg2.endTime, leg2.to.arrival);
+        assertEquals(leg1.to.arrival, leg2.from.arrival);
+        assertEquals(leg1.to.departure, leg2.from.departure);
     }
 
     @Test
@@ -176,7 +200,6 @@ public class OpenTripPlannerClientIT {
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
-        log.debug(plan.toString());
         assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);
@@ -267,7 +290,6 @@ public class OpenTripPlannerClientIT {
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
-        log.debug(plan.toString());
         assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);
@@ -293,7 +315,6 @@ public class OpenTripPlannerClientIT {
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
-        log.debug(plan.toString());
         assertPlan(fromPlace, toPlace, travelTime, plan);
         assertEquals(1, plan.itineraries.size());
         Itinerary it = plan.itineraries.get(0);

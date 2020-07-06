@@ -53,7 +53,7 @@ public class OpenTripPlannerClient {
     private static final String OTP_PLAN_REQUEST = "/routers/nl/plan"; 
     public static final int MINIMUM_PLANNING_DISTANCE_METERS = 20;
 
-    public static final BiPredicate<GeoLocation, GeoLocation> tooClose = (locA, locB)-> locA.getDistanceFlat(locB) < MINIMUM_PLANNING_DISTANCE_METERS;
+    public static final BiPredicate<GeoLocation, GeoLocation> tooClose = (locA, locB) -> locA.getDistanceFlat(locB) < MINIMUM_PLANNING_DISTANCE_METERS;
 
 //  https://otp.netmobiel.eu:8080/otp
     @Resource(lookup = "java:global/openTripPlanner/apiUrl")
@@ -233,8 +233,12 @@ public class OpenTripPlannerClient {
 //		}
 		if (result.plan != null) {
 			if (forcedDepartureTime) {
+				if (log.isDebugEnabled()) {
+					log.debug("OTP plan before shift: " + result.plan.toString());
+				}
 				// Shift the plan in time (earlier) so that arrivalTime equals departureTime
-				// The plan header is ok. Just modify itinerary and legs. 
+				// The plan header is ok. Just modify itinerary and legs.
+				// NOTE: The deserialization from JSON does not create a graph, the stops at each leg are duplicate objects! 
 				for (Itinerary it : result.plan.itineraries) {
 					it.startTime = it.startTime.minusSeconds(it.duration);  
 					it.endTime = it.endTime.minusSeconds(it.duration);
@@ -242,16 +246,21 @@ public class OpenTripPlannerClient {
 						if (leg.mode.isTransit()) {
 							throw new RuntimeException("Leg should not be shifted, it is time-dependent - " + leg.toString());
 						}
-						leg.startTime = leg.startTime.minusSeconds(it.duration);  
+						leg.startTime = leg.startTime.minusSeconds(it.duration);
+						leg.from.departure = leg.from.departure.minusSeconds(it.duration);
+						if (leg.from.arrival != null) {
+							leg.from.arrival = leg.from.arrival.minusSeconds(it.duration);
+						}
 						leg.endTime = leg.endTime.minusSeconds(it.duration);
+						leg.to.arrival = leg.endTime;
+						if (leg.to.departure != null) {
+							leg.to.departure = leg.to.departure.minusSeconds(it.duration);
+						}
 					}
 				}
 			}
-			// Repair the invalid calculation of walk distance and walk duration
-			result.plan.itineraries.forEach(it -> {
-				it.walkDistance = it.legs.stream().filter(leg -> leg.mode == TraverseMode.WALK).mapToDouble(leg -> leg.getDuration()).sum(); 
-				it.walkTime = Math.round(it.legs.stream().filter(leg -> leg.mode == TraverseMode.WALK).mapToDouble(leg -> leg.getDuration()).sum()); 
-			});
+			// Repair some invalid numbers
+			result.plan.itineraries.forEach(it -> it.updateCharacteristics());
 			if (log.isDebugEnabled()) {
 				log.debug("OTP plan: " + result.plan.toString());
 			}
