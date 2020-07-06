@@ -1,6 +1,5 @@
 package eu.netmobiel.planner.service;
 
-import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
@@ -16,7 +15,6 @@ import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -883,23 +881,15 @@ public class TripPlanManager {
     	if (adjustDepartureTime && result.getItineraries().size() > 0) {
     		// Shift all the timestamps in the plan in such a way that the pickup or drop-off time matches the travel time of the proposed passenger
     		Itinerary it = result.getItineraries().get(0);
+//    		log.debug("Before: " + it.toString());
     		GeoLocation refLoc = travPlan.isUseAsArrivalTime() ? travPlan.getTo() : travPlan.getFrom();
-    		Optional<Stop> refStopOpt = it.getStops().stream()
-    				.filter(stop -> Itinerary.connectingStopCheck.test(refLoc, stop.getLocation()))
-    				.findFirst();
-    		if (refStopOpt.isPresent()) {
-    			Stop refStop = refStopOpt.get();
-    			Instant currTime = travPlan.isUseAsArrivalTime() ? refStop.getArrivalTime() : refStop.getDepartureTime();
-    			Duration delta = Duration.between(currTime, travPlan.getTravelTime());
-    			it.shiftLinear(delta);
-        		// Fix the travel time of the driver and set it to the departure time of the first leg
-    			driverPlan.setTravelTime(it.getDepartureTime());
-    			driverPlan.setUseAsArrivalTime(false);
-    			result.getReport().setTravelTime(driverPlan.getTravelTime());
-    			result.getReport().setUseAsArrivalTime(driverPlan.isUseAsArrivalTime());
-    		} else {
-    			log.warn("Cannot find connecting stop in shoutout plan: " + refLoc.toString());
-    		}
+    		it.shiftItineraryTiming(refLoc, travPlan.getTravelTime(), travPlan.isUseAsArrivalTime());
+    		// Fix the travel time of the driver and set it to the departure time of the first leg
+			driverPlan.setTravelTime(it.getDepartureTime());
+			driverPlan.setUseAsArrivalTime(false);
+			result.getReport().setTravelTime(driverPlan.getTravelTime());
+			result.getReport().setUseAsArrivalTime(driverPlan.isUseAsArrivalTime());
+//    		log.debug("After: " + it.toString());
     	}
     	driverPlan.setPlanType(PlanType.SHOUT_OUT_SOLUTION);
     	driverPlan.addPlannerResult(result);
