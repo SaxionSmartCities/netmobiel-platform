@@ -522,7 +522,7 @@ public class Fixture {
         	leg3.setTo(stop4);
         	it.getStops().add(stop4);
     	}
-    	it.getLegs().forEach(leg -> leg.setTraverseMode(TraverseMode.RIDESHARE));
+    	it.getLegs().forEach(leg -> leg.setTraverseMode(TraverseMode.CAR));
     	it.updateCharacteristics();
     	PlannerReport report = new PlannerReport();
     	report.setFrom(from);

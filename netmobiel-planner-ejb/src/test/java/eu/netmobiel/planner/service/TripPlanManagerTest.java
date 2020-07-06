@@ -9,8 +9,8 @@ import java.time.LocalTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
-import java.util.Collections;
 import java.util.List;
+import java.util.Set;
 
 import javax.enterprise.event.Event;
 
@@ -291,6 +291,7 @@ public class TripPlanManagerTest {
 
 	}
 
+	@SuppressWarnings("unchecked")
 	@Test
 	public void testResolveShoutOut() {
 		Long pid = 54L;
@@ -304,8 +305,8 @@ public class TripPlanManagerTest {
 			tripPlanDao.find(pid);
 			result = shoutOutPlan;
 			List<GeoLocation> via = Arrays.asList(new GeoLocation[] { shoutOutPlan.getFrom(), shoutOutPlan.getTo() });
-			otpDao.createPlan(now, driverPlan.getFrom(), shoutOutPlan.getTo(), shoutOutPlan.getTravelTime(), shoutOutPlan.isUseAsArrivalTime(), 
-					Collections.singleton(TraverseMode.RIDESHARE), false, shoutOutPlan.getMaxWalkDistance(), null, via, 1);
+			otpDao.createPlan((Instant)any, driverPlan.getFrom(), shoutOutPlan.getTo(), shoutOutPlan.getTravelTime(), shoutOutPlan.isUseAsArrivalTime(), 
+					(Set<TraverseMode>) any, false, shoutOutPlan.getMaxWalkDistance(), null, via, 1);
 			result = Fixture.createShoutOutSolution(driverPlan.getFrom(), null, shoutOutPlan); 
 		}};
 		try {
