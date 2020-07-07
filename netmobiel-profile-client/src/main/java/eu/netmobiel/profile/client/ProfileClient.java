@@ -5,8 +5,11 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.StampedLock;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
@@ -29,6 +32,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
+import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.api.ProfilesApi;
@@ -207,4 +211,50 @@ public class ProfileClient {
 	public Instant getProfileTokenExpiration() {
 		return profileTokenExpiration;
 	}
+
+	private String createCircleArgument(GeoLocation location, int radiusMeters) {
+		return String.format("%f:%f:%f", location.getLatitude(), location.getLongitude(), radiusMeters / 1000.0);
+	}
+	
+	private String createCirclesParameter(final int radius, GeoLocation... locations) {
+    	return String.format("[%s]" , Stream.of(locations)
+			.map(loc -> createCircleArgument(loc, radius))
+			.collect(Collectors.joining(","))
+			);
+	}
+	
+	/**
+	 * Search for drivers that are eligible to drive a potential passenger to his/her destination.
+	 * @param pickup the pickup location of the traveller. 
+	 * @param dropOff the drop-off location of the traveller.
+	 * @param driverMaxRadiusMeter The radius of the circles that limits the eligibility of the the driver 
+	 * 			by demanding his living location to be in the two large circles around the pickup and drop-off location. 
+	 * @param driverNeighbouringRadiusMeter The radius of the circles that limits the eligibility of the the driver 
+	 * 			by demanding his living location to be in the neighbourhood of the pickup or drop-off location.
+	 * @return A list of profiles of potential drivers, possibly empty.
+	 * @throws ApplicationException In case of trouble.
+	 */
+    public List<Profile> searchShoutOutProfiles(String accessToken, GeoLocation pickup, GeoLocation dropOff, int driverMaxRadiusMeter, int driverNeighbouringRadiusMeter) throws ApplicationException {
+    	if (pickup == null || dropOff == null ) {
+    		throw new IllegalArgumentException("searchShoutOutProfiles: pickup and dropOff are mandatory parameters");
+    	}
+    	String withinAllCircles = createCirclesParameter(driverMaxRadiusMeter, pickup, dropOff);
+    	String withinAnyCircles = createCirclesParameter(driverNeighbouringRadiusMeter, pickup, dropOff);
+    	ResteasyWebTarget target = client.target(profileServiceUrl)
+    			.register(new AddAuthHeadersRequestFilter(accessToken));
+    	ProfilesApi api = target.proxy(ProfilesApi.class);
+        ProfileResponse result = null;
+		try (Response response =  api.searchShoutOutDrivers(withinAnyCircles, withinAllCircles)) {
+			if (response.getStatusInfo() != Response.Status.OK) {
+				ExceptionUtil.throwExceptionFromResponse("Error retrieving data from profile service", response);
+			}
+	        result = response.readEntity(ProfileResponse.class);
+		}
+        return result.getProfiles();
+    }
+
+    public List<Profile> searchShoutOutProfiles(GeoLocation pickup, GeoLocation dropOff, int driverMaxRadiusMeter, int driverNeighbouringRadiusMeter) throws ApplicationException {
+    	return searchShoutOutProfiles(getServiceAccountAccessToken(), pickup, dropOff, driverMaxRadiusMeter, driverNeighbouringRadiusMeter);
+    }
+
 }

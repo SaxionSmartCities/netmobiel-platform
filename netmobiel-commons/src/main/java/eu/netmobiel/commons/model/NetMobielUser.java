@@ -21,4 +21,10 @@ public interface NetMobielUser {
 	 * @return a family name
 	 */
 	String getFamilyName();
+
+	/**
+	 * Returns the email address of a user
+	 * @return an email address, if available
+	 */
+	String getEmail();
 }

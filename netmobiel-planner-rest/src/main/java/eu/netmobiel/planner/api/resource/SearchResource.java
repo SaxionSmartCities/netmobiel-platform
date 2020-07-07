@@ -3,34 +3,49 @@ package eu.netmobiel.planner.api.resource;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
+import java.util.HashSet;
+import java.util.Set;
+import java.util.stream.Collectors;
 
-import javax.enterprise.context.ApplicationScoped;
+import javax.ejb.EJB;
+import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.SecurityContext;
 
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.planner.api.SearchApi;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
+import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
-import eu.netmobiel.planner.service.PlannerManager;
+import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.service.TripPlanManager;
+import eu.netmobiel.planner.service.UserManager;
 
-@ApplicationScoped
+@RequestScoped
 public class SearchResource implements SearchApi {
 	private static final int DEFAULT_MAX_WALK_DISTANCE = 1000;
 	@Inject
     private Logger log;
  
 	@Inject
-    private PlannerManager plannerManager;
+    private TripPlanManager plannerManager;
+
+    @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
+    private UserManager userManager;
 
     @Inject
     private TripPlanMapper tripPlanMapper;
 
+    @Context
+    private SecurityContext securityContext;
+    
 	private Instant toInstant(OffsetDateTime odt) {
 		return odt == null ? null : odt.toInstant();
 	}
@@ -38,8 +53,10 @@ public class SearchResource implements SearchApi {
     public Response searchPlan(
     		String from, 
     		String to, 
-    		OffsetDateTime departureTime,
-    		OffsetDateTime arrivalTime,
+    		OffsetDateTime travelTime,
+    		Boolean useAsArrivalTime,
+    		OffsetDateTime earliestDepartureTime,
+    		OffsetDateTime latestArrivalTime,
     		String modalities,
     		Integer maxWalkDistance,
     		Integer nrSeats,
@@ -49,16 +66,16 @@ public class SearchResource implements SearchApi {
     		Boolean lastLegRideshare
     	) {
     	
-    	TripPlan plan = null;
+    	TripPlan plan = new TripPlan();
     	if (now == null) {
     		now = OffsetDateTime.now();
     	}
     	if (from == null || to == null) {
     		throw new BadRequestException("Missing one or more mandatory parameters: from, to");
     	}
-    	TraverseMode[] domainModalities = parseModalities(modalities);
+    	Set<TraverseMode> domainModalities = parseModalities(modalities);
     	if (domainModalities == null) {
-    		domainModalities = new TraverseMode[] { TraverseMode.WALK, TraverseMode.RIDESHARE, TraverseMode.TRANSIT };
+    		domainModalities = new HashSet<>(Arrays.asList(new TraverseMode[] { TraverseMode.WALK, TraverseMode.RIDESHARE, TraverseMode.TRANSIT }));
     	}
     	if (maxWalkDistance == null) {
     		maxWalkDistance = DEFAULT_MAX_WALK_DISTANCE;
@@ -73,13 +90,26 @@ public class SearchResource implements SearchApi {
     		nrSeats = 1;
     	}
 		try {
-    		plan = plannerManager.searchMultiModal(toInstant(now), GeoLocation.fromString(from), GeoLocation.fromString(to), 
-    					toInstant(departureTime), toInstant(arrivalTime), domainModalities, maxWalkDistance, nrSeats,
-    					maxTransfers, firstLegRideshare, lastLegRideshare);
+			User traveller = userManager.registerCallingUser();
+			plan.setFrom(GeoLocation.fromString(from));
+			plan.setTo(GeoLocation.fromString(to));
+			plan.setTravelTime(toInstant(travelTime));
+			plan.setUseAsArrivalTime(Boolean.TRUE.equals(useAsArrivalTime));
+			plan.setEarliestDepartureTime(toInstant(earliestDepartureTime));
+			plan.setLatestArrivalTime(toInstant(latestArrivalTime));
+			plan.setTraverseModes(domainModalities);
+			plan.setMaxWalkDistance(maxWalkDistance);
+			plan.setNrSeats(nrSeats);
+			plan.setMaxTransfers(maxTransfers);
+			plan.setFirstLegRideshareAllowed(Boolean.TRUE.equals(firstLegRideshare));
+			plan.setLastLegRideshareAllowed(Boolean.TRUE.equals(lastLegRideshare));
+    		plan.setPlanType(PlanType.REGULAR);
+
+    		plan = plannerManager.createAndReturnTripPlan(traveller, plan, toInstant(now));
     		if (log.isDebugEnabled()) {
-    			log.debug("Multimodal plan: \n" + plan.toString());
+    			log.debug("Multimodal plan for " + traveller.getEmail() + ":\n" + plan.toString());
     		}
-		} catch (eu.netmobiel.commons.exception.BadRequestException ex) {
+		} catch (eu.netmobiel.commons.exception.ApplicationException ex) {
 			throw new WebApplicationException(ex);
 		} catch (IllegalArgumentException ex) {
 			throw new BadRequestException("Input parameter has unrecognized format", ex);
@@ -87,14 +117,14 @@ public class SearchResource implements SearchApi {
     	return Response.ok(tripPlanMapper.map(plan)).build();
     }
     
-    private TraverseMode[] parseModalities(String modalities) {
-    	TraverseMode[] traverseModes = null;
+    private Set<TraverseMode> parseModalities(String modalities) {
+    	Set<TraverseMode> traverseModes = new HashSet<>();
     	if (modalities != null && modalities.trim().length() > 0) {
         	try {
     	    	String modes[] = modalities.split("[,\\s]+");
     	    	traverseModes = Arrays.stream(modes)
     	    			.map(m -> TraverseMode.valueOf(m))
-    	    			.toArray(TraverseMode[]::new);
+    	    			.collect(Collectors.toSet());
         	} catch (IllegalArgumentException ex) {
         		throw new BadRequestException("Failed to parse modalities: " + modalities, ex);
         	}

@@ -1,6 +1,7 @@
 package eu.netmobiel.planner.model;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
@@ -66,8 +67,14 @@ public class Stop implements Serializable {
     public Stop() {
     }
 
-	public Stop(GeoLocation geoloc) {
+	public Stop(GeoLocation geoloc, Instant departureTime, Instant arrivalTime) {
 		this.location = geoloc;
+		this.departureTime = departureTime;
+		this.arrivalTime = arrivalTime;
+	}
+	
+	public Stop(GeoLocation geoloc) {
+		this(geoloc, null, null);
 	}
 	
     public Stop(Stop other) {
@@ -219,5 +226,17 @@ public class Stop implements Serializable {
 				&& Objects.equals(stopCode, other.stopCode) && Objects.equals(stopId, other.stopId);
 	}
 
-	
+
+	public int getWaitingTime() {
+		return departureTime == null || arrivalTime == null ? 0 : Math.toIntExact(Duration.between(departureTime, arrivalTime).getSeconds());
+	}
+
+	public void shiftLinear(Duration delta) {
+		if (departureTime != null) {
+			departureTime = departureTime.plus(delta);
+		}
+		if (arrivalTime != null) {
+			arrivalTime = arrivalTime.plus(delta);
+		}
+	}
 }

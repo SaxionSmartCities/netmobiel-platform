@@ -81,6 +81,7 @@ public class User implements NetMobielUser, Serializable {
     	this.familyName = bu.getFamilyName();
     	this.givenName = bu.getGivenName();
     	this.managedIdentity = bu.getManagedIdentity();
+    	this.email = bu.getEmail();
     }
 
     public Long getId() {

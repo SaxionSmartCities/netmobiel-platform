@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.NetMobielMessage;
 import eu.netmobiel.commons.model.NetMobielUser;
+import eu.netmobiel.commons.model.NetMobielUserImpl;
 
 @RunWith(Arquillian.class)
 public class FirebaseMessagingClientIT {
@@ -76,7 +77,7 @@ public class FirebaseMessagingClientIT {
     private static final boolean enableRealSendMessage = false;
     @Before
     public void prepareTest() throws Exception {
-    	aSender = new TestUser("some-user", "Otto", "Normalverbraucher");
+    	aSender = new NetMobielUserImpl("some-user", "Otto", "Normalverbraucher", "otto1971@hotmail.com");
     }
     
     @Test
@@ -104,31 +105,6 @@ public class FirebaseMessagingClientIT {
     public void testPublishMessage() throws Exception {
     	NetMobielMessage msg = new TestMessage("a body", "urn:nb:ts:Test:1234", "Test 1234", Instant.now(), aSender);
     	client.publish("systemTopic", msg, true);
-    }
-
-    private static class TestUser implements NetMobielUser {
-        private String managedIdentity;
-    	private String givenName;
-    	private String familyName;
-    	
-    	public TestUser(String id, String givenName, String familyName) {
-    		this.managedIdentity = id;
-    		this.givenName = givenName;
-    		this.familyName = familyName;
-    	}
-
-		public String getManagedIdentity() {
-			return managedIdentity;
-		}
-
-		public String getGivenName() {
-			return givenName;
-		}
-
-		public String getFamilyName() {
-			return familyName;
-		}
-    	
     }
 
     private static class TestMessage implements NetMobielMessage {

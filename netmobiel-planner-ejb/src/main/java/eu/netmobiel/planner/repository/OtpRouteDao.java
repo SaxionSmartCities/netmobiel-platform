@@ -13,7 +13,6 @@ import eu.netmobiel.planner.model.OtpRoute;
 @Typed(OtpRouteDao.class)
 public class OtpRouteDao extends AbstractDao<OtpRoute, String> {
 
-    @SuppressWarnings("unused")
 	@Inject @PlannerDatabase
     private EntityManager em;
 

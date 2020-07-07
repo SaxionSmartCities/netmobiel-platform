@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
@@ -38,6 +39,7 @@ import eu.netmobiel.rideshare.model.User;
 public class RideDao extends AbstractDao<Ride, Long> {
 	public static final Integer DEFAULT_PAGE_SIZE = 10; 
 
+	@SuppressWarnings("unused")
 	@Inject
     private Logger logger;
     
@@ -53,7 +55,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
 		return em;
 	}
 
-    public PagedResult<Long> findByDriver(User driver, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) {
+    public PagedResult<Long> findByDriver(User driver, Instant since, Instant until, Boolean deletedToo, SortDirection sortDirection, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Ride> rides = cq.from(Ride.class);
@@ -80,7 +82,11 @@ public class RideDao extends AbstractDao<Ride, Long> {
             totalCount = em.createQuery(cq).getSingleResult();
         } else {
             cq.select(rides.get(Ride_.id));
-            cq.orderBy(cb.asc(rides.get(Ride_.departureTime)));
+            if (sortDirection == SortDirection.DESC) {
+            	cq.orderBy(cb.desc(rides.get(Ride_.departureTime)));
+            } else {
+            	cq.orderBy(cb.asc(rides.get(Ride_.departureTime)));
+            }
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
 			tq.setMaxResults(maxResults);
@@ -114,12 +120,12 @@ public class RideDao extends AbstractDao<Ride, Long> {
     public PagedResult<Long> search(GeoLocation fromPlace, GeoLocation toPlace, int maxBearingDifference, 
     		Instant earliestDeparture, Instant latestArrival, Integer nrSeatsRequested, boolean lenient, Integer maxBookings, Integer maxResults, Integer offset) {
     	int searchBearing = Math.toIntExact(Math.round(EllipseHelper.getBearing(fromPlace.getPoint(), toPlace.getPoint())));
-    	if (logger.isDebugEnabled()) {
-	    	logger.debug(String.format("Search for ride from %s to %s D %s A %s #%d seats %s, bearing %d", fromPlace, toPlace, 
-	    			earliestDeparture != null ? DateTimeFormatter.ISO_INSTANT.format(earliestDeparture) : "-",
-	    			latestArrival != null ? DateTimeFormatter.ISO_INSTANT.format(latestArrival) : "-",
-	    			nrSeatsRequested, lenient ? "lenient" : "strict", searchBearing));
-    	}
+//    	if (logger.isDebugEnabled()) {
+//	    	logger.debug(String.format("Search for ride from %s to %s D %s A %s #%d seats %s, bearing %d, max %s ", fromPlace, toPlace, 
+//	    			earliestDeparture != null ? DateTimeFormatter.ISO_INSTANT.format(earliestDeparture) : "-",
+//	    			latestArrival != null ? DateTimeFormatter.ISO_INSTANT.format(latestArrival) : "-",
+//	    			nrSeatsRequested, lenient ? "lenient" : "strict", searchBearing, maxResults != null ? maxResults.toString() : "?"));
+//    	}
     	String baseQuery =     			
     			"from Ride r where contains(r.shareEligibility, :fromPoint) = true and " +
     			"contains(r.shareEligibility, :toPoint) = true and " +

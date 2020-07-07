@@ -17,6 +17,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.planner.api.TripsApi;
 import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripMapper;
@@ -77,8 +78,6 @@ public class TripsResource implements TripsApi {
 			throw new javax.ws.rs.BadRequestException(e);
 		} catch (NotFoundException e) {
 	    	rsp = Response.status(Status.GONE).build();
-		} catch (ApplicationException ex) {
-			throw new WebApplicationException(ex);
 		}
     	return rsp;
 	}
@@ -98,23 +97,22 @@ public class TripsResource implements TripsApi {
 	}
 
 	@Override
-	public Response getTrips(String userRef, String tripState, OffsetDateTime since, OffsetDateTime until, Boolean deletedToo, Integer maxResults, Integer offset) {
+	public Response getTrips(String userRef, String tripState, OffsetDateTime since, OffsetDateTime until, Boolean deletedToo, String sortDir, Integer maxResults, Integer offset) {
     	Response rsp = null;
 		try {
-			TripState state = tripState == null ? null : TripState.valueOf(tripState); 
+			TripState state = tripState == null ? null : TripState.valueOf(tripState);
+			SortDirection sortDirection = sortDir == null ? SortDirection.ASC : SortDirection.valueOf(sortDir);
 	    	User traveller = null;
 	    	if (userRef == null) {
 	    		traveller = userManager.findCallingUser();
 	    	} else {
 	    		traveller = userManager.resolveUrn(userRef).orElse(null);
 	    	}
+	    	
 	    	PagedResult<Trip> results = null;
+        	// Only retrieve if a user exists in the trip service
 	    	if (traveller != null && traveller.getId() != null) {
-	        	// Only retrieve if a user exists in the trip service
-	    		if (since == null) {
-	    			since = OffsetDateTime.now();
-	    		}
-	    		results = tripManager.listTrips(traveller, state, toInstant(since), toInstant(until), deletedToo, maxResults, offset);
+	    		results = tripManager.listTrips(traveller, state, toInstant(since), toInstant(until), deletedToo, sortDirection, maxResults, offset);
 	    	} else {
 	    		results = PagedResult.<Trip>empty();
 	    	}

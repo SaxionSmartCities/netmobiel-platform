@@ -30,6 +30,10 @@ public class UrnHelper {
 		return id == null ? null : Long.parseLong(id);
 	}
 	
+	public static Long getId(String value) {
+		return value == null ? null : Long.parseLong(value);
+	}
+
 	public static boolean isUrn(String value) {
 		return value != null && value.startsWith("urn:"); 
 	}

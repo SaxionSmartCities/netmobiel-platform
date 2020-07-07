@@ -21,7 +21,6 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OrderColumn;
-import javax.persistence.PostLoad;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -232,39 +231,53 @@ public class Leg implements Serializable {
     @Column(name = "state", length = 3)
     private TripState state;
 
+    /**
+     * Reference to the report of the planner that created the leg.
+     * In some cases the report may be absent, e.g., when legs are created manually.  
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "report", foreignKey = @ForeignKey(name = "leg_report_fk"))
+    private PlannerReport plannerReport;
+    
     public Leg() {
     }
 
+    public Leg(Stop from, Stop to) {
+    	this.from = from;
+    	this.to = to;
+    	// Other parameters are still unknown.
+    }
+
     public Leg(Leg other) {
-		this.distance = other.distance;
-		this.traverseMode = other.traverseMode;
 		this.agencyId = other.agencyId;
 		this.agencyName = other.agencyName;
 		this.agencyTimeZoneOffset = other.agencyTimeZoneOffset;
-		this.routeType = other.routeType;
-		this.routeId = other.routeId;
-		this.headsign = other.headsign;
-		this.from = other.from.copy();
-		this.to = other.to.copy();
-		this.legGeometry = other.legGeometry;
-		this.routeShortName = other.routeShortName;
-		this.routeLongName = other.routeLongName;
+		this.bookingId = other.bookingId;
+		this.bookingRequired = other.bookingRequired;
+		this.distance = other.distance;
 		this.driverId = other.driverId;
 		this.driverName = other.driverName;
+		this.duration = other.duration;
+		this.from = other.from.copy();
+		// Copy by value
+		this.guideSteps = new ArrayList<>(other.getGuideSteps().stream().map(GuideStep::copy).collect(Collectors.toList()));
+		this.headsign = other.headsign;
+		this.legGeometry = other.legGeometry;
+		this.plannerReport = other.plannerReport; 
+		this.routeType = other.routeType;
+		this.routeId = other.routeId;
+		this.routeLongName = other.routeLongName;
+		this.routeShortName = other.routeShortName;
+		this.routeType = other.routeType;
+		this.state = other.state;
+		this.to = other.to.copy();
+		this.traverseMode = other.traverseMode;
 		this.tripId = other.tripId;
 		this.vehicleId = other.vehicleId;
-		this.vehicleName = other.vehicleName;
 		this.vehicleLicensePlate = other.vehicleLicensePlate;
-		// Copy by value
-		this.guideSteps = new ArrayList<>(other.guideSteps.stream().map(GuideStep::copy).collect(Collectors.toList()));
+		this.vehicleName = other.vehicleName;
 	}
 
-    @PostLoad
-    private void encodeLegGeometry() {
-    	if (legGeometry != null) {
-    		legGeometryEncoded = PolylineEncoder.createEncodings(legGeometry);
-    	}
-    }
     public Leg copy() {
     	return new Leg(this);
     }
@@ -462,17 +475,27 @@ public class Leg implements Serializable {
 
 	public void setLegGeometry(MultiPoint  legGeometry) {
 		this.legGeometry = legGeometry;
+		this.legGeometryEncoded = null;
 	}
 
 	public EncodedPolylineBean getLegGeometryEncoded() {
+    	if (legGeometry != null && legGeometryEncoded == null) {
+    		legGeometryEncoded = PolylineEncoder.createEncodings(legGeometry);
+    	}
 		return legGeometryEncoded;
 	}
 
 	public void setLegGeometryEncoded(EncodedPolylineBean legGeometryEncoded) {
 		this.legGeometryEncoded = legGeometryEncoded;
+    	if (this.legGeometryEncoded != null) {
+    		this.legGeometry = GeometryHelper.createLegGeometry(this.legGeometryEncoded);
+    	}
 	}
 
 	public List<GuideStep> getGuideSteps() {
+		if (guideSteps == null) {
+			guideSteps = new ArrayList<>();
+		}
 		return guideSteps;
 	}
 
@@ -504,6 +527,14 @@ public class Leg implements Serializable {
 		this.state = state;
 	}
 
+	public PlannerReport getPlannerReport() {
+		return plannerReport;
+	}
+
+	public void setPlannerReport(PlannerReport plannerReport) {
+		this.plannerReport = plannerReport;
+	}
+
 	/**
      * Whether this leg is a transit leg or not.
      * @return Boolean true if the leg is a transit leg
@@ -512,16 +543,7 @@ public class Leg implements Serializable {
         return traverseMode == null ? null : traverseMode.isTransit();
     }
 
-    public void decodeLegGeometry() {
-    	if (getLegGeometryEncoded() != null) {
-    		setLegGeometry(GeometryHelper.createLegGeometry(getLegGeometryEncoded()));
-    	}
-    }
-    
     public int getDestinationStopDistance() {
-    	if (getLegGeometry() == null) { 
-    		decodeLegGeometry();
-    	}
     	Coordinate lastCoord = getLegGeometry().getCoordinates()[getLegGeometry().getCoordinates().length - 1];
     	GeoLocation lastPoint = new GeoLocation(GeometryHelper.createPoint(lastCoord));
     	return Math.toIntExact(Math.round(to.getLocation().getDistanceFlat(lastPoint) * 1000));

@@ -7,7 +7,9 @@ import java.time.format.FormatStyle;
 import java.util.Locale;
 
 import javax.annotation.PostConstruct;
+import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
+import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
@@ -20,6 +22,7 @@ import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.util.Logging;
@@ -60,6 +63,9 @@ public class BookingProcessor {
     @Inject
     private TripManager tripManager;
 
+    @Resource
+    private SessionContext context;
+
     @Inject
     private Logger logger;
     
@@ -93,8 +99,9 @@ public class BookingProcessor {
 			if (bdb.getState() != BookingState.CONFIRMED) {
 				logger.warn("Expecting booking AutoConfirm! Other situations are not handled!");
 			}
-		} catch (CreateException | NotFoundException | BadRequestException e) {
+		} catch (CreateException | NotFoundException | BadRequestException| UpdateException e) {
 			logger.error("Unable to create a booking: " + e.toString());
+			context.setRollbackOnly();
 		}
     }
 
@@ -108,13 +115,13 @@ public class BookingProcessor {
     			event.getBookingRef(),
     			event.isCancelledFromTransportProvider() ? "Transport Provider" : "NetMobiel",
     			event.isCancelledByDriver() ? "Driver" : "Passenger",
-    			event.getCancelReason()));
+    			event.getCancelReason() != null ? event.getCancelReason() : "---"));
     	try {
     		if (event.isCancelledFromTransportProvider()) {
     			// The booking is cancelled by rideshare
     			tripManager.cancelBooking(event.getTravellerTripRef(), event.getBookingRef(), event.getCancelReason(), event.isCancelledByDriver());
     			Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, event.getTravellerTripRef()));
-    			Leg leg = trip.findLegByBookingId(event.getBookingRef())
+    			Leg leg = trip.getItinerary().findLegByBookingId(event.getBookingRef())
     					.orElseThrow(() -> new NotFoundException("No such booking in leg: " + event.getBookingRef()));
     			if (event.isCancelledByDriver()) {
     				// Notify the passenger
@@ -123,7 +130,7 @@ public class BookingProcessor {
     				msg.setSubject("Chauffeur heeft geannuleerd.");
     				msg.setBody(
     						MessageFormat.format("Voor jouw reis op {0} naar {1} kun je helaas meer met {2} meerijden.", 
-    								DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(trip.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
+    								DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(trip.getItinerary().getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
     								trip.getTo().getLabel(), 
     								leg.getDriverName()
     								)
@@ -141,6 +148,8 @@ public class BookingProcessor {
     		
 		} catch (ApplicationException e) {
 			logger.error("Error cancelling booking: " + e.toString());
+			// Do not rollback, just proceed with the cancelling, probably that was some inconsistency.
+//			context.setRollbackOnly();
 		}
     	
     }

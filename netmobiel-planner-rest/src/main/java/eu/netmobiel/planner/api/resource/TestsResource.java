@@ -12,13 +12,13 @@ import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import eu.netmobiel.planner.service.PlannerManager;
+import eu.netmobiel.planner.service.TripPlanManager;
 
 @Path("/tests")
 @ApplicationScoped
 public class TestsResource {
     @Inject
-    private PlannerManager rideManager;
+    private TripPlanManager rideManager;
 
 
     @GET

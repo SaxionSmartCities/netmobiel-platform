@@ -2,6 +2,8 @@ package eu.netmobiel.rideshare.model;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
@@ -168,8 +170,21 @@ public class Stop implements Serializable {
 		return 31;
 	}
 
+    private String formatTime(Instant instant) {
+    	return DateTimeFormatter.ISO_TIME.format(instant.atOffset(ZoneOffset.UTC));
+    }
+    
 	@Override
 	public String toString() {
-		return id + "|" + location.toString();
+		StringBuilder builder = new StringBuilder();
+		builder.append("Stop ").append(id).append(" ");
+		builder.append(location.toString()).append(" ");
+		if (arrivalTime != null) {
+			builder.append("A ").append(formatTime(arrivalTime)).append(" ");
+		}
+		if (departureTime != null) {
+			builder.append("D ").append(formatTime(departureTime));
+		}
+		return builder.toString();
 	}
 }

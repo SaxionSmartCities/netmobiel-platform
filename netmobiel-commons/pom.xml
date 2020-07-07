@@ -25,16 +25,12 @@
     					<manifestEntries>
     						<!-- Trigger the loading of the hibernate module when this jar is used (because of vividsolutions usage) -->
     						<!-- See also https://docs.jboss.org/author/display/WFLY10/Class+Loading+in+WildFly -->
-			                <Dependencies>org.hibernate</Dependencies>
+			                <Dependencies>org.hibernate,org.keycloak.keycloak-core,org.keycloak.keycloak-authz-client</Dependencies>
     					</manifestEntries>
 					</archive>
 				</configuration>
         	</plugin>
-<!--         	<plugin> -->
-<!-- 		        <groupId>org.bsc.maven</groupId> -->
-<!-- 		        <artifactId>maven-processor-plugin</artifactId> -->
-<!--         	</plugin> -->
-		</plugins>
+        </plugins>
 	</build>
 
     <dependencies>
@@ -135,6 +131,11 @@
 		    <artifactId>jscience</artifactId>
 			<scope>compile</scope>
 		</dependency>
+		<dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-authz-client</artifactId>
+		    <scope>provided</scope>
+        </dependency>
 		
 		<!-- TEST Dependencies -->
 

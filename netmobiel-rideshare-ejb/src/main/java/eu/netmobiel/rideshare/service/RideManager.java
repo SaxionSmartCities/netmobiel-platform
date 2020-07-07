@@ -30,6 +30,7 @@ import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Car;
@@ -165,7 +166,8 @@ public class RideManager {
      * @return A list of rides owned by the calling user.
      * @throws BadRequestException 
      */
-    public PagedResult<Ride> listRides(Long driverId, Instant since, Instant until, Boolean deletedToo, Integer maxResults, Integer offset) throws NotFoundException, BadRequestException {
+    public PagedResult<Ride> listRides(Long driverId, Instant since, Instant until, Boolean deletedToo, 
+    		SortDirection sortDirection, Integer maxResults, Integer offset) throws NotFoundException, BadRequestException {
     	if (until != null && since != null && ! until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: The 'until' date must be greater than the 'since' date.");
     	}
@@ -192,11 +194,11 @@ public class RideManager {
     				.orElseThrow(() -> new NotFoundException("No such user: " + driverId));
     	List<Ride> results = Collections.emptyList();
         Long totalCount = 0L;
-		PagedResult<Long> prs = rideDao.findByDriver(driver, since, until, deletedToo, 0, 0);
+		PagedResult<Long> prs = rideDao.findByDriver(driver, since, until, deletedToo, sortDirection, 0, 0);
 		totalCount = prs.getTotalCount();
     	if (totalCount > 0 && maxResults > 0) {
     		// Get the actual data
-    		PagedResult<Long> rideIds = rideDao.findByDriver(driver, since, until, deletedToo, maxResults, offset);
+    		PagedResult<Long> rideIds = rideDao.findByDriver(driver, since, until, deletedToo, sortDirection, maxResults, offset);
     		if (rideIds.getData().size() > 0) {
     			results = rideDao.fetch(rideIds.getData(), Ride.LIST_RIDES_ENTITY_GRAPH);
     		}

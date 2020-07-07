@@ -437,145 +437,6 @@ paths:
         type: string
       in: path
       required: true
-  /rides:
-    summary: Path used to manage rides.
-    description: The REST endpoint/path used to list and create zero or more `Ride`
-      entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
-    get:
-      parameters:
-      - name: driverId
-        description: The driverId of the user to query. If omitted the rides of the
-          calling user are returned. The id can be a user urn.
-        schema:
-          type: string
-        in: query
-        required: false
-      - examples:
-          Format:
-            value: 2019-11-30
-        name: since
-        description: "The departure date at which to start the listing. Default is\
-          \ today (local date), effectively listing all rides \nsince midnight."
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-12-15
-        name: until
-        description: The departure date and later not to include in the listing of
-          rides. The until date must be after the since parameter. Default is not
-          set, meaning all available rides (after since).
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: deletedToo
-        description: If set to true then return also cancelled rides.
-        schema:
-          type: boolean
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successfull call. The result contains a `Page` with an array
-            of `Ride` entities.
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: |-
-            When not the minimal required search parameters are specified. Required for search are:
-            * fromPlace
-            * toPlace
-            * fromTime
-      operationId: listRides
-      summary: List a user's rides.
-      description: List all rides of which the calling user is the driver.
-    post:
-      requestBody:
-        description: A ride entity.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Ride'
-            examples:
-              Single:
-                value:
-                  carRef: urn:nb:rs:car:5
-                  departureTime: 2019-10-02T09:30:00
-                  fromPlace:
-                    label: Station Borne
-                    latitude: 52.298417
-                    longitude: 6.749157
-                  nrSeatsAvailable: 2
-                  remarks: A test ride from Borne to Enschede
-                  toPlace:
-                    label: Station Enschede
-                    latitude: 52.221609
-                    longitude: 6.887536
-                  maxDetourMeters: 1000
-              Recurrent:
-                value:
-                  carRef: urn:nb:rs:car:5
-                  departureTime: 2019-10-02T09:30:00
-                  fromPlace:
-                    label: Station Borne
-                    latitude: 52.298417
-                    longitude: 6.749157
-                  nrSeatsAvailable: 2
-                  recurrency:
-                    unit: W
-                    interval: 2
-                    daysOfWeek: 3
-                    horizon: 2019-12-31
-                  remarks: A test ride from Borne to Enschede
-                  toPlace:
-                    label: Station Enschede
-                    latitude: 52.221609
-                    longitude: 6.887536
-                  maxDetourMeters: 1000
-        required: true
-      responses:
-        "201":
-          description: A ride has been created.
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: "The ride entity contains errors or violates constraints: \n\
-            * A ride must contain exact two stops.\n* A ride does not contain any\
-            \ booking."
-        "404":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Error'
-          description: Some dependencies could not be found, e.g. the car specified
-            in the ride.
-      operationId: createRide
-      summary: Add a new ride.
-      description: |-
-        Add a new ride. The calling user will be the driver.
-
-        If recurrence is set, then all future drivers up to 8 weeks in advance are generated as well.
   /bookings:
     summary: Path used to retrieve the list of bookings.
     description: |-
@@ -705,6 +566,154 @@ paths:
       operationId: searchRides
       summary: Search for rides
       description: Search and retrieve matching rides.
+  /rides:
+    summary: Path used to manage rides.
+    description: The REST endpoint/path used to list and create zero or more `Ride`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - name: driverId
+        description: The driverId of the user to query. If omitted the rides of the
+          calling user are returned. The id can be a user urn.
+        schema:
+          type: string
+        in: query
+        required: false
+      - examples:
+          Format:
+            value: 2019-11-30
+        name: since
+        description: "The departure date at which to start the listing. Default is\
+          \ today (local date), effectively listing all rides \nsince midnight."
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15
+        name: until
+        description: The departure date and later not to include in the listing of
+          rides. The until date must be after the since parameter. Default is not
+          set, meaning all available rides (after since).
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: deletedToo
+        description: If set to true then return also cancelled rides.
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: The sorting direction based on departure time, either ascending
+          (ASC) or descending (DESC). Default ascending.
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successfull call. The result contains a `Page` with an array
+            of `Ride` entities.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: |-
+            When not the minimal required search parameters are specified. Required for search are:
+            * fromPlace
+            * toPlace
+            * fromTime
+      operationId: listRides
+      summary: List a user's rides.
+      description: List all rides of which the calling user is the driver.
+    post:
+      requestBody:
+        description: A ride entity.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ride'
+            examples:
+              Single:
+                value:
+                  carRef: urn:nb:rs:car:5
+                  departureTime: 2019-10-02T09:30:00
+                  fromPlace:
+                    label: Station Borne
+                    latitude: 52.298417
+                    longitude: 6.749157
+                  nrSeatsAvailable: 2
+                  remarks: A test ride from Borne to Enschede
+                  toPlace:
+                    label: Station Enschede
+                    latitude: 52.221609
+                    longitude: 6.887536
+                  maxDetourMeters: 1000
+              Recurrent:
+                value:
+                  carRef: urn:nb:rs:car:5
+                  departureTime: 2019-10-02T09:30:00
+                  fromPlace:
+                    label: Station Borne
+                    latitude: 52.298417
+                    longitude: 6.749157
+                  nrSeatsAvailable: 2
+                  recurrency:
+                    unit: W
+                    interval: 2
+                    daysOfWeek: 3
+                    horizon: 2019-12-31
+                  remarks: A test ride from Borne to Enschede
+                  toPlace:
+                    label: Station Enschede
+                    latitude: 52.221609
+                    longitude: 6.887536
+                  maxDetourMeters: 1000
+        required: true
+      responses:
+        "201":
+          description: A ride has been created.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: "The ride entity contains errors or violates constraints: \n\
+            * A ride must contain exact two stops.\n* A ride does not contain any\
+            \ booking."
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Some dependencies could not be found, e.g. the car specified
+            in the ride.
+      operationId: createRide
+      summary: Add a new ride.
+      description: |-
+        Add a new ride. The calling user will be the driver.
+
+        If recurrence is set, then all future drivers up to 8 weeks in advance are generated as well.
 components:
   schemas:
     Car:
