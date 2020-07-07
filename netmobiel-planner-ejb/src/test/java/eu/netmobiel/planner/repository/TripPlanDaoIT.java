@@ -117,7 +117,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
 	    	assertTrue(puu.isLoaded(leg, Leg_.FROM));
 	    	assertTrue(puu.isLoaded(leg, Leg_.TO));
 	    	assertFalse(puu.isLoaded(leg, Leg_.PLANNER_REPORT));
-	    	assertTrue(puu.isLoaded(leg, Leg_.GUIDE_STEPS));
+	    	assertFalse(puu.isLoaded(leg, Leg_.GUIDE_STEPS));
 
 	    	// Check loading of the shout-out plans 
 	    	plan = tripPlanDao.loadGraph(plan.getId(), TripPlan.SHOUT_OUT_ENTITY_GRAPH).orElseThrow(() -> new IllegalStateException("Should have an ID by now"));
