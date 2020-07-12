@@ -1,6 +1,7 @@
 package eu.netmobiel.payment.client;
 
 import java.net.URI;
+import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
@@ -33,27 +34,22 @@ public class PaymentClient {
 //    @Resource(lookup = "java:global/paymentClient/abn/paymentStatusTarget")
     private final URI paymentStatusTarget = URI.create("https://api.online.emspay.eu/v1/paymentlink/id");
 
-    //id part is replaced by actual transaction id
-//    @Resource(lookup = "java:global/paymentClient/abn/orderStatusTarget")
-    @SuppressWarnings("unused")
-	private final URI orderStatusTarget = URI.create("https://api.online.emspay.eu/v1/orders/id");
-
     // API key for test account (this should not be in GIT repo!)
 //  @Resource(lookup = "java:global/paymentClient/abn/apiKey")
     private final String apiKey = "cd422b152bd94c468da25810debe7fe4";
 
     private String authorizationValue;
-    
-	@PostConstruct
-	public void createClient() {
-		webClient = new ResteasyClientBuilder()
-				.connectionPoolSize(200)
-				.connectionCheckoutTimeout(5, TimeUnit.SECONDS)
-				.maxPooledPerRoute(20)
-				.build();
-		authorizationValue = "Basic " + Base64.getEncoder().encodeToString((apiKey + ":").getBytes());
-	}
-    
+
+    @PostConstruct
+    public void createClient() {
+        webClient = new ResteasyClientBuilder()
+                .connectionPoolSize(200)
+                .connectionCheckoutTimeout(5, TimeUnit.SECONDS)
+                .maxPooledPerRoute(20)
+                .build();
+        authorizationValue = "Basic " + Base64.getEncoder().encodeToString((apiKey + ":").getBytes());
+    }
+
     @PreDestroy
     void cleanup() {
         webClient.close();
@@ -70,12 +66,11 @@ public class PaymentClient {
         body.expiration_period = "PT" + options.expirationMinutes + "M";
         body.return_url = options.returnAfterCompletion;
         body.webhook_url = options.informStatusUpdate;
-
         // send synchronous request to obtain payment link
         WebTarget target = webClient.target(paymentLinkTarget);
         PaymentLinkResponseBody response = target.request()
-        	.header(HttpHeaders.AUTHORIZATION, authorizationValue)
-        	.post(Entity.json(body), PaymentLinkResponseBody.class);
+                .header(HttpHeaders.AUTHORIZATION, authorizationValue)
+                .post(Entity.json(body), PaymentLinkResponseBody.class);
         return new PaymentLink(response.payment_url, response.id);
     }
 
@@ -84,21 +79,16 @@ public class PaymentClient {
         WebTarget target = webClient.target(paymentStatusTarget.resolve(id));
         // send synchronous request to obtain payment status
         PaymentStatusResponseBody response = target.request()
-    		.header(HttpHeaders.AUTHORIZATION, authorizationValue)
-    		.get(PaymentStatusResponseBody.class);
-        // Wat voor timestamps komen hieruit rollen? Zijn dat geen instants? (even spieken in de API) Ja, of OffsetDateTime, moet je even proberen.
-        // Kan wel zijn dat er een of andere factory geconfigureerd moet worden, ergens. Laat maar even weten. 
-        // Zonder geldige status kan ik het niet testen.
-        return new PaymentStatus(
-                response.status,
-                response.created,
-                response.modified,
-                response.completed
-        );
-    }
-
-    public OrderStatus getOrderStatus(String id) {
-        return null;
+                .header(HttpHeaders.AUTHORIZATION, authorizationValue)
+                .get(PaymentStatusResponseBody.class);
+        // convert status string to enumerated value
+        PaymentStatus.Current current = PaymentStatus.Current.valueOf(response.status.toUpperCase());
+        // parse timestamps (with timezone info)
+        OffsetDateTime
+                createdTimestamp = response.created == null ? null : OffsetDateTime.parse(response.created),
+                modifiedTimestamp = response.modified == null ? null : OffsetDateTime.parse(response.modified),
+                completedTimestamp = response.completed == null ? null : OffsetDateTime.parse(response.completed);
+        return new PaymentStatus(response.status, createdTimestamp, modifiedTimestamp, completedTimestamp);
     }
 
     /**

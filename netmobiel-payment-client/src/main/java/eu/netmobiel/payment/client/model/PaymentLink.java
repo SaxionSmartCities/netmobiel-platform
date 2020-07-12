@@ -7,8 +7,14 @@ public class PaymentLink {
         transactionId = id;
     }
 
+    /**
+     * URL of page where payment can be carried out.
+     */
     public final String paymentPage;
 
+    /**
+     * Unique transaction id of this payment.
+     */
     public final String transactionId;
 
 	@Override

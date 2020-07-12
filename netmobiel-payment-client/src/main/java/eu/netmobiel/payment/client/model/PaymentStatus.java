@@ -1,27 +1,34 @@
 package eu.netmobiel.payment.client.model;
 
+import java.time.OffsetDateTime;
+
 public class PaymentStatus {
     public PaymentStatus(
-            String status,
-            String created,
-            String modified,
-            String completed
+            Current current,
+            OffsetDateTime created,
+            OffsetDateTime modified,
+            OffsetDateTime completed
     ) {
-        currentStatus = status;
-        creationTimestamp = created;
+        currentStatus = current;
+        createdTimestamp = created;
         modifiedTimestamp = modified;
         completedTimestamp = completed;
     }
 
-    public final String currentStatus;
-    public final String creationTimestamp;
-    public final String modifiedTimestamp;
-    public final String completedTimestamp;
-    
+    public final Current currentStatus;
+    public final OffsetDateTime createdTimestamp;
+    public final OffsetDateTime modifiedTimestamp;
+    public final OffsetDateTime completedTimestamp;
+
 	@Override
 	public String toString() {
 		return String.format(
 				"PaymentStatus [%s, cre %s, mod %s, com %s]",
-				currentStatus, creationTimestamp, modifiedTimestamp, completedTimestamp);
+				currentStatus, createdTimestamp, modifiedTimestamp, completedTimestamp);
 	}
+
+	public static enum Current {
+        NEW, PROCESSING, ALL_UNSUCCESSFUL, COMPLETED, EXPIRED;
+    }
+
 }
