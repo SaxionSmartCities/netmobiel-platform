@@ -627,9 +627,10 @@ paths:
       description: Search and retrieve matching itineraries.
   /shout-outs/{shoutOutPlanId}/plan:
     summary: Path used to find a plan to combine the shout-out with a driver's ride.
-    description: The REST endpoint/path used to get a single instances of a `TripPlan`,
-      matching the shout-out plan of the traveller in one of the legs.  This path
-      contains a `GET` operations used to perform the get tasks.
+    description: |
+      The REST endpoint/path used to get a single instance of a `TripPlan`, resolving the shout-out plan of the traveller in one of the legs. This path contains a `GET` operations used to perform the get tasks.
+
+      Although in theory this call can be used for many transportation providers, the first use is for users (drivers) of the  NetMobiel Rideshare service.
     get:
       parameters:
       - name: now
@@ -680,6 +681,19 @@ paths:
           type: boolean
         in: query
         required: false
+      - name: modality
+        description: The modality to use for matching the shout-out. Default is RIDESHARE.
+        schema:
+          enum:
+          - RIDESHARE
+          type: string
+        in: query
+      - name: agencyId
+        description: The transportation agency to use. For the Rideshare modality
+          the default agency is the Nemobiel Rideshare (with ID NB:RS).
+        schema:
+          type: string
+        in: query
       responses:
         "200":
           content:
@@ -693,6 +707,54 @@ paths:
       operationId: resolveShoutOut
       summary: Creates a matching plan.
       description: Creates a plan that can resolve the shout-out of the traveller.
+    parameters:
+    - name: shoutOutPlanId
+      description: A reference to the shout-out plan of the traveller. The reference
+        can be a database ID or a proper URN.
+      schema:
+        type: string
+      in: path
+      required: true
+  /shout-outs/{shoutOutPlanId}:
+    summary: Path used to access a specific shout-out plan.
+    description: The REST endpoint/path used to get a single instances of a shout-out
+      `TripPlan` and to post resolving itineraries. This path contains `GET` and `POST`
+      operations used to perform the get and post tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPlan'
+          description: 'Success reponse. A `TripPlan` object is returned without itineraries. '
+      operationId: getShoutOut
+      summary: Retrieves a shout-out.
+      description: Retrieves a shout-out trip plan. For privacy reasons, the plan
+        object omits the resolving itineraries. If you want to retrieve the complete
+        plan, then use the endpoint /plan. This endpoint is accessible for any user,
+        whereas /plan can only be used by the owner of the plan.
+    post:
+      requestBody:
+        description: The request body contains a trip plan, but the only accepted
+          field is a reference from an earlier determined plan to resolve the shout-out
+          of the traveller.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TravelOffer'
+        required: true
+      responses:
+        "202":
+          description: 'The suggested plan is found and will be processed. '
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: addSolution
+      summary: Resolves a shout-out.
+      description: Resolves a shout-out of a traveller by extracting the itineraries
+        relevant for the traveller from the suggested trip plan. The suggested plan
+        (potential  from any transport provider) must at least contain the two stops
+        close (100 meter) to the departure, resp. destination location of the traveller.
     parameters:
     - name: shoutOutPlanId
       description: A reference to the shout-out plan of the traveller. The reference
@@ -1294,12 +1356,11 @@ components:
         id: 2
         managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
     TripPlan:
-      description: A plan consisting of one or more itineraries. The header of the
-        plan contains the parameters as requestes.
-      required:
-      - from
-      - to
-      - travelTime
+      description: "A plan consisting of one or more itineraries. The header of the\
+        \ plan contains the parameters as requested. \n\nWhether or not parameters\
+        \ are requried depends on the use. Also, the amoubt of detail returned depends\
+        \ on the call and who is asking for it. "
+      required: []
       type: object
       properties:
         from:
@@ -1405,6 +1466,30 @@ components:
           label: Slingeland,hoofdingang
           latitude: 51.976426
           longitude: 6.285741
+    TravelOffer:
+      title: Root Type for TravelOffer
+      description: When a shout-out is resolved with a trip plan, a final step is
+        necessary to make it a concrete offer. This object captures all attributes
+        necessary for a complete offer.
+      type: object
+      properties:
+        planRef:
+          description: A reference to a trip plan created when resolving a shout-out.
+          type: string
+        vehicleRef:
+          description: Optional. A reference to the vehicle use for transport. If
+            omitted the default vehicle is taken from the profile of the driver. This
+            parameter is ignored if the vehicle is already defined by the trip plan.
+          type: string
+        driverRef:
+          description: Optional. A reference to the identity of the driver as known
+            to the NetMobiel system. If omitted the caller of the API method is assumed
+            to be the driver.
+          type: string
+      example:
+        planRef: urn:nb:pn:tripplan:95346
+        vehicleRef: urn:nb:rs:car:439
+        driverRef: urn:nb:kc:a9a0eba0-e0ef-5691-816b-f28d9efebcef
   responses:
     InternalServerError:
       content:
@@ -1439,7 +1524,7 @@ components:
         application/json:
           schema:
             $ref: '#/components/schemas/Error'
-      description: A requested object could not be found (404).
+      description: A requested or supplied object could not be found (404).
     Gone:
       description: The requested object does no longer exist (410).
     Conflict:

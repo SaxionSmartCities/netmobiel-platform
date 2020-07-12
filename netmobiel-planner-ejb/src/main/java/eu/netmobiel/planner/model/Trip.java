@@ -82,7 +82,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 							attributeNodes = {
 									@NamedAttributeNode(value = "from"),
 									@NamedAttributeNode(value = "to"),
-									@NamedAttributeNode(value = "guideSteps")
+//									@NamedAttributeNode(value = "guideSteps")
 							}
 					)
 			}

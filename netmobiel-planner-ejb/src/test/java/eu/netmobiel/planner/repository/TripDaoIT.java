@@ -137,7 +137,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     	assertTrue(puu.isLoaded(leg, Leg_.FROM));
     	assertTrue(puu.isLoaded(leg, Leg_.TO));
     	assertFalse(puu.isLoaded(leg, Leg_.PLANNER_REPORT));
-    	assertTrue(puu.isLoaded(leg, Leg_.GUIDE_STEPS));
+    	assertFalse(puu.isLoaded(leg, Leg_.GUIDE_STEPS));
 	}
 	
 	@Test
