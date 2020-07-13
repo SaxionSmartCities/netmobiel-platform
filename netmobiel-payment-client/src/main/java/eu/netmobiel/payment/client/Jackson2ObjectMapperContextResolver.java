@@ -1,4 +1,4 @@
-package eu.netmobiel.here.places;
+package eu.netmobiel.payment.client;
 
 import javax.ws.rs.ext.ContextResolver;
 

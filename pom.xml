@@ -28,6 +28,7 @@
         <module>netmobiel-otp-client</module>
         <module>netmobiel-overseer-ejb</module>
         <module>netmobiel-parent-pom</module>
+        <module>netmobiel-payment-client</module>
         <module>netmobiel-planner-api</module>
         <module>netmobiel-planner-ejb</module>
         <module>netmobiel-planner-rest</module>

@@ -15,7 +15,6 @@ import javax.ws.rs.core.HttpHeaders;
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 
-import eu.netmobiel.payment.client.model.OrderStatus;
 import eu.netmobiel.payment.client.model.PaymentLink;
 import eu.netmobiel.payment.client.model.PaymentLinkOptions;
 import eu.netmobiel.payment.client.model.PaymentStatus;
@@ -88,7 +87,7 @@ public class PaymentClient {
                 createdTimestamp = response.created == null ? null : OffsetDateTime.parse(response.created),
                 modifiedTimestamp = response.modified == null ? null : OffsetDateTime.parse(response.modified),
                 completedTimestamp = response.completed == null ? null : OffsetDateTime.parse(response.completed);
-        return new PaymentStatus(response.status, createdTimestamp, modifiedTimestamp, completedTimestamp);
+        return new PaymentStatus(current, createdTimestamp, modifiedTimestamp, completedTimestamp);
     }
 
     /**
