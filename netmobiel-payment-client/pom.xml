@@ -39,33 +39,6 @@
             <artifactId>jboss-annotations-api_1.3_spec</artifactId>
             <scope>provided</scope>
         </dependency>
-        <!--  Do we really need Jackson or can we rely on standard JSON API? -->
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-core</artifactId>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-databind</artifactId>
-			<scope>provided</scope>
-		</dependency>
-		<dependency>
-			<groupId>com.fasterxml.jackson.core</groupId>
-			<artifactId>jackson-annotations</artifactId>
-			<scope>provided</scope>
-		</dependency>
-<!--         <dependency> -->
-<!--             <groupId>org.junit.jupiter</groupId> -->
-<!--             <artifactId>junit-jupiter</artifactId> -->
-<!--             <version>RELEASE</version> -->
-<!--             <scope>compile</scope> -->
-<!--         </dependency> -->
-<!--         <dependency> -->
-<!--             <groupId>org.junit.jupiter</groupId> -->
-<!--             <artifactId>junit-jupiter-api</artifactId> -->
-<!--             <version>5.5.2</version> -->
-<!--         </dependency> -->
 		<dependency>
 			<groupId>javax.json</groupId>
 			<artifactId>javax.json-api</artifactId>
