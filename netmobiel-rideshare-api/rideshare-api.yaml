@@ -1195,7 +1195,6 @@ components:
       - pickup
       - dropOff
       - state
-      - passengerTripRef
       type: object
       properties:
         arrivalTime:
@@ -1213,9 +1212,10 @@ components:
           $ref: '#/components/schemas/Location'
           description: The drop-off location of the passenger.
         state:
-          description: The state of the booking.
+          description: (Read-only). The state of the booking.
           enum:
           - New
+          - Proposed
           - Requested
           - Confirmed
           - Cancelled
@@ -1229,7 +1229,7 @@ components:
           type: boolean
         passengerRef:
           description: 'The passenger who wants to join the ride. The format is a
-            URN: urn:nb:rs:user:<id>'
+            URN: urn:nb:rs:user:<id> or a keycloak urn.'
           type: string
         passenger:
           $ref: '#/components/schemas/User'
@@ -1254,9 +1254,10 @@ components:
           description: A short description of the ride, including the car and the
             driver's name.
         passengerTripRef:
-          description: The reference (a planner URN) to the passenger's trip. To find
-            the actual leg, itereate through legs to find the rideshare trip id or
-            the booking id.
+          description: The reference (a planner URN) to the passenger's trip or trip
+            plan. The refrence is used when interaction is needed with the planner,
+            e.g. in case of updating or cancelling a booking on initiative from the
+            rideshare service side.
           type: string
       example:
         departureTime: 2020-05-27T10:00:00Z
