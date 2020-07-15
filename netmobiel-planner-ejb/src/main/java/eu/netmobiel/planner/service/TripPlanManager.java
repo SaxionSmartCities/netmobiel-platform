@@ -15,6 +15,7 @@ import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Objects;
+import java.util.Optional;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -24,6 +25,8 @@ import java.util.stream.Stream;
 import javax.ejb.EJBAccessException;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Event;
+import javax.enterprise.event.Observes;
+import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 import javax.ws.rs.core.Response;
 
@@ -37,11 +40,13 @@ import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.model.event.BookingCancelledEvent;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
@@ -53,6 +58,7 @@ import eu.netmobiel.planner.model.RideshareResult;
 import eu.netmobiel.planner.model.Stop;
 import eu.netmobiel.planner.model.ToolType;
 import eu.netmobiel.planner.model.TraverseMode;
+import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
@@ -98,9 +104,11 @@ public class TripPlanManager {
     
     @Inject
     private Event<TripPlan> shoutOutRequestedEvent;
-
     @Inject
     private Event<TravelOfferEvent> travelOfferProposedEvent;
+    @Inject
+    private Event<BookingCancelledEvent> bookingCancelledEvent;
+
     
 
     protected List<Stop> filterImportantStops(TripPlan plan) {
@@ -767,18 +775,6 @@ public class TripPlanManager {
     }
 
     /**
-     * Closes a trip plan, i.e., the plan is no longer receivibng itineraries in case of a shout-out. 
-     * @param id the id of the trip plan
-     * @throws NotFoundException In case of an invalid trip plan ID.
-     */
-    public void closeTripPlan(Long id) throws NotFoundException {
-    	TripPlan plandb = tripPlanDao.find(id)
-    			.orElseThrow(() -> new NotFoundException("No such trip plan: " + id));
-    	plandb.setRequestDuration(Instant.now().toEpochMilli() - plandb.getRequestTime().toEpochMilli());
-    }
-    
-
-    /**
      * Retrieves a trip plan. All available details are retrieved.
      * @param id the id of the trip plan
      * @return The TripPlan object
@@ -1011,5 +1007,70 @@ public class TripPlanManager {
     	passengerItinerary.getLegs().forEach(leg -> leg.setState(TripState.PLANNING));
     }
 
+    /**
+     * 
+     * @param plan
+     * @param itineraryToKeep
+     */
+    protected void cancelBookedLegs(TripPlan plan, Optional<Itinerary> itineraryToKeep, String cancelReason) {
+    	List<Leg> bookedLegs = plan.getItineraries().stream()
+        		.filter(it -> !itineraryToKeep.isPresent() || !it.equals(itineraryToKeep.get()))
+        		.flatMap(it -> it.getLegs().stream())
+    			.filter(leg -> leg.getBookingId() != null)
+    			.collect(Collectors.toList());
+        	bookedLegs.stream()
+    			.map(leg -> leg.getBookingId())
+    			.distinct()
+    			.forEach(bookingId -> bookingCancelledEvent.fire(new BookingCancelledEvent(bookingId, plan.getTraveller(), plan.getPlanRef(), cancelReason, false, false))
+    		);
+        	bookedLegs.forEach(leg -> leg.setState(TripState.CANCELLED));
+    }
+
+    /**
+     * Handler on the event for resolving an shout-out into an itinerary: Cancel other options.
+     * @param event
+     * @throws ApplicationException
+     */
+    public void onShoutOutResolved(@Observes(during = TransactionPhase.IN_PROGRESS) ShoutOutResolvedEvent event) throws ApplicationException {
+    	TripPlan plan = getTripPlan(event.getSelectedItinerary().getTripPlan().getId());
+    	if (plan.getPlanType() != PlanType.SHOUT_OUT) {
+    		throw new IllegalStateException("ShoutOutResolvedEvent received with non-shout-out plan");
+    	}
+    	cancelBookedLegs(plan, Optional.of(event.getSelectedItinerary()), "Andere oplossing gekozen");
+    	plan.close();
+    }
+
+    /**
+     * Cancels the proposed booking leg in an itinerary and updates the state. This method is called in response to a cancellation from the transport provider.
+     * This call is intended to update the trip plan state only.
+     * @param tripplanRef
+     * @param bookingRef
+     * @throws NotFoundException
+     */
+    public void cancelBooking(String tripPlanRef, String bookingRef) throws NotFoundException {
+    	TripPlan plan = getTripPlan(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripPlanRef));
+    	plan.getItineraries().stream()
+    		.flatMap(it -> it.getLegs().stream())
+    		.filter(leg -> bookingRef.equals(leg.getBookingId()))
+    		.forEach(leg -> leg.setState(TripState.CANCELLED));
+    }
+
+    /**
+     * Cancels a shout-out, i.e., the plan is no longer receiving itineraries. 
+     * @param id the id of the trip plan
+     * @throws NotFoundException In case of an invalid trip plan ID.
+     * @throws BadRequestException In case the plan is not a shout-out.
+     */
+    public void cancelShoutOut(Long id) throws NotFoundException, BadRequestException {
+    	TripPlan plan = tripPlanDao.find(id)
+    			.orElseThrow(() -> new NotFoundException("No such trip plan: " + id));
+    	if (plan.getPlanType() != PlanType.SHOUT_OUT) {
+    		throw new BadRequestException("Plan is not a shout-out: " + id);
+    	}
+    	if (plan.isOpen()) {
+        	cancelBookedLegs(plan, Optional.empty(), "Plan is geannulleerd");
+    		plan.close();
+    	}
+    }
     
 }

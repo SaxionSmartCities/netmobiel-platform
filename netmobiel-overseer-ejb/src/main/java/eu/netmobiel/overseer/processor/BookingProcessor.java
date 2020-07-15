@@ -30,9 +30,9 @@ import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.PublisherService;
-import eu.netmobiel.planner.model.Leg;
-import eu.netmobiel.planner.model.Trip;
+import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.TripManager;
+import eu.netmobiel.planner.service.TripPlanManager;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.service.BookingManager;
@@ -62,6 +62,8 @@ public class BookingProcessor {
 
     @Inject
     private TripManager tripManager;
+    @Inject
+    private TripPlanManager tripPlanManager;
 
     @Resource
     private SessionContext context;
@@ -107,6 +109,7 @@ public class BookingProcessor {
 
     /**
      * Signals the removal of a booking. The event can be produced by the transport provider or by the Trip Manager of netMobiel.
+     * The state can be in PROPOSAL or in a later state.
      * 
      * @param event
      */
@@ -118,21 +121,23 @@ public class BookingProcessor {
     			event.getCancelReason() != null ? event.getCancelReason() : "---"));
     	try {
     		if (event.isCancelledFromTransportProvider()) {
-    			// The booking is cancelled by rideshare
-    			tripManager.cancelBooking(event.getTravellerTripRef(), event.getBookingRef(), event.getCancelReason(), event.isCancelledByDriver());
-    			Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, event.getTravellerTripRef()));
-    			Leg leg = trip.getItinerary().findLegByBookingId(event.getBookingRef())
-    					.orElseThrow(() -> new NotFoundException("No such booking in leg: " + event.getBookingRef()));
+    			// The booking is cancelled by transport provider
+    			Booking b = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, event.getBookingRef()));
+        		if (UrnHelper.getPrefix(event.getTravellerTripRef()).equals(TripPlan.URN_PREFIX)) {
+        			tripPlanManager.cancelBooking(event.getTravellerTripRef(), event.getBookingRef());
+        		} else {
+	    			tripManager.cancelBooking(event.getTravellerTripRef(), event.getBookingRef(), event.getCancelReason(), event.isCancelledByDriver());
+        		}
     			if (event.isCancelledByDriver()) {
     				// Notify the passenger
     				Message msg = new Message();
     				msg.setContext(event.getBookingRef());
     				msg.setSubject("Chauffeur heeft geannuleerd.");
     				msg.setBody(
-    						MessageFormat.format("Voor jouw reis op {0} naar {1} kun je helaas meer met {2} meerijden.", 
-    								DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(trip.getItinerary().getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
-    								trip.getTo().getLabel(), 
-    								leg.getDriverName()
+    						MessageFormat.format("Voor jouw reis op {0} naar {1} kun je helaas niet meer met {2} meerijden.", 
+    								DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(b.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
+    								b.getDropOff().getLabel(), 
+    								b.getRide().getDriver().getGivenName()
     								)
     						);
     				msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
@@ -142,7 +147,7 @@ public class BookingProcessor {
     				// Notification of the driver is done by transport provider
     			}
     		} else {
-    			// The booking is cancelled through the Trip Manager
+    			// The booking is cancelled through the TripManager of TripPlanManager
         		bookingManager.removeBooking(event.getBookingRef(), event.getCancelReason(), event.isCancelledByDriver(), false);
     		}
     		

@@ -441,8 +441,14 @@ public class TripPlan {
 		getPlannerReports().add(report);
 	}
 
+	public boolean isOpen() {
+		return getRequestDuration() == null;
+	}
+	
 	public void close() {
-		setRequestDuration(Instant.now().toEpochMilli() - getCreationTime().toEpochMilli());
+		if (isOpen()) {
+			setRequestDuration(Instant.now().toEpochMilli() - getCreationTime().toEpochMilli());
+		}
 	}
 
 	public void addPlannerResult(PlannerResult result) {

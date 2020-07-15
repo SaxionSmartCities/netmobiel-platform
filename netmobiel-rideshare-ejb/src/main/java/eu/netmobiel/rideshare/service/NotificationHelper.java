@@ -74,7 +74,7 @@ public class NotificationHelper {
 		try {
 			Message msg = null;
 			if (booking.getState() == BookingState.PROPOSED) {
-				// No message is needed
+				// No message is needed, because is is the drive who created the proposal
 				msg = null;
 			} else if (booking.getState() == BookingState.REQUESTED) {
 				msg = createMessage(booking, "Je hebt een passagier!", "Voor jouw rit op {0} naar {1} wil {2} graag met je mee.");
@@ -94,7 +94,12 @@ public class NotificationHelper {
 	public void onBookingRemoved(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Removed Booking booking) {
 		// Inform driver about removal of a booking
 		try {
-			Message msg = createMessage(booking, "Passagier heeft geannuleerd.", "Voor jouw rit op {0} naar {1} rijdt {2} niet meer mee.");
+			Message msg = null;
+			if (booking.getState() == BookingState.PROPOSED) {
+				msg = createMessage(booking, "Passagier heeft geannuleerd.", "{2} heeft een andere oplossing gevonden voor de rit op {0} naar {1}. Bedankt voor je aanbod!");
+			} else {
+				msg = createMessage(booking, "Passagier heeft geannuleerd.", "Voor jouw rit op {0} naar {1} rijdt {2} niet meer mee.");
+			}
 			publisherService.publish(null, msg);
 		} catch (Exception e) {
 			logger.error("Unable to inform driver on cancelled booking: " + e.toString());

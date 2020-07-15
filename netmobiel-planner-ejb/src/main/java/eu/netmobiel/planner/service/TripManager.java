@@ -19,8 +19,10 @@ import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
+import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
@@ -48,6 +50,9 @@ public class TripManager {
 
     @Inject
     private Event<BookingCancelledEvent> bookingCancelledEvent;
+
+    @Inject
+    private Event<ShoutOutResolvedEvent> shoutOutResolvedEvent;
 
     /**
      * List all trips owned by the specified user. Soft deleted trips are omitted.
@@ -98,24 +103,27 @@ public class TripManager {
      */
     public Long createTrip(User traveller, Trip trip, boolean autobook) throws NotFoundException, BadRequestException {
     	trip.setTraveller(traveller);
-    	if (trip.getItineraryRef() != null) {
-    		// Create a trip for this itinerary
-        	Itinerary it = itineraryDao.find(PlannerUrnHelper.getId(Itinerary.URN_PREFIX, trip.getItineraryRef()))
-        			.orElseThrow(() -> new NotFoundException("No such itinerary: " + trip.getItineraryRef()));
-        	trip.setState(TripState.PLANNING);
-        	trip.setItinerary(it);
-        	// Load trip plan (lazy loaded, only plan itself)
-        	TripPlan plan = it.getTripPlan();
-        	if (plan == null) {
-        		throw new NotFoundException("Itinerary has no plan attached!: " + trip.getItineraryRef());
-        	}
-            trip.setArrivalTimeIsPinned(plan.isUseAsArrivalTime());
-        	trip.setNrSeats(plan.getNrSeats());
-            trip.setFrom(plan.getFrom());
-            trip.setTo(plan.getTo());
-    	} else {
+    	if (trip.getItineraryRef() == null) {
     		throw new BadRequestException("Specify an itinerary reference");
     	}
+		// Create a trip for this itinerary
+    	Itinerary it = itineraryDao.find(PlannerUrnHelper.getId(Itinerary.URN_PREFIX, trip.getItineraryRef()))
+    			.orElseThrow(() -> new NotFoundException("No such itinerary: " + trip.getItineraryRef()));
+    	trip.setState(TripState.PLANNING);
+    	trip.setItinerary(it);
+    	// Load trip plan (lazy loaded, only plan itself)
+    	TripPlan plan = it.getTripPlan();
+    	if (plan == null) {
+    		throw new NotFoundException("Itinerary has no plan attached!: " + trip.getItineraryRef());
+    	}
+    	if (plan.getPlanType() == PlanType.SHOUT_OUT) {
+    		// it was a shout-out plan. It is being resolved now. 
+    		shoutOutResolvedEvent.fire(new ShoutOutResolvedEvent(it));
+    	}
+        trip.setArrivalTimeIsPinned(plan.isUseAsArrivalTime());
+    	trip.setNrSeats(plan.getNrSeats());
+        trip.setFrom(plan.getFrom());
+        trip.setTo(plan.getTo());
        	tripDao.save(trip);
        	tripDao.flush();
        	List<BookingRequestedEvent> bookingEvents = new ArrayList<>();
@@ -177,9 +185,19 @@ public class TripManager {
     	}
     }
 
+    /**
+     * Cancels the booked leg on trip and updates the state. This method is called in response to a cancellation from the transport provider.
+     * This call is intended to update the trip state only.
+     * @param tripRef
+     * @param bookingRef
+     * @param reason
+     * @param cancelledByDriver
+     * @throws NotFoundException
+     */
     public void cancelBooking(String tripRef, String bookingRef, String reason, boolean cancelledByDriver) throws NotFoundException {
     	Trip trip = tripDao.find(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef))
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
+    	trip.setCancelReason(reason);
     	Leg leg = trip.getItinerary().findLegByBookingId(bookingRef)
     			.orElseThrow(() -> new NotFoundException("No such leg with bookingId " + bookingRef));
 		leg.setState(TripState.CANCELLED);

@@ -138,5 +138,18 @@ public class ShoutOutsResource implements ShoutOutsApi {
     	return rsp;
 	}
 
+	@Override
+	public Response cancelPlan(String shoutOutPlanId) {
+    	Response rsp = null;
+		try {
+        	Long tid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
+			tripPlanManager.cancelShoutOut(tid);
+			rsp = Response.noContent().build();
+		} catch (ApplicationException e) {
+			throw new WebApplicationException(e);
+		}
+    	return rsp;
+	}
+
 
 }
