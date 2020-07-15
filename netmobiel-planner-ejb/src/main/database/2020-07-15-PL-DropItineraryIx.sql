@@ -2,3 +2,6 @@
 ALTER TABLE public.itinerary
 	DROP COLUMN itinerary_ix;
 ;    
+
+-- Is this necessary?
+--UPDATE itinerary SET score = 0 where score is null;

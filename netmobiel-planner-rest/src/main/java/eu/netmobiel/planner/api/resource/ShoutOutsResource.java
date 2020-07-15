@@ -107,7 +107,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
 		try {
         	Long shoutOutId = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
         	if (travelOffer == null || travelOffer.getPlanRef() == null) {
-        		throw new eu.netmobiel.commons.exception.BadRequestException("planRef is amandatory attribute");
+        		throw new eu.netmobiel.commons.exception.BadRequestException("planRef is a mandatory attribute");
         	}
         	Long providedSolutionPlanId = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, travelOffer.getPlanRef());
 			User driver = userManager.registerCallingUser();

@@ -184,6 +184,20 @@ public class ShoutOutProcessor {
         	b.setPassengerTripRef(sop.getPlanRef());
 			String bookingRef = bookingManager.createBooking(r.getRideRef(), sop.getTraveller(), b);
 			tripPlanManager.assignBookingProposalReference(RideManager.AGENCY_ID, soi, r, bookingRef);
+
+			Message msg = new Message();
+			msg.setContext(b.getBookingRef());
+			msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
+			msg.addRecipient(b.getPassenger());
+			msg.setSubject("Je hebt een reisaanbieding!");
+			msg.setBody(
+					MessageFormat.format("Voor jouw reisaanvraag op {0} naar {1} kun je meerijden met {2}.", 
+							DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(soi.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
+							b.getDropOff().getLabel(), 
+							r.getDriver().getGivenName()
+							)
+					);
+			publisherService.publish(null, msg);
 		} catch (CreateException | NotFoundException | BadRequestException| UpdateException e) {
 			logger.error("Unable to create a booking: " + e.toString());
 			context.setRollbackOnly();

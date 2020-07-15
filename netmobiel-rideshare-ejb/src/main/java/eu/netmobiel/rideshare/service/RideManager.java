@@ -524,7 +524,7 @@ public class RideManager {
     public void onStaleItinerary(@Observes(during = TransactionPhase.IN_PROGRESS) @Updated Ride ride) {
     	try {
     		if (ride.isDeleted()) {
-    			log.debug("Ride is already deleted, ignoring update intinerary request: " + ride.getRideRef());
+    			log.debug("Ride is already deleted, ignoring update itinerary request: " + ride.getRideRef());
     		} else {
     			rideItineraryHelper.updateRideItinerary(ride);
     		}
@@ -537,4 +537,10 @@ public class RideManager {
 		}
     }
 
+//    public User getDriverOf(Ride r) {
+//    	User driver = r.getDriver();
+//    	// Initialize proxy
+//    	driver.getManagedIdentity();
+//    	return driver;
+//    }
 }

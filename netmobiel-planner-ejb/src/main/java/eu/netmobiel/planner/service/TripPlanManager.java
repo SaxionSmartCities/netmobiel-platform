@@ -258,18 +258,24 @@ public class TripPlanManager {
     	// Calculate for each ride found the itinerary when the passenger would ride along, i.e., add the pickup and drop-off location
     	// as intermediate places to the OTP planner and calculate the itinerary.
     	PlannerResult driverSharedRidePlanResult = otpDao.createPlan(now, fromPlace, toPlace, travelTime,  useAsArrivalTime, modes, false, maxWalkDistance, null, via, 1);
-		Itinerary driverItinerary = driverSharedRidePlanResult.getItineraries().get(0);
-		driverItinerary .getLegs().stream()
+    	for (Itinerary it:  driverSharedRidePlanResult.getItineraries()) {
+			it.getLegs().stream()
 			.filter(leg -> leg.getTraverseMode() == TraverseMode.CAR)
 			.forEach(leg -> {
 				leg.setAgencyName(RideManager.AGENCY_NAME);
 				leg.setAgencyId(RideManager.AGENCY_ID);
 				// For Rideshare booking is always required.
 				leg.setBookingRequired(true);
-		});
+			});
+		}
     	return driverSharedRidePlanResult;
     }
 
+    /**
+     * Assign rideshare attributes to the car/rideshare legs. This functionality should probably be put closer to the rideshare service itself.
+     * @param leg
+     * @param ride
+     */
     protected void assignRideToPassengerLeg(Leg leg, Ride ride) {
 		leg.setDriverId(ride.getDriverRef());
 		leg.setDriverName(ride.getDriver().getName());
@@ -504,12 +510,7 @@ public class TripPlanManager {
 		}
 
     	rankItineraries(plan);
-//    	plan.getItineraries().sort(new Comparator<Itinerary>() {
-//			@Override
-//			public int compare(Itinerary it1, Itinerary it2) {
-//				return -Double.compare(it1.getScore(), it2.getScore());
-//			}
-//		});
+    	// The itineraries are listed by the plan ordered by score descending
     	return plan;
     }
 

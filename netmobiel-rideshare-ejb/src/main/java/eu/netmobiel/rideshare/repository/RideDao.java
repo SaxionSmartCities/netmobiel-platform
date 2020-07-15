@@ -1,7 +1,6 @@
 package eu.netmobiel.rideshare.repository;
 
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +12,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
