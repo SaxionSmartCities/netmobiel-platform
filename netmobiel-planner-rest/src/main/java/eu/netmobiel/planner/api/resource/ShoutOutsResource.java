@@ -12,15 +12,18 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.planner.api.ShoutOutsApi;
 import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
+import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.User;
 import eu.netmobiel.planner.service.TripPlanManager;
 import eu.netmobiel.planner.service.UserManager;
+import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @ApplicationScoped
 public class ShoutOutsResource implements ShoutOutsApi {
@@ -61,7 +64,8 @@ public class ShoutOutsResource implements ShoutOutsApi {
 	}
 
 	@Override
-	public Response resolveShoutOut(String planId, OffsetDateTime now, String from, String to, OffsetDateTime travelTime, Boolean useAsArrivalTime) {
+	public Response resolveShoutOut(String planId, OffsetDateTime now, String from, String to, OffsetDateTime travelTime, 
+			Boolean useAsArrivalTime, String modality, String agencyId) {
     	Response rsp = null;
     	if (planId == null) {
     		throw new BadRequestException("Missing mandatory path parameter: planId");
@@ -72,6 +76,14 @@ public class ShoutOutsResource implements ShoutOutsApi {
     	if (now == null) {
     		now = OffsetDateTime.now();
      	}
+    	TraverseMode mode = TraverseMode.RIDESHARE;  
+    	if (modality != null) {
+        	try {
+    	    	mode = TraverseMode.valueOf(modality);
+        	} catch (IllegalArgumentException ex) {
+        		throw new BadRequestException("Failed to parse modality: " + modality, ex);
+        	}
+    	}
 		try {
 			User driver = userManager.registerCallingUser();
 			TripPlan driverPlan = new TripPlan();
@@ -81,9 +93,46 @@ public class ShoutOutsResource implements ShoutOutsApi {
 			}
 			driverPlan.setTravelTime(travelTime != null ? travelTime.toInstant() : null);
 			driverPlan.setUseAsArrivalTime(Boolean.TRUE.equals(useAsArrivalTime));
-			driverPlan = tripPlanManager.resolveShoutOut(now.toInstant(), driver, planId, driverPlan);
+			driverPlan = tripPlanManager.resolveShoutOut(now.toInstant(), driver, planId, driverPlan, mode);
 			rsp = Response.ok(tripPlanMapper.map(driverPlan)).build();
 		} catch (Exception e) {
+			throw new WebApplicationException(e);
+		}
+    	return rsp;
+	}
+
+	@Override
+	public Response addSolution(String shoutOutPlanId, eu.netmobiel.planner.api.model.TravelOffer travelOffer) {
+    	Response rsp = null;
+		try {
+        	Long shoutOutId = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
+        	if (travelOffer == null || travelOffer.getPlanRef() == null) {
+        		throw new eu.netmobiel.commons.exception.BadRequestException("planRef is amandatory attribute");
+        	}
+        	Long providedSolutionPlanId = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, travelOffer.getPlanRef());
+			User driver = userManager.registerCallingUser();
+			if (travelOffer.getDriverRef() != null) {
+				if (!driver.getUserRef().equals(travelOffer.getDriverRef()) && !driver.getKeyCloakUrn().equals(travelOffer.getDriverRef())) {
+					throw new SecurityException(String.format("User %s is not allowed to offer rides on behalf of %s", driver.getManagedIdentity(), travelOffer.getDriverRef()));
+				}
+			}
+			tripPlanManager.addShoutOutSolution(shoutOutId, providedSolutionPlanId, driver.getKeyCloakUrn(), travelOffer.getVehicleRef());
+			rsp = Response.accepted().build();
+		} catch (ApplicationException e) {
+			throw new WebApplicationException(e);
+		}
+    	return rsp;
+	}
+
+	@Override
+	public Response getShoutOut(String shoutOutPlanId) {
+    	Response rsp = null;
+		TripPlan plan;
+		try {
+        	Long tid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
+			plan = tripPlanManager.getShoutOutPlan(tid);
+			rsp = Response.ok(tripPlanMapper.map(plan)).build();
+		} catch (ApplicationException e) {
 			throw new WebApplicationException(e);
 		}
     	return rsp;

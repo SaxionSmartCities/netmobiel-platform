@@ -128,7 +128,7 @@ public class User implements NetMobielUser, Serializable {
 
 	@Override
 	public String toString() {
-		return String.format("User [%s %s %s]", managedIdentity, givenName, familyName);
+		return String.format("User [%s %s %s %s]", managedIdentity, givenName, familyName, email);
 	}
 
 	@Override

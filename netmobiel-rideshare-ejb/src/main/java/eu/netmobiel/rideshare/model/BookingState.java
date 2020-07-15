@@ -2,6 +2,7 @@ package eu.netmobiel.rideshare.model;
 
 public enum BookingState {
 	NEW("NEW"),
+	PROPOSED("PRO"),
 	REQUESTED("REQ"),
 	CONFIRMED("CFM"),
 	CANCELLED("CNC");

@@ -131,12 +131,12 @@ public class TripManagerTest {
 		Long itineraryId = 23L;
 		Long tripId = 55L;
 		TripPlan plan = Fixture.createTransitPlan(traveller);
-		plan.getItineraries().get(0).setId(itineraryId);
+		plan.getItineraries().iterator().next().setId(itineraryId);
 		Trip trip = new Trip(PlannerUrnHelper.createUrn(Itinerary.URN_PREFIX, itineraryId));
 		trip.setId(tripId);
 		new Expectations() {{
 			itineraryDao.find(itineraryId);
-			result = plan.getItineraries().get(0);
+			result = plan.getItineraries().iterator().next();
 			tripDao.save(trip);
 		}};
 		try {
@@ -159,13 +159,13 @@ public class TripManagerTest {
 		Long itineraryId = 23L;
 		Long tripId = 55L;
 		TripPlan plan = Fixture.createRidesharePlan(traveller, "2020-03-20T13:00:00Z", Fixture.placeZieuwent, Fixture.placeSlingeland, "2020-03-20T15:00:00Z", false, 60 * 35, "urn:nb:rs:ride:364");
-		plan.getItineraries().get(0).setId(itineraryId);
+		plan.getItineraries().iterator().next().setId(itineraryId);
 		Trip trip = new Trip(PlannerUrnHelper.createUrn(Itinerary.URN_PREFIX, itineraryId));
-		assertTrue(plan.getItineraries().get(0).getLegs().get(0).isBookingRequired());
+		assertTrue(plan.getItineraries().iterator().next().getLegs().get(0).isBookingRequired());
 		trip.setId(tripId);
 		new Expectations() {{
 			itineraryDao.find(itineraryId);
-			result = plan.getItineraries().get(0);
+			result = plan.getItineraries().iterator().next();
 			tripDao.save(trip);
 		}};
 		try {

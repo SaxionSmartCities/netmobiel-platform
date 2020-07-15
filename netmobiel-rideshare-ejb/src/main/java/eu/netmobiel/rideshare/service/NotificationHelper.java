@@ -73,14 +73,19 @@ public class NotificationHelper {
 		// Inform driver on new booking
 		try {
 			Message msg = null;
-			if (booking.getState() == BookingState.REQUESTED) {
+			if (booking.getState() == BookingState.PROPOSED) {
+				// No message is needed
+				msg = null;
+			} else if (booking.getState() == BookingState.REQUESTED) {
 				msg = createMessage(booking, "Je hebt een passagier!", "Voor jouw rit op {0} naar {1} wil {2} graag met je mee.");
 			} else if (booking.getState() == BookingState.CONFIRMED) {
 				msg = createMessage(booking, "Je hebt een passagier!", "Voor jouw rit op {0} naar {1} rijdt {2} met je mee.");
 			} else {
 				throw new IllegalStateException("Unexpected booking state with booking " + booking.toString());
 			}
-			publisherService.publish(null, msg);
+			if (msg != null) {
+				publisherService.publish(null, msg);
+			}
 		} catch (Exception e) {
 			logger.error("Unable to inform driver on new booking: " + e.toString());
 		}

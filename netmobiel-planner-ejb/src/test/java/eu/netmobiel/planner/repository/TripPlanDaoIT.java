@@ -6,6 +6,7 @@ import static org.junit.Assert.*;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 import java.util.stream.IntStream;
 
@@ -104,9 +105,9 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
 	    	assertTrue(puu.isLoaded(plan, TripPlan_.TRAVELLER));
 	    	assertTrue(puu.isLoaded(plan, TripPlan_.TRAVERSE_MODES));
 
-	    	List<Itinerary> its = plan.getItineraries();
+	    	Collection<Itinerary> its = plan.getItineraries();
 	    	assertEquals(1, its.size());
-	    	Itinerary it = its.get(0);
+	    	Itinerary it = its.iterator().next();
 	    	assertTrue(puu.isLoaded(it, Itinerary_.LEGS));
 	    	assertFalse(puu.isLoaded(it, Itinerary_.STOPS));
 	    	assertTrue(puu.isLoaded(it, Itinerary_.TRIP_PLAN)); 	// Apparently implicitly loaded, because this field refers to the loaded plan

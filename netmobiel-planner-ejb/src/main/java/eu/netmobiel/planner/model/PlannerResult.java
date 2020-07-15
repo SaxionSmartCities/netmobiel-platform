@@ -1,6 +1,7 @@
 package eu.netmobiel.planner.model;
 
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import javax.ws.rs.core.Response;
@@ -21,7 +22,7 @@ public class PlannerResult {
 		return itineraries;
 	}
 
-	public void addItineraries(List<Itinerary> itineraries) {
+	public void addItineraries(Collection<Itinerary> itineraries) {
 		itineraries.forEach(it -> it.getLegs().forEach(leg -> leg.setPlannerReport(report)));
 		this.itineraries.addAll(itineraries);
 	}

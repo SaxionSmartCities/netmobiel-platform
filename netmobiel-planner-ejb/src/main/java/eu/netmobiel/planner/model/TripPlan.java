@@ -3,6 +3,8 @@ package eu.netmobiel.planner.model;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collection;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Set;
 import java.util.stream.Collectors;
@@ -30,7 +32,7 @@ import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
 import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
-import javax.persistence.OrderColumn;
+import javax.persistence.OrderBy;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -208,8 +210,8 @@ public class TripPlan {
      * A list of possible itineraries. 
      */
 	@OneToMany(mappedBy = "tripPlan", cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
-	@OrderColumn(name = "itinerary_ix")
-    private List<Itinerary> itineraries;
+	@OrderBy("score desc")
+    private Set<Itinerary> itineraries;
 
 	/**
      * The planner reports for creating this plan.
@@ -321,16 +323,20 @@ public class TripPlan {
 		this.to = to;
 	}
 
-	public List<Itinerary> getItineraries() {
+	public Set<Itinerary> getItineraries() {
 		if (itineraries == null) {
-			itineraries = new ArrayList<>();
+			itineraries = new LinkedHashSet<>();
 		}
 		return itineraries;
 	}
 
-	public void addItineraries(List<Itinerary> itineraries) {
-		itineraries.forEach(it -> it.setTripPlan(this));
-		getItineraries().addAll(itineraries);
+	public void addItinerary(Itinerary itinerary) {
+		itinerary.setTripPlan(this);
+		getItineraries().add(itinerary);
+	}
+
+	public void addItineraries(Collection<Itinerary> itineraries) {
+		itineraries.forEach(it -> addItinerary(it));
 	}
 
 	public Instant getTravelTime() {

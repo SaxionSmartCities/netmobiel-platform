@@ -19,6 +19,10 @@ public class UrnHelper {
 		return urn == null ? null : urn.substring(urn.lastIndexOf(":") + 1);
 	}
 
+	public static String getPrefix(String urn) {
+		return urn == null ? null : urn.substring(0, urn.lastIndexOf(":") + 1);
+	}
+
 	public static Long getId(String prefix, String value) {
 		String id = value;
 		if (isUrn(value)) {

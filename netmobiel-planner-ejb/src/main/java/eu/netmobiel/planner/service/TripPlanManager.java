@@ -10,11 +10,11 @@ import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collection;
 import java.util.Collections;
-import java.util.Comparator;
 import java.util.HashSet;
 import java.util.Iterator;
 import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.function.Predicate;
@@ -33,6 +33,7 @@ import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
@@ -41,6 +42,7 @@ import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.OtpCluster;
@@ -52,7 +54,9 @@ import eu.netmobiel.planner.model.Stop;
 import eu.netmobiel.planner.model.ToolType;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
+import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.OpenTripPlannerDao;
 import eu.netmobiel.planner.repository.OtpClusterDao;
 import eu.netmobiel.planner.repository.TripPlanDao;
@@ -83,6 +87,8 @@ public class TripPlanManager {
     @Inject
     private TripPlanDao tripPlanDao;
     @Inject
+    private ItineraryDao itineraryDao;
+    @Inject
     private RideManager rideManager;
     @Inject
     private OpenTripPlannerDao otpDao;
@@ -92,6 +98,10 @@ public class TripPlanManager {
     
     @Inject
     private Event<TripPlan> shoutOutRequestedEvent;
+
+    @Inject
+    private Event<TravelOfferEvent> travelOfferProposedEvent;
+    
 
     protected List<Stop> filterImportantStops(TripPlan plan) {
     	List<Stop> places = new ArrayList<>(); 
@@ -229,7 +239,48 @@ public class TripPlanManager {
     	report.setExecutionTime(System.currentTimeMillis() - start);
     	return result;
     }
-	/**
+    
+    /**
+     * Calculates an itinerary for a rideshare ride from the driver's departure location to his his destination, in between picking up a 
+     * passenger and dropping-off the passenger at a different location.
+     * Where should this calculation be done? Is it core NetMobiel, or should the transport provider give the estimation? Probably the latter.
+     * For shout-out the planning question should be asked at the rideshare service. Their planner will provide an answer.
+     * @param now The time perspective of the call (in regular use always the current time)
+     * @param fromPlace The deaprture location of the driver
+     * @param toPlace the destination of the driver
+     * @param travelTime the travel time of the driver, to be interpreted as departure time.
+     * @param maxWalkDistance The maximum distance to walk, if necessary.
+     * @param via The pickup and drop-off locations of the passenger.
+     * @return A planner result object.
+     */
+    protected PlannerResult planRideshareItinerary(Instant now, GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean useAsArrivalTime, Integer maxWalkDistance, List<GeoLocation> via) {
+    	Set<TraverseMode> modes = new HashSet<>(Arrays.asList(new TraverseMode[] { TraverseMode.WALK, TraverseMode.CAR }));
+    	// Calculate for each ride found the itinerary when the passenger would ride along, i.e., add the pickup and drop-off location
+    	// as intermediate places to the OTP planner and calculate the itinerary.
+    	PlannerResult driverSharedRidePlanResult = otpDao.createPlan(now, fromPlace, toPlace, travelTime,  useAsArrivalTime, modes, false, maxWalkDistance, null, via, 1);
+		Itinerary driverItinerary = driverSharedRidePlanResult.getItineraries().get(0);
+		driverItinerary .getLegs().stream()
+			.filter(leg -> leg.getTraverseMode() == TraverseMode.CAR)
+			.forEach(leg -> {
+				leg.setAgencyName(RideManager.AGENCY_NAME);
+				leg.setAgencyId(RideManager.AGENCY_ID);
+				// For Rideshare booking is always required.
+				leg.setBookingRequired(true);
+		});
+    	return driverSharedRidePlanResult;
+    }
+
+    protected void assignRideToPassengerLeg(Leg leg, Ride ride) {
+		leg.setDriverId(ride.getDriverRef());
+		leg.setDriverName(ride.getDriver().getName());
+		leg.setVehicleId(ride.getCarRef());
+		leg.setVehicleLicensePlate(ride.getCar().getLicensePlate());
+		leg.setVehicleName(ride.getCar().getName());
+		leg.setTripId(ride.getRideRef());
+		leg.setTraverseMode(TraverseMode.RIDESHARE);
+    }
+
+    /**
 	 * Try to find a ride from passenger departure to passenger destination. Each
 	 * possibility is an itinerary. For traverse mode CAR we assume (as approximation) the travel
 	 * time is independent of the departure time. This is correct for OTP. Only more
@@ -243,10 +294,10 @@ public class TripPlanManager {
 	 * @param toPlace The arrival location of the passenger
 	 * @param earliestDeparture The earliest possible departure time. If not set then it will be set to
 	 * 						 RIDESHARE_MAX_SLACK_BACKWARD hours before arrival time, with <code>now<code> as minimum.
-	 * @param latestArrival The latest possible arrival time. If not set then ir will be set to
+	 * @param latestArrival The latest possible arrival time. If not set then it will be set to
 	 * 						 RIDESHARE_MAX_SLACK_FORWARD hours after earliest departure time.
 	 * @param maxWalkDistance The maximum distance the passenger is prepared to walk
-	 * @param nrSeats The number of seates required
+	 * @param nrSeats The number of seats required
 	 * @return A list of possible itineraries.
 	 */
     protected List<PlannerResult> searchRideshareOnly(Instant now, GeoLocation fromPlace, GeoLocation toPlace,  Instant travelTime, boolean useAsArrivalTime,
@@ -262,11 +313,10 @@ public class TripPlanManager {
     		// Use always the riders departure time. The itineraries will be scored later on.
         	GeoLocation from = ride.getFrom();
         	GeoLocation to = ride.getTo();
-        	Set<TraverseMode> modes = new HashSet<>(Arrays.asList(new TraverseMode[] { TraverseMode.WALK, TraverseMode.CAR }));
-        	// Calculate for each ride found the ride when the passenger would ride along, i.e., add the pickup and drop-off location
+        	// Calculate for each ride found the itinerary when the passenger would ride along, i.e., add the pickup and drop-off location
         	// as intermediate places to the OTP planner and calculate the itinerary.
     		Instant rideDepTime = ride.getDepartureTime();
-        	PlannerResult driverSharedRidePlanResult = otpDao.createPlan(now, from, to, rideDepTime,  false, modes, false, maxWalkDistance, null, intermediatePlaces, 1);
+        	PlannerResult driverSharedRidePlanResult = planRideshareItinerary(now, from, to, rideDepTime, false, maxWalkDistance, intermediatePlaces);
         	PlannerResult passengerSharedRidePlanResult = new PlannerResult(driverSharedRidePlanResult.getReport());
         	results.add(passengerSharedRidePlanResult);
     		if (driverSharedRidePlanResult.hasError()) {
@@ -277,28 +327,9 @@ public class TripPlanManager {
         				.reduce(x -> true, Predicate::and)
         				.test(driverItinerary);
             	if (accepted) {
-    	        	// We have the plan for the driver now. Add the itineraries but keep only the intermediate leg(s). This is a shallow copy !
+    	        	// We have the plan for the driver now. Add the itineraries but keep only the intermediate leg(s). This is a deep copy!
             		Itinerary passengerItinerary = driverItinerary.subItinerary(fromPlace, toPlace);
-            		passengerItinerary.getLegs().forEach(leg -> {
-            			leg.setAgencyName(RideManager.AGENCY_NAME);
-            			leg.setAgencyId(RideManager.AGENCY_ID);
-            			leg.setDriverId(ride.getDriverRef());
-            			leg.setDriverName(ride.getDriver().getName());
-            			leg.setVehicleId(ride.getCarRef());
-            			leg.setVehicleLicensePlate(ride.getCar().getLicensePlate());
-            			leg.setVehicleName(ride.getCar().getName());
-            			leg.setTraverseMode(TraverseMode.RIDESHARE);
-            			// For Rideshare booking is always required.
-            			leg.setBookingRequired(true);
-            			leg.setTripId(ride.getRideRef());
-            		});
-            		// Set the arrival time of the first stop to null (this will have a side effect on the drivers itinerary too)
-            		// Set the departure time of the last stop to null
-            		Leg firstLeg = passengerItinerary.getLegs().get(0);
-            		firstLeg.getFrom().setArrivalTime(null);
-            		Leg lastLeg = passengerItinerary.getLegs().get(passengerItinerary.getLegs().size() - 1);  
-            		lastLeg.getTo().setDepartureTime(null);
-            		passengerItinerary.updateCharacteristics();
+            		passengerItinerary.getLegs().forEach(leg -> assignRideToPassengerLeg(leg, ride));
             		passengerSharedRidePlanResult.addItineraries(Collections.singletonList(passengerItinerary));
             	}
     		}
@@ -473,12 +504,12 @@ public class TripPlanManager {
 		}
 
     	rankItineraries(plan);
-    	plan.getItineraries().sort(new Comparator<Itinerary>() {
-			@Override
-			public int compare(Itinerary it1, Itinerary it2) {
-				return -Double.compare(it1.getScore(), it2.getScore());
-			}
-		});
+//    	plan.getItineraries().sort(new Comparator<Itinerary>() {
+//			@Override
+//			public int compare(Itinerary it1, Itinerary it2) {
+//				return -Double.compare(it1.getScore(), it2.getScore());
+//			}
+//		});
     	return plan;
     }
 
@@ -692,7 +723,7 @@ public class TripPlanManager {
     	plan.setRequestTime(now);
     	sanitizePlanInput(plan);
     	if (log.isDebugEnabled()) {
-    		log.debug(String.format("searchMultiModal:\n Now %s %s D %s A %s from %s to %s; seats #%d, max walk distance %sm; modalities %s; maxTransfers %s; first/lastLegRS %s/%s",
+    		log.debug(String.format("createAndReturnTripPlan:\n Now %s %s %s %s from %s to %s; seats #%d, max walk distance %sm; modalities %s; maxTransfers %s; first/lastLegRS %s/%s",
     						formatDateTime(plan.getRequestTime()),
     						plan.getPlanType().toString(),
     						plan.isUseAsArrivalTime() ? "A" : "D",
@@ -833,6 +864,21 @@ public class TripPlanManager {
     	return new PagedResult<TripPlan>(results, maxResults, offset, totalCount);
     }
 
+    /**
+     * Retrieves a shout-out trip plan. Only the plan itself is retrieved. For all details see getTripPlan(). 
+     * @param id the id of the shout-out trip plan
+     * @return The TripPlan object
+     * @throws NotFoundException In case of an invalid trip plan ID or when the actual type is not shout-out.
+     */
+    public TripPlan getShoutOutPlan(Long id) throws NotFoundException {
+    	TripPlan plandb = tripPlanDao.find(id)
+    			.orElse(null);
+    	if (plandb == null || plandb.getPlanType() != PlanType.SHOUT_OUT) {
+    		throw new NotFoundException("No such shout-out: " + id);
+    	}
+    	return plandb;
+    }
+    
 
     /**
      * Resolves a shout-out by issuing a trip plan as a potential solution for the shout-out by a ride by the driver. 
@@ -843,11 +889,14 @@ public class TripPlanManager {
      * @return A trip plan calculated  to fill-in the shout-out.
      * @throws NotFoundException In case the shout-out could not be found.
      */
-    public TripPlan resolveShoutOut(Instant now, User driver, String shoutOutPlanRef, TripPlan driverPlan) throws NotFoundException, ApplicationException {
+    public TripPlan resolveShoutOut(Instant now, User driver, String shoutOutPlanRef, TripPlan driverPlan, TraverseMode traverseMode) throws NotFoundException, ApplicationException {
     	Long pid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanRef);
     	TripPlan travPlan = tripPlanDao.find(pid).orElseThrow(() -> new NotFoundException("No such TripPlan: " + shoutOutPlanRef));
     	if (!travPlan.isInProgress()) {
     		throw new CreateException("Shout-out has already been closed");
+    	}
+    	if (traverseMode != TraverseMode.RIDESHARE) {
+    		throw new BadRequestException("Only RIDESHARE modality is supported");
     	}
     	boolean adjustDepartureTime = false;
     	driverPlan.setTraveller(driver);
@@ -872,12 +921,11 @@ public class TripPlanManager {
     	driverPlan.setNrSeats(travPlan.getNrSeats());
     	driverPlan.setMaxWalkDistance(travPlan.getMaxWalkDistance());
     	driverPlan.setTraverseModes(Collections.singleton(TraverseMode.RIDESHARE));
-    	Set<TraverseMode> otpModalities = new HashSet<>(Arrays.asList(new TraverseMode[] { TraverseMode.WALK, TraverseMode.CAR }));
     	List<GeoLocation> intermediatePlaces = new ArrayList<>();
     	intermediatePlaces.add(travPlan.getFrom());
     	intermediatePlaces.add(travPlan.getTo());
-    	PlannerResult result = otpDao.createPlan(now, driverPlan.getFrom(), driverPlan.getTo(), 
-    			driverPlan.getTravelTime(),  driverPlan.isUseAsArrivalTime(), otpModalities, false, driverPlan.getMaxWalkDistance(), null, intermediatePlaces, 1);
+    	PlannerResult result = planRideshareItinerary(now, driverPlan.getFrom(), driverPlan.getTo(), 
+    			driverPlan.getTravelTime(),  driverPlan.isUseAsArrivalTime(), driverPlan.getMaxWalkDistance(), intermediatePlaces);
     	if (adjustDepartureTime && result.getItineraries().size() > 0) {
     		// Shift all the timestamps in the plan in such a way that the pickup or drop-off time matches the travel time of the proposed passenger
     		Itinerary it = result.getItineraries().get(0);
@@ -897,5 +945,70 @@ public class TripPlanManager {
        	tripPlanDao.save(driverPlan);
        	return driverPlan;
     }
+    
+    /**
+     * Adds a solution to a shout-out plan. The solution is provided by a party other than the traveller, such as someone offering 
+     * a ride with his car. More complex scenarios are possible with combinations with public transport.
+     * @param shoutOutPlanId The original shout-out plan of the traveller, containing details about the desired travel.  
+     * @param proposedPlanId The plan proposed by the transport provider. This plan is from the perspective of the transport provider
+     * 						and include his private departure and destination locations. The assumption for now is that the pickup and
+     * 						drop-off locations of the traveller are part of the providers itinerary. If not the (short) walks have to 
+     * 						be inserted for the traveller, derived from the shout-out plan parameters.  
+     * @param driverRef		The reference to the driver , if relevant.
+     * @param vehicleRef	The reference to the vehicle to be used, if relevant.
+     * @throws ApplicationException
+     */
+    public void addShoutOutSolution(Long shoutOutPlanId, Long proposedPlanId, String driverRef, String vehicleRef) throws ApplicationException {
+    	// Only header and validate shout out type
+    	TripPlan shoutOutPlan = getShoutOutPlan(shoutOutPlanId);
+    	TripPlan proposedPlan = getTripPlan(proposedPlanId);
+    	if (proposedPlan.getPlanType() != PlanType.SHOUT_OUT_SOLUTION) {
+    		throw new NotFoundException("No such shout-out proposal plan: " + proposedPlanId);
+    	}
+    	// Prevent accidental changes in the plan lead to persist
+    	tripPlanDao.detach(proposedPlan);
+
+    	// Create a copy of the passenger part of the provider's itinerary. Assume for now that the passenger has no private legs. 
+    	// All legs in the passengers's itinerary are shared with the transport provider
+    	// Should the passenger's itinerary be created here? If there is a slight mismatch a few walks should be introduced.
+    	// To be implemented: Search for the closest pickup and drop locations. Compare with shout-out. If more than 20 m away add a 
+    	// WALK leg to the passenger's itinerary.
+    	// For now: Complete overlap with provider's itinerary
+    	Itinerary passengerIt = proposedPlan.getItineraries().iterator().next().subItinerary(shoutOutPlan.getFrom(), shoutOutPlan.getTo());
+    	passengerIt.setTripPlan(shoutOutPlan);
+    	BasicItineraryRankingAlgorithm ranker = new BasicItineraryRankingAlgorithm();
+   		ranker.calculateScore(passengerIt, shoutOutPlan.getTravelTime(), shoutOutPlan.isUseAsArrivalTime());
+   		itineraryDao.save(passengerIt);
+    	
+    	// At this point the proposal is added to the passenger's shout-out, but the actual ride and booking hasn't been added yet
+    	// So we want the transport provider to notify that this plan is going to be a ride with a booking proposal 
+    	TravelOfferEvent toe = new TravelOfferEvent(shoutOutPlan, passengerIt, proposedPlan, driverRef, vehicleRef);
+    	travelOfferProposedEvent.fire(toe);
+    }
+    
+    /**
+     * Assign a rideshare ride and booking proposal reference to the leg with the specified transport provider tripId.
+     * This model is not quite satisfactory. For now get it working quicky. The ride argument should not be here.  
+     * @param agencyId The ID of the agency offering the proposal. Now always Netmobiel Rideshare.  
+     * @param passengerItinerary The proposed itinerary of the passenger.
+     * @param ride	the rideshare ride 
+     * @param bookingRef The booking reference at the transport provider.
+     * @throws UpdateException 
+     */
+    public void assignBookingProposalReference(String agencyId, Itinerary passengerItinerary, Ride ride, String bookingRef) throws UpdateException {
+    	//FIXME Bad design, bad modelling of interaction with transport provider
+    	if (!itineraryDao.isLoaded(passengerItinerary)) {
+    		itineraryDao.refresh(passengerItinerary);
+    	}
+    	List<Leg> legs = passengerItinerary.getLegs().stream()
+    			.filter(leg -> Objects.equals(leg.getAgencyId(), agencyId))
+    			.collect(Collectors.toList());
+    	legs.forEach(leg -> {
+    		assignRideToPassengerLeg(leg, ride);
+        	leg.setBookingId(bookingRef);
+    	});
+    	passengerItinerary.getLegs().forEach(leg -> leg.setState(TripState.PLANNING));
+    }
+
     
 }

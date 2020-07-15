@@ -25,11 +25,13 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.OpenTripPlannerDao;
 import eu.netmobiel.planner.repository.OtpClusterDao;
 import eu.netmobiel.planner.repository.TripPlanDao;
@@ -58,10 +60,16 @@ public class TripPlanManagerTest {
     private OtpClusterDao otpClusterDao;
 	
 	@Injectable
+    private ItineraryDao itineraryDao;
+
+	@Injectable
     private OpenTripPlannerDao otpDao;
 
 	@Injectable
     private Event<TripPlan> shoutOutRequestedEvent;
+
+	@Injectable
+    private Event<TravelOfferEvent> travelOfferEvent;
 
 	@Injectable
     private RideManager rideManager;
@@ -310,9 +318,9 @@ public class TripPlanManagerTest {
 			result = Fixture.createShoutOutSolution(driverPlan.getFrom(), null, shoutOutPlan); 
 		}};
 		try {
-			TripPlan plan = tested.resolveShoutOut(now, driver, shoutOutRef, driverPlan);
+			TripPlan plan = tested.resolveShoutOut(now, driver, shoutOutRef, driverPlan, TraverseMode.RIDESHARE);
 			assertEquals(1, plan.getItineraries().size());
-			Itinerary it = plan.getItineraries().get(0);
+			Itinerary it = plan.getItineraries().iterator().next();
 			log.debug("Itinerary: " + it.toString());
 		} catch (ApplicationException e) {
 			fail("Unexpected exception: " + e);

@@ -97,7 +97,9 @@ public class RidesResource implements RidesApi {
     	Response rsp = null;
 		try {
 			Ride ride = mapper.map(ridedt);
-			// The owner of the ride will be the owner of the car.
+			User driver = userManager.registerCallingUser();
+			ride.setDriver(driver);
+			// The owner of the ride will be the caller
 			String newRideId = RideshareUrnHelper.createUrn(Ride.URN_PREFIX, rideManager.createRide(ride));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newRideId)).build();
 		} catch (ApplicationException e) {

@@ -1,5 +1,8 @@
 package eu.netmobiel.commons.model;
 
+import eu.netmobiel.commons.NetMobielModule;
+import eu.netmobiel.commons.util.UrnHelper;
+
 /**
  * Definition of a NetMobiel User.
  * @author Jaap Reitsma
@@ -27,4 +30,8 @@ public interface NetMobielUser {
 	 * @return an email address, if available
 	 */
 	String getEmail();
+	
+	default String getKeyCloakUrn() {
+		return UrnHelper.createUrnPrefix(NetMobielModule.KEYCLOAK.getCode(), "user") + getManagedIdentity();
+	}
 }

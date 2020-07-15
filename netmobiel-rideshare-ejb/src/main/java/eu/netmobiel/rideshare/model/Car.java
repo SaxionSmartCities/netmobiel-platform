@@ -244,6 +244,10 @@ public class Car implements Serializable {
 		return driverRef;
 	}
 
+	public boolean isOwnedBy(User driver) {
+		return getDriver().getId().equals(driver.getId());
+	}
+
 	public String getName() {
 		StringBuilder sb = new StringBuilder();
 		if (getBrand() != null) {

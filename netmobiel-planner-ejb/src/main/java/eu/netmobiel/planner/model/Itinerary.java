@@ -180,6 +180,10 @@ public class Itinerary implements Serializable {
     	
     }
 
+	/**
+	 * Copy constructor, creates a shallow copy.
+	 * @param other the itinerary to copy.
+	 */
     public Itinerary(Itinerary other) {
 		this.arrivalTime = other.arrivalTime;
 		this.departureTime = other.departureTime;
@@ -189,8 +193,12 @@ public class Itinerary implements Serializable {
 		this.waitingTime = other.waitingTime;
 		this.walkDistance = other.walkDistance;
 		this.walkTime = other.walkTime;
-		this.legs = new ArrayList<>(other.legs);
-		this.stops = new ArrayList<>(other.stops);
+		if (other.legs != null) {
+			this.legs = new ArrayList<>(other.legs);
+		}
+		if (other.stops!= null) {
+			this.stops = new ArrayList<>(other.stops);
+		}
     }
     
     public Itinerary copy() {
@@ -198,8 +206,10 @@ public class Itinerary implements Serializable {
     }
 
     public Itinerary deepCopy() {
+    	// shallow copy
     	Itinerary copy = new Itinerary(this);
     	List<Leg> legs = copy.getLegs();
+    	// now convert to deep copy
     	copy.setLegs(new ArrayList<>());
     	copy.getStops().clear();
     	Stop lastStop = null;
@@ -213,7 +223,7 @@ public class Itinerary implements Serializable {
 			copy.getLegs().add(newLeg);
 		}
     	copy.getStops().add(copy.getLegs().get(0).getFrom());
-		copy.getStops().addAll(copy.getLegs().stream().map(leg -> leg.getTo()).collect(Collectors.toList()));
+		copy.getLegs().forEach(leg -> copy.getStops().add(leg.getTo()));
     	return copy;
     }
 
@@ -223,6 +233,14 @@ public class Itinerary implements Serializable {
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	public GeoLocation getFrom() {
+		return getLegs().isEmpty() ? null : getLegs().get(0).getFrom().getLocation(); 
+	}
+
+	public GeoLocation getTo() {
+		return getLegs().isEmpty() ? null : getLegs().get(getLegs().size() - 1).getTo().getLocation(); 
 	}
 
 	public String getItineraryRef() {
@@ -483,41 +501,37 @@ public class Itinerary implements Serializable {
 		updateWalkTime();
 	}
 
+	public Optional<Stop> findConnectingStop(GeoLocation location) {
+		return getStops().stream()
+				.filter(s -> connectingStopCheck.test(s.getLocation(), location))
+				.findFirst();
+	}
+
 	/**
-	 * Extract an itinerary from this itinerary using the the specifief locations.
+	 * Extract an itinerary from this itinerary using the the specified locations.
 	 * @param from the location to start from 
 	 * @param to the destination location
-	 * @return the sub itinerary. This is a shallow copy. The original graph will be altered (first and last stop).
+	 * @return the sub itinerary. This is a deep copy. The original graph will be not be altered.
 	 */
 	public Itinerary subItinerary(GeoLocation from, GeoLocation to) {
-		Itinerary it = new Itinerary();
 		// If within x meter it must be the right stop (a bit shady)
-    	ClosenessFilter closenessFilter = new ClosenessFilter(OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS * 2);
-		Stop fromStop = getStops().stream()
-				.filter(s -> closenessFilter.test(s.getLocation(), from))
-				.findFirst()
-				.orElse(null);
-		Stop toStop = getStops().stream()
-				.filter(s -> closenessFilter.test(s.getLocation(), to))
-				.findFirst()
-				.orElse(null);
+		Stop fromStop = findConnectingStop(from).orElse(null);
+		Stop toStop = findConnectingStop(to).orElse(null);
 		Leg firstLeg = getLegs().stream().filter(leg -> leg.getFrom() == fromStop).findFirst().orElse(null);
 		Leg lastLeg = getLegs().stream().filter(leg -> leg.getTo() == toStop).findFirst().orElse(null);
-		if (firstLeg == null) {
-			log.warn("Unable to find start leg, using whole itinerary");
-			it = new Itinerary(this);
-		} else if (lastLeg == null) {
-			log.warn("Unable to find last leg, using whole itinerary");
-			it = new Itinerary(this);
-		} else {
-			it = new Itinerary();
-			// Copy the legs
-			it.getLegs().addAll(getLegs().subList(getLegs().indexOf(firstLeg), getLegs().indexOf(lastLeg) + 1));
-			// Copy the stops, the first from, and then all to's
-			it.getStops().add(it.getLegs().get(0).getFrom());
-			it.getStops().addAll(it.getLegs().stream().map(leg -> leg.getTo()).collect(Collectors.toList()));
-			updateCharacteristics();
+		if (firstLeg == null || lastLeg == null) {
+			throw new IllegalStateException("Unable to find first or last leg");
 		}
+		Itinerary it = new Itinerary();
+		// Copy the legs
+		it.getLegs().addAll(getLegs().subList(getLegs().indexOf(firstLeg), getLegs().indexOf(lastLeg) + 1));
+		// Now make a deep copy of the shallow copy
+		it = it.deepCopy();
+		firstLeg = it.getLegs().get(0);
+		firstLeg.getFrom().setArrivalTime(null);
+		lastLeg = it.getLegs().get(it.getLegs().size() - 1);  
+		lastLeg.getTo().setDepartureTime(null);
+		it.updateCharacteristics();
 		return it;
 	}
 
@@ -607,4 +621,30 @@ public class Itinerary implements Serializable {
 			log.warn("Cannot find connecting stop: " + referenceStop.toString());
 		}
 	}
+	
+	/**
+	 * Using the database ID as equals test!
+	 * @see https://vladmihalcea.com/the-best-way-to-implement-equals-hashcode-and-tostring-with-jpa-and-hibernate/
+	 */
+	@Override
+    public boolean equals(Object o) {
+        if (this == o) {
+        	return true;
+        }
+         if (!(o instanceof Itinerary)) {
+            return false;
+        }
+         Itinerary other = (Itinerary) o;
+        return id != null && id.equals(other.getId());
+    }
+
+	/**
+	 * Using the database ID as equals test!
+	 * @see https://vladmihalcea.com/the-best-way-to-implement-equals-hashcode-and-tostring-with-jpa-and-hibernate/
+	 */
+    @Override
+    public int hashCode() {
+        return 31;
+    }
+
 }

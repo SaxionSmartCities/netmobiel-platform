@@ -85,6 +85,8 @@ public class RideManager {
     private RideTemplateDao rideTemplateDao;
     @Inject
     private RideItineraryHelper rideItineraryHelper;
+    @Inject
+    private IdentityHelper identityHelper;
 
     @Resource
     private SessionContext context;
@@ -286,9 +288,9 @@ public class RideManager {
 
     /**
      * Creates a ride. In case recurrence is set, all following rides are created as well, up to 8 weeks in advance.
-     * A ride has a template only for recurrent rides.
-     * The owner of the ride is determined by the car. |Becasue of that, the driver does already exist in the local database.  
-     * @param ride The input from the application.
+     * A ride has a template only for recurrent rides. The driver of driver reference must be set. 
+     * The car must exist and be owned by the driver.
+     * @param ride The input from the application.  
      * @return The ID of the ride just created.
      * @throws CreateException In case of trouble like wrong parameter values.
      * @throws NotFoundException If the car is not found.
@@ -296,8 +298,16 @@ public class RideManager {
     public Long createRide(Ride ride) throws CreateException, NotFoundException, BadRequestException {
     	Car car = carDao.find(RideshareUrnHelper.getId(Car.URN_PREFIX, ride.getCarRef()))
     			.orElseThrow(() -> new CreateException("Cannot find car: " + ride.getCarRef()));
+    	User driverdb = ride.getDriver();
+    	if (driverdb == null) {
+        	driverdb = identityHelper.resolveUrn(ride.getDriverRef())
+        			.orElseThrow(() -> new CreateException("Cannot find driver: " + ride.getDriverRef()));
+        	ride.setDriver(driverdb);
+    	}
+    	if (! car.isOwnedBy(driverdb)) {
+    		throw new SecurityException(String.format("Car %s is not owned by %s", car.getLicensePlate(), driverdb.toString()));
+    	}
     	ride.setCar(car);
-    	ride.setDriver(car.getDriver());
     	validateCreateUpdateRide(ride);
 //    	if (! RideshareUrnHelper.getId(User.URN_PREFIX, car.getDriverRef()).equals(ride.getDriver().getId())) {
 //    		throw new CreateException("Constraint violation: The car is not owned by the owner of the ride.");

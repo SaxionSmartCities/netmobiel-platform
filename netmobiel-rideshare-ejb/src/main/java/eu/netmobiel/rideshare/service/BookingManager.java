@@ -40,6 +40,7 @@ public class BookingManager {
 	public static final Integer MAX_RESULTS = 10; 
 	public static final boolean AUTO_CONFIRM_BOOKING = true; 
 
+	@SuppressWarnings("unused")
 	@Inject
 	private Logger log;
 	@Inject
@@ -49,7 +50,8 @@ public class BookingManager {
     @Inject
     private UserDao userDao;
     
-    @Inject
+    @SuppressWarnings("unused")
+	@Inject
     private Event<BookingConfirmedEvent> bookingConfirmedEvent;
     
     @Inject
@@ -141,24 +143,28 @@ public class BookingManager {
     	}
     	ride.addBooking(booking);
 		booking.setPassenger(passenger);
-		booking.setState(BookingState.REQUESTED);
+		if (booking.getState() != BookingState.PROPOSED) {
+			booking.setState(BookingState.REQUESTED);
+		}
     	bookingDao.save(booking);
     	bookingDao.flush();
-		if (AUTO_CONFIRM_BOOKING) {
-			booking.setState(BookingState.CONFIRMED);
-			// Update itinerary of the driver
-	    	staleItineraryEvent.fire(booking.getRide());
-		} else {
-			//FIXME
-			log.warn("Unexpected booking state transition, support auto confirm only!");
-	    	String bookingRef = RideshareUrnHelper.createUrn(Booking.URN_PREFIX, booking.getId());
-	    	BookingConfirmedEvent bce = new BookingConfirmedEvent(bookingRef, passenger, booking.getPassengerTripRef());
-	    	bookingConfirmedEvent.fire(bce);
-	    	// Drive does not need to be informed, he has just confirmed the booking himself 
+    	String bookingRef = RideshareUrnHelper.createUrn(Booking.URN_PREFIX, booking.getId());
+		if (booking.getState() == BookingState.REQUESTED) {
+			if (AUTO_CONFIRM_BOOKING) {
+				booking.setState(BookingState.CONFIRMED);
+				// Update itinerary of the driver
+		    	staleItineraryEvent.fire(booking.getRide());
+			} else {
+				//FIXME
+				throw new IllegalStateException("Unexpected booking state transition, support auto confirm only!");
+//		    	BookingConfirmedEvent bce = new BookingConfirmedEvent(bookingRef, passenger, booking.getPassengerTripRef());
+//		    	bookingConfirmedEvent.fire(bce);
+		    	// Driver does not need to be informed, he has just confirmed the booking himself 
+			}
 		}
 		// Inform driver about requested booking or confirmed booking
 		bookingCreatedEvent.fire(booking);
-    	return RideshareUrnHelper.createUrn(Booking.URN_PREFIX, booking.getId());
+    	return bookingRef;
     }
 
     /**
