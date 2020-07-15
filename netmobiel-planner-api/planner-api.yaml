@@ -736,9 +736,10 @@ paths:
         whereas /plan can only be used by the owner of the plan.
     post:
       requestBody:
-        description: The request body contains a trip plan, but the only accepted
-          field is a reference from an earlier determined plan to resolve the shout-out
-          of the traveller.
+        description: The request body contains a travel offer, containing a a reference
+          to an earlier determined plan to resolve the shout-out of the traveller.
+          In addition, the offer contains a reference to the driver (default the caller)
+          and, if applicable, a referenc to the car that will be used.
         content:
           application/json:
             schema:
@@ -755,6 +756,16 @@ paths:
         relevant for the traveller from the suggested trip plan. The suggested plan
         (potential  from any transport provider) must at least contain the two stops
         close (100 meter) to the departure, resp. destination location of the traveller.
+    delete:
+      responses:
+        "204":
+          description: Success response, the plan is cancelled.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: cancelPlan
+      summary: Cancels a plan
+      description: The traveller cancels a plan. All booking proposals are cancelled.
+        The shout-out is closed, no more proposals can be added.
     parameters:
     - name: shoutOutPlanId
       description: A reference to the shout-out plan of the traveller. The reference
@@ -1482,14 +1493,17 @@ components:
             parameter is ignored if the vehicle is already defined by the trip plan.
           type: string
         driverRef:
-          description: Optional. A reference to the identity of the driver as known
+          description: 'Optional. A reference to the identity of the driver as known
             to the NetMobiel system. If omitted the caller of the API method is assumed
-            to be the driver.
+            to be the driver. A Netmobiel user can have multiple identities, allowed
+            are: Keycloak managed identity, planner identity or rideshare identity.
+            It requires elevated privileges to offer a trip to be driven by someone
+            else.'
           type: string
       example:
         planRef: urn:nb:pn:tripplan:95346
         vehicleRef: urn:nb:rs:car:439
-        driverRef: urn:nb:kc:a9a0eba0-e0ef-5691-816b-f28d9efebcef
+        driverRef: urn:nb:kc:user:a9a0eba0-e0ef-5691-816b-f28d9efebcef
   responses:
     InternalServerError:
       content:
