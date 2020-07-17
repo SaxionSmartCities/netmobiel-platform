@@ -1068,7 +1068,7 @@ public class TripPlanManager {
     		throw new BadRequestException("Plan is not a shout-out: " + id);
     	}
     	if (plan.isOpen()) {
-        	cancelBookedLegs(plan, Optional.empty(), "Plan is geannulleerd");
+        	cancelBookedLegs(plan, Optional.empty(), "Plan is geannuleerd");
     		plan.close();
     	}
     }

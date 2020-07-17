@@ -58,7 +58,7 @@ public class TripsResource implements TripsApi {
 		try {
 			User traveller = userManager.registerCallingUser();
 			Trip dtrip = tripMapper.map(trip);
-			String newTripId = PlannerUrnHelper.createUrn(Trip.URN_PREFIX, tripManager.createTrip(traveller, dtrip, true));
+			String newTripId = PlannerUrnHelper.createUrn(Trip.URN_PREFIX, tripManager.createTrip(traveller, dtrip));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newTripId)).build();
 		} catch (ApplicationException e) {
 			throw new WebApplicationException(e);

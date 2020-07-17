@@ -24,6 +24,7 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
+import eu.netmobiel.commons.model.event.BookingConfirmedEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -79,7 +80,7 @@ public class BookingProcessor {
     }
     
 //    @Asynchronous
-    public void onBookingRequestedEvent(@Observes(during = TransactionPhase.IN_PROGRESS) BookingRequestedEvent event) {
+    public void onBookingRequested(@Observes(during = TransactionPhase.IN_PROGRESS) BookingRequestedEvent event) {
     	if (!NetMobielModule.RIDESHARE.getCode().equals(UrnHelper.getService(event.getProviderTripRef()))) {
     		logger.error("Unsupported service: " + event.getProviderTripRef());
     	}
@@ -107,13 +108,23 @@ public class BookingProcessor {
 		}
     }
 
+    public void onBookingConfirmed(@Observes(during = TransactionPhase.IN_PROGRESS) BookingConfirmedEvent event) {
+    	try {
+			// Replace the plan reference with trip reference
+    		bookingManager.confirmBooking(UrnHelper.getId(Booking.URN_PREFIX, event.getBookingRef()), event.getTravellerTripRef());
+		} catch (NotFoundException e) {
+			logger.error("Unable to confirm a booking: " + e.toString());
+			context.setRollbackOnly();
+		}
+    }
+
     /**
      * Signals the removal of a booking. The event can be produced by the transport provider or by the Trip Manager of netMobiel.
      * The state can be in PROPOSAL or in a later state.
      * 
      * @param event
      */
-    public void onBookingCancel(@Observes(during = TransactionPhase.IN_PROGRESS) BookingCancelledEvent event) {
+    public void onBookingCancelled(@Observes(during = TransactionPhase.IN_PROGRESS) BookingCancelledEvent event) {
     	logger.info(String.format("Booking %s cancelled from %s by %s because '%s'", 
     			event.getBookingRef(),
     			event.isCancelledFromTransportProvider() ? "Transport Provider" : "NetMobiel",

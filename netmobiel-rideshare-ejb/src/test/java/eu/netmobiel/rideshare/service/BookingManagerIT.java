@@ -178,8 +178,14 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     	assertTrue(puu.isLoaded(but.getPassenger(), User_.FAMILY_NAME));
     	assertTrue(puu.isLoaded(but.getPassenger(), User_.MANAGED_IDENTITY));
     	assertTrue(puu.isLoaded(but, Booking_.RIDE));
-    	assertTrue(puu.isLoaded(but.getRide(), Ride_.ID));
-
+    	Ride ride = but.getRide();
+    	assertTrue(puu.isLoaded(ride, Ride_.ID));
+    	assertTrue(puu.isLoaded(ride, Ride_.DRIVER));
+    	assertTrue(puu.isLoaded(ride.getDriver(), User_.ID));
+    	assertTrue(puu.isLoaded(ride.getDriver(), User_.GIVEN_NAME));
+    	assertTrue(puu.isLoaded(ride.getDriver(), User_.FAMILY_NAME));
+    	assertTrue(puu.isLoaded(ride.getDriver(), User_.MANAGED_IDENTITY));
+    	
     	assertEquals(1, but.getLegs().size());
     	but.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.ID)));
     	but.getLegs().forEach(leg -> assertTrue(puu.isLoaded(leg, Leg_.FROM)));

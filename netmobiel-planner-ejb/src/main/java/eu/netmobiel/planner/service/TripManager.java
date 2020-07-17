@@ -17,6 +17,7 @@ import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
+import eu.netmobiel.commons.model.event.BookingConfirmedEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
@@ -50,6 +51,9 @@ public class TripManager {
 
     @Inject
     private Event<BookingCancelledEvent> bookingCancelledEvent;
+
+    @Inject
+    private Event<BookingConfirmedEvent> bookingConfirmedEvent;
 
     @Inject
     private Event<ShoutOutResolvedEvent> shoutOutResolvedEvent;
@@ -96,12 +100,11 @@ public class TripManager {
      * Creates a trip on behalf of a user. If a trip contains bookable legs, the leg will automatically be booked  if the autobook flag is set. 
      * @param user the user for whom the trip is created
      * @param trip the new trip
-     * @param autobook If set then start the booking and scheduling process of each leg.
      * @return The ID of the trip just created.
      * @throws NotFoundException In case one of the referenced object cannot be found.
      * @throws BadRequestException In case of bad parameters.
      */
-    public Long createTrip(User traveller, Trip trip, boolean autobook) throws NotFoundException, BadRequestException {
+    public Long createTrip(User traveller, Trip trip) throws NotFoundException, BadRequestException {
     	trip.setTraveller(traveller);
     	if (trip.getItineraryRef() == null) {
     		throw new BadRequestException("Specify an itinerary reference");
@@ -126,34 +129,38 @@ public class TripManager {
         trip.setTo(plan.getTo());
        	tripDao.save(trip);
        	tripDao.flush();
-       	List<BookingRequestedEvent> bookingEvents = new ArrayList<>();
+       	List<BookingRequestedEvent> bookingRequestedEvents = new ArrayList<>();
+       	List<BookingConfirmedEvent> bookingConfirmedEvents = new ArrayList<>();
    		for (Leg leg : trip.getItinerary().getLegs()) {
-    	    if (autobook) {
-    	    	if (leg.isBookingRequired()) {
-       	    		// Ok, we need to take additional steps before the leg can be scheduled. Start a booking procedure.
-       	    		leg.setState(TripState.BOOKING);
-       				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
-       				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
-       				BookingRequestedEvent b = new BookingRequestedEvent(traveller, trip.getTripRef(), leg.getTripId());
-       				b.setArrivalTime(leg.getEndTime());
-       				b.setDepartureTime(leg.getStartTime());
-       				b.setDropOff(leg.getTo().getLocation());
-       				b.setNrSeats(trip.getNrSeats());
-       				b.setPickup(leg.getFrom().getLocation());
-       				bookingEvents.add(b);
-    	    	} else {
-       	    		// If no booking is required then no further action is required. Schedule the leg.
-       				leg.setState(TripState.SCHEDULED);
-    	    	}
-   	    	} else {
-	    		log.warn(String.format("Trip %s Leg %s requires explicit booking", trip.getTripRef(), leg.getTripId()));
-   	    	}
+	    	// Check for bookingID set. If so than it was a shout-out and we need to convert the PROPOSAL to a CONFIRMED booking
+	    	if (leg.getBookingId() != null) {
+	    		// This must be a proposed booking. Confirm it. Replace the plan reference with the trip reference
+	    		BookingConfirmedEvent bce = new BookingConfirmedEvent(leg.getBookingId(), traveller, trip.getTripRef());
+   				leg.setState(TripState.SCHEDULED);
+   				bookingConfirmedEvents.add(bce);
+	    	} else if (leg.isBookingRequired()) {
+   	    		// Ok, we need to take additional steps before the leg can be scheduled. Start a booking procedure.
+   	    		leg.setState(TripState.BOOKING);
+   				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
+   				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
+   				BookingRequestedEvent b = new BookingRequestedEvent(traveller, trip.getTripRef(), leg.getTripId());
+   				b.setArrivalTime(leg.getEndTime());
+   				b.setDepartureTime(leg.getStartTime());
+   				b.setDropOff(leg.getTo().getLocation());
+   				b.setNrSeats(trip.getNrSeats());
+   				b.setPickup(leg.getFrom().getLocation());
+   				bookingRequestedEvents.add(b);
+	    	} else {
+   	    		// If no booking is required then no further action is required. Schedule the leg.
+   				leg.setState(TripState.SCHEDULED);
+	    	}
        		// So what is exactly the content of the persistence context after the firing of the event?
        		// Should we merge/refresh?
        	}
        	trip.updateTripState();
        	// Update the trip state before sending the event. Just for consistency.
-       	bookingEvents.stream().forEach(event -> bookingRequestedEvent.fire(event));
+       	bookingRequestedEvents.stream().forEach(event -> bookingRequestedEvent.fire(event));
+       	bookingConfirmedEvents.stream().forEach(event -> bookingConfirmedEvent.fire(event));
     	return trip.getId();
     }
 

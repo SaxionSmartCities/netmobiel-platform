@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.time.Instant;
 
 import javax.enterprise.event.Event;
+import javax.inject.Inject;
 
 import org.junit.After;
 import org.junit.Before;
@@ -19,8 +20,10 @@ import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
+import eu.netmobiel.commons.model.event.BookingConfirmedEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.util.UrnHelper;
+import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Trip;
@@ -56,7 +59,13 @@ public class TripManagerTest {
 	@Injectable
     private Event<BookingCancelledEvent> bookingCancelledEvent;
 
-	private User traveller;
+	@Injectable
+    private Event<BookingConfirmedEvent> bookingConfirmedEvent;
+
+    @Injectable
+    private Event<ShoutOutResolvedEvent> shoutOutResolvedEvent;
+
+    private User traveller;
 	
 	@Before
 	public void setUp() throws Exception {
@@ -96,10 +105,9 @@ public class TripManagerTest {
 
 	@Test
 	public void testCreateTrip_NoItinerary() {
-		boolean autobook = true;
 		Trip input = new Trip();
 		try {
-			tested.createTrip(traveller, input, autobook);
+			tested.createTrip(traveller, input);
 			fail("Expected exception: BadRequest");
 		} catch (NotFoundException ex) {
 			fail("Unexpected exception: " + ex);
@@ -110,13 +118,12 @@ public class TripManagerTest {
 
 	@Test
 	public void testCreateTrip_ItineraryNotFound() {
-		boolean autobook = true;
 		Trip trip = new Trip(PlannerUrnHelper.createUrn(Itinerary.URN_PREFIX, 23L));
 		new Expectations() {{
 		}};
 		
 		try {
-			tested.createTrip(traveller, trip, autobook);
+			tested.createTrip(traveller, trip);
 			fail("Expected exception: NotFound");
 		} catch (NotFoundException ex) {
 			log.debug("Anticipated exception: " + ex);
@@ -127,7 +134,6 @@ public class TripManagerTest {
 
 	@Test
 	public void testCreateTrip_NonBookable() {
-		boolean autobook = true;
 		Long itineraryId = 23L;
 		Long tripId = 55L;
 		TripPlan plan = Fixture.createTransitPlan(traveller);
@@ -140,7 +146,7 @@ public class TripManagerTest {
 			tripDao.save(trip);
 		}};
 		try {
-			Long id = tested.createTrip(traveller, trip, autobook);
+			Long id = tested.createTrip(traveller, trip);
 			assertEquals(tripId, id);
 			assertEquals(itineraryId, trip.getItinerary().getId());
 			assertEquals(TripState.SCHEDULED, trip.getState());
@@ -155,7 +161,6 @@ public class TripManagerTest {
 
 	@Test
 	public void testCreateTrip_Bookable() {
-		boolean autobook = true;
 		Long itineraryId = 23L;
 		Long tripId = 55L;
 		TripPlan plan = Fixture.createRidesharePlan(traveller, "2020-03-20T13:00:00Z", Fixture.placeZieuwent, Fixture.placeSlingeland, "2020-03-20T15:00:00Z", false, 60 * 35, "urn:nb:rs:ride:364");
@@ -169,7 +174,7 @@ public class TripManagerTest {
 			tripDao.save(trip);
 		}};
 		try {
-			Long id = tested.createTrip(traveller, trip, autobook);
+			Long id = tested.createTrip(traveller, trip);
 			assertEquals(tripId, id);
 			assertEquals(itineraryId, trip.getItinerary().getId());
 			assertEquals(TripState.BOOKING, trip.getState());

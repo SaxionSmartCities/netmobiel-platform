@@ -227,4 +227,24 @@ public class BookingManager {
     	});
     }
 
+    /**
+     * Confirms an earlier booking. 
+     * @param id the booking to conform
+     * @throws NotFoundException if the booking was not found.
+     */
+    public void confirmBooking(Long id, String passengerTripRef) throws NotFoundException {
+    	Booking b = bookingDao.loadGraph(id, Booking.SHALLOW_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such booking: " + id));
+    	if (b.getState() != BookingState.PROPOSED && b.getState() != BookingState.REQUESTED) {
+    		log.warn(String.format("Booking %d has an unexpected booking state at confrmation: %s", id, b.getState().toString()));
+    	}
+    	b.setState(BookingState.CONFIRMED);
+    	b.setPassengerTripRef(passengerTripRef);
+		// Update itinerary of the driver
+    	Ride r = rideDao.fetchGraph(b.getRide().getId(), Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH).orElseThrow(() -> new IllegalStateException());
+    	staleItineraryEvent.fire(r);
+		// Inform driver about confirmed booking
+		bookingCreatedEvent.fire(b);
+    }
+
 }
