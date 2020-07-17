@@ -174,7 +174,7 @@ public class BookingManager {
      * @throws NotFoundException
      */
     public Booking getBooking(Long id) throws NotFoundException {
-    	Booking bookingdb = bookingDao.fetchGraph(id, Booking.DEEP_ENTITY_GRAPH)
+    	Booking bookingdb = bookingDao.loadGraph(id, Booking.DEEP_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such booking: " + id));
     	return bookingdb;
     }
@@ -188,7 +188,7 @@ public class BookingManager {
      */
     public void removeBooking(String bookingRef, final String reason, Boolean cancelledByDriver, boolean cancelledFromRideshare) throws NotFoundException, BadRequestException {
     	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
-    	Booking bookingdb = bookingDao.fetchGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
+    	Booking bookingdb = bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
    		bookingdb.markAsCancelled(reason, cancelledByDriver);
    		if (cancelledFromRideshare) {
@@ -241,7 +241,7 @@ public class BookingManager {
     	b.setState(BookingState.CONFIRMED);
     	b.setPassengerTripRef(passengerTripRef);
 		// Update itinerary of the driver
-    	Ride r = rideDao.fetchGraph(b.getRide().getId(), Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH).orElseThrow(() -> new IllegalStateException());
+    	Ride r = rideDao.loadGraph(b.getRide().getId(), Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH).orElseThrow(() -> new IllegalStateException());
     	staleItineraryEvent.fire(r);
 		// Inform driver about confirmed booking
 		bookingCreatedEvent.fire(b);

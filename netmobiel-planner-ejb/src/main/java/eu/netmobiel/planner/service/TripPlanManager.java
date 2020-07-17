@@ -781,7 +781,7 @@ public class TripPlanManager {
      * @throws NotFoundException In case of an invalid trip plan ID.
      */
     public TripPlan getTripPlan(Long id) throws NotFoundException {
-    	TripPlan plandb = tripPlanDao.fetchGraph(id, TripPlan.DETAILED_ENTITY_GRAPH)
+    	TripPlan plandb = tripPlanDao.loadGraph(id, TripPlan.DETAILED_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such trip plan: " + id));
     	return plandb;
     }

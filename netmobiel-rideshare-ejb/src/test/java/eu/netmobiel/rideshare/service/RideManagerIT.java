@@ -53,6 +53,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 //	            .addAsResource("logging.properties")
                 .addPackages(true, RideDao.class.getPackage())
 	            .addClass(RideItineraryHelper.class)
+	            .addClass(IdentityHelper.class)
 	            .addClass(EventListenerHelper.class)
 	            .addClass(RideManager.class);
 //   		System.out.println(archive.toString(true));
@@ -396,11 +397,13 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	Instant arrivalTime = Instant.parse("2020-05-01T01:00:00Z");
     	Ride r = Fixture.createRide(car1, departureTime, null);
 		Long rideId = rideManager.createRide(r);
+		flush();
 		assertNotNull(rideId);
 		Ride r1 = em.createQuery("from Ride where id = :id", Ride.class)
 				.setParameter("id", rideId)
 				.getSingleResult();
 		assertNotNull(r1);
+		assertEquals(1, r1.getLegs().size());
 		Booking b = Fixture.createBooking(r1, passenger1, Fixture.placeZieuwentRKKerk, departureTime, Fixture.placeSlingeland, arrivalTime, "trip-1");
 		b.setState(BookingState.CONFIRMED);
 		assertNotEquals(r1.getFrom(), b.getPickup());

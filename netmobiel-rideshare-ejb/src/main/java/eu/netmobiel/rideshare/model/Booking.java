@@ -44,7 +44,6 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
  *
  */
 
-// Use with fetch graph
 @NamedEntityGraph(
 		name = Booking.SHALLOW_ENTITY_GRAPH, 
 		attributeNodes = { 
@@ -77,7 +76,6 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 					)
 		}
 	)
-//Use with fetch graph
 @NamedEntityGraph(
 		name = Booking.DEEP_ENTITY_GRAPH, 
 		attributeNodes = { 
