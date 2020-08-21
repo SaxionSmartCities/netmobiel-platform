@@ -1,41 +1,50 @@
 package eu.netmobiel.payment.client;
 
-import java.net.URI;
-import java.time.OffsetDateTime;
 import java.util.Base64;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
+import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
+import javax.ws.rs.NotFoundException;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Entity;
 import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.HttpHeaders;
+import javax.ws.rs.core.MediaType;
+import javax.ws.rs.core.Response;
 
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 
+import eu.netmobiel.payment.client.model.PaymentError;
 import eu.netmobiel.payment.client.model.PaymentLink;
-import eu.netmobiel.payment.client.model.PaymentLinkOptions;
-import eu.netmobiel.payment.client.model.PaymentStatus;
-
+import eu.netmobiel.payment.client.model.PaymentOrder;
+/**
+ * Client for the payment provider EMS Pay (by ABNAmro).
+ * 
+ * The clienty uses Jackson2 for serialization and deserialization of JSON. The Yasson JSON-B has also been tried, 
+ * but in the tested vesion (WildFly 17/RestEasy 3.7.0) the bean lookup of the adapter necessary for enum conversion
+ * seems to get lost after one test run. After server restart it works again only for one ro two attempts. So, 
+ * an intermittent failure, very nasty. So, we use Jackson.
+ * 
+ * Note: For testing it is necesary to exclude the org.jboss.resteasy.resteasy-json-binding-provider from the 
+ * deployment using the jboss-deployment-structure. Otherwise the jackson2 library will be ignored.
+ *   
+ * @author Jaap Reitsma
+ *
+ */
 @ApplicationScoped
 public class PaymentClient {
 
-    //TODO: It's unclear whether Client is thread-safe!
     private ResteasyClient webClient;
 
-    //TODO: Resource injection, should be a string probably
-//    @Resource(lookup = "java:global/paymentClient/abn/paymentLinkTarget")
-    private final URI paymentLinkTarget = URI.create("https://api.online.emspay.eu/v1/paymentlinks");
+    private static final String PAYMENT_LINKS_RESOURCE = "https://api.online.emspay.eu/v1/paymentlinks";
+    private static final String PAYMENT_ORDERS_RESOURCE = "https://api.online.emspay.eu/v1/orders";
 
-    //id part is replaced by actual transaction id
-//    @Resource(lookup = "java:global/paymentClient/abn/paymentStatusTarget")
-    private final URI paymentStatusTarget = URI.create("https://api.online.emspay.eu/v1/paymentlink/id");
-
-    // API key for test account (this should not be in GIT repo!)
-//  @Resource(lookup = "java:global/paymentClient/abn/apiKey")
-    private final String apiKey = "cd422b152bd94c468da25810debe7fe4";
+    @Resource(lookup = "java:global/paymentClient/emspay/apiKey")
+    private String apiKey;
 
     private String authorizationValue;
 
@@ -45,6 +54,8 @@ public class PaymentClient {
                 .connectionPoolSize(200)
                 .connectionCheckoutTimeout(5, TimeUnit.SECONDS)
                 .maxPooledPerRoute(20)
+				.register(new Jackson2ObjectMapperContextResolver())
+				.property("resteasy.preferJacksonOverJsonB", true)
                 .build();
         authorizationValue = "Basic " + Base64.getEncoder().encodeToString((apiKey + ":").getBytes());
     }
@@ -54,77 +65,68 @@ public class PaymentClient {
         webClient.close();
     }
 
-    public PaymentLink getPaymentLink(PaymentLinkOptions options) {
-        // copy options to appropriate JSON request body
-        PaymentLinkRequestBody body = new PaymentLinkRequestBody();
-        // TODO: validate link options?
-        body.merchant_order_id = options.merchantOrder;
-        body.amount = options.euroCents;
-        body.description = options.description;
-        // expiration in ISO 8601 duration
-        body.expiration_period = "PT" + options.expirationMinutes + "M";
-        body.return_url = options.returnAfterCompletion;
-        body.webhook_url = options.informStatusUpdate;
-        // send synchronous request to obtain payment link
-        WebTarget target = webClient.target(paymentLinkTarget);
-        PaymentLinkResponseBody response = target.request()
+    /**
+     * Creates a new payment link. The object returned comprises the input properties, the link is and the paymnet page url.
+     * The other fields are not yet initialized by the payment provider.
+     * @param input the payment link object: amount, description , merchant order id, return url.
+     * @return a payment link object
+     */
+    public PaymentLink createPaymentLink(PaymentLink input) {
+        WebTarget target = webClient.target(PAYMENT_LINKS_RESOURCE);
+        Response response = target.request()
                 .header(HttpHeaders.AUTHORIZATION, authorizationValue)
-                .post(Entity.json(body), PaymentLinkResponseBody.class);
-        return new PaymentLink(response.payment_url, response.id);
+                .post(Entity.entity(input, MediaType.APPLICATION_JSON));
+        if (response.getStatusInfo() != Response.Status.CREATED) {
+        	PaymentError error = response.readEntity(PaymentError.class);
+        	throw new WebApplicationException("Cannot create payment link: " + error.toString(), response.getStatus());
+        }
+        // In testing the object returned has only the id and the payment url added. No timestamps and status yet.
+        // Perhaps the API relies on the webhook status updates?
+        // Fetch the rest of the parameters with a GET.
+        return response.readEntity(PaymentLink.class);
     }
 
-    public PaymentStatus getPaymentStatus(String id) {
-        // prepare GET request
-        WebTarget target = webClient.target(paymentStatusTarget.resolve(id));
-        // send synchronous request to obtain payment status
-        PaymentStatusResponseBody response = target.request()
+    /**
+     * Retrieves a payment link object by its id.
+     * @param id The payment link id 
+     * @return The payment link object.
+     * @throws NotFoundException if the object is not found.
+     */
+    public PaymentLink getPaymentLink(String id) {
+        WebTarget target = webClient.target(PAYMENT_LINKS_RESOURCE)
+        		.path("{id}")
+        		.resolveTemplate("id", id);
+        PaymentLink response = target.request()
                 .header(HttpHeaders.AUTHORIZATION, authorizationValue)
-                .get(PaymentStatusResponseBody.class);
-        // convert status string to enumerated value
-        PaymentStatus.Current current = PaymentStatus.Current.valueOf(response.status.toUpperCase());
-        // parse timestamps (with timezone info)
-        OffsetDateTime
-                createdTimestamp = response.created == null ? null : OffsetDateTime.parse(response.created),
-                modifiedTimestamp = response.modified == null ? null : OffsetDateTime.parse(response.modified),
-                completedTimestamp = response.completed == null ? null : OffsetDateTime.parse(response.completed);
-        return new PaymentStatus(current, createdTimestamp, modifiedTimestamp, completedTimestamp);
+                .get(PaymentLink.class);
+        return response;
     }
 
     /**
-     * @link https://dev.online.emspay.eu/rest-api/features/payment-link
-     * This class must be public accessible! Otherwise JSON conversion will fail with reflection error.
+     * Retrieves an order object by its id.
+     * @param id The order id 
+     * @return The order object. Only a few fields are deserialized: Only merchant order id and related payment link id.
+     * @throws NotFoundException if the object is not found.
      */
-    static public class PaymentLinkRequestBody {
-        // mandatory
-        public String merchant_order_id;
-        public int amount;
-        public String currency = "EUR";
-        // optional
-        public String[] payment_methods = new String[]{"ideal"};
-        public String description;
-        public String expiration_period;
-        public String return_url;
-        public String webhook_url;
+    public PaymentOrder getPaymentOrder(String orderId) {
+        WebTarget target = webClient.target(PAYMENT_ORDERS_RESOURCE)
+        		.path("{id}")
+        		.resolveTemplate("id", orderId);
+        PaymentOrder response = target.request()
+                .header(HttpHeaders.AUTHORIZATION, authorizationValue)
+                .get(PaymentOrder.class);
+        return response;
     }
-
+    
     /**
-     * @link https://dev.online.emspay.eu/rest-api/features/payment-link
-     * This class must be public accessible! Otherwise JSON conversion will fail with reflection error.
+     * Retrieves a payment link object by an underlying order id. An order id is provided when returning from the payment page.
+     * @param id The order id 
+     * @return The payment link object.
+     * @throws NotFoundException if the object is not found.
      */
-    static public class PaymentLinkResponseBody {
-        public String payment_url;
-        public String id;
-    }
-
-    /**
-     * @link https://dev.online.emspay.eu/rest-api/features/request-order-status
-     * This class must be public accessible! Otherwise JSON conversion will fail with reflection error.
-     */
-    static public class PaymentStatusResponseBody {
-        public String status;
-        public String created;
-        public String modified;
-        public String completed;
+    public PaymentLink getPaymentLinkByOrderId(String orderId) {
+    	PaymentOrder order = getPaymentOrder(orderId); 
+        return getPaymentLink(order.relatedPaymentLinkId);
     }
 
 }

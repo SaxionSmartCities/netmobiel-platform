@@ -8,6 +8,7 @@ import org.junit.Test;
 
 public class PaymentClientTest {
 	private PaymentClient client;
+	
 	@Before
 	public void setUp() throws Exception {
 		client = new PaymentClient();
