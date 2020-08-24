@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
@@ -16,16 +17,22 @@ import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.Balance;
+import eu.netmobiel.banker.model.DepositRequest;
 import eu.netmobiel.banker.model.Ledger;
+import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.repository.AccountDao;
 import eu.netmobiel.banker.repository.AccountingEntryDao;
 import eu.netmobiel.banker.repository.AccountingTransactionDao;
 import eu.netmobiel.banker.repository.BalanceDao;
+import eu.netmobiel.banker.repository.DepositRequestDao;
 import eu.netmobiel.banker.repository.LedgerDao;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.payment.client.PaymentClient;
+import eu.netmobiel.payment.client.model.PaymentLink;
+import eu.netmobiel.payment.client.model.PaymentLinkStatus;
 
 /**
  * Stateless bean for the management of the ledger.
@@ -43,8 +50,10 @@ public class LedgerService {
 	public static final String ACC_BANKING_RESERVE = "banking-reserve";
 	public static final Integer MAX_RESULTS = 10; 
 	public static final Integer DEFAULT_LOOKBACK_DAYS = 90; 
-	
-    @Inject
+	public static final int PAYMENT_LINK_EXPIRATION_SECS = 15 * 60;
+	public static final int CREDIT_EXCHANGE_RATE = 19;	// 1 credit is x euro cent
+
+	@Inject
     private LedgerDao ledgerDao;
     @Inject
     private AccountingTransactionDao accountingTransactionDao;
@@ -60,7 +69,11 @@ public class LedgerService {
     
     @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
     private UserManager userManager;
+    @Inject
+    private DepositRequestDao depositRequestDao;
 
+    @Inject
+    private PaymentClient paymentClient;
     
     protected void expect(Account account, AccountType type) {
     	if (! Account.isOpen.test(account)) {
@@ -305,4 +318,69 @@ public class LedgerService {
     	}
     }
 
+    /**
+     * Creates a payment link request at the payment provider of netmobiel
+     * @param userAccountRef reference to the account to deposit credits to.
+     * @param amounbtCredits the number of credits to deposit. 
+     * @param description the description to use on the payment page
+     * @param returnUrl the url to use to return to. The payment provider will add query parameters.
+     * 			The parameter object_id must be passed on to the method verifyDeposition.   
+     * @return the url to the payment page for the client to redirect the browser to.
+     */
+    public String createDepositRequest(String userAccountRef, int amountCredits, String description, String returnUrl) {
+    	DepositRequest dr = new DepositRequest();
+    	Account acc = accountDao.findByReference(userAccountRef);
+    	
+    	PaymentLink plink = new PaymentLink();
+    	plink.amount = amountCredits * CREDIT_EXCHANGE_RATE;
+    	plink.description = description;
+    	plink.expirationPeriod = Duration.ofSeconds(PAYMENT_LINK_EXPIRATION_SECS);
+    	plink.merchantOrderId = String.format("NB-%d-%d", acc.getId(), Instant.now().getEpochSecond());
+    	plink.returnUrl = returnUrl;
+    	plink = paymentClient.createPaymentLink(plink);
+
+    	dr.setAccount(acc);
+    	dr.setAmountCredits(amountCredits);
+    	dr.setAmountEurocents(plink.amount);
+    	dr.setMerchantOrderId(plink.merchantOrderId);
+    	dr.setDescription(plink.description);
+    	dr.setCreationTime(plink.created.toInstant());
+    	dr.setExprationTime(dr.getCreationTime().plusSeconds(plink.expirationPeriod.getSeconds()));
+    	dr.setPaymentLinkId(plink.id);
+    	dr.setStatus(PaymentStatus.ACTIVE);
+    	depositRequestDao.save(dr);
+    	return plink.paymentUrl;
+    }
+
+    /**
+     * Verifies the deposition of credits by the order id supplied by the payment provider.
+     * The order id is one of the parameters added to the return url after completing the payment at the payment page of
+     * the payment provider. In addition, the order id is also part of the payment webhook. 
+     * @param paymentOrderId The order id as supplied by the payment provider.
+     * @return true if the deposition of the payment link was added now or earlier. If false then deposition has not taken place (yet), or something
+     * 			went wrong.
+     */
+    public boolean verifyDeposition(String paymentOrderId) {
+    	boolean completed = false;
+    	try {
+	    	PaymentLink plink = paymentClient.getPaymentLinkByOrderId(paymentOrderId);
+	    	DepositRequest dr = depositRequestDao.findByPaymentLink(plink.id);
+	    	if (dr.getStatus() == PaymentStatus.ACTIVE) {
+	        	if (plink.status == PaymentLinkStatus.COMPLETED) {
+	        		// Transition to COMPLETED, add transaction to deposit credits in the NetMobiel system
+	        		dr.setCompletedTime(plink.completed.toInstant());
+	        		deposit(dr.getAccount().getReference(), dr.getAmountCredits(), dr.getCompletedTime().atOffset(ZoneOffset.UTC), dr.getDescription());
+	        		dr.setStatus(PaymentStatus.COMPLETED);
+	        		completed = true;
+	        	} else if (plink.status == PaymentLinkStatus.EXPIRED) {
+	        		dr.setStatus(PaymentStatus.EXPIRED);
+	        	}
+	    	} else if (dr.getStatus() == PaymentStatus.COMPLETED) {
+	    		completed = true;
+	    	}
+    	} catch (Exception ex) {
+    		log.error("Error verivying deposition - " + ex.getMessage());
+    	}
+    	return completed;
+    }
 }
