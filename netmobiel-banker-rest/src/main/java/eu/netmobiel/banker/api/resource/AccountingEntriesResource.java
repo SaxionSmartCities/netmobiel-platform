@@ -7,12 +7,14 @@ import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import eu.netmobiel.banker.api.AccountingEntriesApi;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
 import eu.netmobiel.banker.model.AccountingEntry;
+import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.banker.service.UserManager;
 import eu.netmobiel.commons.exception.ApplicationException;
@@ -36,16 +38,19 @@ public class AccountingEntriesResource implements AccountingEntriesApi {
 		Instant ui = until != null ? until.toInstant() : null;
 		Response rsp = null;
 		try {
+			User user = null;
 			if (userRef == null) {
-				PagedResult<AccountingEntry> result = ledgerService.listMyAccountingEntries(null, si, ui, maxResults, offset); 
-				rsp = Response.ok(mapper.map(result)).build();
+				user = userManager.findCallingUser();
 			} else {
-				String managedIdentity = userManager
-						.resolveUrn(userRef).orElseThrow(() -> new BadRequestException("Do not understand userRef: " + userRef))
-						.getManagedIdentity();
-				PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(managedIdentity, null, si, ui, maxResults, offset); 
-				rsp = Response.ok(mapper.map(result)).build();
+				user = userManager
+						.resolveUrn(userRef)
+						.orElseThrow(() -> new BadRequestException("Do not understand userRef: " + userRef));
 			}
+			if (user == null) {
+				throw new NotFoundException("No such user: " + userRef);
+			}
+			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getManagedIdentity(), null, si, ui, maxResults, offset); 
+			rsp = Response.ok(mapper.map(result)).build();
 		} catch (ApplicationException ex) {
 			throw new WebApplicationException(ex);
 		}

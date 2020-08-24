@@ -6,7 +6,6 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 
-import javax.ejb.EJB;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
@@ -67,8 +66,6 @@ public class LedgerService {
 	@Inject
     private Logger log;
     
-    @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
-    private UserManager userManager;
     @Inject
     private DepositRequestDao depositRequestDao;
 
@@ -135,16 +132,16 @@ public class LedgerService {
      * one user is decreased and the account of the other is equally increased.
      * Both account are expected to be liability accounts, i.e. user accounts.
      * @param customer the external reference of the netmobiel account that pays for something
-     * @param provider the external reference of the netmobiel account that provides some service.
+     * @param beneficiary the external reference of the netmobiel account that will receive the credits.
      * @param amount the amount of credits
      * @param when the time of this financial fact.
      * @description the description in the journal.
      */
-    public void charge(String customer, String provider, int amount, OffsetDateTime when, String description) {
+    public void charge(String customer, String beneficiary, int amount, OffsetDateTime when, String description) {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
     	Balance customerBalance = balanceDao.findByLedgerAndAccountReference(ledger, customer);  
-    	Balance providerBalance = balanceDao.findByLedgerAndAccountReference(ledger, provider);  
+    	Balance providerBalance = balanceDao.findByLedgerAndAccountReference(ledger, beneficiary);  
     	expect(customerBalance.getAccount(), AccountType.LIABILITY);
     	expect(providerBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
@@ -223,11 +220,6 @@ public class LedgerService {
     	return new PagedResult<Account>(results, maxResults, offset, prs.getTotalCount());
     }
 
-    public PagedResult<Account> listMyAccounts(Integer maxResults, Integer offset) {
-        User caller = userManager.findCallingUser();
-    	return listAccounts(caller.getManagedIdentity(), maxResults, offset);
-    }
-
     public PagedResult<Balance> listBalances(String holder, String accountReference, OffsetDateTime period, Integer maxResults, Integer offset) {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
@@ -249,11 +241,6 @@ public class LedgerService {
     	return new PagedResult<Balance>(results, maxResults, offset, prs.getTotalCount());
     }
 
-    public PagedResult<Balance> listMyBalances(String accountReference, OffsetDateTime period, Integer maxResults, Integer offset) {
-        User caller = userManager.findCallingUser();
-    	return listBalances(caller.getManagedIdentity(), accountReference, period, maxResults, offset);
-    }
-    
     public PagedResult<AccountingEntry> listAccountingEntries(String holder, String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) 
     		throws BadRequestException {
         if (maxResults == null) {
@@ -273,12 +260,6 @@ public class LedgerService {
     		results = accountingEntryDao.fetch(ids.getData(), null, AccountingEntry::getId);
     	}
     	return new PagedResult<AccountingEntry>(results, maxResults, offset, prs.getTotalCount());
-    }
-
-    public PagedResult<AccountingEntry> listMyAccountingEntries(String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) 
-    		throws BadRequestException {
-        User caller = userManager.findCallingUser();
-    	return listAccountingEntries(caller.getManagedIdentity(), accountReference, since, until, maxResults, offset);
     }
 
     protected Ledger createLedger(Instant when) {
@@ -306,18 +287,6 @@ public class LedgerService {
     }
 
     
-    public void bootstrapTheBank() {
-    	PagedResult<Ledger> prl = listLedgers(0, 0);
-    	if (prl.getTotalCount() == 0) {
-    		// No active ledger, create the initial ledger and the rest
-    		OffsetDateTime odt = OffsetDateTime.of(Instant.now().atOffset(ZoneOffset.UTC).getYear(), 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
-    		createLedger(odt.toInstant());
-    		User systemUser = new User(SYSTEM_USER_IDENTITY, "Credit", "System");
-    		userManager.register(systemUser);
-    		createAccount(systemUser, LedgerService.ACC_BANKING_RESERVE, AccountType.ASSET);
-    	}
-    }
-
     /**
      * Creates a payment link request at the payment provider of netmobiel
      * @param userAccountRef reference to the account to deposit credits to.
