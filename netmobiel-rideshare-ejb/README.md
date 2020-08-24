@@ -21,6 +21,6 @@ mvn install
 ```
 ### Run your unit tests and integration tests
 ```
-mvn verify
+mvn -P arq-remote verify
 ```
 
