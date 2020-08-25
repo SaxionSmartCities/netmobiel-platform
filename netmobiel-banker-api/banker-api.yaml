@@ -435,10 +435,10 @@ components:
       title: Root Type for DepositStatus
       description: Status of the deposit.
       required:
-      - completed
+      - status
       type: object
       properties:
-        completed:
+        status:
           description: The status of the payment link referred to by the order_id.
           enum:
           - ACTIVE
