@@ -144,11 +144,41 @@ paths:
       operationId: getSettings
       summary: List the settings
       description: Gets the `Settings` entity.
+  /users: {}
+  /users/{userId}:
+    summary: Path used to manage a single User.
+    description: The REST endpoint/path used to get, single instances of a `User`.  This
+      path contains a `GET` operation used to perform the get task.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: Return a single `User`.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getUser
+      summary: Get a User.
+      description: Gets the details of a single instance of a `User`, including the
+        current amount of credits owned (i.e., the actual balance).
+    parameters:
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
   /deposits/events:
-    summary: Path used to manage the list of deposits.
-    description: The REST endpoint/path used to list and create zero or more `Deposit`
-      entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
+    summary: Path used to manage the list of deposit events.
+    description: The REST endpoint/path used to create zero or more deposit events.
+      This path contains a `POST` operation to perform the create task of updating
+      a `DepositStatus`.
     post:
       requestBody:
         description: The event parameters, specifying the order_id and the project_id.
@@ -176,8 +206,8 @@ paths:
         payment provider. This method can be used as webhook for the EMS Pay payment
         provider. No security restrictions apply. Once the status is either expired
         or completed, it will not change anymore.
-  /deposits:
-    summary: Path used to manage deposits.
+  /users/{userId}/deposits:
+    summary: Path used to manage deposits to user accounts.
     description: The REST endpoint/path used to create zero or more `Deposit` entities.  This
       path contains a `POST` operation to perform the create task.
     post:
@@ -200,9 +230,83 @@ paths:
         apikey: []
       operationId: createDeposit
       summary: Create a Deposit
-      description: Creates a new `Deposit`. The call returns a payment Url. The client
-        should redirect the browser to the payment url. The payment is converted into
-        credits, the credits are added to the personal account of the calling user.
+      description: Creates a new `Deposit`. The call returns a `PaymentLink`, containing
+        a url to a payment page. The client should redirect a browser to the payment
+        page url. The payment is converted into credits, the credits are added to
+        the personal account of the specified user.
+    parameters:
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/statements:
+    summary: Path used to manage the list of statements for a user.
+    description: The REST endpoint/path used to list zero or more `Statement` entities.  This
+      path contains a `GET` operation to perform the list task. A Statement reports
+      on a credit transaction for this user.
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The maximum lookback date of the listing. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: 'The date of the latest entry to retrieve. The `until` date must
+          be after the `since` parameter. Default is not set, meaning all entries
+          from now and before. '
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Statement` entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: listStatements
+      summary: List Statement entries.
+      description: "Gets a paged list of  `Statement` entities. \n\nThe administrator\
+        \ can request statements owned by any user. \n"
+    parameters:
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
@@ -234,6 +338,7 @@ components:
       - managedIdentity
       - givenName
       - familyName
+      - credits
       type: object
       properties:
         id:
@@ -250,11 +355,15 @@ components:
         familyName:
           description: The family name of the driver.
           type: string
+        credits:
+          description: The amount of credits currently in possesion by the user.
+          type: integer
       example:
         familyName: Normalverbraucher
         givenName: Otto
         id: 2
         managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+        credits: 10
     Page:
       title: Root Type for Page
       description: A page from a result set. For smaller sets the page contains the
@@ -332,69 +441,6 @@ components:
         userRef: urn:nb:kc:user:919e1308-6fe0-4727-881f-419bffa1ca7b
         id: 23
         modifiedTime: 2020-04-09T13:33:00.000Z
-    AccountingEntry:
-      title: Root Type for AccountingEntry
-      description: An single accounting entry or booking statement.
-      required:
-      - accountType
-      - accountingTime
-      - account
-      - amount
-      - id
-      - transactionTime
-      - transactionType
-      type: object
-      properties:
-        accountingTime:
-          format: date-time
-          description: The timestamp of the 'financial' fact.
-          type: string
-        transactionTime:
-          format: date-time
-          description: The timstamp of the actual execution of the transaction.
-          type: string
-        description:
-          description: The short description of the transaction.
-          type: string
-        account:
-          description: 'The account as known by the user. Example: `current` for tracking
-            the amount of credits owned by the user.'
-          type: string
-        id:
-          format: int32
-          description: The database id of the entry.
-          type: integer
-        amount:
-          format: int32
-          description: The amount of credits involved in the transaction.
-          type: integer
-        transactionType:
-          description: The type of the transaction.
-          enum:
-          - DEBIT
-          - CREDIT
-          type: string
-        accountType:
-          description: 'The type of the account. Normal users have a liability account,
-            meaning that NetMobiel is owing them an amount of credits. '
-          enum:
-          - ASSET
-          - LIABILITY
-          type: string
-        userRef:
-          description: The user holding the account. The reference is a urn to the
-            keycloak managed identity.
-          type: string
-      example:
-        accountingTime: 2019-06-17T15:59:00Z
-        transactionTime: 2019-06-17T16:30:00Z
-        description: Rit met Coby Hoekstra naar Zelhem
-        account: current
-        id: 123456
-        amount: 5
-        type: CREDIT
-        accountType: LIABILITY
-        userRef: urn:nb:kc:user:919e1308-6fe0-4727-881f-419bffa1ca7b
     Settings:
       title: Root Type for Settings
       description: A collection of banking settings.
@@ -467,6 +513,69 @@ components:
         event: status_changed
         order_id: 4c6afd74-a840-4aab-b411-1e6e0636d341
         project_id: b5f39273-44e7-4385-8e08-44612ef3e117
+    Statement:
+      title: Root Type for AccountingEntry
+      description: An single accounting entry or booking statement.
+      required:
+      - accountType
+      - accountingTime
+      - account
+      - amount
+      - id
+      - transactionTime
+      - transactionType
+      type: object
+      properties:
+        accountingTime:
+          format: date-time
+          description: The timestamp of the 'financial' fact.
+          type: string
+        transactionTime:
+          format: date-time
+          description: The timstamp of the actual execution of the transaction.
+          type: string
+        description:
+          description: The short description of the transaction.
+          type: string
+        account:
+          description: 'The account as known by the user. Example: `current` for tracking
+            the amount of credits owned by the user.'
+          type: string
+        id:
+          format: int32
+          description: The database id of the entry.
+          type: integer
+        amount:
+          format: int32
+          description: The amount of credits involved in the transaction.
+          type: integer
+        transactionType:
+          description: The type of the transaction.
+          enum:
+          - DEBIT
+          - CREDIT
+          type: string
+        accountType:
+          description: 'The type of the account. Normal users have a liability account,
+            meaning that NetMobiel is owing them an amount of credits. '
+          enum:
+          - ASSET
+          - LIABILITY
+          type: string
+        userRef:
+          description: The user holding the account. The reference is a urn to the
+            keycloak managed identity.
+          type: string
+      example:
+        accountingTime: 2019-06-17T15:59:00Z
+        transactionTime: 2019-06-17T16:30:00Z
+        description: Rit met Coby Hoekstra naar Zelhem
+        account: current
+        id: 123456
+        amount: 5
+        type: CREDIT
+        accountType: LIABILITY
+        userRef: urn:nb:kc:user:919e1308-6fe0-4727-881f-419bffa1ca7b
   responses:
     InternalServerError:
       content:
