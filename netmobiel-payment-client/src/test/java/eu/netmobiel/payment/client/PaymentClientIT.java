@@ -27,6 +27,12 @@ import eu.netmobiel.payment.client.model.PaymentLink;
 import eu.netmobiel.payment.client.model.PaymentLinkStatus;
 import eu.netmobiel.payment.client.model.PaymentOrder;
 
+/**
+ * Integration test for the payment client. To check the wire protocol, set the logging category org.apache.http.wire=DEBUG.
+ *  
+ * @author Jaap Reitsma
+ *
+ */
 @RunWith(Arquillian.class)
 public class PaymentClientIT {
     @Deployment
