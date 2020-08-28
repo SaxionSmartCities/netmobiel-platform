@@ -22,8 +22,8 @@ import javax.persistence.Version;
  * The balance of an account concerns a specific ledger (of a fiscal year). The balance(s) of each account 
  * involved in a transaction is updated with each transaction. The balance reflects the state at the end of the period. 
  * Journal entries are never modified or removed, so the balance is always accurate (as long as the start is correctly calculated).
- * If accounting entries are inserted between older entries the balance is still correct, because it shows the balance at the end of
- * the period.
+ * If accounting entries are inserted between older entries the balance remains correct after correction, because it shows 
+ * the balance at the end of the period (as opposed to a cumulative balance after each transaction). 
  * 
  * @author Jaap Reitsma
  *

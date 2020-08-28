@@ -6,13 +6,15 @@ import java.util.Objects;
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
 import javax.persistence.NamedEntityGraph;
+import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotEmpty;
 import javax.validation.constraints.NotNull;
@@ -50,6 +52,14 @@ public class User implements NetMobielUser, Serializable {
     @Column(name = "family_name", length = 64)
 	private String familyName;
 	
+    @Size(max = 64)
+    @Column(name = "email", length = 64)
+	private String email;
+
+    @OneToOne()
+    @JoinColumn(name = "personal_account", foreignKey = @ForeignKey(name = "user_personal_account_fk"))
+    private Account personalAccount;
+    
     public User() {
     	
     }
@@ -99,11 +109,27 @@ public class User implements NetMobielUser, Serializable {
 		this.familyName = familyName;
 	}
 
-	@Transient
-	@Override
+
 	public String getEmail() {
-		return null;
+		return email;
 	}
+
+	public void setEmail(String email) {
+		this.email = email;
+	}
+
+	public Account getPersonalAccount() {
+		return personalAccount;
+	}
+
+	public void setPersonalAccount(Account personalAccount) {
+		this.personalAccount = personalAccount;
+	}
+
+	public String getAccountName() {
+		return String.format("%s %s", getGivenName() != null ? getGivenName() : "", getFamilyName() != null ? getFamilyName() : "").trim();
+	}
+	
 
 	@Override
 	public String toString() {

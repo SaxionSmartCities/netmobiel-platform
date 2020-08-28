@@ -9,6 +9,7 @@ import javax.ejb.EJBAccessException;
 import javax.ejb.ObjectNotFoundException;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -17,6 +18,7 @@ import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.repository.UserDao;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.NetMobielModule;
+import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.security.SecurityContextHelper;
 import eu.netmobiel.commons.util.Logging;
@@ -31,6 +33,9 @@ public class UserManager {
 
     @Inject
     private UserDao userDao;
+    
+    @Inject @Created
+    private Event<User> userCreatedEvent;
     
     @Resource
 	private SessionContext ctx;
@@ -66,7 +71,10 @@ public class UserManager {
     				return userDao.save(user); 
     			});
     	dbuser.setFamilyName(user.getFamilyName()); 
-    	dbuser.setGivenName(user.getGivenName()); 
+    	dbuser.setGivenName(user.getGivenName());
+    	if (dbuser.getPersonalAccount() == null) {
+    		userCreatedEvent.fire(dbuser);
+    	}
     	return dbuser;
     }
 

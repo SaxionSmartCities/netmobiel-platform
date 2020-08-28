@@ -18,8 +18,8 @@ import javax.persistence.criteria.Root;
 
 import eu.netmobiel.banker.annotation.BankerDatabase;
 import eu.netmobiel.banker.model.Account;
+import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.Account_;
-import eu.netmobiel.banker.model.User_;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
 
@@ -48,19 +48,19 @@ public class AccountDao extends AbstractDao<Account, Long> {
 	
 	/**
 	 * Lists the accounts. Filter optionally by holder. 
-	 * @param holder The holder of the accounbts or null for any holder.
+	 * @param type The account type or null for any type.
 	 * @param maxResults The maximum results to query. If set to 0 the total number of results is fetched.
 	 * @param offset The zero-based paging offset 
 	 * @return a paged result of accounts.
 	 */
-    public PagedResult<Long> listAccounts(String holder, Integer maxResults, Integer offset) {
+    public PagedResult<Long> listAccounts(AccountType type, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Account> account = cq.from(Account.class);
         List<Predicate> predicates = new ArrayList<>();
-        if (holder != null) {
-            Predicate predHolder = cb.equal(account.get(Account_.holder).get(User_.managedIdentity), holder);
-            predicates.add(predHolder);
+        if (type != null) {
+            Predicate predType = cb.equal(account.get(Account_.accountType), type);
+            predicates.add(predType);
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;

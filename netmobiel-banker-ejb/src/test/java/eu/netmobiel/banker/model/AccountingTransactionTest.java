@@ -8,6 +8,8 @@ import java.time.ZoneOffset;
 import org.junit.Before;
 import org.junit.Test;
 
+import eu.netmobiel.banker.test.Fixture;
+
 public class AccountingTransactionTest {
 
 	private Ledger ledger;
@@ -29,24 +31,15 @@ public class AccountingTransactionTest {
         User user1 = new User("U1", "A", "Family U1");
         User user2 = new User("U2", "B", "Family U2");
         User user3 = new User("U3", "C", "Family U3");
-        User bank= new User("B", "D", "Family Bank");
-    	account1 = createAccount(user1, "account-1", AccountType.LIABILITY);
-    	account2 = createAccount(user2, "account-2", AccountType.LIABILITY); 
-    	account3 = createAccount(user3, "account-3", AccountType.LIABILITY); 
-    	assetAccount = createAccount(bank, "bank", AccountType.ASSET); 
+    	account1 = Fixture.createAccount("account-1", user1.getAccountName(), AccountType.LIABILITY);
+    	account2 = Fixture.createAccount("account-2", user2.getAccountName(), AccountType.LIABILITY); 
+    	account3 = Fixture.createAccount("account-3", user3.getAccountName(), AccountType.LIABILITY); 
+    	assetAccount = Fixture.createAccount("bank", "Bank", AccountType.ASSET); 
         balance1 = new Balance(ledger, account1, 100); 
         balance2 = new Balance(ledger, account2, 200); 
         balance3 = new Balance(ledger, account3, 0); 
         assetBalance = new Balance(ledger, assetAccount, 0); 
 	}
-
-    private Account createAccount(User holder, String reference, AccountType type) {
-    	Account acc = new Account();
-    	acc.setAccountType(type);
-    	acc.setHolder(holder);
-    	acc.setReference(reference);
-    	return acc;
-    }
 
 	@Test
 	public void testTransaction_Balanced() {

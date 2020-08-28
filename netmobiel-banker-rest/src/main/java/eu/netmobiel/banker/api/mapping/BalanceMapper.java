@@ -26,7 +26,6 @@ public abstract class BalanceMapper {
 //	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "ledger", source = "ledger.name")
 	@Mapping(target = "account", source = "account.reference")
-	@Mapping(target = "userRef", source = "account.holder.managedIdentity")
 	public abstract eu.netmobiel.banker.api.model.Balance map(Balance source);
 	
 	public abstract eu.netmobiel.banker.api.model.Page map(PagedResult<Balance> source);

@@ -20,7 +20,6 @@ import eu.netmobiel.banker.model.Account_;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.AccountingEntry_;
 import eu.netmobiel.banker.model.AccountingTransaction_;
-import eu.netmobiel.banker.model.User_;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
 
@@ -43,7 +42,6 @@ public class AccountingEntryDao extends AbstractDao<AccountingEntry, Long> {
 	/**
 	 * Lists the accounting entries as a paged result set according the filter parameters. Supply null as values when
 	 * a parameter is don't care.
-	 * @param holder The account holder managed identity
 	 * @param accountReference the account reference
 	 * @param since the first date to take into account for accountingTime.
 	 * @param until the last date (exclusive) to take into account for accountingTime.
@@ -52,15 +50,11 @@ public class AccountingEntryDao extends AbstractDao<AccountingEntry, Long> {
 	 * @return A paged result with 0 or more results. Total count is only determined when maxResults is set to 0. The results are ordered by accounting time descending and
 	 * 		then by entry type ascending.
 	 */
-    public PagedResult<Long> listAccountingEntries(String holder, String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) {
+    public PagedResult<Long> listAccountingEntries(String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<AccountingEntry> entry = cq.from(AccountingEntry.class);
         List<Predicate> predicates = new ArrayList<>();
-        if (holder != null) {
-            Predicate predHolder = cb.equal(entry.get(AccountingEntry_.account).get(Account_.holder).get(User_.managedIdentity), holder);
-            predicates.add(predHolder);
-        }
         if (accountReference != null) {
             Predicate predAccRef = cb.equal(entry.get(AccountingEntry_.account).get(Account_.reference), accountReference);
             predicates.add(predAccRef);

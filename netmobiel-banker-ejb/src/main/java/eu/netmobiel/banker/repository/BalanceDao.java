@@ -23,7 +23,6 @@ import eu.netmobiel.banker.model.Account_;
 import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.Balance_;
 import eu.netmobiel.banker.model.Ledger;
-import eu.netmobiel.banker.model.User_;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
 
@@ -59,16 +58,12 @@ public class BalanceDao extends AbstractDao<Balance, Long> {
 		return tq.getSingleResult();
 	}
 	
-    public PagedResult<Long> listBalances(String holder, String accountReference, @NotNull Ledger ledger, Integer maxResults, Integer offset) {
+    public PagedResult<Long> listBalances(String accountReference, @NotNull Ledger ledger, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Balance> entry = cq.from(Balance.class);
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.equal(entry.get(Balance_.ledger), ledger));
-        if (holder != null) {
-            Predicate predHolder = cb.equal(entry.get(Balance_.account).get(Account_.holder).get(User_.managedIdentity), holder);
-            predicates.add(predHolder);
-        }
         if (accountReference != null) {
             Predicate predAccRef = cb.equal(entry.get(Balance_.account).get(Account_.reference), accountReference);
             predicates.add(predAccRef);

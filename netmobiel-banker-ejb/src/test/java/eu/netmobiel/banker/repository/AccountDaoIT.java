@@ -4,7 +4,6 @@ package eu.netmobiel.banker.repository;
 import static org.junit.Assert.*;
 
 import java.io.File;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
@@ -31,8 +30,8 @@ import org.slf4j.Logger;
 import eu.netmobiel.banker.Resources;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountType;
-import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.repository.converter.InstantConverter;
+import eu.netmobiel.banker.test.Fixture;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
@@ -64,8 +63,8 @@ public class AccountDaoIT {
 
     @Inject
     private AccountDao accountDao;
-    @Inject
-    private UserDao userDao;
+//    @Inject
+//    private UserDao userDao;
 
     @PersistenceContext(unitName = "pu-banker")
     private EntityManager em;
@@ -88,7 +87,7 @@ public class AccountDaoIT {
         em.joinTransaction();
         log.debug("Dumping old records...");
         em.createQuery("delete from Account").executeUpdate();
-        em.createQuery("delete from User").executeUpdate();
+//        em.createQuery("delete from User").executeUpdate();
         utx.commit();
     }
 
@@ -96,13 +95,13 @@ public class AccountDaoIT {
         utx.begin();
         em.joinTransaction();
         log.debug("Inserting records...");
-    	List<User> users = new ArrayList<>();
-        users.add(new User("U1", "A", "Family U1"));
-        users.add(new User("U2", "B", "Family U2"));
-        users.add(new User("U3", "C", "Family U3"));
-        for (User user : users) {
-			em.persist(user);
-		}
+//    	List<User> users = new ArrayList<>();
+//        users.add(new User("U1", "A", "Family U1"));
+//        users.add(new User("U2", "B", "Family U2"));
+//        users.add(new User("U3", "C", "Family U3"));
+//        for (User user : users) {
+//			em.persist(user);
+//		}
         utx.commit();
         // clear the persistence context (first-level cache)
         em.clear();
@@ -118,22 +117,13 @@ public class AccountDaoIT {
         utx.commit();
     }
     
-    private Account createAccount(User holder, String reference, AccountType type) {
-    	Account acc = new Account();
-    	acc.setAccountType(type);
-    	acc.setHolder(holder);
-    	acc.setReference(reference);
-    	return acc;
-    }
-    
     private void dump(String subject, Collection<Account> accounts) {
     	accounts.forEach(m -> log.info(subject + ": " + m.toString()));
     }
     
     @Test
     public void saveAccount() {
-    	User holder = userDao.findByManagedIdentity("U1").get();
-		Account account= createAccount(holder, "account-1", AccountType.LIABILITY);
+		Account account = Fixture.createAccount("account-1", "Acc 1", AccountType.LIABILITY);
     	accountDao.save(account);
     	List<Account> actual = accountDao.findAll();
     	assertNotNull(actual);
@@ -143,9 +133,8 @@ public class AccountDaoIT {
 
     @Test
     public void findByReference() {
-    	User holder = userDao.findByManagedIdentity("U1").get();
     	final String accref = "account-1"; 
-		Account account= createAccount(holder, accref, AccountType.LIABILITY);
+		Account account= Fixture.createAccount(accref, "U1", AccountType.LIABILITY);
     	accountDao.save(account);
     	Account actual = accountDao.findByReference(accref);
     	assertNotNull(actual);
@@ -168,12 +157,12 @@ public class AccountDaoIT {
 
     @Test
     public void listAccounts() {
-    	User holder1 = userDao.findByManagedIdentity("U1").get();
-    	User holder2 = userDao.findByManagedIdentity("U2").get();
+    	String name1 = "Account 1";
+    	String name2 = "Account 2";
     	final String accref1 = "account-1"; 
     	final String accref2 = "account-2"; 
-    	accountDao.save(createAccount(holder2, accref2, AccountType.LIABILITY));
-    	accountDao.save(createAccount(holder1, accref1, AccountType.LIABILITY));
+    	accountDao.save(Fixture.createAccount(accref2, name1, AccountType.LIABILITY));
+    	accountDao.save(Fixture.createAccount(accref1, name2, AccountType.LIABILITY));
     	PagedResult<Long> actual = accountDao.listAccounts(null, 0, 0);
     	assertNotNull(actual);
     	assertEquals(0, actual.getCount());
@@ -199,34 +188,24 @@ public class AccountDaoIT {
     	// sorting by ref asc
     	assertEquals(accref2, accounts.get(0).getReference());
 
-    	actual = accountDao.listAccounts(holder1.getManagedIdentity(), 0, 0);
+    	actual = accountDao.listAccounts(AccountType.LIABILITY, 0, 0);
     	assertNotNull(actual);
     	assertEquals(0, actual.getCount());
     	assertEquals(0, actual.getData().size());
-    	assertEquals(1, actual.getTotalCount().intValue());
+    	assertEquals(2, actual.getTotalCount().intValue());
 
-    	actual = accountDao.listAccounts(holder1.getManagedIdentity(), 10, 0);
+    	actual = accountDao.listAccounts(AccountType.LIABILITY, 10, 0);
     	assertNotNull(actual);
-    	assertEquals(1, actual.getCount());
+    	assertEquals(2, actual.getCount());
     	accounts = accountDao.fetch(actual.getData(), null, Account::getId);
     	// sorting by ref asc
     	assertEquals(accref1, accounts.get(0).getReference());
 
-    }
-
-    @Test
-    public void listAccounts_nonExistingUser() {
-    	PagedResult<Long> actual = accountDao.listAccounts("some identity XXX", 0, 0);
+    	actual = accountDao.listAccounts(AccountType.ASSET, 0, 0);
     	assertNotNull(actual);
     	assertEquals(0, actual.getCount());
     	assertEquals(0, actual.getData().size());
     	assertEquals(0, actual.getTotalCount().intValue());
-
-    
-    	actual = accountDao.listAccounts("some identity XXX", 10, 0);
-    	assertNotNull(actual);
-    	assertEquals(0, actual.getCount());
-    	assertEquals(0, actual.getData().size());
-    	assertNull(actual.getTotalCount());
     }
+
 }

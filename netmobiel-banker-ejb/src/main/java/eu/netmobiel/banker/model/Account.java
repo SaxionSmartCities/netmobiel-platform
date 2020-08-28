@@ -1,8 +1,8 @@
 package eu.netmobiel.banker.model;
 
 import java.time.Instant;
-import java.time.format.DateTimeFormatter;
 import java.util.Objects;
+import java.util.Set;
 import java.util.function.Predicate;
 
 import javax.enterprise.inject.Vetoed;
@@ -13,7 +13,8 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
+import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
@@ -24,7 +25,9 @@ import javax.validation.constraints.Size;
 /**
  * Formal record that represents, in words, money or other unit of measurement, certain resources, claims to such 
  * resources, transactions or other events that result in changes to those resources and claims. An account is 
- * externally identified by a unique accountNumber.
+ * externally identified by a unique accountNumber. In Netmobiel, we do not expose the account reference, as 
+ * the entities owning an account have a one-to-one relation with an account. It is therefore sufficient to
+ * address the higher-level entities outside the credit service (at REST level).  
  * 
  * How do we relate the bank account number to the netmobiel account number?
  *  
@@ -33,12 +36,14 @@ import javax.validation.constraints.Size;
  */
 @Entity
 @Table(name = "account", uniqueConstraints = {
-	    @UniqueConstraint(name = "cs_account_unique", columnNames = { "reference" })
+	    @UniqueConstraint(name = "cs_account_unique", columnNames = { "reference" }),
+	    @UniqueConstraint(name = "cs_actual_balance_unique", columnNames = { "actual_balance" })
 })
 @Vetoed
 @SequenceGenerator(name = "account_sg", sequenceName = "account_seq", allocationSize = 1, initialValue = 50)
 public class Account {
-	public static final int ACCOUNT_NUMBER_MAX_LENGTH = 32;
+	public static final int ACCOUNT_REFERENCE_MAX_LENGTH = 32;
+	public static final int ACCOUNT_NAME_MAX_LENGTH = 96;
 	
 	public static final Predicate<Account> isAsset = acc -> acc.getAccountType() == AccountType.ASSET;
 	public static final Predicate<Account> isLiability = acc -> acc.getAccountType() == AccountType.LIABILITY;
@@ -51,18 +56,19 @@ public class Account {
 	/**
 	 * An account has a accountNumber. The accountNumber is the external identifier of the account.
 	 */
-	@Size(max = ACCOUNT_NUMBER_MAX_LENGTH)
+	@Size(max = ACCOUNT_REFERENCE_MAX_LENGTH)
 	@NotNull
-	@Column(name = "reference", nullable = false, length = ACCOUNT_NUMBER_MAX_LENGTH)
+	@Column(name = "reference", nullable = false, length = ACCOUNT_REFERENCE_MAX_LENGTH)
     private String reference;
 
     /**
-     * An account is owned by someone.
+     * The account display name. For asset accounts the accounting name, for personal accounts the name of the user.
      */
-    @ManyToOne
-	@JoinColumn(name = "holder", nullable = false, foreignKey = @ForeignKey(name = "account_user_fk"))
-    private User holder;
-    
+	@Size(max = ACCOUNT_NAME_MAX_LENGTH)
+	@NotNull
+    @Column(name = "name", length = ACCOUNT_NAME_MAX_LENGTH, nullable = false)
+    private String name;
+
     /**
      * The account type.
      */
@@ -82,14 +88,27 @@ public class Account {
     @Column(name = "closed_time", nullable = true)
     private Instant closedTime;
 
+    /**
+     * The balances (one per ledger) coupled to the account.
+     */
+    @OneToMany(mappedBy = "account")
+    private Set<Balance> balances;
+    
+    /**
+     * Reference to the actual balance, i.e. the balance referring to the ledger currently in use.
+     */
+    @OneToOne()
+	@JoinColumn(name = "actual_balance", nullable = false, foreignKey = @ForeignKey(name = "account_actual_balance_fk"))
+    private Balance actualBalance;
+    
     public Account() {
     }
 
-    public static Account newInstant(User aHolder, String aReference, AccountType type) {
+    public static Account newInstant(String aReference, String aName, AccountType aType) {
     	Account acc = new Account();
-    	acc.holder = aHolder;
     	acc.reference = aReference;
-    	acc.accountType = type;
+    	acc.name = aName;
+    	acc.accountType = aType;
         return acc;
     }
 
@@ -114,20 +133,20 @@ public class Account {
 		this.reference = reference;
 	}
 
-	public User getHolder() {
-		return holder;
-	}
-
-	public void setHolder(User holder) {
-		this.holder = holder;
-	}
-
 	public AccountType getAccountType() {
 		return accountType;
 	}
 
 	public void setAccountType(AccountType accountType) {
 		this.accountType = accountType;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	public void expect(Predicate<Account> predicate, String msg) {
@@ -156,6 +175,18 @@ public class Account {
 		this.closedTime = closedTime;
 	}
 
+	public Balance getActualBalance() {
+		return actualBalance;
+	}
+
+	public void setActualBalance(Balance actualBalance) {
+		this.actualBalance = actualBalance;
+	}
+
+	public Set<Balance> getBalances() {
+		return balances;
+	}
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(reference);
@@ -178,6 +209,6 @@ public class Account {
 
 	@Override
 	public String toString() {
-		return String.format("Account [%s %s %s %s]", id, reference, accountType, DateTimeFormatter.ISO_INSTANT.format(createdTime));
+		return String.format("Account [%s %s %s %s]", id, reference, name, accountType);
 	}
 }

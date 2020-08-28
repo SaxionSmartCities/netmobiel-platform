@@ -24,7 +24,6 @@ public abstract class AccountingEntryMapper {
 	public abstract eu.netmobiel.banker.api.model.User map(User source);
 
 	@Mapping(target = "account", source = "account.reference")
-	@Mapping(target = "userRef", source = "account.holder.managedIdentity")
 	public abstract eu.netmobiel.banker.api.model.AccountingEntry map(AccountingEntry source);
 	
 	public abstract eu.netmobiel.banker.api.model.Page map(PagedResult<AccountingEntry> source);

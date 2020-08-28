@@ -38,6 +38,7 @@ import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.Ledger;
 import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.repository.converter.InstantConverter;
+import eu.netmobiel.banker.test.Fixture;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
@@ -118,12 +119,15 @@ public class AccountingEntryDaoIT {
     	em.persist(user1);
     	em.persist(user2);
     	em.persist(user3);
-    	account1 = createAccount(user1, "account-1", AccountType.LIABILITY);
-    	account2 = createAccount(user2, "account-2", AccountType.LIABILITY); 
-    	account3 = createAccount(user2, "account-3", AccountType.LIABILITY); 
+    	account1 = Fixture.createAccount("account-1", "account-1", AccountType.LIABILITY);
+    	account2 = Fixture.createAccount("account-2", "account-2", AccountType.LIABILITY); 
+    	account3 = Fixture.createAccount("account-3", "account-3", AccountType.LIABILITY); 
         em.persist(account1);
         em.persist(account2);
         em.persist(account3);
+        user1.setPersonalAccount(account1);
+        user2.setPersonalAccount(account2);
+        user3.setPersonalAccount(account3);
         balance1 = new Balance(ledger, account1, 100); 
         balance2 = new Balance(ledger, account2, 200); 
         balance3 = new Balance(ledger, account3, 0); 
@@ -134,14 +138,6 @@ public class AccountingEntryDaoIT {
         utx.commit();
         // clear the persistence context (first-level cache)
         em.clear();
-    }
-
-    private Account createAccount(User holder, String reference, AccountType type) {
-    	Account acc = new Account();
-    	acc.setAccountType(type);
-    	acc.setHolder(holder);
-    	acc.setReference(reference);
-    	return acc;
     }
 
     private void startTransaction() throws Exception {
@@ -215,17 +211,16 @@ public class AccountingEntryDaoIT {
     	oldAmount3 += 20;
     	oldAmount2 -= 20;
 
-    	String holderId = null;
     	String accref = null;
     	Instant since = null;
     	Instant until = null;
-    	PagedResult<Long> actual = accountingEntryDao.listAccountingEntries(holderId, accref, since, until, 0, 0);
+    	PagedResult<Long> actual = accountingEntryDao.listAccountingEntries(accref, since, until, 0, 0);
     	assertNotNull(actual);
     	assertEquals(0, actual.getCount());
     	assertEquals(0, actual.getData().size());
     	assertEquals(6, actual.getTotalCount().intValue());
     
-    	actual = accountingEntryDao.listAccountingEntries(holderId, accref, since, until, 2, 0);
+    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, 2, 0);
     	assertNotNull(actual);
     	assertEquals(2, actual.getCount());
     	assertEquals(2, actual.getData().size());
@@ -235,27 +230,10 @@ public class AccountingEntryDaoIT {
     	assertEquals(AccountingEntryType.CREDIT, entries.get(0).getEntryType());
     	assertEquals(AccountingEntryType.DEBIT, entries.get(1).getEntryType());
     	dump("listEntries 2", entries);
-    	// TEST holder
-    	holderId = "U2";
-    	actual = accountingEntryDao.listAccountingEntries(holderId, accref, since, until, 0, 0);
-    	assertNotNull(actual);
-    	assertEquals(0, actual.getCount());
-    	assertEquals(0, actual.getData().size());
-    	assertEquals(3, actual.getTotalCount().intValue());
-    	actual = accountingEntryDao.listAccountingEntries(holderId, accref, since, until, 10, 0);
-    	assertNotNull(actual);
-    	assertEquals(3, actual.getCount());
-    	assertEquals(3, actual.getData().size());
-    	entries = accountingEntryDao.fetch(actual.getData(), null, AccountingEntry::getId);
-    	dump("listEntries - Holder", entries);
-    	for (AccountingEntry entry : entries) {
-    		assertEquals(holderId, entry.getAccount().getHolder().getManagedIdentity());
-		}
 
     	// TEST Account reference
-    	holderId = null;
     	accref = account1.getReference();
-    	actual = accountingEntryDao.listAccountingEntries(holderId, accref, since, until, 10, 0);
+    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, 10, 0);
     	assertNotNull(actual);
     	assertEquals(3, actual.getData().size());
     	entries = accountingEntryDao.fetch(actual.getData(), null, AccountingEntry::getId);
@@ -267,7 +245,7 @@ public class AccountingEntryDaoIT {
     	// TEST since
     	accref = null;
     	since = Instant.parse("2020-04-09T17:00:00Z");
-    	actual = accountingEntryDao.listAccountingEntries(holderId, accref, since, until, 10, 0);
+    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, 10, 0);
     	assertNotNull(actual);
     	assertEquals(2, actual.getData().size());
     	entries = accountingEntryDao.fetch(actual.getData(), null, AccountingEntry::getId);
@@ -278,7 +256,7 @@ public class AccountingEntryDaoIT {
     	// TEST until
     	since = null;
     	until = Instant.parse("2020-04-08T17:00:00Z");
-    	actual = accountingEntryDao.listAccountingEntries(holderId, accref, since, until, 10, 0);
+    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, 10, 0);
     	assertNotNull(actual);
     	assertEquals(2, actual.getData().size());
     	entries = accountingEntryDao.fetch(actual.getData(), null, AccountingEntry::getId);
