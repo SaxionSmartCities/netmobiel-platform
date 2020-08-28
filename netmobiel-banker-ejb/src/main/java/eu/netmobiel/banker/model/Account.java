@@ -97,9 +97,11 @@ public class Account {
     
     /**
      * Reference to the actual balance, i.e. the balance referring to the ledger currently in use.
+     * The actual balance should never be null, but the account has to be created before the balance, so unless we
+     * modify the schema later on, actualBalance is allowed to be null.   
      */
     @OneToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "actual_balance", nullable = false, foreignKey = @ForeignKey(name = "account_actual_balance_fk"))
+	@JoinColumn(name = "actual_balance", nullable = true, foreignKey = @ForeignKey(name = "account_actual_balance_fk"))
     private Balance actualBalance;
     
     public Account() {

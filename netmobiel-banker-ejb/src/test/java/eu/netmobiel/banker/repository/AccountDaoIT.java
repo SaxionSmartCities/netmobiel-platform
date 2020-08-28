@@ -52,6 +52,7 @@ public class AccountDaoIT {
                 .addPackages(true, Account.class.getPackage())
                 .addPackages(true, AbstractDao.class.getPackage())
                 .addPackages(true, InstantConverter.class.getPackage())
+                .addPackages(true, Fixture.class.getPackage())
             .addClass(UserDao.class)
             .addClass(AccountDao.class)
             .addClass(Resources.class)
@@ -63,8 +64,6 @@ public class AccountDaoIT {
 
     @Inject
     private AccountDao accountDao;
-//    @Inject
-//    private UserDao userDao;
 
     @PersistenceContext(unitName = "pu-banker")
     private EntityManager em;

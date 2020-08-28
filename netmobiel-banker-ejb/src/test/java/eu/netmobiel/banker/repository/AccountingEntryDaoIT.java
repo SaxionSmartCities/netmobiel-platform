@@ -59,6 +59,7 @@ public class AccountingEntryDaoIT {
                 .addPackages(true, Account.class.getPackage())
                 .addPackages(true, AbstractDao.class.getPackage())
                 .addPackages(true, InstantConverter.class.getPackage())
+                .addPackages(true, Fixture.class.getPackage())
             .addClass(AccountingEntryDao.class)
             .addClass(Resources.class)
             .addAsResource("META-INF/test-persistence.xml", "META-INF/persistence.xml")

@@ -32,6 +32,7 @@ import eu.netmobiel.banker.Resources;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.Ledger;
 import eu.netmobiel.banker.repository.converter.InstantConverter;
+import eu.netmobiel.banker.test.Fixture;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
@@ -52,6 +53,7 @@ public class LedgerDaoIT {
                 .addPackages(true, Account.class.getPackage())
                 .addPackages(true, AbstractDao.class.getPackage())
                 .addPackages(true, InstantConverter.class.getPackage())
+                .addPackages(true, Fixture.class.getPackage())
             .addClass(LedgerDao.class)
             .addClass(Resources.class)
             .addAsResource("META-INF/test-persistence.xml", "META-INF/persistence.xml")

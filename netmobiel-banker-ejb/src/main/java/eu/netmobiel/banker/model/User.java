@@ -31,7 +31,7 @@ import eu.netmobiel.commons.model.NetMobielUser;
 	@NamedEntityGraph(
 			name = User.GRAPH_WITH_BALANCE, 
 			attributeNodes = { 
-					@NamedAttributeNode(value = "account", subgraph = "subgraph.account")
+					@NamedAttributeNode(value = "personalAccount", subgraph = "subgraph.account")
 			}, subgraphs = {
 					@NamedSubgraph(
 							name = "subgraph.account",
