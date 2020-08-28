@@ -157,6 +157,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/User'
           description: Return a single `User`.
+        "404":
+          $ref: '#/components/responses/NotFound'
       security:
       - apikey: []
         Bearer-only: []
@@ -225,6 +227,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/PaymentLink'
           description: Successful response.
+        "404":
+          $ref: '#/components/responses/NotFound'
       security:
       - Bearer-only: []
         apikey: []
@@ -288,8 +292,8 @@ paths:
               schema:
                 $ref: '#/components/schemas/Page'
           description: Successful response - returns a `Page` with `Statement` entities.
-        "400":
-          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
       security:
       - Bearer-only: []
         apikey: []
@@ -517,13 +521,13 @@ components:
       title: Root Type for AccountingEntry
       description: An single accounting entry or booking statement.
       required:
-      - accountType
       - accountingTime
-      - account
+      - accountName
       - amount
       - id
       - transactionTime
-      - transactionType
+      - type
+      - reference
       type: object
       properties:
         accountingTime:
@@ -537,10 +541,6 @@ components:
         description:
           description: The short description of the transaction.
           type: string
-        account:
-          description: 'The account as known by the user. Example: `current` for tracking
-            the amount of credits owned by the user.'
-          type: string
         id:
           format: int32
           description: The database id of the entry.
@@ -549,33 +549,28 @@ components:
           format: int32
           description: The amount of credits involved in the transaction.
           type: integer
-        transactionType:
+        reference:
+          description: Reference of the account.
+          type: string
+        accountName:
+          description: 'The account as known by the user. Example: `current` for tracking
+            the amount of credits owned by the user.'
+          type: string
+        type:
           description: The type of the transaction.
           enum:
           - DEBIT
           - CREDIT
           type: string
-        accountType:
-          description: 'The type of the account. Normal users have a liability account,
-            meaning that NetMobiel is owing them an amount of credits. '
-          enum:
-          - ASSET
-          - LIABILITY
-          type: string
-        userRef:
-          description: The user holding the account. The reference is a urn to the
-            keycloak managed identity.
-          type: string
       example:
         accountingTime: 2019-06-17T15:59:00Z
         transactionTime: 2019-06-17T16:30:00Z
         description: Rit met Coby Hoekstra naar Zelhem
-        account: current
-        id: 123456
+        accountReference: PLA-51
+        accountName: M. Pietersen
+        id: 12345
         amount: 5
         type: CREDIT
-        accountType: LIABILITY
-        userRef: urn:nb:kc:user:919e1308-6fe0-4727-881f-419bffa1ca7b
   responses:
     InternalServerError:
       content:
