@@ -5,7 +5,6 @@ import java.time.OffsetDateTime;
 import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.Response;
 
@@ -33,17 +32,12 @@ public class BalancesResource implements BalancesApi {
 	public Response listBalances(String userRef, OffsetDateTime period, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		User user = null;
-		if (userRef == null) {
-			user = userManager.findCallingUser();
-		} else {
+		if (userRef != null) {
 			user = userManager
 					.resolveUrn(userRef)
-					.orElseThrow(() -> new BadRequestException("Do not understand userRef: " + userRef));
+					.orElseThrow(() -> new NotFoundException("No such user: " + userRef));
 		}
-		if (user == null) {
-			throw new NotFoundException("No such user: " + userRef);
-		}
-		PagedResult<Balance> result = ledgerService.listBalances(user.getManagedIdentity(), null, period, maxResults, offset); 
+		PagedResult<Balance> result = ledgerService.listBalances(user.getPersonalAccount().getReference(), period, maxResults, offset); 
 		rsp = Response.ok(mapper.map(result)).build();
 		return rsp;
 	}

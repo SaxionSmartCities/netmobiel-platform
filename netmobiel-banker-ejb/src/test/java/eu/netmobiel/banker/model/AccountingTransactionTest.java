@@ -31,9 +31,9 @@ public class AccountingTransactionTest {
         User user1 = new User("U1", "A", "Family U1");
         User user2 = new User("U2", "B", "Family U2");
         User user3 = new User("U3", "C", "Family U3");
-    	account1 = Fixture.createAccount("account-1", user1.getAccountName(), AccountType.LIABILITY);
-    	account2 = Fixture.createAccount("account-2", user2.getAccountName(), AccountType.LIABILITY); 
-    	account3 = Fixture.createAccount("account-3", user3.getAccountName(), AccountType.LIABILITY); 
+    	account1 = Fixture.createAccount("account-1", user1.createAccountName(), AccountType.LIABILITY);
+    	account2 = Fixture.createAccount("account-2", user2.createAccountName(), AccountType.LIABILITY); 
+    	account3 = Fixture.createAccount("account-3", user3.createAccountName(), AccountType.LIABILITY); 
     	assetAccount = Fixture.createAccount("bank", "Bank", AccountType.ASSET); 
         balance1 = new Balance(ledger, account1, 100); 
         balance2 = new Balance(ledger, account2, 200); 

@@ -122,6 +122,17 @@ public class UserManager {
     			.orElseThrow(ObjectNotFoundException::new);
     }
     
+    /**
+     * Retrieves a specific user and balance details. 
+     * @param uid The id of the user.
+     * @return A user object.
+     * @throws ObjectNotFoundException If the user does not exist.
+     */
+    public User getUserWithBalance(Long uid) throws ObjectNotFoundException {
+    	return userDao.find(uid, userDao.createLoadHint(User.GRAPH_WITH_BALANCE))
+    			.orElseThrow(ObjectNotFoundException::new);
+    }
+
     public Optional<User> resolveUrn(String userRef) {
     	User user = null;
     	if (UrnHelper.isUrn(userRef)) {

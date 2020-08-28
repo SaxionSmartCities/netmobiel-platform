@@ -8,8 +8,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import eu.netmobiel.banker.api.mapping.annotation.AccountingEntryMapperQualifier;
 import eu.netmobiel.banker.model.AccountingEntry;
-import eu.netmobiel.banker.model.User;
 import eu.netmobiel.commons.model.PagedResult;
 
 /**
@@ -19,12 +19,16 @@ import eu.netmobiel.commons.model.PagedResult;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
+@AccountingEntryMapperQualifier
 public abstract class AccountingEntryMapper {
 
-	public abstract eu.netmobiel.banker.api.model.User map(User source);
-
-	@Mapping(target = "account", source = "account.reference")
-	public abstract eu.netmobiel.banker.api.model.AccountingEntry map(AccountingEntry source);
+	@Mapping(target = "type", source = "entryType")
+	@Mapping(target = "accountName", source = "account.name")
+	@Mapping(target = "reference", source = "account.reference")
+	@Mapping(target = "accountingTime", source = "transaction.accountingTime")
+	@Mapping(target = "transactionTime", source = "transaction.transactionTime")
+	@Mapping(target = "description", source = "transaction.description")
+	public abstract eu.netmobiel.banker.api.model.Statement map(AccountingEntry source);
 	
 	public abstract eu.netmobiel.banker.api.model.Page map(PagedResult<AccountingEntry> source);
 

@@ -8,6 +8,7 @@ import java.util.function.Predicate;
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -97,7 +98,7 @@ public class Account {
     /**
      * Reference to the actual balance, i.e. the balance referring to the ledger currently in use.
      */
-    @OneToOne()
+    @OneToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "actual_balance", nullable = false, foreignKey = @ForeignKey(name = "account_actual_balance_fk"))
     private Balance actualBalance;
     

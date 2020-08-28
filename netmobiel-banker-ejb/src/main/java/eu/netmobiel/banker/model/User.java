@@ -6,12 +6,16 @@ import java.util.Objects;
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedEntityGraphs;
+import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
@@ -23,7 +27,21 @@ import javax.validation.constraints.Size;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.model.NetMobielUser;
 
-@NamedEntityGraph()
+@NamedEntityGraphs({
+	@NamedEntityGraph(
+			name = User.GRAPH_WITH_BALANCE, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "account", subgraph = "subgraph.account")
+			}, subgraphs = {
+					@NamedSubgraph(
+							name = "subgraph.account",
+							attributeNodes = {
+									@NamedAttributeNode(value = "actualBalance")
+							}
+					)
+			}
+	)
+})
 @Entity
 // You cannot have a table called 'user' in postgres, it is a reserved keyword
 @Table(name = "bn_user", uniqueConstraints = {
@@ -35,6 +53,7 @@ public class User implements NetMobielUser, Serializable {
 
 	private static final long serialVersionUID = -4237705703151528786L;
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(User.class);
+	public static final String GRAPH_WITH_BALANCE = "user-graph-with-balance";
 	
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_sg")
@@ -56,7 +75,7 @@ public class User implements NetMobielUser, Serializable {
     @Column(name = "email", length = 64)
 	private String email;
 
-    @OneToOne()
+    @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "personal_account", foreignKey = @ForeignKey(name = "user_personal_account_fk"))
     private Account personalAccount;
     
@@ -126,7 +145,7 @@ public class User implements NetMobielUser, Serializable {
 		this.personalAccount = personalAccount;
 	}
 
-	public String getAccountName() {
+	public String createAccountName() {
 		return String.format("%s %s", getGivenName() != null ? getGivenName() : "", getFamilyName() != null ? getFamilyName() : "").trim();
 	}
 	

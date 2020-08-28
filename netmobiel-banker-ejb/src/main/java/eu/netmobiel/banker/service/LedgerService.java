@@ -211,7 +211,7 @@ public class LedgerService {
     	return new PagedResult<Ledger>(results, maxResults, offset, totalCount);
     }
     
-    public PagedResult<Account> listAccounts(String holderIdentity, Integer maxResults, Integer offset) {
+    public PagedResult<Account> listAccounts(Integer maxResults, Integer offset) {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
@@ -228,7 +228,7 @@ public class LedgerService {
     	return new PagedResult<Account>(results, maxResults, offset, prs.getTotalCount());
     }
 
-    public PagedResult<Balance> listBalances(String holder, String accountReference, OffsetDateTime period, Integer maxResults, Integer offset) {
+    public PagedResult<Balance> listBalances(String accountReference, OffsetDateTime period, Integer maxResults, Integer offset) {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
@@ -249,7 +249,7 @@ public class LedgerService {
     	return new PagedResult<Balance>(results, maxResults, offset, prs.getTotalCount());
     }
 
-    public PagedResult<AccountingEntry> listAccountingEntries(String holder, String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) 
+    public PagedResult<AccountingEntry> listAccountingEntries(String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) 
     		throws BadRequestException {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
@@ -292,6 +292,7 @@ public class LedgerService {
     	accountDao.save(acc);
     	Balance bal = new Balance(ledger, acc, 0);
     	balanceDao.save(bal);
+    	acc.setActualBalance(bal);
     	return acc;
     }
 

@@ -6,7 +6,6 @@ import java.time.OffsetDateTime;
 import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
@@ -39,17 +38,12 @@ public class AccountingEntriesResource implements AccountingEntriesApi {
 		Response rsp = null;
 		try {
 			User user = null;
-			if (userRef == null) {
-				user = userManager.findCallingUser();
-			} else {
+			if (userRef != null) {
 				user = userManager
 						.resolveUrn(userRef)
-						.orElseThrow(() -> new BadRequestException("Do not understand userRef: " + userRef));
+						.orElseThrow(() -> new NotFoundException("No such user: " + userRef));
 			}
-			if (user == null) {
-				throw new NotFoundException("No such user: " + userRef);
-			}
-			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getManagedIdentity(), null, si, ui, maxResults, offset); 
+			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getReference(), si, ui, maxResults, offset); 
 			rsp = Response.ok(mapper.map(result)).build();
 		} catch (ApplicationException ex) {
 			throw new WebApplicationException(ex);
