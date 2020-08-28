@@ -270,7 +270,7 @@ public class LedgerService {
     	return new PagedResult<AccountingEntry>(results, maxResults, offset, prs.getTotalCount());
     }
 
-    protected Ledger createLedger(Instant when) {
+    public Ledger createLedger(Instant when) {
     	Ledger newLedger = new Ledger();
     	newLedger.setStartPeriod(when);
     	newLedger.setName(String.format("%d", when.atOffset(ZoneOffset.UTC).getYear()));
