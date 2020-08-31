@@ -2,26 +2,21 @@ package eu.netmobiel.banker.api.resource;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
-import java.util.Optional;
 
 import javax.ejb.EJB;
 import javax.ejb.ObjectNotFoundException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
-import eu.netmobiel.banker.api.DepositsApi;
 import eu.netmobiel.banker.api.UsersApi;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
-import eu.netmobiel.banker.api.mapping.DepositRequestMapper;
+import eu.netmobiel.banker.api.mapping.UserMapper;
 import eu.netmobiel.banker.api.model.Deposit;
-import eu.netmobiel.banker.api.model.PaymentEvent;
 import eu.netmobiel.banker.api.model.PaymentLink;
 import eu.netmobiel.banker.model.AccountingEntry;
-import eu.netmobiel.banker.model.DepositRequest;
 import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.banker.service.UserManager;
@@ -35,9 +30,12 @@ public class UsersResource implements UsersApi {
     private UserManager userManager;
 
 	@Inject
-	private AccountingEntryMapper mapper;
+	private AccountingEntryMapper accountingEntryMapper;
 
-    @Inject
+	@Inject
+	private UserMapper userMapper;
+
+	@Inject
     private LedgerService ledgerService;
 
     protected User resolveUserReference(String userId) {
@@ -67,12 +65,11 @@ public class UsersResource implements UsersApi {
 	public Response getUser(String userId) {
 		User user = resolveUserReference(userId);
 		try {
-			// TODO Mapping required!
 			user = userManager.getUserWithBalance(user.getId());
 		} catch (ObjectNotFoundException e) {
 			throw new NotFoundException("No such user: " + userId); 
 		}
-		return Response.ok(user).build();
+		return Response.ok(userMapper.map(user)).build();
 	}
 
 	@Override
@@ -83,7 +80,7 @@ public class UsersResource implements UsersApi {
 		try {
 			User user = resolveUserReference(userId);
 			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getReference(), si, ui, maxResults, offset); 
-			rsp = Response.ok(mapper.map(result)).build();
+			rsp = Response.ok(accountingEntryMapper.map(result)).build();
 		} catch (ApplicationException ex) {
 			throw new WebApplicationException(ex);
 		}

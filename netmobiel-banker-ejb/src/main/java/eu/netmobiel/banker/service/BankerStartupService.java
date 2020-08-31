@@ -52,13 +52,14 @@ public class BankerStartupService {
     }
     
     public void bootstrapTheBank() {
-    	PagedResult<Ledger> prl = ledgerService.listLedgers(0, 0);
+    	PagedResult<Ledger> prl = ledgerService.listLedgers(1, 0);
     	if (prl.getTotalCount() == 0) {
     		// No active ledger, create the initial ledger and the rest
     		OffsetDateTime odt = OffsetDateTime.of(Instant.now().atOffset(ZoneOffset.UTC).getYear(), 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
     		ledgerService.createLedger(odt.toInstant());
-    		ledgerService.createAccount(LedgerService.ACC_REF_BANKING_RESERVE, LedgerService.ACC_NAME_BANKING_RESERVE, AccountType.ASSET);
     	}
+   		ledgerService.prepareAccount(LedgerService.ACC_REF_BANKING_RESERVE, LedgerService.ACC_NAME_BANKING_RESERVE, AccountType.ASSET);
+   		ledgerService.prepareAccount(LedgerService.ACC_REF_RESERVATIONS, LedgerService.ACC_NAME_RESERVATIONS, AccountType.LIABILITY);
     }
 
 }

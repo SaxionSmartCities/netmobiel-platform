@@ -10,7 +10,6 @@ import java.util.List;
 
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
 import javax.persistence.PersistenceContext;
 import javax.transaction.UserTransaction;
 
@@ -135,7 +134,7 @@ public class AccountDaoIT {
     	final String accref = "account-1"; 
 		Account account= Fixture.createAccount(accref, "U1", AccountType.LIABILITY);
     	accountDao.save(account);
-    	Account actual = accountDao.findByReference(accref);
+    	Account actual = accountDao.findByReference(accref).orElse(null);
     	assertNotNull(actual);
     	assertEquals(accref, actual.getReference());
     	dump("saveAccount", Collections.singletonList(actual));
@@ -144,14 +143,8 @@ public class AccountDaoIT {
     @Test
     public void findByReference_NotFound() {
     	final String accref = "account-X";
-    	try {
-    		@SuppressWarnings("unused")
-			Account actual = accountDao.findByReference(accref);
-    		fail("Expected NoResultFoundException");
-    	} catch (NoResultException ex) {
-    		log.info("findByReference_NotFound: " + ex.toString());
-    	}
-    	
+		Account actual = accountDao.findByReference(accref).orElse(null);
+		assertNull(actual);
     }
 
     @Test

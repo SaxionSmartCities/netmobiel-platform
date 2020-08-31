@@ -15,6 +15,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
 /**
  * An accounting (or journal) entry has an amount and an description and concerns a specific account. An entry is processed as part of a
@@ -30,6 +31,8 @@ import javax.validation.constraints.NotNull;
 @Vetoed
 @SequenceGenerator(name = "accounting_entry_sg", sequenceName = "accounting_entry_seq", allocationSize = 1, initialValue = 50)
 public class AccountingEntry {
+	public static final int COUNTERPARTY_MAX_LENGTH = 96;
+
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "accounting_entry_sg")
     private Long id;
@@ -41,6 +44,15 @@ public class AccountingEntry {
 	@ManyToOne
 	@JoinColumn(name = "account", nullable = false, foreignKey = @ForeignKey(name = "accounting_entry_account_fk"))
     private Account account;
+
+    /**
+     * The name of the counterparty in case of a payment. This field is added for convenience to create
+     * a statement for a particular account, without the necessity to retrieve the counter entry.
+     * The name of the counterparty account will be used for simplicity.  
+     */
+	@Size(max = COUNTERPARTY_MAX_LENGTH)
+    @Column(name = "counterparty", length = COUNTERPARTY_MAX_LENGTH, nullable = true)
+    private String counterparty;
 
 	/**
 	 * The amount (of credits). Once saved in the database it cannot be changed.
@@ -87,6 +99,14 @@ public class AccountingEntry {
 
 	public void setAccount(Account account) {
 		this.account = account;
+	}
+
+	public String getCounterparty() {
+		return counterparty;
+	}
+
+	public void setCounterparty(String counterparty) {
+		this.counterparty = counterparty;
 	}
 
 	public int getAmount() {

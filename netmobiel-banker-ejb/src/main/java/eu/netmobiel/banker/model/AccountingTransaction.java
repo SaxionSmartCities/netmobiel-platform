@@ -63,6 +63,19 @@ public class AccountingTransaction {
     private Instant accountingTime;
 
 	/**
+	 * The context of the accounting entry. The context is a urn, referring to an object in the system.
+	 */
+    @NotNull
+	@Column(name = "reference", length = 32, nullable = true)
+	private String reference;
+
+    /**
+	 * The type of the transaction.
+	 */
+    @Column(name = "transaction_type", nullable = false, length = 2)
+    private TransactionType transactionType;
+    
+	/**
 	 * The ledger containing all the transactions for the financial period.
 	 */
 	@ManyToOne
@@ -79,9 +92,11 @@ public class AccountingTransaction {
         this.accountingEntries = new ArrayList<>();
     }
     
-    AccountingTransaction(String description, Instant accountingTime, Instant transactionTime) {
+    AccountingTransaction(TransactionType type, String description, String reference, Instant accountingTime, Instant transactionTime) {
     	this();
+    	this.transactionType = type;
     	this.description = description;
+    	this.reference = reference;
         this.accountingTime = accountingTime;
         this.transactionTime = transactionTime;
     }
@@ -125,12 +140,28 @@ public class AccountingTransaction {
 		this.accountingTime = accountingTime;
 	}
 
+	public String getReference() {
+		return reference;
+	}
+
+	public void setReference(String reference) {
+		this.reference = reference;
+	}
+
+	public TransactionType getTransactionType() {
+		return transactionType;
+	}
+
+	public void setTransactionType(TransactionType transactionType) {
+		this.transactionType = transactionType;
+	}
+
 	public Ledger getLedger() {
 		return ledger;
 	}
 
-	static AccountingTransaction.Builder newTransaction(Ledger ledger, String description, Instant accountingTime, Instant transactionTime) {
-		AccountingTransaction tr = new AccountingTransaction(description, accountingTime, transactionTime);
+	static AccountingTransaction.Builder newTransaction(Ledger ledger, TransactionType type, String description, String reference, Instant accountingTime, Instant transactionTime) {
+		AccountingTransaction tr = new AccountingTransaction(type, description, reference, accountingTime, transactionTime);
 		tr.ledger = ledger;
 		return new Builder(tr);
 	}
@@ -143,8 +174,9 @@ public class AccountingTransaction {
 			this.transaction = tr;
 		}
 		
-		protected void addAccountingEntry(Account account, AccountingEntry entry) {
+		protected void addAccountingEntry(Account account, String counterparty, AccountingEntry entry) {
 			entry.setAccount(account);
+			entry.setCounterparty(counterparty);
 			entry.setTransaction(transaction);
 			transaction.getAccountingEntries().add(entry);
 		}
@@ -155,16 +187,16 @@ public class AccountingTransaction {
 			}
 		}
 		
-		public AccountingTransaction.Builder debit(Balance balance, int amount) {
+		public AccountingTransaction.Builder debit(Balance balance, int amount, String counterparty) {
 			expectNotFinished();
-			addAccountingEntry(balance.getAccount(), new AccountingEntry(AccountingEntryType.DEBIT, amount));
+			addAccountingEntry(balance.getAccount(), counterparty, new AccountingEntry(AccountingEntryType.DEBIT, amount));
 			balance.debit(amount);
 			return this;
 		}
 		
-		public AccountingTransaction.Builder credit(Balance balance, int amount) {
+		public AccountingTransaction.Builder credit(Balance balance, int amount, String counterparty) {
 			expectNotFinished();
-			addAccountingEntry(balance.getAccount(), new AccountingEntry(AccountingEntryType.CREDIT, amount));
+			addAccountingEntry(balance.getAccount(), counterparty, new AccountingEntry(AccountingEntryType.CREDIT, amount));
 			balance.credit(amount);
 			return this;
 		}

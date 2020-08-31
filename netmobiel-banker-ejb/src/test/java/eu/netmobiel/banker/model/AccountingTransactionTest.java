@@ -44,11 +44,12 @@ public class AccountingTransactionTest {
 	@Test
 	public void testTransaction_Balanced() {
 		String description = "description-1";
+		String reference = "reference-1";
 		Instant acctime = Instant.parse("2020-01-01T01:00:00Z");
 		Instant trtime = Instant.now();
-		AccountingTransaction tr = ledger.createTransaction(description, acctime, trtime)
-				.debit(balance1, 10)
-				.credit(balance2, 10)
+		AccountingTransaction tr = ledger.createTransaction(TransactionType.PAYMENT, description, reference, acctime, trtime)
+				.debit(balance1, 10, balance2.getAccount().getName())
+				.credit(balance2, 10, balance1.getAccount().getName())
 				.build();
 		assertNotNull(tr);
 		assertEquals(description, tr.getDescription());
@@ -60,11 +61,12 @@ public class AccountingTransactionTest {
 	@Test
 	public void testTransaction_LessThan2() {
 		String description = "description-1";
+		String reference = "reference-1";
 		Instant acctime = Instant.parse("2020-01-01T01:00:00Z");
 		Instant trtime = Instant.now();
 		try {
-			ledger.createTransaction(description, acctime, trtime)
-					.debit(balance1, 10)
+			ledger.createTransaction(TransactionType.PAYMENT, description, reference, acctime, trtime)
+					.debit(balance1, 10, null)
 					.build();
 			fail("Expected IllegalStateException");
 		} catch (IllegalStateException ex) {
@@ -74,12 +76,13 @@ public class AccountingTransactionTest {
 	@Test
 	public void testTransaction_NotBalanced() {
 		String description = "description-1";
+		String reference = "reference-1";
 		Instant acctime = Instant.parse("2020-01-01T01:00:00Z");
 		Instant trtime = Instant.now();
 		try {
-			ledger.createTransaction(description, acctime, trtime)
-					.debit(balance1, 10)
-					.credit(balance2, 100)
+			ledger.createTransaction(TransactionType.PAYMENT, description, reference, acctime, trtime)
+					.debit(balance1, 10, balance2.getAccount().getName())
+					.credit(balance2, 100, balance1.getAccount().getName())
 					.build();
 			fail("Expected IllegalStateException");
 		} catch (IllegalStateException ex) {
@@ -89,24 +92,27 @@ public class AccountingTransactionTest {
 	@Test
 	public void testTransaction_BalancedThree() {
 		String description = "description-1";
+		String reference = "reference-1";
 		Instant acctime = Instant.parse("2020-01-01T01:00:00Z");
 		Instant trtime = Instant.now();
-		ledger.createTransaction(description, acctime, trtime)
-					.debit(balance1, 10)
-					.debit(balance2, 10)
-					.credit(balance3, 20)
+		// Counterparty does not match well wirh multi-leg transactions.
+		ledger.createTransaction(TransactionType.PAYMENT, description, reference, acctime, trtime)
+					.debit(balance1, 10, balance3.getAccount().getName())
+					.debit(balance2, 10, balance3.getAccount().getName())
+					.credit(balance3, 20, null)
 					.build();
 	}
 	
 	@Test
 	public void testTransaction_Deposit() {
 		String description = "description-1";
+		String reference = null;
 		Instant acctime = Instant.parse("2020-08-01T01:00:00Z");
 		Instant trtime = Instant.now();
 		int oldAmount = balance1.getEndAmount();
-		ledger.createTransaction(description, acctime, trtime)
-					.debit(assetBalance, 100)
-					.credit(balance1, 100)
+		ledger.createTransaction(TransactionType.DEPOSIT, description, reference, acctime, trtime)
+					.debit(assetBalance, 100, balance1.getAccount().getName())
+					.credit(balance1, 100, null)
 					.build();
 		assertEquals(100, assetBalance.getEndAmount());
 		assertEquals(100, balance1.getEndAmount() - oldAmount);

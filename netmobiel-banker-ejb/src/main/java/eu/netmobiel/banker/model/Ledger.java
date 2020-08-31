@@ -128,8 +128,8 @@ public class Ledger {
 		this.balances = balances;
 	}
 	
-	public AccountingTransaction.Builder createTransaction(String description, Instant accountingTime, Instant transactionTime) {
-		return AccountingTransaction.newTransaction(this, description, accountingTime, transactionTime);
+	public AccountingTransaction.Builder createTransaction(TransactionType type, String description, String reference, Instant accountingTime, Instant transactionTime) {
+		return AccountingTransaction.newTransaction(this, type, description, reference, accountingTime, transactionTime);
 	}
 
 	/**

@@ -36,6 +36,7 @@ import eu.netmobiel.banker.model.AccountingEntryType;
 import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.Ledger;
+import eu.netmobiel.banker.model.TransactionType;
 import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.repository.converter.InstantConverter;
 import eu.netmobiel.banker.test.Fixture;
@@ -181,9 +182,9 @@ public class AccountingEntryDaoIT {
     	balance3 = em.find(Balance.class, balance3.getId());
     	int oldAmount1 = balance1.getEndAmount();
     	int oldAmount2 = balance2.getEndAmount();
-    	AccountingTransaction trans = ledger.createTransaction("description-1", Instant.parse("2020-04-07T17:00:00Z"), Instant.parse("2020-04-07T18:00:00Z"))
-    			.credit(balance1, 10)
-    			.debit(balance2, 10)
+    	AccountingTransaction trans = ledger.createTransaction(TransactionType.PAYMENT, "description-1", "ref-1", Instant.parse("2020-04-07T17:00:00Z"), Instant.parse("2020-04-07T18:00:00Z"))
+    			.credit(balance1, 10, balance2.getAccount().getName())
+    			.debit(balance2, 10, balance1.getAccount().getName())
     			.build();
     	em.persist(trans);
     	checkBalance(balance1.getAccount(), oldAmount1 + 10);
@@ -191,9 +192,9 @@ public class AccountingEntryDaoIT {
     	oldAmount1 += 10;
     	oldAmount2 -= 10;
 
-    	trans = ledger.createTransaction("description-2", Instant.parse("2020-04-08T17:00:00Z"), Instant.parse("2020-04-08T18:00:00Z"))
-    			.credit(balance2, 20)
-    			.debit(balance1, 20)
+    	trans = ledger.createTransaction(TransactionType.PAYMENT, "description-2", "ref-2", Instant.parse("2020-04-08T17:00:00Z"), Instant.parse("2020-04-08T18:00:00Z"))
+    			.credit(balance2, 20, balance1.getAccount().getName())
+    			.debit(balance1, 20, balance2.getAccount().getName())
     			.build();
     	em.persist(trans);
     	checkBalance(balance1.getAccount(), oldAmount1 - 20);
@@ -202,9 +203,9 @@ public class AccountingEntryDaoIT {
     	oldAmount2 += 20;
 
     	int oldAmount3 = balance3.getEndAmount();
-    	trans = ledger.createTransaction("description-3", Instant.parse("2020-04-09T17:00:00Z"), Instant.parse("2020-04-09T18:00:00Z"))
-    			.credit(balance3, 20)
-    			.debit(balance1, 20)
+    	trans = ledger.createTransaction(TransactionType.PAYMENT, "description-3", "ref-3", Instant.parse("2020-04-09T17:00:00Z"), Instant.parse("2020-04-09T18:00:00Z"))
+    			.credit(balance3, 20, balance1.getAccount().getName())
+    			.debit(balance1, 20, balance3.getAccount().getName())
     			.build();
     	em.persist(trans);
     	checkBalance(balance3.getAccount(), oldAmount3 + 20);

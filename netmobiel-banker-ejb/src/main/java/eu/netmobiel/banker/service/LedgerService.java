@@ -22,6 +22,7 @@ import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.DepositRequest;
 import eu.netmobiel.banker.model.Ledger;
 import eu.netmobiel.banker.model.PaymentStatus;
+import eu.netmobiel.banker.model.TransactionType;
 import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.repository.AccountDao;
 import eu.netmobiel.banker.repository.AccountingEntryDao;
@@ -51,6 +52,8 @@ import eu.netmobiel.payment.client.model.PaymentLinkStatus;
 public class LedgerService {
 	public static final String ACC_REF_BANKING_RESERVE = "banking-reserve";
 	public static final String ACC_NAME_BANKING_RESERVE = "Banking Reserve";
+	public static final String ACC_REF_RESERVATIONS = "reservations";
+	public static final String ACC_NAME_RESERVATIONS = "Reservations";
 	public static final Integer MAX_RESULTS = 10; 
 	public static final Integer DEFAULT_LOOKBACK_DAYS = 90; 
 	public static final int PAYMENT_LINK_EXPIRATION_SECS = 15 * 60;
@@ -104,9 +107,9 @@ public class LedgerService {
     	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
     	expect(brab.getAccount(), AccountType.ASSET);
     	AccountingTransaction tr = ledger
-    			.createTransaction(description, when.toInstant(), Instant.now())
-    			.debit(brab, amount)
-				.credit(userAccountBalance, amount)
+    			.createTransaction(TransactionType.DEPOSIT, description, null, when.toInstant(), Instant.now())
+    			.debit(brab, amount, userAccountBalance.getAccount().getName())
+				.credit(userAccountBalance, amount, null)
 				.build();
     	accountingTransactionDao.save(tr);
     }
@@ -127,9 +130,9 @@ public class LedgerService {
     	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
     	expect(brab.getAccount(), AccountType.ASSET);
     	AccountingTransaction tr = ledger
-    			.createTransaction(description, when.toInstant(), Instant.now())
-    			.credit(brab, amount)
-				.debit(userAccountBalance, amount)
+    			.createTransaction(TransactionType.WITHDRAWAL, description, null, when.toInstant(), Instant.now())
+    			.credit(brab, amount, null)
+				.debit(userAccountBalance, amount, userAccountBalance.getAccount().getName())
     			.build();
     	accountingTransactionDao.save(tr);
     }
@@ -142,19 +145,50 @@ public class LedgerService {
      * @param beneficiary the external reference of the netmobiel account that will receive the credits.
      * @param amount the amount of credits
      * @param when the time of this financial fact.
-     * @description the description in the journal.
+     * @param description the description in the journal.
+     * @param reference the contextual reference to a system object in the form of a urn.
      */
-    public void charge(String customer, String beneficiary, int amount, OffsetDateTime when, String description) {
+    public void charge(String customer, String beneficiary, int amount, OffsetDateTime when, String description, String reference) {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
     	Balance customerBalance = balanceDao.findByLedgerAndAccountReference(ledger, customer);  
-    	Balance providerBalance = balanceDao.findByLedgerAndAccountReference(ledger, beneficiary);  
+    	Balance counterpartyBalance = balanceDao.findByLedgerAndAccountReference(ledger, beneficiary);
     	expect(customerBalance.getAccount(), AccountType.LIABILITY);
-    	expect(providerBalance.getAccount(), AccountType.LIABILITY);
+    	expect(counterpartyBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
-    			.createTransaction(description, when.toInstant(), Instant.now())
-    			.debit(customerBalance, amount)
-				.credit(providerBalance, amount)
+    			.createTransaction(TransactionType.PAYMENT, description, reference, when.toInstant(), Instant.now())
+    			.debit(customerBalance, amount, counterpartyBalance.getAccount().getName())
+				.credit(counterpartyBalance, amount, customerBalance.getAccount().getName())
+    			.build();
+    	accountingTransactionDao.save(tr);
+    }
+
+    public void reserve(String customer, int amount, OffsetDateTime when, String description, String reference) {
+    	Ledger ledger = ledgerDao.findByDate(when.toInstant());
+    	ledger.expectOpen();
+    	Balance customerBalance = balanceDao.findByLedgerAndAccountReference(ledger, customer);  
+    	Balance rb = balanceDao.findByLedgerAndAccountReference(ledger, ACC_REF_RESERVATIONS);  
+    	expect(customerBalance.getAccount(), AccountType.LIABILITY);
+    	expect(rb.getAccount(), AccountType.LIABILITY);
+    	AccountingTransaction tr = ledger
+    			.createTransaction(TransactionType.RESERVATION, description, reference, when.toInstant(), Instant.now())
+    			.debit(customerBalance, amount, null)
+				.credit(rb, amount, customerBalance.getAccount().getName())
+    			.build();
+    	accountingTransactionDao.save(tr);
+    }
+
+    public void release(String customer, int amount, OffsetDateTime when, String description, String reference) {
+    	Ledger ledger = ledgerDao.findByDate(when.toInstant());
+    	ledger.expectOpen();
+    	Balance customerBalance = balanceDao.findByLedgerAndAccountReference(ledger, customer);  
+    	Balance rb = balanceDao.findByLedgerAndAccountReference(ledger, ACC_REF_RESERVATIONS);  
+    	expect(customerBalance.getAccount(), AccountType.LIABILITY);
+    	expect(rb.getAccount(), AccountType.LIABILITY);
+    	AccountingTransaction tr = ledger
+    			.createTransaction(TransactionType.RESERVATION, description, reference, when.toInstant(), Instant.now())
+    			.credit(customerBalance, amount, null)
+				.debit(rb, amount, customerBalance.getAccount().getName())
     			.build();
     	accountingTransactionDao.save(tr);
     }
@@ -294,6 +328,18 @@ public class LedgerService {
     	balanceDao.save(bal);
     	acc.setActualBalance(bal);
     	return acc;
+    }
+
+    /**
+     * Create an account and connect it through a balance to the active ledger.   
+     * @param holder the holder of the account.
+     * @param reference the external reference to the account.
+     * @param type the account type.
+     * @return the account  
+     */
+    public void prepareAccount(String reference, String name, AccountType type) {
+    	accountDao.findByReference(reference)
+    		.orElseGet(() -> createAccount(reference, name, type));
     }
 
     /**

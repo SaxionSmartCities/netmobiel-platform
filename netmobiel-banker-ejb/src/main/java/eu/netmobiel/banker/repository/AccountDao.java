@@ -3,13 +3,12 @@ package eu.netmobiel.banker.repository;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
-import javax.persistence.NoResultException;
-import javax.persistence.NonUniqueResultException;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -39,11 +38,15 @@ public class AccountDao extends AbstractDao<Account, Long> {
 		return em;
 	}
 
-	public Account findByReference(String reference) throws NoResultException, NonUniqueResultException {
+	public Optional<Account> findByReference(String reference) {
 		String q = "from Account acc where acc.reference = :reference";
 		TypedQuery<Account> tq = em.createQuery(q, Account.class);
 		tq.setParameter("reference", reference);
-		return tq.getSingleResult();
+		List<Account> accounts = tq.getResultList();
+		if (accounts.size() > 1) {
+			throw new IllegalStateException("Multiple account with same reference: " + reference);
+		}
+		return Optional.ofNullable(accounts.isEmpty() ? null : accounts.get(0));
 	}
 	
 	/**
