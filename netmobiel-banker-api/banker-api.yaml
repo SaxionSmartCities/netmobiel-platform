@@ -299,8 +299,9 @@ paths:
         apikey: []
       operationId: listStatements
       summary: List Statement entries.
-      description: "Gets a paged list of  `Statement` entities. \n\nThe administrator\
-        \ can request statements owned by any user. \n"
+      description: "Gets a paged list of  `Statement` entities. The statements are\
+        \ sorted on accounting time descending.\n\nThe administrator can request statements\
+        \ owned by any user. \n"
     parameters:
     - name: userId
       description: |-
@@ -527,7 +528,8 @@ components:
       - id
       - transactionTime
       - type
-      - reference
+      - accountReference
+      - transactionType
       type: object
       properties:
         accountingTime:
@@ -549,18 +551,34 @@ components:
           format: int32
           description: The amount of credits involved in the transaction.
           type: integer
-        reference:
-          description: Reference of the account.
-          type: string
         accountName:
           description: 'The account as known by the user. Example: `current` for tracking
             the amount of credits owned by the user.'
           type: string
         type:
-          description: The type of the transaction.
+          description: The type of the entry.
           enum:
           - DEBIT
           - CREDIT
+          type: string
+        accountReference:
+          description: Reference to the account, a unique id.
+          type: string
+        transactionType:
+          description: The type of transaction, the purpose of the transaction.
+          enum:
+          - DEPOSIT
+          - WITHDRAWAL
+          - PAYMENT
+          - RESERVATION
+          - RELEASE
+          type: string
+        merchantReference:
+          description: The reference to a netmobiel object. This will be a urn to
+            the object.
+          type: string
+        counterparty:
+          description: The name of the other party involved in a payment.
           type: string
       example:
         accountingTime: 2019-06-17T15:59:00Z
@@ -571,6 +589,9 @@ components:
         id: 12345
         amount: 5
         type: CREDIT
+        transactionType: PAYMENT
+        merchantReference: urn:nb:rs:Booking:53
+        counterparty: Jan Jansen
   responses:
     InternalServerError:
       content:
