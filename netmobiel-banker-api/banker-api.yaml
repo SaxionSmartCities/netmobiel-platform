@@ -363,6 +363,9 @@ components:
         credits:
           description: The amount of credits currently in possesion by the user.
           type: integer
+        email:
+          description: The email address of the user.
+          type: string
       example:
         familyName: Normalverbraucher
         givenName: Otto
