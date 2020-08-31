@@ -38,10 +38,10 @@ public class UsersResource implements UsersApi {
 	@Inject
     private LedgerService ledgerService;
 
-    protected User resolveUserReference(String userId) {
+    protected User resolveUserReference(String userId, boolean createIfNeeded) {
 		User user = null;
-		if ("me".equals(userId)) { 
-			user = userManager.findCallingUser();
+		if ("me".equals(userId)) {
+			user = createIfNeeded ? userManager.registerCallingUser() : userManager.findCallingUser();
 		} else {
 			user = userManager
 					.resolveUrn(userId)
@@ -53,7 +53,7 @@ public class UsersResource implements UsersApi {
     @Override
 	public Response createDeposit(String userId, Deposit deposit) {
 		Response rsp = null;
-		User user = resolveUserReference(userId);
+		User user = resolveUserReference(userId, true);
 		String paymentUrl = ledgerService.createDepositRequest(user.getPersonalAccount(), deposit.getAmountCredits(), deposit.getDescription(), deposit.getReturnUrl());
 		PaymentLink plink = new PaymentLink();
 		plink.setPaymentUrl(paymentUrl);
@@ -63,7 +63,7 @@ public class UsersResource implements UsersApi {
 
 	@Override
 	public Response getUser(String userId) {
-		User user = resolveUserReference(userId);
+		User user = resolveUserReference(userId, true);
 		try {
 			user = userManager.getUserWithBalance(user.getId());
 		} catch (ObjectNotFoundException e) {
@@ -78,7 +78,7 @@ public class UsersResource implements UsersApi {
 		Instant ui = until != null ? until.toInstant() : null;
 		Response rsp = null;
 		try {
-			User user = resolveUserReference(userId);
+			User user = resolveUserReference(userId, true);
 			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getReference(), si, ui, maxResults, offset); 
 			rsp = Response.ok(accountingEntryMapper.map(result)).build();
 		} catch (ApplicationException ex) {
