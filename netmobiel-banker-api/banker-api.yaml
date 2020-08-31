@@ -176,38 +176,6 @@ paths:
         type: string
       in: path
       required: true
-  /deposits/events:
-    summary: Path used to manage the list of deposit events.
-    description: The REST endpoint/path used to create zero or more deposit events.
-      This path contains a `POST` operation to perform the create task of updating
-      a `DepositStatus`.
-    post:
-      requestBody:
-        description: The event parameters, specifying the order_id and the project_id.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PaymentEvent'
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/DepositStatus'
-          description: 'A deposit status is returned. When the status is completed,
-            the payment has succeeded and the credits have been added. If active,
-            the credits have not yet been added. '
-      security:
-      - {}
-      operationId: updateDepositStatus
-      summary: Updates the status of an deposit
-      description: Verifies and updates the status of a deposit through the order_id
-        passed on by the payment provider. As a side effect the status of the payment
-        in the Banker Service is synchronized with the status of the payment at the
-        payment provider. This method can be used as webhook for the EMS Pay payment
-        provider. No security restrictions apply. Once the status is either expired
-        or completed, it will not change anymore.
   /users/{userId}/deposits:
     summary: Path used to manage deposits to user accounts.
     description: The REST endpoint/path used to create zero or more `Deposit` entities.  This
@@ -312,6 +280,38 @@ paths:
         type: string
       in: path
       required: true
+  /deposit-events:
+    summary: Path used to manage the list of deposit events.
+    description: The REST endpoint/path used to create zero or more deposit events.
+      This path contains a `POST` operation to perform the create task of updating
+      a `DepositStatus`.
+    post:
+      requestBody:
+        description: The event parameters, specifying the order_id and the project_id.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentEvent'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/DepositStatus'
+          description: 'A deposit status is returned. When the status is completed,
+            the payment has succeeded and the credits have been added. If active,
+            the credits have not yet been added. '
+      security:
+      - {}
+      operationId: updateDepositStatus
+      summary: Updates the status of an deposit
+      description: Verifies and updates the status of a deposit through the order_id
+        passed on by the payment provider. As a side effect the status of the payment
+        in the Banker Service is synchronized with the status of the payment at the
+        payment provider. This method can be used as webhook for the EMS Pay payment
+        provider. No security restrictions apply. Once the status is either expired
+        or completed, it will not change anymore.
 components:
   schemas:
     Error:
