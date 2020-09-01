@@ -178,15 +178,15 @@ paths:
       required: true
   /users/{userId}/deposits:
     summary: Path used to manage deposits to user accounts.
-    description: The REST endpoint/path used to create zero or more `Deposit` entities.  This
-      path contains a `POST` operation to perform the create task.
+    description: The REST endpoint/path used to create zero or more `DepositRequest`
+      entities.  This path contains a `POST` operation to perform the create task.
     post:
       requestBody:
         description: A new `Deposit` to be created.
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Deposit'
+              $ref: '#/components/schemas/DepositRequest'
         required: true
       responses:
         "200":
@@ -202,10 +202,10 @@ paths:
         apikey: []
       operationId: createDeposit
       summary: Create a Deposit
-      description: Creates a new `Deposit`. The call returns a `PaymentLink`, containing
-        a url to a payment page. The client should redirect a browser to the payment
-        page url. The payment is converted into credits, the credits are added to
-        the personal account of the specified user.
+      description: Creates a new `DepositRequest`. The call returns a `PaymentLink`,
+        containing a url to a payment page. The client should redirect a browser to
+        the payment page url. The payment is converted into credits, the credits are
+        added to the personal account of the specified user.
     parameters:
     - name: userId
       description: |-
@@ -408,7 +408,7 @@ components:
       title: Root Type for Balance
       description: A representation of the balance of an account.
       required:
-      - account
+      - ncan
       - endAmount
       - ledger
       - startAmount
@@ -426,10 +426,6 @@ components:
         ledger:
           description: The name of the accounting period, in general the fiscal year.
           type: string
-        account:
-          description: 'The account as known by the user. Example: `current` for tracking
-            the amount of credits owned by the user.'
-          type: string
         userRef:
           description: The user holding the account. The reference is a urn to the
             keycloak managed identity.
@@ -440,6 +436,9 @@ components:
         modifiedTime:
           format: date-time
           description: Last modification time.
+          type: string
+        ncan:
+          description: The account number of the balance entry.
           type: string
       example:
         startAmount: 54
@@ -459,23 +458,6 @@ components:
           type: integer
       example:
         exchangeRate: 19
-    Deposit:
-      title: Root Type for Deposit
-      description: Object for making a deposit to the Netmobiel system, converting
-        euros to credits.
-      type: object
-      properties:
-        description:
-          type: string
-        amountCredits:
-          format: int32
-          type: integer
-        returnUrl:
-          type: string
-      example:
-        description: Koop credits
-        amountCredits: 100
-        returnUrl: app://netmobielapp/payment-done
     PaymentLink:
       title: Root Type for PaymentLink
       description: Contains a url to the payment page for making a deposit.
@@ -531,7 +513,7 @@ components:
       - id
       - transactionTime
       - type
-      - accountReference
+      - ncan
       - transactionType
       type: object
       properties:
@@ -555,17 +537,13 @@ components:
           description: The amount of credits involved in the transaction.
           type: integer
         accountName:
-          description: 'The account as known by the user. Example: `current` for tracking
-            the amount of credits owned by the user.'
+          description: The name of the account.
           type: string
         type:
           description: The type of the entry.
           enum:
           - DEBIT
           - CREDIT
-          type: string
-        accountReference:
-          description: Reference to the account, a unique id.
           type: string
         transactionType:
           description: The type of transaction, the purpose of the transaction.
@@ -576,25 +554,51 @@ components:
           - RESERVATION
           - RELEASE
           type: string
-        merchantReference:
+        counterparty:
+          description: The name of the other party involved in a payment.
+          type: string
+        context:
           description: The reference to a netmobiel object. This will be a urn to
             the object.
           type: string
-        counterparty:
-          description: The name of the other party involved in a payment.
+        ncan:
+          description: The Netmobiel Credit Account Number, a unique id.
           type: string
       example:
         accountingTime: 2019-06-17T15:59:00Z
         transactionTime: 2019-06-17T16:30:00Z
         description: Rit met Coby Hoekstra naar Zelhem
-        accountReference: PLA-51
+        ncan: PLA-51
         accountName: M. Pietersen
         id: 12345
         amount: 5
         type: CREDIT
         transactionType: PAYMENT
-        merchantReference: urn:nb:rs:Booking:53
+        context: urn:nb:rs:Booking:53
         counterparty: Jan Jansen
+    DepositRequest:
+      title: Root Type for Deposit
+      description: Object for making a deposit to the Netmobiel system, converting
+        euros to credits.
+      type: object
+      properties:
+        description:
+          description: The description to display on the payment page.
+          type: string
+        amountCredits:
+          format: int32
+          description: The amount of credits to buy. Use the `/settings` endpoint
+            to retrieve the exchange rate.
+          type: integer
+        returnUrl:
+          description: 'The return url for the payment provider to return to. The
+            url will be extended with two query parameters: A project_id and an order_id.
+            Both parameters must be passed on to a call to the `deposit-events` end-point. '
+          type: string
+      example:
+        description: Koop credits
+        amountCredits: 100
+        returnUrl: app://netmobielapp/payment-done
   responses:
     InternalServerError:
       content:
