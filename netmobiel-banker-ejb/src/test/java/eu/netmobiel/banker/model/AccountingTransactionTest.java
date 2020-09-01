@@ -28,9 +28,9 @@ public class AccountingTransactionTest {
 		ledger = new Ledger();
     	ledger.setStartPeriod(Instant.parse(startTime));
     	ledger.setName(String.format("%d", ledger.getStartPeriod().atOffset(ZoneOffset.UTC).getYear()));
-        User user1 = new User("U1", "A", "Family U1");
-        User user2 = new User("U2", "B", "Family U2");
-        User user3 = new User("U3", "C", "Family U3");
+        User user1 = new User("U1", "A", "Family U1", null);
+        User user2 = new User("U2", "B", "Family U2", null);
+        User user3 = new User("U3", "C", "Family U3", null);
     	account1 = Fixture.createAccount("account-1", user1.createAccountName(), AccountType.LIABILITY);
     	account2 = Fixture.createAccount("account-2", user2.createAccountName(), AccountType.LIABILITY); 
     	account3 = Fixture.createAccount("account-3", user3.createAccountName(), AccountType.LIABILITY); 

@@ -14,7 +14,6 @@ import javax.ws.rs.core.Response;
 import eu.netmobiel.banker.api.UsersApi;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
 import eu.netmobiel.banker.api.mapping.UserMapper;
-import eu.netmobiel.banker.api.model.Deposit;
 import eu.netmobiel.banker.api.model.PaymentLink;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.User;
@@ -51,7 +50,7 @@ public class UsersResource implements UsersApi {
     }
 
     @Override
-	public Response createDeposit(String userId, Deposit deposit) {
+	public Response createDeposit(String userId, eu.netmobiel.banker.api.model.DepositRequest deposit) {
 		Response rsp = null;
 		User user = resolveUserReference(userId, true);
 		String paymentUrl = ledgerService.createDepositRequest(user.getPersonalAccount(), deposit.getAmountCredits(), deposit.getDescription(), deposit.getReturnUrl());
@@ -79,7 +78,7 @@ public class UsersResource implements UsersApi {
 		Response rsp = null;
 		try {
 			User user = resolveUserReference(userId, true);
-			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getReference(), si, ui, maxResults, offset); 
+			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getNcan(), si, ui, maxResults, offset); 
 			rsp = Response.ok(accountingEntryMapper.map(result)).build();
 		} catch (ApplicationException ex) {
 			throw new WebApplicationException(ex);

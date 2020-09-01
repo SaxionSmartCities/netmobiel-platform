@@ -19,8 +19,8 @@ public class Fixture {
 		// No instances allowed
 	}
 
-	public static User createUser(String identity, String givenName, String familyName) {
-		return new User(identity, givenName, familyName);
+	public static User createUser(String identity, String givenName, String familyName, String email) {
+		return new User(identity, givenName, familyName, email);
 	}
 	
 	public static User createUser(LoginContext loginContext) {
@@ -33,33 +33,33 @@ public class Fixture {
 	}
 
 	public static User createUser(AccessToken token) {
-		return new User(token.getSubject(), token.getGivenName(), token.getFamilyName());
+		return new User(token.getSubject(), token.getGivenName(), token.getFamilyName(), token.getEmail());
 	}
 
 	public static User createDriver1() {
-		return createUser("ID1", "Carla1", "Netmobiel");
+		return createUser("ID1", "Carla1", "Netmobiel", null);
 	}
 	
 	public static User createDriver2() {
-		return createUser("ID2", "Carla2", "Netmobiel");
+		return createUser("ID2", "Carla2", "Netmobiel", null);
 	}
 	public static User createDriver3() {
-		return createUser("ID3", "Carla3", "Netmobiel");
+		return createUser("ID3", "Carla3", "Netmobiel", null);
 	}
 
 	public static User createPassenger1() {
-		return createUser("IP1", "Simon1", "Netmobiel");
+		return createUser("IP1", "Simon1", "Netmobiel", null);
 	}
 	
 	public static User createPassenger2() {
-		return createUser("IP2", "Simon2", "Netmobiel");
+		return createUser("IP2", "Simon2", "Netmobiel", null);
 	}
 
-    public static Account createAccount(String reference, String name, AccountType type) {
+    public static Account createAccount(String ncan, String name, AccountType type) {
     	Account acc = new Account();
     	acc.setAccountType(type);
     	acc.setName(name);
-    	acc.setReference(reference);
+    	acc.setNcan(ncan);
     	return acc;
     }
     

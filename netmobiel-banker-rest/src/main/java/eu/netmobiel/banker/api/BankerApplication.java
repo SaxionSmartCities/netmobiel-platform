@@ -29,6 +29,9 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.banker.api.resource.AccountingEntriesResource;
 import eu.netmobiel.banker.api.resource.BalancesResource;
+import eu.netmobiel.banker.api.resource.DepositEventsResource;
+import eu.netmobiel.banker.api.resource.SettingsResource;
+import eu.netmobiel.banker.api.resource.UsersResource;
 import eu.netmobiel.commons.Version;
 import eu.netmobiel.commons.jaxrs.ApplicationExceptionMapper;
 import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
@@ -75,6 +78,10 @@ public class BankerApplication extends Application {
         Set<Class<?>> resources = new HashSet<>();
         resources.add(AccountingEntriesResource.class);
         resources.add(BalancesResource.class);
+        resources.add(DepositEventsResource.class);
+        resources.add(SettingsResource.class);
+        resources.add(UsersResource.class);
+        resources.add(Jackson2ObjectMapperContextResolver.class);
         resources.add(OffsetDateTimeParamConverterProvider.class);
         resources.add(WebApplicationExceptionMapper.class);
         resources.add(EJBExceptionMapper.class);

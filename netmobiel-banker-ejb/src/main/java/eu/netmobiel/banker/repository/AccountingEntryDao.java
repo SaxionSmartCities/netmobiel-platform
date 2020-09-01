@@ -56,7 +56,7 @@ public class AccountingEntryDao extends AbstractDao<AccountingEntry, Long> {
         Root<AccountingEntry> entry = cq.from(AccountingEntry.class);
         List<Predicate> predicates = new ArrayList<>();
         if (accountReference != null) {
-            Predicate predAccRef = cb.equal(entry.get(AccountingEntry_.account).get(Account_.reference), accountReference);
+            Predicate predAccRef = cb.equal(entry.get(AccountingEntry_.account).get(Account_.ncan), accountReference);
             predicates.add(predAccRef);
         }
         if (since != null) {

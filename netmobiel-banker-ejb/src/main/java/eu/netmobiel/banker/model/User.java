@@ -45,7 +45,8 @@ import eu.netmobiel.commons.model.NetMobielUser;
 @Entity
 // You cannot have a table called 'user' in postgres, it is a reserved keyword
 @Table(name = "bn_user", uniqueConstraints = {
-	    @UniqueConstraint(name = "cs_managed_identity_unique", columnNames = { "managed_identity" })
+	    @UniqueConstraint(name = "cs_managed_identity_unique", columnNames = { "managed_identity" }),
+	    @UniqueConstraint(name = "cs_personal_account_unique", columnNames = { "personal_account" })
 })
 @Vetoed
 @SequenceGenerator(name = "user_sg", sequenceName = "user_id_seq", allocationSize = 1, initialValue = 50)
@@ -83,19 +84,21 @@ public class User implements NetMobielUser, Serializable {
     	
     }
     
-    public User(NetMobielUser nbuser) {
-    	this(nbuser.getManagedIdentity(), nbuser.getGivenName(), nbuser.getFamilyName());
+    public User(String identity) {
+    	this(identity, null, null, null);
     }
     
-    public User(String identity, String givenName, String familyName) {
+    public User(NetMobielUser nbuser) {
+    	this(nbuser.getManagedIdentity(), nbuser.getGivenName(), nbuser.getFamilyName(), nbuser.getEmail());
+    }
+    
+    public User(String identity, String givenName, String familyName, String email) {
     	this.managedIdentity = identity;
     	this.givenName = givenName;
     	this.familyName = familyName;
+    	this.email = email;
     }
     
-    public User(String identity) {
-    	this(identity, null, null);
-    }
 	public Long getId() {
 		return id;
 	}

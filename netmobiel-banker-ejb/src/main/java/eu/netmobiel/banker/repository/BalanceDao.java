@@ -50,22 +50,30 @@ public class BalanceDao extends AbstractDao<Balance, Long> {
 		return tq.getSingleResult();
 	}
 	
-	public Balance findByLedgerAndAccountReference(@NotNull Ledger ledger, @NotNull String accountReference) throws NoResultException, NonUniqueResultException {
-		String q = "from Balance bal where bal.ledger = :ledger and bal.account.reference = :accountReference";
+//	public Balance findByLedgerAndAccount(@NotNull Ledger ledger, @NotNull Integer accountId) throws NoResultException, NonUniqueResultException {
+//		String q = "from Balance bal where bal.ledger = :ledger and bal.account.id = :accountId";
+//		TypedQuery<Balance> tq = em.createQuery(q, Balance.class);
+//		tq.setParameter("ledger", ledger);
+//		tq.setParameter("accountId", accountId);
+//		return tq.getSingleResult();
+//	}
+//	
+	public Balance findByLedgerAndAccountNumber(@NotNull Ledger ledger, @NotNull String ncan) throws NoResultException, NonUniqueResultException {
+		String q = "from Balance bal where bal.ledger = :ledger and bal.account.ncan = :ncan";
 		TypedQuery<Balance> tq = em.createQuery(q, Balance.class);
 		tq.setParameter("ledger", ledger);
-		tq.setParameter("accountReference", accountReference);
+		tq.setParameter("ncan", ncan);
 		return tq.getSingleResult();
 	}
 	
-    public PagedResult<Long> listBalances(String accountReference, @NotNull Ledger ledger, Integer maxResults, Integer offset) {
+    public PagedResult<Long> listBalances(Account acc, @NotNull Ledger ledger, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Balance> entry = cq.from(Balance.class);
         List<Predicate> predicates = new ArrayList<>();
         predicates.add(cb.equal(entry.get(Balance_.ledger), ledger));
-        if (accountReference != null) {
-            Predicate predAccRef = cb.equal(entry.get(Balance_.account).get(Account_.reference), accountReference);
+        if (acc != null) {
+            Predicate predAccRef = cb.equal(entry.get(Balance_.account), acc);
             predicates.add(predAccRef);
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
@@ -76,7 +84,7 @@ public class BalanceDao extends AbstractDao<Balance, Long> {
           totalCount = em.createQuery(cq).getSingleResult();
         } else {
 	        cq.select(entry.get(Balance_.id));
-	        cq.orderBy(cb.desc(entry.get(Balance_.account).get(Account_.reference)));
+	        cq.orderBy(cb.desc(entry.get(Balance_.account).get(Account_.id)));
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
 			tq.setMaxResults(maxResults);

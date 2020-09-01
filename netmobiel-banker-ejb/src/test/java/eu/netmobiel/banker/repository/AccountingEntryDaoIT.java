@@ -114,9 +114,9 @@ public class AccountingEntryDaoIT {
         em.joinTransaction();
         log.debug("Inserting records...");
         ledger = createLedger("ledger-1", "2020-01-01T01:00:00Z", null);
-        User user1 = new User("U1", "A", "Family U1");
-        User user2 = new User("U2", "B", "Family U2");
-        User user3 = new User("U3", "C", "Family U3"); 
+        User user1 = new User("U1", "A", "Family U1", null);
+        User user2 = new User("U2", "B", "Family U2", null);
+        User user3 = new User("U3", "C", "Family U3", null); 
         em.persist(ledger);
     	em.persist(user1);
     	em.persist(user2);
@@ -234,14 +234,14 @@ public class AccountingEntryDaoIT {
     	dump("listEntries 2", entries);
 
     	// TEST Account reference
-    	accref = account1.getReference();
+    	accref = account1.getNcan();
     	actual = accountingEntryDao.listAccountingEntries(accref, since, until, 10, 0);
     	assertNotNull(actual);
     	assertEquals(3, actual.getData().size());
     	entries = accountingEntryDao.fetch(actual.getData(), null, AccountingEntry::getId);
     	dump("listEntries - " + accref, entries);
     	for (AccountingEntry entry : entries) {
-    		assertEquals(accref, entry.getAccount().getReference());
+    		assertEquals(accref, entry.getAccount().getNcan());
 		}
 
     	// TEST since

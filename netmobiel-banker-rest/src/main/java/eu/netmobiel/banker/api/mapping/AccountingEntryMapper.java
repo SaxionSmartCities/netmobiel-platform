@@ -24,12 +24,12 @@ public abstract class AccountingEntryMapper {
 
 	@Mapping(target = "type", source = "entryType")
 	@Mapping(target = "accountName", source = "account.name")
-	@Mapping(target = "accountReference", source = "account.reference")
+	@Mapping(target = "ncan", source = "account.ncan")
 	@Mapping(target = "accountingTime", source = "transaction.accountingTime")
 	@Mapping(target = "transactionTime", source = "transaction.transactionTime")
 	@Mapping(target = "description", source = "transaction.description")
 	@Mapping(target = "transactionType", source = "transaction.transactionType")
-	@Mapping(target = "merchantReference", source = "transaction.reference")
+	@Mapping(target = "context", source = "transaction.context")
 	public abstract eu.netmobiel.banker.api.model.Statement map(AccountingEntry source);
 	
 	public abstract eu.netmobiel.banker.api.model.Page map(PagedResult<AccountingEntry> source);

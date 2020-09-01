@@ -72,6 +72,7 @@ public class UserManager {
     			});
     	dbuser.setFamilyName(user.getFamilyName()); 
     	dbuser.setGivenName(user.getGivenName());
+    	dbuser.setEmail(user.getEmail());
     	if (dbuser.getPersonalAccount() == null) {
     		userCreatedEvent.fire(dbuser);
     	}
@@ -142,7 +143,7 @@ public class UserManager {
         		user = userDao.find(did).orElse(null);
         	} else if (module == NetMobielModule.KEYCLOAK) {
         		String managedIdentity = UrnHelper.getSuffix(userRef);
-        		user = userDao.findByManagedIdentity(managedIdentity).orElseGet(() -> new User(managedIdentity, null, null));
+        		user = userDao.findByManagedIdentity(managedIdentity).orElseGet(() -> new User(managedIdentity));
         	}
     	} else {
 			Long did = BankerUrnHelper.getId(User.URN_PREFIX, userRef);

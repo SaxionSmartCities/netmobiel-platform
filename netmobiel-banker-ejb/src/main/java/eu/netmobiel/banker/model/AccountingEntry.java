@@ -136,7 +136,7 @@ public class AccountingEntry {
 	@Override
 	public String toString() {
 		return String.format("AccountingEntry [%s, %s, %s, %s, '%s', %s, %s ]", id,
-				account.getReference(), amount, entryType, transaction.getDescription(), 
+				account.getNcan(), amount, entryType, transaction.getDescription(), 
 				DateTimeFormatter.ISO_INSTANT.format(transaction.getAccountingTime()), 
 				DateTimeFormatter.ISO_INSTANT.format(transaction.getTransactionTime()));
 	}

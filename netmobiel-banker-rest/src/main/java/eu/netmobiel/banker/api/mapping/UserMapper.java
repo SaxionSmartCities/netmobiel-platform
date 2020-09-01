@@ -4,6 +4,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import eu.netmobiel.banker.api.mapping.annotation.UserMapperQualifier;
 import eu.netmobiel.banker.model.User;
 
 /**
@@ -13,6 +14,7 @@ import eu.netmobiel.banker.model.User;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
+@UserMapperQualifier
 public abstract class UserMapper {
 
 	@Mapping(target = "credits", source = "personalAccount.actualBalance.endAmount")

@@ -19,6 +19,8 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
+import eu.netmobiel.banker.util.BankerUrnHelper;
+
 /**
  * Class to capture a request to deposit credits into the NetMobiel banker system. The DepositRequest is connected to 
  * the PaymentLink defined by the payment Provider. 
@@ -33,6 +35,7 @@ import javax.validation.constraints.Size;
 @Vetoed
 @SequenceGenerator(name = "deposit_request_sg", sequenceName = "deposit_request_seq", allocationSize = 1, initialValue = 50)
 public class DepositRequest {
+	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(DepositRequest.class);
 	public static final int DESCRIPTION_MAX_LENGTH = 128;
 	public static final int MERCHANT_ORDER_ID_MAX_LENGTH = 48;
 	public static final int PAYMENT_LINK_ID_MAX_LENGTH = 48;
@@ -40,6 +43,9 @@ public class DepositRequest {
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "deposit_request_sg")
     private Long id;
+
+    @Transient
+    private String depositRequestRef;
 
 	/**
 	 * The amount of credits to deposit
@@ -213,6 +219,13 @@ public class DepositRequest {
 
 	public void setReturnUrl(String returnUrl) {
 		this.returnUrl = returnUrl;
+	}
+
+	public String getDepositRequestRef() {
+		if (depositRequestRef == null) {
+			depositRequestRef = BankerUrnHelper.createUrn(DepositRequest.URN_PREFIX, getId());
+		}
+		return depositRequestRef;
 	}
 
 }

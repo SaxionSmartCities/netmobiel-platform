@@ -134,16 +134,16 @@ public class AccountDaoIT {
     	final String accref = "account-1"; 
 		Account account= Fixture.createAccount(accref, "U1", AccountType.LIABILITY);
     	accountDao.save(account);
-    	Account actual = accountDao.findByReference(accref).orElse(null);
+    	Account actual = accountDao.findByAccountNumber(accref).orElse(null);
     	assertNotNull(actual);
-    	assertEquals(accref, actual.getReference());
+    	assertEquals(accref, actual.getNcan());
     	dump("saveAccount", Collections.singletonList(actual));
     }
 
     @Test
     public void findByReference_NotFound() {
     	final String accref = "account-X";
-		Account actual = accountDao.findByReference(accref).orElse(null);
+		Account actual = accountDao.findByAccountNumber(accref).orElse(null);
 		assertNull(actual);
     }
 
@@ -153,8 +153,8 @@ public class AccountDaoIT {
     	String name2 = "Account 2";
     	final String accref1 = "account-1"; 
     	final String accref2 = "account-2"; 
-    	accountDao.save(Fixture.createAccount(accref2, name1, AccountType.LIABILITY));
-    	accountDao.save(Fixture.createAccount(accref1, name2, AccountType.LIABILITY));
+    	accountDao.save(Fixture.createAccount(accref1, name1, AccountType.LIABILITY));
+    	accountDao.save(Fixture.createAccount(accref2, name2, AccountType.LIABILITY));
     	PagedResult<Long> actual = accountDao.listAccounts(null, 0, 0);
     	assertNotNull(actual);
     	assertEquals(0, actual.getCount());
@@ -169,7 +169,7 @@ public class AccountDaoIT {
     	assertNull(actual.getTotalCount());
     	List<Account> accounts = accountDao.fetch(actual.getData(), null, Account::getId);
     	// sorting by ref asc
-    	assertEquals(accref1, accounts.get(0).getReference());
+    	assertEquals(accref1, accounts.get(0).getNcan());
 
     	actual = accountDao.listAccounts(null, 1, 1);
     	assertNotNull(actual);
@@ -177,8 +177,8 @@ public class AccountDaoIT {
     	assertEquals(1, actual.getData().size());
     	assertNull(actual.getTotalCount());
     	accounts = accountDao.fetch(actual.getData(), null, Account::getId);
-    	// sorting by ref asc
-    	assertEquals(accref2, accounts.get(0).getReference());
+    	// sorting by id asc
+    	assertEquals(accref2, accounts.get(0).getNcan());
 
     	actual = accountDao.listAccounts(AccountType.LIABILITY, 0, 0);
     	assertNotNull(actual);
@@ -191,7 +191,7 @@ public class AccountDaoIT {
     	assertEquals(2, actual.getCount());
     	accounts = accountDao.fetch(actual.getData(), null, Account::getId);
     	// sorting by ref asc
-    	assertEquals(accref1, accounts.get(0).getReference());
+    	assertEquals(accref1, accounts.get(0).getNcan());
 
     	actual = accountDao.listAccounts(AccountType.ASSET, 0, 0);
     	assertNotNull(actual);

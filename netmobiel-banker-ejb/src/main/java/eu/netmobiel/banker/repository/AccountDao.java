@@ -38,13 +38,13 @@ public class AccountDao extends AbstractDao<Account, Long> {
 		return em;
 	}
 
-	public Optional<Account> findByReference(String reference) {
-		String q = "from Account acc where acc.reference = :reference";
+	public Optional<Account> findByAccountNumber(String ncan) {
+		String q = "from Account acc where acc.ncan = :ncan";
 		TypedQuery<Account> tq = em.createQuery(q, Account.class);
-		tq.setParameter("reference", reference);
+		tq.setParameter("ncan", ncan);
 		List<Account> accounts = tq.getResultList();
 		if (accounts.size() > 1) {
-			throw new IllegalStateException("Multiple account with same reference: " + reference);
+			throw new IllegalStateException("Multiple accounts with same NCAN: " + ncan);
 		}
 		return Optional.ofNullable(accounts.isEmpty() ? null : accounts.get(0));
 	}
@@ -73,7 +73,7 @@ public class AccountDao extends AbstractDao<Account, Long> {
           totalCount = em.createQuery(cq).getSingleResult();
         } else {
 	        cq.select(account.get(Account_.id));
-	        cq.orderBy(cb.asc(account.get(Account_.reference)));
+	        cq.orderBy(cb.asc(account.get(Account_.id)));
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
 			tq.setMaxResults(maxResults);

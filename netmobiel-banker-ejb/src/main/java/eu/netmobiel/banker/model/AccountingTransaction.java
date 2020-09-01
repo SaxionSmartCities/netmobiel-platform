@@ -52,6 +52,7 @@ public class AccountingTransaction {
 	/**
 	 * The time of the actual transaction.
 	 */
+	@NotNull
 	@Column(name = "transaction_time", nullable = false)
     private Instant transactionTime;
 
@@ -59,15 +60,15 @@ public class AccountingTransaction {
 	 * The time of the financial fact the transaction applies to.
 	 * The accounting time must lay within the ledger period.
 	 */
+	@NotNull
 	@Column(name = "accounting_time", nullable = false)
     private Instant accountingTime;
 
 	/**
 	 * The context of the accounting entry. The context is a urn, referring to an object in the system.
 	 */
-    @NotNull
-	@Column(name = "reference", length = 32, nullable = true)
-	private String reference;
+	@Column(name = "context", length = 32, nullable = true)
+	private String context;
 
     /**
 	 * The type of the transaction.
@@ -92,11 +93,11 @@ public class AccountingTransaction {
         this.accountingEntries = new ArrayList<>();
     }
     
-    AccountingTransaction(TransactionType type, String description, String reference, Instant accountingTime, Instant transactionTime) {
+    AccountingTransaction(TransactionType type, String description, String context, Instant accountingTime, Instant transactionTime) {
     	this();
     	this.transactionType = type;
     	this.description = description;
-    	this.reference = reference;
+    	this.context = context;
         this.accountingTime = accountingTime;
         this.transactionTime = transactionTime;
     }
@@ -140,12 +141,12 @@ public class AccountingTransaction {
 		this.accountingTime = accountingTime;
 	}
 
-	public String getReference() {
-		return reference;
+	public String getContext() {
+		return context;
 	}
 
-	public void setReference(String reference) {
-		this.reference = reference;
+	public void setContext(String context) {
+		this.context = context;
 	}
 
 	public TransactionType getTransactionType() {
@@ -160,8 +161,8 @@ public class AccountingTransaction {
 		return ledger;
 	}
 
-	static AccountingTransaction.Builder newTransaction(Ledger ledger, TransactionType type, String description, String reference, Instant accountingTime, Instant transactionTime) {
-		AccountingTransaction tr = new AccountingTransaction(type, description, reference, accountingTime, transactionTime);
+	static AccountingTransaction.Builder newTransaction(Ledger ledger, TransactionType type, String description, String context, Instant accountingTime, Instant transactionTime) {
+		AccountingTransaction tr = new AccountingTransaction(type, description, context, accountingTime, transactionTime);
 		tr.ledger = ledger;
 		return new Builder(tr);
 	}

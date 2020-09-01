@@ -34,6 +34,7 @@ import eu.netmobiel.banker.repository.UserDao;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.TokenGenerator;
 import eu.netmobiel.payment.client.PaymentClient;
 import eu.netmobiel.payment.client.model.PaymentLink;
 import eu.netmobiel.payment.client.model.PaymentLinkStatus;
@@ -94,20 +95,20 @@ public class LedgerService {
     /**
      * A Netmobiel user deposits credits. The balance of the netmobiel credit system grows: the account of the user gets
      * more credits and the banking reserve of Netmobiel is equally increased.
-     * @param name the external reference of the netmobiel account 
+     * @param acc the netmobiel account to deposit to. 
      * @param amount the amount of credits
      * @param when the time of this financial fact.
      * @description the description in the journal.
      */
-    public void deposit(String userAccountRef, int amount, OffsetDateTime when, String description) {
+    protected void deposit(Account acc, int amount, OffsetDateTime when, String description, String reference) {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance userAccountBalance = balanceDao.findByLedgerAndAccountReference(ledger, userAccountRef);
-    	Balance brab = balanceDao.findByLedgerAndAccountReference(ledger, ACC_REF_BANKING_RESERVE);  
+    	Balance userAccountBalance = balanceDao.findByLedgerAndAccount(ledger, acc);
+    	Balance brab = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE);  
     	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
     	expect(brab.getAccount(), AccountType.ASSET);
     	AccountingTransaction tr = ledger
-    			.createTransaction(TransactionType.DEPOSIT, description, null, when.toInstant(), Instant.now())
+    			.createTransaction(TransactionType.DEPOSIT, description, reference, when.toInstant(), Instant.now())
     			.debit(brab, amount, userAccountBalance.getAccount().getName())
 				.credit(userAccountBalance, amount, null)
 				.build();
@@ -117,20 +118,20 @@ public class LedgerService {
     /**
      * A Netmobiel user withdraws credits. The balance of the netmobiel credit system shrinks: the account of the user gets
      * less credits and the banking reserve of Netmobiel is equally decreased.
-     * @param name the external reference of the netmobiel account 
+     * @param acc the netmobiel account to withdraw from. 
      * @param amount the amount of credits
      * @param when the time of this financial fact.
      * @description the description in the journal.
      */
-    public void withdraw(String userAccountRef, int amount, OffsetDateTime when, String description) {
+    protected  void withdraw(Account acc, int amount, OffsetDateTime when, String description, String reference) {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance userAccountBalance = balanceDao.findByLedgerAndAccountReference(ledger, userAccountRef);  
-    	Balance brab = balanceDao.findByLedgerAndAccountReference(ledger, ACC_REF_BANKING_RESERVE);  
+    	Balance userAccountBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
+    	Balance brab = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE);  
     	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
     	expect(brab.getAccount(), AccountType.ASSET);
     	AccountingTransaction tr = ledger
-    			.createTransaction(TransactionType.WITHDRAWAL, description, null, when.toInstant(), Instant.now())
+    			.createTransaction(TransactionType.WITHDRAWAL, description, reference, when.toInstant(), Instant.now())
     			.credit(brab, amount, null)
 				.debit(userAccountBalance, amount, userAccountBalance.getAccount().getName())
     			.build();
@@ -141,18 +142,18 @@ public class LedgerService {
      * Transfers credits from one Netmobiel user to another. The balance of the netmobiel credit system does not change. The account of 
      * one user is decreased and the account of the other is equally increased.
      * Both account are expected to be liability accounts, i.e. user accounts.
-     * @param customer the external reference of the netmobiel account that pays for something
-     * @param beneficiary the external reference of the netmobiel account that will receive the credits.
+     * @param customer the netmobiel account that pays for something
+     * @param beneficiary the netmobiel account that will receive the credits.
      * @param amount the amount of credits
      * @param when the time of this financial fact.
      * @param description the description in the journal.
      * @param reference the contextual reference to a system object in the form of a urn.
      */
-    public void charge(String customer, String beneficiary, int amount, OffsetDateTime when, String description, String reference) {
+    protected void charge(Account customer, Account beneficiary, int amount, OffsetDateTime when, String description, String reference) {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance customerBalance = balanceDao.findByLedgerAndAccountReference(ledger, customer);  
-    	Balance counterpartyBalance = balanceDao.findByLedgerAndAccountReference(ledger, beneficiary);
+    	Balance customerBalance = balanceDao.findByLedgerAndAccount(ledger, customer);  
+    	Balance counterpartyBalance = balanceDao.findByLedgerAndAccount(ledger, beneficiary);
     	expect(customerBalance.getAccount(), AccountType.LIABILITY);
     	expect(counterpartyBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
@@ -163,32 +164,49 @@ public class LedgerService {
     	accountingTransactionDao.save(tr);
     }
 
-    public void reserve(String customer, int amount, OffsetDateTime when, String description, String reference) {
+    /**
+     * Reserves an amount of credits from one Netmobiel user for a yet to be delivered service. 
+     * @param acc the netmobiel account that will be charged
+     * @param amount the amount of credits
+     * @param when the time of this financial fact.
+     * @param description the description in the journal.
+     * @param reference the contextual reference to a system object in the form of a urn.
+     */
+    protected void reserve(Account acc, int amount, OffsetDateTime when, String description, String reference) {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance customerBalance = balanceDao.findByLedgerAndAccountReference(ledger, customer);  
-    	Balance rb = balanceDao.findByLedgerAndAccountReference(ledger, ACC_REF_RESERVATIONS);  
-    	expect(customerBalance.getAccount(), AccountType.LIABILITY);
+    	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
+    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);  
+    	expect(userBalance.getAccount(), AccountType.LIABILITY);
     	expect(rb.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
     			.createTransaction(TransactionType.RESERVATION, description, reference, when.toInstant(), Instant.now())
-    			.debit(customerBalance, amount, null)
-				.credit(rb, amount, customerBalance.getAccount().getName())
+    			.debit(userBalance, amount, null)
+				.credit(rb, amount, userBalance.getAccount().getName())
     			.build();
     	accountingTransactionDao.save(tr);
     }
 
-    public void release(String customer, int amount, OffsetDateTime when, String description, String reference) {
+    /**
+     * Releases an amount of credits from one Netmobiel user that was previously reserved. In practise the release will be followed in 
+     * single transaction by a charge be for the delivered service, unless it was cancelled. 
+     * @param acc the netmobiel account that will receive the unreserved credits. 
+     * @param amount the amount of credits
+     * @param when the time of this financial fact.
+     * @param description the description in the journal.
+     * @param reference the contextual reference to a system object in the form of a urn.
+     */
+    protected void release(Account acc, int amount, OffsetDateTime when, String description, String reference) {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance customerBalance = balanceDao.findByLedgerAndAccountReference(ledger, customer);  
-    	Balance rb = balanceDao.findByLedgerAndAccountReference(ledger, ACC_REF_RESERVATIONS);  
-    	expect(customerBalance.getAccount(), AccountType.LIABILITY);
+    	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
+    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);  
+    	expect(userBalance.getAccount(), AccountType.LIABILITY);
     	expect(rb.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
     			.createTransaction(TransactionType.RESERVATION, description, reference, when.toInstant(), Instant.now())
-    			.credit(customerBalance, amount, null)
-				.debit(rb, amount, customerBalance.getAccount().getName())
+    			.credit(userBalance, amount, null)
+				.debit(rb, amount, userBalance.getAccount().getName())
     			.build();
     	accountingTransactionDao.save(tr);
     }
@@ -262,7 +280,7 @@ public class LedgerService {
     	return new PagedResult<Account>(results, maxResults, offset, prs.getTotalCount());
     }
 
-    public PagedResult<Balance> listBalances(String accountReference, OffsetDateTime period, Integer maxResults, Integer offset) {
+    public PagedResult<Balance> listBalances(Account acc, OffsetDateTime period, Integer maxResults, Integer offset) {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
@@ -273,11 +291,11 @@ public class LedgerService {
         	period = OffsetDateTime.now();
         }
 		Ledger ledger = ledgerDao.findByDate(period.toInstant());
-    	PagedResult<Long> prs = balanceDao.listBalances(accountReference, ledger, 0, offset);
+    	PagedResult<Long> prs = balanceDao.listBalances(acc, ledger, 0, offset);
     	List<Balance> results = null;
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
-    		PagedResult<Long> ids = balanceDao.listBalances(accountReference, ledger, maxResults, offset);
+    		PagedResult<Long> ids = balanceDao.listBalances(acc, ledger, maxResults, offset);
     		results = balanceDao.fetch(ids.getData(), null, Balance::getId);
     	}
     	return new PagedResult<Balance>(results, maxResults, offset, prs.getTotalCount());
@@ -337,9 +355,9 @@ public class LedgerService {
      * @param type the account type.
      * @return the account  
      */
-    public void prepareAccount(String reference, String name, AccountType type) {
-    	accountDao.findByReference(reference)
-    		.orElseGet(() -> createAccount(reference, name, type));
+    public void prepareAccount(String ncan, String name, AccountType type) {
+    	accountDao.findByAccountNumber(ncan)
+    		.orElseGet(() -> createAccount(ncan, name, type));
     }
 
     /**
@@ -357,7 +375,7 @@ public class LedgerService {
     					.orElseThrow(() -> new IllegalStateException("No such user: " + newUser.getId()));
     		}
     		// Create a personal liability account. The reference id is directly related to the user primary key.
-    		String accRef = String.format("PLA-%d", dbUser.getId());
+    		String accRef = createNewAccountNumber("PLA");
     		String accName = String.format("%s %s", dbUser.getGivenName() != null ? dbUser.getGivenName() : "", dbUser.getFamilyName() != null ? dbUser.getFamilyName() : "").trim();
     		if (accName.isEmpty()) {
     			accName = accRef;
@@ -368,6 +386,22 @@ public class LedgerService {
     	}
     }
 
+    private String createNewAccountNumber(String prefix) {
+    	String ncan = null;
+    	int tries = 10;
+    	while (true) {
+    		ncan = String.format("%s-%s", prefix, TokenGenerator.createSecureToken());
+    		if (! accountDao.findByAccountNumber(ncan).isPresent()) {
+    			break;
+    		}
+    		--tries;
+    		if (tries == 0) {
+    			throw new IllegalStateException("Unable to create a NCAN");
+    		}
+    	}
+    	return ncan;
+    }
+    
     /**
      * Creates a payment link request at the payment provider of netmobiel
      * @param account account to deposit credits to.
@@ -384,16 +418,17 @@ public class LedgerService {
     	plink.amount = amountCredits * CREDIT_EXCHANGE_RATE;
     	plink.description = description;
     	plink.expirationPeriod = Duration.ofSeconds(PAYMENT_LINK_EXPIRATION_SECS);
-    	plink.merchantOrderId = String.format("NB-%d-%d", acc.getId(), Instant.now().getEpochSecond());
+    	plink.merchantOrderId = String.format("%s-%d", acc.getNcan(), Instant.now().getEpochSecond());
     	plink.returnUrl = returnUrl;
     	plink = paymentClient.createPaymentLink(plink);
-
+    	// Only id and payment url are added now by the client. Do not use other fields, they are not yet set!
     	dr.setAccount(acc);
     	dr.setAmountCredits(amountCredits);
     	dr.setAmountEurocents(plink.amount);
     	dr.setMerchantOrderId(plink.merchantOrderId);
     	dr.setDescription(plink.description);
-    	dr.setCreationTime(plink.created.toInstant());
+    	dr.setCreationTime(Instant.now());
+    	// The development environment of EMS Pay ignores our expiration period 
     	dr.setExprationTime(dr.getCreationTime().plusSeconds(plink.expirationPeriod.getSeconds()));
     	dr.setPaymentLinkId(plink.id);
     	dr.setStatus(PaymentStatus.ACTIVE);
@@ -405,11 +440,12 @@ public class LedgerService {
      * Verifies the deposition of credits by the order id supplied by the payment provider.
      * The order id is one of the parameters added to the return url after completing the payment at the payment page of
      * the payment provider. In addition, the order id is also part of the payment webhook. 
+     * @param paymentProjectId The project id as supplied by the payment provider.
      * @param paymentOrderId The order id as supplied by the payment provider.
      * @return true if the deposition of the payment link was added now or earlier. If false then deposition has not taken place (yet), or something
      * 			went wrong.
      */
-    public Optional<DepositRequest> verifyDeposition(String paymentOrderId) {
+    public Optional<DepositRequest> verifyDeposition(String paymentProjectId, String paymentOrderId) {
     	DepositRequest dr = null;
     	try {
 	    	PaymentLink plink = paymentClient.getPaymentLinkByOrderId(paymentOrderId);
@@ -418,7 +454,7 @@ public class LedgerService {
 	        	if (plink.status == PaymentLinkStatus.COMPLETED) {
 	        		// Transition to COMPLETED, add transaction to deposit credits in the NetMobiel system
 	        		dr.setCompletedTime(plink.completed.toInstant());
-	        		deposit(dr.getAccount().getReference(), dr.getAmountCredits(), dr.getCompletedTime().atOffset(ZoneOffset.UTC), dr.getDescription());
+	        		deposit(dr.getAccount(), dr.getAmountCredits(), dr.getCompletedTime().atOffset(ZoneOffset.UTC), dr.getDescription(), dr.getDepositRequestRef());
 	        		dr.setStatus(PaymentStatus.COMPLETED);
 	        	} else if (plink.status == PaymentLinkStatus.EXPIRED) {
 	        		dr.setStatus(PaymentStatus.EXPIRED);

@@ -66,8 +66,8 @@ public class PaymentClient {
     }
 
     /**
-     * Creates a new payment link. The object returned comprises the input properties, the link is and the paymnet page url.
-     * The other fields are not yet initialized by the payment provider.
+     * Creates a new payment link. The object returned comprises the input properties, the link is and the payment page url.
+     * The other fields are not yet initialised by the payment provider.
      * @param input the payment link object: amount, description , merchant order id, return url.
      * @return a payment link object
      */

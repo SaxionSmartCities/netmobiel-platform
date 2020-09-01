@@ -43,7 +43,7 @@ public class AccountingEntriesResource implements AccountingEntriesApi {
 						.resolveUrn(userRef)
 						.orElseThrow(() -> new NotFoundException("No such user: " + userRef));
 			}
-			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getReference(), si, ui, maxResults, offset); 
+			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getNcan(), si, ui, maxResults, offset); 
 			rsp = Response.ok(mapper.map(result)).build();
 		} catch (ApplicationException ex) {
 			throw new WebApplicationException(ex);

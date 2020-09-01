@@ -19,9 +19,12 @@ import javax.persistence.OneToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+
+import eu.netmobiel.banker.util.BankerUrnHelper;
 
 /**
  * Formal record that represents, in words, money or other unit of measurement, certain resources, claims to such 
@@ -37,13 +40,14 @@ import javax.validation.constraints.Size;
  */
 @Entity
 @Table(name = "account", uniqueConstraints = {
-	    @UniqueConstraint(name = "cs_account_unique", columnNames = { "reference" }),
+	    @UniqueConstraint(name = "cs_account_unique", columnNames = { "ncan" }),
 	    @UniqueConstraint(name = "cs_actual_balance_unique", columnNames = { "actual_balance" })
 })
 @Vetoed
 @SequenceGenerator(name = "account_sg", sequenceName = "account_seq", allocationSize = 1, initialValue = 50)
 public class Account {
-	public static final int ACCOUNT_REFERENCE_MAX_LENGTH = 32;
+	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(Account.class);
+	public static final int ACCOUNT_NCAN_MAX_LENGTH = 32;
 	public static final int ACCOUNT_NAME_MAX_LENGTH = 96;
 	
 	public static final Predicate<Account> isAsset = acc -> acc.getAccountType() == AccountType.ASSET;
@@ -54,15 +58,20 @@ public class Account {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "account_sg")
     private Long id;
 
+    @Transient
+    private String accountRef;
+    
 	/**
-	 * An account has a accountNumber. The accountNumber is the external identifier of the account.
+	 * An account has a NetMobiel Credit Account Number (NCAN). The account number could be seen as the external 
+	 * identifier of the account, but in practise it is only used for lookup of the system accounts by well-known names.
+	 * The accounts are not exposed to the outside world, so the NCAN is not used by users. 
 	 */
-	@Size(max = ACCOUNT_REFERENCE_MAX_LENGTH)
+	@Size(max = ACCOUNT_NCAN_MAX_LENGTH)
 	@NotNull
-	@Column(name = "reference", nullable = false, length = ACCOUNT_REFERENCE_MAX_LENGTH)
-    private String reference;
+	@Column(name = "ncan", nullable = false, length = ACCOUNT_NCAN_MAX_LENGTH)
+    private String ncan;
 
-    /**
+	/**
      * The account display name. For asset accounts the accounting name, for personal accounts the name of the user.
      */
 	@Size(max = ACCOUNT_NAME_MAX_LENGTH)
@@ -109,7 +118,7 @@ public class Account {
 
     public static Account newInstant(String aReference, String aName, AccountType aType) {
     	Account acc = new Account();
-    	acc.reference = aReference;
+    	acc.ncan = aReference;
     	acc.name = aName;
     	acc.accountType = aType;
         return acc;
@@ -128,12 +137,12 @@ public class Account {
 		this.id = id;
 	}
 
-	public String getReference() {
-		return reference;
+	public String getNcan() {
+		return ncan;
 	}
 
-	public void setReference(String reference) {
-		this.reference = reference;
+	public void setNcan(String ncan) {
+		this.ncan = ncan;
 	}
 
 	public AccountType getAccountType() {
@@ -192,7 +201,7 @@ public class Account {
 
 	@Override
 	public int hashCode() {
-		return Objects.hash(reference);
+		return Objects.hash(ncan);
 	}
 
 	@Override
@@ -207,11 +216,11 @@ public class Account {
 			return false;
 		}
 		Account other = (Account) obj;
-		return Objects.equals(reference, other.reference);
+		return Objects.equals(ncan, other.ncan);
 	}
 
-	@Override
+    @Override
 	public String toString() {
-		return String.format("Account [%s %s %s %s]", id, reference, name, accountType);
+		return String.format("Account [%s %s %s %s]", id, ncan, name, accountType);
 	}
 }

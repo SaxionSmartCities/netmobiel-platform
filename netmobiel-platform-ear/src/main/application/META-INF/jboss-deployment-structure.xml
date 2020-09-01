@@ -19,6 +19,9 @@
         <dependencies>
         	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-banker-ejb.jar"/>
         </dependencies>
+        <exclusions>
+            <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
+        </exclusions>
     </sub-deployment>
     <sub-deployment name="netmobiel-communicator-ejb.jar">
         <dependencies>

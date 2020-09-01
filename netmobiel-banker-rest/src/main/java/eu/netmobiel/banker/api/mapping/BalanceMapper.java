@@ -9,7 +9,6 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 import eu.netmobiel.banker.model.Balance;
-import eu.netmobiel.banker.model.User;
 import eu.netmobiel.commons.model.PagedResult;
 
 /**
@@ -18,14 +17,14 @@ import eu.netmobiel.commons.model.PagedResult;
  * @author Jaap Reitsma
  *
  */
-@Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
+@Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN,
+uses = { UserMapper.class })
 public abstract class BalanceMapper {
-
-	public abstract eu.netmobiel.banker.api.model.User map(User source);
 
 //	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "ledger", source = "ledger.name")
-	@Mapping(target = "account", source = "account.reference")
+	@Mapping(target = "ncan", source = "account.ncan")
+	@Mapping(target = "accountName", source = "account.name")
 	public abstract eu.netmobiel.banker.api.model.Balance map(Balance source);
 	
 	public abstract eu.netmobiel.banker.api.model.Page map(PagedResult<Balance> source);

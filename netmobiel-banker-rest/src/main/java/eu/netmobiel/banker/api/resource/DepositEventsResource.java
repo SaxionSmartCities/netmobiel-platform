@@ -7,14 +7,14 @@ import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.core.Response;
 
-import eu.netmobiel.banker.api.DepositsApi;
+import eu.netmobiel.banker.api.DepositEventsApi;
 import eu.netmobiel.banker.api.mapping.DepositRequestMapper;
 import eu.netmobiel.banker.api.model.PaymentEvent;
 import eu.netmobiel.banker.model.DepositRequest;
 import eu.netmobiel.banker.service.LedgerService;
 
 @ApplicationScoped
-public class DepositsResource implements DepositsApi {
+public class DepositEventsResource implements DepositEventsApi {
 
 	@Inject
 	private DepositRequestMapper mapper;
@@ -25,7 +25,7 @@ public class DepositsResource implements DepositsApi {
 	@Override
 	public Response updateDepositStatus(PaymentEvent paymentEvent) {
 		Response rsp = null;
-		Optional<DepositRequest> depositRequest = ledgerService.verifyDeposition(paymentEvent.getOrderId());
+		Optional<DepositRequest> depositRequest = ledgerService.verifyDeposition(paymentEvent.getProjectId(), paymentEvent.getOrderId());
 		if (!depositRequest.isPresent()) {
 			throw new NotFoundException("Order id not found");
 		}
