@@ -228,4 +228,9 @@ public class DepositRequest {
 		return depositRequestRef;
 	}
 
+	@Override
+	public String toString() {
+		return String.format("DepositRequest [%s %s %s%s]", id, merchantOrderId, paymentLinkId, status);
+	}
+
 }

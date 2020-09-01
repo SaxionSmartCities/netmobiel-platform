@@ -1,5 +1,7 @@
 package eu.netmobiel.banker.repository;
 
+import java.util.List;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
@@ -10,6 +12,7 @@ import javax.persistence.TypedQuery;
 
 import eu.netmobiel.banker.annotation.BankerDatabase;
 import eu.netmobiel.banker.model.DepositRequest;
+import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.commons.repository.AbstractDao;
 
 @ApplicationScoped
@@ -35,4 +38,10 @@ public class DepositRequestDao extends AbstractDao<DepositRequest, Long> {
 		return tq.getSingleResult();
 	}
 	
+	public List<DepositRequest> listByStatus(PaymentStatus status) {
+		String q = "from DepositRequest dr where dr.status = :status";
+		TypedQuery<DepositRequest> tq = em.createQuery(q, DepositRequest.class);
+		tq.setParameter("status", status);
+		return tq.getResultList();
+	}
 }

@@ -7,6 +7,7 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
+import javax.ejb.Schedule;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
@@ -60,7 +61,6 @@ public class LedgerService {
 	public static final int PAYMENT_LINK_EXPIRATION_SECS = 15 * 60;
 	public static final int CREDIT_EXCHANGE_RATE = 19;	// 1 credit is x euro cent
 
-    @SuppressWarnings("unused")
     @Inject
     private Logger log;
     
@@ -83,6 +83,30 @@ public class LedgerService {
     @Inject
     private PaymentClient paymentClient;
     
+    /**
+     * Verify the active deposits every hour. 
+     */
+	@Schedule(info = "Deposit check", hour = "*/1", minute = "0", second = "0", persistent = false /* non-critical job */)
+	public void verifyActiveDepositRequests() {
+		// Get the list of active deposit requests
+		// For each request:
+		//    Check the status at the provider
+		List<DepositRequest> activeRequests = depositRequestDao.listByStatus(PaymentStatus.ACTIVE);
+		if (! activeRequests.isEmpty()) {
+			log.info(String.format("Checking %d active deposit request(s)", activeRequests.size()));
+			for (DepositRequest dr : activeRequests) {
+		    	try {
+			    	PaymentLink plink = paymentClient.getPaymentLink(dr.getPaymentLinkId());
+					synchronizeDepositionRequest(dr, plink);
+		    	} catch (Exception ex) {
+		    		log.error("Error verivying deposit request - " + ex.getMessage());
+		    	}
+			}
+			activeRequests = depositRequestDao.listByStatus(PaymentStatus.ACTIVE);
+			log.info(String.format("Now %d active deposit requests", activeRequests.size()));
+		}
+	}
+	
     protected void expect(Account account, AccountType type) {
     	if (! Account.isOpen.test(account)) {
     		throw new IllegalArgumentException(String.format("Account is not open: %s", account.toString()));
@@ -450,19 +474,36 @@ public class LedgerService {
     	try {
 	    	PaymentLink plink = paymentClient.getPaymentLinkByOrderId(paymentOrderId);
 	    	dr = depositRequestDao.findByPaymentLink(plink.id);
-	    	if (dr.getStatus() == PaymentStatus.ACTIVE) {
-	        	if (plink.status == PaymentLinkStatus.COMPLETED) {
-	        		// Transition to COMPLETED, add transaction to deposit credits in the NetMobiel system
-	        		dr.setCompletedTime(plink.completed.toInstant());
-	        		deposit(dr.getAccount(), dr.getAmountCredits(), dr.getCompletedTime().atOffset(ZoneOffset.UTC), dr.getDescription(), dr.getDepositRequestRef());
-	        		dr.setStatus(PaymentStatus.COMPLETED);
-	        	} else if (plink.status == PaymentLinkStatus.EXPIRED) {
-	        		dr.setStatus(PaymentStatus.EXPIRED);
-	        	}
-	    	}
+	    	synchronizeDepositionRequest(dr, plink);
     	} catch (Exception ex) {
     		log.error("Error verivying deposition - " + ex.getMessage());
     	}
     	return Optional.ofNullable(dr == null ? null : dr);
+    }
+
+    /**
+     * Synchronizes the the deposit request with the payment link at the payment provider.
+     * @param dr The deposit request to verify.
+     * @param paymentLink The payment link object retrieved from the payment provider.
+     */
+    public void synchronizeDepositionRequest(DepositRequest dr, PaymentLink plink) {
+    	if (!plink.id.equals(dr.getPaymentLinkId())) {
+    		throw new IllegalArgumentException("Invalid combination of deposit request and payment link");
+    	}
+    	// Assure the request is in the persistence context
+    	DepositRequest dr_db = depositRequestDao.find(dr.getId())
+    			.orElseThrow(() -> new IllegalArgumentException("DepositRequest has gone: dr.getId()"));
+    	if (dr_db.getStatus() == PaymentStatus.ACTIVE) {
+        	if (plink.status == PaymentLinkStatus.COMPLETED) {
+        		// Transition to COMPLETED, add transaction to deposit credits in the NetMobiel system
+        		dr_db.setCompletedTime(plink.completed.toInstant());
+        		deposit(dr_db.getAccount(), dr_db.getAmountCredits(), dr_db.getCompletedTime().atOffset(ZoneOffset.UTC), dr_db.getDescription(), dr_db.getDepositRequestRef());
+        		dr_db.setStatus(PaymentStatus.COMPLETED);
+        		log.info(String.format("DepositRequest %d has completed", dr_db.getId()));
+        	} else if (plink.status == PaymentLinkStatus.EXPIRED) {
+        		dr_db.setStatus(PaymentStatus.EXPIRED);
+        		log.info(String.format("DepositRequest %d has expired", dr_db.getId()));
+        	}
+    	}
     }
 }
