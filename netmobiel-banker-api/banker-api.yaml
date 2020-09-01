@@ -426,10 +426,6 @@ components:
         ledger:
           description: The name of the accounting period, in general the fiscal year.
           type: string
-        userRef:
-          description: The user holding the account. The reference is a urn to the
-            keycloak managed identity.
-          type: string
         id:
           description: Database refrence of the entity.
           type: integer
@@ -440,12 +436,15 @@ components:
         ncan:
           description: The account number of the balance entry.
           type: string
+        accountName:
+          description: 'The name of the account. '
+          type: string
       example:
         startAmount: 54
         endAmount: 112
         ledger: "2020"
-        account: current
-        userRef: urn:nb:kc:user:919e1308-6fe0-4727-881f-419bffa1ca7b
+        ncan: PLA-1234567890
+        accountName: Nico Jansen
         id: 23
         modifiedTime: 2020-04-09T13:33:00.000Z
     Settings:
