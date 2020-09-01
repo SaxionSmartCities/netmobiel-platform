@@ -72,18 +72,20 @@ public class PaymentClient {
      * @return a payment link object
      */
     public PaymentLink createPaymentLink(PaymentLink input) {
-        WebTarget target = webClient.target(PAYMENT_LINKS_RESOURCE);
-        Response response = target.request()
+    	PaymentLink link = null;
+        try (Response response = webClient.target(PAYMENT_LINKS_RESOURCE).request()
                 .header(HttpHeaders.AUTHORIZATION, authorizationValue)
-                .post(Entity.entity(input, MediaType.APPLICATION_JSON));
-        if (response.getStatusInfo() != Response.Status.CREATED) {
-        	PaymentError error = response.readEntity(PaymentError.class);
-        	throw new WebApplicationException("Cannot create payment link: " + error.toString(), response.getStatus());
+                .post(Entity.entity(input, MediaType.APPLICATION_JSON))) {
+	        if (response.getStatusInfo() != Response.Status.CREATED) {
+	        	PaymentError error = response.readEntity(PaymentError.class);
+	        	throw new WebApplicationException("Cannot create payment link: " + error.toString(), response.getStatus());
+	        }
+	        // In testing the object returned has only the id and the payment url added. No timestamps and status yet.
+	        // Perhaps the API relies on the webhook status updates?
+	        // Fetch the rest of the parameters with a GET.
+	        link = response.readEntity(PaymentLink.class);
         }
-        // In testing the object returned has only the id and the payment url added. No timestamps and status yet.
-        // Perhaps the API relies on the webhook status updates?
-        // Fetch the rest of the parameters with a GET.
-        return response.readEntity(PaymentLink.class);
+        return link;
     }
 
     /**
@@ -93,13 +95,16 @@ public class PaymentClient {
      * @throws NotFoundException if the object is not found.
      */
     public PaymentLink getPaymentLink(String id) {
+    	PaymentLink link = null;
         WebTarget target = webClient.target(PAYMENT_LINKS_RESOURCE)
         		.path("{id}")
         		.resolveTemplate("id", id);
-        PaymentLink response = target.request()
+        try (Response response = target.request()
                 .header(HttpHeaders.AUTHORIZATION, authorizationValue)
-                .get(PaymentLink.class);
-        return response;
+                .get()) {
+        	link = response.readEntity(PaymentLink.class);
+        }
+        return link;
     }
 
     /**
@@ -109,13 +114,16 @@ public class PaymentClient {
      * @throws NotFoundException if the object is not found.
      */
     public PaymentOrder getPaymentOrder(String orderId) {
+    	PaymentOrder order= null;
         WebTarget target = webClient.target(PAYMENT_ORDERS_RESOURCE)
         		.path("{id}")
         		.resolveTemplate("id", orderId);
-        PaymentOrder response = target.request()
+        try (Response response = target.request()
                 .header(HttpHeaders.AUTHORIZATION, authorizationValue)
-                .get(PaymentOrder.class);
-        return response;
+                .get()) {
+        	order = response.readEntity(PaymentOrder.class); 
+        }
+        return order;
     }
     
     /**
