@@ -486,10 +486,10 @@ public class PlannerReport implements Serializable {
 		}
 		sb.append(" By: ").append(traverseModes.stream().map(m -> m.name()).collect(Collectors.joining(", ")));
 		if (errorVendorCode != null) {
-			sb.append(errorVendorCode).append(" ");
+			sb.append(" ").append(errorVendorCode);
 		}
 		if (errorText != null) {
-			sb.append(errorText);
+			sb.append(" ").append(errorText);
 		}
 		return sb.toString();
     }
