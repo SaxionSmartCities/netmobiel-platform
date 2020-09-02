@@ -26,8 +26,8 @@ TABLESPACE pg_default;
 CREATE SEQUENCE public.deposit_request_seq
     INCREMENT 1
     START 50
-    MINVALUE 1
-    MAXVALUE 9223372036854775807
+    NO MINVALUE
+    NO MAXVALUE
     CACHE 1;
 
 GRANT INSERT, SELECT, UPDATE, DELETE ON TABLE public.deposit_request TO banker;
