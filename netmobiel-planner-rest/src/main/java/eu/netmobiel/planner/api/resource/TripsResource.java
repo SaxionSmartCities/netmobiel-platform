@@ -125,9 +125,4 @@ public class TripsResource implements TripsApi {
     	return rsp;
 	}
 
-	@Override
-	public Response updateTrip(String tripId, eu.netmobiel.planner.api.model.Trip trip) {
-		throw new UnsupportedOperationException("Not implemented");
-	}
-
 }
