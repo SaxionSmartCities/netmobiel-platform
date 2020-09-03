@@ -58,20 +58,6 @@ paths:
       operationId: getTrip
       summary: Get a Trip
       description: Gets the details of a single instance of a `Trip`.
-    put:
-      requestBody:
-        description: Updated `Trip` information.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Trip'
-        required: true
-      responses:
-        "202":
-          description: Successful response.
-      operationId: updateTrip
-      summary: Update a Trip
-      description: Updates an existing `Trip`.
     delete:
       responses:
         "204":
@@ -396,8 +382,8 @@ paths:
           type: string
         in: query
       - name: inProgressOnly
-        description: Set this flag to 'true' if only plans that are still running
-          deleted trips should be returned. Default is false.
+        description: 'Set this flag to ''true'' if only plans that are still running
+          (that is: active shout-outs) should be returned. Default is false.'
         schema:
           type: boolean
         in: query
