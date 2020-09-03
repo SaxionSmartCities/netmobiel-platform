@@ -473,6 +473,8 @@ public class LedgerService {
     	DepositRequest dr = null;
     	try {
 	    	PaymentLink plink = paymentClient.getPaymentLinkByOrderId(paymentOrderId);
+	    	// Possible optimization: 
+	    	// First get payment link id, fetch deposit request, then if still ACTIVE get the payment link record.
 	    	dr = depositRequestDao.findByPaymentLink(plink.id);
 	    	synchronizeDepositionRequest(dr, plink);
     	} catch (Exception ex) {
