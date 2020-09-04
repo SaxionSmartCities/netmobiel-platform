@@ -911,6 +911,9 @@ components:
           description: A reference to the itinerary. Use this reference to create
             a trip.
           type: string
+        fareInCredits:
+          description: The amount of credits charged in total for this itinerary.
+          type: integer
     Trip:
       title: Root Type for Trip
       description: A Trip is a journey in which you go somewhere, usually for a short
