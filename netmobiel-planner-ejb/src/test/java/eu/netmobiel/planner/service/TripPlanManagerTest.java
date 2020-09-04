@@ -13,7 +13,6 @@ import java.util.List;
 import java.util.Set;
 
 import javax.enterprise.event.Event;
-import javax.inject.Inject;
 
 import org.junit.After;
 import org.junit.Before;
@@ -29,6 +28,7 @@ import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
+import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
@@ -75,6 +75,9 @@ public class TripPlanManagerTest {
 
 	@Injectable
     private Event<BookingCancelledEvent> bookingCancelledEvent;
+
+	@Injectable
+    private Event<Leg> quoteRequestedEvent;
 
 	@Injectable
     private RideManager rideManager;
