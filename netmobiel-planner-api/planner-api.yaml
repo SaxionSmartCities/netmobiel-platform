@@ -1213,6 +1213,9 @@ components:
           description: 'Flag to signal whether the transport provider requires a booking
             of the transport. '
           type: boolean
+        fareInCredits:
+          description: The amount of credits charged for this leg.
+          type: integer
       example:
         distance: 152
         duration: 123
