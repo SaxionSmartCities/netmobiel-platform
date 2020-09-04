@@ -175,7 +175,12 @@ public class Itinerary implements Serializable {
 	@JoinColumn(name = "trip_plan", foreignKey = @ForeignKey(name = "itinerary_trip_plan_fk"), nullable = true)
 	private TripPlan tripPlan;
 
-
+    /**
+     * The costs of travelling the itinerary in NetMobiel credits. This is the sum of the underlying leg costs.
+     */
+    @Column(name = "fare_credits")
+    private Integer fareInCredits;
+    
 	public Itinerary() {
     	
     }
@@ -188,6 +193,7 @@ public class Itinerary implements Serializable {
 		this.arrivalTime = other.arrivalTime;
 		this.departureTime = other.departureTime;
 		this.duration = other.duration;
+		this.fareInCredits = other.fareInCredits;
 		this.transfers = other.transfers;
 		this.transitTime = other.transitTime;
 		this.waitingTime = other.waitingTime;
@@ -354,6 +360,14 @@ public class Itinerary implements Serializable {
 		this.tripPlan = plan;
 	}
 
+	public Integer getFareInCredits() {
+		return fareInCredits;
+	}
+
+	public void setFareInCredits(Integer fareInCredits) {
+		this.fareInCredits = fareInCredits;
+	}
+
 	/**
 	 * Searches through the legs of this trip for a leg with a specific tripId. The trip id is a reference from the transport provider
 	 * and refers to a specific ride of a vehicle, both in rideshare and in public transport. In public transport the tripId refers 
@@ -405,6 +419,9 @@ public class Itinerary implements Serializable {
 		}
 		if (transfers != null) {
 			builder.append("Transfers ").append(transfers).append(" ");
+		}
+		if (fareInCredits != null) {
+			builder.append("Fare (cr) ").append(fareInCredits).append(" ");
 		}
 //		builder.append("\n");
 		if (legs != null) {

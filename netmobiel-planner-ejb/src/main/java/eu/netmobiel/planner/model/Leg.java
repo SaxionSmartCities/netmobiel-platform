@@ -239,6 +239,12 @@ public class Leg implements Serializable {
     @JoinColumn(name = "report", foreignKey = @ForeignKey(name = "leg_report_fk"))
     private PlannerReport plannerReport;
     
+    /**
+     * The costs of travelling over this leg in NetMobiel credits.
+     */
+    @Column(name = "fare_credits")
+    private Integer fareInCredits;
+    
     public Leg() {
     }
 
@@ -258,6 +264,7 @@ public class Leg implements Serializable {
 		this.driverId = other.driverId;
 		this.driverName = other.driverName;
 		this.duration = other.duration;
+		this.fareInCredits = other.fareInCredits;
 		this.from = other.from.copy();
 		// Copy by value
 		this.guideSteps = new ArrayList<>(other.getGuideSteps().stream().map(GuideStep::copy).collect(Collectors.toList()));
@@ -535,6 +542,14 @@ public class Leg implements Serializable {
 		this.plannerReport = plannerReport;
 	}
 
+	public Integer getFareInCredits() {
+		return fareInCredits;
+	}
+
+	public void setFareInCredits(Integer fareInCredits) {
+		this.fareInCredits = fareInCredits;
+	}
+
 	/**
      * Whether this leg is a transit leg or not.
      * @return Boolean true if the leg is a transit leg
@@ -556,6 +571,9 @@ public class Leg implements Serializable {
 		builder.append(duration).append("s ");
 		builder.append(distance).append("m ");
 		builder.append(traverseMode).append(" ");
+		if (fareInCredits != null) {
+			builder.append("Fare (cr) ").append(fareInCredits).append(" ");
+		}
 		if (routeShortName != null) {
 			builder.append(routeShortName).append(" ");
 		}

@@ -108,6 +108,8 @@ public class TripPlanManager {
     private Event<TravelOfferEvent> travelOfferProposedEvent;
     @Inject
     private Event<BookingCancelledEvent> bookingCancelledEvent;
+    @Inject
+    private Event<Leg> quoteRequestedEvent;
 
     
 
@@ -281,8 +283,8 @@ public class TripPlanManager {
 
     /**
      * Assign rideshare attributes to the car/rideshare legs. This functionality should probably be put closer to the rideshare service itself.
-     * @param leg
-     * @param ride
+     * @param leg The rideshare leg for the passenger 
+     * @param ride The ride carrying the passenger. 
      */
     protected void assignRideToPassengerLeg(Leg leg, Ride ride) {
 		leg.setDriverId(ride.getDriverRef());
@@ -292,6 +294,19 @@ public class TripPlanManager {
 		leg.setVehicleName(ride.getCar().getName());
 		leg.setTripId(ride.getRideRef());
 		leg.setTraverseMode(TraverseMode.RIDESHARE);
+		// Request synchronously a quote
+		quoteRequestedEvent.fire(leg);
+		// Quote received now
+    }
+
+    protected void finalizeItinerary(Itinerary itinerary) {
+    	Integer fare = itinerary.getLegs().stream()
+    		.filter(leg -> leg.getFareInCredits() != null)
+    		.mapToInt(leg -> leg.getFareInCredits())
+    		.sum();
+    	if (fare != null && fare > 0) {
+    		itinerary.setFareInCredits(fare);
+    	}
     }
 
     /**
@@ -516,7 +531,8 @@ public class TripPlanManager {
 	    		}
 			}
 		}
-
+		// Calculate totals
+		plan.getItineraries().forEach(it -> finalizeItinerary(it));
     	rankItineraries(plan);
     	// The itineraries are listed by the plan ordered by score descending
     	return plan;
