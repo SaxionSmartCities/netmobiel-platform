@@ -1,6 +1,7 @@
 package eu.netmobiel.overseer.processor;
 
 import java.text.MessageFormat;
+import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.time.format.FormatStyle;
@@ -78,6 +79,11 @@ public class BookingProcessor {
     public void initialize() {
     	defaultLocale = Locale.forLanguageTag(DEFAULT_LOCALE);
     }
+
+    private String formatDate(Instant instant) {
+    	return DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(instant.atZone(ZoneId.of(DEFAULT_TIME_ZONE)));
+    }
+
     
 //    @Asynchronous
     public void onBookingRequested(@Observes(during = TransactionPhase.IN_PROGRESS) BookingRequestedEvent event) {
@@ -146,7 +152,7 @@ public class BookingProcessor {
     				msg.setSubject("Chauffeur heeft geannuleerd.");
     				msg.setBody(
     						MessageFormat.format("Voor jouw reis op {0} naar {1} kun je helaas niet meer met {2} meerijden.", 
-    								DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(b.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
+    								formatDate(b.getDepartureTime()),
     								b.getDropOff().getLabel(), 
     								b.getRide().getDriver().getGivenName()
     								)

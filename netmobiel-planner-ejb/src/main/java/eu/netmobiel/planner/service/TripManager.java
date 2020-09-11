@@ -1,11 +1,20 @@
 package eu.netmobiel.planner.service;
 
+import java.io.Serializable;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
+import javax.annotation.Resource;
+import javax.ejb.Schedule;
 import javax.ejb.Stateless;
+import javax.ejb.Timeout;
+import javax.ejb.Timer;
+import javax.ejb.TimerService;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
@@ -21,10 +30,12 @@ import eu.netmobiel.commons.model.event.BookingConfirmedEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
+import eu.netmobiel.planner.event.TripStateUpdatedEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.Trip;
+import eu.netmobiel.planner.model.TripMonitorEvent;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
@@ -36,7 +47,31 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 @Logging
 public class TripManager {
 	public static final Integer MAX_RESULTS = 10; 
-
+	/**
+	 * The duration of the departing state.
+	 */
+	private static final Duration DEPARTING_PERIOD = Duration.ofMinutes(15);
+	/**
+	 * The duration of the arriving state.
+	 */
+	private static final Duration ARRIVING_PERIOD = Duration.ofMinutes(15);
+	/**
+	 * The delay before sending a invitation for a confirmation.
+	 */
+	private static final Duration CONFIRMATION_DELAY = Duration.ofMinutes(15);
+	/**
+	 * The maximum duration of the first confirmation period.
+	 */
+	private static final Duration CONFIRM_PERIOD_1 = Duration.ofDays(2);
+	/**
+	 * The period after which to send a confirmation reminder, if necessary.
+	 */
+	private static final Duration CONFIRM_PERIOD_2 = Duration.ofDays(2);
+	/**
+	 * The total period after which a confirmation period expires.
+	 */
+	private static final Duration CONFIRMATION_PERIOD = CONFIRM_PERIOD_1.plus(CONFIRM_PERIOD_2);
+	
 	@Inject
     private Logger log;
 
@@ -57,6 +92,18 @@ public class TripManager {
 
     @Inject
     private Event<ShoutOutResolvedEvent> shoutOutResolvedEvent;
+
+//    @Inject @Removed
+//    private Event<Trip> tripCancelledEvent;
+//
+//    @Inject
+//    private Event<TripScheduledEvent> tripScheduledEvent;
+//
+    @Resource
+    private TimerService timerService;
+
+    @Inject
+    private Event<TripStateUpdatedEvent> tripStateUpdatedEvent;
 
     /**
      * List all trips owned by the specified user. Soft deleted trips are omitted.
@@ -157,7 +204,7 @@ public class TripManager {
        		// So what is exactly the content of the persistence context after the firing of the event?
        		// Should we merge/refresh?
        	}
-       	trip.updateTripState();
+		updateTripState(trip);
        	// Update the trip state before sending the event. Just for consistency.
        	bookingRequestedEvents.stream().forEach(event -> bookingRequestedEvent.fire(event));
        	bookingConfirmedEvents.stream().forEach(event -> bookingConfirmedEvent.fire(event));
@@ -188,8 +235,23 @@ public class TripManager {
     	leg.setBookingId(bookingRef);
     	if (bookingConfirmed) {
     		leg.setState(TripState.SCHEDULED);
-    		trip.updateTripState();
+    		updateTripState(trip);
     	}
+    }
+
+    protected void updateTripState(Trip trip) {
+    	TripState previousState = trip.getState();
+		trip.updateTripState();
+       	if (trip.getState() == TripState.SCHEDULED) {
+        	if (! trip.isMonitored() && trip.getItinerary().getDepartureTime().minus(DEPARTING_PERIOD.plus(Duration.ofHours(2))).isAfter(Instant.now())) {
+        		startMonitoring(trip);
+        	}
+       	} else if (trip.getState() == TripState.CANCELLED) {
+       		cancelTripTimers(trip);
+    		trip.setMonitored(false);
+       	}
+    	log.debug(String.format("updateTripState %s: %s --> %s", previousState, trip.getState()));
+		tripStateUpdatedEvent.fire(new TripStateUpdatedEvent(previousState, trip));
     }
 
     /**
@@ -208,7 +270,7 @@ public class TripManager {
     	Leg leg = trip.getItinerary().findLegByBookingId(bookingRef)
     			.orElseThrow(() -> new NotFoundException("No such leg with bookingId " + bookingRef));
 		leg.setState(TripState.CANCELLED);
-		trip.updateTripState();
+		updateTripState(trip);
     }
 
   
@@ -266,7 +328,127 @@ public class TripManager {
 			}
        	}
    		tripdb.setDeleted(true);
-   		tripdb.updateTripState();
+   		updateTripState(tripdb);
     }
  
+    public static class TripInfo implements Serializable {
+		private static final long serialVersionUID = -2715209888482006490L;
+		public TripMonitorEvent event;
+    	public Long tripId;
+    	public TripInfo(TripMonitorEvent anEvent, Long aTripId) {
+    		this.event = anEvent;
+    		this.tripId = aTripId;
+    	}
+    	
+		@Override
+		public String toString() {
+			return String.format("TripInfo [%s %s]", event, tripId);
+		}
+    }
+    
+	@Schedule(info = "Collect due trips", hour = "*/1", minute = "0", second = "0", persistent = false /* non-critical job */)
+	public void checkForDueTrips() {
+		log.debug("CollectDueTrips");
+		// Get all trips that are in scheduled state and have a departure time within a certain window
+		List<Trip> trips = tripDao.findMonitorableTrips(Instant.now().plus(Duration.ofHours(2).plus(DEPARTING_PERIOD)));
+		for (Trip trip : trips) {
+			startMonitoring(trip);
+		}
+	}
+
+    protected void updateTripState(Trip trip, TripState newState) {
+    	TripState previousState = trip.getState();
+		trip.setState(newState);
+    	log.debug(String.format("updateTripState %s: %s --> %s", previousState, trip.getState()));
+   		tripStateUpdatedEvent.fire(new TripStateUpdatedEvent(previousState, trip));
+    }
+
+    @Timeout
+	public void onTimeout(Timer timer) {
+		if (! (timer.getInfo() instanceof TripInfo)) {
+			log.error("Don't know how to handle timeout: " + timer.getInfo());
+			return;
+		}
+		TripInfo tripInfo = (TripInfo) timer.getInfo();
+		if (log.isDebugEnabled()) {
+			log.debug("Received trip event: " + tripInfo.toString());
+		}
+		Trip trip = tripDao.fetchGraph(tripInfo.tripId, Trip.DETAILED_ENTITY_GRAPH)
+				.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripInfo.tripId));
+		Instant now = Instant.now();
+		switch (tripInfo.event) {
+		case TIME_TO_PREPARE:
+			updateTripState(trip, TripState.DEPARTING);
+			timerService.createTimer(Date.from(trip.getItinerary().getDepartureTime()), 
+					new TripInfo(TripMonitorEvent.TIME_TO_DEPART, trip.getId()));
+			break;
+		case TIME_TO_DEPART:
+			updateTripState(trip, TripState.IN_TRANSIT);
+			timerService.createTimer(Date.from(trip.getItinerary().getArrivalTime()), 
+					new TripInfo(TripMonitorEvent.TIME_TO_ARRIVE, trip.getId()));
+			break;
+		case TIME_TO_ARRIVE:
+			updateTripState(trip, TripState.ARRIVING);
+			if (trip.getItinerary().isConfirmationRequested() && 
+					trip.getItinerary().getArrivalTime().plus(CONFIRMATION_PERIOD).isAfter(now)) {
+				timerService.createTimer(Date.from(trip.getItinerary().getArrivalTime().plus(CONFIRMATION_DELAY)), 
+						new TripInfo(TripMonitorEvent.TIME_TO_VALIDATE, trip.getId()));
+			} else {
+				timerService.createTimer(Date.from(trip.getItinerary().getArrivalTime().plus(ARRIVING_PERIOD)), 
+						new TripInfo(TripMonitorEvent.TIME_TO_COMPLETE, trip.getId()));
+			}
+			break;
+		case TIME_TO_VALIDATE:
+			updateTripState(trip, TripState.VALIDATING);
+			timerService.createTimer(Date.from(trip.getItinerary().getArrivalTime().plus(CONFIRM_PERIOD_1)), 
+					new TripInfo(TripMonitorEvent.TIME_TO_CONFIRM_REMINDER, trip.getId()));
+			break;
+		case TIME_TO_CONFIRM_REMINDER:
+			updateTripState(trip, TripState.VALIDATING);
+			timerService.createTimer(Date.from(trip.getItinerary().getArrivalTime().plus(CONFIRM_PERIOD_2)), 
+					new TripInfo(TripMonitorEvent.TIME_TO_COMPLETE, trip.getId()));
+			break;
+		case TIME_TO_COMPLETE:
+			updateTripState(trip, TripState.COMPLETED);
+			trip.setMonitored(false);
+			break;
+		default:
+			log.warn("Don't know how to handle event: " + tripInfo.event);
+			break;
+		}
+	}
+
+	protected void startMonitoring(Trip trip) {
+		if (trip.getState() == TripState.CANCELLED) {
+			log.warn("Cannot monitor, trip has been canceled: " + trip.getId());
+			return;
+		}
+		if (trip.isMonitored()) {
+			log.warn("Trip already monitored: " + trip.getId());
+			return;
+		}
+		trip.setMonitored(true);
+		// Should we always generate timer events and let the state machine decide what to do?
+		// Tested. Result: Timer events are received in random order.
+		// Workaround: Set the next timer in each event handler
+		timerService.createTimer(Date.from(trip.getItinerary().getDepartureTime().minus(DEPARTING_PERIOD)), 
+				new TripInfo(TripMonitorEvent.TIME_TO_PREPARE, trip.getId()));
+	}
+
+	protected void cancelTripTimers(Trip trip) {
+    	// Find all timers related to this trip and cancel them
+    	Collection<Timer> timers = timerService.getTimers();
+		for (Timer timer : timers) {
+			if ((timer.getInfo() instanceof TripInfo)) {
+				TripInfo tripInfo = (TripInfo) timer.getInfo();
+				if (tripInfo.tripId.equals(trip.getId())) {
+					try {
+						timer.cancel();
+					} catch (Exception ex) {
+						log.error("Unable to cancel timer: " + ex.toString());
+					}
+				}
+			}
+		}
+	}
 }

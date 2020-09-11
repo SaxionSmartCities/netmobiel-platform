@@ -1,16 +1,23 @@
 package eu.netmobiel.rideshare.service;
 
+import java.io.Serializable;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.Collection;
 import java.util.Collections;
+import java.util.Date;
 import java.util.List;
 
 import javax.annotation.Resource;
 import javax.ejb.Schedule;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
+import javax.ejb.Timeout;
+import javax.ejb.Timer;
+import javax.ejb.TimerService;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
@@ -21,6 +28,7 @@ import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.annotation.Updated;
 import eu.netmobiel.commons.exception.BadRequestException;
@@ -32,12 +40,15 @@ import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.Recurrence;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideBase;
+import eu.netmobiel.rideshare.model.RideMonitorEvent;
 import eu.netmobiel.rideshare.model.RideScope;
+import eu.netmobiel.rideshare.model.RideState;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.User;
 import eu.netmobiel.rideshare.repository.BookingDao;
@@ -70,6 +81,32 @@ public class RideManager {
 //	private static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
 	private static final int HORIZON_WEEKS = 8;
 	private static final int TEMPLATE_CURSOR_SIZE = 10;
+
+	/**
+	 * The duration of the departing state.
+	 */
+	private static final Duration DEPARTING_PERIOD = Duration.ofMinutes(15);
+	/**
+	 * The duration of the arriving state.
+	 */
+	private static final Duration ARRIVING_PERIOD = Duration.ofMinutes(15);
+	/**
+	 * The delay before sending a invitation for a confirmation.
+	 */
+	private static final Duration CONFIRMATION_DELAY = Duration.ofMinutes(15);
+	/**
+	 * The maximum duration of the first confirmation period.
+	 */
+	private static final Duration CONFIRM_PERIOD_1 = Duration.ofDays(2);
+	/**
+	 * The period after which to send a confirmation reminder, if necessary.
+	 */
+	private static final Duration CONFIRM_PERIOD_2 = Duration.ofDays(2);
+	/**
+	 * The total period after which a confirmation period expires.
+	 */
+	private static final Duration CONFIRMATION_PERIOD = CONFIRM_PERIOD_1.plus(CONFIRM_PERIOD_2);
+	
 	@Inject
     private Logger log;
 
@@ -94,9 +131,12 @@ public class RideManager {
     @Inject @Removed
     private Event<Ride> rideRemovedEvent;
 
-//    @Inject
-//    private Event<BookingCancelledEvent> bookingCancelledEvent;
-    
+    @Resource
+    private TimerService timerService;
+
+    @Inject
+    private Event<RideStateUpdatedEvent> rideStateUpdatedEvent;
+
     /**
      * Updates all recurrent rides by advancing the system horizon to a predefined offset with reference to the calling time.
      * The state of the ride generation is saved in each template. Updating the template and saving the generated rides from that template
@@ -370,6 +410,9 @@ public class RideManager {
 				rides.forEach(r -> rideItineraryHelper.saveNewRide(r));
 			}
     	}
+    	if (firstRide.getDepartureTime().minus(DEPARTING_PERIOD.plus(Duration.ofHours(2))).isAfter(Instant.now())) {
+    		startMonitoring(firstRide);
+    	}
     	return firstRide.getId();
     }
 
@@ -475,9 +518,12 @@ public class RideManager {
     }
 
     private void removeRide(Ride ridedb, final String reason) {
+    	cancelRideTimers(ridedb);
+		ridedb.setMonitored(false);
     	if (ridedb.getBookings().size() > 0) {
     		// Perform a soft delete
     		ridedb.setDeleted(true);
+    		ridedb.setState(RideState.CANCELLED);
     		ridedb.setCancelReason(reason);
     		// Allow other parties such as the booking manager to do their job too
     		rideRemovedEvent.fire(ridedb);
@@ -537,10 +583,135 @@ public class RideManager {
 		}
     }
 
-//    public User getDriverOf(Ride r) {
-//    	User driver = r.getDriver();
-//    	// Initialize proxy
-//    	driver.getManagedIdentity();
-//    	return driver;
-//    }
+    public static class RideInfo implements Serializable {
+		private static final long serialVersionUID = -2715209888482006490L;
+		public RideMonitorEvent event;
+    	public Long rideId;
+    	public RideInfo(RideMonitorEvent anEvent, Long aRideId) {
+    		this.event = anEvent;
+    		this.rideId = aRideId;
+    	}
+    	
+		@Override
+		public String toString() {
+			return String.format("TripInfo [%s %s]", event, rideId);
+		}
+    }
+    
+    protected void updateRideState(Ride ride, RideState newState) {
+    	RideState previousState = ride.getState();
+		ride.setState(newState);
+    	log.debug(String.format("updateRideState %s: %s --> %s", previousState, ride.getState()));
+   		rideStateUpdatedEvent.fire(new RideStateUpdatedEvent(previousState, ride));
+    }
+
+	@Schedule(info = "Collect due trips", hour = "*/1", minute = "0", second = "0", persistent = false /* non-critical job */)
+	public void checkForDueRides() {
+		log.debug("CollectDueRides");
+		// Get all rides that have a departure time within a certain window (and not monitored)
+		List<Ride> rides = rideDao.findMonitorableRides(Instant.now().plus(Duration.ofHours(2).plus(DEPARTING_PERIOD)));
+		for (Ride ride : rides) {
+			startMonitoring(ride);
+		}
+	}
+
+	@Timeout
+	public void onTimeout(Timer timer) {
+		if (! (timer.getInfo() instanceof RideInfo)) {
+			log.error("Don't know how to handle timeout: " + timer.getInfo());
+			return;
+		}
+		RideInfo rideInfo = (RideInfo) timer.getInfo();
+		if (log.isDebugEnabled()) {
+			log.debug("Received trip event: " + rideInfo.toString());
+		}
+		Ride ride = rideDao.fetchGraph(rideInfo.rideId, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
+				.orElseThrow(() -> new IllegalArgumentException("No such trip: " + rideInfo.rideId));
+		Instant now = Instant.now();
+		switch (rideInfo.event) {
+		case TIME_TO_PREPARE:
+			updateRideState(ride, RideState.DEPARTING);
+			timerService.createTimer(Date.from(ride.getDepartureTime()), 
+					new RideInfo(RideMonitorEvent.TIME_TO_DEPART, ride.getId()));
+			break;
+		case TIME_TO_DEPART:
+			updateRideState(ride, RideState.IN_TRANSIT);
+			timerService.createTimer(Date.from(ride.getArrivalTime()), 
+					new RideInfo(RideMonitorEvent.TIME_TO_ARRIVE, ride.getId()));
+			break;
+		case TIME_TO_ARRIVE:
+			updateRideState(ride, RideState.ARRIVING);
+			if (ride.hasActiveBooking() && ride.getArrivalTime().plus(CONFIRMATION_PERIOD).isAfter(now)) {
+				timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRMATION_DELAY)), 
+						new RideInfo(RideMonitorEvent.TIME_TO_VALIDATE, ride.getId()));
+			} else {
+				timerService.createTimer(Date.from(ride.getArrivalTime().plus(ARRIVING_PERIOD)), 
+						new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
+			}
+			break;
+		case TIME_TO_VALIDATE:
+			updateRideState(ride, RideState.VALIDATING);
+			timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_1)), 
+					new RideInfo(RideMonitorEvent.TIME_TO_CONFIRM_REMINDER, ride.getId()));
+			break;
+		case TIME_TO_CONFIRM_REMINDER:
+			updateRideState(ride, RideState.VALIDATING);
+			timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_2)), 
+					new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
+			break;
+		case TIME_TO_COMPLETE:
+			updateRideState(ride, RideState.COMPLETED);
+			ride.setMonitored(false);
+			break;
+		default:
+			log.warn("Don't know how to handle event: " + rideInfo.event);
+			break;
+		}
+	}
+
+	protected void startMonitoring(Ride ride) {
+		if (ride.getState() == RideState.CANCELLED) {
+			log.warn("Cannot monitor, ride has been canceled: " + ride.getId());
+			return;
+		}
+		if (ride.isMonitored()) {
+			log.warn("Ride already monitored: " + ride.getId());
+			return;
+		}
+		ride.setMonitored(true);
+		// Should we always generate timer events and let the state machine decide what to do?
+		// Tested. Result: Timer events are received in random order.
+		// Workaround: Set the next timer in each event handler
+		timerService.createTimer(Date.from(ride.getDepartureTime().minus(DEPARTING_PERIOD)), 
+				new RideInfo(RideMonitorEvent.TIME_TO_PREPARE, ride.getId()));
+	}
+
+    public void onRideCreated(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Ride ride) {
+    	Ride ridedb = ride;
+    	if (! rideDao.contains(ride)) {
+			ridedb = rideDao.find(ride.getId())
+					.orElseThrow(() -> new IllegalArgumentException("No such ride: " + ride.getId()));
+    	}
+    	if (ridedb.getDepartureTime().minus(DEPARTING_PERIOD.plus(Duration.ofHours(2))).isAfter(Instant.now())) {
+    		startMonitoring(ridedb);
+    	}
+    	// Otherwise leave to the scheduled retrieval of trips
+    }	
+
+    protected void cancelRideTimers(Ride ride) {
+    	// Find all timers related to this trip and cancel them
+    	Collection<Timer> timers = timerService.getTimers();
+		for (Timer timer : timers) {
+			if ((timer.getInfo() instanceof RideInfo)) {
+				RideInfo rideInfo = (RideInfo) timer.getInfo();
+				if (rideInfo.rideId.equals(ride.getId())) {
+					try {
+						timer.cancel();
+					} catch (Exception ex) {
+						log.error("Unable to cancel timer: " + ex.toString());
+					}
+				}
+			}
+		}
+    }
 }

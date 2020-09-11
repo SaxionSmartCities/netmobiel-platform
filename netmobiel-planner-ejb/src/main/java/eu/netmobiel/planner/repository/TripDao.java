@@ -89,4 +89,15 @@ public class TripDao extends AbstractDao<Trip, Long> {
         return new PagedResult<Long>(results, maxResults, offset, totalCount);
     }
 
+    public List<Trip> findMonitorableTrips(Instant departureBefore) {
+    	List<Trip> trips = em.createQuery(
+    			"from Trip t " + 
+    			"where state = :state and monitored = false and t.itinerary.departureTime < :departureTime " +
+    			"order by t.itinerary.departureTime asc", Trip.class)
+    			.setParameter("state", TripState.SCHEDULED)
+    			.setParameter("departureTime", departureBefore)
+    			.getResultList();
+    	return trips; 
+    }
+
 }

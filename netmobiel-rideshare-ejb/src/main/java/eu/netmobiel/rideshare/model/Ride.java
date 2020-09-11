@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.CascadeType;
@@ -148,7 +149,25 @@ public class Ride extends RideBase implements Serializable {
 	@OrderBy("legIx asc")
 	private List<Leg> legs;
 
-	public Long getId() {
+	/**
+	 * The state of the ride. 
+	 */
+    @Column(name = "state", length = 3)
+    private RideState state;
+
+    /**
+     * If true then the ride is being monitored.
+     */
+    @Column(name = "monitored", nullable = false)
+    private boolean monitored;
+
+    /**
+     * If true then the ride is confirmed by the driver.
+     */
+    @Column(name = "confirmed")
+    private Boolean confirmed;
+    
+    public Long getId() {
 		return id;
 	}
 
@@ -217,6 +236,30 @@ public class Ride extends RideBase implements Serializable {
 		this.legs = legs;
 	}
 
+	public RideState getState() {
+		return state;
+	}
+
+	public void setState(RideState state) {
+		this.state = state;
+	}
+
+	public boolean isMonitored() {
+		return monitored;
+	}
+
+	public void setMonitored(boolean monitored) {
+		this.monitored = monitored;
+	}
+
+	public Boolean getConfirmed() {
+		return confirmed;
+	}
+
+	public void setConfirmed(Boolean confirmed) {
+		this.confirmed = confirmed;
+	}
+
 	public String getRideRef() {
 		if (rideRef == null) {
     		rideRef = RideshareUrnHelper.createUrn(Ride.URN_PREFIX, getId());
@@ -267,6 +310,18 @@ public class Ride extends RideBase implements Serializable {
         booking.setRide(null);
     }
     
+    public boolean hasActiveBooking() {
+    	return getBookings().stream()
+    			.filter(b -> b.getState() == BookingState.CONFIRMED)
+    			.findAny().isPresent();
+    }
+
+    public Optional<Booking> getActiveBooking() {
+    	return getBookings().stream()
+    			.filter(b -> b.getState() == BookingState.CONFIRMED)
+    			.findFirst();
+    }
+
     public String toStringShallow() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("Ride ").append(getId());

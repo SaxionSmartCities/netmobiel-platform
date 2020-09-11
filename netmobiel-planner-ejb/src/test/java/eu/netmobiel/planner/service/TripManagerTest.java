@@ -13,6 +13,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -24,6 +25,7 @@ import eu.netmobiel.commons.model.event.BookingConfirmedEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
+import eu.netmobiel.planner.event.TripScheduledEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Trip;
@@ -64,6 +66,12 @@ public class TripManagerTest {
 
     @Injectable
     private Event<ShoutOutResolvedEvent> shoutOutResolvedEvent;
+
+    @Injectable
+    private Event<Trip> tripCancelledEvent;
+
+    @Injectable
+    private Event<TripScheduledEvent> tripScheduledEvent;
 
     private User traveller;
 	

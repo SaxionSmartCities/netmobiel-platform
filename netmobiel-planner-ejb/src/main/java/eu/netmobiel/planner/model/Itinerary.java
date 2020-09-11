@@ -368,6 +368,24 @@ public class Itinerary implements Serializable {
 		this.fareInCredits = fareInCredits;
 	}
 
+	public Set<TraverseMode> getModalities() {
+		return getLegs().stream()
+				.map(leg -> leg.getTraverseMode())
+				.collect(Collectors.toSet());
+	}
+
+	public boolean isConfirmationRequested() {
+		return getLegs().stream()
+				.map(leg -> leg.isConfirmationRequested() || leg.isConfirmationByProviderRequested())
+				.reduce(Boolean.FALSE, Boolean::logicalOr);
+	}
+	
+	public List<Leg> findLegsToConfirm() {
+		return getLegs().stream()
+				.filter(leg -> leg.isConfirmationRequested() || leg.isConfirmationByProviderRequested())
+				.collect(Collectors.toList());
+	}
+
 	/**
 	 * Searches through the legs of this trip for a leg with a specific tripId. The trip id is a reference from the transport provider
 	 * and refers to a specific ride of a vehicle, both in rideshare and in public transport. In public transport the tripId refers 

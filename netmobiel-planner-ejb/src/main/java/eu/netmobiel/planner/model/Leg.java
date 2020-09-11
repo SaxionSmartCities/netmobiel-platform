@@ -244,7 +244,32 @@ public class Leg implements Serializable {
      */
     @Column(name = "fare_credits")
     private Integer fareInCredits;
-    
+ 
+    /**
+     * Is a confirmation by the transport provider requested?
+     */
+    @Column(name = "confirmation_prov_req", nullable = false)
+    private boolean confirmationByProviderRequested;
+
+    /**
+     * Is a confirmation requested from the traveller?
+     */
+    @Column(name = "confirmation_req", nullable = false)
+    private boolean confirmationRequested;
+
+    /**
+     * Has the leg been confirmed by the transport provider?
+     * A null value means no response.
+     */
+    @Column(name = "confirmed_prov")
+    private Boolean confirmedByProvider;
+
+    /**
+     * Has the leg been confirmed by the traveller?
+     */
+    @Column(name = "confirmed")
+    private Boolean confirmed;
+
     public Leg() {
     }
 
@@ -260,6 +285,10 @@ public class Leg implements Serializable {
 		this.agencyTimeZoneOffset = other.agencyTimeZoneOffset;
 		this.bookingId = other.bookingId;
 		this.bookingRequired = other.bookingRequired;
+		this.confirmationRequested = other.confirmationRequested;
+		this.confirmationByProviderRequested = other.confirmationByProviderRequested;
+		this.confirmed = other.confirmed;
+		this.confirmedByProvider = other.confirmedByProvider;
 		this.distance = other.distance;
 		this.driverId = other.driverId;
 		this.driverName = other.driverName;
@@ -548,6 +577,54 @@ public class Leg implements Serializable {
 
 	public void setFareInCredits(Integer fareInCredits) {
 		this.fareInCredits = fareInCredits;
+	}
+
+	public boolean isConfirmationByProviderRequested() {
+		return confirmationByProviderRequested;
+	}
+
+	public void setConfirmationByProviderRequested(boolean confirmationByProviderRequested) {
+		this.confirmationByProviderRequested = confirmationByProviderRequested;
+	}
+
+	public boolean isConfirmationRequested() {
+		return confirmationRequested;
+	}
+
+	public void setConfirmationRequested(boolean confirmationRequested) {
+		this.confirmationRequested = confirmationRequested;
+	}
+
+	public Boolean getConfirmedByProvider() {
+		return confirmedByProvider;
+	}
+
+	public void setConfirmedByProvider(Boolean confirmedByProvider) {
+		this.confirmedByProvider = confirmedByProvider;
+	}
+
+	public Boolean getConfirmed() {
+		return confirmed;
+	}
+
+	public void setConfirmed(Boolean confirmed) {
+		this.confirmed = confirmed;
+	}
+
+	public boolean isConfirmedByProvider() {
+		return confirmedByProvider;
+	}
+
+	public void setConfirmedByProvider(boolean confirmedByProvider) {
+		this.confirmedByProvider = confirmedByProvider;
+	}
+
+	public boolean isConfirmed() {
+		return confirmed;
+	}
+
+	public void setConfirmed(boolean confirmed) {
+		this.confirmed = confirmed;
 	}
 
 	/**

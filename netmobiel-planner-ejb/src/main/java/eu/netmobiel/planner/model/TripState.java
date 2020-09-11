@@ -8,27 +8,39 @@ package eu.netmobiel.planner.model;
  */
 public enum TripState {
 	/**
-	 * A trip is being planned, i.e. departure and destination places are known, departure or arrival time too, but not all means of transport are known yet.
+	 * The trip is being planned, i.e. departure and destination places are known, departure or arrival time too, but not all means of transport are known yet.
 	 */
 	PLANNING("PLN"),
 	/**
-	 * A trip is being booked, seats are reserved etc., but not all confirmations have been received yet. 
+	 * The trip is being booked, seats are reserved etc., but not all confirmations have been received yet. 
 	 */
 	BOOKING("BKN"),
 	/**
-	 * A trip is scheduled, all that needs to be prepared for has been prepared. 
+	 * The trip is scheduled, all that needs to be prepared for has been prepared. 
 	 */
 	SCHEDULED("SCH"),
 	/**
-	 * A trip is in transit, i.e. the user is on the road.
+	 * The departure is imminent.
+	 */
+	DEPARTING("DPR"),
+	/**
+	 * The trip is in transit, i.e. the user is on the road.
 	 */
 	IN_TRANSIT("NTR"),
 	/**
-	 * A trip is completed
+	 * The traveller should be arriving
+	 */
+	ARRIVING("ARR"),
+	/**
+	 * The trip waits for confirmation by transport provider and traveller.
+	 */
+	VALIDATING("VLD"),
+	/**
+	 * The trip is completed
 	 */
 	COMPLETED("CMP"),
 	/**
-	 * A trip has been cancelled. 
+	 * The trip has been cancelled. 
 	 */
 	CANCELLED("CNC");
 
@@ -47,7 +59,7 @@ public enum TripState {
     }
 
     public boolean isPostTravelState() {
-    	return this == COMPLETED;
+    	return this == VALIDATING || this == COMPLETED;
     }
     
     public boolean isFinalState() {

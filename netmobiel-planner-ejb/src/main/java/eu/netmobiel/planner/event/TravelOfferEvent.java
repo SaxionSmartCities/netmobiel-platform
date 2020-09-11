@@ -4,7 +4,6 @@ import java.io.Serializable;
 
 import javax.validation.constraints.NotNull;
 
-import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.TripPlan;
 

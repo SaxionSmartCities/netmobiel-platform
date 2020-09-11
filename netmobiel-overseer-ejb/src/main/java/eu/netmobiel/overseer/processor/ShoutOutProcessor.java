@@ -192,7 +192,7 @@ public class ShoutOutProcessor {
 			msg.setSubject("Je hebt een reisaanbieding!");
 			msg.setBody(
 					MessageFormat.format("Voor jouw reisaanvraag op {0} naar {1} kun je meerijden met {2}.", 
-							DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(soi.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
+							formatDate(soi.getDepartureTime()),
 							b.getDropOff().getLabel(), 
 							r.getDriver().getGivenName()
 							)

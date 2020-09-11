@@ -29,6 +29,7 @@ import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Ride;
+import eu.netmobiel.rideshare.model.RideState;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.RideTemplate_;
 import eu.netmobiel.rideshare.model.Ride_;
@@ -207,7 +208,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
 
     /**
      * Finds the ride of the specific booking.
-     * @param bookingId Th eID of the booking.
+     * @param bookingId The ID of the booking.
      * @return The ride.
      * @throws NoResultException when the booking does not exist
      */
@@ -220,4 +221,21 @@ public class RideDao extends AbstractDao<Ride, Long> {
     			.setParameter("booking", b);
     	return tq.getSingleResult();
     }
+
+    /**
+     * Find rides that should be monitored. 
+     * @param departureBefore the threshold time of the ride to start monitoring.
+     * @return A list of rides to start monitoring
+     */
+    public List<Ride> findMonitorableRides(Instant departureBefore) {
+    	List<Ride> trips = em.createQuery(
+    			"from Ride r " + 
+    			"where state = :state and monitored = false and r.departureTime < :departureTime " +
+    			"order by t.itinerary.departureTime asc", Ride.class)
+    			.setParameter("state", RideState.SCHEDULED)
+    			.setParameter("departureTime", departureBefore)
+    			.getResultList();
+    	return trips; 
+    }
+
 }

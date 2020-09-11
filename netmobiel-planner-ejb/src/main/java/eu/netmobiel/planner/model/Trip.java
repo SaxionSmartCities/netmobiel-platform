@@ -5,7 +5,9 @@ import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Comparator;
+import java.util.LinkedHashSet;
 import java.util.Optional;
+import java.util.Set;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
@@ -186,6 +188,12 @@ public class Trip implements Serializable {
     @Column(name = "arrival_time_is_pinned")
     private boolean arrivalTimeIsPinned;
 
+    /**
+     * If true then the trip is being monitored by the trip monitor.
+     */
+    @Column(name = "monitored", nullable = false)
+    private boolean monitored;
+
     public Trip() {
     	
     }
@@ -298,6 +306,14 @@ public class Trip implements Serializable {
 		this.arrivalTimeIsPinned = arrivalTimeIsPinned;
 	}
 
+	public boolean isMonitored() {
+		return monitored;
+	}
+
+	public void setMonitored(boolean monitored) {
+		this.monitored = monitored;
+	}
+
 	private String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
     }
@@ -322,6 +338,20 @@ public class Trip implements Serializable {
    		Optional<Leg> minleg = getItinerary().getLegs().stream().min(Comparator.comparingInt(leg -> leg.getState().ordinal()));
    		minleg.ifPresent(leg -> setState(leg.getState()));
    	}
+
+    public Set<String> getAgencies() {
+    	Set<String> ags = new LinkedHashSet<>();
+		for (Leg leg: getItinerary().getLegs()) {
+			if (leg.getTraverseMode() == TraverseMode.WALK) {
+				continue;
+			} else if (leg.getTraverseMode() == TraverseMode.RIDESHARE) {
+				ags.add(leg.getDriverName());
+			} else {
+				ags.add(leg.getAgencyName());
+			}
+		}
+    	return ags;
+    }
 
 
 }
