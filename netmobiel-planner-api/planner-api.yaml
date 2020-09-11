@@ -928,7 +928,10 @@ components:
           - PLANNING
           - BOOKING
           - SCHEDULED
+          - DEPARTING
           - IN_TRANSIT
+          - ARRIVING
+          - VALIDATING
           - COMPLETED
           - CANCELLED
           type: string
@@ -1109,7 +1112,10 @@ components:
           - PLANNING
           - BOOKING
           - SCHEDULED
+          - DEPARTING
           - IN_TRANSIT
+          - ARRIVING
+          - VALIDATING
           - COMPLETED
           - CANCELLED
           type: string
@@ -1216,6 +1222,23 @@ components:
         fareInCredits:
           description: The amount of credits charged for this leg.
           type: integer
+        confirmationRequested:
+          description: Is conformation requested that the leg has actually been taken?
+          type: boolean
+        confirmationByProviderRequested:
+          description: Should the travelling along this leg be confirmed by the transport
+            provider?
+          type: boolean
+        confirmed:
+          description: If true the travel by this leg is explicitly confirmed by the
+            traveller. If false it is explicitly denied. If not set the traveller
+            has not responded to the request for confirmation.
+          type: boolean
+        confirmedByProvider:
+          description: If true the travelling along this leg has explicitly been confirmed
+            by the transport provider. If false it is explicitly denied. If not set
+            the provider has not responded to the request for confirmation.
+          type: boolean
       example:
         distance: 152
         duration: 123
