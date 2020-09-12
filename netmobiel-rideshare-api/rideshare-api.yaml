@@ -971,6 +971,22 @@ components:
         duration:
           description: (Read-only) The estimation duration of the trip.
           type: integer
+        state:
+          description: The current state of the ride.
+          enum:
+          - SCHEDULED
+          - DEPARTING
+          - IN_TRANSIT
+          - ARRIVING
+          - VALIDATING
+          - COMPLETED
+          - CANCELLED
+          type: string
+        confirmed:
+          description: If true then the drivers has indeed executed the scheduled
+            ride. If false then the driver has not driven this ride. If unspecified
+            then it is unclear.
+          type: boolean
       example:
         bookings: []
         car:
