@@ -250,6 +250,13 @@ paths:
       description: 'Creates a booking for a ride for the calling user. Required are:
         pickup, dropOff, (desired) departureTime, (desired) arrivalTime. The actual
         departure time  and arrivalTime are calculated from the driver''s route.'
+    parameters:
+    - name: rideId
+      description: A unique identifier for a `Ride`.
+      schema:
+        type: string
+      in: path
+      required: true
   /carLicenses:
     summary: Get license plate details
     description: 'In case of NL: Retrieve the car details from the RDW.'
@@ -714,6 +721,25 @@ paths:
         Add a new ride. The calling user will be the driver.
 
         If recurrence is set, then all future drivers up to 8 weeks in advance are generated as well.
+  /rides/{rideId}/confirm:
+    summary: Path used to confirm a ride.
+    description: Endpoint used to confirm a ride, using a PUT.
+    put:
+      responses:
+        "204":
+          description: Success response, the ride has been confirmed.
+      operationId: confirmRide
+      summary: Confirms a ride.
+      description: Confirms that the driver has actually driven this ride. It cannot
+        be undone. Once the driver has confirmed the ride, the credits will be claimed
+        unless the passenger denies having been in the car.
+    parameters:
+    - name: rideId
+      description: A unique identifier for a `Ride`.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Car:
