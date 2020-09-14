@@ -30,6 +30,7 @@ import eu.netmobiel.commons.model.event.BookingConfirmedEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
+import eu.netmobiel.planner.event.TripConfirmedEvent;
 import eu.netmobiel.planner.event.TripStateUpdatedEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
@@ -104,6 +105,9 @@ public class TripManager {
 
     @Inject
     private Event<TripStateUpdatedEvent> tripStateUpdatedEvent;
+
+    @Inject
+    private Event<TripConfirmedEvent> tripConfirmedEvent;
 
     /**
      * List all trips owned by the specified user. Soft deleted trips are omitted.
@@ -275,7 +279,7 @@ public class TripManager {
 
   
     /**
-     * Retrieves a ride. Anyone can read a ride, given the id. All details are retrieved.
+     * Retrieves a trip. Anyone can read a trip, given the id. All details are retrieved.
      * @param id
      * @return
      * @throws NotFoundException
@@ -331,6 +335,58 @@ public class TripManager {
    		updateTripState(tripdb);
     }
  
+    /**
+     * Sets the confirmation flag on each leg in the trip.
+     * @param tripId the trip to update.
+     * @throws NotFoundException If the trip was not found.
+     */
+    public void confirmTrip(Long tripId, Boolean confirmationValue) throws NotFoundException, BadRequestException {
+    	Trip tripdb = tripDao.fetchGraph(tripId, Trip.MY_LEGS_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such trip: " + tripId));
+    	if (confirmationValue == null) {
+    		throw new BadRequestException("An empty confirmation value is not allowed");
+    	}
+    	if (tripdb.getState() != TripState.COMPLETED) { 
+    		// No use to set this flag when the trip has already been finished physically and administratively)
+        	if (tripdb.getState() != TripState.VALIDATING) {
+        		throw new BadRequestException("Unexpected state for a confirmation: " + tripId + " " + tripdb.getState());
+        	}
+        	for (Leg leg : tripdb.getItinerary().getLegs()) {
+            	if (leg.getConfirmed() != null) {
+            		throw new BadRequestException("Leg has already a confirmation value: " + leg.getId());
+            	}
+            	leg.setConfirmed(confirmationValue);
+        	}
+        	tripConfirmedEvent.fire(new TripConfirmedEvent(tripdb));
+    	}
+    }
+
+    /**
+     * Sets the confirmation flag on each leg in the trip.
+     * @param tripId the trip to update.
+     * @throws NotFoundException If the trip was not found.
+     */
+    public void confirmTripByTransportProvider(String tripRef, String bookingRef, Boolean confirmationValue) throws NotFoundException, BadRequestException {
+    	Trip tripdb = tripDao.fetchGraph(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef), Trip.MY_LEGS_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
+    	if (confirmationValue == null) {
+    		throw new BadRequestException("An empty confirmation value is not allowed");
+    	}
+    	// A confirmation from a transport provider can arrive even the trip is still in transit.
+    	if (tripdb.getState() != TripState.COMPLETED) { 
+    		// No use to set this flag when the trip has already been finished physically and administratively)
+        	if (tripdb.getState() != TripState.IN_TRANSIT && tripdb.getState() != TripState.ARRIVING && tripdb.getState() != TripState.VALIDATING) {
+        		throw new BadRequestException("Unexpected state for a confirmation: " + tripRef + " " + tripdb.getState());
+        	}
+        	Leg bookedLeg = tripdb.getItinerary().findLegByBookingId(bookingRef)
+        			.orElseThrow(() -> new IllegalArgumentException("No such booking on trip: " + tripRef + " " + bookingRef));
+           	if (bookedLeg.getConfirmedByProvider() != null) {
+           		throw new BadRequestException("Leg has already a confirmation value by provider: " + bookedLeg.getId());
+           	}
+           	bookedLeg.setConfirmedByProvider(confirmationValue);
+    	}
+    }
+
     public static class TripInfo implements Serializable {
 		private static final long serialVersionUID = -2715209888482006490L;
 		public TripMonitorEvent event;

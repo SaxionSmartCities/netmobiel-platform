@@ -194,4 +194,20 @@ public class RidesResource implements RidesApi {
     	return rsp;
     }
     
+	@Override
+	public Response confirmRide(String rideId, Boolean confirmationValue) {
+    	Response rsp = null;
+    	try {
+        	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideId);
+        	//TODO Add security restriction
+			rideManager.confirmRide(rid, confirmationValue);
+			rsp = Response.noContent().build();
+		} catch (IllegalArgumentException e) {
+			throw new javax.ws.rs.BadRequestException(e);
+		} catch (ApplicationException e) {
+			throw new WebApplicationException(e);
+		}
+    	return rsp;
+	}
+
 }

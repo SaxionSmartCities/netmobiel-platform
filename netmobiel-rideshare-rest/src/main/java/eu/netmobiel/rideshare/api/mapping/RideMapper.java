@@ -74,6 +74,9 @@ public abstract class RideMapper {
 	@Mapping(target = "driver", ignore = true)
 	@Mapping(target = "stops", ignore = true)
 	@Mapping(target = "legs", ignore = true)
+	@Mapping(target = "monitored", ignore = true)
+	@Mapping(target = "state", ignore = true)
+	@Mapping(target = "confirmed", ignore = true)
 	public abstract Ride commonInverseMap(eu.netmobiel.rideshare.api.model.Ride source);
 
 	

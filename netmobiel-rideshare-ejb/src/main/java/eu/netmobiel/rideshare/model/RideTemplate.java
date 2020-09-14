@@ -75,6 +75,7 @@ public class RideTemplate extends RideBase implements Serializable {
     	Ride r = new Ride();
     	RideBase.copy(this, r);
 		r.setRideTemplate(this);
+		r.setState(RideState.SCHEDULED);
 
 		// Create the simple single leg structure for a driver.
 		// Add stops and leg and connect them

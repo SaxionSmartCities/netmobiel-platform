@@ -276,6 +276,9 @@ public class TripPlanManager {
 				leg.setAgencyId(RideManager.AGENCY_ID);
 				// For Rideshare booking is always required.
 				leg.setBookingRequired(true);
+				// For Rideshare confirmation is requested from traveller and provider
+				leg.setConfirmationByProviderRequested(true);
+				leg.setConfirmationRequested(true);
 			});
 		}
     	return driverSharedRidePlanResult;

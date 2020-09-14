@@ -15,6 +15,7 @@ import eu.netmobiel.rideshare.model.RideState;
  *
  */
 public class RideStateUpdatedEvent implements Serializable {
+
 	private static final long serialVersionUID = 8837457274309434137L;
 	/**
      * The traveller.
@@ -38,4 +39,8 @@ public class RideStateUpdatedEvent implements Serializable {
 		return ride;
 	}
 
+	@Override
+	public String toString() {
+		return String.format("RideStateUpdatedEvent %s %s -> %s]", ride.getId(), previousState, ride.getState());
+	}
 }

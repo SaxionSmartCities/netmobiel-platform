@@ -231,7 +231,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
     	List<Ride> trips = em.createQuery(
     			"from Ride r " + 
     			"where state = :state and monitored = false and r.departureTime < :departureTime " +
-    			"order by t.itinerary.departureTime asc", Ride.class)
+    			"order by r.departureTime asc", Ride.class)
     			.setParameter("state", RideState.SCHEDULED)
     			.setParameter("departureTime", departureBefore)
     			.getResultList();

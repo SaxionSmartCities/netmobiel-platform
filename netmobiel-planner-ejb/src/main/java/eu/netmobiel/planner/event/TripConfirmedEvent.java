@@ -7,12 +7,12 @@ import javax.validation.constraints.NotNull;
 import eu.netmobiel.planner.model.Trip;
 
 /**
- * This event is issued when a trip is scheduled. 
+ * This event is issued when a trip execution is confirmed (either affirmative or denied) by the passenger. 
  * 
  * @author Jaap Reitsma
  *
  */
-public class TripScheduledEvent implements Serializable {
+public class TripConfirmedEvent implements Serializable {
 	private static final long serialVersionUID = 8837457274309434137L;
 	/**
      * The traveller.
@@ -20,7 +20,7 @@ public class TripScheduledEvent implements Serializable {
     @NotNull
     private Trip trip;
     
-    public TripScheduledEvent(Trip aTrip) {
+    public TripConfirmedEvent(Trip aTrip) {
     	this.trip = aTrip;
     }
 
@@ -30,7 +30,7 @@ public class TripScheduledEvent implements Serializable {
 
 	@Override
 	public String toString() {
-		return String.format("TripScheduledEvent [%s]", trip.getId());
+		return String.format("TripConfirmedEvent [%s]", trip.getId());
 	}
 
 }

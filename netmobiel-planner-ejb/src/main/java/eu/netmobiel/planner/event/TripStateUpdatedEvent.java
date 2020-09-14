@@ -37,4 +37,8 @@ public class TripStateUpdatedEvent implements Serializable {
 		return trip;
 	}
 
+	@Override
+	public String toString() {
+		return String.format("TripStateUpdatedEvent %s %s -> %s]", trip.getId(), previousState, trip.getState());
+	}
 }

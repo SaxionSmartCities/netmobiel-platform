@@ -39,6 +39,7 @@ import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.model.event.TransportProviderConfirmedEvent;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
 import eu.netmobiel.rideshare.model.Booking;
@@ -136,6 +137,9 @@ public class RideManager {
 
     @Inject
     private Event<RideStateUpdatedEvent> rideStateUpdatedEvent;
+
+	@Inject
+    private Event<TransportProviderConfirmedEvent> transportProviderConfirmedEvent;
 
     /**
      * Updates all recurrent rides by advancing the system horizon to a predefined offset with reference to the calling time.
@@ -364,6 +368,7 @@ public class RideManager {
     	// Put the ride into the persistence context, but omit the template for now
     	RideTemplate template = ride.getRideTemplate();
     	ride.setRideTemplate(null);
+    	ride.setState(RideState.SCHEDULED);
     	rideDao.save(ride);
     	// Update the car itinerary from the route planner
     	rideItineraryHelper.updateRideItinerary(ride);
@@ -523,7 +528,7 @@ public class RideManager {
     	if (ridedb.getBookings().size() > 0) {
     		// Perform a soft delete
     		ridedb.setDeleted(true);
-    		ridedb.setState(RideState.CANCELLED);
+    		updateRideState(ridedb, RideState.CANCELLED);
     		ridedb.setCancelReason(reason);
     		// Allow other parties such as the booking manager to do their job too
     		rideRemovedEvent.fire(ridedb);
@@ -583,6 +588,25 @@ public class RideManager {
 		}
     }
 
+    /**
+     * Sets the confirmation flag on the ride and sends a event to inform the provider has confirmed the ride.
+     * @param rideId the ride to update.
+     * @throws NotFoundException If the ride was not found.
+     */
+    public void confirmRide(Long rideId, Boolean confirmationValue) throws NotFoundException, BadRequestException {
+    	Ride ridedb = rideDao.find(rideId)
+    			.orElseThrow(() -> new NotFoundException("No such ride: " + rideId));
+    	if (confirmationValue == null) {
+    		throw new BadRequestException("An empty confirmation value is not allowed");
+    	}
+    	if (ridedb.getConfirmed() != null) {
+    		throw new BadRequestException("Ride has already a confirmation value: " + rideId);
+    	}
+    	ridedb.setConfirmed(confirmationValue);
+    	ridedb.getActiveBooking()
+    		.ifPresent(b -> transportProviderConfirmedEvent.fire(new TransportProviderConfirmedEvent(b.getBookingRef(),  b.getPassengerTripRef(), confirmationValue)));
+    }
+
     public static class RideInfo implements Serializable {
 		private static final long serialVersionUID = -2715209888482006490L;
 		public RideMonitorEvent event;
@@ -594,18 +618,18 @@ public class RideManager {
     	
 		@Override
 		public String toString() {
-			return String.format("TripInfo [%s %s]", event, rideId);
+			return String.format("RideInfo [%s %s]", event, rideId);
 		}
     }
     
     protected void updateRideState(Ride ride, RideState newState) {
     	RideState previousState = ride.getState();
 		ride.setState(newState);
-    	log.debug(String.format("updateRideState %s: %s --> %s", previousState, ride.getState()));
+    	log.debug(String.format("updateRideState %s: %s --> %s", ride.getId(), previousState, ride.getState()));
    		rideStateUpdatedEvent.fire(new RideStateUpdatedEvent(previousState, ride));
     }
 
-	@Schedule(info = "Collect due trips", hour = "*/1", minute = "0", second = "0", persistent = false /* non-critical job */)
+	@Schedule(info = "Collect due rides", hour = "*/1", minute = "0", second = "0", persistent = false /* non-critical job */)
 	public void checkForDueRides() {
 		log.debug("CollectDueRides");
 		// Get all rides that have a departure time within a certain window (and not monitored)
@@ -623,10 +647,10 @@ public class RideManager {
 		}
 		RideInfo rideInfo = (RideInfo) timer.getInfo();
 		if (log.isDebugEnabled()) {
-			log.debug("Received trip event: " + rideInfo.toString());
+			log.debug("Received ride event: " + rideInfo.toString());
 		}
 		Ride ride = rideDao.fetchGraph(rideInfo.rideId, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
-				.orElseThrow(() -> new IllegalArgumentException("No such trip: " + rideInfo.rideId));
+				.orElseThrow(() -> new IllegalArgumentException("No such ride: " + rideInfo.rideId));
 		Instant now = Instant.now();
 		switch (rideInfo.event) {
 		case TIME_TO_PREPARE:
@@ -695,11 +719,11 @@ public class RideManager {
     	if (ridedb.getDepartureTime().minus(DEPARTING_PERIOD.plus(Duration.ofHours(2))).isAfter(Instant.now())) {
     		startMonitoring(ridedb);
     	}
-    	// Otherwise leave to the scheduled retrieval of trips
+    	// Otherwise leave to the scheduled retrieval of rides
     }	
 
     protected void cancelRideTimers(Ride ride) {
-    	// Find all timers related to this trip and cancel them
+    	// Find all timers related to this ride and cancel them
     	Collection<Timer> timers = timerService.getTimers();
 		for (Timer timer : timers) {
 			if ((timer.getInfo() instanceof RideInfo)) {

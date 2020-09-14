@@ -27,11 +27,13 @@ import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.event.BookingCancelledEvent;
 import eu.netmobiel.commons.model.event.BookingConfirmedEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
+import eu.netmobiel.commons.model.event.TransportProviderConfirmedEvent;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.PublisherService;
+import eu.netmobiel.planner.event.TripConfirmedEvent;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.TripManager;
 import eu.netmobiel.planner.service.TripPlanManager;
@@ -176,4 +178,15 @@ public class BookingProcessor {
     	
     }
 
+    public void onTripConfirmation(@Observes(during = TransactionPhase.IN_PROGRESS) TripConfirmedEvent event) {
+    	// The passenger 
+    }
+
+    public void onProviderConfirmation(@Observes(during = TransactionPhase.IN_PROGRESS) TransportProviderConfirmedEvent event) {
+    	try {
+			tripManager.confirmTripByTransportProvider(event.getTravellerTripRef(), event.getBookingRef(), event.getConfirmationByTransportProvider());
+		} catch (ApplicationException e) {
+			logger.error("Error confirming trip by transport provider: " + e.toString());
+		}
+    }
 }

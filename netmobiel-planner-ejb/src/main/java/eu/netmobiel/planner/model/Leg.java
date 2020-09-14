@@ -603,6 +603,10 @@ public class Leg implements Serializable {
 		this.confirmedByProvider = confirmedByProvider;
 	}
 
+	public boolean isConfirmedByProvider() {
+		return Boolean.TRUE.equals(confirmedByProvider);
+	}
+
 	public Boolean getConfirmed() {
 		return confirmed;
 	}
@@ -611,20 +615,8 @@ public class Leg implements Serializable {
 		this.confirmed = confirmed;
 	}
 
-	public boolean isConfirmedByProvider() {
-		return confirmedByProvider;
-	}
-
-	public void setConfirmedByProvider(boolean confirmedByProvider) {
-		this.confirmedByProvider = confirmedByProvider;
-	}
-
 	public boolean isConfirmed() {
-		return confirmed;
-	}
-
-	public void setConfirmed(boolean confirmed) {
-		this.confirmed = confirmed;
+		return Boolean.TRUE.equals(confirmed);
 	}
 
 	/**

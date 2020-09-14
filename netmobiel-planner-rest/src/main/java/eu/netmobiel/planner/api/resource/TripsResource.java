@@ -125,4 +125,20 @@ public class TripsResource implements TripsApi {
     	return rsp;
 	}
 
+	@Override
+	public Response confirmTrip(String tripId, Boolean confirmationValue) {
+    	Response rsp = null;
+    	try {
+        	Long tid = PlannerUrnHelper.getId(Trip.URN_PREFIX, tripId);
+        	//TODO Add security restriction
+			tripManager.confirmTrip(tid, confirmationValue);
+			rsp = Response.noContent().build();
+		} catch (IllegalArgumentException e) {
+			throw new javax.ws.rs.BadRequestException(e);
+		} catch (ApplicationException e) {
+			throw new WebApplicationException(e);
+		}
+    	return rsp;
+	}
+
 }
