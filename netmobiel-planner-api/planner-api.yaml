@@ -760,6 +760,26 @@ paths:
         type: string
       in: path
       required: true
+  /trips/{tripId}/confirm:
+    summary: Path used to confirm a trip.
+    description: Endpoint used to confirm a trip, using a PUT.
+    put:
+      responses:
+        "204":
+          description: Success response, the trip has been confirmed.
+      operationId: confirmTrip
+      summary: Confirms a trip.
+      description: 'Confirms that the traveller has actually made this trip. All legs
+        in the itinerary are confirmed. A rideshare fare is credited after confirmation
+        of the passenger or after an expiration of the review period of several days
+        in which the passenger has neither confirmed nor denied the trip. '
+    parameters:
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     MaintenanceStatus:
