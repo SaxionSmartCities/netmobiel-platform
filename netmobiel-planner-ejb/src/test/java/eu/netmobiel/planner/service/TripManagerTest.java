@@ -4,8 +4,8 @@ import static org.junit.Assert.*;
 
 import java.time.Instant;
 
+import javax.ejb.TimerService;
 import javax.enterprise.event.Event;
-import javax.inject.Inject;
 
 import org.junit.After;
 import org.junit.Before;
@@ -13,7 +13,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -25,7 +24,8 @@ import eu.netmobiel.commons.model.event.BookingConfirmedEvent;
 import eu.netmobiel.commons.model.event.BookingRequestedEvent;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
-import eu.netmobiel.planner.event.TripScheduledEvent;
+import eu.netmobiel.planner.event.TripConfirmedEvent;
+import eu.netmobiel.planner.event.TripStateUpdatedEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Trip;
@@ -68,10 +68,13 @@ public class TripManagerTest {
     private Event<ShoutOutResolvedEvent> shoutOutResolvedEvent;
 
     @Injectable
-    private Event<Trip> tripCancelledEvent;
+    private TimerService timerService;
 
     @Injectable
-    private Event<TripScheduledEvent> tripScheduledEvent;
+    private Event<TripStateUpdatedEvent> tripStateUpdatedEvent;
+
+    @Injectable
+    private Event<TripConfirmedEvent> tripConfirmedEvent;
 
     private User traveller;
 	
@@ -221,7 +224,7 @@ public class TripManagerTest {
 		leg.setState(TripState.BOOKING);
 		assertNull(leg.getBookingId());
 		assertNotNull(leg.getTripId());
-		String bookingRef = UrnHelper.createUrn("urn:nb:myservice:booking", 42L);
+		String bookingRef = UrnHelper.createUrn("urn:nb:myservice:booking:", 42L);
 		new Expectations() {{
 			tripDao.find(trip.getId());
 			result = trip;
@@ -246,7 +249,7 @@ public class TripManagerTest {
 		leg.setState(TripState.CANCELLED);
 		assertNull(leg.getBookingId());
 		assertNotNull(leg.getTripId());
-		String bookingRef = UrnHelper.createUrn("urn:nb:myservice:booking", 42L);
+		String bookingRef = UrnHelper.createUrn("urn:nb:myservice:booking:", 42L);
 		new Expectations() {{
 			tripDao.find(trip.getId());
 			result = trip;
@@ -265,7 +268,7 @@ public class TripManagerTest {
 		Trip trip = Fixture.createTrip(traveller, plan);
 		trip.setId(55L);
 		Leg leg = trip.getItinerary().getLegs().get(0);
-		String bookingRef = UrnHelper.createUrn("urn:nb:myservice:booking", 42L);
+		String bookingRef = UrnHelper.createUrn("urn:nb:myservice:booking:", 42L);
 		leg.setBookingId(bookingRef);
 		assertNotEquals(TripState.CANCELLED, trip.getState());
 		new Expectations() {{
@@ -328,7 +331,7 @@ public class TripManagerTest {
 		Leg leg = trip.getItinerary().getLegs().get(0);
 		leg.setState(TripState.SCHEDULED);
 		trip.updateTripState();
-		String bookingRef = UrnHelper.createUrn("urn:nb:myservice:booking", 42L);
+		String bookingRef = UrnHelper.createUrn("urn:nb:myservice:booking:", 42L);
 		leg.setBookingId(bookingRef);
 		String reason = "Ik wil niet meer";
 		new Expectations() {{

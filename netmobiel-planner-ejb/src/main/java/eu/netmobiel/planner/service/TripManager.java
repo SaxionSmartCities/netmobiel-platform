@@ -254,7 +254,7 @@ public class TripManager {
        		cancelTripTimers(trip);
     		trip.setMonitored(false);
        	}
-    	log.debug(String.format("updateTripState %s: %s --> %s", previousState, trip.getState()));
+    	log.debug(String.format("updateTripState %s: %s --> %s", trip.getId(), previousState, trip.getState()));
 		tripStateUpdatedEvent.fire(new TripStateUpdatedEvent(previousState, trip));
     }
 
