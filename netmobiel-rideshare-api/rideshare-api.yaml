@@ -721,7 +721,7 @@ paths:
         Add a new ride. The calling user will be the driver.
 
         If recurrence is set, then all future drivers up to 8 weeks in advance are generated as well.
-  /rides/{rideId}/confirm:
+  /rides/{rideId}/confirm{value}:
     summary: Path used to confirm a ride.
     description: Endpoint used to confirm a ride, using a PUT.
     put:
@@ -732,12 +732,19 @@ paths:
       summary: Confirms a ride.
       description: Confirms that the driver has actually driven this ride. It cannot
         be undone. Once the driver has confirmed the ride, the credits will be claimed
-        unless the passenger denies having been in the car.
+        unless the passenger denies having been in the car. A confirmation can only
+        be issued once.
     parameters:
     - name: rideId
       description: A unique identifier for a `Ride`.
       schema:
         type: string
+      in: path
+      required: true
+    - name: value
+      description: 'A confirmation alue: true of false.'
+      schema:
+        type: boolean
       in: path
       required: true
 components:
