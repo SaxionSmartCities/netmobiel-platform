@@ -8,6 +8,7 @@ import java.time.ZoneOffset;
 import org.junit.Before;
 import org.junit.Test;
 
+import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.test.Fixture;
 
 public class AccountingTransactionTest {
@@ -42,7 +43,7 @@ public class AccountingTransactionTest {
 	}
 
 	@Test
-	public void testTransaction_Balanced() {
+	public void testTransaction_Balanced() throws BalanceInsufficientException {
 		String description = "description-1";
 		String reference = "reference-1";
 		Instant acctime = Instant.parse("2020-01-01T01:00:00Z");
@@ -59,7 +60,7 @@ public class AccountingTransactionTest {
 	}
 
 	@Test
-	public void testTransaction_LessThan2() {
+	public void testTransaction_LessThan2() throws BalanceInsufficientException {
 		String description = "description-1";
 		String reference = "reference-1";
 		Instant acctime = Instant.parse("2020-01-01T01:00:00Z");
@@ -74,7 +75,7 @@ public class AccountingTransactionTest {
 	}
 	
 	@Test
-	public void testTransaction_NotBalanced() {
+	public void testTransaction_NotBalanced() throws BalanceInsufficientException {
 		String description = "description-1";
 		String reference = "reference-1";
 		Instant acctime = Instant.parse("2020-01-01T01:00:00Z");
@@ -90,7 +91,7 @@ public class AccountingTransactionTest {
 	}
 
 	@Test
-	public void testTransaction_BalancedThree() {
+	public void testTransaction_BalancedThree() throws BalanceInsufficientException {
 		String description = "description-1";
 		String reference = "reference-1";
 		Instant acctime = Instant.parse("2020-01-01T01:00:00Z");
@@ -104,7 +105,7 @@ public class AccountingTransactionTest {
 	}
 	
 	@Test
-	public void testTransaction_Deposit() {
+	public void testTransaction_Deposit() throws BalanceInsufficientException {
 		String description = "description-1";
 		String reference = null;
 		Instant acctime = Instant.parse("2020-08-01T01:00:00Z");

@@ -126,6 +126,18 @@ public class User implements NetMobielUser, Serializable {
 		this.email = email;
 	}
 
+	public String getName() {
+		StringBuilder sb = new StringBuilder();
+		if (getGivenName() != null) {
+			sb.append(getGivenName()).append(" ");
+		}
+		if (getFamilyName() != null) {
+			sb.append(getFamilyName());
+		}
+		String name = sb.toString().trim();
+		return name.length() > 0 ? name : null;
+	}
+
 	@Override
 	public String toString() {
 		return String.format("User [%s %s %s %s]", managedIdentity, givenName, familyName, email);

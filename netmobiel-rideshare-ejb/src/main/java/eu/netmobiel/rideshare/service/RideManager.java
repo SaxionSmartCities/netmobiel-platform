@@ -39,7 +39,7 @@ import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
-import eu.netmobiel.commons.model.event.TransportProviderConfirmedEvent;
+import eu.netmobiel.commons.model.event.TripConfirmedByProviderEvent;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
 import eu.netmobiel.rideshare.model.Booking;
@@ -139,7 +139,7 @@ public class RideManager {
     private Event<RideStateUpdatedEvent> rideStateUpdatedEvent;
 
 	@Inject
-    private Event<TransportProviderConfirmedEvent> transportProviderConfirmedEvent;
+    private Event<TripConfirmedByProviderEvent> transportProviderConfirmedEvent;
 
     /**
      * Updates all recurrent rides by advancing the system horizon to a predefined offset with reference to the calling time.
@@ -604,7 +604,7 @@ public class RideManager {
     	}
     	ridedb.setConfirmed(confirmationValue);
     	ridedb.getActiveBooking()
-    		.ifPresent(b -> transportProviderConfirmedEvent.fire(new TransportProviderConfirmedEvent(b.getBookingRef(),  b.getPassengerTripRef(), confirmationValue)));
+    		.ifPresent(b -> transportProviderConfirmedEvent.fire(new TripConfirmedByProviderEvent(b.getBookingRef(),  b.getPassengerTripRef(), confirmationValue)));
     }
 
     public static class RideInfo implements Serializable {

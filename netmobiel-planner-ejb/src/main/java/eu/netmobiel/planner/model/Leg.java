@@ -32,6 +32,7 @@ import eu.netmobiel.commons.api.EncodedPolylineBean;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.commons.util.PolylineEncoder;
+import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 /**
  * One leg of a trip -- that is, a temporally continuous piece of the journey that takes place on a
@@ -44,18 +45,17 @@ import eu.netmobiel.commons.util.PolylineEncoder;
 @SequenceGenerator(name = "leg_sg", sequenceName = "leg_id_seq", allocationSize = 1, initialValue = 50)
 public class Leg implements Serializable {
 	private static final long serialVersionUID = -3789784762166689720L;
-//	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(Leg.class);
+	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(Leg.class);
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "leg_sg")
     private Long id;
 
-	// Not sure whether a leg ID should be exportable, the ID is perhaps not stable with updates of trip, resulting is adding, updating and removing legs.
-//	/**
-//	 * Reference urn to the leg.
-//	 */
-//    @Transient
-//    private String legRef;
+	/**
+	 * Reference urn to the leg. Assumption: The leg id is stable.
+	 */
+    @Transient
+    private String legRef;
     
     /**
      * The duration of the leg in seconds (in general endTime - startTime).
@@ -244,7 +244,19 @@ public class Leg implements Serializable {
      */
     @Column(name = "fare_credits")
     private Integer fareInCredits;
- 
+
+    /**
+     * The state of the payment. If null it is undefined.
+     */
+    @Column(name = "payment_state", length = 1)
+    private PaymentState paymentState;
+
+    /**
+     * The urn of the payment. Can refer to the reservation, the release or the final transfer. 
+     */
+    @Column(name = "payment_id", length = 32)
+    private String paymentId = null;
+
     /**
      * Is a confirmation by the transport provider requested?
      */
@@ -299,6 +311,8 @@ public class Leg implements Serializable {
 		this.guideSteps = new ArrayList<>(other.getGuideSteps().stream().map(GuideStep::copy).collect(Collectors.toList()));
 		this.headsign = other.headsign;
 		this.legGeometry = other.legGeometry;
+		this.paymentId = other.paymentId;
+		this.paymentState = other.paymentState;
 		this.plannerReport = other.plannerReport; 
 		this.routeType = other.routeType;
 		this.routeId = other.routeId;
@@ -326,12 +340,12 @@ public class Leg implements Serializable {
 		this.id = id;
 	}
 
-//	public String getLegRef() {
-//    	if (legRef == null) {
-//    		legRef = PlannerUrnHelper.createUrn(Leg.URN_PREFIX, getId());
-//    	}
-//		return legRef;
-//	}
+	public String getLegRef() {
+    	if (legRef == null) {
+    		legRef = PlannerUrnHelper.createUrn(Leg.URN_PREFIX, getId());
+    	}
+		return legRef;
+	}
 
 	public Instant getStartTime() {
 		return getFrom().getDepartureTime();
@@ -579,6 +593,30 @@ public class Leg implements Serializable {
 		this.fareInCredits = fareInCredits;
 	}
 
+	public boolean hasFareInCredits() {
+		return getFareInCredits() != null && getFareInCredits() > 0;
+	}
+	
+	public PaymentState getPaymentState() {
+		return paymentState;
+	}
+
+	public void setPaymentState(PaymentState paymentState) {
+		this.paymentState = paymentState;
+	}
+
+	public boolean isPaymentDue() {
+		return PaymentState.RESERVED == paymentState;
+	}
+	
+	public String getPaymentId() {
+		return paymentId;
+	}
+
+	public void setPaymentId(String paymentId) {
+		this.paymentId = paymentId;
+	}
+
 	public boolean isConfirmationByProviderRequested() {
 		return confirmationByProviderRequested;
 	}
@@ -607,6 +645,10 @@ public class Leg implements Serializable {
 		return Boolean.TRUE.equals(confirmedByProvider);
 	}
 
+	public boolean isDeniedByProvider() {
+		return Boolean.FALSE.equals(confirmedByProvider);
+	}
+
 	public Boolean getConfirmed() {
 		return confirmed;
 	}
@@ -617,6 +659,10 @@ public class Leg implements Serializable {
 
 	public boolean isConfirmed() {
 		return Boolean.TRUE.equals(confirmed);
+	}
+
+	public boolean isDenied() {
+		return Boolean.FALSE.equals(confirmed);
 	}
 
 	/**

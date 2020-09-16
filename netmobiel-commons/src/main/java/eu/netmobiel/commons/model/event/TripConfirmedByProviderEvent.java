@@ -11,7 +11,7 @@ import javax.validation.constraints.NotNull;
  * @author Jaap Reitsma
  *
  */
-public class TransportProviderConfirmedEvent implements Serializable {
+public class TripConfirmedByProviderEvent implements Serializable {
 
 	private static final long serialVersionUID = 8837457274309434137L;
     
@@ -31,7 +31,7 @@ public class TransportProviderConfirmedEvent implements Serializable {
     /**
      * No-args constructor.
      */
-    public TransportProviderConfirmedEvent(String bookingRef, String travellerTripRef, Boolean confirmationValue) {
+    public TripConfirmedByProviderEvent(String bookingRef, String travellerTripRef, Boolean confirmationValue) {
     	this.bookingRef = bookingRef;
     	this.travellerTripRef = travellerTripRef;
     	this.confirmationByTransportProvider = confirmationValue;
@@ -51,6 +51,6 @@ public class TransportProviderConfirmedEvent implements Serializable {
 
 	@Override
 	public String toString() {
-		return String.format("TransportProviderConfirmedEvent %s %s %s]", bookingRef, travellerTripRef, confirmationByTransportProvider);
+		return String.format("TripConfirmedByProviderEvent %s %s %s]", bookingRef, travellerTripRef, confirmationByTransportProvider);
 	}
 }

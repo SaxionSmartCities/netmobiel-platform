@@ -40,12 +40,12 @@ import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
-import eu.netmobiel.commons.model.event.BookingCancelledEvent;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.planner.event.BookingProposalRejectedEvent;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
@@ -107,7 +107,7 @@ public class TripPlanManager {
     @Inject
     private Event<TravelOfferEvent> travelOfferProposedEvent;
     @Inject
-    private Event<BookingCancelledEvent> bookingCancelledEvent;
+    private Event<BookingProposalRejectedEvent> bookingRejectedEvent;
     @Inject
     private Event<Leg> quoteRequestedEvent;
 
@@ -300,16 +300,6 @@ public class TripPlanManager {
 		// Request synchronously a quote
 		quoteRequestedEvent.fire(leg);
 		// Quote received now
-    }
-
-    protected void finalizeItinerary(Itinerary itinerary) {
-    	Integer fare = itinerary.getLegs().stream()
-    		.filter(leg -> leg.getFareInCredits() != null)
-    		.mapToInt(leg -> leg.getFareInCredits())
-    		.sum();
-    	if (fare != null && fare > 0) {
-    		itinerary.setFareInCredits(fare);
-    	}
     }
 
     /**
@@ -535,7 +525,7 @@ public class TripPlanManager {
 			}
 		}
 		// Calculate totals
-		plan.getItineraries().forEach(it -> finalizeItinerary(it));
+		plan.getItineraries().forEach(it -> it.updateFare());
     	rankItineraries(plan);
     	// The itineraries are listed by the plan ordered by score descending
     	return plan;
@@ -1023,6 +1013,7 @@ public class TripPlanManager {
     		assignRideToPassengerLeg(leg, ride);
         	leg.setBookingId(bookingRef);
     	});
+    	// The legs are stil in planning state!
     	passengerItinerary.getLegs().forEach(leg -> leg.setState(TripState.PLANNING));
     }
 
@@ -1038,9 +1029,7 @@ public class TripPlanManager {
     			.filter(leg -> leg.getBookingId() != null)
     			.collect(Collectors.toList());
         	bookedLegs.stream()
-    			.map(leg -> leg.getBookingId())
-    			.distinct()
-    			.forEach(bookingId -> bookingCancelledEvent.fire(new BookingCancelledEvent(bookingId, plan.getTraveller(), plan.getPlanRef(), cancelReason, false, false))
+    			.forEach(leg -> bookingRejectedEvent.fire(new BookingProposalRejectedEvent(plan, leg, cancelReason))
     		);
         	bookedLegs.forEach(leg -> leg.setState(TripState.CANCELLED));
     }

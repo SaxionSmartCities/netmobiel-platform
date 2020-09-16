@@ -7,8 +7,7 @@ import javax.enterprise.event.Reception;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.annotation.Updated;
-import eu.netmobiel.commons.model.event.BookingCancelledEvent;
-import eu.netmobiel.commons.model.event.BookingConfirmedEvent;
+import eu.netmobiel.commons.model.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Ride;
@@ -22,9 +21,7 @@ import eu.netmobiel.rideshare.model.Ride;
 @ApplicationScoped
 @Logging
 public class EventListenerHelper {
-    private BookingConfirmedEvent lastBookingConfirmedEvent;
-    private int bookingConfirmedEventCount;
-    private BookingCancelledEvent lastBookingCancelledEvent;
+    private BookingCancelledFromProviderEvent lastBookingCancelledEvent;
     private int bookingCancelledEventCount;
     private Booking lastBookingCreatedEvent;
     private int bookingCreatedEventCount;
@@ -38,8 +35,6 @@ public class EventListenerHelper {
     public void reset() {
 		lastBookingCancelledEvent = null;
 		bookingCancelledEventCount = 0;
-		lastBookingConfirmedEvent = null;
-		bookingConfirmedEventCount = 0;
 		lastBookingCreatedEvent = null;
 		bookingCreatedEventCount = 0;
 		lastBookingRemovedEvent = null;
@@ -50,12 +45,8 @@ public class EventListenerHelper {
 		rideRemovedEventCount = 0;
     	
     }
-    public void onBookingConfirmedEvent(@Observes BookingConfirmedEvent bce) {
-    	lastBookingConfirmedEvent = bce;
-    	bookingConfirmedEventCount++;
-    }
 
-    public void onBookingCancelledEvent(@Observes BookingCancelledEvent bce) {
+    public void onBookingCancelledEvent(@Observes BookingCancelledFromProviderEvent bce) {
     	lastBookingCancelledEvent = bce;
     	bookingCancelledEventCount++;
     }
@@ -76,13 +67,7 @@ public class EventListenerHelper {
     	rideRemovedEventCount++;
     }
 
-    public BookingConfirmedEvent getLastBookingConfirmedEvent() {
-		return lastBookingConfirmedEvent;
-	}
-	public int getBookingConfirmedEventCount() {
-		return bookingConfirmedEventCount;
-	}
-	public BookingCancelledEvent getLastBookingCancelledEvent() {
+	public BookingCancelledFromProviderEvent getLastBookingCancelledEvent() {
 		return lastBookingCancelledEvent;
 	}
 	public int getBookingCancelledEventCount() {

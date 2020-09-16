@@ -25,7 +25,8 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
-import eu.netmobiel.commons.model.event.BookingCancelledEvent;
+import eu.netmobiel.commons.model.event.BookingCancelledFromProviderEvent;
+import eu.netmobiel.planner.event.BookingProposalRejectedEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
@@ -74,9 +75,12 @@ public class TripPlanManagerTest {
     private Event<TravelOfferEvent> travelOfferEvent;
 
 	@Injectable
-    private Event<BookingCancelledEvent> bookingCancelledEvent;
+    private Event<BookingCancelledFromProviderEvent> bookingCancelledEvent;
 
-	@Injectable
+    @Injectable
+    private Event<BookingProposalRejectedEvent> bookingRejectedEvent;
+
+    @Injectable
     private Event<Leg> quoteRequestedEvent;
 
 	@Injectable

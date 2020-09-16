@@ -386,6 +386,25 @@ public class Itinerary implements Serializable {
 				.collect(Collectors.toList());
 	}
 
+	public boolean isConfirmationComplete() {
+		// The confirmation is complete when both parties have answered for all relevant legs, i.e. when there is not at least one unanswered question.
+		return ! getLegs().stream()
+				.filter(leg -> (leg.isConfirmationRequested() && leg.getConfirmed() == null) || 
+						       (leg.isConfirmationByProviderRequested() && leg.getConfirmedByProvider() == null))
+				.findFirst()
+				.isPresent();
+	}
+
+	public void updateFare() {
+		Integer fare = getLegs().stream()
+	    		.filter(leg -> leg.getFareInCredits() != null)
+	    		.mapToInt(leg -> leg.getFareInCredits())
+	    		.sum();
+    	if (fare != null && fare > 0) {
+    		setFareInCredits(fare);
+    	}
+	}
+
 	/**
 	 * Searches through the legs of this trip for a leg with a specific tripId. The trip id is a reference from the transport provider
 	 * and refers to a specific ride of a vehicle, both in rideshare and in public transport. In public transport the tripId refers 

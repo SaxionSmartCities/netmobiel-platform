@@ -111,8 +111,6 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		assertEquals(0, b.getLegs().size());
 		// Auto confirm
 		assertEquals(BookingState.CONFIRMED, b.getState());
-		assertNull(eventListenerHelper.getLastBookingConfirmedEvent());
-		assertEquals(0, eventListenerHelper.getBookingConfirmedEventCount());
 		// The hook for the driver notification is called
 		assertNotNull(eventListenerHelper.getLastBookingCreatedEvent());
 		assertEquals(1, eventListenerHelper.getBookingCreatedEventCount());

@@ -29,6 +29,7 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
 import eu.netmobiel.banker.Resources;
+import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.AccountingEntry;
@@ -175,7 +176,7 @@ public class AccountingEntryDaoIT {
 
     }
     @Test
-    public void listAccountingEntries() {
+    public void listAccountingEntries() throws BalanceInsufficientException {
     	// Take care to load the balances into the persistence context
     	balance1 = em.find(Balance.class, balance1.getId());
     	balance2 = em.find(Balance.class, balance2.getId());

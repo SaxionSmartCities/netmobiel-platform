@@ -16,7 +16,7 @@ public enum TripState {
 	 */
 	BOOKING("BKN"),
 	/**
-	 * The trip is scheduled, all that needs to be prepared for has been prepared. 
+	 * The trip is scheduled, all that needs to be prepared for has been prepared. Fares have been reserved.
 	 */
 	SCHEDULED("SCH"),
 	/**
@@ -32,11 +32,11 @@ public enum TripState {
 	 */
 	ARRIVING("ARR"),
 	/**
-	 * The trip waits for confirmation by transport provider and traveller.
+	 * The trip waits for confirmation by transport provider and traveller. If confirmed the traveller is charged with the fare.
 	 */
 	VALIDATING("VLD"),
 	/**
-	 * The trip is completed
+	 * The trip is completed. Fares have been paid or released.
 	 */
 	COMPLETED("CMP"),
 	/**

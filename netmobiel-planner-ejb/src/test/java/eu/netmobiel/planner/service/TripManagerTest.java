@@ -19,13 +19,15 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
-import eu.netmobiel.commons.model.event.BookingCancelledEvent;
-import eu.netmobiel.commons.model.event.BookingConfirmedEvent;
-import eu.netmobiel.commons.model.event.BookingRequestedEvent;
+import eu.netmobiel.commons.model.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.commons.util.UrnHelper;
+import eu.netmobiel.planner.event.BookingCancelledEvent;
+import eu.netmobiel.planner.event.BookingConfirmedEvent;
+import eu.netmobiel.planner.event.BookingRequestedEvent;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.event.TripConfirmedEvent;
 import eu.netmobiel.planner.event.TripStateUpdatedEvent;
+import eu.netmobiel.planner.event.TripValidationExpiredEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Trip;
@@ -58,8 +60,11 @@ public class TripManagerTest {
 	@Injectable
     private Event<BookingRequestedEvent> bookingRequestedEvent;
 
-	@Injectable
+    @Injectable
     private Event<BookingCancelledEvent> bookingCancelledEvent;
+
+    @Injectable
+    private Event<BookingCancelledFromProviderEvent> bookingCancelledFromProviderEvent;
 
 	@Injectable
     private Event<BookingConfirmedEvent> bookingConfirmedEvent;
@@ -75,6 +80,9 @@ public class TripManagerTest {
 
     @Injectable
     private Event<TripConfirmedEvent> tripConfirmedEvent;
+
+    @Injectable
+    private Event<TripValidationExpiredEvent> tripValidationExpiredEvent;
 
     private User traveller;
 	
@@ -200,16 +208,8 @@ public class TripManagerTest {
 			Leg leg = trip.getItinerary().getLegs().get(0);
 			BookingRequestedEvent event;
 			bookingRequestedEvent.fire(event = withCapture());
-			assertEquals(leg.getTo().getArrivalTime(), event.getArrivalTime());
-			assertEquals(leg.getFrom().getDepartureTime(), event.getDepartureTime());
-			assertEquals(leg.getTo().getLocation(), event.getDropOff());
-			assertEquals(leg.getFrom().getLocation(), event.getPickup());
-			assertEquals(trip.getNrSeats(), event.getNrSeats());
-			assertEquals(trip.getTraveller(), event.getTraveller());
-			// The transport provider trip reference
-			assertEquals(leg.getTripId(), event.getProviderTripRef());
-			// The netmobiel trip reference
-			assertEquals(trip.getTripRef(), event.getTravellerTripRef());
+			assertSame(leg, event.getLeg());
+			assertEquals(trip, event.getTrip());
 		}};
 	}
 
@@ -350,11 +350,8 @@ public class TripManagerTest {
 			BookingCancelledEvent event;
 			bookingCancelledEvent.fire(event = withCapture());
 			assertEquals(reason, event.getCancelReason());
-			assertEquals(bookingRef, event.getBookingRef());
-			assertEquals(traveller, event.getTraveller());
-			assertEquals(trip.getTripRef(), event.getTravellerTripRef());
-			assertEquals(false, event.isCancelledByDriver());
-			assertEquals(false, event.isCancelledFromTransportProvider());
+			assertSame(leg, event.getLeg());
+			assertSame(trip, event.getTrip());
 		}};
 	}
 }

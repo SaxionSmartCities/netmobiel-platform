@@ -2,8 +2,6 @@ package eu.netmobiel.planner.event;
 
 import java.io.Serializable;
 
-import javax.validation.constraints.NotNull;
-
 import eu.netmobiel.planner.model.Trip;
 
 /**
@@ -12,25 +10,11 @@ import eu.netmobiel.planner.model.Trip;
  * @author Jaap Reitsma
  *
  */
-public class TripConfirmedEvent implements Serializable {
-	private static final long serialVersionUID = 8837457274309434137L;
-	/**
-     * The traveller.
-     */
-    @NotNull
-    private Trip trip;
-    
-    public TripConfirmedEvent(Trip aTrip) {
-    	this.trip = aTrip;
+public class TripConfirmedEvent extends TripEvent implements Serializable {
+	private static final long serialVersionUID = 2270398465038857971L;
+
+	public TripConfirmedEvent(Trip aTrip) {
+    	super(aTrip);
     }
-
-    public Trip getTrip() {
-		return trip;
-	}
-
-	@Override
-	public String toString() {
-		return String.format("TripConfirmedEvent [%s]", trip.getId());
-	}
 
 }

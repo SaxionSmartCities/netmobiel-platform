@@ -18,8 +18,12 @@ import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+
+import eu.netmobiel.banker.exception.BalanceInsufficientException;
+import eu.netmobiel.banker.util.BankerUrnHelper;
 
 /**
  * An AccountingTransaction captures an atomic transfer of an amount between two or more accounts. A transaction is always balanced, 
@@ -35,6 +39,7 @@ import javax.validation.constraints.Size;
 @Vetoed
 @SequenceGenerator(name = "accounting_transaction_sg", sequenceName = "accounting_transaction_seq", allocationSize = 1, initialValue = 50)
 public class AccountingTransaction {
+	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix("transaction");
 	public static final int DESCRIPTION_MAX_LENGTH = 256;
 
 	@Id
@@ -42,6 +47,12 @@ public class AccountingTransaction {
     private Long id;
 
 	/**
+	 * Reference urn to the transaction.
+	 */
+    @Transient
+    private String transactionRef;
+
+    /**
 	 * The description of the transaction. For now all entries share the same description.
 	 */
 	@Size(max = DESCRIPTION_MAX_LENGTH)
@@ -110,6 +121,12 @@ public class AccountingTransaction {
 		this.id = id;
 	}
 
+	public String getTransactionRef() {
+    	if (transactionRef == null) {
+    		transactionRef = BankerUrnHelper.createUrn(AccountingTransaction.URN_PREFIX, getId());
+    	}
+		return transactionRef;
+	}
 	public String getDescription() {
 		return description;
 	}
@@ -188,14 +205,14 @@ public class AccountingTransaction {
 			}
 		}
 		
-		public AccountingTransaction.Builder debit(Balance balance, int amount, String counterparty) {
+		public AccountingTransaction.Builder debit(Balance balance, int amount, String counterparty) throws BalanceInsufficientException {
 			expectNotFinished();
 			addAccountingEntry(balance.getAccount(), counterparty, new AccountingEntry(AccountingEntryType.DEBIT, amount));
 			balance.debit(amount);
 			return this;
 		}
 		
-		public AccountingTransaction.Builder credit(Balance balance, int amount, String counterparty) {
+		public AccountingTransaction.Builder credit(Balance balance, int amount, String counterparty) throws BalanceInsufficientException {
 			expectNotFinished();
 			addAccountingEntry(balance.getAccount(), counterparty, new AccountingEntry(AccountingEntryType.CREDIT, amount));
 			balance.credit(amount);

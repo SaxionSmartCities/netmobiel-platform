@@ -13,32 +13,23 @@ import eu.netmobiel.planner.model.TripState;
  * @author Jaap Reitsma
  *
  */
-public class TripStateUpdatedEvent implements Serializable {
-	private static final long serialVersionUID = 8837457274309434137L;
-	/**
-     * The traveller.
-     */
-    @NotNull
-    private Trip trip;
-    
-    @NotNull
+public class TripStateUpdatedEvent extends TripEvent implements Serializable {
+	private static final long serialVersionUID = 3219309393169307909L;
+
+	@NotNull
     private TripState previousState;
 
     public TripStateUpdatedEvent(TripState aPreviousState, Trip aTrip) {
+    	super(aTrip);
     	this.previousState = aPreviousState;
-    	this.trip = aTrip;
     }
 
     public TripState getPreviousState() {
 		return previousState;
 	}
 
-	public Trip getTrip() {
-		return trip;
-	}
-
 	@Override
 	public String toString() {
-		return String.format("TripStateUpdatedEvent %s %s -> %s]", trip.getId(), previousState, trip.getState());
+		return String.format("TripStateUpdatedEvent %s %s -> %s]", getTrip().getId(), previousState, getTrip().getState());
 	}
 }

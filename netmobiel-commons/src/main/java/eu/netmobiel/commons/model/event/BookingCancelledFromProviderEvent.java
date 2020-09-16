@@ -12,7 +12,7 @@ import eu.netmobiel.commons.model.NetMobielUser;
  * @author Jaap Reitsma
  *
  */
-public class BookingCancelledEvent extends BookingEventBase implements Serializable {
+public class BookingCancelledFromProviderEvent extends BookingEventBase implements Serializable {
 	private static final long serialVersionUID = -6709947526702522195L;
 
     /**
@@ -22,24 +22,19 @@ public class BookingCancelledEvent extends BookingEventBase implements Serializa
     private String cancelReason;
     
     /**
-     * If true then the booking was cancelled by the transport driver.
+     * If true then the booking was cancelled by the transport driver. This flag is added because in theory 
+     * the traveller can cancel the booking through the NetMobiel client, but also through the provider's client.
      */
     private boolean cancelledByDriver;
 
     /**
-     * If true then the booking was cancelled by the transport provider service.
-     */
-    private boolean cancelledFromTransportProvider;
-
-    /**
      * No-args constructor.
      */
-    public BookingCancelledEvent(String bookingRef, NetMobielUser traveller, String travellerTripRef, 
-    		String cancelReason, boolean cancelledByDriver, boolean cancelledFromTransportProvider) {
+    public BookingCancelledFromProviderEvent(String bookingRef, NetMobielUser traveller, String travellerTripRef, 
+    		String cancelReason, boolean cancelledByDriver) {
     	super(bookingRef, traveller, travellerTripRef);
     	this.cancelReason = cancelReason;
     	this.cancelledByDriver = cancelledByDriver;
-    	this.cancelledFromTransportProvider = cancelledFromTransportProvider;
     }
 
 	public String getCancelReason() {
@@ -48,10 +43,6 @@ public class BookingCancelledEvent extends BookingEventBase implements Serializa
 
 	public boolean isCancelledByDriver() {
 		return cancelledByDriver;
-	}
-
-	public boolean isCancelledFromTransportProvider() {
-		return cancelledFromTransportProvider;
 	}
 
 }

@@ -15,6 +15,8 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.banker.exception.BalanceInsufficientException;
+import eu.netmobiel.banker.exception.InvalidChargeException;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.AccountingEntry;
@@ -32,7 +34,9 @@ import eu.netmobiel.banker.repository.BalanceDao;
 import eu.netmobiel.banker.repository.DepositRequestDao;
 import eu.netmobiel.banker.repository.LedgerDao;
 import eu.netmobiel.banker.repository.UserDao;
+import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.TokenGenerator;
@@ -131,12 +135,16 @@ public class LedgerService {
     	Balance brab = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE);  
     	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
     	expect(brab.getAccount(), AccountType.ASSET);
-    	AccountingTransaction tr = ledger
-    			.createTransaction(TransactionType.DEPOSIT, description, reference, when.toInstant(), Instant.now())
-    			.debit(brab, amount, userAccountBalance.getAccount().getName())
-				.credit(userAccountBalance, amount, null)
-				.build();
-    	accountingTransactionDao.save(tr);
+		try {
+			AccountingTransaction tr = ledger
+					.createTransaction(TransactionType.DEPOSIT, description, reference, when.toInstant(), Instant.now())
+					.debit(brab, amount, userAccountBalance.getAccount().getName())
+					.credit(userAccountBalance, amount, null)
+					.build();
+	    	accountingTransactionDao.save(tr);
+		} catch (BalanceInsufficientException e) {
+			throw new IllegalStateException("A deposit should never cause an BalanceInsufficientException");
+		}
     }
 
     /**
@@ -147,7 +155,7 @@ public class LedgerService {
      * @param when the time of this financial fact.
      * @description the description in the journal.
      */
-    protected  void withdraw(Account acc, int amount, OffsetDateTime when, String description, String reference) {
+    protected  void withdraw(Account acc, int amount, OffsetDateTime when, String description, String reference) throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
     	Balance userAccountBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
@@ -173,7 +181,7 @@ public class LedgerService {
      * @param description the description in the journal.
      * @param reference the contextual reference to a system object in the form of a urn.
      */
-    protected void charge(Account customer, Account beneficiary, int amount, OffsetDateTime when, String description, String reference) {
+    protected AccountingTransaction charge(Account customer, Account beneficiary, int amount, OffsetDateTime when, String description, String reference) throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
     	Balance customerBalance = balanceDao.findByLedgerAndAccount(ledger, customer);  
@@ -186,6 +194,7 @@ public class LedgerService {
 				.credit(counterpartyBalance, amount, customerBalance.getAccount().getName())
     			.build();
     	accountingTransactionDao.save(tr);
+    	return tr;
     }
 
     /**
@@ -196,7 +205,7 @@ public class LedgerService {
      * @param description the description in the journal.
      * @param reference the contextual reference to a system object in the form of a urn.
      */
-    protected void reserve(Account acc, int amount, OffsetDateTime when, String description, String reference) {
+    protected AccountingTransaction reserve(Account acc, int amount, OffsetDateTime when, String description, String reference) throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
     	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
@@ -209,30 +218,76 @@ public class LedgerService {
 				.credit(rb, amount, userBalance.getAccount().getName())
     			.build();
     	accountingTransactionDao.save(tr);
+    	return tr;
+    }
+
+    protected AccountingEntry lookupUserEntry(AccountingTransaction tr) {
+    	List<AccountingEntry> rs_entries = tr.getAccountingEntries();
+    	if (rs_entries.size() > 2) {
+    		throw new IllegalStateException("Cannot lookup a user in a transaction with more than 2 entries: " + tr.getTransactionRef());
+    	}
+    	AccountingEntry userEntry = rs_entries.stream()
+    			.filter(entry -> entry.getAccount().getNcan() != ACC_REF_RESERVATIONS)
+    			.findFirst()
+    			.orElseThrow(() -> new IllegalStateException("No user acount found when looking up transaction: " + tr.getTransactionRef()));
+    	return userEntry;
     }
 
     /**
-     * Releases an amount of credits from one Netmobiel user that was previously reserved. In practise the release will be followed in 
-     * single transaction by a charge be for the delivered service, unless it was cancelled. 
-     * @param acc the netmobiel account that will receive the unreserved credits. 
-     * @param amount the amount of credits
-     * @param when the time of this financial fact.
-     * @param description the description in the journal.
-     * @param reference the contextual reference to a system object in the form of a urn.
+     * Releases a previous reservation. A new transaction will be added to nullify the reservation.
+     * @param transactionRef the reference to the previously made reservation.  
      */
-    protected void release(Account acc, int amount, OffsetDateTime when, String description, String reference) {
-    	Ledger ledger = ledgerDao.findByDate(when.toInstant());
+    protected AccountingTransaction release(String transactionRef, OffsetDateTime when) throws BalanceInsufficientException {
+    	Long tid = BankerUrnHelper.getId(transactionRef);
+    	AccountingTransaction reservation = accountingTransactionDao.find(tid).orElseThrow(() -> new IllegalArgumentException("No such transaction: " + transactionRef));
+    	AccountingEntry userEntry = lookupUserEntry(reservation);
+    	Ledger ledger = reservation.getLedger();
     	ledger.expectOpen();
-    	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
+    	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, userEntry.getAccount());  
     	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);  
     	expect(userBalance.getAccount(), AccountType.LIABILITY);
     	expect(rb.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
-    			.createTransaction(TransactionType.RESERVATION, description, reference, when.toInstant(), Instant.now())
-    			.credit(userBalance, amount, null)
-				.debit(rb, amount, userBalance.getAccount().getName())
+    			.createTransaction(TransactionType.RELEASE, reservation.getDescription(), reservation.getContext(), when.toInstant(), Instant.now())
+    			.credit(userBalance, userEntry.getAmount(), null)
+				.debit(rb, userEntry.getAmount(), userEntry.getAccount().getName())
     			.build();
     	accountingTransactionDao.save(tr);
+    	return tr;
+    }
+
+    public String reserve(NetMobielUser nmuser, int amount, String description, String reference) throws BalanceInsufficientException {
+    	Optional<User> user = lookupUser(nmuser);
+    	if (! user.isPresent()) {
+    		throw new BalanceInsufficientException("User has no deposits made yet: " + nmuser.getManagedIdentity());
+    	}
+    	AccountingTransaction tr = reserve(user.get().getPersonalAccount(), amount, OffsetDateTime.now(), description, reference);
+    	return tr.getTransactionRef();
+    }
+
+    public String release(String reservationId) {
+    	AccountingTransaction tr = null;
+    	try {
+    		tr = release(reservationId, OffsetDateTime.now());
+		} catch (BalanceInsufficientException e) {
+			throw new IllegalStateException("Reservation account should not be empty", e);
+		}
+    	return tr.getTransactionRef();
+    }
+
+    public String charge(NetMobielUser nmbeneficiary, String reservationId, int actualAmount) throws BalanceInsufficientException, InvalidChargeException {
+    	Optional<User> beneficiary = lookupUser(nmbeneficiary);
+    	if (! beneficiary.isPresent()) {
+    		throw new BalanceInsufficientException("Beneficiary has no account, nothing to transfer to: " + nmbeneficiary.getManagedIdentity());
+    	}
+    	AccountingTransaction release = release(reservationId, OffsetDateTime.now());
+    	int overspent = actualAmount - release.getAccountingEntries().get(0).getAmount(); 
+    	if (overspent > 0) {
+    		throw new InvalidChargeException("Charge exceeds reservation: " + reservationId + " " + overspent);
+    	}
+    	AccountingEntry userEntry = lookupUserEntry(release);
+    	AccountingTransaction charge_tr = charge(userEntry.getAccount(), beneficiary.get().getPersonalAccount(), actualAmount, OffsetDateTime.now(), release.getDescription(), release.getContext());
+    	return charge_tr.getTransactionRef();
     }
 
     /**
@@ -384,6 +439,10 @@ public class LedgerService {
     		.orElseGet(() -> createAccount(ncan, name, type));
     }
 
+    protected Optional<User> lookupUser(NetMobielUser user) {
+    	return Optional.ofNullable(userDao.findByManagedIdentity(user.getManagedIdentity()).orElse(null));
+    }
+    
     /**
      * Event handler for handling new users. The ledger service must create and assign a personal monetary account.
      * @param newUser the new user account. The user record. It must be persistent already.

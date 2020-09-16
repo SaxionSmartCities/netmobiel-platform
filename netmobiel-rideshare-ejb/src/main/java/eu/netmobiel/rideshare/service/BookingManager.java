@@ -21,8 +21,7 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.model.event.BookingCancelledEvent;
-import eu.netmobiel.commons.model.event.BookingConfirmedEvent;
+import eu.netmobiel.commons.model.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.model.Booking;
@@ -50,12 +49,8 @@ public class BookingManager {
     @Inject
     private UserDao userDao;
     
-    @SuppressWarnings("unused")
-	@Inject
-    private Event<BookingConfirmedEvent> bookingConfirmedEvent;
-    
     @Inject
-    private Event<BookingCancelledEvent> bookingCancelledEvent;
+    private Event<BookingCancelledFromProviderEvent> bookingCancelledEvent;
 
     @Inject @Updated
     private Event<Ride> staleItineraryEvent;
@@ -155,11 +150,7 @@ public class BookingManager {
 				// Update itinerary of the driver
 		    	staleItineraryEvent.fire(booking.getRide());
 			} else {
-				//FIXME
 				throw new IllegalStateException("Unexpected booking state transition, support auto confirm only!");
-//		    	BookingConfirmedEvent bce = new BookingConfirmedEvent(bookingRef, passenger, booking.getPassengerTripRef());
-//		    	bookingConfirmedEvent.fire(bce);
-		    	// Driver does not need to be informed, he has just confirmed the booking himself 
 			}
 		}
 		// Inform driver about requested booking or confirmed booking
@@ -194,8 +185,8 @@ public class BookingManager {
    		if (cancelledFromRideshare) {
    			// The driver of passenger has cancelled the ride or the booking through the rideshare API. 
    			// The Trip Manager has to know about it.
-			BookingCancelledEvent bce = new BookingCancelledEvent(bookingRef, bookingdb.getPassenger(), bookingdb.getPassengerTripRef(),
-					reason, cancelledByDriver, cancelledFromRideshare);
+			BookingCancelledFromProviderEvent bce = new BookingCancelledFromProviderEvent(bookingRef, 
+					bookingdb.getPassenger(), bookingdb.getPassengerTripRef(), reason, cancelledByDriver);
 			// For now use a synchronous removal
 			bookingCancelledEvent.fire(bce);						
    		}
@@ -220,8 +211,8 @@ public class BookingManager {
     		b.markAsCancelled(ride.getCancelReason(), true);	
    			// The driver has cancelled the ride. 
    			// The Trip Manager has to know about it.
-			BookingCancelledEvent bce = new BookingCancelledEvent(b.getBookingRef(), b.getPassenger(), b.getPassengerTripRef(),
-					ride.getCancelReason(), true, true);
+			BookingCancelledFromProviderEvent bce = new BookingCancelledFromProviderEvent(b.getBookingRef(), b.getPassenger(), b.getPassengerTripRef(),
+					ride.getCancelReason(), true);
 			// For now use a synchronous removal
 			bookingCancelledEvent.fire(bce);						
     	});
@@ -236,7 +227,8 @@ public class BookingManager {
     	Booking b = bookingDao.loadGraph(id, Booking.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such booking: " + id));
     	if (b.getState() != BookingState.PROPOSED && b.getState() != BookingState.REQUESTED) {
-    		log.warn(String.format("Booking %d has an unexpected booking state at confrmation: %s", id, b.getState().toString()));
+    		log.warn(String.format("Booking %d has an unexpected booking state at confirmation: %s", id, b.getState().toString()));
+    		throw new IllegalStateException("Unexpected booking state: " + b.getBookingRef() + " " + b.getState());
     	}
     	b.setState(BookingState.CONFIRMED);
     	b.setPassengerTripRef(passengerTripRef);

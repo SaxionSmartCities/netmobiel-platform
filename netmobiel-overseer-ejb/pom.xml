@@ -110,6 +110,11 @@
 		    <artifactId>jboss-ejb3-ext-api</artifactId>
 		    <scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.sun.mail</groupId>
+			<artifactId>javax.mail</artifactId>
+			<scope>provided</scope>
+		</dependency>
 
 		<!-- TEST Dependencies -->
         <dependency>

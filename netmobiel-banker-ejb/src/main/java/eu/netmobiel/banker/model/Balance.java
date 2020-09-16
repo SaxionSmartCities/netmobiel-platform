@@ -18,6 +18,8 @@ import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.persistence.Version;
 
+import eu.netmobiel.banker.exception.BalanceInsufficientException;
+
 /**
  * The balance of an account concerns a specific ledger (of a fiscal year). The balance(s) of each account 
  * involved in a transaction is updated with each transaction. The balance reflects the state at the end of the period. 
@@ -122,23 +124,29 @@ public class Balance {
 		return modifiedTime;
 	}
 
-	public void debit(int amount) {
+	public void debit(int amount) throws BalanceInsufficientException {
 		if (account.getAccountType() == AccountType.ASSET) {
 			endAmount += amount;
 		} else if (account.getAccountType() == AccountType.LIABILITY) {
 			endAmount -= amount;
+			if (endAmount < 0) {
+				throw new BalanceInsufficientException("Balance overdrawn by " + endAmount + " credits");
+			}
 		} else {
-			throw new IllegalArgumentException("Account type is not supported");
+			throw new IllegalArgumentException("Account type is not supported: " + account.getAccountType());
 		}
 	}
 
-	public void credit(int amount) {
+	public void credit(int amount)  throws BalanceInsufficientException {
 		if (account.getAccountType() == AccountType.ASSET) {
 			endAmount -= amount;
+			if (endAmount < 0) {
+				throw new BalanceInsufficientException("Balance overdrawn by " + endAmount + " credits");
+			}
 		} else if (account.getAccountType() == AccountType.LIABILITY) {
 			endAmount += amount;
 		} else {
-			throw new IllegalArgumentException("Account type is not supported");
+			throw new IllegalArgumentException("Account type is not supported: " + account.getAccountType());
 		}
 	}
 }
