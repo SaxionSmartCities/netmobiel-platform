@@ -270,9 +270,9 @@ public class TripManager {
   
     /**
      * Retrieves a trip. Anyone can read a trip, given the id. All details are retrieved.
-     * @param id
-     * @return
-     * @throws NotFoundException
+     * @param id the trip id
+     * @return a trip object
+     * @throws NotFoundException No matching trip found.
      */
     public Trip getTrip(Long id) throws NotFoundException {
     	Trip tripdb = tripDao.loadGraph(id, Trip.DETAILED_ENTITY_GRAPH)
@@ -280,6 +280,30 @@ public class TripManager {
     	return tripdb;
     }
     
+    /**
+     * Retrieves a trip by its itinerary. All details are retrieved.
+     * @param itineraryId
+     * @return a Trip object.
+     * @throws NotFoundException No matching trip found.
+     */
+    public Trip getTripByItinerary(Long itineraryId) throws NotFoundException {
+    	Long tripId = tripDao.findTripIdByItineraryId(itineraryId)
+    			.orElseThrow(() -> new NotFoundException("No trip with such an itinerary: " + itineraryId));
+    	return getTrip(tripId);
+    }
+
+    /**
+     * Retrieves a trip by one of its legs. All details are retrieved.
+     * @param legId
+     * @return a Trip object.
+     * @throws NotFoundException No matching trip found.
+     */
+    public Trip getTripByLeg(Long legId) throws NotFoundException {
+    	Long tripId = tripDao.findTripIdByLegId(legId)
+    			.orElseThrow(() -> new NotFoundException("No trip with such a leg: " + legId));
+    	return getTrip(tripId);
+    }
+
     /**
      * Removes a trip. Trips are always soft-deleted for reasons of analysis.
      * This method is supposedly to be called by the traveller. 
@@ -327,9 +351,11 @@ public class TripManager {
     /**
      * Sets the confirmation flag on each leg in the trip.
      * @param tripId the trip to update.
+     * @param confirmationValue the answer of the traveller.
+     * @param overrideResponse If true then skip the check whether an answer was already available.
      * @throws NotFoundException If the trip was not found.
      */
-    public void confirmTrip(Long tripId, Boolean confirmationValue) throws NotFoundException, BadRequestException {
+    public void confirmTrip(Long tripId, Boolean confirmationValue, boolean overrideResponse) throws NotFoundException, BadRequestException {
     	Trip tripdb = tripDao.fetchGraph(tripId, Trip.MY_LEGS_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripId));
     	if (confirmationValue == null) {
@@ -341,10 +367,12 @@ public class TripManager {
         		throw new BadRequestException("Unexpected state for a confirmation: " + tripId + " " + tripdb.getState());
         	}
         	for (Leg leg : tripdb.getItinerary().getLegs()) {
-            	if (leg.getConfirmed() != null) {
-            		throw new BadRequestException("Leg has already a confirmation value: " + leg.getId());
-            	}
-            	leg.setConfirmed(confirmationValue);
+        		if (leg.isConfirmationRequested()) {
+	            	if (!overrideResponse && leg.getConfirmed() != null) {
+	            		throw new BadRequestException("Leg has already a confirmation value: " + leg.getId());
+	            	}
+	            	leg.setConfirmed(confirmationValue);
+        		}
         	}
         	tripConfirmedEvent.fire(new TripConfirmedEvent(tripdb));
     	}
@@ -352,10 +380,13 @@ public class TripManager {
 
     /**
      * Sets the confirmation flag on each leg in the trip.
-     * @param tripId the trip to update.
+     * @param tripRef the trip reference to update.
+     * @param bookingRef the reference to the booking 
+     * @param confirmationValue the answer of the traveller.
+     * @param overrideResponse If true then skip the check whether an answer was already available.
      * @throws NotFoundException If the trip was not found.
      */
-    public void confirmTripByTransportProvider(String tripRef, String bookingRef, Boolean confirmationValue) throws NotFoundException, BadRequestException {
+    public void confirmTripByTransportProvider(String tripRef, String bookingRef, Boolean confirmationValue, boolean overrideResponse) throws NotFoundException, BadRequestException {
     	Trip tripdb = tripDao.fetchGraph(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef), Trip.MY_LEGS_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
     	if (confirmationValue == null) {
@@ -367,14 +398,19 @@ public class TripManager {
         	if (tripdb.getState() != TripState.IN_TRANSIT && tripdb.getState() != TripState.ARRIVING && tripdb.getState() != TripState.VALIDATING) {
         		throw new BadRequestException("Unexpected state for a confirmation: " + tripRef + " " + tripdb.getState());
         	}
-        	Leg bookedLeg = tripdb.getItinerary().findLegByBookingId(bookingRef)
-        			.orElseThrow(() -> new IllegalArgumentException("No such booking on trip: " + tripRef + " " + bookingRef));
-           	if (bookedLeg.getConfirmedByProvider() != null) {
-           		throw new BadRequestException("Leg has already a confirmation value by provider: " + bookedLeg.getId());
-           	}
-           	bookedLeg.setConfirmedByProvider(confirmationValue);
+        	if (bookingRef != null) {
+            	tripdb.getItinerary().findLegByBookingId(bookingRef)
+            			.orElseThrow(() -> new IllegalArgumentException("No such booking on trip: " + tripRef + " " + bookingRef));
+        	}
+        	for (Leg leg : tripdb.getItinerary().getLegs()) {
+        		if (leg.isConfirmationByProviderRequested() && (bookingRef == null || bookingRef.equals(leg.getBookingId()))) {
+	            	if (!overrideResponse && leg.getConfirmed() != null) {
+	            		throw new BadRequestException("Leg has already a confirmation value by provider: " + leg.getId());
+	            	}
+	            	leg.setConfirmedByProvider(confirmationValue);
+        		}
+        	}
         	tripConfirmedEvent.fire(new TripConfirmedEvent(tripdb));
-
     	}
     }
 
@@ -426,7 +462,7 @@ public class TripManager {
     
 	@Schedule(info = "Collect due trips", hour = "*/1", minute = "0", second = "0", persistent = false /* non-critical job */)
 	public void checkForDueTrips() {
-		log.debug("CollectDueTrips");
+//		log.debug("CollectDueTrips");
 		// Get all trips that are in scheduled state and have a departure time within a certain window
 		List<Trip> trips = tripDao.findMonitorableTrips(Instant.now().plus(Duration.ofHours(2).plus(DEPARTING_PERIOD)));
 		for (Trip trip : trips) {

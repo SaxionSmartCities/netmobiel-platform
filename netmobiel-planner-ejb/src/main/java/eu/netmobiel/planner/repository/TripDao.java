@@ -4,11 +4,13 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
+import javax.persistence.NoResultException;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
@@ -100,4 +102,28 @@ public class TripDao extends AbstractDao<Trip, Long> {
     	return trips; 
     }
 
+    public Optional<Long> findTripIdByItineraryId(Long itineraryId) {
+    	Long tripId = null;
+    	try {
+			tripId = em.createQuery(
+					"select t.id from Trip t where t.itinerary.id = :id", Long.class)
+					.setParameter("id", itineraryId)
+					.getSingleResult();
+		} catch (NoResultException e) {
+			// Not found
+		}
+    	return Optional.ofNullable(tripId); 
+    }
+    public Optional<Long> findTripIdByLegId(Long legId) {
+    	Long tripId = null;
+    	try {
+    		tripId = em.createQuery(
+					"select t.id from Trip t where (select leg from Leg leg where leg.id = :id) member of t.itinerary.legs", Long.class)
+					.setParameter("id", legId)
+					.getSingleResult();
+		} catch (NoResultException e) {
+			// Not found
+		}
+    	return Optional.ofNullable(tripId); 
+    }
 }

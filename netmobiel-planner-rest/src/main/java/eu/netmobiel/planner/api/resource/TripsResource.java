@@ -4,10 +4,12 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 
 import javax.ejb.EJB;
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
@@ -18,9 +20,12 @@ import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.api.TripsApi;
 import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripMapper;
+import eu.netmobiel.planner.model.Itinerary;
+import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.User;
@@ -28,10 +33,9 @@ import eu.netmobiel.planner.service.TripManager;
 import eu.netmobiel.planner.service.UserManager;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
-@ApplicationScoped
+@RequestScoped
 public class TripsResource implements TripsApi {
 
-	@SuppressWarnings("unused")
 	@Inject
     private Logger log;
  
@@ -47,6 +51,9 @@ public class TripsResource implements TripsApi {
     @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
     private UserManager userManager;
 
+    @Context
+    private HttpServletRequest request;
+    
 	private Instant toInstant(OffsetDateTime odt) {
 		return odt == null ? null : odt.toInstant();
 	}
@@ -70,7 +77,7 @@ public class TripsResource implements TripsApi {
 	public Response deleteTrip(String tripId) {
     	Response rsp = null;
     	try {
-        	Long tid = PlannerUrnHelper.getId(Trip.URN_PREFIX, tripId);
+        	Long tid = UrnHelper.getId(Trip.URN_PREFIX, tripId);
         	String reason = null;
 			tripManager.removeTrip(tid, reason);
 			rsp = Response.noContent().build();
@@ -83,12 +90,22 @@ public class TripsResource implements TripsApi {
 	}
 
 	@Override
-	public Response getTrip(String tripId) {
+	public Response getTrip(String someId) {
     	Response rsp = null;
 		Trip trip;
 		try {
-        	Long tid = PlannerUrnHelper.getId(Trip.URN_PREFIX, tripId);
-			trip = tripManager.getTrip(tid);
+			if (! UrnHelper.isUrn(someId) || UrnHelper.matchesPrefix(Trip.URN_PREFIX, someId)) {
+	        	Long tid = UrnHelper.getId(Trip.URN_PREFIX, someId);
+				trip = tripManager.getTrip(tid);
+			} else if (UrnHelper.matchesPrefix(Itinerary.URN_PREFIX, someId)) {
+	        	Long iid = UrnHelper.getId(Itinerary.URN_PREFIX, someId);
+				trip = tripManager.getTripByItinerary(iid);
+			} else if (UrnHelper.matchesPrefix(Leg.URN_PREFIX, someId)) {
+	        	Long lid = UrnHelper.getId(Leg.URN_PREFIX, someId);
+				trip = tripManager.getTripByLeg(lid);
+			} else {
+				throw new BadRequestException("Don't understand urn: " + someId);
+			}
 			rsp = Response.ok(tripMapper.mapInDetail(trip)).build();
 		} catch (ApplicationException e) {
 			throw new WebApplicationException(e);
@@ -129,9 +146,46 @@ public class TripsResource implements TripsApi {
 	public Response confirmTrip(String tripId, Boolean confirmationValue) {
     	Response rsp = null;
     	try {
-        	Long tid = PlannerUrnHelper.getId(Trip.URN_PREFIX, tripId);
+        	Long tid = UrnHelper.getId(Trip.URN_PREFIX, tripId);
         	//TODO Add security restriction
-			tripManager.confirmTrip(tid, confirmationValue);
+			tripManager.confirmTrip(tid, confirmationValue, false);
+			rsp = Response.noContent().build();
+		} catch (IllegalArgumentException e) {
+			throw new javax.ws.rs.BadRequestException(e);
+		} catch (ApplicationException e) {
+			throw new WebApplicationException(e);
+		}
+    	return rsp;
+	}
+
+	@Override
+	public Response settleDisputeInFavorOfProvider(String tripId) {
+		log.info(String.format("Settle trip %s in favor of the provider", tripId));
+		if (! request.isUserInRole("admin")) {
+			return Response.status(Status.FORBIDDEN).build();
+		}
+    	Response rsp = null;
+    	try {
+        	Long tid = UrnHelper.getId(Trip.URN_PREFIX, tripId);
+			tripManager.confirmTrip(tid, Boolean.TRUE, true);
+			rsp = Response.noContent().build();
+		} catch (IllegalArgumentException e) {
+			throw new javax.ws.rs.BadRequestException(e);
+		} catch (ApplicationException e) {
+			throw new WebApplicationException(e);
+		}
+    	return rsp;
+	}
+
+	@Override
+	public Response settleDisputeInFavorOfTraveller(String tripId) {
+		log.info(String.format("Settle trip %s in favor of the traveller", tripId));
+		if (! request.isUserInRole("admin")) {
+			return Response.status(Status.FORBIDDEN).build();
+		}
+    	Response rsp = null;
+    	try {
+			tripManager.confirmTripByTransportProvider(tripId, null, Boolean.FALSE, true);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);

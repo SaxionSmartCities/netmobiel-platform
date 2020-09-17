@@ -328,7 +328,7 @@ public class BookingProcessor {
     public void onProviderConfirmation(@Observes(during = TransactionPhase.IN_PROGRESS) TripConfirmedByProviderEvent event) {
     	try {
     		// The trip manager checks the state for reasonable values 
-			tripManager.confirmTripByTransportProvider(event.getTravellerTripRef(), event.getBookingRef(), event.getConfirmationByTransportProvider());
+			tripManager.confirmTripByTransportProvider(event.getTravellerTripRef(), event.getBookingRef(), event.getConfirmationByTransportProvider(), false);
 		} catch (Exception e) {
 			logger.error("Error confirming trip by transport provider: " + e.toString());
 			context.setRollbackOnly();

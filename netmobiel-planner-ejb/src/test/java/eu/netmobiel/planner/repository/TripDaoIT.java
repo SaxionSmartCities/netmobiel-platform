@@ -7,6 +7,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.IntStream;
 
 import javax.inject.Inject;
@@ -332,5 +333,39 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     	List<Trip> trips = tripDao.findMonitorableTrips(Instant.parse("2020-03-22T17:00:00Z"));
     	assertNotNull(trips);
     	assertEquals(3, trips.size());
+    }
+
+    @Test
+    public void findTripIdByItineryId() throws Exception {
+    	Long iid = trip1.getItinerary().getId();
+    	Optional<Long> tripId = tripDao.findTripIdByItineraryId(iid);
+    	assertNotNull(tripId);
+    	assertTrue(tripId.isPresent());
+    	assertEquals(trip1.getId(), tripId.get());
+    }
+
+    @Test
+    public void findTripIdByItineryId_NotFound() throws Exception {
+    	Long iid = 1234L;
+    	Optional<Long> tripId = tripDao.findTripIdByItineraryId(iid);
+    	assertNotNull(tripId);
+    	assertFalse(tripId.isPresent());
+    }
+
+    @Test
+    public void findTripIdByLegId() throws Exception {
+    	Long lid = trip1.getItinerary().getLegs().get(0).getId();
+    	Optional<Long> tripId = tripDao.findTripIdByLegId(lid);
+    	assertNotNull(tripId);
+    	assertTrue(tripId.isPresent());
+    	assertEquals(trip1.getId(), tripId.get());
+    }
+
+    @Test
+    public void findTripIdByLegId_NotFound() throws Exception {
+    	Long lid = 1234L;
+    	Optional<Long> tripId = tripDao.findTripIdByLegId(lid);
+    	assertNotNull(tripId);
+    	assertFalse(tripId.isPresent());
     }
 }
