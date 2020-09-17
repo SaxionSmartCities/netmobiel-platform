@@ -238,7 +238,7 @@ public class LedgerService {
      * @param transactionRef the reference to the previously made reservation.  
      */
     protected AccountingTransaction release(String transactionRef, OffsetDateTime when) throws BalanceInsufficientException {
-    	Long tid = BankerUrnHelper.getId(transactionRef);
+    	Long tid = BankerUrnHelper.getId(AccountingTransaction.URN_PREFIX, transactionRef);
     	AccountingTransaction reservation = accountingTransactionDao.find(tid).orElseThrow(() -> new IllegalArgumentException("No such transaction: " + transactionRef));
     	AccountingEntry userEntry = lookupUserEntry(reservation);
     	Ledger ledger = reservation.getLedger();
