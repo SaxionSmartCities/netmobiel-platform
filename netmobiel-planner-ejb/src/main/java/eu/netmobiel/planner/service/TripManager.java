@@ -418,7 +418,7 @@ public class TripManager {
     	TripState previousState = trip.getState();
 		trip.updateTripState();
 		if (log.isDebugEnabled()) {
-			log.debug(String.format("updateTripState %s: %s --> %s", trip.getId(), previousState, trip.getState()));
+			log.debug(String.format("updateTripState %s: %s --> %s", trip.toStringCompact(), previousState, trip.getState()));
 		}
        	if (trip.getState() == TripState.SCHEDULED) {
        		Duration timeLeftToDeparture = Duration.between(Instant.now(), trip.getItinerary().getDepartureTime());
@@ -441,7 +441,7 @@ public class TripManager {
     protected void updateTripState(Trip trip, TripState newState) {
     	TripState previousState = trip.getState();
 		trip.setState(newState);
-    	log.debug(String.format("updateTripState %s: %s --> %s", trip.getId(), previousState, trip.getState()));
+    	log.debug(String.format("updateTripState %s: %s --> %s", trip.toStringCompact(), previousState, trip.getState()));
    		tripStateUpdatedEvent.fire(new TripStateUpdatedEvent(previousState, trip));
     }
 

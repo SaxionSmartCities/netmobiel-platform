@@ -330,7 +330,7 @@ public class TripPlanManager {
 		results.add(new PlannerResult(ridesResult.getReport()));
     	for (Ride ride : ridesResult.getPage().getData()) {
     		if (log.isDebugEnabled()) {
-    			log.debug("searchRides option: " + ride.toStringShallow());
+    			log.debug("searchRides option: " + ride.toStringCompact());
     		}
     		// Use always the riders departure time. The itineraries will be scored later on.
         	GeoLocation from = ride.getFrom();

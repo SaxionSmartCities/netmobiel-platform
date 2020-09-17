@@ -1,6 +1,7 @@
 package eu.netmobiel.rideshare.model;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -322,21 +323,18 @@ public class Ride extends RideBase implements Serializable {
     			.findFirst();
     }
 
-    public String toStringShallow() {
-		StringBuilder builder = new StringBuilder();
-		builder.append("Ride ").append(getId());
-		builder.append(" D ");
-		builder.append(formatTime(getDepartureTime())).append(" A ");
-		builder.append(formatTime(getArrivalTime())).append(" ");
-		builder.append(getDuration()).append("s ");
-		builder.append(getDistance()).append("m ");
-		return builder.toString();
-    }
+	public String toStringCompact() {
+		return String.format("Ride %d %s %s D %s A %s %s %dm from %s to %s",
+				getId(), getDriver().getEmail(), state.name(), 
+				formatTime(getDepartureTime()), formatTime(getArrivalTime()),
+				Duration.ofSeconds(getDuration()).toString(), getDistance(),
+				getFrom().toString(), getTo().toString());
+	}
 
     @Override
     public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append(toStringShallow());
+		builder.append(toStringCompact());
 		Stop previous = null;
 		for (Leg leg : getLegs()) {
 			if (previous == null) {

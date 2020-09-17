@@ -1,6 +1,7 @@
 package eu.netmobiel.planner.model;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
@@ -318,13 +319,17 @@ public class Trip implements Serializable {
     	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
     }
 
-	@Override
-	public String toString() {
-		return String.format("Trip %d %s %s D %s A %s from %s to %s\n\t%s",
+	public String toStringCompact() {
+		return String.format("Trip %d %s %s D %s A %s %s from %s to %s",
 				getId(), traveller.getEmail(), state.name(), 
 				formatTime(itinerary.getDepartureTime()), formatTime(itinerary.getArrivalTime()),
-				getFrom().toString(), getTo().toString(),
-				itinerary.toStringCompact());
+				Duration.ofSeconds(itinerary.getDuration()).toString(),
+				getFrom().toString(), getTo().toString());
+	}
+
+	@Override
+	public String toString() {
+		return String.format("%s\n\t%s", toStringCompact(), itinerary.toStringCompact());
 	}
 
     /**

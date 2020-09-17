@@ -23,7 +23,6 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
-import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.PublisherService;
@@ -46,7 +45,7 @@ import eu.netmobiel.rideshare.model.RideState;
  */
 		
 @Stateless
-@Logging
+//@Logging
 @RunAs("system") 
 public class TripProgressProcessor {
 	private static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";

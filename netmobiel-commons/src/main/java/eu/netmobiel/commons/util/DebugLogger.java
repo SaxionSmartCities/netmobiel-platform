@@ -24,6 +24,8 @@ import org.slf4j.Logger;
 @Logging
 public class DebugLogger implements Serializable {
 	private static final long serialVersionUID = -6043539210117864252L;
+	private static final boolean PRINT_CLASS_NAME = false;
+	
 	@Inject
 	private Logger logger;
 	
@@ -44,12 +46,15 @@ public class DebugLogger implements Serializable {
 				if (o == null) {
 					sb.append("<null>");
 				} else {
-					if (o.getClass() != null) {
-						sb.append(o.getClass().getSimpleName());
-					} else {
-						sb.append("<Unknown>");
+					// Should we print the class name? Often not really necessary
+					if (PRINT_CLASS_NAME) {
+						if (o.getClass() != null) {
+							sb.append(o.getClass().getSimpleName());
+						} else {
+							sb.append("<Unknown>");
+						}
+						sb.append(" ");
 					}
-					sb.append(" ");
 					try {
 						String value;
 						if (o.getClass().isArray()) {

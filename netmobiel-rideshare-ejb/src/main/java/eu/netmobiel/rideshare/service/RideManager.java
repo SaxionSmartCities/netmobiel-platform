@@ -625,7 +625,7 @@ public class RideManager {
     protected void updateRideState(Ride ride, RideState newState) {
     	RideState previousState = ride.getState();
 		ride.setState(newState);
-    	log.debug(String.format("updateRideState %s: %s --> %s", ride.getId(), previousState, ride.getState()));
+    	log.debug(String.format("updateRideState %s: %s --> %s", ride.toStringCompact(), previousState, ride.getState()));
    		rideStateUpdatedEvent.fire(new RideStateUpdatedEvent(previousState, ride));
     }
 
