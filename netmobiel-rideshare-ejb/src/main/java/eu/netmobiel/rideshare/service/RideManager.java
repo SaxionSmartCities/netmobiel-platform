@@ -711,14 +711,16 @@ public class RideManager {
 				new RideInfo(RideMonitorEvent.TIME_TO_PREPARE, ride.getId()));
 	}
 
-    public void onRideCreated(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Ride ride) {
-    	Ride ridedb = ride;
-    	if (! rideDao.contains(ride)) {
-			ridedb = rideDao.find(ride.getId())
-					.orElseThrow(() -> new IllegalArgumentException("No such ride: " + ride.getId()));
-    	}
-    	if (ridedb.getDepartureTime().minus(DEPARTING_PERIOD.plus(Duration.ofHours(2))).isAfter(Instant.now())) {
-    		startMonitoring(ridedb);
+    public void onRideCreated(@Observes(during = TransactionPhase.IN_PROGRESS) @Created Ride ride) {
+   		Duration timeLeftToDeparture = Duration.between(Instant.now(), ride.getDepartureTime());
+		if (log.isDebugEnabled()) {
+			log.debug(String.format("Ride %s is scheduled, time left to departure is %s", ride.getId(), timeLeftToDeparture.toString()));
+		}
+    	if (! ride.isMonitored() && timeLeftToDeparture.compareTo(DEPARTING_PERIOD.plus(Duration.ofHours(2))) < 0) {
+    		if (log.isDebugEnabled()) {
+    			log.debug("Start monitoring ride " + ride.getId());
+    		}
+    		startMonitoring(ride);
     	}
     	// Otherwise leave to the scheduled retrieval of rides
     }	
