@@ -797,6 +797,48 @@ paths:
         type: boolean
       in: path
       required: true
+  /trips/{tripId}/settle/favors-traveller:
+    summary: Settle a trip payment dispute in favor of the traveller.
+    description: End-point for settling a dispute on payments.
+    put:
+      responses:
+        "204":
+          description: Success response. The trip will be in state `completed`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: settleDisputeInFavorOfTraveller
+      summary: Settle a trip payment dispute in favor of the traveller.
+      description: |-
+        When a dispute arises around the payment for a trip (or a leg), mediation is required. Once the mediates resolves, this call or its sibling is used to pass the decision to the system.
+        This call requires admin privileges.
+    parameters:
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /trips/{tripId}/settle/favors-provider/:
+    summary: Settle a trip payment dispute in favor of the provider.
+    description: End-point for settling a dispute on payments.
+    put:
+      responses:
+        "204":
+          description: Success response. The trip will be in state `completed`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: settleDisputeInFavorOfProvider
+      summary: Settle a trip payment dispute in favor of the provider.
+      description: |-
+        When a dispute arises around the payment for a trip (or a leg), mediation is required. Once the mediates resolves, this call or its sibling is used to pass the decision to the system.
+        This call requires admin privileges.
+    parameters:
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     MaintenanceStatus:
