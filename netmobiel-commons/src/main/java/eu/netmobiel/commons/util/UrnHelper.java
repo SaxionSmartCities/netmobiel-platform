@@ -23,11 +23,16 @@ public class UrnHelper {
 		return urn == null ? null : urn.substring(0, urn.lastIndexOf(":") + 1);
 	}
 
+	public static boolean matchesPrefix(String expectedPrefix, String urn) {
+		return expectedPrefix != null && expectedPrefix.equals(urn);
+	}
+	
 	public static Long getId(String prefix, String value) {
 		String id = value;
 		if (isUrn(value)) {
-			if (! value.startsWith(prefix)) {
-				throw new IllegalArgumentException(String.format("Expected prefix %s, actual is %s", prefix, value));
+			String actualPrefix = getPrefix(value);
+			if (! prefix.equals(actualPrefix)) {
+				throw new IllegalArgumentException(String.format("Expected prefix %s, actual is %s", prefix, actualPrefix));
 			}
 			id = getSuffix(value);
 		}
