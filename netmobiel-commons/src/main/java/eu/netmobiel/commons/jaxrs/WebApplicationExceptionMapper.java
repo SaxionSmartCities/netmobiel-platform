@@ -40,9 +40,9 @@ public class WebApplicationExceptionMapper implements
 		String errorCode = null;
 		Response.StatusType status = e.getResponse().getStatusInfo();
 		if (e.getCause() instanceof ApplicationException) {
-			ApplicationException ae = (ApplicationException) e.getCause();
+			t = e.getCause();
+			ApplicationException ae = (ApplicationException) t;
 			errorCode = ae.getVendorCode();
-			t = ae;
 			status = Response.Status.INTERNAL_SERVER_ERROR;
 			if (ae instanceof BadRequestException) {
 				status = Response.Status.BAD_REQUEST;
@@ -58,7 +58,7 @@ public class WebApplicationExceptionMapper implements
 			log.error("Server error", t);
 		} else {
 			// Log message only
-			String[] excs = ExceptionUtil.unwindException(null, e);
+			String[] excs = ExceptionUtil.unwindException(null, t);
 			log.error(String.join("\n\tCaused by: ", excs));
 		}
 		return rsp;
