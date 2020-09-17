@@ -454,8 +454,11 @@ public class LedgerService {
     		}
     		User dbUser = newUser;
     		if (! userDao.contains(dbUser)) {
+    			log.debug("User not yet in persistence context");
     			dbUser = userDao.find(newUser.getId())
     					.orElseThrow(() -> new IllegalStateException("No such user: " + newUser.getId()));
+    		} else {
+    			log.debug("User already in persistence context");
     		}
     		// Create a personal liability account. The reference id is directly related to the user primary key.
     		String accRef = createNewAccountNumber("PLA");
@@ -465,7 +468,6 @@ public class LedgerService {
     		}
     		Account acc = createAccount(accRef, accName, AccountType.LIABILITY);
     		dbUser.setPersonalAccount(acc);
-    		newUser.setPersonalAccount(acc);
     	}
     }
 

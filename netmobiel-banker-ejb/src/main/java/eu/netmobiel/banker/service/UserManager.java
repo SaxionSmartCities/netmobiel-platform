@@ -68,14 +68,17 @@ public class UserManager {
     public User register(User user) {
 //    	Principal p = ctx.getCallerPrincipal();
     	User dbuser = userDao.findByManagedIdentity(user.getManagedIdentity())
-    			.orElseGet(() -> {
-    				user.setId(null);
-    				return userDao.save(user); 
-    			});
-    	dbuser.setFamilyName(user.getFamilyName()); 
-    	dbuser.setGivenName(user.getGivenName());
-    	dbuser.setEmail(user.getEmail());
+    			.orElse(null);
+    	if (dbuser == null) {
+    		dbuser = userDao.save(user);
+    	} else {
+	    	dbuser.setFamilyName(user.getFamilyName()); 
+	    	dbuser.setGivenName(user.getGivenName());
+	    	dbuser.setEmail(user.getEmail());
+    	}
     	if (dbuser.getPersonalAccount() == null) {
+    		// Sometimes we get a constraint violation on creation of a user: managed identity not unique. Not clear why.
+    		userDao.flush();
     		userCreatedEvent.fire(dbuser);
     	}
     	return dbuser;
