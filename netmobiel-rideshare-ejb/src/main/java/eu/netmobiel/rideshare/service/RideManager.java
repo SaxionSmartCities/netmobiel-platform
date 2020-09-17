@@ -132,6 +132,9 @@ public class RideManager {
     @Inject @Removed
     private Event<Ride> rideRemovedEvent;
 
+    @Inject @Created
+    private Event<Ride> rideCreatedEvent;
+
     @Resource
     private TimerService timerService;
 
@@ -377,6 +380,7 @@ public class RideManager {
     		log.warn("Inconsistence detected: Template defined without recurrency");
     		ride.setRideTemplate(null);
     	}
+    	rideCreatedEvent.fire(ride);
     	Ride firstRide = ride;
     	if (template != null) {
     		// Create a template from the well-defined ride
@@ -414,9 +418,6 @@ public class RideManager {
 				// No rides in the list are in the persistence context 
 				rides.forEach(r -> rideItineraryHelper.saveNewRide(r));
 			}
-    	}
-    	if (firstRide.getDepartureTime().minus(DEPARTING_PERIOD.plus(Duration.ofHours(2))).isAfter(Instant.now())) {
-    		startMonitoring(firstRide);
     	}
     	return firstRide.getId();
     }
