@@ -1286,6 +1286,7 @@ components:
           - RESERVED
           - RELEASED
           - PAID
+          - CANCELLED
           type: string
       example:
         distance: 152
