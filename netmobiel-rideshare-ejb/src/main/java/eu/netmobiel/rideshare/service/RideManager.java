@@ -631,7 +631,7 @@ public class RideManager {
 
 	@Schedule(info = "Collect due rides", hour = "*/1", minute = "0", second = "0", persistent = false /* non-critical job */)
 	public void checkForDueRides() {
-		log.debug("CollectDueRides");
+//		log.debug("CollectDueRides");
 		// Get all rides that have a departure time within a certain window (and not monitored)
 		List<Ride> rides = rideDao.findMonitorableRides(Instant.now().plus(Duration.ofHours(2).plus(DEPARTING_PERIOD)));
 		for (Ride ride : rides) {
