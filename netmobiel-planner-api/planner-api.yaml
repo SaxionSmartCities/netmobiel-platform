@@ -46,6 +46,16 @@ paths:
       of an `Trip`.  This path contains `GET`, `PUT`, and `DELETE` operations used
       to perform the get, update, and delete tasks, respectively.
     get:
+      parameters:
+      - name: tripId
+        description: 'A unique identifier for a `Trip`. The trip id can be one of
+          the following identifiers: the database id of the trip, the urn of the trip,
+          the urn of the itinerary of the trip or the urn of one of the legs in the
+          trip.'
+        schema:
+          type: string
+        in: path
+        required: true
       responses:
         "200":
           content:
@@ -1266,6 +1276,17 @@ components:
             by the transport provider. If false it is explicitly denied. If not set
             the provider has not responded to the request for confirmation.
           type: boolean
+        paymentId:
+          description: The reference to the payment transaction (the meaning depends
+            on the payment state).
+          type: string
+        paymentState:
+          description: 'The state of the (credit) payment for the leg. '
+          enum:
+          - RESERVED
+          - RELEASED
+          - PAID
+          type: string
       example:
         distance: 152
         duration: 123
