@@ -721,7 +721,7 @@ paths:
         Add a new ride. The calling user will be the driver.
 
         If recurrence is set, then all future drivers up to 8 weeks in advance are generated as well.
-  /rides/{rideId}/confirm{value}:
+  /rides/{rideId}/confirm/{value}:
     summary: Path used to confirm a ride.
     description: Endpoint used to confirm a ride, using a PUT.
     put:
