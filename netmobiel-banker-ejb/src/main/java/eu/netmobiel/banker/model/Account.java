@@ -110,7 +110,9 @@ public class Account {
      * modify the schema later on, actualBalance is allowed to be null.   
      */
     @OneToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "actual_balance", nullable = true, foreignKey = @ForeignKey(name = "account_actual_balance_fk"))
+	@JoinColumn(name = "actual_balance", nullable = true, 
+		foreignKey = @ForeignKey(name = "account_actual_balance_fk", 
+		foreignKeyDefinition = "FOREIGN KEY (actual_balance) REFERENCES balance (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE SET NULL"))
     private Balance actualBalance;
     
     public Account() {
