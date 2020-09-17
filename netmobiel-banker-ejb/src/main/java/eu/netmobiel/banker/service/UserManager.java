@@ -12,6 +12,7 @@ import javax.ejb.Stateless;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
+import org.jboss.ejb3.annotation.SecurityDomain;
 import org.slf4j.Logger;
 
 import eu.netmobiel.banker.model.User;
@@ -24,6 +25,7 @@ import eu.netmobiel.commons.security.SecurityContextHelper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 
+@SecurityDomain("other")
 @Stateless(name = "bankerUserManager")
 @Logging
 public class UserManager {
