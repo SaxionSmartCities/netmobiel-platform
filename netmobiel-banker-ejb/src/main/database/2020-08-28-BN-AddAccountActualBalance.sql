@@ -8,7 +8,7 @@ ALTER TABLE public.account
     ADD CONSTRAINT account_actual_balance_fk FOREIGN KEY (actual_balance)
         REFERENCES public.balance (id) MATCH SIMPLE
         ON UPDATE NO ACTION
-        ON DELETE NO ACTION
+        ON DELETE SET NULL
 ;
 
 -- There is only one balance per account right now.
