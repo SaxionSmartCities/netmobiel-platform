@@ -61,11 +61,11 @@ public class UserManager {
      * @throws Exception
      */
     public User register(User user) {
-    	User dbuser = userDao.findByManagedIdentity(user.getManagedIdentity())
-    			.orElseGet(() -> {
-    				user.setId(null);
-    				return userDao.save(user); 
-    			});
+    	User dbuser = userDao.findByManagedIdentity(user.getManagedIdentity()).orElse(null);
+    	if (dbuser == null) {
+			user.setId(null);
+			dbuser = userDao.save(user); 
+    	}
     	dbuser.setEmail(user.getEmail()); 
     	dbuser.setFamilyName(user.getFamilyName()); 
     	dbuser.setGivenName(user.getGivenName()); 

@@ -6,7 +6,7 @@ package eu.netmobiel.commons.exception;
  * @author Jaap.Reitsma
  *
  */
-public class RemoveException extends ApplicationException {
+public class RemoveException extends BusinessException {
 
 	private static final long serialVersionUID = 660880157443491022L;
 

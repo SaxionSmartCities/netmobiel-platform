@@ -13,13 +13,12 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
-import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
-import eu.netmobiel.commons.model.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.event.BookingCancelledEvent;
 import eu.netmobiel.planner.event.BookingConfirmedEvent;
@@ -110,7 +109,7 @@ public class TripManagerTest {
 		}};
 		try {
 			tested.listTrips(traveller, state, since, until, deletedToo, sortDir, maxResults, offset);
-		} catch (ApplicationException ex) {
+		} catch (BusinessException ex) {
 			fail("Unexpected exception: " + ex);
 		}
 		new Verifications() {{
@@ -128,10 +127,10 @@ public class TripManagerTest {
 		try {
 			tested.createTrip(traveller, input);
 			fail("Expected exception: BadRequest");
-		} catch (NotFoundException ex) {
-			fail("Unexpected exception: " + ex);
 		} catch (BadRequestException ex) {
 			log.debug("Anticipated exception: " + ex);
+		} catch (BusinessException ex) {
+			fail("Unexpected exception: " + ex);
 		}
 	}
 
@@ -146,7 +145,7 @@ public class TripManagerTest {
 			fail("Expected exception: NotFound");
 		} catch (NotFoundException ex) {
 			log.debug("Anticipated exception: " + ex);
-		} catch (BadRequestException ex) {
+		} catch (BusinessException ex) {
 			fail("Unexpected exception: " + ex);
 		}
 	}
@@ -173,7 +172,7 @@ public class TripManagerTest {
 			assertEquals(plan.getNrSeats(), trip.getNrSeats());
 			assertEquals(plan.getTo(), trip.getTo());
 			assertEquals(plan.getTraveller(), trip.getTraveller());
-		} catch (ApplicationException ex) {
+		} catch (BusinessException ex) {
 			fail("Unexpected exception: " + ex);
 		}
 	}
@@ -201,7 +200,7 @@ public class TripManagerTest {
 			assertEquals(plan.getNrSeats(), trip.getNrSeats());
 			assertEquals(plan.getTo(), trip.getTo());
 			assertEquals(plan.getTraveller(), trip.getTraveller());
-		} catch (ApplicationException ex) {
+		} catch (BusinessException ex) {
 			fail("Unexpected exception: " + ex);
 		}
 		new Verifications() {{
@@ -231,7 +230,7 @@ public class TripManagerTest {
 		}};
 		try {
 			tested.assignBookingReference(trip.getTripRef(), leg.getTripId(), bookingRef, true);
-		} catch (UpdateException ex) {
+		} catch (BusinessException ex) {
 			fail("Unexpected exception: " + ex);
 		}
 		assertEquals(bookingRef, leg.getBookingId());
@@ -257,7 +256,7 @@ public class TripManagerTest {
 		try {
 			tested.assignBookingReference(trip.getTripRef(), leg.getTripId(), bookingRef, true);
 			fail("Expected UpdateException because of invalid state");
-		} catch (UpdateException ex) {
+		} catch (BusinessException ex) {
 			log.debug("Anticipated exception: " + ex);
 		}
 	}
@@ -281,7 +280,7 @@ public class TripManagerTest {
 			tested.cancelBooking(trip.getTripRef(), bookingRef, reason, cancelledByDriver);
 			assertEquals(TripState.CANCELLED, trip.getState());
 			assertEquals(TripState.CANCELLED, leg.getState());
-		} catch (NotFoundException ex) {
+		} catch (BusinessException ex) {
 			fail("Unexpected exception: " + ex);
 		}
 	}
@@ -320,6 +319,8 @@ public class TripManagerTest {
 			fail("Expected exception: NotFound");
 		} catch (NotFoundException ex) {
 			log.debug("Anticipated exception: " + ex);
+		} catch (BusinessException ex) {
+			log.debug("Unexpected exception: " + ex);
 		}
 	}
 
@@ -340,7 +341,7 @@ public class TripManagerTest {
 		}};
 		try {
 			tested.removeTrip(trip.getId(), reason);
-		} catch (NotFoundException ex) {
+		} catch (BusinessException ex) {
 			fail("Unexpected exception: " + ex);
 		}
 		assertTrue(trip.isDeleted());

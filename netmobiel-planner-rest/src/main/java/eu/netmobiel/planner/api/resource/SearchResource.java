@@ -109,7 +109,7 @@ public class SearchResource implements SearchApi {
     		if (log.isDebugEnabled()) {
     			log.debug("Multimodal plan for " + traveller.getEmail() + ":\n" + plan.toString());
     		}
-		} catch (eu.netmobiel.commons.exception.ApplicationException ex) {
+		} catch (eu.netmobiel.commons.exception.BusinessException ex) {
 			throw new WebApplicationException(ex);
 		} catch (IllegalArgumentException ex) {
 			throw new BadRequestException("Input parameter has unrecognized format", ex);

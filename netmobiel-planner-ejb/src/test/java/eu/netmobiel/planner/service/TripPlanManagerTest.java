@@ -20,12 +20,12 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.event.BookingCancelledFromProviderEvent;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
-import eu.netmobiel.commons.model.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.planner.event.BookingProposalRejectedEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
@@ -116,7 +116,7 @@ public class TripPlanManagerTest {
 		}};
 		try {
 			tested.listTripPlans(traveller, planType, since, until, inProgressOnly, sortDir, maxResults, offset);
-		} catch (ApplicationException ex) {
+		} catch (BusinessException ex) {
 			fail("Unexpected exception: " + ex);
 		}
 		new Verifications() {{
@@ -334,7 +334,7 @@ public class TripPlanManagerTest {
 			assertEquals(1, plan.getItineraries().size());
 			Itinerary it = plan.getItineraries().iterator().next();
 			log.debug("Itinerary: " + it.toString());
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			fail("Unexpected exception: " + e);
 		}
 	}

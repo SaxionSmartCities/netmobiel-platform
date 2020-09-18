@@ -28,7 +28,7 @@ import javax.ws.rs.core.Application;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.Version;
-import eu.netmobiel.commons.jaxrs.ApplicationExceptionMapper;
+import eu.netmobiel.commons.jaxrs.BusinessExceptionMapper;
 import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
 import eu.netmobiel.commons.jaxrs.LocalDateParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.OffsetDateTimeParamConverterProvider;
@@ -91,7 +91,7 @@ public class PlannerApplication extends Application {
         resources.add(WebApplicationExceptionMapper.class);
         resources.add(EJBExceptionMapper.class);
         resources.add(SecurityExceptionMapper.class);
-        resources.add(ApplicationExceptionMapper.class);
+        resources.add(BusinessExceptionMapper.class);
         return resources;
     }
 

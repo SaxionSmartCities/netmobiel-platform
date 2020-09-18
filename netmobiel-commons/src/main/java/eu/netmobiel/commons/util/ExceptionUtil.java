@@ -6,7 +6,7 @@ import java.util.function.Function;
 
 import javax.ws.rs.core.Response;
 
-import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
@@ -45,7 +45,7 @@ public class ExceptionUtil {
 	}
 
 	public static void throwExceptionFromResponse(String applicationMessage, Response response) 
-			throws ApplicationException, SystemException, SecurityException {
+			throws BusinessException, SystemException, SecurityException {
 		String reason = response.readEntity(String.class);
 		String message = String.format("%s: %d - %s", applicationMessage, response.getStatus(), reason);
 		if (response.getStatus() >= Response.Status.INTERNAL_SERVER_ERROR.getStatusCode()) {
@@ -59,7 +59,7 @@ public class ExceptionUtil {
 		} else if (response.getStatus() == Response.Status.FORBIDDEN.getStatusCode()) {
 			throw new SecurityException(message);
 		} else {
-			throw new ApplicationException(message);
+			throw new BusinessException(message);
 		}
 	}
 	

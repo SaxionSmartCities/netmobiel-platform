@@ -1,4 +1,4 @@
-package eu.netmobiel.commons.model.event;
+package eu.netmobiel.commons.event;
 
 import java.io.Serializable;
 

@@ -16,8 +16,7 @@ import javax.ws.rs.core.UriBuilder;
 
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.exception.ApplicationException;
-import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -67,7 +66,7 @@ public class TripsResource implements TripsApi {
 			Trip dtrip = tripMapper.map(trip);
 			String newTripId = PlannerUrnHelper.createUrn(Trip.URN_PREFIX, tripManager.createTrip(traveller, dtrip));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newTripId)).build();
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rsp;
@@ -83,8 +82,8 @@ public class TripsResource implements TripsApi {
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);
-		} catch (NotFoundException e) {
-	    	rsp = Response.status(Status.GONE).build();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
 		}
     	return rsp;
 	}
@@ -107,7 +106,7 @@ public class TripsResource implements TripsApi {
 				throw new BadRequestException("Don't understand urn: " + someId);
 			}
 			rsp = Response.ok(tripMapper.mapInDetail(trip)).build();
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
     	return rsp;
@@ -136,7 +135,7 @@ public class TripsResource implements TripsApi {
 			rsp = Response.ok(pageMapper.mapMine(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
     	return rsp;
@@ -152,7 +151,7 @@ public class TripsResource implements TripsApi {
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
     	return rsp;
@@ -171,7 +170,7 @@ public class TripsResource implements TripsApi {
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
     	return rsp;
@@ -189,7 +188,7 @@ public class TripsResource implements TripsApi {
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
     	return rsp;

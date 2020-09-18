@@ -19,8 +19,6 @@ import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 
-import org.slf4j.Logger;
-
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.communicator.model.DeliveryMode;
@@ -45,7 +43,6 @@ import eu.netmobiel.rideshare.model.RideState;
  */
 		
 @Stateless
-//@Logging
 @RunAs("system") 
 public class TripProgressProcessor {
 	private static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
@@ -57,9 +54,6 @@ public class TripProgressProcessor {
     @Resource
     private SessionContext context;
 
-    @Inject
-    private Logger logger;
-    
     private Locale defaultLocale;
     
     @PostConstruct
@@ -76,7 +70,8 @@ public class TripProgressProcessor {
     	return DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(defaultLocale).format(instant.atZone(ZoneId.of(DEFAULT_TIME_ZONE)));
     }
 
-    public void onTripStateChange(@Observes(during = TransactionPhase.IN_PROGRESS) TripStateUpdatedEvent event) {
+    public void onTripStateChange(@Observes(during = TransactionPhase.IN_PROGRESS) TripStateUpdatedEvent event) 
+    		throws CreateException, BadRequestException {
     	switch (event.getTrip().getState()) {
     	case PLANNING:
     		break;
@@ -114,7 +109,8 @@ public class TripProgressProcessor {
 //		}
     }
 
-    public void onRideStateChange(@Observes(during = TransactionPhase.IN_PROGRESS) RideStateUpdatedEvent event) {
+    public void onRideStateChange(@Observes(during = TransactionPhase.IN_PROGRESS) RideStateUpdatedEvent event) 
+    		throws CreateException, BadRequestException {
     	Ride ride = event.getRide();
     	switch (ride.getState()) {
     	case SCHEDULED:
@@ -162,116 +158,92 @@ public class TripProgressProcessor {
     	return desc;
     }
 
-    protected void informTravellerOnDeparture(Trip trip) {
-    	try {
-			Message msg = new Message();
-			msg.setContext(trip.getTripRef());
-			msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-			msg.addRecipient(trip.getTraveller());
-			msg.setSubject("Je gaat bijna op pad!");
-			msg.setBody(
-					MessageFormat.format("Vertrek om {0} uur naar {1}. Je reist met {2}.", 
-							formatTime(trip.getItinerary().getDepartureTime()),
-							trip.getTo().getLabel(), 
-							travelsWith(trip.getAgencies())
-							)
-					);
-			publisherService.publish(null, msg);
-		} catch (CreateException | BadRequestException e) {
-			logger.error("Unable to send departure message: " + e.toString());
-		}
+    protected void informTravellerOnDeparture(Trip trip) throws CreateException, BadRequestException {
+		Message msg = new Message();
+		msg.setContext(trip.getTripRef());
+		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
+		msg.addRecipient(trip.getTraveller());
+		msg.setSubject("Je gaat bijna op pad!");
+		msg.setBody(
+				MessageFormat.format("Vertrek om {0} uur naar {1}. Je reist met {2}.", 
+						formatTime(trip.getItinerary().getDepartureTime()),
+						trip.getTo().getLabel(), 
+						travelsWith(trip.getAgencies())
+						)
+				);
+		publisherService.publish(null, msg);
 	}
 
-	protected void informTravellerOnReview(Trip trip) {
-    	try {
-			Message msg = new Message();
-			msg.setContext(trip.getTripRef());
-			msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-			msg.addRecipient(trip.getTraveller());
-			msg.setSubject("Jouw reis zit erop!");
-			msg.setBody(
-					MessageFormat.format("Heb je de reis naar {0} gemaakt? Geef jouw waardering en beoordeel deze reis.", 
-							trip.getTo().getLabel()
-							)
-					);
-			publisherService.publish(null, msg);
-		} catch (CreateException | BadRequestException e) {
-			logger.error("Unable to send review message: " + e.toString());
-		}
+	protected void informTravellerOnReview(Trip trip) throws CreateException, BadRequestException {
+		Message msg = new Message();
+		msg.setContext(trip.getTripRef());
+		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
+		msg.addRecipient(trip.getTraveller());
+		msg.setSubject("Jouw reis zit erop!");
+		msg.setBody(
+				MessageFormat.format("Heb je de reis naar {0} gemaakt? Geef jouw waardering en beoordeel deze reis.", 
+						trip.getTo().getLabel()
+						)
+				);
+		publisherService.publish(null, msg);
 	}
 
-	protected void remindTravellerOnReview(Trip trip) {
-    	try {
-			Message msg = new Message();
-			msg.setContext(trip.getTripRef());
-			msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-			msg.addRecipient(trip.getTraveller());
-			msg.setSubject("Beoordeel jouw reis!");
-			msg.setBody(
-					MessageFormat.format("Jouw reis zit erop! Geef jouw waardering en beoordeel deze reis.", 
-							formatTime(trip.getItinerary().getDepartureTime()),
-							trip.getTo().getLabel()
-							)
-					);
-			publisherService.publish(null, msg);
-		} catch (CreateException | BadRequestException e) {
-			logger.error("Unable to send departure message: " + e.toString());
-		}
+	protected void remindTravellerOnReview(Trip trip) throws CreateException, BadRequestException {
+		Message msg = new Message();
+		msg.setContext(trip.getTripRef());
+		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
+		msg.addRecipient(trip.getTraveller());
+		msg.setSubject("Beoordeel jouw reis!");
+		msg.setBody(
+				MessageFormat.format("Jouw reis zit erop! Geef jouw waardering en beoordeel deze reis.", 
+						formatTime(trip.getItinerary().getDepartureTime()),
+						trip.getTo().getLabel()
+						)
+				);
+		publisherService.publish(null, msg);
 	}
 	
-    protected void informDriverOnDeparture(Ride ride) {
-    	try {
-    		Booking b = ride.getActiveBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
-			Message msg = new Message();
-			msg.setContext(ride.getRideRef());
-			msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-			msg.addRecipient(ride.getDriver());
-			msg.setSubject("Je gaat bijna op pad!");
-			msg.setBody(
-					MessageFormat.format("Vertrek om {0} uur naar {1}. Je wordt verwacht door {2}.", 
-							formatTime(ride.getDepartureTime()),
-							ride.getTo().getLabel(), 
-							b.getPassenger().getGivenName()
-							)
-					);
-			publisherService.publish(null, msg);
-		} catch (CreateException | BadRequestException e) {
-			logger.error("Unable to send departure message: " + e.toString());
-		}
+    protected void informDriverOnDeparture(Ride ride) throws CreateException, BadRequestException {
+		Booking b = ride.getActiveBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
+		Message msg = new Message();
+		msg.setContext(ride.getRideRef());
+		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
+		msg.addRecipient(ride.getDriver());
+		msg.setSubject("Je gaat bijna op pad!");
+		msg.setBody(
+				MessageFormat.format("Vertrek om {0} uur naar {1}. Je wordt verwacht door {2}.", 
+						formatTime(ride.getDepartureTime()),
+						ride.getTo().getLabel(), 
+						b.getPassenger().getGivenName()
+						)
+				);
+		publisherService.publish(null, msg);
 	}
 
-	protected void informDriverOnReview(Ride ride) {
-    	try {
-    		Booking b = ride.getActiveBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
-			Message msg = new Message();
-			msg.setContext(ride.getRideRef());
-			msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-			msg.addRecipient(ride.getDriver());
-			msg.setSubject("Jouw rit zit erop!");
-			msg.setBody(
-					MessageFormat.format("Heb je {0} meegenomen naar {1}? Claim je credits en beoordeel je passagier!", 
-							b.getPassenger().getGivenName(),
-							ride.getTo().getLabel()
-							)
-					);
-			publisherService.publish(null, msg);
-		} catch (CreateException | BadRequestException e) {
-			logger.error("Unable to send review message: " + e.toString());
-		}
+	protected void informDriverOnReview(Ride ride) throws CreateException, BadRequestException {
+		Booking b = ride.getActiveBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
+		Message msg = new Message();
+		msg.setContext(ride.getRideRef());
+		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
+		msg.addRecipient(ride.getDriver());
+		msg.setSubject("Jouw rit zit erop!");
+		msg.setBody(
+				MessageFormat.format("Heb je {0} meegenomen naar {1}? Claim je credits en beoordeel je passagier!", 
+						b.getPassenger().getGivenName(),
+						ride.getTo().getLabel()
+						)
+				);
+		publisherService.publish(null, msg);
 	}
 
-	protected void remindDriverOnReview(Ride ride) {
-    	try {
-			Message msg = new Message();
-			msg.setContext(ride.getRideRef());
-			msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-			msg.addRecipient(ride.getDriver());
-			msg.setSubject("Jouw rit zit erop!");
-			msg.setBody("Claim je credits en beoordeel je passagier!");
-			publisherService.publish(null, msg);
-		} catch (CreateException | BadRequestException e) {
-			logger.error("Unable to send review message: " + e.toString());
-		}
+	protected void remindDriverOnReview(Ride ride) throws CreateException, BadRequestException {
+		Message msg = new Message();
+		msg.setContext(ride.getRideRef());
+		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
+		msg.addRecipient(ride.getDriver());
+		msg.setSubject("Jouw rit zit erop!");
+		msg.setBody("Claim je credits en beoordeel je passagier!");
+		publisherService.publish(null, msg);
 	}
 	
 }

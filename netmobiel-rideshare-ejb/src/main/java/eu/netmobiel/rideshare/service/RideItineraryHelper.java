@@ -14,8 +14,10 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.util.ClosenessFilter;
+import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
@@ -58,12 +60,13 @@ public class RideItineraryHelper {
     /**
      * Saves a fresh new ride, including the legs and stops.
      * @param r
+     * @throws BusinessException 
      */
-    public void saveNewRide(Ride r) {
+    public void saveNewRide(Ride r) throws BusinessException {
     	rideDao.save(r);
     	r.getStops().forEach(stop -> stopDao.save(stop));
     	r.getLegs().forEach(leg -> legDao.save(leg));
-    	rideCreatedEvent.fire(r);
+    	EventFireWrapper.fire(rideCreatedEvent, r);
     }
 
     /**

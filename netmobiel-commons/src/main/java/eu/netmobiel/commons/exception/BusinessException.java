@@ -1,12 +1,15 @@
 package eu.netmobiel.commons.exception;
 
+import javax.ejb.ApplicationException;
+
 /**
  * Base class for business exceptions.
  *
  * @author Jaap.Reitsma
  *
  */
-public class ApplicationException extends Exception {
+@ApplicationException(rollback = true)
+public class BusinessException extends Exception {
 	/**
 	 * Serial version UID.
 	 */
@@ -16,27 +19,27 @@ public class ApplicationException extends Exception {
 	 */
 	private String vendorCode;
 
-	public ApplicationException() {
+	public BusinessException() {
 	}
 
-	public ApplicationException(String message) {
+	public BusinessException(String message) {
 		super(message);
 	}
 
-	public ApplicationException(String message, String vendorCode) {
+	public BusinessException(String message, String vendorCode) {
 		super(message);
 		this.vendorCode = vendorCode;
 	}
 
-	public ApplicationException(Throwable cause) {
+	public BusinessException(Throwable cause) {
 		super(cause);
 	}
 
-	public ApplicationException(String message, Throwable cause) {
+	public BusinessException(String message, Throwable cause) {
 		super(message, cause);
 	}
 
-	public ApplicationException(String message, String vendorCode, Throwable cause) {
+	public BusinessException(String message, String vendorCode, Throwable cause) {
 		super(message, cause);
 		this.vendorCode = vendorCode;
 	}

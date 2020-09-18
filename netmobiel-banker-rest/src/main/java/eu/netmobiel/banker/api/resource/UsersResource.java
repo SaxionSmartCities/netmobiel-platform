@@ -19,7 +19,7 @@ import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.User;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.banker.service.UserManager;
-import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 
 @ApplicationScoped
@@ -80,7 +80,7 @@ public class UsersResource implements UsersApi {
 			User user = resolveUserReference(userId, true);
 			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getNcan(), si, ui, maxResults, offset); 
 			rsp = Response.ok(accountingEntryMapper.map(result)).build();
-		} catch (ApplicationException ex) {
+		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
 		return rsp;

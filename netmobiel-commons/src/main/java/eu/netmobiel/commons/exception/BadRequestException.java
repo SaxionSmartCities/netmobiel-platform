@@ -7,7 +7,7 @@ package eu.netmobiel.commons.exception;
  * @author Jaap.Reitsma
  *
  */
-public class BadRequestException extends ApplicationException {
+public class BadRequestException extends BusinessException {
 
 	private static final long serialVersionUID = 660880157443491022L;
 

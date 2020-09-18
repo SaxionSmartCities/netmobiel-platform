@@ -6,7 +6,7 @@ package eu.netmobiel.commons.exception;
  * @author Jaap.Reitsma
  *
  */
-public class NotFoundException extends ApplicationException {
+public class NotFoundException extends BusinessException {
 	private static final long serialVersionUID = -8467666333189918504L;
 
 	public NotFoundException() {

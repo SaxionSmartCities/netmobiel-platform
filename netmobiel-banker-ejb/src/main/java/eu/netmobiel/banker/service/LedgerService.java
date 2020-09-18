@@ -16,7 +16,7 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 
 import eu.netmobiel.banker.exception.BalanceInsufficientException;
-import eu.netmobiel.banker.exception.InvalidChargeException;
+import eu.netmobiel.banker.exception.OverdrawnException;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.AccountingEntry;
@@ -275,7 +275,7 @@ public class LedgerService {
     	return tr.getTransactionRef();
     }
 
-    public String charge(NetMobielUser nmbeneficiary, String reservationId, int actualAmount) throws BalanceInsufficientException, InvalidChargeException {
+    public String charge(NetMobielUser nmbeneficiary, String reservationId, int actualAmount) throws BalanceInsufficientException, OverdrawnException {
     	Optional<User> beneficiary = lookupUser(nmbeneficiary);
     	if (! beneficiary.isPresent()) {
     		throw new BalanceInsufficientException("Beneficiary has no account, nothing to transfer to: " + nmbeneficiary.getManagedIdentity());
@@ -283,7 +283,7 @@ public class LedgerService {
     	AccountingTransaction release = release(reservationId, OffsetDateTime.now());
     	int overspent = actualAmount - release.getAccountingEntries().get(0).getAmount(); 
     	if (overspent > 0) {
-    		throw new InvalidChargeException("Charge exceeds reservation: " + reservationId + " " + overspent);
+    		throw new OverdrawnException("Charge exceeds reservation: " + reservationId + " " + overspent);
     	}
     	AccountingEntry userEntry = lookupUserEntry(release);
     	AccountingTransaction charge_tr = charge(userEntry.getAccount(), beneficiary.get().getPersonalAccount(), actualAmount, OffsetDateTime.now(), release.getDescription(), release.getContext());

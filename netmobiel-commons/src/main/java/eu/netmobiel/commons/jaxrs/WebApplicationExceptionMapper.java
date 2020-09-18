@@ -11,8 +11,8 @@ import javax.ws.rs.ext.Provider;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.api.ErrorResponse;
-import eu.netmobiel.commons.exception.ApplicationException;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.util.ExceptionUtil;
 
@@ -39,15 +39,17 @@ public class WebApplicationExceptionMapper implements
 		Throwable t = e;
 		String errorCode = null;
 		Response.StatusType status = e.getResponse().getStatusInfo();
-		if (e.getCause() instanceof ApplicationException) {
+		if (e.getCause() instanceof BusinessException) {
 			t = e.getCause();
-			ApplicationException ae = (ApplicationException) t;
+			BusinessException ae = (BusinessException) t;
 			errorCode = ae.getVendorCode();
 			status = Response.Status.INTERNAL_SERVER_ERROR;
 			if (ae instanceof BadRequestException) {
 				status = Response.Status.BAD_REQUEST;
 			} else if (ae instanceof NotFoundException) {
 				status = Response.Status.NOT_FOUND;
+			} else {
+				status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
 			}
 		}
 		String[] msgs = ExceptionUtil.unwindExceptionMessage(null, t);

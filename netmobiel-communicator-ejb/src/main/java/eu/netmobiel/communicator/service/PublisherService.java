@@ -73,13 +73,8 @@ public class PublisherService {
     	return userDao.findByManagedIdentity(SYSTEM_USER.getManagedIdentity())
     			.orElseGet(() -> userDao.save(SYSTEM_USER));
     }
-    /**
-     * Sends a message and/or a notification to the recipients in the message envelopes.
-     * This is an asynchronous call.  
-     * @param msg the message to send to the recipients in the envelopes 
-     */
-    @Asynchronous
-    public void publish(User sender, Message msg) throws CreateException, BadRequestException {
+
+    public void validateMessage(User sender, Message msg) throws CreateException, BadRequestException {
     	if (msg.getContext() == null) {
     		throw new BadRequestException("Constraint violation: 'context' must be set.");
     	}
@@ -92,36 +87,51 @@ public class PublisherService {
     	if (msg.getEnvelopes() == null || msg.getEnvelopes().isEmpty()) {
     		throw new BadRequestException("Constraint violation: 'envelopes' must be set and contain at least one recipient.");
     	}
-    	// The sender is always the calling user (for now)
-    	msg.setCreationTime(Instant.now());
-    	msg.setSender(sender != null ? sender : findSystemUser());
-    	if (logger.isDebugEnabled()) {
-            logger.debug(String.format("Send message from %s to %s: %s %s - %s", msg.getSender(), 
-            		msg.getEnvelopes().stream().map(env -> env.getRecipient().getManagedIdentity()).collect(Collectors.joining(", ")), 
-            		msg.getContext(), msg.getSubject(), msg.getBody()));
-    	}
-    	// Assure all recipients are present in the database, replace transient instances of users with persistent instances.
-		for (Envelope env : msg.getEnvelopes()) {
-			// Connect the child to the master for JPA
-			env.setMessage(msg);
-			User rcp = userDao.findByManagedIdentity(env.getRecipient().getManagedIdentity())
-	    			.orElseGet(() -> userDao.save(env.getRecipient()));
-			env.setRecipient(rcp);
-		}
-		msg.setId(null); 	// Assure it is a new message.
-		messageDao.save(msg);
-		// Send each user a notification, if required
-		if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
+    }
+
+    /**
+     * Sends a message and/or a notification to the recipients in the message envelopes.
+     * This is an asynchronous call. Because of the asynchronous nature, this call cannot throw exceptions. 
+     * @param msg the message to send to the recipients in the envelopes 
+     */
+    @Asynchronous
+    public void publish(User sender, Message msg) {
+    	try {
+			validateMessage(sender, msg);
+			// The sender is always the calling user (for now)
+			msg.setCreationTime(Instant.now());
+			msg.setSender(sender != null ? sender : findSystemUser());
+			if (logger.isDebugEnabled()) {
+			    logger.debug(String.format("Send message from %s to %s: %s %s - %s", msg.getSender(), 
+			    		msg.getEnvelopes().stream().map(env -> env.getRecipient().getManagedIdentity()).collect(Collectors.joining(", ")), 
+			    		msg.getContext(), msg.getSubject(), msg.getBody()));
+			}
+			// Assure all recipients are present in the database, replace transient instances of users with persistent instances.
 			for (Envelope env : msg.getEnvelopes()) {
-				try {
-					String fcmToken = profileClient.getFirebaseToken(env.getRecipient().getManagedIdentity());
-					firebaseMessagingClient.send(fcmToken, msg);
-					env.setPushTime(Instant.now());
-				} catch (Exception ex) {
-					logger.error(String.format("Cannot send push notification to %s: %s", 
-							env.getRecipient().getManagedIdentity(), String.join(" - ", ExceptionUtil.unwindException(ex))));
+				// Connect the child to the master for JPA
+				env.setMessage(msg);
+				User rcp = userDao.findByManagedIdentity(env.getRecipient().getManagedIdentity())
+						.orElseGet(() -> userDao.save(env.getRecipient()));
+				env.setRecipient(rcp);
+			}
+			msg.setId(null); 	// Assure it is a new message.
+			messageDao.save(msg);
+			// Send each user a notification, if required
+			if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
+				for (Envelope env : msg.getEnvelopes()) {
+					try {
+						String fcmToken = profileClient.getFirebaseToken(env.getRecipient().getManagedIdentity());
+						firebaseMessagingClient.send(fcmToken, msg);
+						env.setPushTime(Instant.now());
+					} catch (Exception ex) {
+						logger.error(String.format("Cannot send push notification to %s: %s", 
+								env.getRecipient().getManagedIdentity(), String.join("\n\t", ExceptionUtil.unwindException(ex))));
+					}
 				}
 			}
+		} catch (CreateException | BadRequestException ex) {
+			logger.error(String.format("Cannot publish, validation error: %s %s - %s", 
+					sender, msg, String.join("\n\t", ExceptionUtil.unwindException(ex))));
 		}
     }
 

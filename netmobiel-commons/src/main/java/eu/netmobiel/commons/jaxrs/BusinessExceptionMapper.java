@@ -9,7 +9,7 @@ import javax.ws.rs.ext.Provider;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.api.ErrorResponse;
-import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -25,8 +25,8 @@ import eu.netmobiel.commons.util.ExceptionUtil;
  *
  */
 @Provider
-public class ApplicationExceptionMapper implements
-		ExceptionMapper<ApplicationException> {
+public class BusinessExceptionMapper implements
+		ExceptionMapper<BusinessException> {
 
 	@Inject
 	private Logger log;
@@ -35,7 +35,7 @@ public class ApplicationExceptionMapper implements
 	 * Capture the cause of the exception and generate a proper HTTP status.
 	 */
 	@Override
-	public Response toResponse(ApplicationException e) {
+	public Response toResponse(BusinessException e) {
 		Response rsp = null;
 		String[] msgs = ExceptionUtil.unwindExceptionMessage(null, e);
 		Response.StatusType status = Response.Status.INTERNAL_SERVER_ERROR;

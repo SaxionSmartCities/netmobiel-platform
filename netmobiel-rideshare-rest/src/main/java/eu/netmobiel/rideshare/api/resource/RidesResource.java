@@ -12,7 +12,7 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
 
-import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
@@ -102,7 +102,7 @@ public class RidesResource implements RidesApi {
 			// The owner of the ride will be the caller
 			String newRideId = RideshareUrnHelper.createUrn(Ride.URN_PREFIX, rideManager.createRide(ride));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newRideId)).build();
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new BadRequestException("Error creating ride", e);
 		}
     	return rsp;
@@ -141,7 +141,7 @@ public class RidesResource implements RidesApi {
     		RideScope rs = scope == null ? RideScope.THIS: RideScope.lookup(scope);
 			rideManager.updateRide(ride, rs);
 			rsp = Response.noContent().build();
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
     	return rsp;
@@ -166,10 +166,10 @@ public class RidesResource implements RidesApi {
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
-		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
-	    	rsp = Response.status(Status.NOT_FOUND).build();
 		} catch (SoftRemovedException e) {
 	    	rsp = Response.status(Status.GONE).build();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
 		}
     	return rsp;
     }
@@ -188,7 +188,7 @@ public class RidesResource implements RidesApi {
         	Booking booking = bookingMapper.map(bookingdt);
 			String newBookingId = bookingManager.createBooking(rideId, passenger, booking);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newBookingId)).build();
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new BadRequestException("Error creating booking for ride " + rideId, e);
 		}
     	return rsp;
@@ -204,7 +204,7 @@ public class RidesResource implements RidesApi {
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
     	return rsp;

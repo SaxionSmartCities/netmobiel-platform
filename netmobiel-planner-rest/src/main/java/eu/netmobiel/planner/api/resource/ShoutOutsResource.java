@@ -12,7 +12,7 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.planner.api.ShoutOutsApi;
@@ -118,7 +118,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
 			}
 			tripPlanManager.addShoutOutSolution(shoutOutId, providedSolutionPlanId, driver.getKeyCloakUrn(), travelOffer.getVehicleRef());
 			rsp = Response.accepted().build();
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
     	return rsp;
@@ -132,7 +132,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
         	Long tid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
 			plan = tripPlanManager.getShoutOutPlan(tid);
 			rsp = Response.ok(tripPlanMapper.map(plan)).build();
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
     	return rsp;
@@ -145,7 +145,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
         	Long tid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
 			tripPlanManager.cancelShoutOut(tid);
 			rsp = Response.noContent().build();
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
     	return rsp;

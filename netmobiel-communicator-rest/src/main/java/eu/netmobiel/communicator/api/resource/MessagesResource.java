@@ -8,12 +8,11 @@ import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
-import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
-import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.communicator.api.MessagesApi;
 import eu.netmobiel.communicator.api.mapping.MessageMapper;
@@ -41,11 +40,10 @@ public class MessagesResource implements MessagesApi {
     	Response rsp = null;
 		try {
 			User caller = userManager.registerCallingUser();
+			publisherService.validateMessage(caller, mapper.map(msg));
 			publisherService.publish(caller, mapper.map(msg));
 			rsp = Response.status(Status.ACCEPTED).build();
-		} catch (CreateException e) {
-			throw new InternalServerErrorException(e);
-		} catch (eu.netmobiel.commons.exception.BadRequestException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rsp;
@@ -85,8 +83,8 @@ public class MessagesResource implements MessagesApi {
 			User caller = userManager.findCallingUser();
 			publisherService.updateAcknowledgment(caller, messageId.longValue(), Instant.now());
 			rsp = Response.noContent().build();
-		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
-			rsp = Response.status(Status.NOT_FOUND).build();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
 		}
     	return rsp;
 	}
@@ -98,8 +96,8 @@ public class MessagesResource implements MessagesApi {
 			User caller = userManager.findCallingUser();
 			publisherService.updateAcknowledgment(caller, messageId.longValue(), null);
 			rsp = Response.noContent().build();
-		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
-			rsp = Response.status(Status.NOT_FOUND).build();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
 		}
     	return rsp;
 	}

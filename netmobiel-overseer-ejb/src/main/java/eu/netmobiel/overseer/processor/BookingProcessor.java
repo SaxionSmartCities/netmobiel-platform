@@ -27,19 +27,14 @@ import javax.mail.internet.MimeMessage.RecipientType;
 import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 
-import eu.netmobiel.banker.exception.BalanceInsufficientException;
-import eu.netmobiel.banker.exception.InvalidChargeException;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.NetMobielModule;
-import eu.netmobiel.commons.exception.ApplicationException;
-import eu.netmobiel.commons.exception.BadRequestException;
-import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.event.BookingCancelledFromProviderEvent;
+import eu.netmobiel.commons.event.TripConfirmedByProviderEvent;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
-import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.NetMobielUser;
-import eu.netmobiel.commons.model.event.BookingCancelledFromProviderEvent;
-import eu.netmobiel.commons.model.event.TripConfirmedByProviderEvent;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.model.DeliveryMode;
@@ -133,7 +128,7 @@ public class BookingProcessor {
 			leg.getFrom().getLabel(), leg.getTo().getLabel(), formatDate(leg.getStartTime()));
     }
 
-    protected void reserveFare(Trip trip, Leg leg) throws BalanceInsufficientException {
+    protected void reserveFare(Trip trip, Leg leg) throws BusinessException {
 		if (leg.hasFareInCredits()) {
 			// Reserve the fare
 			String reservationId = ledgerService.reserve(trip.getTraveller(), leg.getFareInCredits(), createDescription(leg), leg.getLegRef());
@@ -141,7 +136,7 @@ public class BookingProcessor {
 		}
     }
 
-    protected void cancelFare(Trip trip, Leg leg) {
+    protected void cancelFare(Trip trip, Leg leg) throws BusinessException {
 		if (leg.hasFareInCredits()) {
 			// Release the fare
 			if (leg.getPaymentState() != PaymentState.RESERVED) {
@@ -152,16 +147,10 @@ public class BookingProcessor {
 		}
     }
 
-    protected void payFare(Trip trip, Leg leg) {
+    protected void payFare(Trip trip, Leg leg) throws BusinessException {
 		if (leg.hasFareInCredits()) {
-			try {
-				String chargeId = ledgerService.charge(resolveDriverId(leg), leg.getPaymentId(), leg.getFareInCredits());
-				tripManager.updateLegPaymentState(trip, leg, PaymentState.PAID, chargeId);
-			} catch (BalanceInsufficientException e) {
-	    		throw new IllegalStateException("TraverseMode is not supported: " + leg.getLegRef() + " " + leg.getTraverseMode());
-			}  catch (InvalidChargeException e) {
-	    		throw new IllegalStateException("Did not expect to charge too much: " + leg.getLegRef() + " " + leg.getFareInCredits());
-			}
+			String chargeId = ledgerService.charge(resolveDriverId(leg), leg.getPaymentId(), leg.getFareInCredits());
+			tripManager.updateLegPaymentState(trip, leg, PaymentState.PAID, chargeId);
 		}
     }
 
@@ -170,8 +159,10 @@ public class BookingProcessor {
      * Autobooking is assumed, so no interaction with the driver is required. Because autoconfirm is enabled, the fare is also charged as a reservation. 
      *  
      * @param event the booking request
+     * @throws BusinessException 
      */
-    public void onBookingRequested(@Observes(during = TransactionPhase.IN_PROGRESS) BookingRequestedEvent event) {
+    public void onBookingRequested(@Observes(during = TransactionPhase.IN_PROGRESS) BookingRequestedEvent event) 
+    		throws BusinessException {
     	Trip trip = event.getTrip();
     	Leg leg = event.getLeg();
     	if (!NetMobielModule.RIDESHARE.getCode().equals(UrnHelper.getService(leg.getTripId()))) {
@@ -185,38 +176,28 @@ public class BookingProcessor {
 		b.setPickup(leg.getFrom().getLocation());
 		b.setNrSeats(trip.getNrSeats());
 		b.setPassengerTripRef(trip.getTripRef());
-    	try {
-			String bookingRef = bookingManager.createBooking(leg.getTripId(), trip.getTraveller(), b);
-			// Check whether booking auto confirm is enabled or that we have long conversation
-			Booking bdb = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, bookingRef));
-			// Assign the booking reference to the trip leg
-			boolean autoConfirmed = bdb.getState() == BookingState.CONFIRMED;
-			if (! autoConfirmed) {
-				logger.warn("Expecting booking AutoConfirm! Other situations are not handled!");
-			}
-			tripManager.assignBookingReference(trip.getTripRef(), leg.getTripId(), bookingRef, autoConfirmed);
-    		reserveFare(event.getTrip(), event.getLeg());
-		} catch (CreateException | NotFoundException | BadRequestException| UpdateException | BalanceInsufficientException  e) {
-			logger.error("Unable to create a booking: " + e.toString());
-			context.setRollbackOnly();
+		String bookingRef = bookingManager.createBooking(leg.getTripId(), trip.getTraveller(), b);
+		// Check whether booking auto confirm is enabled or that we have long conversation
+		Booking bdb = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, bookingRef));
+		// Assign the booking reference to the trip leg
+		boolean autoConfirmed = bdb.getState() == BookingState.CONFIRMED;
+		if (! autoConfirmed) {
+			logger.warn("Expecting booking AutoConfirm! Other situations are not handled!");
 		}
+		tripManager.assignBookingReference(trip.getTripRef(), leg.getTripId(), bookingRef, autoConfirmed);
+		reserveFare(event.getTrip(), event.getLeg());
     }
 
     /**
      * Handles the case where a traveller confirms a proposed booking of a provider. The provider's gets the trip reference assigned.
      * The fare is debited for the traveller and credited to the reservation account.  
      * @param event the confirmed event
+     * @throws BusinessException 
      */
-    public void onBookingConfirmed(@Observes(during = TransactionPhase.IN_PROGRESS) BookingConfirmedEvent event) {
-    	try {
-    		// Get the leg 
-			// Replace the plan reference with trip reference
-    		bookingManager.confirmBooking(UrnHelper.getId(Booking.URN_PREFIX, event.getLeg().getBookingId()), event.getTrip().getTripRef());
-    		reserveFare(event.getTrip(), event.getLeg());
-		} catch (NotFoundException | BalanceInsufficientException e) {
-			logger.error("Unable to confirm a booking: " + e.toString());
-			context.setRollbackOnly();
-		}
+    public void onBookingConfirmed(@Observes(during = TransactionPhase.IN_PROGRESS) BookingConfirmedEvent event) throws BusinessException {
+		// Replace the plan reference with trip reference
+		bookingManager.confirmBooking(UrnHelper.getId(Booking.URN_PREFIX, event.getLeg().getBookingId()), event.getTrip().getTripRef());
+		reserveFare(event.getTrip(), event.getLeg());
     }
 
     /**
@@ -224,126 +205,110 @@ public class BookingProcessor {
      * The state must be in PROPOSAL state.
      * 
      * @param event
+     * @throws BusinessException 
      */
-    public void onBookingProposalRejected(@Observes(during = TransactionPhase.IN_PROGRESS) BookingProposalRejectedEvent event) {
+    public void onBookingProposalRejected(@Observes(during = TransactionPhase.IN_PROGRESS) BookingProposalRejectedEvent event) 
+    		throws BusinessException {
 		if (event.getLeg().getState() != TripState.PLANNING) {
 			throw new IllegalStateException("Leg is not in planning state: " + event.getLeg().getId() + " " + event.getLeg().getState());
 		}
     	logger.info(String.format("Booking proposal %s cancelled (from NetMobiel) by passenger because '%s'", 
     			event.getLeg().getBookingId(), event.getCancelReason() != null ? event.getCancelReason() : "---"));
-    	try {
-			// The booking is cancelled through the TripManager or TripPlanManager
-			bookingManager.removeBooking(event.getLeg().getBookingId(), event.getCancelReason(), false, false);
-		} catch (ApplicationException e) {
-			logger.error("Error cancelling booking: " + e.toString());
-		}
+		// The booking is cancelled through the TripManager or TripPlanManager
+		bookingManager.removeBooking(event.getLeg().getBookingId(), event.getCancelReason(), false, false);
     }
 
     /**
      * Signals the removal of a booking through the NetMobiel Planner API.
      * 
      * @param event
+     * @throws BusinessException 
      */
-    public void onBookingCancelled(@Observes(during = TransactionPhase.IN_PROGRESS) BookingCancelledEvent event) {
+    public void onBookingCancelled(@Observes(during = TransactionPhase.IN_PROGRESS) BookingCancelledEvent event) 
+    		throws BusinessException {
 		if (event.getLeg().getState() == TripState.CANCELLED) {
 			throw new IllegalStateException("Leg already cancelled: " + event.getLeg().getId());
 		}
     	logger.info(String.format("Booking %s cancelled (from NetMobiel) by passenger because '%s'", 
     			event.getLeg().getBookingId(), event.getCancelReason() != null ? event.getCancelReason() : "---"));
-    	try {
-			// The booking is cancelled through the TripManager or TripPlanManager
-			bookingManager.removeBooking(event.getLeg().getBookingId(), event.getCancelReason(), false, false);
-			if (event.getLeg().hasFareInCredits()) {
-				cancelFare(event.getTrip(), event.getLeg());
-			}
-		} catch (ApplicationException e) {
-			logger.error("Error cancelling booking: " + e.toString());
+		// The booking is cancelled through the TripManager or TripPlanManager
+		bookingManager.removeBooking(event.getLeg().getBookingId(), event.getCancelReason(), false, false);
+		if (event.getLeg().hasFareInCredits()) {
+			cancelFare(event.getTrip(), event.getLeg());
 		}
     }
+    
     /**
      * Signals the removal of a booking through the provider API.
      * 
      * @param event
+     * @throws BusinessException 
      */
-    public void onBookingCancelledFromProvider(@Observes(during = TransactionPhase.IN_PROGRESS) BookingCancelledFromProviderEvent event) {
+    public void onBookingCancelledFromProvider(@Observes(during = TransactionPhase.IN_PROGRESS) BookingCancelledFromProviderEvent event) 
+    		throws BusinessException {
     	logger.info(String.format("Booking %s cancelled from Transport Provider by %s because '%s'", 
     			event.getBookingRef(),
     			event.isCancelledByDriver() ? "Driver" : "Passenger",
     			event.getCancelReason() != null ? event.getCancelReason() : "---"));
-    	try {
-			// The booking is cancelled by transport provider
-			Booking b = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, event.getBookingRef()));
-    		if (UrnHelper.getPrefix(event.getTravellerTripRef()).equals(TripPlan.URN_PREFIX)) {
-    			// The booking is only a proposal, no reservation done yet
-    			tripPlanManager.cancelBooking(event.getTravellerTripRef(), event.getBookingRef());
-    		} else {
-    			// The call in in the trip manager checks the stste of the leg.
-    			Leg leg = tripManager.cancelBooking(event.getTravellerTripRef(), event.getBookingRef(), event.getCancelReason(), event.isCancelledByDriver());
-    			if (leg.hasFareInCredits()) {
-    				// cancel the reservation
-        			Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, event.getTravellerTripRef()));
-    				cancelFare(trip, leg);
-    			}
-    		}
-			if (event.isCancelledByDriver()) {
-				// Notify the passenger
-				Message msg = new Message();
-				msg.setContext(event.getBookingRef());
-				msg.setSubject("Chauffeur heeft geannuleerd.");
-				msg.setBody(
-						MessageFormat.format("Voor jouw reis op {0} naar {1} kun je helaas niet meer met {2} meerijden.", 
-								formatDate(b.getDepartureTime()),
-								b.getDropOff().getLabel(), 
-								b.getRide().getDriver().getGivenName()
-								)
-						);
-				msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-				msg.addRecipient(event.getTraveller());
-				publisherService.publish(null, msg);
-			} else {
-				// Notification of the driver is done by transport provider
+		// The booking is cancelled by transport provider
+		Booking b = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, event.getBookingRef()));
+		if (UrnHelper.getPrefix(event.getTravellerTripRef()).equals(TripPlan.URN_PREFIX)) {
+			// The booking is only a proposal, no reservation done yet
+			tripPlanManager.cancelBooking(event.getTravellerTripRef(), event.getBookingRef());
+		} else {
+			// The call in in the trip manager checks the stste of the leg.
+			Leg leg = tripManager.cancelBooking(event.getTravellerTripRef(), event.getBookingRef(), event.getCancelReason(), event.isCancelledByDriver());
+			if (leg.hasFareInCredits()) {
+				// cancel the reservation
+    			Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, event.getTravellerTripRef()));
+				cancelFare(trip, leg);
 			}
-		} catch (ApplicationException e) {
-			logger.error("Error cancelling booking from provider: " + e.toString());
 		}
-    	
+		if (event.isCancelledByDriver()) {
+			// Notify the passenger
+			Message msg = new Message();
+			msg.setContext(event.getBookingRef());
+			msg.setSubject("Chauffeur heeft geannuleerd.");
+			msg.setBody(
+					MessageFormat.format("Voor jouw reis op {0} naar {1} kun je helaas niet meer met {2} meerijden.", 
+							formatDate(b.getDepartureTime()),
+							b.getDropOff().getLabel(), 
+							b.getRide().getDriver().getGivenName()
+							)
+					);
+			msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
+			msg.addRecipient(event.getTraveller());
+			publisherService.publish(null, msg);
+		} else {
+			// Notification of the driver is done by transport provider
+		}
     }
 
     /** 
      * Handle the event where the traveller or provider confirms (or denies) the trip. 
      * @param event
+     * @throws BusinessException 
      */
-    public void onTripConfirmation(@Observes(during = TransactionPhase.IN_PROGRESS) TripConfirmedEvent event) {
+    public void onTripConfirmation(@Observes(during = TransactionPhase.IN_PROGRESS) TripConfirmedEvent event) 
+    		throws BusinessException {
     	if (event.getTrip().getState() != TripState.VALIDATING) {
     		throw new IllegalStateException("Trip has unexpected state: " + event.getTrip().getId() + " " + event.getTrip().getState());
     	}
-    	try {
-    		evaluateTripAfterConfirmation(event.getTrip(), false);
-		} catch (Exception e) {
-			logger.error("Error paying fare and completing trip: " + e.toString());
-			context.setRollbackOnly();
-		}
+   		evaluateTripAfterConfirmation(event.getTrip(), false);
     }
 
-    public void onProviderConfirmation(@Observes(during = TransactionPhase.IN_PROGRESS) TripConfirmedByProviderEvent event) {
-    	try {
-    		// The trip manager checks the state for reasonable values 
-			tripManager.confirmTripByTransportProvider(event.getTravellerTripRef(), event.getBookingRef(), event.getConfirmationByTransportProvider(), false);
-		} catch (Exception e) {
-			logger.error("Error confirming trip by transport provider: " + e.toString());
-			context.setRollbackOnly();
-		}
+    public void onProviderConfirmation(@Observes(during = TransactionPhase.IN_PROGRESS) TripConfirmedByProviderEvent event) 
+    		throws BusinessException {
+  		// The trip manager checks the state for reasonable values 
+		tripManager.confirmTripByTransportProvider(event.getTravellerTripRef(), event.getBookingRef(), event.getConfirmationByTransportProvider(), false);
     }
 
-    public void onTripValidationExpired(@Observes(during = TransactionPhase.IN_PROGRESS) TripValidationExpiredEvent event) {
-    	try {
-    		evaluateTripAfterConfirmation(event.getTrip(), true);
-		} catch (Exception e) {
-			logger.error("Error cancelling reservation for trip: " + e.toString());
-		}
+    public void onTripValidationExpired(@Observes(during = TransactionPhase.IN_PROGRESS) TripValidationExpiredEvent event) 
+    		throws BusinessException {
+   		evaluateTripAfterConfirmation(event.getTrip(), true);
     }
     
-    protected void evaluateTripAfterConfirmation(Trip trip, boolean finalOrdeal) {
+    protected void evaluateTripAfterConfirmation(Trip trip, boolean finalOrdeal) throws BusinessException {
 		/**
 		 * Defaults: traveller confirms the trip, provider denies the trip.
 		 * If both have answered we can complete the trip, otherwise we have to wait for the expiration of the validation period.

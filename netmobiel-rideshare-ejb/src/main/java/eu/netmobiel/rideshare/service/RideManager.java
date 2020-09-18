@@ -31,7 +31,9 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.annotation.Updated;
+import eu.netmobiel.commons.event.TripConfirmedByProviderEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SoftRemovedException;
@@ -39,7 +41,8 @@ import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
-import eu.netmobiel.commons.model.event.TripConfirmedByProviderEvent;
+import eu.netmobiel.commons.util.EventFireWrapper;
+import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
 import eu.netmobiel.rideshare.model.Booking;
@@ -200,13 +203,16 @@ public class RideManager {
      * @param template the template to generate the ride for, if required.
      * @param systemHorizon the system horizon, do not create past the horizon
      * @return the  number of rides created.  
+	 * @throws BusinessException 
 	 */
 	@TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-	public int instantiateRecurrentRides(RideTemplate template, Instant systemHorizon) {
+	public int instantiateRecurrentRides(RideTemplate template, Instant systemHorizon) throws BusinessException {
 		// Load template into persistence context
 		template = rideTemplateDao.merge(template);
 		List<Ride> rides = generateNonOverlappingRides(template, systemHorizon);
-		rides.forEach(r -> rideItineraryHelper.saveNewRide(r));
+		for (Ride ride : rides) {
+			rideItineraryHelper.saveNewRide(ride);
+		}
 		return rides.size();
 	}
 
@@ -339,10 +345,9 @@ public class RideManager {
      * The car must exist and be owned by the driver.
      * @param ride The input from the application.  
      * @return The ID of the ride just created.
-     * @throws CreateException In case of trouble like wrong parameter values.
-     * @throws NotFoundException If the car is not found.
+     * @throws BusinessException 
      */
-    public Long createRide(Ride ride) throws CreateException, NotFoundException, BadRequestException {
+    public Long createRide(Ride ride) throws BusinessException {
     	Car car = carDao.find(RideshareUrnHelper.getId(Car.URN_PREFIX, ride.getCarRef()))
     			.orElseThrow(() -> new CreateException("Cannot find car: " + ride.getCarRef()));
     	User driverdb = ride.getDriver();
@@ -380,7 +385,7 @@ public class RideManager {
     		log.warn("Inconsistence detected: Template defined without recurrency");
     		ride.setRideTemplate(null);
     	}
-    	rideCreatedEvent.fire(ride);
+    	EventFireWrapper.fire(rideCreatedEvent, ride);
     	Ride firstRide = ride;
     	if (template != null) {
     		// Create a template from the well-defined ride
@@ -415,8 +420,10 @@ public class RideManager {
 					rideDao.remove(ride);
 					firstRide = firstGeneratedRide;
 				}
-				// No rides in the list are in the persistence context 
-				rides.forEach(r -> rideItineraryHelper.saveNewRide(r));
+				// None of the rides in the list are in the persistence context
+				for (Ride r : rides) {
+					rideItineraryHelper.saveNewRide(r);
+				}
 			}
     	}
     	return firstRide.getId();
@@ -513,17 +520,17 @@ public class RideManager {
     	}
     }
     
-    private void removeRide(Long rideId, final String reason) {
+    private void removeRideSliently(Long rideId, final String reason) {
 		try {
 			Ride ridedb = rideDao.find(rideId)
 					.orElseThrow(NotFoundException::new);
 			removeRide(ridedb, reason);
-		} catch (NotFoundException e) {
-			log.warn(String.format("Ride %d not found, ignoring...", rideId));
+		} catch (BusinessException e) {
+			log.warn(String.format("Ride %d not found or not removed, ignoring...", rideId));
 		}
     }
 
-    private void removeRide(Ride ridedb, final String reason) {
+    private void removeRide(Ride ridedb, final String reason) throws BusinessException {
     	cancelRideTimers(ridedb);
 		ridedb.setMonitored(false);
     	if (ridedb.getBookings().size() > 0) {
@@ -532,7 +539,7 @@ public class RideManager {
     		updateRideState(ridedb, RideState.CANCELLED);
     		ridedb.setCancelReason(reason);
     		// Allow other parties such as the booking manager to do their job too
-    		rideRemovedEvent.fire(ridedb);
+    		EventFireWrapper.fire(rideRemovedEvent, ridedb);
 		} else {
 			rideDao.remove(ridedb);
 		}
@@ -548,9 +555,9 @@ public class RideManager {
      * @param rideId The ride to remove.
      * @param reason The reason why it was cancelled (optional).
      * @param scope The extent of deletion in case of a recurrent ride. Default RideScope.THIS.  
-     * @throws NotFoundException In case the rideId is not found
+     * @throws BusinessException 
      */
-    public void removeRide(Long rideId, final String reason, RideScope scope) throws NotFoundException, SoftRemovedException {
+    public void removeRide(Long rideId, final String reason, RideScope scope) throws BusinessException {
     	Ride ridedb = rideDao.find(rideId)
     			.orElseThrow(NotFoundException::new);
     	if (ridedb.isDeleted()) {
@@ -562,7 +569,7 @@ public class RideManager {
     		if (scope == RideScope.THIS_AND_FOLLOWING) {
 	    		// Deletes this ride and all that follow
 	    		rideDao.findFollowingRideIds(ridedb.getRideTemplate(), ridedb.getDepartureTime())
-	    			.forEach(rid -> removeRide(rid, reason));
+	    			.forEach(rid -> removeRideSliently(rid, reason));
 	    		// Set the horizon of the template to the departure date of this ride.
 	    		ridedb.getRideTemplate().getRecurrence().setHorizon(ridedb.getDepartureTime());
     		}
@@ -573,28 +580,20 @@ public class RideManager {
     	}
     }
 
-    public void onStaleItinerary(@Observes(during = TransactionPhase.IN_PROGRESS) @Updated Ride ride) {
-    	try {
-    		if (ride.isDeleted()) {
-    			log.debug("Ride is already deleted, ignoring update itinerary request: " + ride.getRideRef());
-    		} else {
-    			rideItineraryHelper.updateRideItinerary(ride);
-    		}
-		} catch (BadRequestException e ) {
-			log.error("Error updating itinerary: " + e.toString());
-			context.setRollbackOnly();
-		} catch (Exception e) {
-			context.setRollbackOnly();
-			log.error("Error updating itinerary: ", e);
+    public void onStaleItinerary(@Observes(during = TransactionPhase.IN_PROGRESS) @Updated Ride ride) throws BadRequestException {
+		if (ride.isDeleted()) {
+			log.debug("Ride is already deleted, ignoring update itinerary request: " + ride.getRideRef());
+		} else {
+			rideItineraryHelper.updateRideItinerary(ride);
 		}
     }
 
     /**
      * Sets the confirmation flag on the ride and sends a event to inform the provider has confirmed the ride.
      * @param rideId the ride to update.
-     * @throws NotFoundException If the ride was not found.
+     * @throws BusinessException 
      */
-    public void confirmRide(Long rideId, Boolean confirmationValue) throws NotFoundException, BadRequestException {
+    public void confirmRide(Long rideId, Boolean confirmationValue) throws BusinessException {
     	Ride ridedb = rideDao.find(rideId)
     			.orElseThrow(() -> new NotFoundException("No such ride: " + rideId));
     	if (confirmationValue == null) {
@@ -604,8 +603,10 @@ public class RideManager {
     		throw new BadRequestException("Ride has already a confirmation value: " + rideId);
     	}
     	ridedb.setConfirmed(confirmationValue);
-    	ridedb.getActiveBooking()
-    		.ifPresent(b -> transportProviderConfirmedEvent.fire(new TripConfirmedByProviderEvent(b.getBookingRef(),  b.getPassengerTripRef(), confirmationValue)));
+    	if (ridedb.getActiveBooking().isPresent()) {
+    		Booking b = ridedb.getActiveBooking().get();
+    		EventFireWrapper.fire(transportProviderConfirmedEvent, new TripConfirmedByProviderEvent(b.getBookingRef(),  b.getPassengerTripRef(), confirmationValue));
+    	}
     }
 
     public static class RideInfo implements Serializable {
@@ -623,11 +624,11 @@ public class RideManager {
 		}
     }
     
-    protected void updateRideState(Ride ride, RideState newState) {
+    protected void updateRideState(Ride ride, RideState newState) throws BusinessException {
     	RideState previousState = ride.getState();
 		ride.setState(newState);
     	log.debug(String.format("updateRideState %s: %s --> %s", ride.toStringCompact(), previousState, ride.getState()));
-   		rideStateUpdatedEvent.fire(new RideStateUpdatedEvent(previousState, ride));
+   		EventFireWrapper.fire(rideStateUpdatedEvent, new RideStateUpdatedEvent(previousState, ride));
     }
 
 	@Schedule(info = "Collect due rides", hour = "*/1", minute = "0", second = "0", persistent = false /* non-critical job */)
@@ -650,48 +651,53 @@ public class RideManager {
 		if (log.isDebugEnabled()) {
 			log.debug("Received ride event: " + rideInfo.toString());
 		}
-		Ride ride = rideDao.fetchGraph(rideInfo.rideId, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
-				.orElseThrow(() -> new IllegalArgumentException("No such ride: " + rideInfo.rideId));
-		Instant now = Instant.now();
-		switch (rideInfo.event) {
-		case TIME_TO_PREPARE:
-			updateRideState(ride, RideState.DEPARTING);
-			timerService.createTimer(Date.from(ride.getDepartureTime()), 
-					new RideInfo(RideMonitorEvent.TIME_TO_DEPART, ride.getId()));
-			break;
-		case TIME_TO_DEPART:
-			updateRideState(ride, RideState.IN_TRANSIT);
-			timerService.createTimer(Date.from(ride.getArrivalTime()), 
-					new RideInfo(RideMonitorEvent.TIME_TO_ARRIVE, ride.getId()));
-			break;
-		case TIME_TO_ARRIVE:
-			updateRideState(ride, RideState.ARRIVING);
-			if (ride.hasActiveBooking() && ride.getArrivalTime().plus(CONFIRMATION_PERIOD).isAfter(now)) {
-				timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRMATION_DELAY)), 
-						new RideInfo(RideMonitorEvent.TIME_TO_VALIDATE, ride.getId()));
-			} else {
-				timerService.createTimer(Date.from(ride.getArrivalTime().plus(ARRIVING_PERIOD)), 
-						new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
+			try {
+				Ride ride = rideDao.fetchGraph(rideInfo.rideId, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
+						.orElseThrow(() -> new IllegalArgumentException("No such ride: " + rideInfo.rideId));
+				Instant now = Instant.now();
+				switch (rideInfo.event) {
+				case TIME_TO_PREPARE:
+					updateRideState(ride, RideState.DEPARTING);
+					timerService.createTimer(Date.from(ride.getDepartureTime()), 
+							new RideInfo(RideMonitorEvent.TIME_TO_DEPART, ride.getId()));
+					break;
+				case TIME_TO_DEPART:
+					updateRideState(ride, RideState.IN_TRANSIT);
+					timerService.createTimer(Date.from(ride.getArrivalTime()), 
+							new RideInfo(RideMonitorEvent.TIME_TO_ARRIVE, ride.getId()));
+					break;
+				case TIME_TO_ARRIVE:
+					updateRideState(ride, RideState.ARRIVING);
+					if (ride.hasActiveBooking() && ride.getArrivalTime().plus(CONFIRMATION_PERIOD).isAfter(now)) {
+						timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRMATION_DELAY)), 
+								new RideInfo(RideMonitorEvent.TIME_TO_VALIDATE, ride.getId()));
+					} else {
+						timerService.createTimer(Date.from(ride.getArrivalTime().plus(ARRIVING_PERIOD)), 
+								new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
+					}
+					break;
+				case TIME_TO_VALIDATE:
+					updateRideState(ride, RideState.VALIDATING);
+					timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_1)), 
+							new RideInfo(RideMonitorEvent.TIME_TO_CONFIRM_REMINDER, ride.getId()));
+					break;
+				case TIME_TO_CONFIRM_REMINDER:
+					updateRideState(ride, RideState.VALIDATING);
+					timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_2)), 
+							new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
+					break;
+				case TIME_TO_COMPLETE:
+					updateRideState(ride, RideState.COMPLETED);
+					ride.setMonitored(false);
+					break;
+				default:
+					log.warn("Don't know how to handle event: " + rideInfo.event);
+					break;
+				}
+			} catch (BusinessException ex) {
+				log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
+				log.info("Rollback status after exception: " + context.getRollbackOnly()); 
 			}
-			break;
-		case TIME_TO_VALIDATE:
-			updateRideState(ride, RideState.VALIDATING);
-			timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_1)), 
-					new RideInfo(RideMonitorEvent.TIME_TO_CONFIRM_REMINDER, ride.getId()));
-			break;
-		case TIME_TO_CONFIRM_REMINDER:
-			updateRideState(ride, RideState.VALIDATING);
-			timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_2)), 
-					new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
-			break;
-		case TIME_TO_COMPLETE:
-			updateRideState(ride, RideState.COMPLETED);
-			ride.setMonitored(false);
-			break;
-		default:
-			log.warn("Don't know how to handle event: " + rideInfo.event);
-			break;
-		}
 	}
 
 	protected void startMonitoring(Ride ride) {

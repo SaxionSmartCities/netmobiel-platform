@@ -8,9 +8,9 @@ import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.rideshare.api.BookingsApi;
 import eu.netmobiel.rideshare.api.mapping.BookingMapper;
@@ -82,10 +82,8 @@ public class BookingsResource implements BookingsApi {
         	// FIXME add security
 			bookingManager.removeBooking(bookingId, reason, isDriver, true);
 			rsp = Response.noContent().build();
-		} catch (eu.netmobiel.commons.exception.BadRequestException e) {
-	    	rsp = Response.status(Status.BAD_REQUEST).build();
-		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
-	    	rsp = Response.status(Status.GONE).build();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
 		}
     	return rsp;
     }

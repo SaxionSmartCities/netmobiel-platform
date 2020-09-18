@@ -33,7 +33,7 @@ import eu.netmobiel.banker.api.resource.DepositEventsResource;
 import eu.netmobiel.banker.api.resource.SettingsResource;
 import eu.netmobiel.banker.api.resource.UsersResource;
 import eu.netmobiel.commons.Version;
-import eu.netmobiel.commons.jaxrs.ApplicationExceptionMapper;
+import eu.netmobiel.commons.jaxrs.BusinessExceptionMapper;
 import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
 import eu.netmobiel.commons.jaxrs.OffsetDateTimeParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
@@ -86,7 +86,7 @@ public class BankerApplication extends Application {
         resources.add(WebApplicationExceptionMapper.class);
         resources.add(EJBExceptionMapper.class);
         resources.add(SecurityExceptionMapper.class);
-        resources.add(ApplicationExceptionMapper.class);
+        resources.add(BusinessExceptionMapper.class);
         return resources;
     }
 

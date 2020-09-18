@@ -16,6 +16,9 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
+import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
@@ -42,7 +45,8 @@ public class NotificationHelper {
     @Inject
     private PublisherService publisherService;
 
-    @Inject
+    @SuppressWarnings("unused")
+	@Inject
 	private Logger logger;
 
     private Locale defaultLocale;
@@ -69,40 +73,32 @@ public class NotificationHelper {
 		return msg;
     }
 
-    public void onBookingCreated(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Booking booking) {
+    public void onBookingCreated(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Booking booking) throws BusinessException {
 		// Inform driver on new booking
-		try {
-			Message msg = null;
-			if (booking.getState() == BookingState.PROPOSED) {
-				// No message is needed, because is is the drive who created the proposal
-				msg = null;
-			} else if (booking.getState() == BookingState.REQUESTED) {
-				msg = createMessage(booking, "Je hebt een passagier!", "Voor jouw rit op {0} naar {1} wil {2} graag met je mee.");
-			} else if (booking.getState() == BookingState.CONFIRMED) {
-				msg = createMessage(booking, "Je hebt een passagier!", "Voor jouw rit op {0} naar {1} rijdt {2} met je mee.");
-			} else {
-				throw new IllegalStateException("Unexpected booking state with booking " + booking.toString());
-			}
-			if (msg != null) {
-				publisherService.publish(null, msg);
-			}
-		} catch (Exception e) {
-			logger.error("Unable to inform driver on new booking: " + e.toString());
+		Message msg = null;
+		if (booking.getState() == BookingState.PROPOSED) {
+			// No message is needed, because is is the drive who created the proposal
+			msg = null;
+		} else if (booking.getState() == BookingState.REQUESTED) {
+			msg = createMessage(booking, "Je hebt een passagier!", "Voor jouw rit op {0} naar {1} wil {2} graag met je mee.");
+		} else if (booking.getState() == BookingState.CONFIRMED) {
+			msg = createMessage(booking, "Je hebt een passagier!", "Voor jouw rit op {0} naar {1} rijdt {2} met je mee.");
+		} else {
+			throw new IllegalStateException("Unexpected booking state with booking " + booking.toString());
+		}
+		if (msg != null) {
+			publisherService.publish(null, msg);
 		}
 	}
 
-	public void onBookingRemoved(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Removed Booking booking) {
+	public void onBookingRemoved(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Removed Booking booking) throws CreateException, BadRequestException {
 		// Inform driver about removal of a booking
-		try {
-			Message msg = null;
-			if (booking.getState() == BookingState.PROPOSED) {
-				msg = createMessage(booking, "Passagier heeft geannuleerd.", "{2} heeft een andere oplossing gevonden voor de rit op {0} naar {1}. Bedankt voor je aanbod!");
-			} else {
-				msg = createMessage(booking, "Passagier heeft geannuleerd.", "Voor jouw rit op {0} naar {1} rijdt {2} niet meer mee.");
-			}
-			publisherService.publish(null, msg);
-		} catch (Exception e) {
-			logger.error("Unable to inform driver on cancelled booking: " + e.toString());
+		Message msg = null;
+		if (booking.getState() == BookingState.PROPOSED) {
+			msg = createMessage(booking, "Passagier heeft geannuleerd.", "{2} heeft een andere oplossing gevonden voor de rit op {0} naar {1}. Bedankt voor je aanbod!");
+		} else {
+			msg = createMessage(booking, "Passagier heeft geannuleerd.", "Voor jouw rit op {0} naar {1} rijdt {2} niet meer mee.");
 		}
+		publisherService.publish(null, msg);
 	}
 }

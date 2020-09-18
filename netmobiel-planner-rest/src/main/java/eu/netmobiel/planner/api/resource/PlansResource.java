@@ -13,7 +13,7 @@ import javax.ws.rs.core.UriBuilder;
 
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.planner.api.PlansApi;
@@ -58,7 +58,7 @@ public class PlansResource implements PlansApi {
 			TripPlan plan = tripPlanMapper.map(tripPlan);
 			String newPlanId = PlannerUrnHelper.createUrn(TripPlan.URN_PREFIX, tripPlanManager.createTripPlan(traveller, plan, Instant.now()));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newPlanId)).build();
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rsp;
@@ -72,7 +72,7 @@ public class PlansResource implements PlansApi {
         	Long tid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, planId);
 			plan = tripPlanManager.getTripPlan(tid);
 			rsp = Response.ok(tripPlanMapper.map(plan)).build();
-		} catch (ApplicationException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
     	return rsp;
@@ -102,7 +102,7 @@ public class PlansResource implements PlansApi {
 				rsp = Response.ok(pageMapper.mapPlans(results)).build();
 			} catch (IllegalArgumentException e) {
 				throw new BadRequestException(e);
-			} catch (ApplicationException e) {
+			} catch (BusinessException e) {
 				throw new WebApplicationException(e);
 			}
 	    	return rsp;

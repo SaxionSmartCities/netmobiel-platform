@@ -16,12 +16,14 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.annotation.Updated;
+import eu.netmobiel.commons.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.model.event.BookingCancelledFromProviderEvent;
+import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.model.Booking;
@@ -116,11 +118,9 @@ public class BookingManager {
      * @param dropOffLocation the location to drop-off the traveller
      * @param nrSeats
      * @return A booking reference
-     * @throws CreateException on error.
-     * @throws NotFoundException if the ride cannot be found.
+     * @throws BusinessException 
      */
-    public String createBooking(String rideRef, NetMobielUser traveller, Booking booking) 
-    		throws CreateException, NotFoundException, BadRequestException {
+    public String createBooking(String rideRef, NetMobielUser traveller, Booking booking) throws BusinessException {
     	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideRef);
 		Ride ride = rideDao.find(rid)
     			.orElseThrow(() -> new NotFoundException("Ride not found: " + rideRef));
@@ -134,7 +134,7 @@ public class BookingManager {
     		userDao.save(passenger);
     	}
     	if (ride.getBookings().stream().filter(b -> !b.isDeleted()).collect(Collectors.counting()) > 0) {
-    		throw new CreateException("Ride has already one booking");
+    		throw new CreateException(String.format("Ride %s has already a booking", ride.getId()));
     	}
     	ride.addBooking(booking);
 		booking.setPassenger(passenger);
@@ -148,13 +148,13 @@ public class BookingManager {
 			if (AUTO_CONFIRM_BOOKING) {
 				booking.setState(BookingState.CONFIRMED);
 				// Update itinerary of the driver
-		    	staleItineraryEvent.fire(booking.getRide());
+		    	EventFireWrapper.fire(staleItineraryEvent, booking.getRide());
 			} else {
 				throw new IllegalStateException("Unexpected booking state transition, support auto confirm only!");
 			}
 		}
 		// Inform driver about requested booking or confirmed booking
-		bookingCreatedEvent.fire(booking);
+		EventFireWrapper.fire(bookingCreatedEvent, booking);
     	return bookingRef;
     }
 
@@ -175,9 +175,9 @@ public class BookingManager {
      * the database, but its state is set to cancelled. 
      * @param bookingId the booking to cancel
      * @param reason An optional reason
-     * @throws NotFoundException if the booking is not found in the database.
+     * @throws BusinessException 
      */
-    public void removeBooking(String bookingRef, final String reason, Boolean cancelledByDriver, boolean cancelledFromRideshare) throws NotFoundException, BadRequestException {
+    public void removeBooking(String bookingRef, final String reason, Boolean cancelledByDriver, boolean cancelledFromRideshare) throws BusinessException {
     	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
     	Booking bookingdb = bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
@@ -188,12 +188,12 @@ public class BookingManager {
 			BookingCancelledFromProviderEvent bce = new BookingCancelledFromProviderEvent(bookingRef, 
 					bookingdb.getPassenger(), bookingdb.getPassengerTripRef(), reason, cancelledByDriver);
 			// For now use a synchronous removal
-			bookingCancelledEvent.fire(bce);						
+			EventFireWrapper.fire(bookingCancelledEvent, bce);
    		}
-    	staleItineraryEvent.fire(bookingdb.getRide());
+		EventFireWrapper.fire(staleItineraryEvent, bookingdb.getRide());
     	if (! cancelledByDriver) {
     		// Allow a notification to be sent to the driver
-    		bookingRemovedEvent.fire(bookingdb);
+			EventFireWrapper.fire(bookingRemovedEvent, bookingdb);
     	}
     }
 
@@ -203,27 +203,29 @@ public class BookingManager {
      * to be the driver, because only the driver can remove a ride. 
      * The scenario where an administrator removes a ride is not fully supported.
      * @param ride the ride being removed. The ride is already marked as (soft) deleted.
+     * @throws BusinessException 
      */
-    public void onRideRemoved(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Ride ride) {
-    	ride.getBookings().stream()
+    public void onRideRemoved(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Ride ride) throws BusinessException {
+    	List<Booking> bookingsToCancel = ride.getBookings().stream()
     	.filter(b -> ! b.isDeleted())
-    	.forEach(b -> {
+    	.collect(Collectors.toList());
+    	for (Booking b : bookingsToCancel) {
     		b.markAsCancelled(ride.getCancelReason(), true);	
    			// The driver has cancelled the ride. 
    			// The Trip Manager has to know about it.
 			BookingCancelledFromProviderEvent bce = new BookingCancelledFromProviderEvent(b.getBookingRef(), b.getPassenger(), b.getPassengerTripRef(),
 					ride.getCancelReason(), true);
 			// For now use a synchronous removal
-			bookingCancelledEvent.fire(bce);						
-    	});
+			EventFireWrapper.fire(bookingCancelledEvent, bce);
+    	};
     }
 
     /**
      * Confirms an earlier booking. 
      * @param id the booking to conform
-     * @throws NotFoundException if the booking was not found.
+     * @throws BusinessException 
      */
-    public void confirmBooking(Long id, String passengerTripRef) throws NotFoundException {
+    public void confirmBooking(Long id, String passengerTripRef) throws BusinessException {
     	Booking b = bookingDao.loadGraph(id, Booking.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such booking: " + id));
     	if (b.getState() != BookingState.PROPOSED && b.getState() != BookingState.REQUESTED) {
@@ -234,9 +236,9 @@ public class BookingManager {
     	b.setPassengerTripRef(passengerTripRef);
 		// Update itinerary of the driver
     	Ride r = rideDao.loadGraph(b.getRide().getId(), Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH).orElseThrow(() -> new IllegalStateException());
-    	staleItineraryEvent.fire(r);
+		EventFireWrapper.fire(staleItineraryEvent, r);
 		// Inform driver about confirmed booking
-		bookingCreatedEvent.fire(b);
+		EventFireWrapper.fire(bookingCreatedEvent, b);
     }
 
 }

@@ -1,6 +1,6 @@
 package eu.netmobiel.banker.exception;
 
-import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.exception.BusinessException;
 
 /**
  * Exception for signalling an insufficient balance.
@@ -8,7 +8,7 @@ import eu.netmobiel.commons.exception.ApplicationException;
  * @author Jaap.Reitsma
  *
  */
-public class BalanceInsufficientException extends ApplicationException {
+public class BalanceInsufficientException extends BusinessException {
 	private static final long serialVersionUID = -7820928113267312637L;
 
 	public BalanceInsufficientException() {

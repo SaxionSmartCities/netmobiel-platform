@@ -29,7 +29,7 @@ import org.keycloak.representations.AccessTokenResponse;
 import org.keycloak.util.JsonSerialization;
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.GeoLocation;
@@ -158,11 +158,11 @@ public class ProfileClient {
 		}
 	}
 
-	public String getFirebaseToken(String managedIdentity) throws ApplicationException {
+	public String getFirebaseToken(String managedIdentity) throws BusinessException {
 		return getFirebaseToken(getServiceAccountAccessToken(), managedIdentity);
 	}
 	
-	public String getFirebaseToken(String accessToken, String managedIdentity) throws ApplicationException {
+	public String getFirebaseToken(String accessToken, String managedIdentity) throws BusinessException {
     	if (managedIdentity == null || managedIdentity.trim().length() < 1) {
     		throw new IllegalArgumentException("getFirebaseToken: managedIdentity is a mandatory parameter");
     	}
@@ -182,11 +182,11 @@ public class ProfileClient {
         return result.getFcmToken();
     }
 
-    public Profile getProfile(String managedIdentity) throws ApplicationException {
+    public Profile getProfile(String managedIdentity) throws BusinessException {
     	return getProfile(getServiceAccountAccessToken(), managedIdentity);
     }
 
-    public Profile getProfile(String accessToken, String managedIdentity) throws ApplicationException {
+    public Profile getProfile(String accessToken, String managedIdentity) throws BusinessException {
     	if (managedIdentity == null || managedIdentity.trim().length() < 1) {
     		throw new IllegalArgumentException("getProfile: managedIdentity is a mandatory parameter");
     	}
@@ -232,9 +232,9 @@ public class ProfileClient {
 	 * @param driverNeighbouringRadiusMeter The radius of the circles that limits the eligibility of the the driver 
 	 * 			by demanding his living location to be in the neighbourhood of the pickup or drop-off location.
 	 * @return A list of profiles of potential drivers, possibly empty.
-	 * @throws ApplicationException In case of trouble.
+	 * @throws BusinessException In case of trouble.
 	 */
-    public List<Profile> searchShoutOutProfiles(String accessToken, GeoLocation pickup, GeoLocation dropOff, int driverMaxRadiusMeter, int driverNeighbouringRadiusMeter) throws ApplicationException {
+    public List<Profile> searchShoutOutProfiles(String accessToken, GeoLocation pickup, GeoLocation dropOff, int driverMaxRadiusMeter, int driverNeighbouringRadiusMeter) throws BusinessException {
     	if (pickup == null || dropOff == null ) {
     		throw new IllegalArgumentException("searchShoutOutProfiles: pickup and dropOff are mandatory parameters");
     	}
@@ -253,7 +253,7 @@ public class ProfileClient {
         return result.getProfiles();
     }
 
-    public List<Profile> searchShoutOutProfiles(GeoLocation pickup, GeoLocation dropOff, int driverMaxRadiusMeter, int driverNeighbouringRadiusMeter) throws ApplicationException {
+    public List<Profile> searchShoutOutProfiles(GeoLocation pickup, GeoLocation dropOff, int driverMaxRadiusMeter, int driverNeighbouringRadiusMeter) throws BusinessException {
     	return searchShoutOutProfiles(getServiceAccountAccessToken(), pickup, dropOff, driverMaxRadiusMeter, driverNeighbouringRadiusMeter);
     }
 

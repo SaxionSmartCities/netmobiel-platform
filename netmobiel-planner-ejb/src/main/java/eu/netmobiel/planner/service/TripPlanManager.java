@@ -32,7 +32,7 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.exception.ApplicationException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -41,6 +41,7 @@ import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.EllipseHelper;
+import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.GeometryHelper;
@@ -736,7 +737,7 @@ public class TripPlanManager {
     	}
     }
 
-    public TripPlan createAndReturnTripPlan(User traveller, TripPlan plan, Instant now) throws NotFoundException, BadRequestException {
+    public TripPlan createAndReturnTripPlan(User traveller, TripPlan plan, Instant now) throws BusinessException {
     	plan.setTraveller(traveller);
     	plan.setRequestTime(now);
     	sanitizePlanInput(plan);
@@ -764,7 +765,7 @@ public class TripPlanManager {
        	}
        	tripPlanDao.save(plan);
        	if (plan.getPlanType() == PlanType.SHOUT_OUT) {
-       		shoutOutRequestedEvent.fire(plan);
+       		EventFireWrapper.fire(shoutOutRequestedEvent, plan);
        		// Note:the plan remains open, itineraries will hopefully arrive, one by one.
        	}
     	return plan;
@@ -776,10 +777,9 @@ public class TripPlanManager {
      * @param user the user for whom the plan is created
      * @param plan the new plan
      * @return The ID of the plan just created.
-     * @throws NotFoundException In case one of the referenced object cannot be found.
-     * @throws BadRequestException In case of bad parameters.
+     * @throws BusinessException 
      */
-    public Long createTripPlan(User traveller, TripPlan plan, Instant now) throws NotFoundException, BadRequestException {
+    public Long createTripPlan(User traveller, TripPlan plan, Instant now) throws BusinessException {
     	return createAndReturnTripPlan(traveller, plan, now).getId();
     }
 
@@ -895,7 +895,7 @@ public class TripPlanManager {
      * @return A trip plan calculated  to fill-in the shout-out.
      * @throws NotFoundException In case the shout-out could not be found.
      */
-    public TripPlan resolveShoutOut(Instant now, User driver, String shoutOutPlanRef, TripPlan driverPlan, TraverseMode traverseMode) throws NotFoundException, ApplicationException {
+    public TripPlan resolveShoutOut(Instant now, User driver, String shoutOutPlanRef, TripPlan driverPlan, TraverseMode traverseMode) throws NotFoundException, BusinessException {
     	Long pid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanRef);
     	TripPlan travPlan = tripPlanDao.find(pid).orElseThrow(() -> new NotFoundException("No such TripPlan: " + shoutOutPlanRef));
     	if (!travPlan.isInProgress()) {
@@ -962,9 +962,9 @@ public class TripPlanManager {
      * 						be inserted for the traveller, derived from the shout-out plan parameters.  
      * @param driverRef		The reference to the driver , if relevant.
      * @param vehicleRef	The reference to the vehicle to be used, if relevant.
-     * @throws ApplicationException
+     * @throws BusinessException
      */
-    public void addShoutOutSolution(Long shoutOutPlanId, Long proposedPlanId, String driverRef, String vehicleRef) throws ApplicationException {
+    public void addShoutOutSolution(Long shoutOutPlanId, Long proposedPlanId, String driverRef, String vehicleRef) throws BusinessException {
     	// Only header and validate shout out type
     	TripPlan shoutOutPlan = getShoutOutPlan(shoutOutPlanId);
     	TripPlan proposedPlan = getTripPlan(proposedPlanId);
@@ -989,7 +989,7 @@ public class TripPlanManager {
     	// At this point the proposal is added to the passenger's shout-out, but the actual ride and booking hasn't been added yet
     	// So we want the transport provider to notify that this plan is going to be a ride with a booking proposal 
     	TravelOfferEvent toe = new TravelOfferEvent(shoutOutPlan, passengerIt, proposedPlan, driverRef, vehicleRef);
-    	travelOfferProposedEvent.fire(toe);
+    	EventFireWrapper.fire(travelOfferProposedEvent, toe);
     }
     
     /**
@@ -1021,25 +1021,26 @@ public class TripPlanManager {
      * 
      * @param plan
      * @param itineraryToKeep
+     * @throws BusinessException 
      */
-    protected void cancelBookedLegs(TripPlan plan, Optional<Itinerary> itineraryToKeep, String cancelReason) {
+    protected void cancelBookedLegs(TripPlan plan, Optional<Itinerary> itineraryToKeep, String cancelReason) throws BusinessException {
     	List<Leg> bookedLegs = plan.getItineraries().stream()
         		.filter(it -> !itineraryToKeep.isPresent() || !it.equals(itineraryToKeep.get()))
         		.flatMap(it -> it.getLegs().stream())
     			.filter(leg -> leg.getBookingId() != null)
     			.collect(Collectors.toList());
-        	bookedLegs.stream()
-    			.forEach(leg -> bookingRejectedEvent.fire(new BookingProposalRejectedEvent(plan, leg, cancelReason))
-    		);
-        	bookedLegs.forEach(leg -> leg.setState(TripState.CANCELLED));
+    	for (Leg leg : bookedLegs) {
+    		EventFireWrapper.fire(bookingRejectedEvent, new BookingProposalRejectedEvent(plan, leg, cancelReason));
+        	leg.setState(TripState.CANCELLED);
+		}
     }
 
     /**
      * Handler on the event for resolving an shout-out into an itinerary: Cancel other options.
      * @param event
-     * @throws ApplicationException
+     * @throws BusinessException
      */
-    public void onShoutOutResolved(@Observes(during = TransactionPhase.IN_PROGRESS) ShoutOutResolvedEvent event) throws ApplicationException {
+    public void onShoutOutResolved(@Observes(during = TransactionPhase.IN_PROGRESS) ShoutOutResolvedEvent event) throws BusinessException {
     	TripPlan plan = getTripPlan(event.getSelectedItinerary().getTripPlan().getId());
     	if (plan.getPlanType() != PlanType.SHOUT_OUT) {
     		throw new IllegalStateException("ShoutOutResolvedEvent received with non-shout-out plan");
@@ -1066,10 +1067,9 @@ public class TripPlanManager {
     /**
      * Cancels a shout-out, i.e., the plan is no longer receiving itineraries. 
      * @param id the id of the trip plan
-     * @throws NotFoundException In case of an invalid trip plan ID.
-     * @throws BadRequestException In case the plan is not a shout-out.
+     * @throws BusinessException 
      */
-    public void cancelShoutOut(Long id) throws NotFoundException, BadRequestException {
+    public void cancelShoutOut(Long id) throws BusinessException {
     	TripPlan plan = tripPlanDao.find(id)
     			.orElseThrow(() -> new NotFoundException("No such trip plan: " + id));
     	if (plan.getPlanType() != PlanType.SHOUT_OUT) {
