@@ -17,7 +17,7 @@ import eu.netmobiel.rideshare.model.CarType;
 import eu.netmobiel.rideshare.model.Recurrence;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideTemplate;
-import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 public class Fixture {
@@ -32,11 +32,11 @@ public class Fixture {
 		// No instances allowed
 	}
 
-	public static User createUser(String identity, String givenName, String familyName) {
-		return new User(identity, givenName, familyName);
+	public static RideshareUser createUser(String identity, String givenName, String familyName) {
+		return new RideshareUser(identity, givenName, familyName);
 	}
 	
-	public static User createUser(LoginContext loginContext) {
+	public static RideshareUser createUser(LoginContext loginContext) {
         Subject subject = loginContext.getSubject();
         @SuppressWarnings("rawtypes")
 		Set<KeycloakPrincipal> ps = subject.getPrincipals(KeycloakPrincipal.class);
@@ -45,30 +45,30 @@ public class Fixture {
         return createUser(p.getKeycloakSecurityContext().getToken());
 	}
 
-	public static User createUser(AccessToken token) {
-		return new User(token.getSubject(), token.getGivenName(), token.getFamilyName());
+	public static RideshareUser createUser(AccessToken token) {
+		return new RideshareUser(token.getSubject(), token.getGivenName(), token.getFamilyName());
 	}
 
-	public static User createDriver1() {
+	public static RideshareUser createDriver1() {
 		return createUser("ID1", "Carla1", "Netmobiel");
 	}
 	
-	public static User createDriver2() {
+	public static RideshareUser createDriver2() {
 		return createUser("ID2", "Carla2", "Netmobiel");
 	}
-	public static User createDriver3() {
+	public static RideshareUser createDriver3() {
 		return createUser("ID3", "Carla3", "Netmobiel");
 	}
 
-	public static User createPassenger1() {
+	public static RideshareUser createPassenger1() {
 		return createUser("IP1", "Simon1", "Netmobiel");
 	}
 	
-	public static User createPassenger2() {
+	public static RideshareUser createPassenger2() {
 		return createUser("IP2", "Simon2", "Netmobiel");
 	}
 
-	public static Car createCarVolvo(User driver) {
+	public static Car createCarVolvo(RideshareUser driver) {
 		Car c = new Car();
 		c.setBrand("Volvo");
 		c.setCo2Emission(200);
@@ -83,7 +83,7 @@ public class Fixture {
 		c.setType(CarType.ESTATE);
 		return c;
 	}
-	public static Car createCarBMW(User driver) {
+	public static Car createCarBMW(RideshareUser driver) {
 		Car c = new Car();
 		c.setBrand("BMW");
 		c.setCo2Emission(0);
@@ -111,7 +111,7 @@ public class Fixture {
 		return t;
 	}
 
-	public static Car createCarFordThunderbird(User driver) {
+	public static Car createCarFordThunderbird(RideshareUser driver) {
 		Car c = new Car();
 		c.setBrand("Ford");
 		c.setColor("WIT");
@@ -192,11 +192,11 @@ public class Fixture {
 		return r;
 	}
 	
-	public static Booking createBooking(Ride r, User p, Instant departureTime, Instant arrivalTime, String passengerTripRef) {
+	public static Booking createBooking(Ride r, RideshareUser p, Instant departureTime, Instant arrivalTime, String passengerTripRef) {
 		return createBooking(r, p, Fixture.placeZieuwentRKKerk, departureTime, Fixture.placeSlingeland, arrivalTime, passengerTripRef);
 	}
 	
-	public static Booking createBooking(Ride r, User p, GeoLocation pickup, Instant departureTime, GeoLocation dropoff, Instant arrivalTime, String passengerTripRef) {
+	public static Booking createBooking(Ride r, RideshareUser p, GeoLocation pickup, Instant departureTime, GeoLocation dropoff, Instant arrivalTime, String passengerTripRef) {
 		Booking b = new Booking(r, p, pickup, dropoff, 1);
 		b.setDepartureTime(departureTime);
 		b.setArrivalTime(arrivalTime);

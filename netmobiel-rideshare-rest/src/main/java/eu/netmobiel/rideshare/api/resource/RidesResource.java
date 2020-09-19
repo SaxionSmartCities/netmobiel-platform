@@ -23,10 +23,10 @@ import eu.netmobiel.rideshare.api.mapping.RideMapper;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideScope;
-import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.service.RideManager;
-import eu.netmobiel.rideshare.service.UserManager;
+import eu.netmobiel.rideshare.service.RideshareUserManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @RequestScoped
@@ -48,7 +48,7 @@ public class RidesResource implements RidesApi {
     private PageMapper pageMapper;
     
     @Inject
-    private UserManager userManager;
+    private RideshareUserManager userManager;
     
 	private Instant toInstant(OffsetDateTime odt) {
 		return odt == null ? null : odt.toInstant();
@@ -69,7 +69,7 @@ public class RidesResource implements RidesApi {
 		try {
 			Long did = null;
 			if (driverId != null) {
-				did = RideshareUrnHelper.getId(User.URN_PREFIX, driverId);
+				did = RideshareUrnHelper.getId(RideshareUser.URN_PREFIX, driverId);
 			} else {
 				did = userManager.findCallingUser().getId();
 			}
@@ -97,7 +97,7 @@ public class RidesResource implements RidesApi {
     	Response rsp = null;
 		try {
 			Ride ride = mapper.map(ridedt);
-			User driver = userManager.registerCallingUser();
+			RideshareUser driver = userManager.registerCallingUser();
 			ride.setDriver(driver);
 			// The owner of the ride will be the caller
 			String newRideId = RideshareUrnHelper.createUrn(Ride.URN_PREFIX, rideManager.createRide(ride));
@@ -184,7 +184,7 @@ public class RidesResource implements RidesApi {
 	public Response createBooking(String rideId, eu.netmobiel.rideshare.api.model.Booking bookingdt)  {
     	Response rsp = null;
 		try {
-			User passenger = userManager.registerCallingUser();
+			RideshareUser passenger = userManager.registerCallingUser();
         	Booking booking = bookingMapper.map(bookingdt);
 			String newBookingId = bookingManager.createBooking(rideId, passenger, booking);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newBookingId)).build();

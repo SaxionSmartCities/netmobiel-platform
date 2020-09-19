@@ -42,7 +42,7 @@ public class Car implements Serializable {
 
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "driver", nullable = false, foreignKey = @ForeignKey(name = "car_driver_fk"))
-    private User driver;
+    private RideshareUser driver;
 
     @Transient
     private String driverRef;
@@ -194,11 +194,11 @@ public class Car implements Serializable {
 		this.nrSeats = nrSeats;
 	}
 
-	public User getDriver() {
+	public RideshareUser getDriver() {
 		return driver;
 	}
 
-	public void setDriver(User driver) {
+	public void setDriver(RideshareUser driver) {
 		this.driver = driver;
 		this.driverRef = null;
 	}
@@ -238,13 +238,13 @@ public class Car implements Serializable {
 	public String getDriverRef() {
 		if (driverRef == null) {
 	    	if (driver != null) {
-	    		driverRef = RideshareUrnHelper.createUrn(User.URN_PREFIX, driver.getId());
+	    		driverRef = RideshareUrnHelper.createUrn(RideshareUser.URN_PREFIX, driver.getId());
 	    	}
 		}
 		return driverRef;
 	}
 
-	public boolean isOwnedBy(User driver) {
+	public boolean isOwnedBy(RideshareUser driver) {
 		return getDriver().getId().equals(driver.getId());
 	}
 

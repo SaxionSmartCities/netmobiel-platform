@@ -27,9 +27,9 @@ import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.service.TripManager;
-import eu.netmobiel.planner.service.UserManager;
+import eu.netmobiel.planner.service.PlannerUserManager;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @RequestScoped
@@ -48,7 +48,7 @@ public class TripsResource implements TripsApi {
     private TripManager tripManager;
 
     @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
-    private UserManager userManager;
+    private PlannerUserManager userManager;
 
     @Context
     private HttpServletRequest request;
@@ -62,7 +62,7 @@ public class TripsResource implements TripsApi {
     	Response rsp = null;
 		// The owner of the trip will be the calling user.
 		try {
-			User traveller = userManager.registerCallingUser();
+			PlannerUser traveller = userManager.registerCallingUser();
 			Trip dtrip = tripMapper.map(trip);
 			String newTripId = PlannerUrnHelper.createUrn(Trip.URN_PREFIX, tripManager.createTrip(traveller, dtrip));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newTripId)).build();
@@ -118,7 +118,7 @@ public class TripsResource implements TripsApi {
 		try {
 			TripState state = tripState == null ? null : TripState.valueOf(tripState);
 			SortDirection sortDirection = sortDir == null ? SortDirection.ASC : SortDirection.valueOf(sortDir);
-	    	User traveller = null;
+	    	PlannerUser traveller = null;
 	    	if (userRef == null) {
 	    		traveller = userManager.findCallingUser();
 	    	} else {

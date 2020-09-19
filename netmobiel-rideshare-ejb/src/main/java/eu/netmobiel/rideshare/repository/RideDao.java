@@ -33,7 +33,7 @@ import eu.netmobiel.rideshare.model.RideState;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.RideTemplate_;
 import eu.netmobiel.rideshare.model.Ride_;
-import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.model.RideshareUser;
 
 @ApplicationScoped
 @Typed(RideDao.class)
@@ -56,7 +56,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
 		return em;
 	}
 
-    public PagedResult<Long> findByDriver(User driver, Instant since, Instant until, Boolean deletedToo, SortDirection sortDirection, Integer maxResults, Integer offset) {
+    public PagedResult<Long> findByDriver(RideshareUser driver, Instant since, Instant until, Boolean deletedToo, SortDirection sortDirection, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Ride> rides = cq.from(Ride.class);

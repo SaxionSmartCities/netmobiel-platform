@@ -62,7 +62,7 @@ import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.OpenTripPlannerDao;
 import eu.netmobiel.planner.repository.OtpClusterDao;
@@ -737,7 +737,7 @@ public class TripPlanManager {
     	}
     }
 
-    public TripPlan createAndReturnTripPlan(User traveller, TripPlan plan, Instant now) throws BusinessException {
+    public TripPlan createAndReturnTripPlan(PlannerUser traveller, TripPlan plan, Instant now) throws BusinessException {
     	plan.setTraveller(traveller);
     	plan.setRequestTime(now);
     	sanitizePlanInput(plan);
@@ -779,7 +779,7 @@ public class TripPlanManager {
      * @return The ID of the plan just created.
      * @throws BusinessException 
      */
-    public Long createTripPlan(User traveller, TripPlan plan, Instant now) throws BusinessException {
+    public Long createTripPlan(PlannerUser traveller, TripPlan plan, Instant now) throws BusinessException {
     	return createAndReturnTripPlan(traveller, plan, now).getId();
     }
 
@@ -799,7 +799,7 @@ public class TripPlanManager {
      * List all trip plans owned by the specified user. 
      * @return A list of trips matching tjhe criteria.
      */
-    public PagedResult<TripPlan> listTripPlans(User traveller, PlanType planType, Instant since, Instant until, Boolean inProgressOnly, 
+    public PagedResult<TripPlan> listTripPlans(PlannerUser traveller, PlanType planType, Instant since, Instant until, Boolean inProgressOnly, 
     		SortDirection sortDirection, Integer maxResults, Integer offset) throws BadRequestException {
     	if (until != null && since != null && !until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
@@ -895,7 +895,7 @@ public class TripPlanManager {
      * @return A trip plan calculated  to fill-in the shout-out.
      * @throws NotFoundException In case the shout-out could not be found.
      */
-    public TripPlan resolveShoutOut(Instant now, User driver, String shoutOutPlanRef, TripPlan driverPlan, TraverseMode traverseMode) throws NotFoundException, BusinessException {
+    public TripPlan resolveShoutOut(Instant now, PlannerUser driver, String shoutOutPlanRef, TripPlan driverPlan, TraverseMode traverseMode) throws NotFoundException, BusinessException {
     	Long pid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanRef);
     	TripPlan travPlan = tripPlanDao.find(pid).orElseThrow(() -> new NotFoundException("No such TripPlan: " + shoutOutPlanRef));
     	if (!travPlan.isInProgress()) {

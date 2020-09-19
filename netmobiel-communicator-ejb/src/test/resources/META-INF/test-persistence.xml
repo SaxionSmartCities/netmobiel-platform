@@ -6,6 +6,8 @@
         http://xmlns.jcp.org/xml/ns/persistence/persistence_2_1.xsd">
    <persistence-unit name="pu-communicator" transaction-type="JTA">
       <jta-data-source>java:jboss/datasources/communicator-testDS</jta-data-source>
+      <class>eu.netmobiel.commons.model.ReferableObject</class>
+      <class>eu.netmobiel.commons.model.User</class>
       <exclude-unlisted-classes>false</exclude-unlisted-classes>
       <properties>
          <!-- Properties for Hibernate -->

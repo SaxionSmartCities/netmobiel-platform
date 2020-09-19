@@ -156,7 +156,7 @@ public class Trip implements Serializable {
     @NotNull
     @ManyToOne (fetch = FetchType.LAZY)
 	@JoinColumn(name = "traveller", nullable = false, foreignKey = @ForeignKey(name = "trip_traveller_fk"))
-    private User traveller;
+    private PlannerUser traveller;
 
     @Column(name = "state", length = 3)
     private TripState state;
@@ -219,11 +219,11 @@ public class Trip implements Serializable {
 	}
 
 
-	public User getTraveller() {
+	public PlannerUser getTraveller() {
 		return traveller;
 	}
 
-	public void setTraveller(User traveller) {
+	public void setTraveller(PlannerUser traveller) {
 		this.traveller = traveller;
 	}
 

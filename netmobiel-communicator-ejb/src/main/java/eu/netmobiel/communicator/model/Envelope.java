@@ -50,7 +50,7 @@ public class Envelope implements Serializable {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "recipient", nullable = false, foreignKey = @ForeignKey(name = "envelope_recipient_fk"))
-    private User recipient;
+    private CommunicatorUser recipient;
 
 	/**
 	 * The time the message was acknowledged (read) by the user.
@@ -68,11 +68,11 @@ public class Envelope implements Serializable {
 		
 	}
 	
-	public Envelope(Message m, User rcp) {
+	public Envelope(Message m, CommunicatorUser rcp) {
 		this(m, rcp, null);
 	}
 	
-	public Envelope(Message m, User rcp, Instant anAckTime) {
+	public Envelope(Message m, CommunicatorUser rcp, Instant anAckTime) {
 		this.message = m;
 		this.recipient = rcp;
 		this.ackTime = anAckTime;
@@ -102,11 +102,11 @@ public class Envelope implements Serializable {
 		this.message = message;
 	}
 
-	public User getRecipient() {
+	public CommunicatorUser getRecipient() {
 		return recipient;
 	}
 
-	public void setRecipient(User recipient) {
+	public void setRecipient(CommunicatorUser recipient) {
 		this.recipient = recipient;
 	}
 

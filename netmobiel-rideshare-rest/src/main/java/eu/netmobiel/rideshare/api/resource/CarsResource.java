@@ -15,7 +15,7 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.rideshare.api.CarsApi;
 import eu.netmobiel.rideshare.api.mapping.CarMapper;
 import eu.netmobiel.rideshare.model.Car;
-import eu.netmobiel.rideshare.service.UserManager;
+import eu.netmobiel.rideshare.service.RideshareUserManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @RequestScoped
@@ -25,7 +25,7 @@ public class CarsResource implements CarsApi {
     private CarMapper mapper;
 
     @Inject
-    private UserManager userManager;
+    private RideshareUserManager userManager;
 
     /**
      * Lists the cars driven by the calling user.

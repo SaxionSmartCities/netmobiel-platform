@@ -11,7 +11,7 @@ import org.mapstruct.ReportingPolicy;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
-import eu.netmobiel.communicator.model.User;
+import eu.netmobiel.communicator.model.CommunicatorUser;
 
 /**
  * This mapper defines the mapping from the domain Booking to the API Booking as defined by OpenAPI.
@@ -22,7 +22,7 @@ import eu.netmobiel.communicator.model.User;
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
 public abstract class MessageMapper {
 
-	public abstract eu.netmobiel.communicator.api.model.User map(User source);
+	public abstract eu.netmobiel.communicator.api.model.User map(CommunicatorUser source);
 	
 	/**
 	 * Don't pass the id, it cannot be trusted.
@@ -30,7 +30,7 @@ public abstract class MessageMapper {
 	 * @return
 	 */
 	@Mapping(target = "id", ignore = true)
-	public abstract User map(eu.netmobiel.communicator.api.model.User source);
+	public abstract CommunicatorUser map(eu.netmobiel.communicator.api.model.User source);
 
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "pushTime", ignore = true)

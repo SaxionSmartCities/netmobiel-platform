@@ -33,7 +33,7 @@ import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 
 public class Fixture {
 	public static final GeoLocation placeHengeloStation = GeoLocation.fromString("Hengelo NS Station::52.260977,6.7931087");// Bij metropool
@@ -49,11 +49,11 @@ public class Fixture {
 		// No instances allowed
 	}
 
-	public static User createUser(String identity, String givenName, String familyName) {
-		return new User(identity, givenName, familyName);
+	public static PlannerUser createUser(String identity, String givenName, String familyName) {
+		return new PlannerUser(identity, givenName, familyName);
 	}
 	
-	public static User createUser(LoginContext loginContext) {
+	public static PlannerUser createUser(LoginContext loginContext) {
         Subject subject = loginContext.getSubject();
         @SuppressWarnings("rawtypes")
 		Set<KeycloakPrincipal> ps = subject.getPrincipals(KeycloakPrincipal.class);
@@ -62,22 +62,22 @@ public class Fixture {
         return createUser(p.getKeycloakSecurityContext().getToken());
 	}
 
-	public static User createUser(AccessToken token) {
-		return new User(token.getSubject(), token.getGivenName(), token.getFamilyName());
+	public static PlannerUser createUser(AccessToken token) {
+		return new PlannerUser(token.getSubject(), token.getGivenName(), token.getFamilyName());
 	}
 
-	public static User createUser1() {
+	public static PlannerUser createUser1() {
 		return createUser("ID1", "Carla1", "Netmobiel");
 	}
 	
-	public static User createUser2() {
+	public static PlannerUser createUser2() {
 		return createUser("ID2", "Carla2", "Netmobiel");
 	}
-	public static User createUser3() {
+	public static PlannerUser createUser3() {
 		return createUser("ID3", "Carla3", "Netmobiel");
 	}
 
-    public static TripPlan createTransitPlan(User traveller) {
+    public static TripPlan createTransitPlan(PlannerUser traveller) {
 		TripPlan plan = new TripPlan();
 		plan.setPlanType(PlanType.REGULAR);
 		plan.setRequestTime(OffsetDateTime.parse("2020-01-07T10:00:00+01:00").toInstant());
@@ -366,7 +366,7 @@ public class Fixture {
     	return plan;
     }
 
-	public static TripPlan createShoutOutTripPlan(User traveller, String nowIso, GeoLocation from, GeoLocation to, String travelTimeIso, boolean isArriveBy, Long requestDuration) {
+	public static TripPlan createShoutOutTripPlan(PlannerUser traveller, String nowIso, GeoLocation from, GeoLocation to, String travelTimeIso, boolean isArriveBy, Long requestDuration) {
 		TripPlan plan = new TripPlan();
 		plan.setPlanType(PlanType.SHOUT_OUT);
 		plan.setRequestTime(Instant.parse(nowIso));
@@ -382,7 +382,7 @@ public class Fixture {
 		return plan;
 	}
     
-    public static TripPlan createRidesharePlan(User traveller, String nowIso, GeoLocation from, GeoLocation to, String travelTimeIso, boolean useArriveBy, int tripDuration, String rideRef) {
+    public static TripPlan createRidesharePlan(PlannerUser traveller, String nowIso, GeoLocation from, GeoLocation to, String travelTimeIso, boolean useArriveBy, int tripDuration, String rideRef) {
 		TripPlan plan = new TripPlan();
 		plan.setPlanType(PlanType.REGULAR);
 		plan.setRequestTime(Instant.parse(nowIso));
@@ -460,7 +460,7 @@ public class Fixture {
     	return plan;
     }
     
-	public static Trip createTrip(User traveller, TripPlan plan) {
+	public static Trip createTrip(PlannerUser traveller, TripPlan plan) {
 		Itinerary itinerary = plan.getItineraries().iterator().next();
         Trip trip = new Trip();
         trip.setArrivalTimeIsPinned(plan.isUseAsArrivalTime());

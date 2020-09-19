@@ -14,7 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import eu.netmobiel.rideshare.model.Car;
-import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
@@ -25,15 +25,15 @@ public class UserManagerIT extends RideshareIntegrationTestBase {
     public static Archive<?> createTestArchive() {
         WebArchive archive = createDeploymentBase()
                 .addPackages(true, RideDao.class.getPackage())
-	            .addClass(UserManager.class);
+	            .addClass(RideshareUserManager.class);
 //   		System.out.println(archive.toString(true));
 		return archive;
     }
 
     @Inject
-    private UserManager userManager;
+    private RideshareUserManager userManager;
 
-    private User driver1;
+    private RideshareUser driver1;
     private Car car1;
 
     @Override
@@ -52,7 +52,7 @@ public class UserManagerIT extends RideshareIntegrationTestBase {
 
     @Test
     public void testListUsers() throws Exception {
-        List<User> users = userManager.listUsers();
+        List<RideshareUser> users = userManager.listUsers();
         assertNotNull(users);
         assertEquals(1, users.size());
         log.info("List users: #" + users.size());

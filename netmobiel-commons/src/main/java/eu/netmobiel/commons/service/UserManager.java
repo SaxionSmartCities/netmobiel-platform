@@ -25,7 +25,7 @@ import eu.netmobiel.commons.util.UrnHelper;
 
 public abstract class UserManager<D extends UserDao<T>, T extends User> {
     @Resource
-	protected SessionContext ctx;
+	protected SessionContext sessionContext;
 
 	@Inject
     protected Logger log;
@@ -33,7 +33,7 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     protected abstract D getUserDao();
 
 	protected T createContextUser() {
-    	NetMobielUser nbuser = SecurityContextHelper.getUserContext(ctx.getCallerPrincipal());
+    	NetMobielUser nbuser = SecurityContextHelper.getUserContext(sessionContext.getCallerPrincipal());
     	if (log.isTraceEnabled()) {
     		log.trace("createCallingUser: " + (nbuser != null ? nbuser.toString() : "<null>"));
     	}
@@ -118,11 +118,11 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     }
 
     public boolean isCallingUser(String identity) {
-    	return identity.equals(ctx.getCallerPrincipal().getName());
+    	return identity.equals(sessionContext.getCallerPrincipal().getName());
     }
 
    	public T findCallingUser() {
-    	return getUserDao().findByManagedIdentity(ctx.getCallerPrincipal().getName())
+    	return getUserDao().findByManagedIdentity(sessionContext.getCallerPrincipal().getName())
     			.orElseGet(() -> createContextUser());
     }
 

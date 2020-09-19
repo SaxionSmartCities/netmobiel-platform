@@ -10,8 +10,8 @@ import javax.ws.rs.core.Response;
 
 import eu.netmobiel.rideshare.api.UsersApi;
 import eu.netmobiel.rideshare.api.mapping.UserMapper;
-import eu.netmobiel.rideshare.model.User;
-import eu.netmobiel.rideshare.service.UserManager;
+import eu.netmobiel.rideshare.model.RideshareUser;
+import eu.netmobiel.rideshare.service.RideshareUserManager;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @RequestScoped
@@ -22,7 +22,7 @@ public class UserResource implements UsersApi {
     private UserMapper mapper;
 
    @Inject
-    private UserManager userManager;
+    private RideshareUserManager userManager;
 
     /**
      * Lists the users. For debugging, this should be admin only.
@@ -37,9 +37,9 @@ public class UserResource implements UsersApi {
 
     @Override
 	public Response getUser(String userId) {
-    	User user = null;
+    	RideshareUser user = null;
     	try {
-        	Long uid = RideshareUrnHelper.getId(User.URN_PREFIX, userId);
+        	Long uid = RideshareUrnHelper.getId(RideshareUser.URN_PREFIX, userId);
 			user = userManager.getUser(uid);
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new NotFoundException();

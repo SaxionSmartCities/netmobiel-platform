@@ -121,7 +121,7 @@ public class TripPlan {
     @NotNull
     @ManyToOne (fetch = FetchType.LAZY)
 	@JoinColumn(name = "traveller", nullable = false, foreignKey = @ForeignKey(name = "trip_plan_traveller_fk"))
-    private User traveller;
+    private PlannerUser traveller;
     
     /**  
      * The time and date of the travel. This time can be used in the planner as time of departure or time of arrival, depending
@@ -230,7 +230,7 @@ public class TripPlan {
        	this.requestTime = creationTime;
     }
 
-    public TripPlan(User traveller, GeoLocation from, GeoLocation to, Instant travelTime, boolean useAsArrivalTime, 
+    public TripPlan(PlannerUser traveller, GeoLocation from, GeoLocation to, Instant travelTime, boolean useAsArrivalTime, 
     		Set<TraverseMode> traverseModes, Integer maxWalkDistance, int nrSeats) {
     	this();
     	this.traveller = traveller;
@@ -262,7 +262,7 @@ public class TripPlan {
 		return creationTime;
 	}
 
-	public User getTraveller() {
+	public PlannerUser getTraveller() {
 		return traveller;
 	}
 
@@ -303,7 +303,7 @@ public class TripPlan {
 		this.planType = planType;
 	}
 
-	public void setTraveller(User traveller) {
+	public void setTraveller(PlannerUser traveller) {
 		this.traveller = traveller;
 	}
 

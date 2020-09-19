@@ -23,7 +23,7 @@ import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideTemplate;
-import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
 
@@ -44,9 +44,9 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
 	@Inject
     private Logger log;
 
-    private User driver1;
+    private RideshareUser driver1;
     private Car car1;
-    private User passenger1;
+    private RideshareUser passenger1;
 
 
     protected void insertData() throws Exception {

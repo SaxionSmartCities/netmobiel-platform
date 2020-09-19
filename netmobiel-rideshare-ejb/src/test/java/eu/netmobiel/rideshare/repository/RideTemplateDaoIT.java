@@ -31,7 +31,7 @@ import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.RideTemplate_;
-import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.converter.BookingStateConverter;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
@@ -76,7 +76,7 @@ public class RideTemplateDaoIT {
     @Inject
     private Logger log;
     
-    private User driver1;
+    private RideshareUser driver1;
     private Car car1;
 
 	@Before

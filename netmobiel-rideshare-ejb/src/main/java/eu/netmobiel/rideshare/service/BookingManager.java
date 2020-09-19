@@ -29,10 +29,10 @@ import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Ride;
-import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.BookingDao;
 import eu.netmobiel.rideshare.repository.RideDao;
-import eu.netmobiel.rideshare.repository.UserDao;
+import eu.netmobiel.rideshare.repository.RideshareUserDao;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @Stateless
@@ -49,7 +49,7 @@ public class BookingManager {
 	@Inject
 	private BookingDao bookingDao;
     @Inject
-    private UserDao userDao;
+    private RideshareUserDao userDao;
     
     @Inject
     private Event<BookingCancelledFromProviderEvent> bookingCancelledEvent;
@@ -93,7 +93,7 @@ public class BookingManager {
         if (offset == null) {
         	offset = 0;
         }
-    	User passenger= userDao.find(userId)
+    	RideshareUser passenger= userDao.find(userId)
 				.orElseThrow(() -> new NotFoundException("No such user: " + userId));
         List<Booking> results = Collections.emptyList();
         Long totalCount = 0L;
@@ -127,10 +127,10 @@ public class BookingManager {
 		if (traveller.getManagedIdentity() == null) {
 			throw new CreateException("Traveller identity is mandatory");
 		}
-    	User passenger = userDao.findByManagedIdentity(traveller.getManagedIdentity())
+    	RideshareUser passenger = userDao.findByManagedIdentity(traveller.getManagedIdentity())
 				.orElse(null);
     	if (passenger == null) {
-    		passenger = new User(traveller);
+    		passenger = new RideshareUser(traveller);
     		userDao.save(passenger);
     	}
     	if (ride.getBookings().stream().filter(b -> !b.isDeleted()).collect(Collectors.counting()) > 0) {

@@ -5,8 +5,8 @@ import javax.inject.Inject;
 
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.security.ISecurityContext;
-import eu.netmobiel.rideshare.model.User;
-import eu.netmobiel.rideshare.service.UserManager;
+import eu.netmobiel.rideshare.model.RideshareUser;
+import eu.netmobiel.rideshare.service.RideshareUserManager;
 
 /**
  * The security context to store user info. The security token is created by CDI (request scope) and completed 
@@ -16,9 +16,9 @@ import eu.netmobiel.rideshare.service.UserManager;
 public class SecurityContext implements ISecurityContext {
     
     @Inject
-    private UserManager userManager;
+    private RideshareUserManager userManager;
 
-    private User user;
+    private RideshareUser user;
     
     private String token;
     
@@ -31,12 +31,12 @@ public class SecurityContext implements ISecurityContext {
     /**
      * @param user
      */
-    public void setUser(User user) {
+    public void setUser(RideshareUser user) {
         this.user = user;
     }
     
     @Override
-    public User getCurrentUser() {
+    public RideshareUser getCurrentUser() {
         return user;
     }
 

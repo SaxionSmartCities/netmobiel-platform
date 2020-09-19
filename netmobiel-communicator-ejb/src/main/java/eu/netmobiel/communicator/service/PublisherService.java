@@ -24,10 +24,10 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
-import eu.netmobiel.communicator.model.User;
+import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
 import eu.netmobiel.communicator.repository.MessageDao;
-import eu.netmobiel.communicator.repository.UserDao;
+import eu.netmobiel.communicator.repository.CommunicatorUserDao;
 import eu.netmobiel.firebase.messaging.FirebaseMessagingClient;
 import eu.netmobiel.profile.client.ProfileClient;
 
@@ -56,7 +56,7 @@ public class PublisherService {
     private MessageDao messageDao;
 
     @Inject
-    private UserDao userDao;
+    private CommunicatorUserDao userDao;
 
     @Inject
     private ProfileClient profileClient;
@@ -64,17 +64,17 @@ public class PublisherService {
     @Inject
     private FirebaseMessagingClient firebaseMessagingClient;
     
-    private static final User SYSTEM_USER = new User("SYSTEM", "Netmobiel", "");
+    private static final CommunicatorUser SYSTEM_USER = new CommunicatorUser("SYSTEM", "Netmobiel", "", null);
 
     public PublisherService() {
     }
 
-    public User findSystemUser() {
+    public CommunicatorUser findSystemUser() {
     	return userDao.findByManagedIdentity(SYSTEM_USER.getManagedIdentity())
     			.orElseGet(() -> userDao.save(SYSTEM_USER));
     }
 
-    public void validateMessage(User sender, Message msg) throws CreateException, BadRequestException {
+    public void validateMessage(CommunicatorUser sender, Message msg) throws CreateException, BadRequestException {
     	if (msg.getContext() == null) {
     		throw new BadRequestException("Constraint violation: 'context' must be set.");
     	}
@@ -95,7 +95,7 @@ public class PublisherService {
      * @param msg the message to send to the recipients in the envelopes 
      */
     @Asynchronous
-    public void publish(User sender, Message msg) {
+    public void publish(CommunicatorUser sender, Message msg) {
     	try {
 			validateMessage(sender, msg);
 			// The sender is always the calling user (for now)
@@ -110,7 +110,7 @@ public class PublisherService {
 			for (Envelope env : msg.getEnvelopes()) {
 				// Connect the child to the master for JPA
 				env.setMessage(msg);
-				User rcp = userDao.findByManagedIdentity(env.getRecipient().getManagedIdentity())
+				CommunicatorUser rcp = userDao.findByManagedIdentity(env.getRecipient().getManagedIdentity())
 						.orElseGet(() -> userDao.save(env.getRecipient()));
 				env.setRecipient(rcp);
 			}
@@ -208,7 +208,7 @@ public class PublisherService {
      * @param ackTime the timestamp, if <code>null</code> then the timestamp is removed.
      * @throws NotFoundException if the message does not exist.
      */
-    public void updateAcknowledgment(User initiator, Long messageId, Instant ackTime) throws NotFoundException {
+    public void updateAcknowledgment(CommunicatorUser initiator, Long messageId, Instant ackTime) throws NotFoundException {
     	String caller = sessionContext.getCallerPrincipal().getName();
     	try {
 	    	Envelope envdb = envelopeDao.findByMessageAndRecipient(messageId, caller);

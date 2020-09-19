@@ -27,7 +27,7 @@ import eu.netmobiel.planner.model.Itinerary_;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.Trip_;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 
 @ApplicationScoped
 @Typed(TripDao.class)
@@ -48,7 +48,7 @@ public class TripDao extends AbstractDao<Trip, Long> {
 		return em;
 	}
 
-    public PagedResult<Long> findTrips(User traveller, TripState state, Instant since, Instant until, 
+    public PagedResult<Long> findTrips(PlannerUser traveller, TripState state, Instant since, Instant until, 
     		Boolean deletedToo, SortDirection sortDirection, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);

@@ -30,7 +30,7 @@ import eu.netmobiel.planner.model.Leg_;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripPlan_;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.test.Fixture;
 import eu.netmobiel.planner.test.PlannerIntegrationTestBase;
 
@@ -51,21 +51,21 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     private Logger log;
     
 
-    private User user1;
-    private User user2;
-    private User user3;
+    private PlannerUser user1;
+    private PlannerUser user2;
+    private PlannerUser user3;
 
     
 	@Override
     protected void insertData() throws Exception {
-        user1 = new User("T1", "Simon1", "Netmobiel");
-        user2 = new User("T2", "Simon2", "Netmobiel");
-        user3 = new User("T3", "Simon3", "Netmobiel");
-    	List<User> users = new ArrayList<>();
+        user1 = new PlannerUser("T1", "Simon1", "Netmobiel");
+        user2 = new PlannerUser("T2", "Simon2", "Netmobiel");
+        user3 = new PlannerUser("T3", "Simon3", "Netmobiel");
+    	List<PlannerUser> users = new ArrayList<>();
     	users.add(user1);
     	users.add(user2);
     	users.add(user3);
-        for (User user : users) {
+        for (PlannerUser user : users) {
 			em.persist(user);
 		}
     	List<TripPlan> plans = new ArrayList<>();
@@ -137,7 +137,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
 
     @Test
     public void listTripPlans_All_Sorting() {
-    	User traveller = null;
+    	PlannerUser traveller = null;
     	PlanType planType = null;
     	Instant since = null;
     	Instant until = null; 
@@ -173,7 +173,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
 
     @Test
     public void listTripPlans_InProgressOnly() {
-    	User traveller = null;
+    	PlannerUser traveller = null;
     	PlanType planType = null;
     	Instant since = null;
     	Instant until = null; 
@@ -186,7 +186,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     
     @Test
     public void listTripPlans_ByUser() {
-    	User traveller = user1;
+    	PlannerUser traveller = user1;
     	PlanType planType = null;
     	Instant since = null;
     	Instant until = null; 
@@ -199,7 +199,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     
     @Test
     public void listTripPlans_ByUserSince() {
-    	User traveller = user1;
+    	PlannerUser traveller = user1;
     	PlanType planType = null;
     	Instant since = Instant.parse("2020-03-19T12:00:00Z");
     	Instant until = null; 
@@ -220,7 +220,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
 
     @Test
     public void listTripPlans_ByUserUntil() {
-    	User traveller = user1;
+    	PlannerUser traveller = user1;
     	PlanType planType = null;
     	Instant since = null;
     	Instant until = Instant.parse("2020-03-19T12:00:00Z"); 
@@ -244,7 +244,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     	TripPlan plan = Fixture.createTransitPlan(user1);
     	tripPlanDao.save(plan); 
     	flush();
-    	User traveller = null;
+    	PlannerUser traveller = null;
     	PlanType planType = PlanType.REGULAR;
     	Instant since = null;
     	Instant until = null; 

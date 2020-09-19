@@ -23,7 +23,7 @@ import eu.netmobiel.planner.model.Trip;
 public interface TripMapper {
 
 	// Domain trip --> Api Trip in full detail
-	@Mapping(target = "travellerRef", source = "traveller.userRef")
+	@Mapping(target = "travellerRef", source = "traveller.reference")
 	@Mapping(target = "itinerary", source = "itinerary", qualifiedBy = { ItineraryMapperQualifier.class })
 	@TripDetails
 	eu.netmobiel.planner.api.model.Trip mapInDetail(Trip source );
@@ -47,6 +47,8 @@ public interface TripMapper {
     @Mapping(target = "to", ignore = true)
     @Mapping(target = "traveller", ignore = true)
     @Mapping(target = "tripRef", ignore = true)
+    @Mapping(target = "monitored", ignore = true)
+    @Mapping(target = "agencies", ignore = true)
     Trip map(eu.netmobiel.planner.api.model.Trip source );
 
 }

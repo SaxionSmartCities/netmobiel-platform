@@ -149,7 +149,7 @@ public class Booking implements Serializable {
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "passenger", nullable = false, foreignKey = @ForeignKey(name = "booking_passenger_fk"))
-    private User passenger;
+    private RideshareUser passenger;
 
     /**
      * The ride carrying the booking.
@@ -236,7 +236,7 @@ public class Booking implements Serializable {
     	
     }
     
-    public Booking(Ride ride, User passenger, GeoLocation pickup, GeoLocation dropOff, Integer nrSeats) {
+    public Booking(Ride ride, RideshareUser passenger, GeoLocation pickup, GeoLocation dropOff, Integer nrSeats) {
     	this.dropOff = new GeoLocation(dropOff);
     	this.nrSeats = nrSeats;
     	this.passenger = passenger;
@@ -332,18 +332,18 @@ public class Booking implements Serializable {
 		this.cancelledByDriver = cancelledByDriver;
 	}
 
-	public User getPassenger() {
+	public RideshareUser getPassenger() {
 		return passenger;
 	}
 
-	public void setPassenger(User passenger) {
+	public void setPassenger(RideshareUser passenger) {
 		this.passenger = passenger;
 		this.passengerRef = null;
 	}
 
 	public String getPassengerRef() {
     	if (passenger != null) {
-    		passengerRef = UrnHelper.createUrn(User.URN_PREFIX, passenger.getId());
+    		passengerRef = UrnHelper.createUrn(RideshareUser.URN_PREFIX, passenger.getId());
     	}
 		return passengerRef;
 	}

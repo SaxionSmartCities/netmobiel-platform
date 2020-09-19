@@ -24,9 +24,9 @@ import eu.netmobiel.planner.api.mapping.TripPlanMapper;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.service.TripPlanManager;
-import eu.netmobiel.planner.service.UserManager;
+import eu.netmobiel.planner.service.PlannerUserManager;
 
 @RequestScoped
 public class SearchResource implements SearchApi {
@@ -38,7 +38,7 @@ public class SearchResource implements SearchApi {
     private TripPlanManager plannerManager;
 
     @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
-    private UserManager userManager;
+    private PlannerUserManager userManager;
 
     @Inject
     private TripPlanMapper tripPlanMapper;
@@ -90,7 +90,7 @@ public class SearchResource implements SearchApi {
     		nrSeats = 1;
     	}
 		try {
-			User traveller = userManager.registerCallingUser();
+			PlannerUser traveller = userManager.registerCallingUser();
 			plan.setFrom(GeoLocation.fromString(from));
 			plan.setTo(GeoLocation.fromString(to));
 			plan.setTravelTime(toInstant(travelTime));

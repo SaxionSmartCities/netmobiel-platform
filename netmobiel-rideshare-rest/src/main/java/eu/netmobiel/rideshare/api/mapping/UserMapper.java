@@ -6,7 +6,7 @@ import org.mapstruct.ReportingPolicy;
 
 import eu.netmobiel.rideshare.api.mapping.annotation.UserMapperQualifier;
 import eu.netmobiel.rideshare.api.mapping.annotation.UserSomeDetails;
-import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.model.RideshareUser;
 
 /**
  * This mapper defines the mapping from the domain User to the API User as defined by OpenAPI.
@@ -19,7 +19,7 @@ import eu.netmobiel.rideshare.model.User;
 public interface UserMapper {
 
 	// User <--> User
-	eu.netmobiel.rideshare.api.model.User map(User source);
+	eu.netmobiel.rideshare.api.model.User map(RideshareUser source);
 
 	// Domain User --> Api User: Only family name and given name
 	@Mapping(target = "managedIdentity", ignore = true)
@@ -28,9 +28,9 @@ public interface UserMapper {
 	@Mapping(target = "email", ignore = true)
 	@Mapping(target = "yearOfBirth", ignore = true)
 	@UserSomeDetails
-	eu.netmobiel.rideshare.api.model.User mapName(User source);
+	eu.netmobiel.rideshare.api.model.User mapName(RideshareUser source);
 
 	@Mapping(target = "carsInUse", ignore = true)
-	User map(eu.netmobiel.rideshare.api.model.User source);
+	RideshareUser map(eu.netmobiel.rideshare.api.model.User source);
 
 }

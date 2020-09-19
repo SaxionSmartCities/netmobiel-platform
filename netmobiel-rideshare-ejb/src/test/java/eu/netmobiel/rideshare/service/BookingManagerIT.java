@@ -17,6 +17,7 @@ import org.junit.runner.RunWith;
 
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.User_;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Booking_;
@@ -24,14 +25,13 @@ import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.Leg_;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.Ride_;
-import eu.netmobiel.rideshare.model.User;
-import eu.netmobiel.rideshare.model.User_;
+import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.BookingDao;
 import eu.netmobiel.rideshare.repository.LegDao;
 import eu.netmobiel.rideshare.repository.OpenTripPlannerDao;
 import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.repository.StopDao;
-import eu.netmobiel.rideshare.repository.UserDao;
+import eu.netmobiel.rideshare.repository.RideshareUserDao;
 import eu.netmobiel.rideshare.repository.mapping.LegMapper;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
@@ -45,7 +45,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
         WebArchive archive = createDeploymentBase()
 	            .addClass(BookingDao.class)
 	            .addClass(RideDao.class)
-	            .addClass(UserDao.class)
+	            .addClass(RideshareUserDao.class)
 	            .addClass(LegDao.class)
 	            .addClass(StopDao.class)
 	            .addClass(OpenTripPlannerDao.class)
@@ -65,9 +65,9 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     @Inject
     private EventListenerHelper eventListenerHelper;
 
-    private User driver1;
+    private RideshareUser driver1;
     private Car car1;
-    private User passenger1;
+    private RideshareUser passenger1;
 
     @Override
     public boolean isSecurityRequired() {

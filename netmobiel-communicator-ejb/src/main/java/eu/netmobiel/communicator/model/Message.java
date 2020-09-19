@@ -94,7 +94,7 @@ public class Message implements NetMobielMessage, Serializable {
     @NotNull
     @ManyToOne
     @JoinColumn(name = "sender", nullable = false, foreignKey = @ForeignKey(name = "message_sender_fk"))
-    private User sender;
+    private CommunicatorUser sender;
 
     /**
      * The recipients of the message.
@@ -151,11 +151,11 @@ public class Message implements NetMobielMessage, Serializable {
 		this.deliveryMode = deliveryMode;
 	}
 
-	public User getSender() {
+	public CommunicatorUser getSender() {
 		return sender;
 	}
 
-	public void setSender(User sender) {
+	public void setSender(CommunicatorUser sender) {
 		this.sender = sender;
 	}
 
@@ -171,7 +171,7 @@ public class Message implements NetMobielMessage, Serializable {
 	}
 
 	public void addRecipient(NetMobielUser nmu) {
-		User rcp = new User(nmu.getManagedIdentity(), nmu.getGivenName(), nmu.getFamilyName()); 
+		CommunicatorUser rcp = new CommunicatorUser(nmu); 
 		getEnvelopes().add(new Envelope(this, rcp));
 	}
 

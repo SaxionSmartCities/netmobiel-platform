@@ -54,12 +54,12 @@ import eu.netmobiel.rideshare.model.RideMonitorEvent;
 import eu.netmobiel.rideshare.model.RideScope;
 import eu.netmobiel.rideshare.model.RideState;
 import eu.netmobiel.rideshare.model.RideTemplate;
-import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.BookingDao;
 import eu.netmobiel.rideshare.repository.CarDao;
 import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.repository.RideTemplateDao;
-import eu.netmobiel.rideshare.repository.UserDao;
+import eu.netmobiel.rideshare.repository.RideshareUserDao;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 /**
  * The manager for the rides. 
@@ -115,7 +115,7 @@ public class RideManager {
     private Logger log;
 
     @Inject
-    private UserDao userDao;
+    private RideshareUserDao userDao;
     @Inject
     private CarDao carDao;
     @Inject
@@ -241,7 +241,7 @@ public class RideManager {
         if (offset == null) {
         	offset = 0;
         }
-    	User driver = null;
+    	RideshareUser driver = null;
     	if (driverId == null) {
     		throw new BadRequestException("Constraint violation: 'driverId' is mandatory.");
     	}
@@ -350,7 +350,7 @@ public class RideManager {
     public Long createRide(Ride ride) throws BusinessException {
     	Car car = carDao.find(RideshareUrnHelper.getId(Car.URN_PREFIX, ride.getCarRef()))
     			.orElseThrow(() -> new CreateException("Cannot find car: " + ride.getCarRef()));
-    	User driverdb = ride.getDriver();
+    	RideshareUser driverdb = ride.getDriver();
     	if (driverdb == null) {
         	driverdb = identityHelper.resolveUrn(ride.getDriverRef())
         			.orElseThrow(() -> new CreateException("Cannot find driver: " + ride.getDriverRef()));

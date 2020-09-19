@@ -14,13 +14,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import eu.netmobiel.rideshare.service.RideManager;
-import eu.netmobiel.rideshare.service.UserManager;
+import eu.netmobiel.rideshare.service.RideshareUserManager;
 
 @Path("/tests")
 @RequestScoped
 public class TestsResource {
     @Inject
-    private UserManager userManager;
+    private RideshareUserManager userManager;
 
     @Inject
     private RideManager rideManager;

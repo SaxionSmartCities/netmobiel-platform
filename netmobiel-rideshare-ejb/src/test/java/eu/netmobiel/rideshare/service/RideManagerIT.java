@@ -39,7 +39,7 @@ import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.Ride_;
 import eu.netmobiel.rideshare.model.Stop;
 import eu.netmobiel.rideshare.model.TimeUnit;
-import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
@@ -65,9 +65,9 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     @Inject
     private RideItineraryHelper rideItineraryHelper;
 
-    private User driver1;
+    private RideshareUser driver1;
     private Car car1;
-    private User passenger1;
+    private RideshareUser passenger1;
     @Inject
     private EventListenerHelper eventListenerHelper;
 

@@ -8,6 +8,8 @@
       <!-- If you are running in a production environment, add a managed
          data source, this example data source is just for development and testing! -->
       <jta-data-source>java:jboss/datasources/communicatorDS</jta-data-source>
+      <class>eu.netmobiel.commons.model.ReferableObject</class>
+      <class>eu.netmobiel.commons.model.User</class>
       <exclude-unlisted-classes>false</exclude-unlisted-classes>
       <properties>
          <!-- create or drop-and-create will automatically try to run /import.sql -->

@@ -16,40 +16,30 @@
  */
 package eu.netmobiel.communicator.repository;
 
-import java.util.List;
-import java.util.Optional;
-
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 
-import eu.netmobiel.commons.repository.AbstractDao;
+import eu.netmobiel.commons.repository.UserDao;
 import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
-import eu.netmobiel.communicator.model.User;
+import eu.netmobiel.communicator.model.CommunicatorUser;
 
 
 @ApplicationScoped
-@Typed(UserDao.class)
-public class UserDao extends AbstractDao<User, Long> {
+@Typed(CommunicatorUserDao.class)
+public class CommunicatorUserDao extends UserDao<CommunicatorUser> {
 
 	@Inject @CommunicatorDatabase
     private EntityManager em;
 
-    public UserDao() {
-		super(User.class);
+    public CommunicatorUserDao() {
+		super(CommunicatorUser.class);
 	}
 
 	@Override
 	protected EntityManager getEntityManager() {
 		return em;
 	}
-
-    public Optional<User> findByManagedIdentity(String managedId) {
-    	List<User> users = em.createQuery("from User where managedIdentity = :identity", User.class)
-    			.setParameter("identity", managedId)
-    			.getResultList();
-    	return Optional.ofNullable(users.size() > 0 ? users.get(0) : null); 
-    }
 
 }

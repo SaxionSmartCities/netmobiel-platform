@@ -17,7 +17,7 @@ import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.Car_;
-import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.model.RideshareUser;
 
 @ApplicationScoped
 @Typed(CarDao.class)
@@ -35,7 +35,7 @@ public class CarDao extends AbstractDao<Car, Long> {
 		return em;
 	}
 
-    public List<Car> findByDriver(User driver, Boolean deletedToo) {
+    public List<Car> findByDriver(RideshareUser driver, Boolean deletedToo) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Car> cq = cb.createQuery(Car.class);
         Root<Car> cars = cq.from(Car.class);
@@ -69,7 +69,7 @@ public class CarDao extends AbstractDao<Car, Long> {
     	return tq.getSingleResult();
     }
 
-    public boolean isDrivenBy(Car car, User driver) {
+    public boolean isDrivenBy(Car car, RideshareUser driver) {
     	return em.createQuery("select count(*) from Car c " + 
     			"where c = :car and c.driver = :driver", Long.class)
     			.setParameter("car", car)

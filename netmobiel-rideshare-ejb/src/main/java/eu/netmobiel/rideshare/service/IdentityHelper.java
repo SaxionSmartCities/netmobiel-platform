@@ -10,8 +10,8 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
-import eu.netmobiel.rideshare.model.User;
-import eu.netmobiel.rideshare.repository.UserDao;
+import eu.netmobiel.rideshare.model.RideshareUser;
+import eu.netmobiel.rideshare.repository.RideshareUserDao;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @ApplicationScoped
@@ -23,15 +23,15 @@ public class IdentityHelper {
     private Logger log;
 
     @Inject
-    private UserDao userDao;
+    private RideshareUserDao userDao;
     
     
-    public Optional<User> resolveUrn(String userRef) {
-    	User user = null;
+    public Optional<RideshareUser> resolveUrn(String userRef) {
+    	RideshareUser user = null;
     	if (UrnHelper.isUrn(userRef)) {
         	NetMobielModule module = NetMobielModule.getEnum(UrnHelper.getService(userRef));
         	if (module == NetMobielModule.RIDESHARE) {
-    			Long did = RideshareUrnHelper.getId(User.URN_PREFIX, userRef);
+    			Long did = RideshareUrnHelper.getId(RideshareUser.URN_PREFIX, userRef);
         		user = userDao.find(did).orElse(null);
         	} else if (module == NetMobielModule.KEYCLOAK) {
         		String managedIdentity = UrnHelper.getSuffix(userRef);

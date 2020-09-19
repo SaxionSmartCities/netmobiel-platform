@@ -29,7 +29,7 @@ import eu.netmobiel.planner.annotation.PlannerDatabase;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripPlan_;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.repository.helper.WithinPredicate;
 
 @ApplicationScoped
@@ -51,7 +51,7 @@ public class TripPlanDao extends AbstractDao<TripPlan, Long> {
 		return em;
 	}
 
-    public PagedResult<Long> findTripPlans(User traveller, PlanType planType, Instant since, Instant until, 
+    public PagedResult<Long> findTripPlans(PlannerUser traveller, PlanType planType, Instant since, Instant until, 
     		Boolean inProgressOnly, SortDirection sortDirection, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);

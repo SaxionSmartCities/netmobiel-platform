@@ -33,7 +33,7 @@ import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.OpenTripPlannerDao;
 import eu.netmobiel.planner.repository.OtpClusterDao;
@@ -87,14 +87,14 @@ public class TripPlanManagerTest {
     private RideManager rideManager;
 
 	@Injectable
-	private User traveller;
+	private PlannerUser traveller;
 	@Injectable
-	private User driver;
+	private PlannerUser driver;
 	
 	@Before
 	public void setUp() throws Exception {
-		traveller = new User("ID1", "Pietje", "Puk", "pietje@puk.me");
-		driver = new User("ID2", "Jan", "Chauffeur", "jan@chauffeurs.me");
+		traveller = new PlannerUser("ID1", "Pietje", "Puk", "pietje@puk.me");
+		driver = new PlannerUser("ID2", "Jan", "Chauffeur", "jan@chauffeurs.me");
 	}
 
 	@After

@@ -16,7 +16,7 @@ public class RideTemplateTest {
 	private Recurrence recurrence;
 
 	private Car car;
-	private User driver;
+	private RideshareUser driver;
 	private static GeoLocation placeZieuwent = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
 	private static GeoLocation placeSlingeland = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
 
@@ -25,7 +25,7 @@ public class RideTemplateTest {
 		car = new Car();
 		car.setId(1L);
 		car.setLicensePlate("12-AB-45");
-		driver = new User("1234567890", "Otto", "Normalverbraucher");
+		driver = new RideshareUser("1234567890", "Otto", "Normalverbraucher");
 		recurrence = new Recurrence(1);
 		template = new RideTemplate();
 		template.setRecurrence(recurrence);

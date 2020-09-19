@@ -44,7 +44,7 @@ public class RideBase implements Serializable {
 	@NotNull
     @ManyToOne (fetch = FetchType.LAZY)
 	@JoinColumn(name = "driver", nullable = false, foreignKey = @ForeignKey(name = "ride_base_driver_fk"))
-    private User driver;
+    private RideshareUser driver;
 
     @Transient
     private String driverRef;
@@ -167,18 +167,18 @@ public class RideBase implements Serializable {
     private GeoLocation to;
 
 
-	public User getDriver() {
+	public RideshareUser getDriver() {
 		return driver;
 	}
 
-	public void setDriver(User driver) {
+	public void setDriver(RideshareUser driver) {
 		this.driver = driver;
 		this.driverRef = null;
 	}
 
 	public String getDriverRef() {
 		if (driverRef == null) {
-    		driverRef = RideshareUrnHelper.createUrn(User.URN_PREFIX, driver.getId());
+    		driverRef = RideshareUrnHelper.createUrn(RideshareUser.URN_PREFIX, driver.getId());
 		}
 		return driverRef;
 	}

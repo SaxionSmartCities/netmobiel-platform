@@ -32,7 +32,7 @@ import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.TripDao;
 import eu.netmobiel.planner.test.Fixture;
@@ -83,11 +83,11 @@ public class TripManagerTest {
     @Injectable
     private Event<TripValidationExpiredEvent> tripValidationExpiredEvent;
 
-    private User traveller;
+    private PlannerUser traveller;
 	
 	@Before
 	public void setUp() throws Exception {
-		traveller = new User("ID1", "Pietje", "Puk", "pietje@puk.me");
+		traveller = new PlannerUser("ID1", "Pietje", "Puk", "pietje@puk.me");
 	}
 
 	@After

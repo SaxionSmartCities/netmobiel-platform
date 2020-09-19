@@ -18,9 +18,9 @@ import eu.netmobiel.communicator.api.MessagesApi;
 import eu.netmobiel.communicator.api.mapping.MessageMapper;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
-import eu.netmobiel.communicator.model.User;
+import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.service.PublisherService;
-import eu.netmobiel.communicator.service.UserManager;
+import eu.netmobiel.communicator.service.CommunicatorUserManager;
 
 @ApplicationScoped
 public class MessagesResource implements MessagesApi {
@@ -32,14 +32,14 @@ public class MessagesResource implements MessagesApi {
     private PublisherService publisherService;
 
     @EJB(name = "java:app/netmobiel-communicator-ejb/UserManager")
-    private UserManager userManager;
+    private CommunicatorUserManager userManager;
 
 
     @Override
 	public Response sendMessage(eu.netmobiel.communicator.api.model.Message msg) {
     	Response rsp = null;
 		try {
-			User caller = userManager.registerCallingUser();
+			CommunicatorUser caller = userManager.registerCallingUser();
 			publisherService.validateMessage(caller, mapper.map(msg));
 			publisherService.publish(caller, mapper.map(msg));
 			rsp = Response.status(Status.ACCEPTED).build();
@@ -80,7 +80,7 @@ public class MessagesResource implements MessagesApi {
 	public Response acknowledgeMessage(Integer messageId) {
     	Response rsp = null;
     	try {
-			User caller = userManager.findCallingUser();
+			CommunicatorUser caller = userManager.findCallingUser();
 			publisherService.updateAcknowledgment(caller, messageId.longValue(), Instant.now());
 			rsp = Response.noContent().build();
 		} catch (BusinessException e) {
@@ -93,7 +93,7 @@ public class MessagesResource implements MessagesApi {
 	public Response removeAcknowledgement(Integer messageId) {
     	Response rsp = null;
     	try {
-			User caller = userManager.findCallingUser();
+			CommunicatorUser caller = userManager.findCallingUser();
 			publisherService.updateAcknowledgment(caller, messageId.longValue(), null);
 			rsp = Response.noContent().build();
 		} catch (BusinessException e) {

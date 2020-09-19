@@ -54,7 +54,7 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
 
 	@Override
 	protected BankerUser findCorCreateLoopback(BankerUser user) {
-		return ctx.getBusinessObject(this.getClass()).findCorCreate(user);
+		return sessionContext.getBusinessObject(this.getClass()).findCorCreate(user);
 	}
 
 	@Override

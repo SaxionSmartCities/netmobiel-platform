@@ -66,7 +66,7 @@ public class BankerUser extends User {
     }
     
     public BankerUser(NetMobielUser nbuser) {
-    	super(nbuser.getManagedIdentity(), nbuser.getGivenName(), nbuser.getFamilyName(), nbuser.getEmail());
+    	super(nbuser);
     }
     
     public BankerUser(String identity, String givenName, String familyName, String email) {

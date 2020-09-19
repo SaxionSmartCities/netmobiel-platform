@@ -21,9 +21,9 @@ import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.TripPlan;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.service.TripPlanManager;
-import eu.netmobiel.planner.service.UserManager;
+import eu.netmobiel.planner.service.PlannerUserManager;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @ApplicationScoped
@@ -43,7 +43,7 @@ public class PlansResource implements PlansApi {
     private TripPlanManager tripPlanManager;
 
     @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
-    private UserManager userManager;
+    private PlannerUserManager userManager;
 
 	private Instant toInstant(OffsetDateTime odt) {
 		return odt == null ? null : odt.toInstant();
@@ -54,7 +54,7 @@ public class PlansResource implements PlansApi {
     	Response rsp = null;
 		// The owner of the trip will be the calling user.
 		try {
-			User traveller = userManager.registerCallingUser();
+			PlannerUser traveller = userManager.registerCallingUser();
 			TripPlan plan = tripPlanMapper.map(tripPlan);
 			String newPlanId = PlannerUrnHelper.createUrn(TripPlan.URN_PREFIX, tripPlanManager.createTripPlan(traveller, plan, Instant.now()));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newPlanId)).build();
@@ -85,7 +85,7 @@ public class PlansResource implements PlansApi {
 			try {
 				PlanType type = planType == null ? null : PlanType.valueOf(planType);
 				SortDirection sortDirection = sortDir == null ? SortDirection.ASC : SortDirection.valueOf(sortDir);
-		    	User traveller = null;
+		    	PlannerUser traveller = null;
 		    	if (userRef == null) {
 		    		traveller = userManager.findCallingUser();
 		    	} else {

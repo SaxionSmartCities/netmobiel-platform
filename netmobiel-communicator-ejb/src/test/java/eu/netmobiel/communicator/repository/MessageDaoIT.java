@@ -36,7 +36,7 @@ import eu.netmobiel.communicator.Resources;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
-import eu.netmobiel.communicator.model.User;
+import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.repository.converter.DeliveryModeConverter;
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
@@ -56,7 +56,7 @@ public class MessageDaoIT {
                 .addPackages(true, Envelope.class.getPackage())
                 .addPackages(true, AbstractDao.class.getPackage())
                 .addPackages(true, DeliveryModeConverter.class.getPackage())
-            .addClass(UserDao.class)
+            .addClass(CommunicatorUserDao.class)
             .addClass(MessageDao.class)
             .addClass(Resources.class)
             .addAsResource("META-INF/test-persistence.xml", "META-INF/persistence.xml")
@@ -68,7 +68,7 @@ public class MessageDaoIT {
     @Inject
     private MessageDao messageDao;
     @Inject
-    private UserDao userDao;
+    private CommunicatorUserDao userDao;
 
     @PersistenceContext(unitName = "pu-communicator")
     private EntityManager em;
@@ -100,11 +100,11 @@ public class MessageDaoIT {
         utx.begin();
         em.joinTransaction();
         log.debug("Inserting records...");
-    	List<User> users = new ArrayList<>();
-        users.add(new User("A1", "user", "FN A1"));
-        users.add(new User("A2", "user", "FN A2"));
-        users.add(new User("A3", "user", "FN A3"));
-        for (User user : users) {
+    	List<CommunicatorUser> users = new ArrayList<>();
+        users.add(new CommunicatorUser("A1", "user", "FN A1", null));
+        users.add(new CommunicatorUser("A2", "user", "FN A2", null));
+        users.add(new CommunicatorUser("A3", "user", "FN A3", null));
+        for (CommunicatorUser user : users) {
 			em.persist(user);
 		}
     	List<Message> messages = new ArrayList<>();
@@ -178,9 +178,9 @@ public class MessageDaoIT {
     
     @Test
     public void saveMessage() {
-		em.persist(new User("A11"));
-		em.persist(new User("A12"));
-		em.persist(new User("A13"));
+		em.persist(new CommunicatorUser("A11"));
+		em.persist(new CommunicatorUser("A12"));
+		em.persist(new CommunicatorUser("A13"));
 		Message messages = createMessage("Body B", "Context C", "Subject S", DeliveryMode.MESSAGE, "2020-02-11T14:25:00Z", "A11", null, "A12", "A13");
     	messageDao.save(messages);
     	List<Message> actual = findAllMessagesSentBy("A11");

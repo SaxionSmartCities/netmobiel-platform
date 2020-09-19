@@ -31,7 +31,7 @@ import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.Trip_;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.test.Fixture;
 import eu.netmobiel.planner.test.PlannerIntegrationTestBase;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
@@ -53,9 +53,9 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
 	@Inject
     private Logger log;
     
-    private User user1;
-    private User user2;
-    private User user3;
+    private PlannerUser user1;
+    private PlannerUser user2;
+    private PlannerUser user3;
     private TripPlan plan0;
     private TripPlan plan1;
     private TripPlan plan2;
@@ -68,10 +68,10 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
    
 	@Override
     protected void insertData() throws Exception {
-        user1 = new User("T1", "Simon1", "Netmobiel");
-        user2 = new User("T2", "Simon2", "Netmobiel");
-        user3 = new User("T3", "Simon3", "Netmobiel");
-    	List<User> users = new ArrayList<>();
+        user1 = new PlannerUser("T1", "Simon1", "Netmobiel");
+        user2 = new PlannerUser("T2", "Simon2", "Netmobiel");
+        user3 = new PlannerUser("T3", "Simon3", "Netmobiel");
+    	List<PlannerUser> users = new ArrayList<>();
     	users.add(user1);
 		em.persist(user1);
     	users.add(user2);
@@ -182,7 +182,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
 
     @Test
     public void listTrips_All_Sorting() {
-    	User traveller = null;
+    	PlannerUser traveller = null;
     	TripState state = null;
     	Instant since = null;
     	Instant until = null; 
@@ -218,7 +218,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     
     @Test
     public void listTrips_ByState() throws Exception {
-    	User traveller = null;
+    	PlannerUser traveller = null;
     	TripState state = TripState.PLANNING;
     	Instant since = null;
     	Instant until = null; 
@@ -234,7 +234,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
 
     @Test
     public void listTrips_InProgressOnly() {
-    	User traveller = null;
+    	PlannerUser traveller = null;
     	TripState state = null;
     	Instant since = null;
     	Instant until = null; 
@@ -247,7 +247,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     
     @Test
     public void listTrips_ByUser() {
-    	User traveller = user1;
+    	PlannerUser traveller = user1;
     	TripState state = null;
     	Instant since = null;
     	Instant until = null; 
@@ -260,7 +260,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     
     @Test
     public void listTrips_Since() {
-    	User traveller = null;
+    	PlannerUser traveller = null;
     	TripState state = null;
     	Instant since = Instant.parse("2020-03-19T12:00:00Z");
     	Instant until = null; 
@@ -281,7 +281,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
 
     @Test
     public void listTrips_Until() {
-    	User traveller = null;
+    	PlannerUser traveller = null;
     	TripState state = null;
     	Instant since = null;
     	Instant until = Instant.parse("2020-03-19T12:00:00Z"); 

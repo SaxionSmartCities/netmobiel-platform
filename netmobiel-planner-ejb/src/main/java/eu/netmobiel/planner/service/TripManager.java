@@ -46,7 +46,7 @@ import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripMonitorEvent;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.TripDao;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
@@ -123,7 +123,7 @@ public class TripManager {
      * List all trips owned by the specified user. Soft deleted trips are omitted.
      * @return A list of trips owned by the specified user.
      */
-    public PagedResult<Trip> listTrips(User traveller, TripState state, Instant since, Instant until, Boolean deletedToo, 
+    public PagedResult<Trip> listTrips(PlannerUser traveller, TripState state, Instant since, Instant until, Boolean deletedToo, 
     		SortDirection sortDirection, Integer maxResults, Integer offset) throws BadRequestException {
     	if (until != null && since != null && !until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
@@ -166,7 +166,7 @@ public class TripManager {
      * @throws BadRequestException In case of bad parameters.
      * @throws BusinessException In case of an exception coming through the event observers.
      */
-    public Long createTrip(User traveller, Trip trip) throws NotFoundException, BadRequestException, BusinessException {
+    public Long createTrip(PlannerUser traveller, Trip trip) throws NotFoundException, BadRequestException, BusinessException {
     	trip.setTraveller(traveller);
     	if (trip.getItineraryRef() == null) {
     		throw new BadRequestException("Specify an itinerary reference");

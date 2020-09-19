@@ -25,7 +25,7 @@ import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Booking_;
 import eu.netmobiel.rideshare.model.Ride;
-import eu.netmobiel.rideshare.model.User;
+import eu.netmobiel.rideshare.model.RideshareUser;
 
 @ApplicationScoped
 @Typed(BookingDao.class)
@@ -63,7 +63,7 @@ public class BookingDao extends AbstractDao<Booking, Long> {
     	return exists != null && exists;
     }
     
-    public PagedResult<Long> findByPassenger(User passenger, Instant since, Instant until, boolean cancelledToo, Integer maxResults, Integer offset) {
+    public PagedResult<Long> findByPassenger(RideshareUser passenger, Instant since, Instant until, boolean cancelledToo, Integer maxResults, Integer offset) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Booking> bookings = cq.from(Booking.class);

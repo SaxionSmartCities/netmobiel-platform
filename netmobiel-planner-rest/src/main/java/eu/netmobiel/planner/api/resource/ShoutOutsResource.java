@@ -20,9 +20,9 @@ import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
-import eu.netmobiel.planner.model.User;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.service.TripPlanManager;
-import eu.netmobiel.planner.service.UserManager;
+import eu.netmobiel.planner.service.PlannerUserManager;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @ApplicationScoped
@@ -40,7 +40,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
     private TripPlanManager tripPlanManager;
 
     @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
-    private UserManager userManager;
+    private PlannerUserManager userManager;
 
     @Inject
     private TripPlanMapper tripPlanMapper;
@@ -85,7 +85,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
         	}
     	}
 		try {
-			User driver = userManager.registerCallingUser();
+			PlannerUser driver = userManager.registerCallingUser();
 			TripPlan driverPlan = new TripPlan();
 			driverPlan.setFrom(GeoLocation.fromString(from));
 			if (to != null) {
@@ -110,9 +110,9 @@ public class ShoutOutsResource implements ShoutOutsApi {
         		throw new eu.netmobiel.commons.exception.BadRequestException("planRef is a mandatory attribute");
         	}
         	Long providedSolutionPlanId = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, travelOffer.getPlanRef());
-			User driver = userManager.registerCallingUser();
+			PlannerUser driver = userManager.registerCallingUser();
 			if (travelOffer.getDriverRef() != null) {
-				if (!driver.getUserRef().equals(travelOffer.getDriverRef()) && !driver.getKeyCloakUrn().equals(travelOffer.getDriverRef())) {
+				if (!driver.getReference().equals(travelOffer.getDriverRef()) && !driver.getKeyCloakUrn().equals(travelOffer.getDriverRef())) {
 					throw new SecurityException(String.format("User %s is not allowed to offer rides on behalf of %s", driver.getManagedIdentity(), travelOffer.getDriverRef()));
 				}
 			}
