@@ -12,16 +12,16 @@ import eu.netmobiel.banker.api.BalancesApi;
 import eu.netmobiel.banker.api.mapping.BalanceMapper;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.Balance;
-import eu.netmobiel.banker.model.User;
+import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.service.LedgerService;
-import eu.netmobiel.banker.service.UserManager;
+import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.commons.model.PagedResult;
 
 @ApplicationScoped
 public class BalancesResource implements BalancesApi {
 
     @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
-    private UserManager userManager;
+    private BankerUserManager userManager;
 
 	@Inject
 	private BalanceMapper mapper;
@@ -32,7 +32,7 @@ public class BalancesResource implements BalancesApi {
 	@Override
 	public Response listBalances(String userRef, OffsetDateTime period, Integer maxResults, Integer offset) {
 		Response rsp = null;
-		User user = null;
+		BankerUser user = null;
 		if (userRef != null) {
 			user = userManager
 					.resolveUrn(userRef)

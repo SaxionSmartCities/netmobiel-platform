@@ -24,6 +24,8 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import org.apache.commons.lang3.StringUtils;
+
 import eu.netmobiel.banker.util.BankerUrnHelper;
 
 /**
@@ -223,6 +225,6 @@ public class Account {
 
     @Override
 	public String toString() {
-		return String.format("Account [%s %s %s %s]", id, ncan, name, accountType);
+		return String.format("Account [%s %s %s %s]", id, StringUtils.abbreviate(ncan, 11), name, accountType);
 	}
 }

@@ -15,7 +15,7 @@ import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import eu.netmobiel.banker.model.User;
+import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.test.BankerIntegrationTestBase;
 import eu.netmobiel.banker.test.Fixture;
 
@@ -24,7 +24,7 @@ public class UserManagerIT extends BankerIntegrationTestBase {
     @Deployment
     public static Archive<?> createTestArchive() {
         WebArchive archive = createDeploymentBase()
-	        .addClass(UserManager.class)
+	        .addClass(BankerUserManager.class)
 	        .addClass(LedgerService.class)
 	        .addClass(BankerStartupService.class)
 	        ;
@@ -33,9 +33,9 @@ public class UserManagerIT extends BankerIntegrationTestBase {
     }
 
     @Inject
-    private UserManager userManager;
+    private BankerUserManager userManager;
 
-    private User driver1;
+    private BankerUser driver1;
 
     @Override
     public boolean isSecurityRequired() {
@@ -51,7 +51,7 @@ public class UserManagerIT extends BankerIntegrationTestBase {
 
     @Test
     public void testListUsers() throws Exception {
-        List<User> users = userManager.listUsers();
+        List<BankerUser> users = userManager.listUsers();
         assertNotNull(users);
         log.info("List users: #" + users.size());
         users.forEach(u -> log.debug(u.toString()));

@@ -41,7 +41,7 @@ public abstract class AbstractDao<T, ID> {
 		return primaryKeyClass;
 	}
 
-	protected Class<T> getPersistentClass() {
+	public Class<T> getPersistentClass() {
         return this.persistentClass;
     }
 

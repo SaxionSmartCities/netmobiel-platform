@@ -26,15 +26,16 @@ import eu.netmobiel.banker.model.DepositRequest;
 import eu.netmobiel.banker.model.Ledger;
 import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.TransactionType;
-import eu.netmobiel.banker.model.User;
+import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.repository.AccountDao;
 import eu.netmobiel.banker.repository.AccountingEntryDao;
 import eu.netmobiel.banker.repository.AccountingTransactionDao;
 import eu.netmobiel.banker.repository.BalanceDao;
 import eu.netmobiel.banker.repository.DepositRequestDao;
 import eu.netmobiel.banker.repository.LedgerDao;
-import eu.netmobiel.banker.repository.UserDao;
+import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.util.BankerUrnHelper;
+import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
@@ -79,7 +80,7 @@ public class LedgerService {
     @Inject
     private AccountDao accountDao;
     @Inject
-    private UserDao userDao;
+    private BankerUserDao userDao;
 
     @Inject
     private DepositRequestDao depositRequestDao;
@@ -257,7 +258,7 @@ public class LedgerService {
     }
 
     public String reserve(NetMobielUser nmuser, int amount, String description, String reference) throws BalanceInsufficientException {
-    	Optional<User> user = lookupUser(nmuser);
+    	Optional<BankerUser> user = lookupUser(nmuser);
     	if (! user.isPresent()) {
     		throw new BalanceInsufficientException("User has no deposits made yet: " + nmuser.getManagedIdentity());
     	}
@@ -276,7 +277,7 @@ public class LedgerService {
     }
 
     public String charge(NetMobielUser nmbeneficiary, String reservationId, int actualAmount) throws BalanceInsufficientException, OverdrawnException {
-    	Optional<User> beneficiary = lookupUser(nmbeneficiary);
+    	Optional<BankerUser> beneficiary = lookupUser(nmbeneficiary);
     	if (! beneficiary.isPresent()) {
     		throw new BalanceInsufficientException("Beneficiary has no account, nothing to transfer to: " + nmbeneficiary.getManagedIdentity());
     	}
@@ -439,38 +440,32 @@ public class LedgerService {
     		.orElseGet(() -> createAccount(ncan, name, type));
     }
 
-    protected Optional<User> lookupUser(NetMobielUser user) {
+    protected Optional<BankerUser> lookupUser(NetMobielUser user) {
     	return Optional.ofNullable(userDao.findByManagedIdentity(user.getManagedIdentity()).orElse(null));
     }
     
     /**
      * Event handler for handling new users. The ledger service must create and assign a personal monetary account.
-     * @param newUser the new user account. The user record. It must be persistent already.
+     * @param dbUser the new user account. The user record. It must be persistent already.
      */
-    public void onNewUser(final @Observes(during = TransactionPhase.IN_PROGRESS) User newUser) {
-    	if (newUser.getPersonalAccount() == null) {
-    		if (newUser.getId() == null) {
-    			throw new IllegalStateException("User must have a persistent identifier");
-    		}
-    		User dbUser = newUser;
-    		if (! userDao.contains(dbUser)) {
-    			log.debug("User not yet in persistence context");
-    			dbUser = userDao.find(newUser.getId())
-    					.orElseThrow(() -> new IllegalStateException("No such user: " + newUser.getId()));
-    		} else {
-    			log.debug("User already in persistence context");
-    		}
-    		// Create a personal liability account. The reference id is directly related to the user primary key.
-    		String accRef = createNewAccountNumber("PLA");
-    		String accName = String.format("%s %s", dbUser.getGivenName() != null ? dbUser.getGivenName() : "", dbUser.getFamilyName() != null ? dbUser.getFamilyName() : "").trim();
-    		if (accName.isEmpty()) {
-    			accName = accRef;
-    		}
-    		Account acc = createAccount(accRef, accName, AccountType.LIABILITY);
-    		dbUser.setPersonalAccount(acc);
-    	}
+    public void onNewUser(final @Observes(during = TransactionPhase.IN_PROGRESS) @Created BankerUser dbUser) {
+    	if (dbUser.getPersonalAccount() != null) {
+			throw new IllegalStateException("Not a new user, personal account exists already");
+    	}    		
+		if (! userDao.contains(dbUser)) {
+			throw new IllegalStateException("User should be in persistence context");
+		}
+		// Create a personal liability account. The reference id is directly related to the user primary key.
+		String accRef = createNewAccountNumber("PLA");
+		String accName = String.format("%s %s", dbUser.getGivenName() != null ? dbUser.getGivenName() : "", dbUser.getFamilyName() != null ? dbUser.getFamilyName() : "").trim();
+		if (accName.isEmpty()) {
+			accName = accRef;
+		}
+		Account acc = createAccount(accRef, accName, AccountType.LIABILITY);
+		dbUser.setPersonalAccount(acc);
     }
 
+    //FIXME Try to save the account and retry on a constraint violation
     private String createNewAccountNumber(String prefix) {
     	String ncan = null;
     	int tries = 10;

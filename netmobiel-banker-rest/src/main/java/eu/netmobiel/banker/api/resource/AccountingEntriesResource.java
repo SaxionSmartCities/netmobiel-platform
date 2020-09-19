@@ -13,9 +13,9 @@ import javax.ws.rs.core.Response;
 import eu.netmobiel.banker.api.AccountingEntriesApi;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
 import eu.netmobiel.banker.model.AccountingEntry;
-import eu.netmobiel.banker.model.User;
+import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.service.LedgerService;
-import eu.netmobiel.banker.service.UserManager;
+import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 
@@ -23,7 +23,7 @@ import eu.netmobiel.commons.model.PagedResult;
 public class AccountingEntriesResource implements AccountingEntriesApi {
 
     @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
-    private UserManager userManager;
+    private BankerUserManager userManager;
 
 	@Inject
 	private AccountingEntryMapper mapper;
@@ -37,7 +37,7 @@ public class AccountingEntriesResource implements AccountingEntriesApi {
 		Instant ui = until != null ? until.toInstant() : null;
 		Response rsp = null;
 		try {
-			User user = null;
+			BankerUser user = null;
 			if (userRef != null) {
 				user = userManager
 						.resolveUrn(userRef)

@@ -5,10 +5,12 @@ import java.time.OffsetDateTime;
 
 import javax.ejb.EJB;
 import javax.ejb.ObjectNotFoundException;
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import eu.netmobiel.banker.api.UsersApi;
@@ -16,17 +18,17 @@ import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
 import eu.netmobiel.banker.api.mapping.UserMapper;
 import eu.netmobiel.banker.api.model.PaymentLink;
 import eu.netmobiel.banker.model.AccountingEntry;
-import eu.netmobiel.banker.model.User;
+import eu.netmobiel.banker.model.BankerUser;
+import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.LedgerService;
-import eu.netmobiel.banker.service.UserManager;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 
-@ApplicationScoped
+@RequestScoped
 public class UsersResource implements UsersApi {
 
     @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
-    private UserManager userManager;
+    private BankerUserManager userManager;
 
 	@Inject
 	private AccountingEntryMapper accountingEntryMapper;
@@ -36,9 +38,12 @@ public class UsersResource implements UsersApi {
 
 	@Inject
     private LedgerService ledgerService;
-
-    protected User resolveUserReference(String userId, boolean createIfNeeded) {
-		User user = null;
+	
+	@Context
+	private HttpServletRequest request;
+	
+    protected BankerUser resolveUserReference(String userId, boolean createIfNeeded) {
+		BankerUser user = null;
 		if ("me".equals(userId)) {
 			user = createIfNeeded ? userManager.registerCallingUser() : userManager.findCallingUser();
 		} else {
@@ -52,7 +57,7 @@ public class UsersResource implements UsersApi {
     @Override
 	public Response createDeposit(String userId, eu.netmobiel.banker.api.model.DepositRequest deposit) {
 		Response rsp = null;
-		User user = resolveUserReference(userId, true);
+		BankerUser user = resolveUserReference(userId, true);
 		String paymentUrl = ledgerService.createDepositRequest(user.getPersonalAccount(), deposit.getAmountCredits(), deposit.getDescription(), deposit.getReturnUrl());
 		PaymentLink plink = new PaymentLink();
 		plink.setPaymentUrl(paymentUrl);
@@ -62,7 +67,7 @@ public class UsersResource implements UsersApi {
 
 	@Override
 	public Response getUser(String userId) {
-		User user = resolveUserReference(userId, true);
+		BankerUser user = resolveUserReference(userId, true);
 		try {
 			user = userManager.getUserWithBalance(user.getId());
 		} catch (ObjectNotFoundException e) {
@@ -77,7 +82,7 @@ public class UsersResource implements UsersApi {
 		Instant ui = until != null ? until.toInstant() : null;
 		Response rsp = null;
 		try {
-			User user = resolveUserReference(userId, true);
+			BankerUser user = resolveUserReference(userId, true);
 			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getNcan(), si, ui, maxResults, offset); 
 			rsp = Response.ok(accountingEntryMapper.map(result)).build();
 		} catch (BusinessException ex) {

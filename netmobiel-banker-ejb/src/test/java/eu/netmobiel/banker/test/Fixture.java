@@ -11,7 +11,7 @@ import org.keycloak.representations.AccessToken;
 
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountType;
-import eu.netmobiel.banker.model.User;
+import eu.netmobiel.banker.model.BankerUser;
 
 public class Fixture {
 
@@ -19,11 +19,11 @@ public class Fixture {
 		// No instances allowed
 	}
 
-	public static User createUser(String identity, String givenName, String familyName, String email) {
-		return new User(identity, givenName, familyName, email);
+	public static BankerUser createUser(String identity, String givenName, String familyName, String email) {
+		return new BankerUser(identity, givenName, familyName, email);
 	}
 	
-	public static User createUser(LoginContext loginContext) {
+	public static BankerUser createUser(LoginContext loginContext) {
         Subject subject = loginContext.getSubject();
         @SuppressWarnings("rawtypes")
 		Set<KeycloakPrincipal> ps = subject.getPrincipals(KeycloakPrincipal.class);
@@ -32,26 +32,26 @@ public class Fixture {
         return createUser(p.getKeycloakSecurityContext().getToken());
 	}
 
-	public static User createUser(AccessToken token) {
-		return new User(token.getSubject(), token.getGivenName(), token.getFamilyName(), token.getEmail());
+	public static BankerUser createUser(AccessToken token) {
+		return new BankerUser(token.getSubject(), token.getGivenName(), token.getFamilyName(), token.getEmail());
 	}
 
-	public static User createDriver1() {
+	public static BankerUser createDriver1() {
 		return createUser("ID1", "Carla1", "Netmobiel", null);
 	}
 	
-	public static User createDriver2() {
+	public static BankerUser createDriver2() {
 		return createUser("ID2", "Carla2", "Netmobiel", null);
 	}
-	public static User createDriver3() {
+	public static BankerUser createDriver3() {
 		return createUser("ID3", "Carla3", "Netmobiel", null);
 	}
 
-	public static User createPassenger1() {
+	public static BankerUser createPassenger1() {
 		return createUser("IP1", "Simon1", "Netmobiel", null);
 	}
 	
-	public static User createPassenger2() {
+	public static BankerUser createPassenger2() {
 		return createUser("IP2", "Simon2", "Netmobiel", null);
 	}
 

@@ -5,7 +5,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 import eu.netmobiel.banker.api.mapping.annotation.UserMapperQualifier;
-import eu.netmobiel.banker.model.User;
+import eu.netmobiel.banker.model.BankerUser;
 
 /**
  * This mapper defines the mapping from the domain Booking to the API Booking as defined by OpenAPI.
@@ -18,6 +18,6 @@ import eu.netmobiel.banker.model.User;
 public abstract class UserMapper {
 
 	@Mapping(target = "credits", source = "personalAccount.actualBalance.endAmount")
-	public abstract eu.netmobiel.banker.api.model.User map(User source);
+	public abstract eu.netmobiel.banker.api.model.User map(BankerUser source);
 
 }
