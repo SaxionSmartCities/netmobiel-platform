@@ -275,12 +275,8 @@ public class TripPlanManager {
 			.forEach(leg -> {
 				leg.setAgencyName(RideManager.AGENCY_NAME);
 				leg.setAgencyId(RideManager.AGENCY_ID);
-				// For Rideshare booking is always required.
-				leg.setBookingRequired(true);
-				// For Rideshare confirmation is requested from traveller and provider
-				leg.setConfirmationByProviderRequested(true);
-				leg.setConfirmationRequested(true);
 			});
+//	    	log.debug("planRideshareItinerary: \n" + it.toString());
 		}
     	return driverSharedRidePlanResult;
     }
@@ -298,6 +294,11 @@ public class TripPlanManager {
 		leg.setVehicleName(ride.getCar().getName());
 		leg.setTripId(ride.getRideRef());
 		leg.setTraverseMode(TraverseMode.RIDESHARE);
+		// For Rideshare booking is always required.
+		leg.setBookingRequired(true);
+		// For Rideshare confirmation is requested from traveller and provider
+		leg.setConfirmationByProviderRequested(true);
+		leg.setConfirmationRequested(true);
 		// Request synchronously a quote
 		quoteRequestedEvent.fire(leg);
 		// Quote received now
@@ -351,7 +352,10 @@ public class TripPlanManager {
         				.test(driverItinerary);
             	if (accepted) {
     	        	// We have the plan for the driver now. Add the itineraries but keep only the intermediate leg(s). This is a deep copy!
-            		Itinerary passengerItinerary = driverItinerary.subItinerary(fromPlace, toPlace);
+            		Itinerary passengerItinerary = driverItinerary.createSingleLeggedItinerary(fromPlace, toPlace);
+            		if (passengerItinerary.getLegs().size() != 1) {
+            			throw new IllegalStateException("Expected to find a single leg, instead of " + passengerItinerary.getLegs().size());
+            		}
             		passengerItinerary.getLegs().forEach(leg -> assignRideToPassengerLeg(leg, ride));
             		passengerSharedRidePlanResult.addItineraries(Collections.singletonList(passengerItinerary));
             	}
@@ -977,10 +981,13 @@ public class TripPlanManager {
     	// Create a copy of the passenger part of the provider's itinerary. Assume for now that the passenger has no private legs. 
     	// All legs in the passengers's itinerary are shared with the transport provider
     	// Should the passenger's itinerary be created here? If there is a slight mismatch a few walks should be introduced.
-    	// To be implemented: Search for the closest pickup and drop locations. Compare with shout-out. If more than 20 m away add a 
+    	// FIXME To be implemented: Search for the closest pickup and drop locations. Compare with shout-out. If more than 20 m away add a 
     	// WALK leg to the passenger's itinerary.
     	// For now: Complete overlap with provider's itinerary
-    	Itinerary passengerIt = proposedPlan.getItineraries().iterator().next().subItinerary(shoutOutPlan.getFrom(), shoutOutPlan.getTo());
+    	Itinerary passengerIt = proposedPlan.getItineraries().iterator().next().createSingleLeggedItinerary(shoutOutPlan.getFrom(), shoutOutPlan.getTo());
+		if (passengerIt.getLegs().size() != 1) {
+			throw new IllegalStateException("Expected to find a single leg, instead of " + passengerIt.getLegs().size());
+		}
     	passengerIt.setTripPlan(shoutOutPlan);
     	BasicItineraryRankingAlgorithm ranker = new BasicItineraryRankingAlgorithm();
    		ranker.calculateScore(passengerIt, shoutOutPlan.getTravelTime(), shoutOutPlan.isUseAsArrivalTime());

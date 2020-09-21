@@ -5,10 +5,12 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
+import java.util.stream.IntStream;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
@@ -555,36 +557,36 @@ public class Itinerary implements Serializable {
 		updateWalkTime();
 	}
 
-	public Optional<Stop> findConnectingStop(GeoLocation location) {
-		return getStops().stream()
-				.filter(s -> connectingStopCheck.test(s.getLocation(), location))
-				.findFirst();
-	}
-
 	/**
-	 * Extract an itinerary from this itinerary using the the specified locations.
+	 * Extract an itinerary from this itinerary using the the specified locations, comprising a single leg.
+	 * Issue: There can be tiny deviations from the results from the planner vs the input parameters, so we need to do a bit
+	 * of estimating. We want the leg with the smallest deviation from departure and arrival location.
 	 * @param from the location to start from 
 	 * @param to the destination location
 	 * @return the sub itinerary. This is a deep copy. The original graph will be not be altered.
 	 */
-	public Itinerary subItinerary(GeoLocation from, GeoLocation to) {
-		// If within x meter it must be the right stop (a bit shady)
-		Stop fromStop = findConnectingStop(from).orElse(null);
-		Stop toStop = findConnectingStop(to).orElse(null);
-		Leg firstLeg = getLegs().stream().filter(leg -> leg.getFrom() == fromStop).findFirst().orElse(null);
-		Leg lastLeg = getLegs().stream().filter(leg -> leg.getTo() == toStop).findFirst().orElse(null);
-		if (firstLeg == null || lastLeg == null) {
-			throw new IllegalStateException("Unable to find first or last leg");
+	public Itinerary createSingleLeggedItinerary(GeoLocation from, GeoLocation to) {
+		if (getLegs().isEmpty()) {
+			throw new IllegalStateException("Did not expect an empty itinerary");
+		}
+		List<Double> deviations = new ArrayList<>();
+		for (Leg leg: getLegs()) {
+			deviations.add(leg.getFrom().getLocation().getDistanceFlat(from) + leg.getTo().getLocation().getDistanceFlat(to));
+		}
+		int ix = IntStream.range(0, deviations.size()).boxed()
+	            .min(Comparator.comparingDouble(deviations::get))
+	            .get();
+		Leg leg = getLegs().get(ix);
+		if (deviations.get(ix) > 0.1) {
+			log.warn(String.format("Trouble finding correct leg, deviation is %dm", Math.round(deviations.get(ix) * 1000)));
 		}
 		Itinerary it = new Itinerary();
 		// Copy the legs
-		it.getLegs().addAll(getLegs().subList(getLegs().indexOf(firstLeg), getLegs().indexOf(lastLeg) + 1));
+		it.getLegs().add(leg);
 		// Now make a deep copy of the shallow copy
 		it = it.deepCopy();
-		firstLeg = it.getLegs().get(0);
-		firstLeg.getFrom().setArrivalTime(null);
-		lastLeg = it.getLegs().get(it.getLegs().size() - 1);  
-		lastLeg.getTo().setDepartureTime(null);
+		leg.getFrom().setArrivalTime(null);
+		leg.getTo().setDepartureTime(null);
 		it.updateCharacteristics();
 		return it;
 	}
