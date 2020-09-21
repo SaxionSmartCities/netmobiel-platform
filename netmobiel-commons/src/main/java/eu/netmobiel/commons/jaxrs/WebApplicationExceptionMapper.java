@@ -14,6 +14,7 @@ import eu.netmobiel.commons.api.ErrorResponse;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.PaymentException;
 import eu.netmobiel.commons.util.ExceptionUtil;
 
 /**
@@ -48,6 +49,8 @@ public class WebApplicationExceptionMapper implements
 				status = Response.Status.BAD_REQUEST;
 			} else if (ae instanceof NotFoundException) {
 				status = Response.Status.NOT_FOUND;
+			} else if (ae instanceof PaymentException) {
+				status = Response.Status.PAYMENT_REQUIRED;
 			} else {
 				status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
 			}
