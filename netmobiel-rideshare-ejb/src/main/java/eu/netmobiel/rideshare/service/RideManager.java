@@ -44,6 +44,7 @@ import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.rideshare.event.BookingSettledEvent;
 import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Car;
@@ -532,7 +533,6 @@ public class RideManager {
 
     private void removeRide(Ride ridedb, final String reason) throws BusinessException {
     	cancelRideTimers(ridedb);
-		ridedb.setMonitored(false);
     	if (ridedb.getBookings().size() > 0) {
     		// Perform a soft delete
     		ridedb.setDeleted(true);
@@ -607,6 +607,17 @@ public class RideManager {
     		Booking b = ridedb.getActiveBooking().get();
     		EventFireWrapper.fire(transportProviderConfirmedEvent, new TripConfirmedByProviderEvent(b.getBookingRef(),  b.getPassengerTripRef(), confirmationValue));
     	}
+    }
+
+    /**
+     * Flags the ride as complete when in validating state.
+     * @param event the event from the booking manager.
+     * @throws BusinessException
+     */
+    public void onBookingSettled(@Observes(during = TransactionPhase.IN_PROGRESS) BookingSettledEvent event) throws BusinessException {
+    	Ride ride = event.getRide();
+		cancelRideTimers(ride);
+		updateRideState(ride, RideState.COMPLETED);
     }
 
     public static class RideInfo implements Serializable {
@@ -746,5 +757,6 @@ public class RideManager {
 				}
 			}
 		}
+		ride.setMonitored(false);
     }
 }

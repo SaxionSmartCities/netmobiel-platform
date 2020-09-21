@@ -26,6 +26,7 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
+import eu.netmobiel.rideshare.event.BookingSettledEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Ride;
@@ -53,6 +54,9 @@ public class BookingManager {
     
     @Inject
     private Event<BookingCancelledFromProviderEvent> bookingCancelledEvent;
+
+    @Inject
+    private Event<BookingSettledEvent> bookingSettledEvent;
 
     @Inject @Updated
     private Event<Ride> staleItineraryEvent;
@@ -122,7 +126,7 @@ public class BookingManager {
      */
     public String createBooking(String rideRef, NetMobielUser traveller, Booking booking) throws BusinessException {
     	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideRef);
-		Ride ride = rideDao.find(rid)
+		Ride ride = rideDao.fetchGraph(rid, Ride.LIST_RIDES_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("Ride not found: " + rideRef));
 		if (traveller.getManagedIdentity() == null) {
 			throw new CreateException("Traveller identity is mandatory");
@@ -241,4 +245,14 @@ public class BookingManager {
 		EventFireWrapper.fire(bookingCreatedEvent, b);
     }
 
+    public void informBookingSettled(String rideRef, String bookingRef) throws BusinessException {
+    	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
+    	Booking bookingdb = bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
+    	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideRef);
+		Ride ride = rideDao.find(rid)
+    			.orElseThrow(() -> new NotFoundException("Ride not found: " + rideRef));
+		EventFireWrapper.fire(bookingSettledEvent, new BookingSettledEvent(ride, bookingdb));
+    }
+    
 }
