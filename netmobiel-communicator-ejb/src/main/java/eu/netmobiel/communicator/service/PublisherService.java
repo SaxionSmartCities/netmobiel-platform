@@ -46,9 +46,6 @@ public class PublisherService {
     @Inject
     private Logger logger;
 
-//    @EJB(name = "java:app/netmobiel-communicator-ejb/UserManager")
-//    private UserManager userManager;
-
     @Inject
     private EnvelopeDao envelopeDao;
     

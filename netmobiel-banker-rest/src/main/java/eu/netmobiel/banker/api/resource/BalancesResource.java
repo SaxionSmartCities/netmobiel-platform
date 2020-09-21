@@ -2,7 +2,6 @@ package eu.netmobiel.banker.api.resource;
 
 import java.time.OffsetDateTime;
 
-import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
@@ -13,14 +12,14 @@ import eu.netmobiel.banker.api.mapping.BalanceMapper;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.BankerUser;
-import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.banker.service.BankerUserManager;
+import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.model.PagedResult;
 
 @ApplicationScoped
 public class BalancesResource implements BalancesApi {
 
-    @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
+	@Inject
     private BankerUserManager userManager;
 
 	@Inject

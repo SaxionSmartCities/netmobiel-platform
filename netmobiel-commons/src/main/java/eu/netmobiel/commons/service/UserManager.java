@@ -7,7 +7,6 @@ import javax.annotation.Resource;
 import javax.annotation.security.PermitAll;
 import javax.ejb.EJBAccessException;
 import javax.ejb.EJBException;
-import javax.ejb.ObjectNotFoundException;
 import javax.ejb.SessionContext;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -144,7 +143,7 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
      * Retrieves a specific user. 
      * @param uid The id of the user.
      * @return A user object.
-     * @throws ObjectNotFoundException If the user does not exist.
+     * @throws NotFoundException If the user does not exist.
      */
     public T getUser(Long uid) throws NotFoundException {
     	return getUserDao().find(uid)

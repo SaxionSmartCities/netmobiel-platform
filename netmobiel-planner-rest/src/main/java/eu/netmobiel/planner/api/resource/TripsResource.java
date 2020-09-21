@@ -3,7 +3,6 @@ package eu.netmobiel.planner.api.resource;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
-import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
@@ -25,11 +24,11 @@ import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripMapper;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
-import eu.netmobiel.planner.model.PlannerUser;
-import eu.netmobiel.planner.service.TripManager;
 import eu.netmobiel.planner.service.PlannerUserManager;
+import eu.netmobiel.planner.service.TripManager;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @RequestScoped
@@ -44,10 +43,10 @@ public class TripsResource implements TripsApi {
     @Inject
     private PageMapper pageMapper;
 
-    @EJB
+    @Inject
     private TripManager tripManager;
 
-    @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
+	@Inject
     private PlannerUserManager userManager;
 
     @Context

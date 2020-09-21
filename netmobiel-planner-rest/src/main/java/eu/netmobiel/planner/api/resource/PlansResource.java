@@ -3,7 +3,6 @@ package eu.netmobiel.planner.api.resource;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
-import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
@@ -20,10 +19,10 @@ import eu.netmobiel.planner.api.PlansApi;
 import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
 import eu.netmobiel.planner.model.PlanType;
-import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.PlannerUser;
-import eu.netmobiel.planner.service.TripPlanManager;
+import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.PlannerUserManager;
+import eu.netmobiel.planner.service.TripPlanManager;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @ApplicationScoped
@@ -39,10 +38,10 @@ public class PlansResource implements PlansApi {
     @Inject
     private PageMapper pageMapper;
 
-    @EJB
+    @Inject
     private TripPlanManager tripPlanManager;
 
-    @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
+	@Inject
     private PlannerUserManager userManager;
 
 	private Instant toInstant(OffsetDateTime odt) {

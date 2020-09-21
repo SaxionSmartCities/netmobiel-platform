@@ -3,8 +3,6 @@ package eu.netmobiel.banker.api.resource;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
-import javax.ejb.EJB;
-import javax.ejb.ObjectNotFoundException;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
@@ -27,7 +25,7 @@ import eu.netmobiel.commons.model.PagedResult;
 @RequestScoped
 public class UsersResource implements UsersApi {
 
-    @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
+	@Inject
     private BankerUserManager userManager;
 
 	@Inject
@@ -70,8 +68,8 @@ public class UsersResource implements UsersApi {
 		BankerUser user = resolveUserReference(userId, true);
 		try {
 			user = userManager.getUserWithBalance(user.getId());
-		} catch (ObjectNotFoundException e) {
-			throw new NotFoundException("No such user: " + userId); 
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
 		}
 		return Response.ok(userMapper.map(user)).build();
 	}

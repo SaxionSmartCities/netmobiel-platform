@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 
-import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
@@ -16,11 +15,11 @@ import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.communicator.api.MessagesApi;
 import eu.netmobiel.communicator.api.mapping.MessageMapper;
+import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
-import eu.netmobiel.communicator.model.CommunicatorUser;
-import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.communicator.service.CommunicatorUserManager;
+import eu.netmobiel.communicator.service.PublisherService;
 
 @ApplicationScoped
 public class MessagesResource implements MessagesApi {
@@ -31,9 +30,8 @@ public class MessagesResource implements MessagesApi {
     @Inject
     private PublisherService publisherService;
 
-    @EJB(name = "java:app/netmobiel-communicator-ejb/UserManager")
+	@Inject
     private CommunicatorUserManager userManager;
-
 
     @Override
 	public Response sendMessage(eu.netmobiel.communicator.api.model.Message msg) {

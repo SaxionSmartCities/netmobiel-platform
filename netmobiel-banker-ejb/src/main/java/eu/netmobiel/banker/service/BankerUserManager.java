@@ -4,7 +4,6 @@ import java.util.Optional;
 
 import javax.ejb.ConcurrencyManagement;
 import javax.ejb.ConcurrencyManagementType;
-import javax.ejb.ObjectNotFoundException;
 import javax.ejb.Singleton;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
@@ -13,6 +12,7 @@ import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.annotation.Created;
+import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.service.UserManager;
 import eu.netmobiel.commons.util.Logging;
 
@@ -45,11 +45,11 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
      * Retrieves a specific user and balance details. 
      * @param uid The id of the user.
      * @return A user object.
-     * @throws ObjectNotFoundException If the user does not exist.
+     * @throws FoundException If the user does not exist.
      */
-    public BankerUser getUserWithBalance(Long uid) throws ObjectNotFoundException {
+    public BankerUser getUserWithBalance(Long uid) throws NotFoundException {
     	return userDao.find(uid, userDao.createLoadHint(BankerUser.GRAPH_WITH_BALANCE))
-    			.orElseThrow(ObjectNotFoundException::new);
+    			.orElseThrow(() -> new NotFoundException("No such user: " + uid));
     }
 
 	@Override

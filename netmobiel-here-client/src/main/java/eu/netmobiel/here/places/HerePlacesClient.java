@@ -18,7 +18,6 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.here.places.model.AutosuggestMediaType;
-import eu.netmobiel.here.places.model.AutosuggestPlace;
 
 @ApplicationScoped
 public class HerePlacesClient {

@@ -21,7 +21,7 @@ public class UserResource implements UsersApi {
     @Inject
     private UserMapper mapper;
 
-   @Inject
+    @Inject
     private RideshareUserManager userManager;
 
     /**

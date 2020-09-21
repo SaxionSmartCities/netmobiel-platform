@@ -3,7 +3,6 @@ package eu.netmobiel.planner.api.resource;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
-import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
@@ -18,11 +17,11 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.planner.api.ShoutOutsApi;
 import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
-import eu.netmobiel.planner.model.PlannerUser;
-import eu.netmobiel.planner.service.TripPlanManager;
 import eu.netmobiel.planner.service.PlannerUserManager;
+import eu.netmobiel.planner.service.TripPlanManager;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @ApplicationScoped
@@ -39,7 +38,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
     @Inject
     private TripPlanManager tripPlanManager;
 
-    @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
+	@Inject
     private PlannerUserManager userManager;
 
     @Inject

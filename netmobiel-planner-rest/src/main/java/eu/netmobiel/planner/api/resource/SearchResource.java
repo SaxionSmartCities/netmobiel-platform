@@ -7,7 +7,6 @@ import java.util.HashSet;
 import java.util.Set;
 import java.util.stream.Collectors;
 
-import javax.ejb.EJB;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
@@ -18,15 +17,16 @@ import javax.ws.rs.core.SecurityContext;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.planner.api.SearchApi;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
 import eu.netmobiel.planner.model.PlanType;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
-import eu.netmobiel.planner.model.PlannerUser;
-import eu.netmobiel.planner.service.TripPlanManager;
 import eu.netmobiel.planner.service.PlannerUserManager;
+import eu.netmobiel.planner.service.TripPlanManager;
 
 @RequestScoped
 public class SearchResource implements SearchApi {
@@ -37,7 +37,7 @@ public class SearchResource implements SearchApi {
 	@Inject
     private TripPlanManager plannerManager;
 
-    @EJB(name = "java:app/netmobiel-planner-ejb/UserManager")
+	@Inject
     private PlannerUserManager userManager;
 
     @Inject
@@ -109,7 +109,7 @@ public class SearchResource implements SearchApi {
     		if (log.isDebugEnabled()) {
     			log.debug("Multimodal plan for " + traveller.getEmail() + ":\n" + plan.toString());
     		}
-		} catch (eu.netmobiel.commons.exception.BusinessException ex) {
+		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		} catch (IllegalArgumentException ex) {
 			throw new BadRequestException("Input parameter has unrecognized format", ex);

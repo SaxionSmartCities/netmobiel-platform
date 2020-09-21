@@ -3,7 +3,6 @@ package eu.netmobiel.banker.api.resource;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
-import javax.ejb.EJB;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
@@ -14,15 +13,15 @@ import eu.netmobiel.banker.api.AccountingEntriesApi;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
-import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.banker.service.BankerUserManager;
+import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 
 @ApplicationScoped
 public class AccountingEntriesResource implements AccountingEntriesApi {
 
-    @EJB(name = "java:app/netmobiel-banker-ejb/UserManager")
+	@Inject
     private BankerUserManager userManager;
 
 	@Inject
