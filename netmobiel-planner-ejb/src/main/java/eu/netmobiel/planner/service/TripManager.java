@@ -412,7 +412,7 @@ public class TripManager {
         	}
         	for (Leg leg : tripdb.getItinerary().getLegs()) {
         		if (leg.isConfirmationByProviderRequested() && (bookingRef == null || bookingRef.equals(leg.getBookingId()))) {
-	            	if (!overrideResponse && leg.getConfirmed() != null) {
+	            	if (!overrideResponse && leg.getConfirmedByProvider() != null) {
 	            		throw new BadRequestException("Leg has already a confirmation value by provider: " + leg.getId());
 	            	}
 	            	leg.setConfirmedByProvider(confirmationValue);
@@ -441,7 +441,6 @@ public class TripManager {
         	}
        	} else if (trip.getState() == TripState.CANCELLED) {
        		cancelTripTimers(trip);
-    		trip.setMonitored(false);
        	}
     	EventFireWrapper.fire(tripStateUpdatedEvent, new TripStateUpdatedEvent(previousState, trip));
     }
@@ -580,17 +579,9 @@ public class TripManager {
 		if (count > 0) {
 			log.debug(String.format("Cancel %d timers for trip %s", count, trip.getId()));
 		}
+		trip.setMonitored(false);
 	}
 	
-//	/**
-//	 * Called when the fares are paid and all is done.
-//	 * @param trip the trp to move to the completed state.
-//	 */
-//	public void markTripCompleted(Trip trip) {
-//		cancelTripTimers(trip);
-//		updateTripState(trip, TripState.COMPLETED);
-//	}
-
 	public void updateLegPaymentState(Trip trip, Leg leg, PaymentState newState, String paymentReference) throws BusinessException {
 		Trip tripdb = trip; 
 		if (!tripDao.contains(trip)) {
