@@ -135,13 +135,15 @@ public abstract class BankerIntegrationTestBase {
 		utx.begin();
 		em.joinTransaction();
 		log.debug("Dumping old records...");
+		em.createQuery("delete from CharityUserRole").executeUpdate();
+		em.createQuery("delete from Charity").executeUpdate();
 		em.createQuery("delete from AccountingEntry").executeUpdate();
 		em.createQuery("delete from AccountingTransaction").executeUpdate();
 		em.createQuery("delete from Balance").executeUpdate();
 		em.createQuery("delete from Account").executeUpdate();
 		em.createQuery("delete from Ledger").executeUpdate();
 		em.createQuery("delete from DepositRequest").executeUpdate();
-		em.createQuery("delete from User").executeUpdate();
+		em.createQuery("delete from BankerUser").executeUpdate();
 		utx.commit();
 	}
 

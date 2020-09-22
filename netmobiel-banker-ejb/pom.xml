@@ -159,6 +159,11 @@
         	<artifactId>jboss-transaction-api_1.2_spec</artifactId>
             <scope>provided</scope>
       	</dependency>
+<!--         <dependency> -->
+<!--             <groupId>org.hibernate</groupId> -->
+<!--             <artifactId>hibernate-core</artifactId> -->
+<!--             <scope>provided</scope> -->
+<!--         </dependency> -->
 
         <!-- Optional, but highly recommended -->
         <!-- Arquillian allows you to test enterprise code such as EJBs and Transactional(JTA)

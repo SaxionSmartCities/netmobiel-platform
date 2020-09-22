@@ -18,8 +18,8 @@ import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
-import eu.netmobiel.commons.model.User;
 import eu.netmobiel.commons.model.NetMobielUser;
+import eu.netmobiel.commons.model.User;
 
 @NamedEntityGraphs({
 	@NamedEntityGraph(
@@ -56,7 +56,7 @@ public class BankerUser extends User {
     @OneToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "personal_account", foreignKey = @ForeignKey(name = "user_personal_account_fk"))
     private Account personalAccount;
-    
+
     public BankerUser() {
     	super();
     }
