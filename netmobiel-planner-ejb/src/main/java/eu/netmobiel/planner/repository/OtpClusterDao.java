@@ -25,12 +25,12 @@ import com.vividsolutions.jts.geom.Geometry;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.GeoLocation_;
 import eu.netmobiel.commons.repository.AbstractDao;
+import eu.netmobiel.commons.repository.predicate.WithinPredicate;
 import eu.netmobiel.opentripplanner.api.model.TransportationType;
 import eu.netmobiel.planner.annotation.PlannerDatabase;
 import eu.netmobiel.planner.model.OtpCluster;
 import eu.netmobiel.planner.model.OtpCluster_;
 import eu.netmobiel.planner.model.TraverseMode;
-import eu.netmobiel.planner.repository.helper.WithinPredicate;
 
 @ApplicationScoped
 @Typed(OtpClusterDao.class)

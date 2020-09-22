@@ -22,7 +22,6 @@ import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.planner.Resources;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.repository.converter.PlanTypeConverter;
-import eu.netmobiel.planner.repository.helper.WithinPredicate;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 public abstract class PlannerIntegrationTestBase {
@@ -43,7 +42,6 @@ public abstract class PlannerIntegrationTestBase {
             .addAsLibraries(deps)
             .addPackage(PlannerUrnHelper.class.getPackage())
             .addPackages(true, PlanTypeConverter.class.getPackage())
-            .addPackages(true, WithinPredicate.class.getPackage())
             .addPackages(true, TripPlan.class.getPackage())
             .addPackages(true, AbstractDao.class.getPackage())
             .addPackages(true, Fixture.class.getPackage())

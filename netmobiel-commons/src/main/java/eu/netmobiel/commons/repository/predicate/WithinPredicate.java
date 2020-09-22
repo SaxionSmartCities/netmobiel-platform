@@ -1,4 +1,4 @@
-package eu.netmobiel.planner.repository.helper;
+package eu.netmobiel.commons.repository.predicate;
 
 import java.io.Serializable;
 

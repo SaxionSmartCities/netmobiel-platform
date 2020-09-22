@@ -24,13 +24,13 @@ import eu.netmobiel.commons.model.GeoLocation_;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.repository.AbstractDao;
+import eu.netmobiel.commons.repository.predicate.WithinPredicate;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.planner.annotation.PlannerDatabase;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripPlan_;
 import eu.netmobiel.planner.model.PlannerUser;
-import eu.netmobiel.planner.repository.helper.WithinPredicate;
 
 @ApplicationScoped
 @Typed(TripPlanDao.class)
