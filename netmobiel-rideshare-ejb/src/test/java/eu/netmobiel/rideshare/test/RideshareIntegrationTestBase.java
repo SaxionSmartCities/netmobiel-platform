@@ -141,7 +141,7 @@ public abstract class RideshareIntegrationTestBase {
 		em.createQuery("delete from Ride").executeUpdate();
 		em.createQuery("delete from RideTemplate").executeUpdate();
 		em.createQuery("delete from Car").executeUpdate();
-		em.createQuery("delete from User").executeUpdate();
+		em.createQuery("delete from RideshareUser").executeUpdate();
 		utx.commit();
 	}
 

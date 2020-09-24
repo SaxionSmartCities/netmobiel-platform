@@ -136,7 +136,7 @@ public abstract class PlannerIntegrationTestBase {
 		em.createQuery("delete from Itinerary").executeUpdate();
 		em.createQuery("delete from PlannerReport").executeUpdate();
 		em.createQuery("delete from TripPlan").executeUpdate();
-		em.createQuery("delete from User").executeUpdate();
+		em.createQuery("delete from PlannerUser").executeUpdate();
 		utx.commit();
 	}
 

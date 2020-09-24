@@ -24,13 +24,12 @@ import eu.netmobiel.commons.model.GeoLocation_;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.repository.AbstractDao;
-import eu.netmobiel.commons.repository.predicate.WithinPredicate;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.planner.annotation.PlannerDatabase;
 import eu.netmobiel.planner.model.PlanType;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripPlan_;
-import eu.netmobiel.planner.model.PlannerUser;
 
 @ApplicationScoped
 @Typed(TripPlanDao.class)
@@ -122,13 +121,13 @@ public class TripPlanDao extends AbstractDao<TripPlan, Long> {
         predicates.add(cb.isNull(plan.get(TripPlan_.requestDuration)));
         // Either departure or arrival location must be within the small circle
         predicates.add(cb.or(
-        		new WithinPredicate(cb, plan.get(TripPlan_.from).get(GeoLocation_.point), deparrCircle),
-        		new WithinPredicate(cb, plan.get(TripPlan_.to).get(GeoLocation_.point), deparrCircle)
+        		cb.isTrue(cb.function("st_within", Boolean.class, plan.get(TripPlan_.from).get(GeoLocation_.point), cb.literal(deparrCircle))),
+        		cb.isTrue(cb.function("st_within", Boolean.class, plan.get(TripPlan_.to).get(GeoLocation_.point), cb.literal(deparrCircle)))
         ));
         // Both departure and arrival location must be within the large circle.
         predicates.add(cb.and(
-        		new WithinPredicate(cb, plan.get(TripPlan_.from).get(GeoLocation_.point), travelCircle),
-        		new WithinPredicate(cb, plan.get(TripPlan_.to).get(GeoLocation_.point), travelCircle)
+        		cb.isTrue(cb.function("st_within", Boolean.class, plan.get(TripPlan_.from).get(GeoLocation_.point), cb.literal(travelCircle))),
+        		cb.isTrue(cb.function("st_within", Boolean.class, plan.get(TripPlan_.to).get(GeoLocation_.point), cb.literal(travelCircle)))
         ));
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;
