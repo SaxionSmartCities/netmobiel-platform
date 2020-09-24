@@ -122,9 +122,9 @@ public class AccountingEntryDaoIT {
     	em.persist(user1);
     	em.persist(user2);
     	em.persist(user3);
-    	account1 = Fixture.createAccount("account-1", "account-1", AccountType.LIABILITY);
-    	account2 = Fixture.createAccount("account-2", "account-2", AccountType.LIABILITY); 
-    	account3 = Fixture.createAccount("account-3", "account-3", AccountType.LIABILITY); 
+    	account1 = Account.newInstant("account-1", "account-1", AccountType.LIABILITY);
+    	account2 = Account.newInstant("account-2", "account-2", AccountType.LIABILITY); 
+    	account3 = Account.newInstant("account-3", "account-3", AccountType.LIABILITY); 
         em.persist(account1);
         em.persist(account2);
         em.persist(account3);

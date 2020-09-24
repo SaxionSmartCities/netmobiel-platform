@@ -24,6 +24,7 @@ import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.repository.AccountDao;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.repository.AbstractDao;
+import eu.netmobiel.commons.util.ExceptionUtil;
 
 public abstract class BankerIntegrationTestBase {
 	protected static final String SECURITY_DOMAIN  = "other";
@@ -69,6 +70,8 @@ public abstract class BankerIntegrationTestBase {
     protected LoginContext loginContextDriver;
     protected LoginContext loginContextPassenger;
   
+    private boolean expectFailure;
+    
     public boolean isSecurityRequired() {
     	return false;
     }
@@ -85,6 +88,7 @@ public abstract class BankerIntegrationTestBase {
 
 	@Before
 	public void prepareTest() throws Exception {
+		expectFailure = false;
 		if (isSecurityRequired()) {
 			prepareSecurity();
 		}
@@ -92,13 +96,24 @@ public abstract class BankerIntegrationTestBase {
 		prepareData();
 		startTransaction();
 	}
-
+	
 	@After
 	public void finishTest() throws Exception {
-		commitTransaction();
-		if (isSecurityRequired()) {
-			finishSecurity();
+		try {
+			if (!expectFailure) {
+				commitTransaction();
+			}
+			if (isSecurityRequired()) {
+				finishSecurity();
+			}
+		} catch (Exception ex) {
+			log.error(String.join("\n", ExceptionUtil.unwindException(ex)));
+			throw ex;	
 		}
+	}
+
+	public void expectFailure() {
+		this.expectFailure = true;
 	}
 
 	protected void commitTransaction() throws Exception {

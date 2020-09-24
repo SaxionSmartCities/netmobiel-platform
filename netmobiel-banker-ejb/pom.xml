@@ -84,6 +84,12 @@
             <artifactId>hibernate-validator-annotation-processor</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!--  Hibernate spatial extensions -->
+		<dependency>
+		    <groupId>org.hibernate</groupId>
+		    <artifactId>hibernate-spatial</artifactId>
+		    <scope>provided</scope>
+		</dependency>
 		<!--  Bean validation -->
 		<dependency>
 	        <groupId>javax.validation</groupId>

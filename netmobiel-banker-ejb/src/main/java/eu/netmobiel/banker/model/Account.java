@@ -125,12 +125,23 @@ public class Account {
     	acc.ncan = aReference;
     	acc.name = aName;
     	acc.accountType = aType;
+        return newInstant(aReference, aName, aType, null);
+    }
+
+    public static Account newInstant(String aReference, String aName, AccountType aType, Instant aCreatedTime) {
+    	Account acc = new Account();
+    	acc.ncan = aReference;
+    	acc.name = aName;
+    	acc.accountType = aType;
+    	acc.createdTime = aCreatedTime;
         return acc;
     }
 
     @PrePersist
     void onPersist() {
-        this.createdTime = Instant.now();
+    	if (this.createdTime == null) {
+    		this.createdTime = Instant.now();
+    	}
     }
 
     public Long getId() {

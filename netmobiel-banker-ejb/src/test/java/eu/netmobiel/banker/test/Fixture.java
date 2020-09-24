@@ -10,10 +10,20 @@ import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.representations.AccessToken;
 
 import eu.netmobiel.banker.model.Account;
-import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.BankerUser;
+import eu.netmobiel.banker.model.Charity;
+import eu.netmobiel.commons.model.GeoLocation;
 
 public class Fixture {
+
+	public static final GeoLocation placeHengeloStation = GeoLocation.fromString("Hengelo NS Station::52.260977,6.7931087");// Bij metropool
+	public static final GeoLocation placeZieuwent = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+	public static final GeoLocation placeSlingeland = GeoLocation.fromString("Slingeland hoofdingang::51.976426,6.285741");
+	public static final GeoLocation placeRaboZutphen = GeoLocation.fromString("Rabobank Zutphen::52.148125, 6.196966");
+	public static final GeoLocation placeRozenkwekerijZutphen = GeoLocation.fromString("Hoveniersweg 9-5 Zutphen::52.146734,6.174644");
+	public static final GeoLocation placeZieuwentRKKerk = GeoLocation.fromString("Zieuwent, R.K. Kerk::52.004485,6.519542");
+	public static final GeoLocation placeThuisLichtenvoorde  = GeoLocation.fromString("Rapenburgsestraat Lichtenvoorde::51.987757,6.564012");
+	public static final GeoLocation placeCentrumDoetinchem = GeoLocation.fromString("Catharina Parkeergarage Doetinchem::51.9670528,6.2894002");
 
 	private Fixture() {
 		// No instances allowed
@@ -55,12 +65,14 @@ public class Fixture {
 		return createUser("IP2", "Simon2", "Netmobiel", null);
 	}
 
-    public static Account createAccount(String ncan, String name, AccountType type) {
-    	Account acc = new Account();
-    	acc.setAccountType(type);
-    	acc.setName(name);
-    	acc.setNcan(ncan);
-    	return acc;
-    }
-    
+	public static Charity createCharity(Account account, String description, int donatedAmount, int goalAmount, GeoLocation location, String pictureUrl) {
+		Charity ch = new Charity();
+    	ch.setAccount(account);
+    	ch.setDescription(description);
+    	ch.setDonatedAmount(donatedAmount);
+    	ch.setGoalAmount(goalAmount);
+    	ch.setLocation(location);
+    	ch.setPictureUrl(pictureUrl);
+    	return ch;
+	}
 }

@@ -121,7 +121,7 @@ public class AccountDaoIT {
     
     @Test
     public void saveAccount() {
-		Account account = Fixture.createAccount("account-1", "Acc 1", AccountType.LIABILITY);
+		Account account = Account.newInstant("account-1", "Acc 1", AccountType.LIABILITY);
     	accountDao.save(account);
     	List<Account> actual = accountDao.findAll();
     	assertNotNull(actual);
@@ -132,7 +132,7 @@ public class AccountDaoIT {
     @Test
     public void findByReference() {
     	final String accref = "account-1"; 
-		Account account= Fixture.createAccount(accref, "U1", AccountType.LIABILITY);
+		Account account= Account.newInstant(accref, "U1", AccountType.LIABILITY);
     	accountDao.save(account);
     	Account actual = accountDao.findByAccountNumber(accref).orElse(null);
     	assertNotNull(actual);
@@ -153,8 +153,8 @@ public class AccountDaoIT {
     	String name2 = "Account 2";
     	final String accref1 = "account-1"; 
     	final String accref2 = "account-2"; 
-    	accountDao.save(Fixture.createAccount(accref1, name1, AccountType.LIABILITY));
-    	accountDao.save(Fixture.createAccount(accref2, name2, AccountType.LIABILITY));
+    	accountDao.save(Account.newInstant(accref1, name1, AccountType.LIABILITY));
+    	accountDao.save(Account.newInstant(accref2, name2, AccountType.LIABILITY));
     	PagedResult<Long> actual = accountDao.listAccounts(null, 0, 0);
     	assertNotNull(actual);
     	assertEquals(0, actual.getCount());

@@ -4,13 +4,13 @@ create extension IF NOT EXISTS postgis_topology;
 
 CREATE TABLE public.charity (
     id bigint NOT NULL,
-    description character varying(256) NOT NULL,
-    picture_url character varying(256) NOT NULL,
+    description character varying(256),
+    picture_url character varying(256),
     goal_amount integer NOT NULL,
     donated_amount integer NOT NULL,
     account bigint NOT NULL,
-    label character varying(128),
-    point public.geometry
+    label character varying(128) NOT NULL,
+    point public.geometry NOT NULL
 );
 
 ALTER TABLE public.charity OWNER TO banker;
@@ -29,7 +29,8 @@ ALTER TABLE ONLY public.charity
 ;
 
 ALTER TABLE ONLY public.charity
-    ADD CONSTRAINT charity_account_fk FOREIGN KEY (account) REFERENCES public.account(id)
+    ADD CONSTRAINT charity_account_fk FOREIGN KEY (account) REFERENCES public.account(id),
+    ADD CONSTRAINT cs_charity_account_unique UNIQUE (account)
 ;
 
 CREATE TABLE public.charity_user_role (
@@ -37,7 +38,7 @@ CREATE TABLE public.charity_user_role (
 	charity bigint NOT NULL,
     created_time timestamp without time zone NOT NULL,
     modified_time timestamp without time zone NOT NULL,
-    role character varying(1)
+    role character varying(1) NOT NULL
 );
 
 ALTER TABLE ONLY public.charity_user_role

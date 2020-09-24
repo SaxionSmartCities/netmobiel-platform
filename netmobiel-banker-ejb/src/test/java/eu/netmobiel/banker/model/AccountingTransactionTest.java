@@ -9,7 +9,6 @@ import org.junit.Before;
 import org.junit.Test;
 
 import eu.netmobiel.banker.exception.BalanceInsufficientException;
-import eu.netmobiel.banker.test.Fixture;
 
 public class AccountingTransactionTest {
 
@@ -32,10 +31,10 @@ public class AccountingTransactionTest {
         BankerUser user1 = new BankerUser("U1", "A", "Family U1", null);
         BankerUser user2 = new BankerUser("U2", "B", "Family U2", null);
         BankerUser user3 = new BankerUser("U3", "C", "Family U3", null);
-    	account1 = Fixture.createAccount("account-1", user1.createAccountName(), AccountType.LIABILITY);
-    	account2 = Fixture.createAccount("account-2", user2.createAccountName(), AccountType.LIABILITY); 
-    	account3 = Fixture.createAccount("account-3", user3.createAccountName(), AccountType.LIABILITY); 
-    	assetAccount = Fixture.createAccount("bank", "Bank", AccountType.ASSET); 
+    	account1 = Account.newInstant("account-1", user1.createAccountName(), AccountType.LIABILITY);
+    	account2 = Account.newInstant("account-2", user2.createAccountName(), AccountType.LIABILITY); 
+    	account3 = Account.newInstant("account-3", user3.createAccountName(), AccountType.LIABILITY); 
+    	assetAccount = Account.newInstant("bank", "Bank", AccountType.ASSET); 
         balance1 = new Balance(ledger, account1, 100); 
         balance2 = new Balance(ledger, account2, 200); 
         balance3 = new Balance(ledger, account3, 0); 

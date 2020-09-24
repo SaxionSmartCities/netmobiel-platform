@@ -5,6 +5,8 @@ import java.util.Iterator;
 import java.util.List;
 
 import javax.enterprise.inject.Vetoed;
+import javax.persistence.AttributeOverride;
+import javax.persistence.AttributeOverrides;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
@@ -19,6 +21,7 @@ import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 
@@ -68,28 +71,33 @@ public class Charity extends ReferableObject {
 	/**
 	 * Place of the charity.
 	 */
-    @Embedded
+	@NotNull
+	@Embedded
+    @AttributeOverrides({ 
+    	@AttributeOverride(name = "label", column = @Column(name = "label", nullable = false, length = GeoLocation.MAX_LABEL_LENGTH)), 
+    	@AttributeOverride(name = "point", column = @Column(name = "point", nullable = false)), 
+   	} )
     private GeoLocation location;
 
     /**
      * The donation goal of this charity.
      */
     @PositiveOrZero
-    @Column(name = "goal_amount")
+    @Column(name = "goal_amount", nullable = false)
     private int goalAmount;
 
     /**
      * The total sum of all donations. Should be in the end the sum of all withdrawals from the charity account. 
      */
     @PositiveOrZero
-    @Column(name = "donated_amount")
+    @Column(name = "donated_amount", nullable = false)
     private int donatedAmount;
     
     /**
      * Reference to the account of the charity. This is a one to one relation.
      */
     @OneToOne(fetch = FetchType.EAGER)
-    @JoinColumn(name = "account", foreignKey = @ForeignKey(name = "charity_account_fk"))
+    @JoinColumn(name = "account", nullable = false, foreignKey = @ForeignKey(name = "charity_account_fk"))
     private Account account;
     
     /**
