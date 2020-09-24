@@ -265,7 +265,7 @@ paths:
       security:
       - Bearer-only: []
         apikey: []
-      operationId: listStatements
+      operationId: listUserStatements
       summary: List Statement entries.
       description: "Gets a paged list of  `Statement` entities. The statements are\
         \ sorted on accounting time descending.\n\nThe administrator can request statements\
@@ -312,6 +312,238 @@ paths:
         payment provider. This method can be used as webhook for the EMS Pay payment
         provider. No security restrictions apply. Once the status is either expired
         or completed, it will not change anymore.
+  /charities/{charityId}:
+    summary: Path used to manage a single Charity.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Charity`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Charity'
+          description: Successful response - returns a single `Charity`.
+      operationId: getCharity
+      summary: Get a Charity
+      description: 'Gets the details of a single instance of a `Charity`. '
+    put:
+      requestBody:
+        description: Updated `Charity` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Charity'
+        required: true
+      responses:
+        "202":
+          description: Successful response.
+      operationId: updateCharity
+      summary: Update a Charity
+      description: |-
+        Updates an existing `Charity`. Only the following fields can be updated: description, name, location, goalAmount, imageUrl.
+        Only the admin role or the Charity Manager can make changes.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: closeCharity
+      summary: Closes a Charity
+      description: Closes an existing `Charity`. A `Charity` is never deleted. The
+        charity gets as close time the time of the call assigned. Only the admin or
+        the Charity Manager can close an Charity.
+    parameters:
+    - name: charityId
+      description: A unique identifier for a `Charity`. Allowed are the database id
+        or a Charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities:
+    summary: Path used to manage the list of charities.
+    description: The REST endpoint/path used to list and create zero or more `Charity`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - examples:
+          Location:
+            value: 51.987757,6.564012
+        name: location
+        description: A location consisting of a pair of latitude, longitude coordinates
+          actinbg as the center of a circle to search in for charities.
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing of
+          charities. The `until` date must be after the `since` parameter. Default
+          is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: closedToo
+        description: Set this flag to 'true' if closed charities should be returned
+          as well. Default is false.
+        schema:
+          type: boolean
+        in: query
+      - name: sortBy
+        description: The field to sort on. Choose one of `DATE`, `DISTANCE`, `NAME`
+          (default).
+        schema:
+          enum:
+          - DATE
+          - DISTANCE
+          - NAME
+          type: string
+        in: query
+        required: false
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC, default)\
+          \ or descending (DESC)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns `Page` with `Charity` entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: getCharities
+      summary: List All charities
+      description: Gets a list of all `Charity` entities.
+    post:
+      requestBody:
+        description: A new `Charity` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Charity'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+      operationId: createCharity
+      summary: Create a Charity
+      description: Creates a new instance of a `Charity`.
+  /charities/{charityId}/statements:
+    summary: Path used to manage the list of statements for a charity.
+    description: The REST endpoint/path used to list zero or more `Statement` entities.  This
+      path contains a `GET` operation to perform the list task. A Statement reports
+      on a credit transaction for this charity.
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The maximum lookback date of the listing. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: 'The date of the latest entry to retrieve. The `until` date must
+          be after the `since` parameter. Default is not set, meaning all entries
+          from now and before. '
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Statement` entities.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: listCharityStatements
+      summary: List Statement entries.
+      description: "Gets a paged list of  `Statement` entities. The statements are\
+        \ sorted on accounting time descending.\nThe administrator can request statements\
+        \ owned by any charity. \n"
+    parameters:
+    - name: charityId
+      description: The charity id to use. Specify a charity id or a charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/{charityId}/donations:
+    summary: Path used to manage the donations to a charity.
+    description: The REST endpoint/path used to make a donation to a `Charity`. This
+      path contains a `POST` operation to perform the donation task.
+    post:
+      responses:
+        "201":
+          description: The donation was successfull.
+        "402":
+          description: The balance of the user was insufficient for performing the
+            donation.
+      operationId: postDonation
+      summary: Post a donation.
+      description: 'Donates an amount of credits to a `Charity`. The credits are debited
+        from the calling user''s balance. '
+    parameters:
+    - name: charityId
+      description: The charity id to use. Specify a charity id or a charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
@@ -454,6 +686,7 @@ components:
       properties:
         exchangeRate:
           format: int32
+          description: The value of one euro in NetMobiel credits.
           type: integer
       example:
         exchangeRate: 19
@@ -575,6 +808,27 @@ components:
         transactionType: PAYMENT
         context: urn:nb:rs:Booking:53
         counterparty: Jan Jansen
+    Location:
+      title: Root Type for Place
+      description: A location on a map, comprising of a GPS coordinate and optional
+        a descriptional label for human display.
+      type: object
+      properties:
+        latitude:
+          format: double
+          description: The latitude of this place.
+          type: number
+        longitude:
+          format: double
+          description: The longitude of this place.
+          type: number
+        label:
+          description: A descriptive label of the place.
+          type: string
+      example:
+        latitude: 52.004166
+        longitude: 6.517835
+        label: Zieuwent,Kennedystraat
     DepositRequest:
       title: Root Type for Deposit
       description: Object for making a deposit to the Netmobiel system, converting
@@ -598,6 +852,143 @@ components:
         description: Koop credits
         amountCredits: 100
         returnUrl: app://netmobielapp/payment-done
+    Charity:
+      title: Root Type for Charity
+      description: A charity is some noble purpose in need of funding. NetMobiel users
+        can donate credits to a charity of their choice.
+      required:
+      - location
+      - goalAmount
+      - donatedAmount
+      - createdTime
+      - name
+      - roles
+      type: object
+      properties:
+        name:
+          description: The short display name of the charity.
+          type: string
+        location:
+          $ref: '#/components/schemas/Location'
+          description: The location (in GPS coordinates) and the label for the place
+            where the charity resides.
+          properties:
+            label:
+              type: string
+            latitude:
+              format: double
+              type: number
+            longitude:
+              format: double
+              type: number
+        createdTime:
+          format: date-time
+          description: The time and date the charity is opened.
+          type: string
+        closedTime:
+          format: date-time
+          description: The date and time the charity was closed. Close time must be
+            after creation time. A closed charity does no longer accept donations.
+          type: string
+        goalAmount:
+          format: int32
+          description: The ultimate amount of credits this charity has set as a goal.
+          type: integer
+        donatedAmount:
+          format: int32
+          description: The total amount of donations to this charity.
+          type: integer
+        imageUrl:
+          description: The url to an image todisplay along the desription of the charity.
+          type: string
+        description:
+          description: A short description to explain the goal of the charity to the
+            potential donors.
+          type: string
+        roles:
+          description: An array of roles have rights to view or administer the charity.
+            Anyone can read the charity's attributes, but financial statements are
+            limite to these roles. Only a manager can make changes.
+          type: array
+          items:
+            $ref: '#/components/schemas/CharityUserRole'
+        reference:
+          description: The urn of this charity.
+          type: string
+        id:
+          description: The database id of this charity.
+          type: integer
+        balanceAmount:
+          description: The amount of credits on the balance. This is by definition
+            smaller or equal to the total amount of donations. This attribute is only
+            visible for users having a role in the charity or the admin.
+          type: integer
+      example:
+        name: R.K. Kerk Deuren
+        location:
+          label: Zieuwent R.K. Kerk
+          latitude: 52.004485
+          longitude: 6.519542
+        createdTime: 2020-05-01T12:00:00Z
+        closedTime: 2020-08-31T00:00:00Z
+        goalAmount: 10000
+        donatedAmount: 2478
+        imageUrl: some/image.jpg
+        description: Schilderen van de grote deuren
+        roles:
+        - role: MANAGER
+          user:
+            email: pieter@oostgelre.nl
+            givenName: Pieter
+            familyName: Oude Zijlink
+            managedIdentity: 1234-5678-aabb
+            id: 1034
+    CharityUserRole:
+      title: Root Type for CharityUserRole
+      description: Defines the role of a user with respect to the charity.
+      required:
+      - role
+      - user
+      type: object
+      properties:
+        role:
+          description: The role for the user for a particular charity.
+          enum:
+          - VIEWER
+          - MANAGER
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+          description: The user possessing the role for the charity.
+          properties:
+            givenName:
+              type: string
+            familyName:
+              type: string
+      example:
+        role: MANAGER
+        user:
+          givenName: Pieter
+          familyName: Oude Zijlink
+    Donation:
+      title: Root Type for Donation
+      description: Definition of a donation to a `Charity`.
+      type: object
+      properties:
+        amount:
+          format: int32
+          description: The amount of credits to donate.
+          type: integer
+        description:
+          description: A short description that will appear on the statement.
+          type: string
+        anonymous:
+          description: 'If true then the donor wants to stay anonymous. '
+          type: boolean
+      example:
+        amount: 100
+        description: Succes met de inzameling
+        anonymous: false
   responses:
     InternalServerError:
       content:
@@ -645,6 +1036,13 @@ components:
             $ref: '#/components/schemas/Error'
       description: The request was understood, but in incomplete or invalid and cannot
         be processed (400).
+    PaymentRequested:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: A payment is requested, i.e. balance (in credits) is insufficient
+        for a payment.
   securitySchemes:
     apikey:
       type: apiKey
