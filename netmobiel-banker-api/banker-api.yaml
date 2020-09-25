@@ -373,7 +373,8 @@ paths:
             value: 51.987757,6.564012
         name: location
         description: A location consisting of a pair of latitude, longitude coordinates
-          actinbg as the center of a circle to search in for charities.
+          acting as the center of a circle to search in for charities. Specify the
+          radius parameter as well.
         schema:
           type: string
         in: query
@@ -432,6 +433,12 @@ paths:
         in: query
       - name: offset
         description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      - name: radius
+        description: The radius in meters of the circle around the location point
+          to find charities in.
         schema:
           type: integer
         in: query
