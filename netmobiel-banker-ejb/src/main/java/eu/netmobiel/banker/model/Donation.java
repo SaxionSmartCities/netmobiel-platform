@@ -65,7 +65,7 @@ public class Donation extends ReferableObject {
      * Reference to the account of the charity. This is a one to one relation.
      */
     @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user", nullable = false, foreignKey = @ForeignKey(name = "donation_user_fk"))
+    @JoinColumn(name = "bn_user", nullable = false, foreignKey = @ForeignKey(name = "donation_user_fk"))
     private BankerUser user;
 
     /**
