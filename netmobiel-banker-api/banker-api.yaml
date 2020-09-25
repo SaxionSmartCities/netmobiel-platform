@@ -342,7 +342,7 @@ paths:
       operationId: updateCharity
       summary: Update a Charity
       description: |-
-        Updates an existing `Charity`. Only the following fields can be updated: description, name, location, goalAmount, imageUrl.
+        Updates an existing `Charity`. Only the following fields can be updated: campaignStartTime, campaignEndTIme, description, name, location, goalAmount, imageUrl.
         Only the admin role or the Charity Manager can make changes.
     delete:
       responses:
@@ -350,9 +350,9 @@ paths:
           description: Successful response.
       operationId: closeCharity
       summary: Closes a Charity
-      description: Closes an existing `Charity`. A `Charity` is never deleted. The
-        charity gets as close time the time of the call assigned. Only the admin or
-        the Charity Manager can close an Charity.
+      description: Stops the campaigning of the `Charity`. A `Charity` is never deleted.
+        The charity gets as campaign end time the time of the request assigned. Only
+        the admin or the Charity Manager can modify a Charity.
     parameters:
     - name: charityId
       description: A unique identifier for a `Charity`. Allowed are the database id
@@ -587,6 +587,37 @@ paths:
       required: true
     - name: entryId
       description: The statement id.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/{charityId}/donations/{donationId}:
+    summary: Path used to manage a single Statement.
+    description: The REST endpoint/path used to get a single instances of a `Statement`.  This
+      path contains a `GET` operation used to perform the get task.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statement'
+          description: A single `Donation` object.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getDonation
+      summary: Retrieves a specific donation.
+      description: Gets the details of a single `Donation`.
+    parameters:
+    - name: charityId
+      description: |
+        The charity id to use. Specify a id, or a charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: donationId
+      description: The id of the donation.
       schema:
         type: string
       in: path
@@ -1033,6 +1064,10 @@ components:
         anonymous:
           description: 'If true then the donor wants to stay anonymous. '
           type: boolean
+        donationTime:
+          format: date-time
+          description: The date and time of the donation.
+          type: string
       example:
         amount: 100
         description: Succes met de inzameling
