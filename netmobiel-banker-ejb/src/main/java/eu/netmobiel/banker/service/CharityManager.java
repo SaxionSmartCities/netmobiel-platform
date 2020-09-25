@@ -14,6 +14,7 @@ import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.model.CharityUserRoleType;
 import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.model.SettlementOrder;
+import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.repository.CharityDao;
 import eu.netmobiel.banker.repository.DonationDao;
 import eu.netmobiel.commons.annotation.Created;
@@ -43,6 +44,9 @@ public class CharityManager {
 	@Inject
 	private DonationDao donationDao;
 	
+	@Inject
+	private BankerUserDao userDao;
+
 	@Inject @Created
     private Event<Charity> charityCreatedEvent;
 
@@ -104,13 +108,13 @@ public class CharityManager {
     }
 
     /**
-     * Retrieves a charity. Anyone can read a charity, given the id. The amount of details depends on the caller.
+     * Retrieves a charity, including the roles. Anyone can read a charity, given the id. The amount of details depends on the caller.
      * @param id the charity id
      * @return a charity object
      * @throws NotFoundException No matching charity found.
      */
     public Charity getCharity(Long id) throws NotFoundException {
-    	Charity charitydb = charityDao.loadGraph(id, Charity.LIST_ENTITY_GRAPH)
+    	Charity charitydb = charityDao.loadGraph(id, Charity.LIST_ROLES_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such charity: " + id));
     	return charitydb;
     }
@@ -139,12 +143,15 @@ public class CharityManager {
      * @param charity the charity to create.
      * @return the id of the new charity object.
      * @throws BadRequestException 
+     * @throws NotFoundException 
      */
-    public Long createCharity(BankerUser user, Charity charity) throws BadRequestException {
+    public Long createCharity(BankerUser user, Charity charity) throws BadRequestException, NotFoundException {
     	validateCharityInput(charity, false);
     	// Synchronous event to create an account
+    	BankerUser userdb = userDao.find(user.getId())
+    			.orElseThrow(() -> new NotFoundException("No such user: " + user.getId()));
     	charityCreatedEvent.fire(charity);
-    	charity.addUserRole(user, CharityUserRoleType.MANAGER);
+    	charity.addUserRole(userdb, CharityUserRoleType.MANAGER);
     	charityDao.save(charity);
     	return charity.getId();
     }

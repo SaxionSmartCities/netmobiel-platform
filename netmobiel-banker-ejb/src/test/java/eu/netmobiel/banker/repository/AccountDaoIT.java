@@ -27,6 +27,7 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
 import eu.netmobiel.banker.Resources;
+import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.repository.converter.InstantConverter;
@@ -48,6 +49,7 @@ public class AccountDaoIT {
         WebArchive archive = ShrinkWrap.create(WebArchive.class, "test.war")
                 .addAsLibraries(deps)
                 .addPackages(true, BankerUrnHelper.class.getPackage())
+                .addPackages(true, BalanceInsufficientException.class.getPackage())
                 .addPackages(true, Account.class.getPackage())
                 .addPackages(true, AbstractDao.class.getPackage())
                 .addPackages(true, InstantConverter.class.getPackage())

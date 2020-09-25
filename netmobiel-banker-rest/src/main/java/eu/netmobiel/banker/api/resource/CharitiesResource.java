@@ -64,7 +64,7 @@ public class CharitiesResource implements CharitiesApi {
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
-		return Response.ok(charityMapper.map(charity)).build();
+		return Response.ok(charityMapper.mapWithRoles(charity)).build();
 	}
 
 	@Override
@@ -109,10 +109,11 @@ public class CharitiesResource implements CharitiesApi {
 		try {
 			SortDirection sortDirEnum = sortDir == null ? SortDirection.ASC : SortDirection.valueOf(sortDir);
 			CharitySortBy sortByEnum = sortBy == null ? CharitySortBy.NAME : CharitySortBy.valueOf(sortBy);
+			GeoLocation centerLocation = location == null ? null : GeoLocation.fromString(location);
 			boolean adminView = request.isUserInRole("admin");
-	    	PagedResult<Charity> results = charityManager.findCharities(null, GeoLocation.fromString(location), 
+	    	PagedResult<Charity> results = charityManager.findCharities(null, centerLocation, 
 	    			radius, si, ui, closedToo, sortByEnum, sortDirEnum, adminView, maxResults, offset);
-			rsp = Response.ok(pageMapper.mapCharities(results)).build();
+			rsp = Response.ok(adminView ? pageMapper.mapCharitiesWithRoles(results) : pageMapper.mapCharities(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {

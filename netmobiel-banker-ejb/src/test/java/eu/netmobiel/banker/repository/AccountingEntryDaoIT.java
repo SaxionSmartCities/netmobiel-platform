@@ -58,6 +58,7 @@ public class AccountingEntryDaoIT {
         WebArchive archive = ShrinkWrap.create(WebArchive.class, "test.war")
                 .addAsLibraries(deps)
                 .addPackages(true, BankerUrnHelper.class.getPackage())
+                .addPackages(true, BalanceInsufficientException.class.getPackage())
                 .addPackages(true, Account.class.getPackage())
                 .addPackages(true, AbstractDao.class.getPackage())
                 .addPackages(true, InstantConverter.class.getPackage())
@@ -106,7 +107,7 @@ public class AccountingEntryDaoIT {
         em.createQuery("delete from Balance").executeUpdate();
         em.createQuery("delete from Account").executeUpdate();
         em.createQuery("delete from Ledger").executeUpdate();
-        em.createQuery("delete from User").executeUpdate();
+        em.createQuery("delete from BankerUser").executeUpdate();
         utx.commit();
     }
 

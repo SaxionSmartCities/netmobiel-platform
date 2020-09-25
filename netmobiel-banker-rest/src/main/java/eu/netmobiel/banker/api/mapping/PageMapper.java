@@ -5,7 +5,9 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 import eu.netmobiel.banker.api.mapping.annotation.AccountingEntryMapperQualifier;
+import eu.netmobiel.banker.api.mapping.annotation.CharityDetails;
 import eu.netmobiel.banker.api.mapping.annotation.CharityMapperQualifier;
+import eu.netmobiel.banker.api.mapping.annotation.CharityWithRoleDetails;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.commons.model.PagedResult;
@@ -19,10 +21,13 @@ import eu.netmobiel.commons.model.PagedResult;
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
 		uses = { AccountingEntryMapper.class, CharityMapper.class })
-public abstract class PageMapper {
+public interface PageMapper {
 	@Mapping(target = "data", source = "data", qualifiedBy = { AccountingEntryMapperQualifier.class } )
-	public abstract eu.netmobiel.banker.api.model.Page mapAccountingEntries(PagedResult<AccountingEntry> source);
+	eu.netmobiel.banker.api.model.Page mapAccountingEntries(PagedResult<AccountingEntry> source);
 
-	@Mapping(target = "data", source = "data", qualifiedBy = { CharityMapperQualifier.class } )
-	public abstract eu.netmobiel.banker.api.model.Page mapCharities(PagedResult<Charity> source);
+	@Mapping(target = "data", source = "data", qualifiedBy = { CharityMapperQualifier.class, CharityWithRoleDetails.class } )
+	eu.netmobiel.banker.api.model.Page mapCharitiesWithRoles(PagedResult<Charity> source);
+
+	@Mapping(target = "data", source = "data", qualifiedBy = { CharityMapperQualifier.class, CharityDetails.class } )
+	eu.netmobiel.banker.api.model.Page mapCharities(PagedResult<Charity> source);
 }

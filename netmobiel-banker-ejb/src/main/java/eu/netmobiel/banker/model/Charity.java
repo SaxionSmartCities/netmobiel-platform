@@ -48,16 +48,28 @@ import eu.netmobiel.commons.model.ReferableObject;
 	@NamedEntityGraph(
 			name = Charity.LIST_ENTITY_GRAPH, 
 			attributeNodes = { 
-					@NamedAttributeNode(value = "account")		
+					@NamedAttributeNode(value = "account", subgraph = "subgraph.account")		
 			}, subgraphs = {
+					@NamedSubgraph(
+							name = "subgraph.account",
+							attributeNodes = {
+									@NamedAttributeNode(value = "actualBalance")
+							}
+					)
 			}
 	),
 	@NamedEntityGraph(
 			name = Charity.LIST_ROLES_ENTITY_GRAPH, 
 			attributeNodes = { 
-					@NamedAttributeNode(value = "account"),		
+					@NamedAttributeNode(value = "account", subgraph = "subgraph.account"),		
 					@NamedAttributeNode(value = "roles", subgraph = "subgraph.roles")		
 			}, subgraphs = {
+					@NamedSubgraph(
+							name = "subgraph.account",
+							attributeNodes = {
+									@NamedAttributeNode(value = "actualBalance")
+							}
+					),
 					@NamedSubgraph(
 							name = "subgraph.roles",
 							attributeNodes = {
@@ -66,7 +78,7 @@ import eu.netmobiel.commons.model.ReferableObject;
 									@NamedAttributeNode(value = "role"),
 									@NamedAttributeNode(value = "user")
 							}
-					),
+					)
 			}
 	)
 })
@@ -154,6 +166,7 @@ public class Charity extends ReferableObject {
     private Instant campaignEndTime;
 
     public Charity() {
+    	this.donatedAmount = 0;
     }
 
     public Long getId() {
@@ -245,7 +258,7 @@ public class Charity extends ReferableObject {
 	}
 
 	public void addUserRole(BankerUser user, CharityUserRoleType role) {
-		CharityUserRole cur = new CharityUserRole(this, user);
+		CharityUserRole cur = new CharityUserRole(this, user, role);
         roles.add(cur);
     }
  

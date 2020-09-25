@@ -4,7 +4,9 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import eu.netmobiel.banker.api.mapping.annotation.CharityDetails;
 import eu.netmobiel.banker.api.mapping.annotation.CharityMapperQualifier;
+import eu.netmobiel.banker.api.mapping.annotation.CharityWithRoleDetails;
 import eu.netmobiel.banker.api.model.CharityUserRole;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
@@ -21,13 +23,23 @@ uses = { JavaTimeMapper.class, GeometryMapper.class })
 @CharityMapperQualifier
 public interface CharityMapper {
 
+	// Domain --> API
 	@Mapping(target = "balanceAmount", source = "account.actualBalance.endAmount")
 	@Mapping(target = "name", source = "account.name")
-	eu.netmobiel.banker.api.model.Charity map(Charity source);
+	@CharityWithRoleDetails
+	eu.netmobiel.banker.api.model.Charity mapWithRoles(Charity source);
 
+	@Mapping(target = "balanceAmount", source = "account.actualBalance.endAmount")
+	@Mapping(target = "name", source = "account.name")
+	@Mapping(target = "roles", ignore = true)
+	@CharityDetails
+	eu.netmobiel.banker.api.model.Charity mapWithoutRoles(Charity source);
+
+	// Domain --> API
 	@Mapping(target = "user", source = "user")
 	eu.netmobiel.banker.api.model.CharityUserRole map(CharityUserRole source);
 	
+	// Domain --> API
 	@Mapping(target = "credits", ignore = true)
 	eu.netmobiel.banker.api.model.User mapUserOnly(BankerUser source);
 

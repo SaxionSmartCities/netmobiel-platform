@@ -66,10 +66,11 @@ public class CharityUserRole implements Serializable {
     public CharityUserRole() {
     	
     }
-    public CharityUserRole(Charity charity, BankerUser user) {
+    public CharityUserRole(Charity charity, BankerUser user, CharityUserRoleType role) {
     	this.charity = charity;
     	this.user = user;
     	this.id = new CharityUserRoleId(charity.getId(), user.getId());
+    	this.role = role;
     }
     
     @PrePersist
