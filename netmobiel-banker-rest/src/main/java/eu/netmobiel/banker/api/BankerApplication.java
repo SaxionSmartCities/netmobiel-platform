@@ -29,6 +29,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.banker.api.resource.AccountingEntriesResource;
 import eu.netmobiel.banker.api.resource.BalancesResource;
+import eu.netmobiel.banker.api.resource.CharitiesResource;
 import eu.netmobiel.banker.api.resource.DepositEventsResource;
 import eu.netmobiel.banker.api.resource.SettingsResource;
 import eu.netmobiel.banker.api.resource.UsersResource;
@@ -78,6 +79,7 @@ public class BankerApplication extends Application {
         Set<Class<?>> resources = new HashSet<>();
         resources.add(AccountingEntriesResource.class);
         resources.add(BalancesResource.class);
+        resources.add(CharitiesResource.class);
         resources.add(DepositEventsResource.class);
         resources.add(SettingsResource.class);
         resources.add(UsersResource.class);

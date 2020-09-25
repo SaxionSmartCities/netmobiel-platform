@@ -22,21 +22,24 @@ import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.Balance;
+import eu.netmobiel.banker.model.BankerUser;
+import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.DepositRequest;
 import eu.netmobiel.banker.model.Ledger;
 import eu.netmobiel.banker.model.PaymentStatus;
+import eu.netmobiel.banker.model.SettlementOrder;
 import eu.netmobiel.banker.model.TransactionType;
-import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.repository.AccountDao;
 import eu.netmobiel.banker.repository.AccountingEntryDao;
 import eu.netmobiel.banker.repository.AccountingTransactionDao;
 import eu.netmobiel.banker.repository.BalanceDao;
+import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.repository.DepositRequestDao;
 import eu.netmobiel.banker.repository.LedgerDao;
-import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
@@ -172,27 +175,27 @@ public class LedgerService {
     }
 
     /**
-     * Transfers credits from one Netmobiel user to another. The balance of the netmobiel credit system does not change. The account of 
-     * one user is decreased and the account of the other is equally increased.
-     * Both account are expected to be liability accounts, i.e. user accounts.
-     * @param customer the netmobiel account that pays for something
-     * @param beneficiary the netmobiel account that will receive the credits.
+     * Transfers credits from one Netmobiel account to another. The balance of the netmobiel credit system does not change. The originator 
+     * account is decreased and the beneficiary account is equally increased.
+     * Both accounts are expected to be liability accounts.
+     * @param originator the netmobiel account that is debited (pays).
+     * @param beneficiary the netmobiel account that is credited (receives).
      * @param amount the amount of credits
      * @param when the time of this financial fact.
      * @param description the description in the journal.
      * @param reference the contextual reference to a system object in the form of a urn.
      */
-    protected AccountingTransaction charge(Account customer, Account beneficiary, int amount, OffsetDateTime when, String description, String reference) throws BalanceInsufficientException {
+    public AccountingTransaction transfer(Account originator, Account beneficiary, int amount, OffsetDateTime when, String description, String reference) throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance customerBalance = balanceDao.findByLedgerAndAccount(ledger, customer);  
-    	Balance counterpartyBalance = balanceDao.findByLedgerAndAccount(ledger, beneficiary);
-    	expect(customerBalance.getAccount(), AccountType.LIABILITY);
-    	expect(counterpartyBalance.getAccount(), AccountType.LIABILITY);
+    	Balance originatorBalance = balanceDao.findByLedgerAndAccount(ledger, originator);  
+    	Balance beneficiaryBalance = balanceDao.findByLedgerAndAccount(ledger, beneficiary);
+    	expect(originatorBalance.getAccount(), AccountType.LIABILITY);
+    	expect(beneficiaryBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
     			.createTransaction(TransactionType.PAYMENT, description, reference, when.toInstant(), Instant.now())
-    			.debit(customerBalance, amount, counterpartyBalance.getAccount().getName())
-				.credit(counterpartyBalance, amount, customerBalance.getAccount().getName())
+    			.debit(originatorBalance, amount, beneficiaryBalance.getAccount().getName())
+				.credit(beneficiaryBalance, amount, originatorBalance.getAccount().getName())
     			.build();
     	accountingTransactionDao.save(tr);
     	return tr;
@@ -287,7 +290,7 @@ public class LedgerService {
     		throw new OverdrawnException("Charge exceeds reservation: " + reservationId + " " + overspent);
     	}
     	AccountingEntry userEntry = lookupUserEntry(release);
-    	AccountingTransaction charge_tr = charge(userEntry.getAccount(), beneficiary.get().getPersonalAccount(), actualAmount, OffsetDateTime.now(), release.getDescription(), release.getContext());
+    	AccountingTransaction charge_tr = transfer(userEntry.getAccount(), beneficiary.get().getPersonalAccount(), actualAmount, OffsetDateTime.now(), release.getDescription(), release.getContext());
     	return charge_tr.getTransactionRef();
     }
 
@@ -465,6 +468,17 @@ public class LedgerService {
 		dbUser.setPersonalAccount(acc);
     }
 
+    /**
+     * Event handler for handling new charities. The ledger service must create and assign a personal monetary account.
+     * @param charity the new user account. The user record. It must be persistent already.
+     */
+    public void onNewCharity(final @Observes(during = TransactionPhase.IN_PROGRESS) @Created Charity charity) {
+		// Create a charity liability account.
+		String accRef = createNewAccountNumber("CLA");
+		Account acc = createAccount(accRef, charity.getAccount().getName(), AccountType.LIABILITY);
+		charity.setAccount(acc);
+    }
+
     //FIXME Try to save the account and retry on a constraint violation
     private String createNewAccountNumber(String prefix) {
     	String ncan = null;
@@ -563,5 +577,18 @@ public class LedgerService {
         		log.info(String.format("DepositRequest %d has expired", dr_db.getId()));
         	}
     	}
+    }
+    
+    public AccountingEntry getAccountingEntry(Long entryId) throws NotFoundException {
+    	return accountingEntryDao.find(entryId)
+    			.orElseThrow(() -> new NotFoundException("No such AccountingEntry: " + entryId));
+    }
+
+    /**
+     * Event handler for handling a settlement order.
+     */
+    public void onNewSettlementOrder(final @Observes(during = TransactionPhase.IN_PROGRESS) @Created SettlementOrder order) throws BalanceInsufficientException {
+    	transfer(order.getOriginator(), order.getBeneficiary(), order.getAmount(), 
+    			order.getEntryTime().atOffset(ZoneOffset.UTC), order.getDescription(), order.getContext());
     }
 }

@@ -10,7 +10,9 @@ CREATE TABLE public.charity (
     donated_amount integer NOT NULL,
     account bigint NOT NULL,
     label character varying(128) NOT NULL,
-    point public.geometry NOT NULL
+    point public.geometry NOT NULL,
+    campaign_start_time timestamp without time zone NOT NULL,
+    campaign_end_time timestamp without time zone
 );
 
 ALTER TABLE public.charity OWNER TO banker;

@@ -65,14 +65,15 @@ public class Fixture {
 		return createUser("IP2", "Simon2", "Netmobiel", null);
 	}
 
-	public static Charity createCharity(Account account, String description, int donatedAmount, int goalAmount, GeoLocation location, String pictureUrl) {
+	public static Charity createCharity(Account account, String description, int donatedAmount, int goalAmount, GeoLocation location, String imageUrl) {
 		Charity ch = new Charity();
     	ch.setAccount(account);
     	ch.setDescription(description);
     	ch.setDonatedAmount(donatedAmount);
     	ch.setGoalAmount(goalAmount);
     	ch.setLocation(location);
-    	ch.setPictureUrl(pictureUrl);
+    	ch.setImageUrl(imageUrl);
+    	ch.setCampaignStartTime(account.getCreatedTime().plusSeconds(3600));
     	return ch;
 	}
 }

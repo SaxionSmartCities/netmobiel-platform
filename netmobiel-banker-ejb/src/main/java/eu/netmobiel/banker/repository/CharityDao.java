@@ -54,18 +54,19 @@ public class CharityDao extends AbstractDao<Charity, Long> {
 
     /**
      * Lists charities within a specified radius around a location. 
+     * @param now the reference time. Especially needed for testing.
      * @param location the reference location as the center point to search for charities.
      * @param radius the circle radius in meter.
-     * @param since only lists charities created after this date.
-     * @param until limit the search to charities created before this date.
-     * @param closedToo also finds closed charities.
+     * @param since only lists charities that start campaigning after this date.
+     * @param until limit the search to charities having started campaigning before this date.
+     * @param inactiveToo also finds charities that are no longer campaigning.
      * @param sortBy which sort key to use. Default is by name.
      * @param sortDir which sort direction. Default is ascending.
      * @param maxResults For paging: maximum results.
      * @param offset For paging: the offset in the results to return.
      * @return A list of charities matching the criteria.
      */
-    public PagedResult<Long> findCharities(GeoLocation location, Integer radius, Instant since, Instant until, Boolean closedToo, 
+    public PagedResult<Long> findCharities(Instant now, GeoLocation location, Integer radius, Instant since, Instant until, Boolean inactiveToo, 
     		CharitySortBy sortBy, SortDirection sortDir, Integer maxResults, Integer offset) throws BadRequestException {
     	if (sortBy == null) {
     		sortBy = CharitySortBy.NAME;
@@ -83,13 +84,16 @@ public class CharityDao extends AbstractDao<Charity, Long> {
             predicates.add(cb.isTrue(cb.function("st_within", Boolean.class, root.get(Charity_.location).get(GeoLocation_.point), cb.literal(circle))));
         }
         if (since != null) {
-	        predicates.add(cb.greaterThanOrEqualTo(root.get(Charity_.account).get(Account_.createdTime), since));
+	        predicates.add(cb.greaterThanOrEqualTo(root.get(Charity_.campaignStartTime), since));
         }        
         if (until != null) {
-	        predicates.add(cb.lessThan(root.get(Charity_.account).get(Account_.createdTime), until));
+	        predicates.add(cb.lessThan(root.get(Charity_.campaignStartTime), until));
         }        
-        if (closedToo == null || !closedToo.booleanValue()) {
-	        predicates.add(cb.isNull(root.get(Charity_.account).get(Account_.closedTime))); // Not closed
+        if (inactiveToo == null || !inactiveToo.booleanValue()) {
+	        predicates.add(cb.and(
+	        		cb.lessThanOrEqualTo(root.get(Charity_.campaignStartTime), now),
+	        		cb.or(cb.isNull(root.get(Charity_.campaignEndTime)), cb.greaterThan(root.get(Charity_.campaignEndTime), now))
+	        		));
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;
@@ -104,7 +108,7 @@ public class CharityDao extends AbstractDao<Charity, Long> {
             cq.select(root.get(Charity_.id));
             Expression<?> orderExpr = null;
             if (sortBy == CharitySortBy.DATE) {
-            	orderExpr = root.get(Charity_.account).get(Account_.createdTime);
+            	orderExpr = root.get(Charity_.campaignStartTime);
             } else if (sortBy == CharitySortBy.DISTANCE) {
             	if (location == null) {
             		throw new BadRequestException("Cannot sort by distance without a location");

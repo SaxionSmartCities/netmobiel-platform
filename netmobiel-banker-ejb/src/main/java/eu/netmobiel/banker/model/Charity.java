@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.model;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
@@ -7,6 +8,7 @@ import java.util.List;
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.AttributeOverride;
 import javax.persistence.AttributeOverrides;
+import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
@@ -16,6 +18,10 @@ import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
+import javax.persistence.NamedAttributeNode;
+import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedEntityGraphs;
+import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
@@ -37,6 +43,33 @@ import eu.netmobiel.commons.model.ReferableObject;
  * @author Jaap Reitsma
  *
  */
+
+@NamedEntityGraphs({
+	@NamedEntityGraph(
+			name = Charity.LIST_ENTITY_GRAPH, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "account")		
+			}, subgraphs = {
+			}
+	),
+	@NamedEntityGraph(
+			name = Charity.LIST_ROLES_ENTITY_GRAPH, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "account"),		
+					@NamedAttributeNode(value = "roles", subgraph = "subgraph.roles")		
+			}, subgraphs = {
+					@NamedSubgraph(
+							name = "subgraph.roles",
+							attributeNodes = {
+									@NamedAttributeNode(value = "createdTime"),
+									@NamedAttributeNode(value = "modifiedTime"),
+									@NamedAttributeNode(value = "role"),
+									@NamedAttributeNode(value = "user")
+							}
+					),
+			}
+	)
+})
 @Entity
 @Table(name = "charity", uniqueConstraints = {
 	    @UniqueConstraint(name = "cs_charity_account_unique", columnNames = { "account" })
@@ -48,7 +81,9 @@ public class Charity extends ReferableObject {
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(Charity.class);
 	public static final int CHARITY_DESCRIPTION_MAX_LENGTH = 256;
 	public static final int CHARITY_PICTURE_URL_MAX_LENGTH = 256;
-	
+	public static final String LIST_ENTITY_GRAPH = "list-charity-entity-graph";
+	public static final String LIST_ROLES_ENTITY_GRAPH = "list-charity-roles-entity-graph";
+
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "charity_sg")
@@ -65,8 +100,8 @@ public class Charity extends ReferableObject {
      * The charity description.
      */
 	@Size(max = CHARITY_PICTURE_URL_MAX_LENGTH)
-    @Column(name = "pictureUrl", length = CHARITY_PICTURE_URL_MAX_LENGTH)
-    private String pictureUrl;
+    @Column(name = "image_url", length = CHARITY_PICTURE_URL_MAX_LENGTH)
+    private String imageUrl;
 
 	/**
 	 * Place of the charity.
@@ -84,14 +119,14 @@ public class Charity extends ReferableObject {
      */
     @PositiveOrZero
     @Column(name = "goal_amount", nullable = false)
-    private int goalAmount;
+    private Integer goalAmount;
 
     /**
      * The total sum of all donations. Should be in the end the sum of all withdrawals from the charity account. 
      */
     @PositiveOrZero
     @Column(name = "donated_amount", nullable = false)
-    private int donatedAmount;
+    private Integer donatedAmount;
     
     /**
      * Reference to the account of the charity. This is a one to one relation.
@@ -103,8 +138,20 @@ public class Charity extends ReferableObject {
     /**
      * The roles having administrative access to the charity.
      */
-	@OneToMany(mappedBy = "charity", fetch = FetchType.LAZY)
+	@OneToMany(mappedBy = "charity", fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
 	private List<CharityUserRole> roles = new ArrayList<>();
+
+    /**
+     * Time of starting the fund raising campaign.
+     */
+    @Column(name = "campaign_start_time", nullable = false)
+    private Instant campaignStartTime;
+
+    /**
+     * Time of ending the fund raising campaign. If null the end is not set yet.
+     */
+    @Column(name = "campaign_end_time", nullable = true)
+    private Instant campaignEndTime;
 
     public Charity() {
     }
@@ -129,12 +176,12 @@ public class Charity extends ReferableObject {
 		this.description = description;
 	}
 
-	public String getPictureUrl() {
-		return pictureUrl;
+	public String getImageUrl() {
+		return imageUrl;
 	}
 
-	public void setPictureUrl(String pictureUrl) {
-		this.pictureUrl = pictureUrl;
+	public void setImageUrl(String imageUrl) {
+		this.imageUrl = imageUrl;
 	}
 
 	public GeoLocation getLocation() {
@@ -145,28 +192,48 @@ public class Charity extends ReferableObject {
 		this.location = location;
 	}
 
-	public int getGoalAmount() {
+	public Integer getGoalAmount() {
 		return goalAmount;
 	}
 
-	public void setGoalAmount(int goalAmount) {
+	public void setGoalAmount(Integer goalAmount) {
 		this.goalAmount = goalAmount;
 	}
 
-	public int getDonatedAmount() {
+	public Integer getDonatedAmount() {
 		return donatedAmount;
 	}
 
-	public void setDonatedAmount(int donatedAmount) {
+	public void setDonatedAmount(Integer donatedAmount) {
 		this.donatedAmount = donatedAmount;
 	}
 
+	public void addDonation(Integer amount) {
+		this.donatedAmount += amount;
+	}
+	
 	public Account getAccount() {
 		return account;
 	}
 
 	public void setAccount(Account account) {
 		this.account = account;
+	}
+
+	public Instant getCampaignStartTime() {
+		return campaignStartTime;
+	}
+
+	public void setCampaignStartTime(Instant campaignStartTime) {
+		this.campaignStartTime = campaignStartTime;
+	}
+
+	public Instant getCampaignEndTime() {
+		return campaignEndTime;
+	}
+
+	public void setCampaignEndTime(Instant campaignEndTime) {
+		this.campaignEndTime = campaignEndTime;
 	}
 
 	public List<CharityUserRole> getRoles() {

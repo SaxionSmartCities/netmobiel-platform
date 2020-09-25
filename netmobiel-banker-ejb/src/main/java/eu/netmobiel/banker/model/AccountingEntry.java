@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.model;
 
+import java.io.Serializable;
 import java.time.format.DateTimeFormatter;
 
 import javax.enterprise.inject.Vetoed;
@@ -17,6 +18,8 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import eu.netmobiel.banker.util.BankerUrnHelper;
+
 /**
  * An accounting (or journal) entry has an amount and an description and concerns a specific account. An entry is processed as part of a
  * particular transaction. In each transaction an account can only appear once.
@@ -30,8 +33,10 @@ import javax.validation.constraints.Size;
 })
 @Vetoed
 @SequenceGenerator(name = "accounting_entry_sg", sequenceName = "accounting_entry_seq", allocationSize = 1, initialValue = 50)
-public class AccountingEntry {
+public class AccountingEntry implements Serializable {
+	private static final long serialVersionUID = -9042884607740676891L;
 	public static final int COUNTERPARTY_MAX_LENGTH = 96;
+	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix("statement");
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "accounting_entry_sg")

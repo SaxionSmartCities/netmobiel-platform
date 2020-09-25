@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.CascadeType;
@@ -176,6 +177,12 @@ public class AccountingTransaction {
 
 	public Ledger getLedger() {
 		return ledger;
+	}
+
+	public Optional<AccountingEntry> entryOf(Account acc) {
+		return getAccountingEntries().stream()
+				.filter(e -> e.equals(acc))
+				.findFirst();
 	}
 
 	static AccountingTransaction.Builder newTransaction(Ledger ledger, TransactionType type, String description, String context, Instant accountingTime, Instant transactionTime) {

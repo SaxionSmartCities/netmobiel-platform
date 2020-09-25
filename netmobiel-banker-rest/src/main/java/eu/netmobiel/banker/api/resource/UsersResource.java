@@ -2,6 +2,7 @@ package eu.netmobiel.banker.api.resource;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.function.Predicate;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
@@ -21,6 +22,7 @@ import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.util.UrnHelper;
 
 @RequestScoped
 public class UsersResource implements UsersApi {
@@ -39,6 +41,8 @@ public class UsersResource implements UsersApi {
 	
 	@Context
 	private HttpServletRequest request;
+
+	private static final Predicate<HttpServletRequest> isAdmin = rq -> rq.isUserInRole("admin");
 	
     protected BankerUser resolveUserReference(String userId, boolean createIfNeeded) {
 		BankerUser user = null;
@@ -75,7 +79,7 @@ public class UsersResource implements UsersApi {
 	}
 
 	@Override
-	public Response listStatements(String userId, OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
+	public Response listUserStatements(String userId, OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
 		Instant si = since != null ? since.toInstant() : null;
 		Instant ui = until != null ? until.toInstant() : null;
 		Response rsp = null;
@@ -83,6 +87,23 @@ public class UsersResource implements UsersApi {
 			BankerUser user = resolveUserReference(userId, true);
 			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getNcan(), si, ui, maxResults, offset); 
 			rsp = Response.ok(accountingEntryMapper.map(result)).build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response getStatement(String userId, String entryId) {
+		Response rsp = null;
+		try {
+        	Long eid = UrnHelper.getId(AccountingEntry.URN_PREFIX, entryId);
+    		BankerUser user = resolveUserReference(userId, true);
+			AccountingEntry entry = ledgerService.getAccountingEntry(eid);
+			if (!entry.getAccount().equals(user.getPersonalAccount()) && !isAdmin.test(request)) {
+				throw new SecurityException("Access to resource not allowed by this user");
+			}
+			rsp = Response.ok(accountingEntryMapper.map(entry)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

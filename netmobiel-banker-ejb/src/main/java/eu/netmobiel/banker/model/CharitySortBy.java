@@ -16,7 +16,7 @@ public enum CharitySortBy {
 	 */
 	NAME,
 	/**
-	 * Sort by the creation date of the charity
+	 * Sort by the campaign start date of the charity
 	 */
 	DATE;
 }
