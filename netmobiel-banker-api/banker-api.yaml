@@ -444,7 +444,7 @@ paths:
           description: Successful response - returns `Page` with `Charity` entities.
         "400":
           $ref: '#/components/responses/BadRequest'
-      operationId: getCharities
+      operationId: listCharities
       summary: List All charities
       description: Gets a list of all `Charity` entities.
     post:
@@ -527,6 +527,13 @@ paths:
     description: The REST endpoint/path used to make a donation to a `Charity`. This
       path contains a `POST` operation to perform the donation task.
     post:
+      requestBody:
+        description: The donation to the charity.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Donation'
+        required: true
       responses:
         "201":
           description: The donation was successfull.
@@ -860,9 +867,9 @@ components:
       - location
       - goalAmount
       - donatedAmount
-      - createdTime
       - name
       - roles
+      - campaignStartTime
       type: object
       properties:
         name:
@@ -881,15 +888,6 @@ components:
             longitude:
               format: double
               type: number
-        createdTime:
-          format: date-time
-          description: The time and date the charity is opened.
-          type: string
-        closedTime:
-          format: date-time
-          description: The date and time the charity was closed. Close time must be
-            after creation time. A closed charity does no longer accept donations.
-          type: string
         goalAmount:
           format: int32
           description: The ultimate amount of credits this charity has set as a goal.
@@ -923,18 +921,28 @@ components:
             smaller or equal to the total amount of donations. This attribute is only
             visible for users having a role in the charity or the admin.
           type: integer
+        campaignStartTime:
+          format: date-time
+          description: The start date and time of the campaign to raise funds.
+          type: string
+        campaignEndTime:
+          format: date-time
+          description: 'The date and time the fund raising is ended. After this date
+            no more donations are accepted. '
+          type: string
       example:
-        name: R.K. Kerk Deuren
+        name: Rozentuin Zieuwent
         location:
           label: Zieuwent R.K. Kerk
           latitude: 52.004485
           longitude: 6.519542
-        createdTime: 2020-05-01T12:00:00Z
-        closedTime: 2020-08-31T00:00:00Z
+        campaignStartTime: 2020-05-01T12:00:00Z
+        campaignEndTime: 2020-08-31T00:00:00Z
         goalAmount: 10000
         donatedAmount: 2478
         imageUrl: some/image.jpg
-        description: Schilderen van de grote deuren
+        description: Ondersteuning van de vrijwilligers van de Rozentuin achter de
+          kerk
         roles:
         - role: MANAGER
           user:
