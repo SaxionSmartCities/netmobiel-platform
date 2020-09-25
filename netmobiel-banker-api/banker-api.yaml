@@ -558,6 +558,39 @@ paths:
       operationId: createCharity
       summary: Create a Charity
       description: Creates a new instance of a `Charity`.
+  /users/{userId}/statements/{entryId}:
+    summary: Path used to manage a single Statement.
+    description: The REST endpoint/path used to get a single instances of a `Statement`.  This
+      path contains a `GET` operation used to perform the get task.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statement'
+          description: A single `Statement` object.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getStatement
+      summary: Retrieves a specific statement.
+      description: Gets the details of a single instance of a `Statement`.
+    parameters:
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: entryId
+      description: The statement id.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
