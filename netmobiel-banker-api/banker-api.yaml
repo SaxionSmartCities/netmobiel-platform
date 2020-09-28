@@ -422,35 +422,6 @@ paths:
         type: string
       in: path
       required: true
-  /charities/{charityId}/donations:
-    summary: Path used to manage the donations to a charity.
-    description: The REST endpoint/path used to make a donation to a `Charity`. This
-      path contains a `POST` operation to perform the donation task.
-    post:
-      requestBody:
-        description: The donation to the charity.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Donation'
-        required: true
-      responses:
-        "201":
-          description: The donation was successfull.
-        "402":
-          description: The balance of the user was insufficient for performing the
-            donation.
-      operationId: postDonation
-      summary: Post a donation.
-      description: 'Donates an amount of credits to a `Charity`. The credits are debited
-        from the calling user''s balance. '
-    parameters:
-    - name: charityId
-      description: The charity id to use. Specify a charity id or a charity urn.
-      schema:
-        type: string
-      in: path
-      required: true
   /charities:
     summary: Path used to manage the list of charities.
     description: The REST endpoint/path used to list and create zero or more `Charity`
@@ -618,6 +589,113 @@ paths:
       required: true
     - name: donationId
       description: The id of the donation.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/{charityId}/donations:
+    summary: Path used to manage the donations to a charity.
+    description: The REST endpoint/path used to make a donation to a `Charity` and
+      to list donations. This path contains `POST` and `GET` operations to perform
+      the donation task, resp. the listing task.
+    get:
+      parameters:
+      - name: user
+        description: The user for which to list the donations. Specify 'me' or an
+          user id or a user urn.
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing of
+          charities. The `until` date must be after the `since` parameter. Default
+          is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: groupBy
+        description: The field to group by. Only `TOTAL_AMOUNT` is supported.
+        schema:
+          enum:
+          - DATE
+          - AMOUNT
+          type: string
+        in: query
+        required: false
+      - name: sortBy
+        description: The field to sort on. Choose one of `DATE` (default), `AMOUNT`.
+        schema:
+          enum:
+          - DATE
+          - AMOUNT
+          type: string
+        in: query
+        required: false
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC) or\
+          \ descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Success response. A `Page` of `Donation` objects is returned.
+      operationId: listDonationsForCharity
+      summary: List the donations.
+      description: Lists the donations for a specific charity.
+    post:
+      requestBody:
+        description: The donation to the charity.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Donation'
+        required: true
+      responses:
+        "201":
+          description: The donation was successfull.
+        "402":
+          description: The balance of the user was insufficient for performing the
+            donation.
+      operationId: postDonation
+      summary: Post a donation.
+      description: 'Donates an amount of credits to a `Charity`. The credits are debited
+        from the calling user''s balance. '
+    parameters:
+    - name: charityId
+      description: The charity id to use. Specify a charity id or a charity urn.
       schema:
         type: string
       in: path
