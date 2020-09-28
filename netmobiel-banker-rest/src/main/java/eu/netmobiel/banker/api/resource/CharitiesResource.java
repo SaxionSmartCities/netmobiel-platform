@@ -11,7 +11,6 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
-import javax.ws.rs.core.UriBuilderException;
 
 import eu.netmobiel.banker.api.CharitiesApi;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
