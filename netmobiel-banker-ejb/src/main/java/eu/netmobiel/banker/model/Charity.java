@@ -300,7 +300,7 @@ public class Charity extends ReferableObject {
 
 	@Override
 	public String toString() {
-		return String.format("Charity [%s %s]", id, StringUtils.abbreviate(account.getName(), 15));
+		return String.format("Charity [%s %s %d%%]", id, StringUtils.abbreviate(account.getName(), 15), (100 * donatedAmount) / goalAmount);
 	}
 
 }

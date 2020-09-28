@@ -18,5 +18,9 @@ public enum CharitySortBy {
 	/**
 	 * Sort by the campaign start date of the charity
 	 */
-	DATE;
+	DATE,
+	/**
+	 * Sort by the relative achievement of the goal, i.e. donated amount divided by goal amount 
+	 */
+	SCORE;
 }

@@ -59,7 +59,8 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     }
     
     private void dump(String subject, Collection<Charity> charities) {
-    	charities.forEach(c -> log.info(String.format("%s: %s %s %s %s", subject, c.getId(), c.getAccount().getName(), c.getCampaignStartTime(), c.getCampaignEndTime())));
+    	charities.forEach(c -> log.info(String.format("%s: %s %s %s %s %d%%", subject, c.getId(), 
+    			c.getAccount().getName(), c.getCampaignStartTime(), c.getCampaignEndTime(), (c.getDonatedAmount() * 100) / c.getGoalAmount())));
     }
     
     @Test
@@ -214,12 +215,12 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     	
     	Charity charity1 = Fixture.createCharity(account1, "Description 1", 100, 500, Fixture.placeSlingeland, null);
     	em.persist(charity1);
-    	Charity charity2 = Fixture.createCharity(account2, "Description 2", 100, 500, Fixture.placeRozenkwekerijZutphen, null);
+    	Charity charity2 = Fixture.createCharity(account2, "Description 2", 10, 500, Fixture.placeRozenkwekerijZutphen, null);
     	charity2.setCampaignEndTime(Instant.parse("2020-09-30T00:00:00Z"));
     	em.persist(charity2);
-    	Charity charity3 = Fixture.createCharity(account3, "Description 3", 100, 500, Fixture.placeZieuwentRKKerk, null);
+    	Charity charity3 = Fixture.createCharity(account3, "Description 3", 200, 500, Fixture.placeZieuwentRKKerk, null);
     	em.persist(charity3);
-    	Charity charity4 = Fixture.createCharity(account4, "Description 4", 100, 500, Fixture.placeZieuwentRKKerk, null);
+    	Charity charity4 = Fixture.createCharity(account4, "Description 4", 400, 500, Fixture.placeZieuwentRKKerk, null);
     	charity4.setCampaignEndTime(account4.getClosedTime().minusSeconds(3600));
     	em.persist(charity4);
 
@@ -244,6 +245,12 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     	assertEquals(charity3.getId(), actual.getData().get(2));
 
     	actual = charityDao.findCharities(now, Fixture.placeZieuwent, 50000, null, null, null, CharitySortBy.DISTANCE, SortDirection.ASC, 10, 0);
+    	assertEquals(charity3.getId(), actual.getData().get(0));
+    	assertEquals(charity1.getId(), actual.getData().get(1));
+    	assertEquals(charity2.getId(), actual.getData().get(2));
+
+    	actual = charityDao.findCharities(now, null, null, null, null, null, CharitySortBy.SCORE, SortDirection.DESC, 10, 0);
+    	dump("sort by score desc", charityDao.fetch(actual.getData(), Charity.LIST_ENTITY_GRAPH));
     	assertEquals(charity3.getId(), actual.getData().get(0));
     	assertEquals(charity1.getId(), actual.getData().get(1));
     	assertEquals(charity2.getId(), actual.getData().get(2));

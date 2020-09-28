@@ -107,7 +107,10 @@ public class CharityDao extends AbstractDao<Charity, Long> {
         	// Select the objects, order is relevant
             cq.select(root.get(Charity_.id));
             Expression<?> orderExpr = null;
-            if (sortBy == CharitySortBy.DATE) {
+            if (sortBy == CharitySortBy.SCORE) {
+            	// Convert to promille first, quot acts as an integer division
+            	orderExpr = cb.quot(cb.prod(1000, root.get(Charity_.donatedAmount)), root.get(Charity_.goalAmount));
+            } else if (sortBy == CharitySortBy.DATE) {
             	orderExpr = root.get(Charity_.campaignStartTime);
             } else if (sortBy == CharitySortBy.DISTANCE) {
             	if (location == null) {
