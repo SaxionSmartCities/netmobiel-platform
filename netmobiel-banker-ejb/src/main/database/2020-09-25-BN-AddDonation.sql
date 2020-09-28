@@ -5,6 +5,7 @@ CREATE TABLE public.donation (
     description character varying(256),
     amount integer NOT NULL,
     donation_time timestamp without time zone NOT NULL,
+    anonymous boolean NOT NULL,
     charity bigint NOT NULL,
     bn_user bigint NOT NULL
 );

@@ -78,7 +78,7 @@ public class Donation extends ReferableObject {
      * If true then the donor prefers to stay anonymous. The donor will never appear in the top-N lists with this donation.
      */
     @Column(name = "anonymous", nullable = false)
-    private Boolean anonymous;
+    private boolean anonymous;
 
     public Donation() {
     }
@@ -137,11 +137,11 @@ public class Donation extends ReferableObject {
 		this.donationTime = donationTime;
 	}
 
-	public Boolean getAnonymous() {
+	public boolean isAnonymous() {
 		return anonymous;
 	}
 
-	public void setAnonymous(Boolean anonymous) {
+	public void setAnonymous(boolean anonymous) {
 		this.anonymous = anonymous;
 	}
 

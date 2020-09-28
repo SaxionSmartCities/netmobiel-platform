@@ -11,6 +11,7 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.UriBuilderException;
 
 import eu.netmobiel.banker.api.CharitiesApi;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
@@ -131,8 +132,11 @@ public class CharitiesResource implements CharitiesApi {
 			BankerUser user = userManager.registerCallingUser();
 			Donation domainDonation = charityMapper.map(donation);
 			Long donationId = charityManager.donate(user, cid, domainDonation);
-			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(donationId)).build();
-		} catch (BusinessException ex) {
+			// This is the correct method to create a location header.
+			// The fromPath(resource, method) uses only the path of the method, it omits the resource.
+			rsp = Response.created(UriBuilder.fromResource(CharitiesApi.class)
+					.path(CharitiesApi.class.getMethod("getDonation", String.class, String.class)).build(cid, donationId)).build();
+		} catch (BusinessException | NoSuchMethodException ex) {
 			throw new WebApplicationException(ex);
 		}
 		return rsp;
@@ -167,7 +171,7 @@ public class CharitiesResource implements CharitiesApi {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
         	Long did = UrnHelper.getId(Donation.URN_PREFIX, donationId);
 			Donation donation = charityManager.getDonation(cid, did);
-			Response.ok(charityMapper.map(donation)).build();
+			rsp = Response.ok(charityMapper.map(donation)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
