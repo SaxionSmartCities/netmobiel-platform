@@ -121,7 +121,7 @@ public abstract class User extends ReferableObject implements NetMobielUser {
 		if (obj == null) {
 			return false;
 		}
-		if (getClass() != obj.getClass()) {
+		if (!(obj instanceof User)) {
 			return false;
 		}
 		User other = (User) obj;
