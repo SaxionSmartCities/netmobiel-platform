@@ -1,0 +1,38 @@
+package eu.netmobiel.commons.filter;
+
+import eu.netmobiel.commons.exception.BadRequestException;
+
+/**
+ * Generic cursor class for data retrieval in NetMobiel.
+ * 
+ * @author Jaap Reitsma
+ *
+ */
+public class Cursor {
+	private Integer maxResults;
+	private Integer offset;
+	public static final Cursor COUNTING_CURSOR = new Cursor(0, 0);
+	
+	public Cursor(Integer aMaxResult, Integer anOffset) {
+		this.maxResults = aMaxResult;
+		this.offset = anOffset;
+	}
+	
+	public void validate(Integer defaultMaxResults, Integer defaultOffset) throws BadRequestException {
+    	if (maxResults != null && maxResults > 100) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
+    	}
+    	if (maxResults != null && maxResults <= 0) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' > 0.");
+    	}
+    	if (offset != null && offset < 0) {
+    		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
+    	}
+        if (maxResults == null) {
+        	maxResults = defaultMaxResults;
+        }
+        if (offset == null) {
+        	offset = defaultOffset;
+        }
+	}
+}

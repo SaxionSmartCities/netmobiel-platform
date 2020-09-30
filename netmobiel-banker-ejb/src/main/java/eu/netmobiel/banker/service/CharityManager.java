@@ -8,11 +8,14 @@ import javax.ejb.Stateless;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
+import eu.netmobiel.banker.filter.DonationFilter;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.model.CharityUserRoleType;
 import eu.netmobiel.banker.model.Donation;
+import eu.netmobiel.banker.model.DonationGroupBy;
+import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.banker.model.SettlementOrder;
 import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.repository.CharityDao;
@@ -21,6 +24,7 @@ import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
@@ -62,7 +66,7 @@ public class CharityManager {
 	 * @param until limit the search to charities having started campaigning before this date.
 	 * @param inactiveToo include also charities that are not active in the selected period (i.e., outside campaigning period). 
 	 * @param sortBy Sort by name, (campaign start) date or distance. 
-	 * @param sortDir Sort axcending or descending.
+	 * @param sortDir Sort ascending or descending.
 	 * @param adminView if true then include the users having a role with regard to the charity.
 	 * @param maxResults The maximum number of results, Default is 10.
 	 * @param offset The zero-based offset in the search result. 
@@ -244,4 +248,44 @@ public class CharityManager {
     	return donation;
     }
 
+	/**
+	 * Lists the donations for a specific charity according some criteria.
+	 * @param now parameter used to manipulate the current time for this method. If null then the actual system time is taken. 
+	 * @param userId only lists donations for this user.  
+	 * @param since only lists donations after or equal to this date.  
+	 * @param until limit the list to donations before this date.
+	 * @param groupBy Group the results by a a particular method.  
+	 * @param sortBy Sort by the specified method. 
+	 * @param sortDir Sort ascending or descending.
+	 * @param maxResults The maximum number of results, Default is 10.
+	 * @param offset The zero-based offset in the search result. 
+	 * @return A Page object with Charity objects. 
+	 * @throws BadRequestException
+	 */
+    public PagedResult<Donation> listDonations(DonationFilter filter, Cursor cursor) throws NotFoundException, BadRequestException {
+    	filter.validate();
+    	cursor.validate(MAX_RESULTS, 0);
+    	if (filter.getCharityId() != null) {
+    		filter.setCharity(charityDao.find(filter.getCharityId())
+    			.orElseThrow(() -> new NotFoundException("No such charity: " + filter.getCharityId())));
+    	}
+    	if (filter.getUserId() != null) {
+    		filter.setUser(userDao.find(filter.getUserId())
+        			.orElseThrow(() -> new NotFoundException("No such user: " + filter.getUserId())));
+    	}
+        
+        List<Donation> results = Collections.emptyList();
+        Long totalCount = 0L;
+//		PagedResult<Long> prs = charityDao.listDonations(now, charitydb, userdb, since, until, groupBy, sortBy, sortDir, 0, 0);
+//		totalCount = prs.getTotalCount();
+//    	if (totalCount > 0 && maxResults > 0) {
+//    		// Get the actual data
+//    		PagedResult<Long> donationIds = charityDao.listDonations(now, charitydb, userdb, since, until, groupBy, sortBy, sortDir, maxResults, offset);
+//    		if (donationIds.getData().size() > 0) {
+//    			results = charityDao.fetch(donationIds.getData(), graph, Charity::getId);
+//    		}
+//    	}
+//    	return new PagedResult<Charity>(results, maxResults, offset, totalCount);
+    	return null;
+    }
 }

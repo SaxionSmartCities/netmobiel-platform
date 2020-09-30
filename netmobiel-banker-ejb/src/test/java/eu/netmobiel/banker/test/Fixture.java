@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.test;
 
+import java.time.Instant;
 import java.util.Set;
 
 import javax.security.auth.Subject;
@@ -12,6 +13,7 @@ import org.keycloak.representations.AccessToken;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
+import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.commons.model.GeoLocation;
 
 public class Fixture {
@@ -75,5 +77,15 @@ public class Fixture {
     	ch.setImageUrl(imageUrl);
     	ch.setCampaignStartTime(account.getCreatedTime().plusSeconds(3600));
     	return ch;
+	}
+	public static Donation createDonation(Charity charity, BankerUser user, String description, int amount, Instant donationTime, boolean anonymous) {
+		Donation d = new Donation();
+		d.setAmount(amount);
+		d.setAnonymous(anonymous);
+		d.setCharity(charity);
+		d.setDescription(description);
+		d.setDonationTime(donationTime);
+		d.setUser(user);
+		return d;
 	}
 }

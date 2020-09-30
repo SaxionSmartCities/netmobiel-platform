@@ -2,11 +2,9 @@ package eu.netmobiel.banker.service;
 
 import static org.junit.Assert.*;
 
-import java.security.PrivilegedAction;
 import java.util.List;
 
 import javax.inject.Inject;
-import javax.security.auth.Subject;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -16,6 +14,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import eu.netmobiel.banker.model.BankerUser;
+import eu.netmobiel.banker.repository.AccountDao;
 import eu.netmobiel.banker.test.BankerIntegrationTestBase;
 import eu.netmobiel.banker.test.Fixture;
 
@@ -24,6 +23,7 @@ public class UserManagerIT extends BankerIntegrationTestBase {
     @Deployment
     public static Archive<?> createTestArchive() {
         WebArchive archive = createDeploymentBase()
+            .addPackages(true, AccountDao.class.getPackage())
 	        .addClass(BankerUserManager.class)
 	        .addClass(LedgerService.class)
 	        .addClass(BankerStartupService.class)

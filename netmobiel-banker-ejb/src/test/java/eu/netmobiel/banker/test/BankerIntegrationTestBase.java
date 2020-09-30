@@ -21,7 +21,7 @@ import eu.netmobiel.banker.Resources;
 import eu.netmobiel.banker.annotation.BankerDatabase;
 import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.model.Account;
-import eu.netmobiel.banker.repository.AccountDao;
+import eu.netmobiel.banker.repository.converter.InstantConverter;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.ExceptionUtil;
@@ -47,7 +47,7 @@ public abstract class BankerIntegrationTestBase {
                 .addPackages(true, BalanceInsufficientException.class.getPackage())
                 .addPackages(true, Account.class.getPackage())
                 .addPackages(true, AbstractDao.class.getPackage())
-                .addPackages(true, AccountDao.class.getPackage())
+                .addPackages(true, InstantConverter.class.getPackage())
                 .addPackages(true, Fixture.class.getPackage())
                 .addClass(Resources.class)
             	.addAsResource("test-setup.properties")
@@ -150,6 +150,7 @@ public abstract class BankerIntegrationTestBase {
 		utx.begin();
 		em.joinTransaction();
 		log.debug("Dumping old records...");
+		em.createQuery("delete from Donation").executeUpdate();
 		em.createQuery("delete from CharityUserRole").executeUpdate();
 		em.createQuery("delete from Charity").executeUpdate();
 		em.createQuery("delete from AccountingEntry").executeUpdate();

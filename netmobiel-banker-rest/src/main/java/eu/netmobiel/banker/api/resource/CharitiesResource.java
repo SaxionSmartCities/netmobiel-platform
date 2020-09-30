@@ -7,6 +7,7 @@ import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -16,16 +17,20 @@ import eu.netmobiel.banker.api.CharitiesApi;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
 import eu.netmobiel.banker.api.mapping.CharityMapper;
 import eu.netmobiel.banker.api.mapping.PageMapper;
+import eu.netmobiel.banker.filter.DonationFilter;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.model.Donation;
+import eu.netmobiel.banker.model.DonationGroupBy;
+import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
@@ -54,7 +59,19 @@ public class CharitiesResource implements CharitiesApi {
 	
 	@Context
 	private HttpServletRequest request;
-	
+
+    protected BankerUser resolveUserReference(String userId, boolean createIfNeeded) {
+		BankerUser user = null;
+		if ("me".equals(userId)) {
+			user = createIfNeeded ? userManager.registerCallingUser() : userManager.findCallingUser();
+		} else {
+			user = userManager
+					.resolveUrn(userId)
+					.orElseThrow(() -> new NotFoundException("No such user: " + userId));
+		}
+		return user;
+    }
+
 	@Override
 	public Response getCharity(String charityId) {
 		Charity charity = null;
@@ -65,22 +82,6 @@ public class CharitiesResource implements CharitiesApi {
 			throw new WebApplicationException(ex);
 		}
 		return Response.ok(charityMapper.mapWithRoles(charity)).build();
-	}
-
-	@Override
-	public Response listCharityStatements(String charityId, OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
-		Instant si = since != null ? since.toInstant() : null;
-		Instant ui = until != null ? until.toInstant() : null;
-		Response rsp = null;
-		try {
-        	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
-			Charity charity = charityManager.getCharity(cid);
-			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(charity.getAccount().getNcan(), si, ui, maxResults, offset); 
-			rsp = Response.ok(accountingEntryMapper.map(result)).build();
-		} catch (BusinessException ex) {
-			throw new WebApplicationException(ex);
-		}
-		return rsp;
 	}
 
 	@Override
@@ -124,24 +125,6 @@ public class CharitiesResource implements CharitiesApi {
 	}
 
 	@Override
-	public Response postDonation(String charityId, eu.netmobiel.banker.api.model.Donation donation) {
-		Response rsp = null;
-		try {
-        	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
-			BankerUser user = userManager.registerCallingUser();
-			Donation domainDonation = charityMapper.map(donation);
-			Long donationId = charityManager.donate(user, cid, domainDonation);
-			// This is the correct method to create a location header.
-			// The fromPath(resource, method) uses only the path of the method, it omits the resource.
-			rsp = Response.created(UriBuilder.fromResource(CharitiesApi.class)
-					.path(CharitiesApi.class.getMethod("getDonation", String.class, String.class)).build(cid, donationId)).build();
-		} catch (BusinessException | NoSuchMethodException ex) {
-			throw new WebApplicationException(ex);
-		}
-		return rsp;
-	}
-
-	@Override
 	public Response updateCharity(String charityId, eu.netmobiel.banker.api.model.Charity charity) {
 		try {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
@@ -163,6 +146,48 @@ public class CharitiesResource implements CharitiesApi {
 		return Response.noContent().build();
 	}
 
+	
+	/*======================================   CHARITY FINANCIAL   ==========================================*/
+	
+	
+	@Override
+	public Response listCharityStatements(String charityId, OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
+		Instant si = since != null ? since.toInstant() : null;
+		Instant ui = until != null ? until.toInstant() : null;
+		Response rsp = null;
+		try {
+        	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
+			Charity charity = charityManager.getCharity(cid);
+			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(charity.getAccount().getNcan(), si, ui, maxResults, offset); 
+			rsp = Response.ok(accountingEntryMapper.map(result)).build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
+
+	
+	/*======================================   DONATIONS   ==========================================*/
+	
+	@Override
+	public Response postDonation(String charityId, eu.netmobiel.banker.api.model.Donation donation) {
+		Response rsp = null;
+		try {
+        	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
+			BankerUser user = userManager.registerCallingUser();
+			Donation domainDonation = charityMapper.map(donation);
+			Long donationId = charityManager.donate(user, cid, domainDonation);
+			// This is the correct method to create a location header.
+			// The fromPath(resource, method) uses only the path of the method, it omits the resource.
+			rsp = Response.created(UriBuilder.fromResource(CharitiesApi.class)
+					.path(CharitiesApi.class.getMethod("getDonation", String.class, String.class)).build(cid, donationId)).build();
+		} catch (BusinessException | NoSuchMethodException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
 	@Override
 	public Response getDonation(String charityId, String donationId) {
 		Response rsp = null;
@@ -174,6 +199,28 @@ public class CharitiesResource implements CharitiesApi {
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
+		return rsp;
+	}
+
+	@Override
+	public Response listDonationsForCharity(String charityId, String userId, OffsetDateTime since, OffsetDateTime until,
+			String groupBy, String sortBy, String sortDir, Integer maxResults, Integer offset) {
+		Instant si = since != null ? since.toInstant() : null;
+		Instant ui = until != null ? until.toInstant() : null;
+		Response rsp = null;
+		try {
+			Boolean inactiveToo = null;
+			BankerUser user = userId == null ? null : resolveUserReference(userId, false);
+			DonationFilter filter = new DonationFilter(charityId, user.getId(), since, until, inactiveToo, sortBy, sortDir, false);
+			Cursor cursor = new Cursor(maxResults, offset);
+	    	PagedResult<Donation> results = charityManager.listDonations(filter, cursor);
+//			rsp = Response.ok(pageMapper.mapDonations(results)).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+
 		return rsp;
 	}
 

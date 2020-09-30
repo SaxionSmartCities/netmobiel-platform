@@ -34,6 +34,7 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     @Deployment
     public static Archive<?> createTestArchive() {
         WebArchive archive = createDeploymentBase()
+                .addClass(CharityDao.class)
 	        ;
 //   		System.out.println(archive.toString(true));
 		return archive;
