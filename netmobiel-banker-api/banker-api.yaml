@@ -144,7 +144,11 @@ paths:
       operationId: getSettings
       summary: List the settings
       description: Gets the `Settings` entity.
-  /users: {}
+  /users:
+    summary: Path used to manage the list of users.
+    description: 'The REST endpoint/path used to list `User` entities and to manage
+      derived entities such as deposits and statements. This path contains a `GET`
+      operation to perform the list task. '
   /users/{userId}:
     summary: Path used to manage a single User.
     description: The REST endpoint/path used to get, single instances of a `User`.  This
@@ -627,15 +631,6 @@ paths:
           format: date-time
           type: string
         in: query
-      - name: groupBy
-        description: The field to group by. Only `TOTAL_AMOUNT` is supported.
-        schema:
-          enum:
-          - DATE
-          - AMOUNT
-          type: string
-        in: query
-        required: false
       - name: sortBy
         description: The field to sort on. Choose one of `DATE` (default), `AMOUNT`.
         schema:
@@ -700,6 +695,238 @@ paths:
         type: string
       in: path
       required: true
+  /charities/popularity:
+    summary: Path used to retrieve a popularity report.
+    description: This endpoint is used to create a report on the popularity of charities,
+      defined the the actual number of distinct donors.
+    get:
+      parameters:
+      - name: charity
+        description: The charity for which to list the number of donors. Specify charity
+          id or a charity urn. If set then the value of the parameters `location`,
+          `radius` and `omitInactive` are ignored.
+        schema:
+          type: string
+        in: query
+      - examples:
+          Location:
+            value: 51.987757,6.564012
+        name: location
+        description: A location consisting of a pair of latitude, longitude coordinates
+          acting as the center of a circle to search in for charities. Specify the
+          radius parameter as well. Only donations to  included charities are counted.
+        schema:
+          type: string
+        in: query
+      - name: radius
+        description: The radius in meters of the circle around the location point
+          to find charities in.
+        schema:
+          type: integer
+        in: query
+      - name: omitInactive
+        description: If set to true then omit charities that are no longer campaigning.
+          Default false.
+        schema:
+          type: boolean
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The donation date marking the start of the reporting period.
+          Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The donation date to end the reporting period. The `until` date
+          must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: sortBy
+        description: The field to sort on. Only `COUNT` is supported, meaning the
+          number of donors.
+        schema:
+          enum:
+          - DONORS
+          type: string
+        in: query
+        required: false
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC) or\
+          \ descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Success response. The result is a `Page` of  `Charity` objects.
+            Each `Charity` has the number of attributing donors set.
+      operationId: reportPopularity
+      summary: Report on the popularity of charities.
+      description: Creates a report listing the selected charities with the total
+        number of donors during the selected period.
+  /users/generosity:
+    summary: Fetches a report on generosity of the users.
+    description: 'The REST endpoint/path used to create a report on the generosity
+      of usersw. This path contains a `GET` operation to perform the report task. '
+    get:
+      parameters:
+      - name: charity
+        description: The charity for which to list the donated amount totals. Specify
+          charity id or a charity urn. If set then the value of the parameters `location`,
+          `radius` and `omitInactive` are ignored.
+        schema:
+          type: string
+        in: query
+      - examples:
+          Location:
+            value: 51.987757,6.564012
+        name: location
+        description: A location consisting of a pair of latitude, longitude coordinates
+          acting as the center of a circle to search in for charities. Specify the
+          radius parameter as well. Only donations to  included charities are counted.
+        schema:
+          type: string
+        in: query
+      - name: radius
+        description: The radius in meters of the circle around the location point
+          to find charities in.
+        schema:
+          type: integer
+        in: query
+      - name: omitInactive
+        description: If set to true then omit charities that are no longer campaigning.
+          Default false.
+        schema:
+          type: boolean
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The donation date marking the start of the reporting period.
+          Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The donation date to end the reporting period.. The `until` date
+          must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: sortBy
+        description: The field to sort on. Choose one of `DATE` (default), `AMOUNT`.
+        schema:
+          enum:
+          - DATE
+          - AMOUNT
+          type: string
+        in: query
+        required: false
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC) or\
+          \ descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: 'Success response. The results contains a pages result of `User`entities,
+            the `donatedAmount` atrtribute is defined. '
+      operationId: reportGenerosity
+      summary: Report generosity of users.
+      description: Creates a list of users with the amount of credits each user has
+        donated. The total amount is summed after fitlering the indiviaduial donations
+        according the filter parameters. Anonymous donations are never included in
+        the report.
+  /users/{userId}/recent-donations:
+    summary: Reports on recent donations.
+    description: Endpoint used to create a report on recent donations to distinct
+      charities.
+    get:
+      parameters:
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Success response. The results contains a pages result of `Donation`
+            entities.  The charity is expand, the user is omitted.
+      operationId: reportRecentDonations
+      summary: List the recent donations.
+      description: Reports on the most recent donation to each distinct charity. The
+        donation are sorted by `donationTime` descending.
+    parameters:
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
@@ -754,6 +981,11 @@ components:
         email:
           description: The email address of the user.
           type: string
+        donatedCredits:
+          description: Donated amount of credits. The attribute is defined only by
+            the generosity report. The value depends on the filter parameters of the
+            report.
+          type: integer
       example:
         familyName: Normalverbraucher
         givenName: Otto
