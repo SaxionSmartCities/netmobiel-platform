@@ -1383,6 +1383,12 @@ components:
           format: date-time
           description: The date and time of the donation.
           type: string
+        donor:
+          $ref: '#/components/schemas/User'
+          description: The originator of the donation.
+        charity:
+          $ref: '#/components/schemas/Charity'
+          description: The beneficiary of the donation.
       example:
         amount: 100
         description: Succes met de inzameling
