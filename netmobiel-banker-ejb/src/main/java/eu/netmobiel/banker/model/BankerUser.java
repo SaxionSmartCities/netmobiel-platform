@@ -15,6 +15,7 @@ import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
@@ -34,7 +35,15 @@ import eu.netmobiel.commons.model.User;
 							}
 					)
 			}
+	),
+	@NamedEntityGraph(
+			includeAllAttributes = false,
+			name = BankerUser.GRAPH_WITHOUT_BALANCE, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "managedIdentity")
+			}
 	)
+
 })
 @Entity
 // You cannot have a table called 'user' in postgres, it is a reserved keyword
@@ -48,6 +57,7 @@ public class BankerUser extends User {
 	private static final long serialVersionUID = -4237705703151528786L;
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(BankerUser.class);
 	public static final String GRAPH_WITH_BALANCE = "user-graph-with-balance";
+	public static final String GRAPH_WITHOUT_BALANCE = "user-graph-without-balance";
 	
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_sg")
@@ -57,6 +67,12 @@ public class BankerUser extends User {
     @JoinColumn(name = "personal_account", foreignKey = @ForeignKey(name = "user_personal_account_fk"))
     private Account personalAccount;
 
+    /**
+     * The total amount of donated credits. The value depends on the precise question.
+     */
+    @Transient
+    private Integer donatedCredits;
+    
     public BankerUser() {
     	super();
     }
@@ -92,6 +108,14 @@ public class BankerUser extends User {
 
 	public void setPersonalAccount(Account personalAccount) {
 		this.personalAccount = personalAccount;
+	}
+
+	public Integer getDonatedCredits() {
+		return donatedCredits;
+	}
+
+	public void setDonatedCredits(Integer donatedCredits) {
+		this.donatedCredits = donatedCredits;
 	}
 
 	public String createAccountName() {

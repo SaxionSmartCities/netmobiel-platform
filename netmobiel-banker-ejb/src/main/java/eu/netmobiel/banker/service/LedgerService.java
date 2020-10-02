@@ -475,7 +475,7 @@ public class LedgerService {
     public void onNewCharity(final @Observes(during = TransactionPhase.IN_PROGRESS) @Created Charity charity) {
 		// Create a charity liability account.
 		String accRef = createNewAccountNumber("CLA");
-		Account acc = createAccount(accRef, charity.getAccount().getName(), AccountType.LIABILITY);
+		Account acc = createAccount(accRef, charity.getName(), AccountType.LIABILITY);
 		charity.setAccount(acc);
     }
 

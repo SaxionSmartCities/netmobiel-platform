@@ -12,42 +12,76 @@ import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.UrnHelper;
 
 public class DonationFilter {
+	/**
+	 * For development purposes. Used to validate the since and until parameters.
+	 */
 	private Instant now;
+	/** ============================== 
+	 * Selection of charities
+	 */
 	private Long charityId;
 	private Charity charity;
+	/**
+	 * Location of a circle to filter charities to include. Ignored if charity is set.
+	 */
+	private GeoLocation location;
+	/**
+	 * Radius of a circle to filter charities to include. Ignored if charity is set.
+	 */
+	private Integer radius;
+	/**
+	 * Omit inactive charities if true. Ignored if charity is set.
+	 */
+	private boolean omitInactiveCharities;
+
+	/** ==============================
+	 * Selection of a specific user.
+	 */
 	private Long userId;
 	private BankerUser user;
-	private GeoLocation location;
-	private Integer radius;
+	
+	/** ==============================
+	 * Selection based on donation time
+	 */
 	private Instant since;
 	private Instant until;
-	private Boolean inactiveToo;
+	
 	private DonationSortBy sortBy;
 	private SortDirection sortDir;
 	/**
 	 * Should we ignore the anonymous flag? Only when a user requests his own
-	 * donations, or when an admin requests tyhe overview In report queries the
+	 * donations, or when an admin requests the overview In report queries the
 	 * anonymous donations are *always* excluded from the reports.
 	 */
 	private boolean anonymousToo;
 
 	public DonationFilter() {
-		this.sortBy = DonationSortBy.DATE;
-		this.sortDir = SortDirection.DESC;
 	}
 
 	public DonationFilter(String charityId, Long userId, OffsetDateTime since, OffsetDateTime until,
-			Boolean inactiveToo, String sortBy, String sortDir, boolean anonymousToo) {
+			String sortBy, String sortDir, boolean anonymousToo) {
 		setCharityId(charityId);
 		setUserId(userId);
 		setSince(since);
 		setUntil(until);
-		setSince(since);
-		setUntil(until);
-		this.inactiveToo = inactiveToo;
+		setSortBy(sortBy);
+		setSortDir(sortDir);
 		this.anonymousToo = anonymousToo;
 	}
 	
+	public DonationFilter(String location, Integer radius, boolean omitInactiveCharities, Long userId, OffsetDateTime since, OffsetDateTime until,
+			String sortBy, String sortDir, boolean anonymousToo) {
+		setLocation(location);
+		this.radius = radius;
+		this.omitInactiveCharities = omitInactiveCharities;
+		setUserId(userId);
+		setSince(since);
+		setUntil(until);
+		setSortBy(sortBy);
+		setSortDir(sortDir);
+		this.anonymousToo = anonymousToo;
+	}
+
 	public Instant getNow() {
 		return now;
 	}
@@ -100,6 +134,12 @@ public class DonationFilter {
 		this.location = location;
 	}
 
+	public final void setLocation(String location) {
+		if (location != null) {
+			this.location = GeoLocation.fromString(location);
+		}
+	}
+
 	public Integer getRadius() {
 		return radius;
 	}
@@ -136,12 +176,12 @@ public class DonationFilter {
 		}
 	}
 
-	public Boolean getInactiveToo() {
-		return inactiveToo;
+	public boolean isOmitInactiveCharities() {
+		return omitInactiveCharities;
 	}
 
-	public void setInactiveToo(Boolean inactiveToo) {
-		this.inactiveToo = inactiveToo;
+	public void setOmitInactiveCharities(boolean omitInactiveCharities) {
+		this.omitInactiveCharities = omitInactiveCharities;
 	}
 
 	public DonationSortBy getSortBy() {
@@ -186,6 +226,12 @@ public class DonationFilter {
     	}
     	if (until != null && since != null && !until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
+    	}
+    	if (this.sortBy == null) {
+    		this.sortBy = DonationSortBy.DATE;
+    	}
+    	if (this.sortDir == null) {
+    		this.sortDir = SortDirection.DESC;
     	}
 	}
 }

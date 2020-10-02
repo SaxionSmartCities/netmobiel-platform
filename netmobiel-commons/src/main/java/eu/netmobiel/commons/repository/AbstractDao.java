@@ -5,6 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
@@ -15,6 +16,8 @@ import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Expression;
+import javax.persistence.criteria.Fetch;
+import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Root;
 
 public abstract class AbstractDao<T, ID> {
@@ -191,5 +194,79 @@ public abstract class AbstractDao<T, ID> {
 
     public EntityGraph<?> getEntityGraph(String graphName) {
     	return getEntityManager().getEntityGraph(graphName);
+    }
+    
+    // Fancy count stuff
+    // https://stackoverflow.com/questions/2883887/in-jpa-2-using-a-criteriaquery-how-to-count-results
+
+    /**
+     * Determine the count of a slightly modified group query. The group is not used, instead a count(distinct countExpression) 
+     * is used. Probably not valid for complex report queries. This query uses in a fact a proxy for counting
+     * the results. 
+     * @param cb the criteria builder
+     * @param selectQuery the original query.
+     * @param root the root object in the original query for obtaining the original joins.
+     * @param countExpression the column expression to select for counting distinct.
+     * @return The total number of results to expect.
+     */
+    public Long countDistinct(final CriteriaBuilder cb, final CriteriaQuery<?> selectQuery, Root<T> root, Expression<?> countExpression) {
+        CriteriaQuery<Long> query = createCountQuery(cb, selectQuery, root, countExpression, true);
+        return getEntityManager().createQuery(query).getSingleResult();
+    }
+
+    /**
+     * Determine the total count given a query. The group list and group restriction is ignored.
+     * This method can only be used for counting the number of results in simple queries without no grouping.
+     * @param cb the criteria builder
+     * @param selectQuery the original query.
+     * @param root the root object in the original query for obtaining the original joins.
+     * @return The total number of results to expect.
+     */
+    public Long count(final CriteriaBuilder cb, final CriteriaQuery<?> selectQuery, Root<T> root) {
+        CriteriaQuery<Long> query = createCountQuery(cb, selectQuery, root, root, false);
+        return getEntityManager().createQuery(query).getSingleResult();
+    }
+
+    private CriteriaQuery<Long> createCountQuery(final CriteriaBuilder cb, final CriteriaQuery<?> criteria, final Root<T> root, Expression<?> countExpression, boolean countDistinct) {
+
+        final CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
+        final Root<?> countRoot = countQuery.from(root.getJavaType());
+
+        doJoins(root.getJoins(), countRoot);
+        doJoinsOnFetches(root.getFetches(), countRoot);
+
+        countQuery.select(countDistinct ? cb.countDistinct(countExpression) : cb.count(countExpression));
+        countQuery.where(criteria.getRestriction());
+        if (! countDistinct && !criteria.getGroupList().isEmpty()) {
+        	throw new IllegalArgumentException("Cannot count results having a group expression");
+        }
+//        countQuery.groupBy(criteria.getGroupList());
+//        if (criteria.getGroupRestriction() != null) {
+//        	countQuery.having(criteria.getGroupRestriction());
+//        }
+        countRoot.alias(root.getAlias());
+
+        return countQuery.distinct(criteria.isDistinct());
+    }
+
+    @SuppressWarnings("unchecked")
+    private void doJoinsOnFetches(Set<? extends Fetch<?, ?>> joins, Root<?> root) {
+        doJoins((Set<? extends Join<?, ?>>) joins, root);
+    }
+
+    private void doJoins(Set<? extends Join<?, ?>> joins, Root<?> root) {
+        for (Join<?, ?> join : joins) {
+            Join<?, ?> joined = root.join(join.getAttribute().getName(), join.getJoinType());
+            joined.alias(join.getAlias());
+            doJoins(join.getJoins(), joined);
+        }
+    }
+
+    private void doJoins(Set<? extends Join<?, ?>> joins, Join<?, ?> root) {
+        for (Join<?, ?> join : joins) {
+            Join<?, ?> joined = root.join(join.getAttribute().getName(), join.getJoinType());
+            joined.alias(join.getAlias());
+            doJoins(join.getJoins(), joined);
+        }
     }
 }

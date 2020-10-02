@@ -14,11 +14,9 @@ import javax.persistence.JoinColumn;
 import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
-import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 
@@ -34,20 +32,19 @@ import eu.netmobiel.commons.model.ReferableObject;
  *
  */
 @NamedEntityGraphs({
-	@NamedEntityGraph(includeAllAttributes = false,
-			name = Donation.REPORT_TOP_N_CHARITY, 
+	@NamedEntityGraph(
+			name = Donation.CHARITY_GRAPH, 
 			attributeNodes = { 
-					@NamedAttributeNode(value = "charity", subgraph = "subgraph.charity")		
-			}
-			, subgraphs = {
-					@NamedSubgraph(
-							name = "subgraph.charity",
-							attributeNodes = {
-									@NamedAttributeNode(value = "account")
-							}
-					)
+					@NamedAttributeNode(value = "charity")		
 			}
 	),
+	@NamedEntityGraph(
+			name = Donation.CHARITY_USER_GRAPH, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "charity"),		
+					@NamedAttributeNode(value = "user")		
+			}
+),
 
 })
 @Entity
@@ -58,8 +55,8 @@ public class Donation extends ReferableObject {
 	private static final long serialVersionUID = 4014950654313924539L;
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(Donation.class);
 	public static final int DONATION_DESCRIPTION_MAX_LENGTH = 256;
-	public static final String REPORT_TOP_N_CHARITY = "report-top-n-charity-graph";
-	public static final String REPORT_TOP_N_RECENT_DONATIONS = "report-top-n-recent-donations";
+	public static final String CHARITY_USER_GRAPH = "donations-with-charity-and-user-graph";
+	public static final String CHARITY_GRAPH = "donations-with-charity";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "donation_sg")
@@ -105,23 +102,7 @@ public class Donation extends ReferableObject {
     @Column(name = "anonymous", nullable = false)
     private boolean anonymous;
 
-    /**
-     * For report queries: The frequency of some parameter to report on.
-     */
-    @Transient
-    private Integer count;
-    
     public Donation() {
-    }
-
-    /**
-     * Constructor for the top-N charity report.
-     * @param charity
-     * @param count
-     */
-    public Donation(Charity charity, Long count) {
-    	this.charity = charity;
-    	this.count = count.intValue();
     }
 
     /**
@@ -194,14 +175,6 @@ public class Donation extends ReferableObject {
 
 	public void setAnonymous(boolean anonymous) {
 		this.anonymous = anonymous;
-	}
-
-	public Integer getCount() {
-		return count;
-	}
-
-	public void setCount(Integer count) {
-		this.count = count;
 	}
 
 	/**

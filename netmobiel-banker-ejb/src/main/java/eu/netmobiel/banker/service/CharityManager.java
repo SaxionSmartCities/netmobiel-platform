@@ -3,6 +3,7 @@ package eu.netmobiel.banker.service;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
+import java.util.stream.Collectors;
 
 import javax.ejb.Stateless;
 import javax.enterprise.event.Event;
@@ -14,12 +15,12 @@ import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.model.CharityUserRoleType;
 import eu.netmobiel.banker.model.Donation;
-import eu.netmobiel.banker.model.DonationGroupBy;
-import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.banker.model.SettlementOrder;
 import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.repository.CharityDao;
 import eu.netmobiel.banker.repository.DonationDao;
+import eu.netmobiel.banker.repository.DonationDao.CharityPopularity;
+import eu.netmobiel.banker.repository.DonationDao.DonorGenerosity;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
@@ -32,7 +33,7 @@ import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 
 /**
- * Charity EJB service.
+ * Charity EJB service for managing the charities and the donations to them by the users.
  * 
  * @author Jaap Reitsma
  *
@@ -248,23 +249,8 @@ public class CharityManager {
     	return donation;
     }
 
-	/**
-	 * Lists the donations for a specific charity according some criteria.
-	 * @param now parameter used to manipulate the current time for this method. If null then the actual system time is taken. 
-	 * @param userId only lists donations for this user.  
-	 * @param since only lists donations after or equal to this date.  
-	 * @param until limit the list to donations before this date.
-	 * @param groupBy Group the results by a a particular method.  
-	 * @param sortBy Sort by the specified method. 
-	 * @param sortDir Sort ascending or descending.
-	 * @param maxResults The maximum number of results, Default is 10.
-	 * @param offset The zero-based offset in the search result. 
-	 * @return A Page object with Charity objects. 
-	 * @throws BadRequestException
-	 */
-    public PagedResult<Donation> listDonations(DonationFilter filter, Cursor cursor) throws NotFoundException, BadRequestException {
+    protected void completeTheFilter(DonationFilter filter) throws BadRequestException, NotFoundException {
     	filter.validate();
-    	cursor.validate(MAX_RESULTS, 0);
     	if (filter.getCharityId() != null) {
     		filter.setCharity(charityDao.find(filter.getCharityId())
     			.orElseThrow(() -> new NotFoundException("No such charity: " + filter.getCharityId())));
@@ -273,19 +259,95 @@ public class CharityManager {
     		filter.setUser(userDao.find(filter.getUserId())
         			.orElseThrow(() -> new NotFoundException("No such user: " + filter.getUserId())));
     	}
+    }
+	/**
+     * Lists donations according specific criteria. 
+     * @param filter The donation selection and sorting criteria.
+     * @param cursor The position and size of the result set. 
+     * @return A list of donations matching the criteria.
+	 * @throws BadRequestException
+	 */
+    public PagedResult<Donation> listDonations(DonationFilter filter, Cursor cursor) throws NotFoundException, BadRequestException {
+    	completeTheFilter(filter);
+    	cursor.validate(MAX_RESULTS, 0);
         
         List<Donation> results = Collections.emptyList();
-        Long totalCount = 0L;
-//		PagedResult<Long> prs = charityDao.listDonations(now, charitydb, userdb, since, until, groupBy, sortBy, sortDir, 0, 0);
-//		totalCount = prs.getTotalCount();
-//    	if (totalCount > 0 && maxResults > 0) {
-//    		// Get the actual data
-//    		PagedResult<Long> donationIds = charityDao.listDonations(now, charitydb, userdb, since, until, groupBy, sortBy, sortDir, maxResults, offset);
-//    		if (donationIds.getData().size() > 0) {
-//    			results = charityDao.fetch(donationIds.getData(), graph, Charity::getId);
-//    		}
-//    	}
-//    	return new PagedResult<Charity>(results, maxResults, offset, totalCount);
-    	return null;
+		PagedResult<Long> prs = donationDao.listDonations(filter, cursor);
+		Long totalCount = prs.getTotalCount();
+    	if (totalCount > 0 && !cursor.isCountingQuery()) {
+    		// Get the actual data
+			results = donationDao.fetch(prs.getData(), null, Donation::getId);
+    	}
+    	return new PagedResult<Donation>(results, cursor, totalCount);
     }
+    
+    /**
+     * Retrieves the popular charities according some filter: Count distinct users per charity ordered by 
+     * descending donor count and by charity id descending (younger charities are prioritized). The donation
+     * object is used to store the results.
+     * @param filter The donation selection and sorting criteria.
+     * @param cursor The position and size of the result set. 
+     * @return A list of donation objects matching the criteria with only the charity and the count set. Charity is a proxy!
+     * @throws NotFoundException 
+     * @throws BadRequestException 
+     */
+    public PagedResult<Charity> reportCharityPopularityTopN(DonationFilter filter, Cursor cursor) throws BadRequestException, NotFoundException {
+    	completeTheFilter(filter);
+    	cursor.validate(MAX_RESULTS, 0);
+    	PagedResult<CharityPopularity> prs = donationDao.reportCharityPopularityTopN(filter, cursor);
+    	List<Long> charityIds = prs.getData().stream()
+    			.map(d -> d.charityId)
+    			.collect(Collectors.toList());
+		List<Charity> charities = charityDao.fetch(charityIds, Charity.LIST_ENTITY_GRAPH, Charity::getId);
+    	for (int ix = 0; ix < charities.size(); ix++) {
+    		charities.get(ix).setDonorCount(Math.toIntExact(prs.getData().get(ix).donorCount));
+		}
+        return new PagedResult<Charity>(charities, cursor, prs.getTotalCount());
+    }
+    
+    /**
+     * Donated before: List of latest donations by a donor to each charity ordered by donation date descending
+     * @param user The user to select the latest (distinct) donations for. 
+     * @param cursor The position and size of the result set.
+     * @return A list of donation ids.
+     * @throws BadRequestException 
+     * @throws NotFoundException 
+     */
+    public PagedResult<Donation> reportMostRecentDistinctDonations(BankerUser user, Cursor cursor) throws BadRequestException, NotFoundException {
+    	cursor.validate(MAX_RESULTS, 0);
+		BankerUser userdb = userDao.find(user.getId())
+    			.orElseThrow(() -> new NotFoundException("No such user: " + user.getId()));
+        List<Donation> results = Collections.emptyList();
+		PagedResult<Long> prs = donationDao.reportMostRecentDistinctDonations(userdb, cursor);
+		Long totalCount = prs.getTotalCount();
+    	if (totalCount > 0 && !cursor.isCountingQuery()) {
+    		// Get the actual data
+			results = donationDao.fetch(prs.getData(), Donation.CHARITY_GRAPH, Donation::getId);
+    	}
+    	return new PagedResult<Donation>(results, cursor, totalCount);
+    }
+
+    /**
+     * Retrieves the total amount donated in to any charity ordered by total amount donated descending 
+     * and by user id descending (late adopters are prioritized). If the totals per charity are needed, then specify
+     * a charity as filter criterium.
+     * @param filter The donation selection and sorting criteria.
+     * @param cursor The position and size of the result set. 
+     * @return A list of BankerUser objects with the total amount of donated credits.
+     */
+    public PagedResult<BankerUser> reportDonorGenerousityTopN(DonationFilter filter, Cursor cursor) throws BadRequestException, NotFoundException {
+    	completeTheFilter(filter);
+    	cursor.validate(MAX_RESULTS, 0);
+    	PagedResult<DonorGenerosity> prs = donationDao.reportDonorGenerosityTopN(filter, cursor);
+    	List<Long> userIds = prs.getData().stream()
+    			.map(d -> d.donorId)
+    			.collect(Collectors.toList());
+		List<BankerUser> users = userDao.fetch(userIds, BankerUser.GRAPH_WITHOUT_BALANCE, BankerUser::getId);
+    	for (int ix = 0; ix < users.size(); ix++) {
+    		users.get(ix).setDonatedCredits(Math.toIntExact(prs.getData().get(ix).amount));
+		}
+        return new PagedResult<BankerUser>(users, cursor, prs.getTotalCount());
+    }
+
+    	
 }

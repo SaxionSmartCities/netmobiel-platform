@@ -7,6 +7,7 @@ import java.util.function.Predicate;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
+import javax.ws.rs.BadRequestException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
@@ -14,13 +15,18 @@ import javax.ws.rs.core.Response;
 
 import eu.netmobiel.banker.api.UsersApi;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
+import eu.netmobiel.banker.api.mapping.PageMapper;
 import eu.netmobiel.banker.api.mapping.UserMapper;
 import eu.netmobiel.banker.api.model.PaymentLink;
+import eu.netmobiel.banker.filter.DonationFilter;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
+import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.service.BankerUserManager;
+import eu.netmobiel.banker.service.CharityManager;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
 
@@ -37,8 +43,14 @@ public class UsersResource implements UsersApi {
 	private UserMapper userMapper;
 
 	@Inject
+	private PageMapper pageMapper;
+
+	@Inject
     private LedgerService ledgerService;
 	
+	@Inject
+    private CharityManager charityManager;
+
 	@Context
 	private HttpServletRequest request;
 
@@ -107,6 +119,53 @@ public class UsersResource implements UsersApi {
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
+		return rsp;
+	}
+
+	@Override
+	public Response reportGenerosity(String charity, String location, Integer radius, Boolean omitInactive,
+			OffsetDateTime since, OffsetDateTime until, String sortBy, String sortDir, Integer maxResults,
+			Integer offset) {
+		Response rsp = null;
+		try {
+			DonationFilter filter;
+			if (charity != null) {
+				filter = new DonationFilter(charity, null, since, until, sortBy, sortDir, false);
+			} else {
+				filter = new DonationFilter(location, radius, Boolean.TRUE.equals(omitInactive), null, since, until, sortBy, sortDir, false);
+			}
+			Cursor cursor = new Cursor(maxResults, offset);
+	    	PagedResult<BankerUser> results = charityManager.reportDonorGenerousityTopN(filter, cursor);
+			rsp = Response.ok(pageMapper.mapUsersWithoutPersonalCredit(results)).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+
+		return rsp;
+	}
+
+	@Override
+	public Response reportRecentDonations(String userId, Integer maxResults, Integer offset) {
+		Response rsp = null;
+		try {
+			Cursor cursor = new Cursor(maxResults, offset);
+			BankerUser user = resolveUserReference(userId, true);
+	    	PagedResult<Donation> results = charityManager.reportMostRecentDistinctDonations(user, cursor);
+//	    	// Invert the model
+//	    	List<Charity> charities = new ArrayList()<>();
+//	    	for (Donation d: results.getData()) {
+//	    		Charity charity = d.getCharity();
+//	    		charity.
+//	    	}
+			rsp = Response.ok(pageMapper.mapDonationWithCharity(results)).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+
 		return rsp;
 	}
 

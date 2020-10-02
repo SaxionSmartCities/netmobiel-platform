@@ -35,4 +35,21 @@ public class Cursor {
         	offset = defaultOffset;
         }
 	}
+
+	public Integer getMaxResults() {
+		return maxResults;
+	}
+
+	public Integer getOffset() {
+		return offset;
+	}
+	
+	public boolean isCountingQuery() {
+		return maxResults == 0;
+	}
+
+	@Override
+	public String toString() {
+		return String.format("Cursor [%s %s]", maxResults, offset);
+	}
 }

@@ -3,6 +3,8 @@ package eu.netmobiel.commons.model;
 import java.util.Collections;
 import java.util.List;
 
+import eu.netmobiel.commons.filter.Cursor;
+
 public class PagedResult<T> {
 	/**
 	 * The payload data. Can be null or empty.
@@ -25,6 +27,10 @@ public class PagedResult<T> {
 		
 	}
 	
+	public PagedResult(List<T> someData, Cursor cursor, Long aTotalCount) {
+		this(someData, cursor.getMaxResults(), cursor.getOffset(), aTotalCount);
+	}
+
 	public PagedResult(List<T> someData, int aResultsPerPage, int anOffset, Long aTotalCount) {
 		this.data = someData == null ? Collections.emptyList() : someData;
 		this.resultsPerPage = aResultsPerPage;

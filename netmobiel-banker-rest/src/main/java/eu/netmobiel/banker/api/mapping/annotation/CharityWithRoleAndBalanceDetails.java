@@ -8,13 +8,13 @@ import java.lang.annotation.Target;
 
 import org.mapstruct.Qualifier;
 /**
- * Qualifier to show the attributes of the user, including the personal credits.
+ * Qualifier to show the charity, including role details.
  * @author Jaap Reitsma
  *
  */
 @Qualifier
 @Retention(CLASS)
 @Target(METHOD)
-public @interface CharityWithRoleDetails {
+public @interface CharityWithRoleAndBalanceDetails {
 
 }

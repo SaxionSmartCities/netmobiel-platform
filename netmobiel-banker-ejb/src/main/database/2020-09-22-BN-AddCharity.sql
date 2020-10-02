@@ -5,7 +5,7 @@ create extension IF NOT EXISTS postgis_topology;
 CREATE TABLE public.charity (
     id bigint NOT NULL,
     description character varying(256),
-    picture_url character varying(256),
+    image_url character varying(256),
     goal_amount integer NOT NULL,
     donated_amount integer NOT NULL,
     account bigint NOT NULL,

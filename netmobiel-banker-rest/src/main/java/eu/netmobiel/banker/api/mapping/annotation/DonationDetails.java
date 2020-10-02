@@ -8,13 +8,13 @@ import java.lang.annotation.Target;
 
 import org.mapstruct.Qualifier;
 /**
- * Qualifier to show the charity details, without roles.
+ * Qualifier to show the attributes of donation, without details of user or charity..
  * @author Jaap Reitsma
  *
  */
 @Qualifier
 @Retention(CLASS)
 @Target(METHOD)
-public @interface CharityDetails {
+public @interface DonationDetails {
 
 }

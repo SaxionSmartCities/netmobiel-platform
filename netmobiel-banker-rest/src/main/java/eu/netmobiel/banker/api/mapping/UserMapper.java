@@ -17,13 +17,13 @@ import eu.netmobiel.banker.model.BankerUser;
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
 @UserMapperQualifier
-public abstract class UserMapper {
+public interface UserMapper {
 
 	@Mapping(target = "credits", source = "personalAccount.actualBalance.endAmount")
 	@UserCreditDetails
-	public abstract eu.netmobiel.banker.api.model.User map(BankerUser source);
+	eu.netmobiel.banker.api.model.User map(BankerUser source);
 
 	@Mapping(target = "credits", ignore = true)
 	@UserOnlyDetails
-	public abstract eu.netmobiel.banker.api.model.User mapUserOnly(BankerUser source);
+	eu.netmobiel.banker.api.model.User mapUserOnly(BankerUser source);
 }

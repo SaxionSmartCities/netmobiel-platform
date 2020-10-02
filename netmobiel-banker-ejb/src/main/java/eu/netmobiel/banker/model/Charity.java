@@ -26,6 +26,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PositiveOrZero;
@@ -91,6 +92,7 @@ import eu.netmobiel.commons.model.ReferableObject;
 public class Charity extends ReferableObject {
 	private static final long serialVersionUID = 4014950654313924539L;
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(Charity.class);
+	public static final int CHARITY_NAME_MAX_LENGTH = 96;
 	public static final int CHARITY_DESCRIPTION_MAX_LENGTH = 256;
 	public static final int CHARITY_PICTURE_URL_MAX_LENGTH = 256;
 	public static final String LIST_ENTITY_GRAPH = "list-charity-entity-graph";
@@ -100,6 +102,14 @@ public class Charity extends ReferableObject {
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "charity_sg")
     private Long id;
+
+	/**
+     * The charity display name.
+     */
+	@Size(max = CHARITY_NAME_MAX_LENGTH)
+	@NotNull
+    @Column(name = "name", length = CHARITY_NAME_MAX_LENGTH, nullable = false)
+    private String name;
 
 	/**
      * The charity description.
@@ -165,6 +175,12 @@ public class Charity extends ReferableObject {
     @Column(name = "campaign_end_time", nullable = true)
     private Instant campaignEndTime;
 
+    /**
+     * The number of donors attributing to this charity. Only defined by the popularity report. 
+     */
+    @Transient
+    private Integer donorCount;
+    
     public Charity() {
     	this.donatedAmount = 0;
     }
@@ -181,7 +197,16 @@ public class Charity extends ReferableObject {
 	public String getUrnPrefix() {
 		return URN_PREFIX;
 	}
-    public String getDescription() {
+	
+    public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
+	}
+
+	public String getDescription() {
 		return description;
 	}
 
@@ -273,7 +298,15 @@ public class Charity extends ReferableObject {
         }
     }
 
-    /**
+    public Integer getDonorCount() {
+		return donorCount;
+	}
+
+	public void setDonorCount(Integer donorCount) {
+		this.donorCount = donorCount;
+	}
+
+	/**
 	 * Using the database ID as equals test!
 	 * @see https://vladmihalcea.com/the-best-way-to-implement-equals-hashcode-and-tostring-with-jpa-and-hibernate/
 	 */
@@ -300,7 +333,7 @@ public class Charity extends ReferableObject {
 
 	@Override
 	public String toString() {
-		return String.format("Charity [%s %s %d%%]", id, StringUtils.abbreviate(account.getName(), 15), (100 * donatedAmount) / goalAmount);
+		return String.format("Charity [%s %s %d%%]", id, StringUtils.abbreviate(name, 15), (100 * donatedAmount) / goalAmount);
 	}
 
 }

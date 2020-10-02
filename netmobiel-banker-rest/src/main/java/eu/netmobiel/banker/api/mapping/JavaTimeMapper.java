@@ -8,8 +8,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.ReportingPolicy;
 
 /**
- * This mapper defines the mapping from the domain Leg to the API Leg as defined by OpenAPI and vice versa.
- * Because trip are written to and read from the service, a bi-directional mapping is necessary.
+ * This mapper defines the mapping some java.time types.
  * 
  * @author Jaap Reitsma
  *

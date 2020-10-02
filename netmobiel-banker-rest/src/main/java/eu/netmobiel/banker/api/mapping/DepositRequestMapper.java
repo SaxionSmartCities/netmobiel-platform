@@ -12,8 +12,8 @@ import eu.netmobiel.banker.model.DepositRequest;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
-public abstract class DepositRequestMapper {
+public interface DepositRequestMapper {
 
-	public abstract eu.netmobiel.banker.api.model.DepositStatus map(DepositRequest source);
+	eu.netmobiel.banker.api.model.DepositStatus map(DepositRequest source);
     
 }

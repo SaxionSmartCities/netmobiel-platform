@@ -97,10 +97,10 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
 
     @Test(expected = RollbackException.class)
     public void saveCharity_DuplicateAccount() throws Exception {
-		Charity ch1 = Fixture.createCharity(account1, "Charity 1 description", 100, 500, Fixture.placeRozenkwekerijZutphen, "http://www.demo.nl/picture");
+		Charity ch1 = Fixture.createCharity(account1, "Charity 1", "Charity 1 description", 100, 500, Fixture.placeRozenkwekerijZutphen, "http://www.demo.nl/picture");
 		charityDao.save(ch1);
 		// Same account - error
-		Charity ch2 = Fixture.createCharity(account1, "Charity 1 description", 100, 500, Fixture.placeRozenkwekerijZutphen, null);
+		Charity ch2 = Fixture.createCharity(account1, "Charity 2", "Charity 2 description", 100, 500, Fixture.placeRozenkwekerijZutphen, null);
 		charityDao.save(ch2);
 		expectFailure();
 		flush();
@@ -108,7 +108,7 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
 
     @Test(expected = RollbackException.class)
     public void saveCharity_LocationMandatory() throws Exception {
-		Charity ch1 = Fixture.createCharity(account1, null, 100, 500, null, null);
+		Charity ch1 = Fixture.createCharity(account1, "Charity 1", null, 100, 500, null, null);
 		charityDao.save(ch1);
 		expectFailure();
 		flush();
@@ -117,7 +117,7 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     
     @Test(expected = RollbackException.class)
     public void saveCharity_DonationsPositive() throws Exception {
-		Charity ch1 = Fixture.createCharity(account1, null, -1, 500, null, null);
+		Charity ch1 = Fixture.createCharity(account1, "Charity 1", null, -1, 500, null, null);
 		charityDao.save(ch1);
 		expectFailure();
 		flush();
@@ -126,7 +126,7 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
 
     @Test(expected = RollbackException.class)
     public void saveCharity_GoalPositive() throws Exception {
-		Charity ch1 = Fixture.createCharity(account1, null, 0, -1, null, null);
+		Charity ch1 = Fixture.createCharity(account1, "Charity 1", null, 0, -1, null, null);
 		charityDao.save(ch1);
 		expectFailure();
 		flush();
@@ -143,15 +143,15 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     	Account account4 = Account.newInstant("PLA-4", "Account 4 closed", AccountType.LIABILITY, Instant.parse("2020-07-01T00:00:00Z"));
     	account4.setClosedTime(Instant.parse("2020-07-31T00:00:00Z"));
     	em.persist(account4);
-    	Charity charity1 = Fixture.createCharity(account1, "Description 1", 100, 500, Fixture.placeSlingeland, null);
+    	Charity charity1 = Fixture.createCharity(account1, "Charity 1", "Description 1", 100, 500, Fixture.placeSlingeland, null);
     	
     	em.persist(charity1);
-    	Charity charity2 = Fixture.createCharity(account2, "Description 2", 100, 500, Fixture.placeRozenkwekerijZutphen, null);
+    	Charity charity2 = Fixture.createCharity(account2, "Charity 2", "Description 2", 100, 500, Fixture.placeRozenkwekerijZutphen, null);
     	charity2.setCampaignEndTime(Instant.parse("2020-09-30T00:00:00Z"));
     	em.persist(charity2);
-    	Charity charity3 = Fixture.createCharity(account3, "Description 3", 100, 500, Fixture.placeZieuwentRKKerk, null);
+    	Charity charity3 = Fixture.createCharity(account3, "Charity 3", "Description 3", 100, 500, Fixture.placeZieuwentRKKerk, null);
     	em.persist(charity3);
-    	Charity charity4 = Fixture.createCharity(account4, "Description 4 finished", 100, 500, Fixture.placeZieuwentRKKerk, null);
+    	Charity charity4 = Fixture.createCharity(account4, "Charity 4", "Description 4 finished", 100, 500, Fixture.placeZieuwentRKKerk, null);
     	charity4.setCampaignEndTime(account4.getClosedTime().minusSeconds(3600));
     	em.persist(charity4);
 
@@ -214,14 +214,14 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     	account4.setClosedTime(Instant.parse("2020-07-31T00:00:00Z"));
     	em.persist(account4);
     	
-    	Charity charity1 = Fixture.createCharity(account1, "Description 1", 100, 500, Fixture.placeSlingeland, null);
+    	Charity charity1 = Fixture.createCharity(account1, "Charity 1", "Description 1", 100, 500, Fixture.placeSlingeland, null);
     	em.persist(charity1);
-    	Charity charity2 = Fixture.createCharity(account2, "Description 2", 10, 500, Fixture.placeRozenkwekerijZutphen, null);
+    	Charity charity2 = Fixture.createCharity(account2, "Charity 2", "Description 2", 10, 500, Fixture.placeRozenkwekerijZutphen, null);
     	charity2.setCampaignEndTime(Instant.parse("2020-09-30T00:00:00Z"));
     	em.persist(charity2);
-    	Charity charity3 = Fixture.createCharity(account3, "Description 3", 200, 500, Fixture.placeZieuwentRKKerk, null);
+    	Charity charity3 = Fixture.createCharity(account3, "Charity 3", "Description 3", 200, 500, Fixture.placeZieuwentRKKerk, null);
     	em.persist(charity3);
-    	Charity charity4 = Fixture.createCharity(account4, "Description 4", 400, 500, Fixture.placeZieuwentRKKerk, null);
+    	Charity charity4 = Fixture.createCharity(account4, "Charity 4", "Description 4", 400, 500, Fixture.placeZieuwentRKKerk, null);
     	charity4.setCampaignEndTime(account4.getClosedTime().minusSeconds(3600));
     	em.persist(charity4);
 

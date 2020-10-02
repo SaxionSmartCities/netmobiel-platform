@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 import com.vividsolutions.jts.geom.Polygon;
 
 import eu.netmobiel.banker.annotation.BankerDatabase;
-import eu.netmobiel.banker.model.Account_;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.model.Charity_;
@@ -119,7 +118,7 @@ public class CharityDao extends AbstractDao<Charity, Long> {
             	orderExpr = cb.function("st_distance", Double.class, 
             			root.get(Charity_.location).get(GeoLocation_.point), cb.literal(location.getPoint()));
             } else if (sortBy == CharitySortBy.NAME) {
-            	orderExpr = root.get(Charity_.account).get(Account_.name);
+            	orderExpr = root.get(Charity_.name);
             } else {
             	throw new IllegalStateException("Sort by not supported: " + sortBy);
             }

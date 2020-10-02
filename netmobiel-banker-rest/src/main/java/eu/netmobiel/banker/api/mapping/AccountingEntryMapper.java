@@ -1,9 +1,5 @@
 package eu.netmobiel.banker.api.mapping;
 
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
@@ -18,9 +14,10 @@ import eu.netmobiel.commons.model.PagedResult;
  * @author Jaap Reitsma
  *
  */
-@Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
+@Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN,
+	uses = { JavaTimeMapper.class })
 @AccountingEntryMapperQualifier
-public abstract class AccountingEntryMapper {
+public interface AccountingEntryMapper {
 
 	@Mapping(target = "type", source = "entryType")
 	@Mapping(target = "accountName", source = "account.name")
@@ -30,18 +27,8 @@ public abstract class AccountingEntryMapper {
 	@Mapping(target = "description", source = "transaction.description")
 	@Mapping(target = "transactionType", source = "transaction.transactionType")
 	@Mapping(target = "context", source = "transaction.context")
-	public abstract eu.netmobiel.banker.api.model.Statement map(AccountingEntry source);
+	eu.netmobiel.banker.api.model.Statement map(AccountingEntry source);
 	
-	public abstract eu.netmobiel.banker.api.model.Page map(PagedResult<AccountingEntry> source);
+	eu.netmobiel.banker.api.model.Page map(PagedResult<AccountingEntry> source);
 
-	// Instant --> OffsetDateTime
-    public  OffsetDateTime map(Instant instant) {
-    	return instant == null ? null : instant.atOffset(ZoneOffset.UTC);
-    }
-    
-    // OffsetDateTime --> Instant 
-    public  Instant  map(OffsetDateTime offsetDateTime) {
-    	return offsetDateTime == null ? null : offsetDateTime.toInstant();
-    }
-    
 }

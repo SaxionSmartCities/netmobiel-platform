@@ -16,6 +16,7 @@ import javax.ws.rs.core.UriBuilder;
 import eu.netmobiel.banker.api.CharitiesApi;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
 import eu.netmobiel.banker.api.mapping.CharityMapper;
+import eu.netmobiel.banker.api.mapping.DonationMapper;
 import eu.netmobiel.banker.api.mapping.PageMapper;
 import eu.netmobiel.banker.filter.DonationFilter;
 import eu.netmobiel.banker.model.AccountingEntry;
@@ -23,8 +24,6 @@ import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.model.Donation;
-import eu.netmobiel.banker.model.DonationGroupBy;
-import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
 import eu.netmobiel.banker.service.LedgerService;
@@ -52,6 +51,9 @@ public class CharitiesResource implements CharitiesApi {
 	private CharityMapper charityMapper;
 
 	@Inject
+	private DonationMapper donationMapper;
+
+	@Inject
 	private PageMapper pageMapper;
 
 	@Inject
@@ -74,14 +76,16 @@ public class CharitiesResource implements CharitiesApi {
 
 	@Override
 	public Response getCharity(String charityId) {
-		Charity charity = null;
+    	Response rsp = null;
 		try {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
-			charity = charityManager.getCharity(cid);
+        	Charity charity = charityManager.getCharity(cid);
+			boolean adminView = request.isUserInRole("admin");
+			rsp = Response.ok(adminView ? charityMapper.mapWithRolesAndBalance(charity) : charityMapper.mapWithoutRoles(charity)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
-		return Response.ok(charityMapper.mapWithRoles(charity)).build();
+		return rsp;
 	}
 
 	@Override
@@ -114,7 +118,7 @@ public class CharitiesResource implements CharitiesApi {
 			boolean adminView = request.isUserInRole("admin");
 	    	PagedResult<Charity> results = charityManager.findCharities(null, centerLocation, 
 	    			radius, si, ui, closedToo, sortByEnum, sortDirEnum, adminView, maxResults, offset);
-			rsp = Response.ok(adminView ? pageMapper.mapCharitiesWithRoles(results) : pageMapper.mapCharities(results)).build();
+			rsp = Response.ok(adminView ? pageMapper.mapCharitiesWithRoleAndBalance(results) : pageMapper.mapCharities(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
@@ -176,7 +180,7 @@ public class CharitiesResource implements CharitiesApi {
 		try {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
 			BankerUser user = userManager.registerCallingUser();
-			Donation domainDonation = charityMapper.map(donation);
+			Donation domainDonation = donationMapper.map(donation);
 			Long donationId = charityManager.donate(user, cid, domainDonation);
 			// This is the correct method to create a location header.
 			// The fromPath(resource, method) uses only the path of the method, it omits the resource.
@@ -195,7 +199,7 @@ public class CharitiesResource implements CharitiesApi {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
         	Long did = UrnHelper.getId(Donation.URN_PREFIX, donationId);
 			Donation donation = charityManager.getDonation(cid, did);
-			rsp = Response.ok(charityMapper.map(donation)).build();
+			rsp = Response.ok(donationMapper.mapPlain(donation)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -204,17 +208,38 @@ public class CharitiesResource implements CharitiesApi {
 
 	@Override
 	public Response listDonationsForCharity(String charityId, String userId, OffsetDateTime since, OffsetDateTime until,
-			String groupBy, String sortBy, String sortDir, Integer maxResults, Integer offset) {
-		Instant si = since != null ? since.toInstant() : null;
-		Instant ui = until != null ? until.toInstant() : null;
+			String sortBy, String sortDir, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		try {
-			Boolean inactiveToo = null;
 			BankerUser user = userId == null ? null : resolveUserReference(userId, false);
-			DonationFilter filter = new DonationFilter(charityId, user.getId(), since, until, inactiveToo, sortBy, sortDir, false);
+			DonationFilter filter = new DonationFilter(charityId, user == null ? null : user.getId(), since, until, sortBy, sortDir, false);
 			Cursor cursor = new Cursor(maxResults, offset);
 	    	PagedResult<Donation> results = charityManager.listDonations(filter, cursor);
-//			rsp = Response.ok(pageMapper.mapDonations(results)).build();
+			rsp = Response.ok(pageMapper.mapDonations(results)).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+
+		return rsp;
+	}
+
+	@Override
+	public Response reportPopularity(String charity, String location, Integer radius, Boolean omitInactive,
+			OffsetDateTime since, OffsetDateTime until, String sortBy, String sortDir, Integer maxResults,
+			Integer offset) {
+		Response rsp = null;
+		try {
+			DonationFilter filter;
+			if (charity != null) {
+				filter = new DonationFilter(charity, null, since, until, sortBy, sortDir, false);
+			} else {
+				filter = new DonationFilter(location, radius, Boolean.TRUE.equals(omitInactive), null, since, until, sortBy, sortDir, false);
+			}
+			Cursor cursor = new Cursor(maxResults, offset);
+	    	PagedResult<Charity> results = charityManager.reportCharityPopularityTopN(filter, cursor);
+			rsp = Response.ok(pageMapper.mapCharities(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
