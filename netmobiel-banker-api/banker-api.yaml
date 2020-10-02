@@ -1311,6 +1311,11 @@ components:
           description: 'The date and time the fund raising is ended. After this date
             no more donations are accepted. '
           type: string
+        donorCount:
+          description: The number of distinct donors that have donated credits to
+            the charity. This field is defined only when the object is created by
+            the charity popularity report.
+          type: integer
       example:
         name: Rozentuin Zieuwent
         location:
