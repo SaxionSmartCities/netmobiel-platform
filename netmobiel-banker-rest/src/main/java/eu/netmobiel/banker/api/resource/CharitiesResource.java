@@ -24,6 +24,7 @@ import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.model.Donation;
+import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
 import eu.netmobiel.banker.service.LedgerService;
@@ -213,6 +214,7 @@ public class CharitiesResource implements CharitiesApi {
 		try {
 			BankerUser user = userId == null ? null : resolveUserReference(userId, false);
 			DonationFilter filter = new DonationFilter(charityId, user == null ? null : user.getId(), since, until, sortBy, sortDir, false);
+			filter.setSortBy(sortBy, DonationSortBy.DATE, new DonationSortBy[] { DonationSortBy.DATE, DonationSortBy.AMOUNT });
 			Cursor cursor = new Cursor(maxResults, offset);
 	    	PagedResult<Donation> results = charityManager.listDonations(filter, cursor);
 			rsp = Response.ok(pageMapper.mapDonations(results)).build();
@@ -237,6 +239,7 @@ public class CharitiesResource implements CharitiesApi {
 			} else {
 				filter = new DonationFilter(location, radius, Boolean.TRUE.equals(omitInactive), null, since, until, sortBy, sortDir, false);
 			}
+			filter.setSortBy(sortBy, DonationSortBy.DONORS, new DonationSortBy[] { DonationSortBy.DONORS });
 			Cursor cursor = new Cursor(maxResults, offset);
 	    	PagedResult<Charity> results = charityManager.reportCharityPopularityTopN(filter, cursor);
 			rsp = Response.ok(pageMapper.mapCharities(results)).build();

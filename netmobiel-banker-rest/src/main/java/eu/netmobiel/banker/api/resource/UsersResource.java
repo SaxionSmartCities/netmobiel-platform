@@ -22,6 +22,7 @@ import eu.netmobiel.banker.filter.DonationFilter;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Donation;
+import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
 import eu.netmobiel.banker.service.LedgerService;
@@ -134,6 +135,7 @@ public class UsersResource implements UsersApi {
 			} else {
 				filter = new DonationFilter(location, radius, Boolean.TRUE.equals(omitInactive), null, since, until, sortBy, sortDir, false);
 			}
+			filter.setSortBy(sortBy, DonationSortBy.AMOUNT, new DonationSortBy[] { DonationSortBy.AMOUNT });
 			Cursor cursor = new Cursor(maxResults, offset);
 	    	PagedResult<BankerUser> results = charityManager.reportDonorGenerousityTopN(filter, cursor);
 			rsp = Response.ok(pageMapper.mapUsersWithoutPersonalCredit(results)).build();
@@ -153,12 +155,6 @@ public class UsersResource implements UsersApi {
 			Cursor cursor = new Cursor(maxResults, offset);
 			BankerUser user = resolveUserReference(userId, true);
 	    	PagedResult<Donation> results = charityManager.reportMostRecentDistinctDonations(user, cursor);
-//	    	// Invert the model
-//	    	List<Charity> charities = new ArrayList()<>();
-//	    	for (Donation d: results.getData()) {
-//	    		Charity charity = d.getCharity();
-//	    		charity.
-//	    	}
 			rsp = Response.ok(pageMapper.mapDonationWithCharity(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);

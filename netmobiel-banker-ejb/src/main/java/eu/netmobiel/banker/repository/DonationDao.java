@@ -167,10 +167,6 @@ public class DonationDao extends AbstractDao<Donation, Long> {
     		results = tq.getResultList();
     	}
     	Long totalCount = countDistinct(cb,  cq, root, root.get(Donation_.charity));
-    	// tq.setHint(JPA_HINT_FETCH, getEntityGraph(Donation.REPORT_TOP_N_CHARITY));
-		// We cannot fetch only the charity. An error message is returned:
-		// java.lang.IllegalArgumentException: org.hibernate.QueryException: query specified join fetching, but the owner of the fetched association was not present in the select list 
-		// The object returned contains proxies for charity and user. The service has to fill in the desired graphs!
         return new PagedResult<CharityPopularity>(results, cursor, totalCount);
     }
     
@@ -254,7 +250,6 @@ public class DonationDao extends AbstractDao<Donation, Long> {
     		results = tq.getResultList();
     	}
     	Long totalCount = countDistinct(cb, cq, root, root.get(Donation_.user));
-		// The object returned contains proxies for charity and user. The service has to fill in the desired graphs!
         return new PagedResult<DonorGenerosity>(results, cursor, totalCount);
     }
 

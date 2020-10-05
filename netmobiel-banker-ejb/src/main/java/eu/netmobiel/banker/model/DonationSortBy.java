@@ -16,7 +16,7 @@ public enum DonationSortBy {
 	 */
 	AMOUNT,
 	/**
-	 * Sort by the number of distinct donors (report group by user only).  
+	 * Sort by the number of distinct donors (report charity popularity only).  
 	 */
-	NR_DONORS;
+	DONORS;
 }

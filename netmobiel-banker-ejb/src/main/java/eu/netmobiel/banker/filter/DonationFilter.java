@@ -2,6 +2,7 @@ package eu.netmobiel.banker.filter;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.util.Arrays;
 
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
@@ -195,6 +196,17 @@ public class DonationFilter {
 	public final void setSortBy(String sortBy) {
 		if (sortBy != null) {
 			this.sortBy = DonationSortBy.valueOf(sortBy);
+		}
+	}
+
+	public void setSortBy(String sortBy, DonationSortBy defaultSortBy, DonationSortBy[] supportedSortBy) {
+		if (sortBy == null) {
+			this.sortBy = defaultSortBy;
+		} else {
+			setSortBy(sortBy);
+		}
+		if (!Arrays.stream(supportedSortBy).anyMatch(p -> p == this.sortBy)) {
+			throw new IllegalArgumentException("SortyBy is not supported: " + this.sortBy);
 		}
 	}
 
