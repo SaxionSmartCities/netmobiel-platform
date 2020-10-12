@@ -751,7 +751,7 @@ paths:
           type: string
         in: query
       - name: sortBy
-        description: The field to sort on. Only `COUNT` is supported, meaning the
+        description: The field to sort on. Only `DONORS` is supported, meaning the
           number of donors.
         schema:
           enum:
@@ -794,7 +794,7 @@ paths:
   /users/generosity:
     summary: Fetches a report on generosity of the users.
     description: 'The REST endpoint/path used to create a report on the generosity
-      of usersw. This path contains a `GET` operation to perform the report task. '
+      of users. This path contains a `GET` operation to perform the report task. '
     get:
       parameters:
       - name: charity
@@ -847,10 +847,9 @@ paths:
           type: string
         in: query
       - name: sortBy
-        description: The field to sort on. Choose one of `DATE` (default), `AMOUNT`.
+        description: The field to sort on. Choose `AMOUNT`, the only option.
         schema:
           enum:
-          - DATE
           - AMOUNT
           type: string
         in: query
@@ -912,7 +911,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Page'
           description: Success response. The results contains a pages result of `Donation`
-            entities.  The charity is expand, the user is omitted.
+            entities.  The charity is expanded, the user is omitted.
       operationId: reportRecentDonations
       summary: List the recent donations.
       description: Reports on the most recent donation to each distinct charity. The
@@ -1389,6 +1388,12 @@ components:
         charity:
           $ref: '#/components/schemas/Charity'
           description: The beneficiary of the donation.
+        donorRef:
+          description: A URN of the donor, a user. Format is urn:nb:bn:user:id.
+          type: string
+        charityRef:
+          description: A URN of the charity. Format is urn:nb:bn:charity:id.
+          type: string
       example:
         amount: 100
         description: Succes met de inzameling
