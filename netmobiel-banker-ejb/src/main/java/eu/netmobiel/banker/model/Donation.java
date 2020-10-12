@@ -39,13 +39,18 @@ import eu.netmobiel.commons.model.ReferableObject;
 			}
 	),
 	@NamedEntityGraph(
+			name = Donation.USER_GRAPH, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "user")		
+			}
+	),
+	@NamedEntityGraph(
 			name = Donation.CHARITY_USER_GRAPH, 
 			attributeNodes = { 
 					@NamedAttributeNode(value = "charity"),		
 					@NamedAttributeNode(value = "user")		
 			}
-),
-
+	),
 })
 @Entity
 @Table(name = "donation")
@@ -57,6 +62,7 @@ public class Donation extends ReferableObject {
 	public static final int DONATION_DESCRIPTION_MAX_LENGTH = 256;
 	public static final String CHARITY_USER_GRAPH = "donations-with-charity-and-user-graph";
 	public static final String CHARITY_GRAPH = "donations-with-charity";
+	public static final String USER_GRAPH = "donations-with-user";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "donation_sg")

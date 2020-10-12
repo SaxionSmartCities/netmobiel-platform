@@ -214,10 +214,12 @@ public class CharitiesResource implements CharitiesApi {
 		try {
 			BankerUser user = userId == null ? null : resolveUserReference(userId, false);
 			DonationFilter filter = new DonationFilter(charityId, user == null ? null : user.getId(), since, until, sortBy, sortDir, false);
+			filter.setAnonymousToo(true);
 			filter.setSortBy(sortBy, DonationSortBy.DATE, new DonationSortBy[] { DonationSortBy.DATE, DonationSortBy.AMOUNT });
 			Cursor cursor = new Cursor(maxResults, offset);
-	    	PagedResult<Donation> results = charityManager.listDonations(filter, cursor);
-			rsp = Response.ok(pageMapper.mapDonations(results)).build();
+			// Include user data in result
+	    	PagedResult<Donation> results = charityManager.listDonations(filter, cursor, true);
+			rsp = Response.ok(pageMapper.mapDonationWithUser(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {

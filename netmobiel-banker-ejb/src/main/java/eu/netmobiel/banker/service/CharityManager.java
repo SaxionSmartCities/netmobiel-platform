@@ -5,6 +5,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
+import javax.annotation.Resource;
+import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
@@ -58,7 +60,10 @@ public class CharityManager {
 	@Inject @Created
     private Event<SettlementOrder> settlementOrderCreatedEvent;
 
-	/**
+    @Resource
+	private SessionContext sessionContext;
+
+    /**
 	 * Lists the charities according the criteria specified by the parameters.
 	 * @param now parameter used to manipulate the current time for this method. If null then the actual system time is taken. 
 	 * @param location The center point of the search area
@@ -267,7 +272,7 @@ public class CharityManager {
      * @return A list of donations matching the criteria.
 	 * @throws BadRequestException
 	 */
-    public PagedResult<Donation> listDonations(DonationFilter filter, Cursor cursor) throws NotFoundException, BadRequestException {
+    public PagedResult<Donation> listDonations(DonationFilter filter, Cursor cursor, boolean includeUserData) throws NotFoundException, BadRequestException {
     	completeTheFilter(filter);
     	cursor.validate(MAX_RESULTS, 0);
         
@@ -276,7 +281,24 @@ public class CharityManager {
 		Long totalCount = prs.getTotalCount();
     	if (totalCount > 0 && !cursor.isCountingQuery()) {
     		// Get the actual data
-			results = donationDao.fetch(prs.getData(), null, Donation::getId);
+    		String graph = includeUserData ? Donation.USER_GRAPH : null;
+			results = donationDao.fetch(prs.getData(), graph, Donation::getId);
+    	}
+    	// If there is user data, then check for anonymous donations.
+    	// An anonymous donation is listed, but without the user, unless the admin is asking for it.
+    	if (includeUserData) {
+    		String me = sessionContext.getCallerPrincipal().getName();
+    		boolean admin = sessionContext.isCallerInRole("admin");
+    		if (! admin) {
+    			results.stream()
+    				.filter(d -> d.isAnonymous() && !d.getUser().getManagedIdentity().equals(me))
+    				.forEach(d -> {
+    					// Detach the donation, otherwise the change will be persisted in the database!
+    					donationDao.detach(d);
+    					// Make sure the donor remains anonymous 
+    					d.setUser(null);	
+    				});
+    		}
     	}
     	return new PagedResult<Donation>(results, cursor, totalCount);
     }

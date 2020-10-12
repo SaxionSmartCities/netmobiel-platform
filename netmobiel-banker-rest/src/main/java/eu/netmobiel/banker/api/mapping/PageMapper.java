@@ -11,6 +11,7 @@ import eu.netmobiel.banker.api.mapping.annotation.CharityWithRoleAndBalanceDetai
 import eu.netmobiel.banker.api.mapping.annotation.DonationDetails;
 import eu.netmobiel.banker.api.mapping.annotation.DonationMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.DonationWithCharity;
+import eu.netmobiel.banker.api.mapping.annotation.DonationWithUser;
 import eu.netmobiel.banker.api.mapping.annotation.UserCreditDetails;
 import eu.netmobiel.banker.api.mapping.annotation.UserMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.UserOnlyDetails;
@@ -50,4 +51,7 @@ public interface PageMapper {
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { DonationMapperQualifier.class, DonationWithCharity.class } )
 	eu.netmobiel.banker.api.model.Page mapDonationWithCharity(PagedResult<Donation> source);
+
+	@Mapping(target = "data", source = "data", qualifiedBy = { DonationMapperQualifier.class, DonationWithUser.class } )
+	eu.netmobiel.banker.api.model.Page mapDonationWithUser(PagedResult<Donation> source);
 }

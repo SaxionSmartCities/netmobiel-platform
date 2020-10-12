@@ -9,6 +9,9 @@ import eu.netmobiel.banker.api.mapping.annotation.CharityMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.DonationDetails;
 import eu.netmobiel.banker.api.mapping.annotation.DonationMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.DonationWithCharity;
+import eu.netmobiel.banker.api.mapping.annotation.DonationWithUser;
+import eu.netmobiel.banker.api.mapping.annotation.UserMapperQualifier;
+import eu.netmobiel.banker.api.mapping.annotation.UserOnlyDetails;
 import eu.netmobiel.banker.model.Donation;
 
 /**
@@ -18,19 +21,30 @@ import eu.netmobiel.banker.model.Donation;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN,
-	uses = { JavaTimeMapper.class, GeometryMapper.class, CharityMapper.class })
+	uses = { JavaTimeMapper.class, GeometryMapper.class, CharityMapper.class, UserMapper.class })
 @DonationMapperQualifier
 public interface DonationMapper {
 	// Domain --> API
 	@Mapping(target = "donor", ignore = true)
 	@Mapping(target = "charity", ignore = true)
+	@Mapping(target = "charityRef", source = "charity.reference")
+	@Mapping(target = "donorRef", source = "user.reference")
 	@DonationDetails
 	eu.netmobiel.banker.api.model.Donation mapPlain(Donation source);
 	
 	@Mapping(target = "donor", ignore = true)
 	@Mapping(target = "charity", source = "charity", qualifiedBy = { CharityMapperQualifier.class, CharityDetails.class})
+	@Mapping(target = "charityRef", source = "charity.reference")
+	@Mapping(target = "donorRef", ignore = true)
 	@DonationWithCharity
 	eu.netmobiel.banker.api.model.Donation mapWithCharity(Donation source);
+
+	@Mapping(target = "donor", source = "user", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class})
+	@Mapping(target = "charity", ignore = true)
+	@Mapping(target = "charityRef", ignore = true)
+	@Mapping(target = "donorRef", source = "user.reference")
+	@DonationWithUser
+	eu.netmobiel.banker.api.model.Donation mapWithUser(Donation source);
 
 	// API --> Domain
 	@Mapping(target = "id", ignore = true)
