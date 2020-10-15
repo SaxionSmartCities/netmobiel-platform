@@ -115,7 +115,6 @@
             <scope>provided</scope>
         </dependency>
 
-
         <dependency>
             <groupId>org.jboss.spec.javax.xml.bind</groupId>
             <artifactId>jboss-jaxb-api_2.3_spec</artifactId>
