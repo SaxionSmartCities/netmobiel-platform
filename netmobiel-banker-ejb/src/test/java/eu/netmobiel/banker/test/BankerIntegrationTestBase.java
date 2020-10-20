@@ -156,6 +156,8 @@ public abstract class BankerIntegrationTestBase {
 		em.createQuery("delete from AccountingEntry").executeUpdate();
 		em.createQuery("delete from AccountingTransaction").executeUpdate();
 		em.createQuery("delete from Balance").executeUpdate();
+		em.createQuery("delete from PaymentBatch").executeUpdate();
+		em.createQuery("delete from WithdrawalRequest").executeUpdate();
 		em.createQuery("delete from Account").executeUpdate();
 		em.createQuery("delete from Ledger").executeUpdate();
 		em.createQuery("delete from DepositRequest").executeUpdate();
