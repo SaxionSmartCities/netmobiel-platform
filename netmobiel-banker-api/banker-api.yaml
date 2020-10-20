@@ -987,7 +987,7 @@ paths:
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Donation'
+              $ref: '#/components/schemas/WithdrawalRequest'
         required: true
       responses:
         "201":
