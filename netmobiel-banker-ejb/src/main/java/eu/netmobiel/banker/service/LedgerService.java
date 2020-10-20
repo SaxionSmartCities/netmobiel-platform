@@ -29,6 +29,7 @@ import eu.netmobiel.banker.model.Ledger;
 import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.SettlementOrder;
 import eu.netmobiel.banker.model.TransactionType;
+import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.banker.repository.AccountDao;
 import eu.netmobiel.banker.repository.AccountingEntryDao;
 import eu.netmobiel.banker.repository.AccountingTransactionDao;
@@ -36,6 +37,7 @@ import eu.netmobiel.banker.repository.BalanceDao;
 import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.repository.DepositRequestDao;
 import eu.netmobiel.banker.repository.LedgerDao;
+import eu.netmobiel.banker.repository.WithdrawalRequestDao;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
@@ -87,6 +89,9 @@ public class LedgerService {
 
     @Inject
     private DepositRequestDao depositRequestDao;
+
+    @Inject
+    private WithdrawalRequestDao withdrawalRequestDao;
 
     @Inject
     private PaymentClient paymentClient;
@@ -499,7 +504,7 @@ public class LedgerService {
     /**
      * Creates a payment link request at the payment provider of netmobiel
      * @param account account to deposit credits to.
-     * @param amounbtCredits the number of credits to deposit. 
+     * @param amountCredits the number of credits to deposit. 
      * @param description the description to use on the payment page
      * @param returnUrl the url to use to return to. The payment provider will add query parameters.
      * 			The parameter object_id must be passed on to the method verifyDeposition.   
@@ -523,11 +528,35 @@ public class LedgerService {
     	dr.setDescription(plink.description);
     	dr.setCreationTime(Instant.now());
     	// The development environment of EMS Pay ignores our expiration period 
-    	dr.setExprationTime(dr.getCreationTime().plusSeconds(plink.expirationPeriod.getSeconds()));
+    	dr.setExpirationTime(dr.getCreationTime().plusSeconds(plink.expirationPeriod.getSeconds()));
     	dr.setPaymentLinkId(plink.id);
     	dr.setStatus(PaymentStatus.ACTIVE);
     	depositRequestDao.save(dr);
     	return plink.paymentUrl;
+    }
+
+    /**
+     * Creates a payment link request at the payment provider of netmobiel
+     * @param requestedBy user requesting the withdrawal.
+     * @param account account to deposit credits to.
+     * @param amountCredits the number of credits to deposit. 
+     * @param description the description to use on the payment page
+     * @return the id of the withdrawal object.
+     * @throws BalanceInsufficientException 
+     */
+    public Long createWithdrawalRequest(BankerUser requestedBy, Account acc, int amountCredits, String description) throws BalanceInsufficientException {
+    	OffsetDateTime now = OffsetDateTime.now();
+    	WithdrawalRequest wr = new WithdrawalRequest();
+		wr.setRequestedBy(requestedBy);
+    	wr.setAccount(acc);
+    	wr.setAmountCredits(amountCredits);
+    	wr.setAmountEurocents(amountCredits * CREDIT_EXCHANGE_RATE);
+    	wr.setDescription(description);
+    	wr.setCreationTime(now.toInstant());
+    	wr.setStatus(PaymentStatus.ACTIVE);
+    	withdrawalRequestDao.save(wr);
+    	reserve(acc, amountCredits, now, description, wr.getReference());
+    	return wr.getId();
     }
 
     /**

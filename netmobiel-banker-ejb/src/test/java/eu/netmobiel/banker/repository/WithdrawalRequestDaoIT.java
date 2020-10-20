@@ -3,44 +3,26 @@ package eu.netmobiel.banker.repository;
 
 import static org.junit.Assert.*;
 
-import java.io.File;
 import java.time.Instant;
 import java.util.Collection;
-import java.util.Collections;
 import java.util.List;
 
 import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.transaction.UserTransaction;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.Archive;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.jboss.shrinkwrap.resolver.api.maven.Maven;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.slf4j.Logger;
 
-import eu.netmobiel.banker.Resources;
-import eu.netmobiel.banker.exception.BalanceInsufficientException;
-import eu.netmobiel.banker.filter.DonationFilter;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.WithdrawalRequest;
-import eu.netmobiel.banker.repository.converter.InstantConverter;
 import eu.netmobiel.banker.test.BankerIntegrationTestBase;
 import eu.netmobiel.banker.test.Fixture;
-import eu.netmobiel.banker.util.BankerUrnHelper;
-import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.repository.AbstractDao;
 
 @RunWith(Arquillian.class)
 public class WithdrawalRequestDaoIT extends BankerIntegrationTestBase {

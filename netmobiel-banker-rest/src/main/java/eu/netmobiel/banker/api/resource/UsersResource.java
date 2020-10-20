@@ -12,6 +12,7 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.banker.api.UsersApi;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
@@ -23,6 +24,7 @@ import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.model.DonationSortBy;
+import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
 import eu.netmobiel.banker.service.LedgerService;
@@ -162,6 +164,20 @@ public class UsersResource implements UsersApi {
 			throw new WebApplicationException(e);
 		}
 
+		return rsp;
+	}
+
+	@Override
+	public Response createPersonalWithdrawal(String userId, eu.netmobiel.banker.api.model.WithdrawalRequest withdrawal) {
+		Response rsp = null;
+		try {
+			BankerUser user = resolveUserReference(userId, true);
+			Long id = ledgerService.createWithdrawalRequest(user, user.getPersonalAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
+			String wrid = UrnHelper.createUrn(WithdrawalRequest.URN_PREFIX, id);
+			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(wrid)).build();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
 		return rsp;
 	}
 

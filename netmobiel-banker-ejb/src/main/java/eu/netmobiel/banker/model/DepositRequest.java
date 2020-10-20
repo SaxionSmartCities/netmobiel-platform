@@ -87,7 +87,7 @@ public class DepositRequest {
      * Time of expiration of the request.
      */
     @Column(name = "expiration_time", nullable = false)
-    private Instant exprationTime;
+    private Instant expirationTime;
 
     /**
      * Time of completing the request
@@ -173,12 +173,12 @@ public class DepositRequest {
 		this.creationTime = creationTime;
 	}
 
-	public Instant getExprationTime() {
-		return exprationTime;
+	public Instant getExpirationTime() {
+		return expirationTime;
 	}
 
-	public void setExprationTime(Instant exprationTime) {
-		this.exprationTime = exprationTime;
+	public void setExpirationTime(Instant expirationTime) {
+		this.expirationTime = expirationTime;
 	}
 
 	public Instant getCompletedTime() {

@@ -7,6 +7,7 @@ import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
@@ -23,8 +24,10 @@ import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.CharitySortBy;
+import eu.netmobiel.banker.model.CharityUserRoleType;
 import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.model.DonationSortBy;
+import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
 import eu.netmobiel.banker.service.LedgerService;
@@ -251,6 +254,28 @@ public class CharitiesResource implements CharitiesApi {
 			throw new WebApplicationException(e);
 		}
 
+		return rsp;
+	}
+
+	@Override
+	public Response createCharityWithdrawal(String charityId, eu.netmobiel.banker.api.model.WithdrawalRequest withdrawal) {
+		Response rsp = null;
+		try {
+			// Calling user is doing the withdrawal for the charity
+			BankerUser user = resolveUserReference("me", true);
+	    	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
+			Charity charity = charityManager.getCharity(cid);
+			// Is this user allowed to do the withdrawal?
+			charity.getRoles().stream()
+				.filter(r -> r.getUser().equals(user) && r.getRole() == CharityUserRoleType.MANAGER)
+				.findFirst()
+				.orElseThrow(() -> new ForbiddenException(String.format("User %d is not a manager of charity %d", user.getId(), cid)));
+			Long id = ledgerService.createWithdrawalRequest(user, charity.getAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
+			String wrid = UrnHelper.createUrn(WithdrawalRequest.URN_PREFIX, id);
+			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(wrid)).build();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
 		return rsp;
 	}
 
