@@ -1034,7 +1034,7 @@ paths:
       security:
       - apikey: []
         Bearer-only: []
-      operationId: getpaymentbatches
+      operationId: listPaymentBatches
       summary: List All paymentbatches
       description: Gets a list of all `PaymentBatch` entities.
     post:
@@ -1099,7 +1099,7 @@ paths:
       security:
       - Bearer-only: []
         apikey: []
-      operationId: settleBatch
+      operationId: settlePaymentBatch
       summary: Settles the batch.
       description: Settle all withdrawal requests in the batch, i.e. confirm the withdrawal
         requests have been processed by the treasurer of NetMobiel.
