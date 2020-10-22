@@ -1014,47 +1014,7 @@ paths:
         type: string
       in: path
       required: true
-  /payment-batches:
-    summary: Path used to manage the list of paymentbatches.
-    description: The REST endpoint/path used to list and create zero or more `PaymentBatch`
-      entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/PaymentBatch'
-          description: Successful response - returns an array of `PaymentBatch` entities.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: listPaymentBatches
-      summary: List All paymentbatches
-      description: Gets a list of all `PaymentBatch` entities.
-    post:
-      requestBody:
-        description: A new `PaymentBatch` to be created.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/PaymentBatch'
-        required: true
-      responses:
-        "201":
-          description: Successful response.
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: createPaymentBatch
-      summary: Create a PaymentBatch
-      description: Creates a new instance of a `PaymentBatch`.
-  /payment-batches/{paymentbatchId}:
+  /payment-batches/{paymentBatchId}:
     summary: Path used to manage a single PaymentBatch.
     description: The REST endpoint/path used to get, update, and delete single instances
       of an `PaymentBatch`.  This path contains `GET`, `PUT`, and `DELETE` operations
@@ -1080,13 +1040,13 @@ paths:
       summary: Get a PaymentBatch
       description: Gets the details of a single instance of a `PaymentBatch`.
     parameters:
-    - name: paymentbatchId
+    - name: paymentBatchId
       description: A unique identifier for a `PaymentBatch`.
       schema:
         type: string
       in: path
       required: true
-  /payment-batches/{paymentbatchId}/settled:
+  /payment-batches/{paymentBatchId}/settled:
     summary: Settle the batch.
     description: Simple call the notify the settlement of the batch, i.e. the settlement
       of all individual withdrawal requests in the batch.
@@ -1104,12 +1064,88 @@ paths:
       description: Settle all withdrawal requests in the batch, i.e. confirm the withdrawal
         requests have been processed by the treasurer of NetMobiel.
     parameters:
-    - name: paymentbatchId
+    - name: paymentBatchId
       description: The unique id of the batch.
       schema:
         type: string
       in: path
       required: true
+  /payment-batches:
+    summary: Path used to manage the list of paymentbatches.
+    description: The REST endpoint/path used to list and create zero or more `PaymentBatch`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing. The
+          `until` date must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: settledToo
+        description: Set this flag to 'true' if settled batches should be returned
+          as well. Default is false.
+        schema:
+          type: boolean
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PaymentBatch'
+          description: Successful response - returns an array of `PaymentBatch` entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listPaymentBatches
+      summary: List All paymentbatches
+      description: Gets a list of all `PaymentBatch` entities. The objects are sorted
+        on creation time descending.
+    post:
+      requestBody:
+        description: A new `PaymentBatch` to be created.
+        required: false
+      responses:
+        "201":
+          description: Successful response.
+        "404":
+          description: Issued when no pending withdrawal requests are present.
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: createPaymentBatch
+      summary: Create a PaymentBatch
+      description: Creates a new instance of a `PaymentBatch`.
 components:
   schemas:
     Error:
