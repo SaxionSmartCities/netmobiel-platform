@@ -1132,9 +1132,6 @@ paths:
       description: Gets a list of all `PaymentBatch` entities. The objects are sorted
         on creation time descending.
     post:
-      requestBody:
-        description: A new `PaymentBatch` to be created.
-        required: false
       responses:
         "201":
           description: Successful response.
