@@ -1630,6 +1630,12 @@ components:
           format: date-time
           description: The date and time that the batch was completely cleared.
           type: string
+        id:
+          description: Database if of the batch.
+          type: integer
+        orderReference:
+          description: A short unique code for the batch, for external reference.
+          type: string
       example:
         creationTime: 2020-10-20T12:00:00Z
         completionTime: 2020-10-26T14:25:00Z
