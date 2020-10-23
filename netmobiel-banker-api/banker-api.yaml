@@ -1024,7 +1024,8 @@ paths:
       - name: format
         description: The format of the payment batch. Default is JSON. Specify CSV
           for a comma separated list.
-        schema: {}
+        schema:
+          type: string
         in: query
       responses:
         "200":
