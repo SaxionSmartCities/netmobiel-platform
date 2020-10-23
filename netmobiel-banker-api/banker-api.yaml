@@ -1685,8 +1685,11 @@ components:
           description: Name of the account to withdraw from. Automatically added.
           type: string
         status:
-          $ref: '#/components/schemas/PaymentStatus'
           description: Status of the withdrawal. A withdrawal cannot expire.
+          enum:
+          - ACTIVE
+          - COMPLETED
+          type: string
         requestedBy:
           $ref: '#/components/schemas/User'
           description: The user that requested the withdrawal.
