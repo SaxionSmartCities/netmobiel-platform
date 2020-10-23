@@ -103,7 +103,7 @@ public class Account {
     /**
      * The balances (one per ledger) coupled to the account.
      */
-    @OneToMany(mappedBy = "account")
+    @OneToMany(mappedBy = "account", fetch = FetchType.LAZY)
     private Set<Balance> balances;
     
     /**

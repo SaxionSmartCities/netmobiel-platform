@@ -64,9 +64,9 @@ public class BankerUser extends User {
     private Long id;
 
 	/**
-	 * The personal account of a user. The foreign key definition avoids issues with testing on the sequence of deleting tables.
+	 * The personal account of a user. The foreign key definition avoids issues with testing because of the sequence of deleting tables.
 	 */
-    @OneToOne(fetch = FetchType.EAGER)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "personal_account", 
     		    foreignKey = @ForeignKey(name = "user_personal_account_fk",
     		    foreignKeyDefinition = "FOREIGN KEY (personal_account) REFERENCES account (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE SET NULL")

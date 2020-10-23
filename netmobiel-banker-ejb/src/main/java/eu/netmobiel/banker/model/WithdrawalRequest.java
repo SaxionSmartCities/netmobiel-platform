@@ -83,7 +83,7 @@ public class WithdrawalRequest extends ReferableObject {
 	 * The withdrawal requests are ultimately  bundled in a payment batch for processing. If not part of a batch yet, then 
 	 * the withdrawal processing has not yet started. 
 	 */
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "payment_batch", nullable = true, foreignKey = @ForeignKey(name = "withdrawal_payment_batch_fk"))
     private PaymentBatch paymentBatch;
 
@@ -91,7 +91,7 @@ public class WithdrawalRequest extends ReferableObject {
      * The request is related to an account
      */
 	@NotNull
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "account", nullable = false, foreignKey = @ForeignKey(name = "withdrawal_account_fk"))
     private Account account;
     
@@ -99,14 +99,14 @@ public class WithdrawalRequest extends ReferableObject {
      * The request is created by a specific user. For a charity multiple users can be responsible.
      */
 	@NotNull
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "created_by", nullable = false, foreignKey = @ForeignKey(name = "withdrawal_created_by_fk"))
     private BankerUser createdBy;
 
 	/**
      * The settling of the request is confirmed by a specific user.
      */
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "settled_by", nullable = true, foreignKey = @ForeignKey(name = "withdrawal_settled_by_fk"))
     private BankerUser settledBy;
     
@@ -130,10 +130,11 @@ public class WithdrawalRequest extends ReferableObject {
 	private PaymentStatus status;
 
     /**
-     * The transaction of the withdrawal. Can refer to the reservation, the release or the final withdrawal, depending on the state. 
+     * The transaction of the withdrawal. Can refer to the reservation, the release or the final withdrawal, depending on the state.
+     * Can be null, because we first need to save the request, then we can insert the reference into the transaction. 
      */
 	@ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "transaction", nullable = false, foreignKey = @ForeignKey(name = "withdrawal_transaction_fk"))
+    @JoinColumn(name = "transaction", nullable = true, foreignKey = @ForeignKey(name = "withdrawal_transaction_fk"))
     private AccountingTransaction transaction = null;
     
 	public WithdrawalRequest() {

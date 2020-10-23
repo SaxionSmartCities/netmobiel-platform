@@ -16,6 +16,10 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedAttributeNode;
+import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedEntityGraphs;
+import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
 import javax.persistence.PostPersist;
 import javax.persistence.SequenceGenerator;
@@ -32,6 +36,32 @@ import eu.netmobiel.commons.model.ReferableObject;
  * @author Jaap Reitsma
  *
  */
+@NamedEntityGraphs({
+	@NamedEntityGraph(
+			name = PaymentBatch.LIST_GRAPH, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "createdBy"),		
+					@NamedAttributeNode(value = "settledBy"),		
+			}
+	),
+	@NamedEntityGraph(
+			name = PaymentBatch.WITHDRAWALS_GRAPH, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "createdBy"),		
+					@NamedAttributeNode(value = "settledBy"),		
+					@NamedAttributeNode(value = "withdrawalRequests", subgraph = "subgraph.withdrawal")		
+			}, subgraphs = {
+					@NamedSubgraph(
+							name = "subgraph.withdrawal",
+							attributeNodes = {
+									@NamedAttributeNode(value = "account"),		
+									@NamedAttributeNode(value = "createdBy"),
+									@NamedAttributeNode(value = "settledBy")
+							}
+					)
+			}
+	)
+})
 @Entity
 @Table(name = "payment_batch")
 @Vetoed
@@ -40,6 +70,8 @@ public class PaymentBatch extends ReferableObject {
 	private static final long serialVersionUID = -7409373690677258054L;
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(PaymentBatch.class);
 	public static final int ORDER_REFERENCE_MAX_LENGTH = 32;
+	public static final String LIST_GRAPH = "payment-batch-list-graph";
+	public static final String WITHDRAWALS_GRAPH = "payment-batch-withdrawals-graph";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "payment_batch_sg")
@@ -62,14 +94,14 @@ public class PaymentBatch extends ReferableObject {
      * The batch is created by a specific user.
      */
 	@NotNull
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "created_by", nullable = false, foreignKey = @ForeignKey(name = "payment_batch_created_by_fk"))
     private BankerUser createdBy;
 
 	/**
      * The clearance of the batch is confirmed by a specific user.
      */
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "settled_by", nullable = true, foreignKey = @ForeignKey(name = "payment_batch_settled_by_fk"))
     private BankerUser settledBy;
     

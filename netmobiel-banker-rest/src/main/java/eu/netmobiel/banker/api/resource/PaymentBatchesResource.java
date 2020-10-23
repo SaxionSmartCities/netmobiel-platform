@@ -12,6 +12,7 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.banker.api.PaymentBatchesApi;
 import eu.netmobiel.banker.api.mapping.PageMapper;
@@ -21,6 +22,7 @@ import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.PaymentBatch;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.LedgerService;
+import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -66,8 +68,8 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 				throw new ForbiddenException("You are not allowed to create a payment batch");
 			}
 			BankerUser requestor = userManager.registerCallingUser();
-			Long pbid = ledgerService.createPaymentBatch(requestor);
-			rsp = Response.ok(ledgerService.getPaymentBatch(pbid)).build();
+			String pbid = BankerUrnHelper.createUrn(PaymentBatch.URN_PREFIX, ledgerService.createPaymentBatch(requestor));
+			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(pbid)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (Exception e) {
@@ -77,7 +79,7 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 	}
 
 	@Override
-	public Response getPaymentBatch(String paymentBatchId, Object format) {
+	public Response getPaymentBatch(String paymentBatchId, String format) {
     	Response rsp = null;
 		try {
 			boolean adminView = request.isUserInRole("admin");
@@ -86,7 +88,7 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 			}
         	Long pbid = UrnHelper.getId(PaymentBatch.URN_PREFIX, paymentBatchId);
         	PaymentBatch pb = ledgerService.getPaymentBatch(pbid);
-			rsp = Response.ok(paymentBatchMapper.mapShallow(pb)).build();
+			rsp = Response.ok(paymentBatchMapper.mapWithWithdrawals(pb)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

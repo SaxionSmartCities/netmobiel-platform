@@ -47,7 +47,7 @@ CREATE TABLE public.withdrawal_request
     status character varying(1) COLLATE pg_catalog."default" NOT NULL,
     account bigint NOT NULL,
     payment_batch bigint,
-    transaction bigint NOT NULL,
+    transaction bigint,
     CONSTRAINT withdrawal_request_pkey PRIMARY KEY (id),
     CONSTRAINT withdrawal_account_fk FOREIGN KEY (account)
         REFERENCES public.account (id) MATCH SIMPLE
@@ -64,7 +64,7 @@ CREATE TABLE public.withdrawal_request
     CONSTRAINT withdrawal_created_by_fk FOREIGN KEY (created_by)
         REFERENCES public.bn_user (id) MATCH SIMPLE
         ON UPDATE NO ACTION
-        ON DELETE NO ACTION
+        ON DELETE NO ACTION,
     CONSTRAINT withdrawal_transaction_fk FOREIGN KEY (transaction)
         REFERENCES public.accounting_transaction (id) MATCH SIMPLE
         ON UPDATE NO ACTION

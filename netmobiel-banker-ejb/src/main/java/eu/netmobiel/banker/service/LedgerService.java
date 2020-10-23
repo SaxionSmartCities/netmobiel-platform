@@ -678,6 +678,9 @@ public class LedgerService {
     	wr.setCreationTime(now.toInstant());
     	wr.setStatus(PaymentStatus.ACTIVE);
     	withdrawalRequestDao.save(wr);
+    	// Assure PostPersist is called.
+    	withdrawalRequestDao.flush();
+    	// Save the request first, otherwise we cannot insert the reference in the transaction. 
     	AccountingTransaction tr = reserve(acc, amountCredits, now, description, wr.getReference());
     	wr.setTransaction(tr);
     	return wr.getId();
@@ -720,7 +723,7 @@ public class LedgerService {
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> ids = paymentBatchDao.list(since, until, settledToo, maxResults, offset);
-    		results = paymentBatchDao.fetch(ids.getData(), null, PaymentBatch::getId);
+    		results = paymentBatchDao.fetch(ids.getData(), PaymentBatch.LIST_GRAPH, PaymentBatch::getId);
     	}
     	return new PagedResult<PaymentBatch>(results, maxResults, offset, prs.getTotalCount());
     }
@@ -742,6 +745,8 @@ public class LedgerService {
     	pb.setCreationTime(Instant.now());
     	wdrs.forEach(wr -> pb.addWithdrawalRequest(wr));
     	paymentBatchDao.save(pb);
+    	// Assure PostPersist is called.
+    	paymentBatchDao.flush();
     	// WithdrawalRequests are automatically updated by JPA
     	return pb.getId();
     }
@@ -753,7 +758,7 @@ public class LedgerService {
      * @throws NotFoundException If the object could not be found.
      */
     public PaymentBatch getPaymentBatch(Long id) throws NotFoundException {
-    	return paymentBatchDao.find(id)
+    	return paymentBatchDao.fetchGraph(id, PaymentBatch.WITHDRAWALS_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such payment batch: " + id));
     }
 

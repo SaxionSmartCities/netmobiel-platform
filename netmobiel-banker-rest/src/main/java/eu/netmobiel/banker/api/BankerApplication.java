@@ -31,6 +31,7 @@ import eu.netmobiel.banker.api.resource.AccountingEntriesResource;
 import eu.netmobiel.banker.api.resource.BalancesResource;
 import eu.netmobiel.banker.api.resource.CharitiesResource;
 import eu.netmobiel.banker.api.resource.DepositEventsResource;
+import eu.netmobiel.banker.api.resource.PaymentBatchesResource;
 import eu.netmobiel.banker.api.resource.SettingsResource;
 import eu.netmobiel.banker.api.resource.UsersResource;
 import eu.netmobiel.commons.Version;
@@ -81,6 +82,7 @@ public class BankerApplication extends Application {
         resources.add(BalancesResource.class);
         resources.add(CharitiesResource.class);
         resources.add(DepositEventsResource.class);
+        resources.add(PaymentBatchesResource.class);
         resources.add(SettingsResource.class);
         resources.add(UsersResource.class);
         resources.add(Jackson2ObjectMapperContextResolver.class);

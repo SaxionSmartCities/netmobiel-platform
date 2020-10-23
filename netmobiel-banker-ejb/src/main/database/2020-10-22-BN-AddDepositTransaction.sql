@@ -5,5 +5,4 @@ ALTER TABLE public.deposit_request
         REFERENCES public.accounting_transaction (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
-)
 ;
