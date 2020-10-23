@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -16,6 +17,7 @@ import javax.persistence.ManyToOne;
 import javax.persistence.PostPersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
@@ -31,7 +33,9 @@ import eu.netmobiel.commons.model.ReferableObject;
  *
  */
 @Entity
-@Table(name = "withdrawal_request")
+@Table(name = "withdrawal_request", uniqueConstraints = {
+	    @UniqueConstraint(name = "cs_transaction_unique", columnNames = { "transaction" })
+})
 @Vetoed
 @SequenceGenerator(name = "withdrawal_request_sg", sequenceName = "withdrawal_request_seq", allocationSize = 1, initialValue = 50)
 public class WithdrawalRequest extends ReferableObject {
@@ -92,19 +96,19 @@ public class WithdrawalRequest extends ReferableObject {
     private Account account;
     
 	/**
-     * The request is made by a specific user.
+     * The request is created by a specific user. For a charity multiple users can be responsible.
      */
 	@NotNull
     @ManyToOne
-	@JoinColumn(name = "requested_by", nullable = false, foreignKey = @ForeignKey(name = "withdrawal_requested_by_fk"))
-    private BankerUser requestedBy;
+	@JoinColumn(name = "created_by", nullable = false, foreignKey = @ForeignKey(name = "withdrawal_created_by_fk"))
+    private BankerUser createdBy;
 
 	/**
-     * The clearance of the request is confirmed by a specific user.
+     * The settling of the request is confirmed by a specific user.
      */
     @ManyToOne
-	@JoinColumn(name = "cleared_by", nullable = true, foreignKey = @ForeignKey(name = "withdrawal_cleared_by_fk"))
-    private BankerUser clearedBy;
+	@JoinColumn(name = "settled_by", nullable = true, foreignKey = @ForeignKey(name = "withdrawal_settled_by_fk"))
+    private BankerUser settledBy;
     
     /**
      * Time of creation of the request.
@@ -113,11 +117,11 @@ public class WithdrawalRequest extends ReferableObject {
     private Instant creationTime;
 
     /**
-     * Time of completing the request
+     * Time of settlement of the request
      * If null then the request is open.
      */
-    @Column(name = "completed_time", nullable = true)
-    private Instant completedTime;
+    @Column(name = "settlement_time", nullable = true)
+    private Instant settlementTime;
 
 	/**
 	 * The status of the request
@@ -125,6 +129,12 @@ public class WithdrawalRequest extends ReferableObject {
 	@Column(name = "status", length = 1, nullable = false)
 	private PaymentStatus status;
 
+    /**
+     * The transaction of the withdrawal. Can refer to the reservation, the release or the final withdrawal, depending on the state. 
+     */
+	@ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transaction", nullable = false, foreignKey = @ForeignKey(name = "withdrawal_transaction_fk"))
+    private AccountingTransaction transaction = null;
     
 	public WithdrawalRequest() {
     }
@@ -138,13 +148,17 @@ public class WithdrawalRequest extends ReferableObject {
 	}
 
 	/**
-	 * Generate an order reference based on date (year and day-of-year) and ID. Example: NBWR-20294-50  
+	 * Generates an order reference based on date (year and day-of-year) and ID. Example: NMWR-20294-50  
 	 */
 	@PostPersist
 	public void defineOrderReference() {
 		this.orderReference = String.format("NMWR-%s-%d", DateTimeFormatter.ofPattern("yyD").format(creationTime.atOffset(ZoneOffset.UTC)), id);
 	}
 	
+	public String getOrderReference() {
+		return orderReference;
+	}
+
 	@Override
 	public String getUrnPrefix() {
 		return URN_PREFIX;
@@ -190,20 +204,12 @@ public class WithdrawalRequest extends ReferableObject {
 		this.account = account;
 	}
 
-	public BankerUser getRequestedBy() {
-		return requestedBy;
+	public BankerUser getCreatedBy() {
+		return createdBy;
 	}
 
-	public void setRequestedBy(BankerUser requestedBy) {
-		this.requestedBy = requestedBy;
-	}
-
-	public BankerUser getClearedBy() {
-		return clearedBy;
-	}
-
-	public void setClearedBy(BankerUser clearedBy) {
-		this.clearedBy = clearedBy;
+	public void setCreatedBy(BankerUser createdBy) {
+		this.createdBy = createdBy;
 	}
 
 	public Instant getCreationTime() {
@@ -214,20 +220,36 @@ public class WithdrawalRequest extends ReferableObject {
 		this.creationTime = creationTime;
 	}
 
-	public Instant getCompletedTime() {
-		return completedTime;
-	}
-
-	public void setCompletedTime(Instant completedTime) {
-		this.completedTime = completedTime;
-	}
-
 	public PaymentStatus getStatus() {
 		return status;
 	}
 
 	public void setStatus(PaymentStatus status) {
 		this.status = status;
+	}
+
+	public BankerUser getSettledBy() {
+		return settledBy;
+	}
+
+	public void setSettledBy(BankerUser settledBy) {
+		this.settledBy = settledBy;
+	}
+
+	public Instant getSettlementTime() {
+		return settlementTime;
+	}
+
+	public void setSettlementTime(Instant settlementTime) {
+		this.settlementTime = settlementTime;
+	}
+
+	public AccountingTransaction getTransaction() {
+		return transaction;
+	}
+
+	public void setTransaction(AccountingTransaction transaction) {
+		this.transaction = transaction;
 	}
 
 	/**

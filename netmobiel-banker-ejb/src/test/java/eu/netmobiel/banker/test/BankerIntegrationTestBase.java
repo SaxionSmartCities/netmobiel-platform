@@ -2,6 +2,7 @@ package eu.netmobiel.banker.test;
 
 import java.io.File;
 import java.io.InputStream;
+import java.time.Instant;
 import java.util.Properties;
 
 import javax.inject.Inject;
@@ -21,6 +22,9 @@ import eu.netmobiel.banker.Resources;
 import eu.netmobiel.banker.annotation.BankerDatabase;
 import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.model.Account;
+import eu.netmobiel.banker.model.Balance;
+import eu.netmobiel.banker.model.BankerUser;
+import eu.netmobiel.banker.model.Ledger;
 import eu.netmobiel.banker.repository.converter.InstantConverter;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.repository.AbstractDao;
@@ -64,12 +68,27 @@ public abstract class BankerIntegrationTestBase {
     protected UserTransaction utx;
     
     @Inject
-    protected Logger log;
+    private Logger log;
     
 	//  private AccessToken driverAccessToken;
     protected LoginContext loginContextDriver;
     protected LoginContext loginContextPassenger;
   
+    protected Ledger ledger;
+    protected Account account1;
+    protected Account account2;
+    protected Account account3;
+    protected Account account4;
+    protected Balance balance1;
+    protected Balance balance2;
+    protected Balance balance3;
+    protected Balance balance4;
+
+    protected BankerUser user1;
+    protected BankerUser user2;
+    protected BankerUser user3;
+    protected BankerUser user4;
+
     private boolean expectFailure;
     
     public boolean isSecurityRequired() {
@@ -150,17 +169,17 @@ public abstract class BankerIntegrationTestBase {
 		utx.begin();
 		em.joinTransaction();
 		log.debug("Dumping old records...");
+		em.createQuery("delete from DepositRequest").executeUpdate();
+		em.createQuery("delete from WithdrawalRequest").executeUpdate();
+		em.createQuery("delete from PaymentBatch").executeUpdate();
 		em.createQuery("delete from Donation").executeUpdate();
 		em.createQuery("delete from CharityUserRole").executeUpdate();
 		em.createQuery("delete from Charity").executeUpdate();
 		em.createQuery("delete from AccountingEntry").executeUpdate();
 		em.createQuery("delete from AccountingTransaction").executeUpdate();
 		em.createQuery("delete from Balance").executeUpdate();
-		em.createQuery("delete from PaymentBatch").executeUpdate();
-		em.createQuery("delete from WithdrawalRequest").executeUpdate();
 		em.createQuery("delete from Account").executeUpdate();
 		em.createQuery("delete from Ledger").executeUpdate();
-		em.createQuery("delete from DepositRequest").executeUpdate();
 		em.createQuery("delete from BankerUser").executeUpdate();
 		utx.commit();
 	}
@@ -190,5 +209,42 @@ public abstract class BankerIntegrationTestBase {
 		em.clear();
 		utx.begin();
 		em.joinTransaction();
+	}
+
+	protected void prepareBasicLedger() {
+        ledger = Fixture.createLedger("ledger-1", "2020-01-01T01:00:00Z", null);
+        em.persist(ledger);
+    	account1 = Fixture.createLiabilityAccount("PLA-1", "account 1", Instant.parse("2020-07-01T00:00:00Z"));
+    	account2 = Fixture.createLiabilityAccount("PLA-2", "account 2", Instant.parse("2020-09-01T00:00:00Z")); 
+    	account3 = Fixture.createLiabilityAccount("PLA-3", "account 3", Instant.parse("2020-09-15T00:00:00Z")); 
+    	account4 = Fixture.createLiabilityAccount("PLA-4", "account 4 closed", Instant.parse("2020-07-01T00:00:00Z")); 
+    	account4.setClosedTime(Instant.parse("2020-07-31T00:00:00Z"));
+        em.persist(account1);
+        em.persist(account2);
+        em.persist(account3);
+        em.persist(account4);
+        balance1 = new Balance(ledger, account1, 100); 
+        balance2 = new Balance(ledger, account2, 200); 
+        balance3 = new Balance(ledger, account3, 0); 
+        balance4 = new Balance(ledger, account4, 300); 
+        em.persist(balance1);
+        em.persist(balance2);
+        em.persist(balance3);
+        em.persist(balance4);
+	}
+	
+	protected void createAndAssignUsers() {
+        user1 = Fixture.createUser("U1", "A", "Family U1", null);
+        user2 = Fixture.createUser("U2", "B", "Family U2", null);
+        user3 = Fixture.createUser("U3", "C", "Family U3", null); 
+        user4 = Fixture.createUser("U4", "D", "Family U4", null); 
+    	em.persist(user1);
+    	em.persist(user2);
+    	em.persist(user3);
+    	em.persist(user4);
+        user1.setPersonalAccount(account1);
+        user2.setPersonalAccount(account2);
+        user3.setPersonalAccount(account3);
+        user4.setPersonalAccount(account4);
 	}
 }

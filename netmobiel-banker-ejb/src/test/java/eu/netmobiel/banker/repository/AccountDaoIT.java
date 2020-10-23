@@ -3,120 +3,48 @@ package eu.netmobiel.banker.repository;
 
 import static org.junit.Assert.*;
 
-import java.io.File;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.List;
 
 import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
-import javax.transaction.UserTransaction;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.Archive;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.jboss.shrinkwrap.resolver.api.maven.Maven;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
-import eu.netmobiel.banker.Resources;
-import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountType;
-import eu.netmobiel.banker.repository.converter.InstantConverter;
-import eu.netmobiel.banker.test.Fixture;
-import eu.netmobiel.banker.util.BankerUrnHelper;
+import eu.netmobiel.banker.test.BankerIntegrationTestBase;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.repository.AbstractDao;
 
 @RunWith(Arquillian.class)
-public class AccountDaoIT {
-    @Deployment
+public class AccountDaoIT extends BankerIntegrationTestBase {
+
+	@Deployment
     public static Archive<?> createTestArchive() {
-    	File[] deps = Maven.configureResolver()
-				.loadPomFromFile("pom.xml")
-				.importCompileAndRuntimeDependencies() 
-				.resolve()
-				.withTransitivity()
-				.asFile();
-        WebArchive archive = ShrinkWrap.create(WebArchive.class, "test.war")
-                .addAsLibraries(deps)
-                .addPackages(true, BankerUrnHelper.class.getPackage())
-                .addPackages(true, BalanceInsufficientException.class.getPackage())
-                .addPackages(true, Account.class.getPackage())
-                .addPackages(true, AbstractDao.class.getPackage())
-                .addPackages(true, InstantConverter.class.getPackage())
-                .addPackages(true, Fixture.class.getPackage())
-            .addClass(BankerUserDao.class)
+        WebArchive archive = createDeploymentBase()
             .addClass(AccountDao.class)
-            .addClass(Resources.class)
-            .addAsResource("META-INF/test-persistence.xml", "META-INF/persistence.xml")
-            .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
-//		System.out.println(archive.toString(true));
+        ;
+// 		System.out.println(archive.toString(true));
 		return archive;
     }
 
     @Inject
-    private AccountDao accountDao;
-
-    @PersistenceContext(unitName = "pu-banker")
-    private EntityManager em;
-    
-    @Inject
-    private UserTransaction utx;
-    
-    @Inject
     private Logger log;
     
-    @Before
-    public void preparePersistenceTest() throws Exception {
-        clearData();
-        insertData();
-        startTransaction();
-    }
-    
-    private void clearData() throws Exception {
-        utx.begin();
-        em.joinTransaction();
-        log.debug("Dumping old records...");
-        em.createQuery("delete from Account").executeUpdate();
-//        em.createQuery("delete from User").executeUpdate();
-        utx.commit();
-    }
+    @Inject
+    private AccountDao accountDao;
 
-    private void insertData() throws Exception {
-        utx.begin();
-        em.joinTransaction();
-        log.debug("Inserting records...");
-//    	List<User> users = new ArrayList<>();
-//        users.add(new User("U1", "A", "Family U1"));
-//        users.add(new User("U2", "B", "Family U2"));
-//        users.add(new User("U3", "C", "Family U3"));
-//        for (User user : users) {
-//			em.persist(user);
-//		}
-        utx.commit();
-        // clear the persistence context (first-level cache)
-        em.clear();
-    }
+	@Override
+	protected void insertData() throws Exception {
+		
+	}
 
-    private void startTransaction() throws Exception {
-        utx.begin();
-        em.joinTransaction();
-    }
-
-    @After
-    public void commitTransaction() throws Exception {
-        utx.commit();
-    }
-    
     private void dump(String subject, Collection<Account> accounts) {
     	accounts.forEach(m -> log.info(subject + ": " + m.toString()));
     }

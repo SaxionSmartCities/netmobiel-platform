@@ -5,6 +5,7 @@ import java.time.Instant;
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -29,9 +30,10 @@ import eu.netmobiel.banker.util.BankerUrnHelper;
  *
  */
 @Entity
-@Table(name = "deposit_request", uniqueConstraints = 
-	@UniqueConstraint(name = "deposit_request_payment_link_id_uc", columnNames = { "payment_link_id" } )
-)
+@Table(name = "deposit_request", uniqueConstraints = {
+	    @UniqueConstraint(name = "cs_transaction_unique", columnNames = { "transaction" }),
+	    @UniqueConstraint(name = "cs_deposit_payment_link", columnNames = { "payment_link_id" })
+})
 @Vetoed
 @SequenceGenerator(name = "deposit_request_sg", sequenceName = "deposit_request_seq", allocationSize = 1, initialValue = 50)
 public class DepositRequest {
@@ -121,6 +123,14 @@ public class DepositRequest {
 	 */
     @Transient
 	private String returnUrl;
+    
+    /**
+     * The transaction of the actual deposit. If set, it refers always to a deposit transaction. If the deposit is not yet verified, no transaction is
+     * known yet. 
+     */
+	@ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transaction", nullable = true, foreignKey = @ForeignKey(name = "deposit_request_transaction_fk"))
+    private AccountingTransaction transaction = null;
     
 	public DepositRequest() {
     }
@@ -219,6 +229,14 @@ public class DepositRequest {
 
 	public void setReturnUrl(String returnUrl) {
 		this.returnUrl = returnUrl;
+	}
+
+	public AccountingTransaction getTransaction() {
+		return transaction;
+	}
+
+	public void setTransaction(AccountingTransaction transaction) {
+		this.transaction = transaction;
 	}
 
 	public String getDepositRequestRef() {

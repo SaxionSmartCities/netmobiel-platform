@@ -11,9 +11,15 @@ import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.representations.AccessToken;
 
 import eu.netmobiel.banker.model.Account;
+import eu.netmobiel.banker.model.AccountType;
+import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.Donation;
+import eu.netmobiel.banker.model.Ledger;
+import eu.netmobiel.banker.model.PaymentBatch;
+import eu.netmobiel.banker.model.PaymentStatus;
+import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.commons.model.GeoLocation;
 
 public class Fixture {
@@ -67,6 +73,20 @@ public class Fixture {
 		return createUser("IP2", "Simon2", "Netmobiel", null);
 	}
 
+    public static Ledger createLedger(String name, String startTimeIso, String endTimeIso) {
+    	Instant startPeriod = Instant.parse(startTimeIso);
+    	Instant endPeriod = endTimeIso != null ? Instant.parse(endTimeIso) : null;
+    	Ledger ledger = new Ledger();
+    	ledger.setName(name);
+    	ledger.setStartPeriod(startPeriod);
+    	ledger.setEndPeriod(endPeriod);
+    	return ledger;
+    }
+
+    public static Account createLiabilityAccount(String ncan, String name, Instant creationTime) {
+    	return Account.newInstant(ncan, name, AccountType.LIABILITY, creationTime);
+    }
+
 	public static Charity createCharity(Account account, String name, String description, int donatedAmount, int goalAmount, GeoLocation location, String imageUrl) {
 		Charity ch = new Charity();
     	ch.setAccount(account);
@@ -79,6 +99,7 @@ public class Fixture {
     	ch.setCampaignStartTime(account.getCreatedTime().plusSeconds(3600));
     	return ch;
 	}
+	
 	public static Donation createDonation(Charity charity, BankerUser user, String description, int amount, Instant donationTime, boolean anonymous) {
 		Donation d = new Donation();
 		d.setAmount(amount);
@@ -89,4 +110,25 @@ public class Fixture {
 		d.setUser(user);
 		return d;
 	}
+	
+	public static WithdrawalRequest createWithdrawalRequest(Account account, BankerUser requestor, String description, int amount, AccountingTransaction transaction) {
+		WithdrawalRequest wr = new WithdrawalRequest();
+		wr.setAccount(account);
+		wr.setAmountCredits(amount);
+		wr.setAmountEurocents(amount * 19);
+		wr.setCreationTime(Instant.now());
+		wr.setDescription(description);
+		wr.setCreatedBy(requestor);
+		wr.setStatus(PaymentStatus.ACTIVE);
+		wr.setTransaction(transaction);
+		return wr;
+	}
+
+	public static PaymentBatch createPaymentBatch(BankerUser requestor) {
+    	PaymentBatch pb = new PaymentBatch();
+    	pb.setCreatedBy(requestor);
+    	pb.setCreationTime(Instant.now());
+    	return pb;
+	}
+
 }

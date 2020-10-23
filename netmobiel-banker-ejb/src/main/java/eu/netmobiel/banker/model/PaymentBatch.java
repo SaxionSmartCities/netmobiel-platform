@@ -1,6 +1,8 @@
 package eu.netmobiel.banker.model;
 
 import java.time.Instant;
+import java.time.ZoneOffset;
+import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -15,9 +17,11 @@ import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.OneToMany;
+import javax.persistence.PostPersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.model.ReferableObject;
@@ -35,11 +39,18 @@ import eu.netmobiel.commons.model.ReferableObject;
 public class PaymentBatch extends ReferableObject {
 	private static final long serialVersionUID = -7409373690677258054L;
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(PaymentBatch.class);
-	public static final int DESCRIPTION_MAX_LENGTH = 128;
-	
+	public static final int ORDER_REFERENCE_MAX_LENGTH = 32;
+
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "payment_batch_sg")
     private Long id;
+
+	/**
+	 * The order reference to be used by treasurer.
+	 */
+	@Size(max = ORDER_REFERENCE_MAX_LENGTH)
+    @Column(name = "order_reference")
+	private String orderReference;
 
     /**
      * The withdrawal requests in the batch.
@@ -52,15 +63,15 @@ public class PaymentBatch extends ReferableObject {
      */
 	@NotNull
     @ManyToOne
-	@JoinColumn(name = "requested_by", nullable = false, foreignKey = @ForeignKey(name = "payment_batch_requested_by_fk"))
-    private BankerUser requestedBy;
+	@JoinColumn(name = "created_by", nullable = false, foreignKey = @ForeignKey(name = "payment_batch_created_by_fk"))
+    private BankerUser createdBy;
 
 	/**
      * The clearance of the batch is confirmed by a specific user.
      */
     @ManyToOne
-	@JoinColumn(name = "cleared_by", nullable = true, foreignKey = @ForeignKey(name = "payment_batch_cleared_by_fk"))
-    private BankerUser clearedBy;
+	@JoinColumn(name = "settled_by", nullable = true, foreignKey = @ForeignKey(name = "payment_batch_settled_by_fk"))
+    private BankerUser settledBy;
     
     /**
      * Time of creation of the batch.
@@ -72,8 +83,8 @@ public class PaymentBatch extends ReferableObject {
      * Time of settlement of the batch.
      * If null then not all payments are cleared yet by the treasurer. If set then all payments are settled.
      */
-    @Column(name = "completion_time", nullable = true)
-    private Instant completionTime;
+    @Column(name = "settlement_time", nullable = true)
+    private Instant settlementTime;
 
 	public PaymentBatch() {
     }
@@ -84,6 +95,18 @@ public class PaymentBatch extends ReferableObject {
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	/**
+	 * Generates an order reference based on date (year and day-of-year) and ID. Example: NMPB-20294-50  
+	 */
+	@PostPersist
+	public void defineOrderReference() {
+		this.orderReference = String.format("NMPB-%s-%d", DateTimeFormatter.ofPattern("yyD").format(creationTime.atOffset(ZoneOffset.UTC)), id);
+	}
+
+	public String getOrderReference() {
+		return orderReference;
 	}
 
 	@Override
@@ -99,20 +122,12 @@ public class PaymentBatch extends ReferableObject {
 		this.withdrawalRequests = withdrawalRequests;
 	}
 
-	public BankerUser getRequestedBy() {
-		return requestedBy;
+	public BankerUser getCreatedBy() {
+		return createdBy;
 	}
 
-	public void setRequestedBy(BankerUser requestedBy) {
-		this.requestedBy = requestedBy;
-	}
-
-	public BankerUser getClearedBy() {
-		return clearedBy;
-	}
-
-	public void setClearedBy(BankerUser clearedBy) {
-		this.clearedBy = clearedBy;
+	public void setCreatedBy(BankerUser createdBy) {
+		this.createdBy = createdBy;
 	}
 
 	public Instant getCreationTime() {
@@ -123,13 +138,20 @@ public class PaymentBatch extends ReferableObject {
 		this.creationTime = creationTime;
 	}
 
-
-	public Instant getCompletionTime() {
-		return completionTime;
+	public BankerUser getSettledBy() {
+		return settledBy;
 	}
 
-	public void setCompletionTime(Instant completionTime) {
-		this.completionTime = completionTime;
+	public void setSettledBy(BankerUser settledBy) {
+		this.settledBy = settledBy;
+	}
+
+	public Instant getSettlementTime() {
+		return settlementTime;
+	}
+
+	public void setSettlementTime(Instant settlementTime) {
+		this.settlementTime = settlementTime;
 	}
 
 	public void addWithdrawalRequest(WithdrawalRequest request) {

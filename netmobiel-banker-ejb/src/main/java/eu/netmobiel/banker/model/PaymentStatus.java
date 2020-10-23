@@ -16,7 +16,7 @@ public enum PaymentStatus {
 	 */
 	EXPIRED("E"),
 	/**
-	 * The payment was successful, the credits are added to the account.
+	 * The payment was successful, the credits are transferred to or from the account.
 	 */
 	COMPLETED("C");
 	

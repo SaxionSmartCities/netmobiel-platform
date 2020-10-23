@@ -15,10 +15,8 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
 
-import eu.netmobiel.banker.model.Account;
-import eu.netmobiel.banker.model.AccountType;
-import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.test.BankerIntegrationTestBase;
@@ -41,22 +39,19 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     }
 
     @Inject
+    private Logger log;
+    
+    @Inject
     private CharityDao charityDao;
 
-    private BankerUser driver1;
-    private Account account1;
-    
-    public boolean isSecurityRequired() {
-    	return true;
-    }
-	
+    private Charity charity1;
+    private Charity charity2;
+    private Charity charity3;
+    private Charity charity4;
 
     @Override
     protected void insertData() throws Exception {
-        driver1 = Fixture.createUser(loginContextDriver);
-		em.persist(driver1);
-		account1 = Account.newInstant("PAL-1", "Account 1", AccountType.LIABILITY, Instant.parse("2020-07-01T00:00:00Z"));
-		em.persist(account1);
+    	prepareBasicLedger();
     }
     
     private void dump(String subject, Collection<Charity> charities) {
@@ -73,6 +68,7 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     	String imageUrl = "https://www.netmobiel.eu/123456.img";
     	GeoLocation location = Fixture.placeZieuwentRKKerk;
     	Instant campaignStart = account1.getCreatedTime().plusSeconds(7200);
+    	ch.setName("My charity");
     	ch.setAccount(account1);
     	ch.setCampaignStartTime(campaignStart);
     	ch.setImageUrl(imageUrl);
@@ -133,28 +129,23 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
 		fail("Expected constraint violation");
     }
 
-    
-    @Test
-    public void listCharities() throws BusinessException {
-    	Account account2 = Account.newInstant("PLA-2", "Account 2", AccountType.LIABILITY, Instant.parse("2020-09-01T00:00:00Z"));
-    	em.persist(account2);
-    	Account account3 = Account.newInstant("PLA-3", "Account 3", AccountType.LIABILITY, Instant.parse("2020-09-15T00:00:00Z"));
-    	em.persist(account3);
-    	Account account4 = Account.newInstant("PLA-4", "Account 4 closed", AccountType.LIABILITY, Instant.parse("2020-07-01T00:00:00Z"));
-    	account4.setClosedTime(Instant.parse("2020-07-31T00:00:00Z"));
-    	em.persist(account4);
-    	Charity charity1 = Fixture.createCharity(account1, "Charity 1", "Description 1", 100, 500, Fixture.placeSlingeland, null);
-    	
+    private void prepareCharities() {
+    	charity1 = Fixture.createCharity(account1, "Charity 1", "Description 1", 100, 500, Fixture.placeSlingeland, null);
     	em.persist(charity1);
-    	Charity charity2 = Fixture.createCharity(account2, "Charity 2", "Description 2", 100, 500, Fixture.placeRozenkwekerijZutphen, null);
+    	charity2 = Fixture.createCharity(account2, "Charity 2", "Description 2", 10, 500, Fixture.placeRozenkwekerijZutphen, null);
     	charity2.setCampaignEndTime(Instant.parse("2020-09-30T00:00:00Z"));
     	em.persist(charity2);
-    	Charity charity3 = Fixture.createCharity(account3, "Charity 3", "Description 3", 100, 500, Fixture.placeZieuwentRKKerk, null);
+    	charity3 = Fixture.createCharity(account3, "Charity 3", "Description 3", 200, 500, Fixture.placeZieuwentRKKerk, null);
     	em.persist(charity3);
-    	Charity charity4 = Fixture.createCharity(account4, "Charity 4", "Description 4 finished", 100, 500, Fixture.placeZieuwentRKKerk, null);
+    	charity4 = Fixture.createCharity(account4, "Charity 4", "Description 4 finished", 400, 500, Fixture.placeZieuwentRKKerk, null);
+    	assertNotNull("Account 4 is closed", account4.getClosedTime());
     	charity4.setCampaignEndTime(account4.getClosedTime().minusSeconds(3600));
     	em.persist(charity4);
+    }
 
+    @Test
+    public void listCharities() throws BusinessException {
+    	prepareCharities();
     	Instant now = Instant.parse("2020-09-25T12:00:00Z");
     	
     	// Search any
@@ -206,25 +197,7 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
 
     @Test
     public void listCharities_verifyOrder() throws BusinessException {
-    	Account account2 = Account.newInstant("PLA-2", "Account 2", AccountType.LIABILITY, Instant.parse("2020-09-01T00:00:00Z"));
-    	em.persist(account2);
-    	Account account3 = Account.newInstant("PLA-3", "Account 3", AccountType.LIABILITY, Instant.parse("2020-09-15T00:00:00Z"));
-    	em.persist(account3);
-    	Account account4 = Account.newInstant("PLA-4", "Account 4 closed", AccountType.LIABILITY, Instant.parse("2020-07-01T00:00:00Z"));
-    	account4.setClosedTime(Instant.parse("2020-07-31T00:00:00Z"));
-    	em.persist(account4);
-    	
-    	Charity charity1 = Fixture.createCharity(account1, "Charity 1", "Description 1", 100, 500, Fixture.placeSlingeland, null);
-    	em.persist(charity1);
-    	Charity charity2 = Fixture.createCharity(account2, "Charity 2", "Description 2", 10, 500, Fixture.placeRozenkwekerijZutphen, null);
-    	charity2.setCampaignEndTime(Instant.parse("2020-09-30T00:00:00Z"));
-    	em.persist(charity2);
-    	Charity charity3 = Fixture.createCharity(account3, "Charity 3", "Description 3", 200, 500, Fixture.placeZieuwentRKKerk, null);
-    	em.persist(charity3);
-    	Charity charity4 = Fixture.createCharity(account4, "Charity 4", "Description 4", 400, 500, Fixture.placeZieuwentRKKerk, null);
-    	charity4.setCampaignEndTime(account4.getClosedTime().minusSeconds(3600));
-    	em.persist(charity4);
-
+    	prepareCharities();
     	Instant now = Instant.parse("2020-09-25T12:00:00Z");
 
     	PagedResult<Long> actual = charityDao.findCharities(now, null, null, null, null, null, null, null, 10, 0);

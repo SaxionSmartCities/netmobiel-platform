@@ -7,8 +7,12 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
+import javax.annotation.Resource;
 import javax.ejb.Schedule;
+import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
@@ -26,6 +30,7 @@ import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.DepositRequest;
 import eu.netmobiel.banker.model.Ledger;
+import eu.netmobiel.banker.model.PaymentBatch;
 import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.SettlementOrder;
 import eu.netmobiel.banker.model.TransactionType;
@@ -37,10 +42,12 @@ import eu.netmobiel.banker.repository.BalanceDao;
 import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.repository.DepositRequestDao;
 import eu.netmobiel.banker.repository.LedgerDao;
+import eu.netmobiel.banker.repository.PaymentBatchDao;
 import eu.netmobiel.banker.repository.WithdrawalRequestDao;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
@@ -73,7 +80,9 @@ public class LedgerService {
 
     @Inject
     private Logger log;
-    
+    @Resource
+	protected SessionContext sessionContext;
+
 	@Inject
     private LedgerDao ledgerDao;
     @Inject
@@ -92,6 +101,9 @@ public class LedgerService {
 
     @Inject
     private WithdrawalRequestDao withdrawalRequestDao;
+
+    @Inject
+    private PaymentBatchDao paymentBatchDao;
 
     @Inject
     private PaymentClient paymentClient;
@@ -137,15 +149,16 @@ public class LedgerService {
      * @param when the time of this financial fact.
      * @description the description in the journal.
      */
-    protected void deposit(Account acc, int amount, OffsetDateTime when, String description, String reference) {
+    protected AccountingTransaction deposit(Account acc, int amount, OffsetDateTime when, String description, String reference) {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
     	Balance userAccountBalance = balanceDao.findByLedgerAndAccount(ledger, acc);
     	Balance brab = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE);  
     	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
     	expect(brab.getAccount(), AccountType.ASSET);
+    	AccountingTransaction tr = null;
 		try {
-			AccountingTransaction tr = ledger
+			tr = ledger
 					.createTransaction(TransactionType.DEPOSIT, description, reference, when.toInstant(), Instant.now())
 					.debit(brab, amount, userAccountBalance.getAccount().getName())
 					.credit(userAccountBalance, amount, null)
@@ -154,6 +167,7 @@ public class LedgerService {
 		} catch (BalanceInsufficientException e) {
 			throw new IllegalStateException("A deposit should never cause an BalanceInsufficientException");
 		}
+		return tr;
     }
 
     /**
@@ -164,7 +178,7 @@ public class LedgerService {
      * @param when the time of this financial fact.
      * @description the description in the journal.
      */
-    protected  void withdraw(Account acc, int amount, OffsetDateTime when, String description, String reference) throws BalanceInsufficientException {
+    protected  AccountingTransaction withdraw(Account acc, int amount, OffsetDateTime when, String description, String reference) throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
     	Balance userAccountBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
@@ -177,6 +191,7 @@ public class LedgerService {
 				.debit(userAccountBalance, amount, userAccountBalance.getAccount().getName())
     			.build();
     	accountingTransactionDao.save(tr);
+    	return tr;
     }
 
     /**
@@ -245,10 +260,22 @@ public class LedgerService {
     /**
      * Releases a previous reservation. A new transaction will be added to nullify the reservation.
      * @param transactionRef the reference to the previously made reservation.  
+     * @param when the timestamp of the release.
+     * @return the transaction  
      */
-    protected AccountingTransaction release(String transactionRef, OffsetDateTime when) throws BalanceInsufficientException {
+    protected AccountingTransaction release(String transactionRef, OffsetDateTime when) {
     	Long tid = BankerUrnHelper.getId(AccountingTransaction.URN_PREFIX, transactionRef);
     	AccountingTransaction reservation = accountingTransactionDao.find(tid).orElseThrow(() -> new IllegalArgumentException("No such transaction: " + transactionRef));
+    	return release(reservation, when);
+    }
+
+    /**
+     * Releases a previous reservation. A new transaction will be added to nullify the reservation.
+     * @param transactionRef the reference to the previously made reservation.  
+     * @param when the timestamp of the release.
+     * @return the transaction  
+     */
+    protected AccountingTransaction release(AccountingTransaction reservation, OffsetDateTime when) {
     	AccountingEntry userEntry = lookupUserEntry(reservation);
     	Ledger ledger = reservation.getLedger();
     	ledger.expectOpen();
@@ -256,12 +283,17 @@ public class LedgerService {
     	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);  
     	expect(userBalance.getAccount(), AccountType.LIABILITY);
     	expect(rb.getAccount(), AccountType.LIABILITY);
-    	AccountingTransaction tr = ledger
-    			.createTransaction(TransactionType.RELEASE, reservation.getDescription(), reservation.getContext(), when.toInstant(), Instant.now())
-    			.credit(userBalance, userEntry.getAmount(), null)
-				.debit(rb, userEntry.getAmount(), userEntry.getAccount().getName())
-    			.build();
-    	accountingTransactionDao.save(tr);
+    	AccountingTransaction tr = null;
+    	try {
+        	tr = ledger
+        			.createTransaction(TransactionType.RELEASE, reservation.getDescription(), reservation.getContext(), when.toInstant(), Instant.now())
+        			.credit(userBalance, userEntry.getAmount(), null)
+    				.debit(rb, userEntry.getAmount(), userEntry.getAccount().getName())
+        			.build();
+        	accountingTransactionDao.save(tr);
+		} catch (BalanceInsufficientException e) {
+			throw new IllegalStateException("Reservation account should not be empty", e);
+		}
     	return tr;
     }
 
@@ -275,12 +307,7 @@ public class LedgerService {
     }
 
     public String release(String reservationId) {
-    	AccountingTransaction tr = null;
-    	try {
-    		tr = release(reservationId, OffsetDateTime.now());
-		} catch (BalanceInsufficientException e) {
-			throw new IllegalStateException("Reservation account should not be empty", e);
-		}
+    	AccountingTransaction tr = release(reservationId, OffsetDateTime.now());
     	return tr.getTransactionRef();
     }
 
@@ -536,30 +563,6 @@ public class LedgerService {
     }
 
     /**
-     * Creates a payment link request at the payment provider of netmobiel
-     * @param requestedBy user requesting the withdrawal.
-     * @param account account to deposit credits to.
-     * @param amountCredits the number of credits to deposit. 
-     * @param description the description to use on the payment page
-     * @return the id of the withdrawal object.
-     * @throws BalanceInsufficientException 
-     */
-    public Long createWithdrawalRequest(BankerUser requestedBy, Account acc, int amountCredits, String description) throws BalanceInsufficientException {
-    	OffsetDateTime now = OffsetDateTime.now();
-    	WithdrawalRequest wr = new WithdrawalRequest();
-		wr.setRequestedBy(requestedBy);
-    	wr.setAccount(acc);
-    	wr.setAmountCredits(amountCredits);
-    	wr.setAmountEurocents(amountCredits * CREDIT_EXCHANGE_RATE);
-    	wr.setDescription(description);
-    	wr.setCreationTime(now.toInstant());
-    	wr.setStatus(PaymentStatus.ACTIVE);
-    	withdrawalRequestDao.save(wr);
-    	reserve(acc, amountCredits, now, description, wr.getReference());
-    	return wr.getId();
-    }
-
-    /**
      * Verifies the deposition of credits by the order id supplied by the payment provider.
      * The order id is one of the parameters added to the return url after completing the payment at the payment page of
      * the payment provider. In addition, the order id is also part of the payment webhook. 
@@ -598,7 +601,9 @@ public class LedgerService {
         	if (plink.status == PaymentLinkStatus.COMPLETED) {
         		// Transition to COMPLETED, add transaction to deposit credits in the NetMobiel system
         		dr_db.setCompletedTime(plink.completed.toInstant());
-        		deposit(dr_db.getAccount(), dr_db.getAmountCredits(), dr_db.getCompletedTime().atOffset(ZoneOffset.UTC), dr_db.getDescription(), dr_db.getDepositRequestRef());
+        		AccountingTransaction tr = deposit(dr_db.getAccount(), dr_db.getAmountCredits(), 
+        				dr_db.getCompletedTime().atOffset(ZoneOffset.UTC), dr_db.getDescription(), dr_db.getDepositRequestRef());
+        		dr_db.setTransaction(tr);
         		dr_db.setStatus(PaymentStatus.COMPLETED);
         		log.info(String.format("DepositRequest %d has completed", dr_db.getId()));
         	} else if (plink.status == PaymentLinkStatus.EXPIRED) {
@@ -619,5 +624,190 @@ public class LedgerService {
     public void onNewSettlementOrder(final @Observes(during = TransactionPhase.IN_PROGRESS) @Created SettlementOrder order) throws BalanceInsufficientException {
     	transfer(order.getOriginator(), order.getBeneficiary(), order.getAmount(), 
     			order.getEntryTime().atOffset(ZoneOffset.UTC), order.getDescription(), order.getContext());
+    }
+    
+	/**
+	 * Lists the withdrawal requests as a paged result set according the filter parameters. Supply null as values when
+	 * a parameter is don't care.
+	 * @param accountReference the netmobiel account number.
+	 * @param since the first date to take into account for creation time.
+	 * @param until the last date (exclusive) to take into account for creation time.
+	 * @param anyStatus if true then list also processed withdrawal requests, otherwise the active (unprocessed) only. 
+	 * @param maxResults The maximum number of results per page. Only if set to 0 the total number of results is returned. 
+	 * @param offset the zero-based offset in the result set.
+	 * @return A paged result with 0 or more results. The results are ordered by creation time descending and then by id descending.
+	 */
+    public PagedResult<WithdrawalRequest> listWithdrawalRequests(String accountReference, Instant since, Instant until, Boolean anyStatus, Integer maxResults, Integer offset) 
+    		throws BadRequestException {
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+        if (since != null && until != null && until.isBefore(since)) {
+        	throw new BadRequestException("Until must be after since");
+        }
+    	PagedResult<Long> prs = withdrawalRequestDao.list(accountReference, since, until, anyStatus, 0, offset);
+    	List<WithdrawalRequest> results = null;
+    	if (maxResults == null || maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> ids = withdrawalRequestDao.list(accountReference, since, until, anyStatus, maxResults, offset);
+    		results = withdrawalRequestDao.fetch(ids.getData(), null, WithdrawalRequest::getId);
+    	}
+    	return new PagedResult<WithdrawalRequest>(results, maxResults, offset, prs.getTotalCount());
+    }
+
+    /**
+     * Creates a payment link request at the payment provider of netmobiel
+     * @param requestedBy user requesting the withdrawal.
+     * @param account account to deposit credits to.
+     * @param amountCredits the number of credits to deposit. 
+     * @param description the description to use on the payment page
+     * @return the id of the withdrawal object.
+     * @throws BalanceInsufficientException 
+     */
+    public Long createWithdrawalRequest(BankerUser requestedBy, Account acc, int amountCredits, String description) throws BalanceInsufficientException {
+    	OffsetDateTime now = OffsetDateTime.now();
+    	WithdrawalRequest wr = new WithdrawalRequest();
+		wr.setCreatedBy(requestedBy);
+    	wr.setAccount(acc);
+    	wr.setAmountCredits(amountCredits);
+    	wr.setAmountEurocents(amountCredits * CREDIT_EXCHANGE_RATE);
+    	wr.setDescription(description);
+    	wr.setCreationTime(now.toInstant());
+    	wr.setStatus(PaymentStatus.ACTIVE);
+    	withdrawalRequestDao.save(wr);
+    	AccountingTransaction tr = reserve(acc, amountCredits, now, description, wr.getReference());
+    	wr.setTransaction(tr);
+    	return wr.getId();
+    }
+
+    /**
+     * Finds a specific withdrawal request.
+     * @param id the database id of the object.
+     * @return The object.
+     * @throws NotFoundException If the object could not be found.
+     */
+    public WithdrawalRequest getWithdrawalRequest(Long id) throws NotFoundException {
+    	return withdrawalRequestDao.find(id)
+    			.orElseThrow(() -> new NotFoundException("No such withdrawal request: " + id));
+    }
+
+	/**
+	 * Lists the payment batches as a paged result set according the filter parameters. Supply null as values when
+	 * a parameter is don't care.
+	 * @param since the first date to take into account for creation time.
+	 * @param until the last date (exclusive) to take into account for creation time.
+	 * @param settledToo if true then list also settled payment batches, otherwise the active (unprocessed) only. 
+	 * @param maxResults The maximum number of results per page. Only if set to 0 the total number of results is returned. 
+	 * @param offset the zero-based offset in the result set.
+	 * @return A paged result with 0 or more results. The results are ordered by creation time descending and then by id descending.
+	 */
+    public PagedResult<PaymentBatch> listPaymentBatches(Instant since, Instant until, Boolean settledToo, Integer maxResults, Integer offset) 
+    		throws BadRequestException {
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+        if (since != null && until != null && until.isBefore(since)) {
+        	throw new BadRequestException("Until must be after since");
+        }
+    	PagedResult<Long> prs = paymentBatchDao.list(since, until, settledToo, 0, offset);
+    	List<PaymentBatch> results = null;
+    	if (maxResults == null || maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> ids = paymentBatchDao.list(since, until, settledToo, maxResults, offset);
+    		results = paymentBatchDao.fetch(ids.getData(), null, PaymentBatch::getId);
+    	}
+    	return new PagedResult<PaymentBatch>(results, maxResults, offset, prs.getTotalCount());
+    }
+
+    /**
+     * Creates a payment batch.
+     * @param requester the user requesting the batch.
+     * @return The ID of the new payment batch.
+     * @throws BusinessException a NotFoundException is thrown when there are no pending withdrawal requests.
+     */
+    public Long createPaymentBatch(BankerUser requester) throws BusinessException {
+    	// Are there any pending withdrawal requests
+    	List<WithdrawalRequest> wdrs = withdrawalRequestDao.findPendingRequests();
+    	if (wdrs.isEmpty()) {
+    		throw new NotFoundException("No active withdrawal requests");
+    	}
+    	PaymentBatch pb = new PaymentBatch();
+    	pb.setCreatedBy(requester);
+    	pb.setCreationTime(Instant.now());
+    	wdrs.forEach(wr -> pb.addWithdrawalRequest(wr));
+    	paymentBatchDao.save(pb);
+    	// WithdrawalRequests are automatically updated by JPA
+    	return pb.getId();
+    }
+
+    /**
+     * Finds a specific payment batch.
+     * @param id the database id of the object.
+     * @return The object.
+     * @throws NotFoundException If the object could not be found.
+     */
+    public PaymentBatch getPaymentBatch(Long id) throws NotFoundException {
+    	return paymentBatchDao.find(id)
+    			.orElseThrow(() -> new NotFoundException("No such payment batch: " + id));
+    }
+
+    /**
+     * Settles a single withdrawal request. This method start a new transaction.
+     * @param settledBy user settling the request.
+     * @param wr the withdrawal request.
+     */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public void settleWithdrawalRequest(BankerUser settledBy, WithdrawalRequest wr) {
+    	WithdrawalRequest wrdb = withdrawalRequestDao.find(wr.getId())
+    			.orElseThrow(() -> new IllegalStateException("No such withdrawal request: " + wr.getId()));
+    	OffsetDateTime now = OffsetDateTime.now();
+		AccountingTransaction tr_r = release(wrdb.getTransaction(), now);
+    	AccountingEntry entry = lookupUserEntry(tr_r);
+    	try {
+    		AccountingTransaction tr_w = withdraw(entry.getAccount(), entry.getAmount(), now, tr_r.getDescription(), tr_r.getContext());
+    		wrdb.setTransaction(tr_w);
+    		wrdb.setStatus(PaymentStatus.COMPLETED);
+    		wrdb.setSettlementTime(now.toInstant());
+    		wrdb.setSettledBy(settledBy);
+    	} catch (BalanceInsufficientException e) {
+    		throw new IllegalStateException("Withdraw after release cannot cause insufficient funds", e);
+    	}
+    }
+    
+    /**
+     * Settles a specific payment batch: For each withdrawal request in the batch transfer the credits from reserved to not reserved and then 
+     * withdraw the credits. Each withdrawal request is settled in its own database transaction.
+     * @param id the database id of the payment batch.
+     * @throws NotFoundException If the object could not be found.
+     */
+    public void settlePaymentBatch(BankerUser settler, Long paymentBatchId) throws NotFoundException {
+    	PaymentBatch pb = paymentBatchDao.find(paymentBatchId)
+    			.orElseThrow(() -> new NotFoundException("No such payment batch: " + paymentBatchId));
+    	pb.setSettledBy(settler);
+    	boolean failure = false;
+    	// Process the withdrawal requests one by one. 
+    	// A failure of one should not affect others. Use a new transaction for each withdrawal request.
+    	// Flag the batch as completed if there are no failures.
+    	for (WithdrawalRequest wr : pb.getWithdrawalRequests()) {
+    		if (wr.getStatus() == PaymentStatus.COMPLETED || wr.getStatus() == PaymentStatus.EXPIRED) {
+    			continue;
+    		}
+    		try {
+				sessionContext.getBusinessObject(this.getClass()).settleWithdrawalRequest(settler, wr);
+			} catch (Exception e) {
+				failure = true;
+				log.error("Error settling withdrawal request " + wr.getId(), e);
+			}
+		}
+    	if (!failure) {
+    		// The batch has been processed successfully 
+    		pb.setSettlementTime(Instant.now());
+    	}
     }
 }

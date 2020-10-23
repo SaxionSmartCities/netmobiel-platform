@@ -3,167 +3,54 @@ package eu.netmobiel.banker.repository;
 
 import static org.junit.Assert.*;
 
-import java.io.File;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.List;
 
 import javax.inject.Inject;
-import javax.persistence.EntityManager;
-import javax.persistence.PersistenceContext;
 import javax.persistence.TypedQuery;
-import javax.transaction.UserTransaction;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
 import org.jboss.shrinkwrap.api.Archive;
-import org.jboss.shrinkwrap.api.ShrinkWrap;
-import org.jboss.shrinkwrap.api.asset.EmptyAsset;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
-import org.jboss.shrinkwrap.resolver.api.maven.Maven;
-import org.junit.After;
-import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
-import eu.netmobiel.banker.Resources;
 import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.model.Account;
-import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.AccountingEntryType;
 import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.Balance;
-import eu.netmobiel.banker.model.Ledger;
 import eu.netmobiel.banker.model.TransactionType;
-import eu.netmobiel.banker.model.BankerUser;
-import eu.netmobiel.banker.repository.converter.InstantConverter;
-import eu.netmobiel.banker.test.Fixture;
-import eu.netmobiel.banker.util.BankerUrnHelper;
+import eu.netmobiel.banker.test.BankerIntegrationTestBase;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.repository.AbstractDao;
 
 @RunWith(Arquillian.class)
-public class AccountingEntryDaoIT {
-    @Deployment
+public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
+	@Deployment
     public static Archive<?> createTestArchive() {
-    	File[] deps = Maven.configureResolver()
-				.loadPomFromFile("pom.xml")
-				.importCompileAndRuntimeDependencies() 
-				.resolve()
-				.withTransitivity()
-				.asFile();
-        WebArchive archive = ShrinkWrap.create(WebArchive.class, "test.war")
-                .addAsLibraries(deps)
-                .addPackages(true, BankerUrnHelper.class.getPackage())
-                .addPackages(true, BalanceInsufficientException.class.getPackage())
-                .addPackages(true, Account.class.getPackage())
-                .addPackages(true, AbstractDao.class.getPackage())
-                .addPackages(true, InstantConverter.class.getPackage())
-                .addPackages(true, Fixture.class.getPackage())
-            .addClass(AccountingEntryDao.class)
-            .addClass(Resources.class)
-            .addAsResource("META-INF/test-persistence.xml", "META-INF/persistence.xml")
-            .addAsWebInfResource(EmptyAsset.INSTANCE, "beans.xml");
-//		System.out.println(archive.toString(true));
+        WebArchive archive = createDeploymentBase()
+        		.addClass(AccountingEntryDao.class)
+        ;
+// 		System.out.println(archive.toString(true));
 		return archive;
     }
 
     @Inject
-    private AccountingEntryDao accountingEntryDao;
-
-    @PersistenceContext(unitName = "pu-banker")
-    private EntityManager em;
-    
-    @Inject
-    private UserTransaction utx;
-    
-    @Inject
     private Logger log;
     
-    private Ledger ledger;
-    private Account account1;
-    private Account account2;
-    private Account account3;
-    private Balance balance1;
-    private Balance balance2;
-    private Balance balance3;
-    
-    @Before
-    public void preparePersistenceTest() throws Exception {
-        clearData();
-        insertData();
-        startTransaction();
-    }
-    
-    private void clearData() throws Exception {
-        utx.begin();
-        em.joinTransaction();
-        log.debug("Dumping old records...");
-        em.createQuery("delete from AccountingEntry").executeUpdate();
-        em.createQuery("delete from AccountingTransaction").executeUpdate();
-        em.createQuery("delete from Balance").executeUpdate();
-        em.createQuery("delete from Account").executeUpdate();
-        em.createQuery("delete from Ledger").executeUpdate();
-        em.createQuery("delete from BankerUser").executeUpdate();
-        utx.commit();
-    }
+    @Inject
+    private AccountingEntryDao accountingEntryDao;
 
-    private void insertData() throws Exception {
-        utx.begin();
-        em.joinTransaction();
-        log.debug("Inserting records...");
-        ledger = createLedger("ledger-1", "2020-01-01T01:00:00Z", null);
-        BankerUser user1 = new BankerUser("U1", "A", "Family U1", null);
-        BankerUser user2 = new BankerUser("U2", "B", "Family U2", null);
-        BankerUser user3 = new BankerUser("U3", "C", "Family U3", null); 
-        em.persist(ledger);
-    	em.persist(user1);
-    	em.persist(user2);
-    	em.persist(user3);
-    	account1 = Account.newInstant("account-1", "account-1", AccountType.LIABILITY);
-    	account2 = Account.newInstant("account-2", "account-2", AccountType.LIABILITY); 
-    	account3 = Account.newInstant("account-3", "account-3", AccountType.LIABILITY); 
-        em.persist(account1);
-        em.persist(account2);
-        em.persist(account3);
-        user1.setPersonalAccount(account1);
-        user2.setPersonalAccount(account2);
-        user3.setPersonalAccount(account3);
-        balance1 = new Balance(ledger, account1, 100); 
-        balance2 = new Balance(ledger, account2, 200); 
-        balance3 = new Balance(ledger, account3, 0); 
-        em.persist(balance1);
-        em.persist(balance2);
-        em.persist(balance3);
-    	
-        utx.commit();
-        // clear the persistence context (first-level cache)
-        em.clear();
-    }
+	@Override
+	protected void insertData() throws Exception {
+		prepareBasicLedger();
+	}
 
-    private void startTransaction() throws Exception {
-        utx.begin();
-        em.joinTransaction();
-    }
-
-    @After
-    public void commitTransaction() throws Exception {
-        utx.commit();
-    }
-    
-    private Ledger createLedger(String name, String startTimeIso, String endTimeIso) {
-    	Instant startPeriod = Instant.parse(startTimeIso);
-    	Instant endPeriod = endTimeIso != null ? Instant.parse(endTimeIso) : null;
-    	Ledger ledger = new Ledger();
-    	ledger.setName(name);
-    	ledger.setStartPeriod(startPeriod);
-    	ledger.setEndPeriod(endPeriod);
-    	return ledger;
-    }
-    
     private void dump(String subject, Collection<AccountingEntry> entries) {
     	entries.forEach(obj -> log.info(subject + ": " + obj.toString()));
     }
@@ -174,8 +61,8 @@ public class AccountingEntryDaoIT {
 		tq.setParameter("account", acc);
 		Balance b = tq.getSingleResult();
 		assertEquals(amount, b.getEndAmount());
-
     }
+
     @Test
     public void listAccountingEntries() throws BalanceInsufficientException {
     	// Take care to load the balances into the persistence context

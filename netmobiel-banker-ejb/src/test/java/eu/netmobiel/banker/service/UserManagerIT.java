@@ -12,6 +12,7 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
 
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.repository.AccountDao;
@@ -32,6 +33,9 @@ public class UserManagerIT extends BankerIntegrationTestBase {
 		return archive;
     }
 
+    @Inject
+    private Logger log;
+    
     @Inject
     private BankerUserManager userManager;
 

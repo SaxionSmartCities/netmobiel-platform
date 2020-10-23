@@ -15,6 +15,7 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.slf4j.Logger;
 
 import eu.netmobiel.banker.filter.DonationFilter;
 import eu.netmobiel.banker.model.Account;
@@ -42,6 +43,9 @@ public class DonationDaoIT  extends BankerIntegrationTestBase {
 		return archive;
     }
 
+    @Inject
+    private Logger log;
+    
     @Inject
     private DonationDao donationDao;
 
