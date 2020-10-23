@@ -1691,9 +1691,6 @@ components:
           - COMPLETED
           - EXPIRED
           type: string
-        requestedBy:
-          $ref: '#/components/schemas/User'
-          description: The user that requested the withdrawal.
         creationTime:
           format: date-time
           description: The date and time of creating the request.
