@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Resource;
@@ -724,6 +725,8 @@ public class LedgerService {
     		// Get the actual data
     		PagedResult<Long> ids = paymentBatchDao.list(since, until, settledToo, maxResults, offset);
     		results = paymentBatchDao.fetch(ids.getData(), PaymentBatch.LIST_GRAPH, PaymentBatch::getId);
+    		Map<Long, Integer> counts = paymentBatchDao.fetchCount(ids.getData());
+    		results.forEach(pb -> pb.setCount(counts.get(pb.getId())));
     	}
     	return new PagedResult<PaymentBatch>(results, maxResults, offset, prs.getTotalCount());
     }

@@ -24,6 +24,7 @@ import javax.persistence.OneToMany;
 import javax.persistence.PostPersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
@@ -118,6 +119,12 @@ public class PaymentBatch extends ReferableObject {
     @Column(name = "settlement_time", nullable = true)
     private Instant settlementTime;
 
+    /**
+     * Thenumber of withdrawal requests in this batch. Only filled in the list query.
+     */
+    @Transient
+    private Integer count;
+    
 	public PaymentBatch() {
     }
 
@@ -191,6 +198,13 @@ public class PaymentBatch extends ReferableObject {
         withdrawalRequests.add(request);
     }
  
+	public Integer getCount() {
+		return count;
+	}
+
+	public void setCount(Integer count) {
+		this.count = count;
+	}
 
 	/**
 	 * Using the database ID as equals test!

@@ -3,15 +3,20 @@ package eu.netmobiel.banker.repository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
+import javax.persistence.Tuple;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Expression;
+import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
@@ -86,6 +91,27 @@ public class PaymentBatchDao extends AbstractDao<PaymentBatch, Long> {
 			results = tq.getResultList();
         }
         return new PagedResult<Long>(results, maxResults, offset, totalCount);
+    }
+
+    public Map<Long, Integer> fetchCount(List<Long> ids) {
+    	if (ids == null || ids.isEmpty()) {
+    		return Collections.emptyMap();
+    	}
+        CriteriaBuilder cb = getEntityManager().getCriteriaBuilder();
+        CriteriaQuery<Tuple> cq = cb.createQuery(Tuple.class);
+        Root<PaymentBatch> root = cq.from(PaymentBatch.class);
+        Path<Long> idPath = root.get(PaymentBatch_.id);
+        Expression<Integer> countExpr = cb.size(root.get(PaymentBatch_.withdrawalRequests));
+        cq.groupBy(idPath);
+        cq.multiselect(idPath, countExpr);
+        cq.where(idPath.in(ids));
+        TypedQuery<Tuple> tq = getEntityManager().createQuery(cq);
+        List<Tuple> tuples = tq.getResultList();
+        Map<Long, Integer> pbs = new HashMap<>();
+        for (Tuple tuple : tuples) {
+            pbs.put(tuple.get(idPath), tuple.get(countExpr));
+        }
+        return pbs;
     }
 
 }
