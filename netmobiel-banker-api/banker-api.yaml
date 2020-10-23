@@ -1637,6 +1637,9 @@ components:
         orderReference:
           description: A short unique code for the batch, for external reference.
           type: string
+        count:
+          description: The number of withdrawal requests in the batch.
+          type: integer
       example:
         creationTime: 2020-10-20T12:00:00Z
         completionTime: 2020-10-26T14:25:00Z
