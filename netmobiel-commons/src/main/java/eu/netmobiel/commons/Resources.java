@@ -1,12 +1,9 @@
 package eu.netmobiel.commons;
 
-import javax.annotation.Priority;
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.inject.Alternative;
 import javax.enterprise.inject.Default;
 import javax.enterprise.inject.Produces;
 import javax.enterprise.inject.spi.InjectionPoint;
-import javax.interceptor.Interceptor;
 
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
