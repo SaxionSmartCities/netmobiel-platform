@@ -4,9 +4,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -98,13 +95,5 @@ public class BookingDao extends AbstractDao<Booking, Long> {
         }
         return new PagedResult<Long>(results, maxResults, offset, totalCount);
     }
-
-	@Override
-	public List<Booking> fetch(List<Long> ids, String graphName) {
-		// Create an identity map using the generic fetch. Rows are returned, but not necessarily in the same order
-		Map<Long, Booking> resultMap = super.fetch(ids, graphName).stream().collect(Collectors.toMap(Booking::getId, Function.identity()));
-		// Now return the rows in the same order as the ids.
-		return ids.stream().map(id -> resultMap.get(id)).collect(Collectors.toList());
-	}
 
 }

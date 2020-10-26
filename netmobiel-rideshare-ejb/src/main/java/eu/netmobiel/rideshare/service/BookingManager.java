@@ -108,7 +108,7 @@ public class BookingManager {
     		// Get the actual data
     		PagedResult<Long> bookingIds = bookingDao.findByPassenger(passenger, since, until, false, maxResults, offset);
     		if (!bookingIds.getData().isEmpty()) {
-    			results = bookingDao.fetch(bookingIds.getData(), Booking.DEEP_ENTITY_GRAPH);
+    			results = bookingDao.loadGraphs(bookingIds.getData(), Booking.DEEP_ENTITY_GRAPH, Booking::getId);
     		}
     	}
     	return new PagedResult<Booking>(results, maxResults, offset, totalCount);

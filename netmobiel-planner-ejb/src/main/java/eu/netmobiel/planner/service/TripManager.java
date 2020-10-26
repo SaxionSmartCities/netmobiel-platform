@@ -151,7 +151,7 @@ public class TripManager {
     		// Get the actual data
     		PagedResult<Long> tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, maxResults, offset);
     		if (tripIds.getData().size() > 0) {
-    			results = tripDao.fetch(tripIds.getData(), Trip.DETAILED_ENTITY_GRAPH, Trip::getId);
+    			results = tripDao.loadGraphs(tripIds.getData(), Trip.DETAILED_ENTITY_GRAPH, Trip::getId);
     		}
     	}
     	return new PagedResult<Trip>(results, maxResults, offset, totalCount);

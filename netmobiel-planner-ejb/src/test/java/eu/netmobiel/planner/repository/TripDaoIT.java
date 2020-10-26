@@ -191,7 +191,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     	PagedResult<Long> tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
     	assertNotNull(tripIds);
     	assertEquals(3, tripIds.getCount());
-    	List<Trip> trips = tripDao.fetch(tripIds.getData(), null, Trip::getId);
+    	List<Trip> trips = tripDao.loadGraphs(tripIds.getData(), null, Trip::getId);
     	assertNotNull(trips);
     	assertTrue(IntStream
     			.range(0, trips.size() - 1)
@@ -200,7 +200,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     	
     	sortDirection = SortDirection.ASC;
     	tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
-    	List<Trip> trips2 = tripDao.fetch(tripIds.getData(), null, Trip::getId);
+    	List<Trip> trips2 = tripDao.loadGraphs(tripIds.getData(), null, Trip::getId);
     	assertTrue(IntStream
     			.range(0, trips2.size() - 1)
     			.allMatch(i -> trips2.get(i).getItinerary().getDepartureTime().isBefore(trips2.get(i + 1).getItinerary().getDepartureTime()))
@@ -208,7 +208,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
 
     	sortDirection = SortDirection.DESC;
     	tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
-    	List<Trip> trips3 = tripDao.fetch(tripIds.getData(), null, Trip::getId);
+    	List<Trip> trips3 = tripDao.loadGraphs(tripIds.getData(), null, Trip::getId);
     	assertTrue(IntStream
     			.range(0, trips3.size() - 1)
     			.allMatch(i -> trips3.get(i).getItinerary().getDepartureTime().isAfter(trips3.get(i + 1).getItinerary().getDepartureTime()))

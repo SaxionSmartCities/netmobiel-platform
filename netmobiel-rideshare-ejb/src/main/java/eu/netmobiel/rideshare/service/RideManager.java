@@ -256,7 +256,7 @@ public class RideManager {
     		// Get the actual data
     		PagedResult<Long> rideIds = rideDao.findByDriver(driver, since, until, deletedToo, sortDirection, maxResults, offset);
     		if (rideIds.getData().size() > 0) {
-    			results = rideDao.fetch(rideIds.getData(), Ride.LIST_RIDES_ENTITY_GRAPH);
+    			results = rideDao.loadGraphs(rideIds.getData(), Ride.LIST_RIDES_ENTITY_GRAPH, Ride::getId);
     		}
     	}
     	return new PagedResult<Ride>(results, maxResults, offset, totalCount);
@@ -305,7 +305,7 @@ public class RideManager {
     	if (totalCount > 0 && maxResults > 0) {
     		PagedResult<Long> rideIds = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, earliestDeparture, latestArrival, nrSeats, lenient, MAX_BOOKINGS, maxResults, offset);
         	if (! rideIds.getData().isEmpty()) {
-        		results = rideDao.fetch(rideIds.getData(), Ride.SEARCH_RIDES_ENTITY_GRAPH);
+        		results = rideDao.loadGraphs(rideIds.getData(), Ride.SEARCH_RIDES_ENTITY_GRAPH, Ride::getId);
         	}
     	}
     	return new PagedResult<Ride>(results, maxResults, offset, totalCount);

@@ -192,7 +192,7 @@ public class MessageDaoIT {
     @Test
     public void listMessages_All() {
     	PagedResult<Long> messageIds = messageDao.listMessages(null, null, null, null, null, 100, 0);
-    	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
+    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
     	Long expCount = em.createQuery("select count(m) from Message m", Long.class).getSingleResult();
     	assertEquals("All messages present", Math.toIntExact(expCount) , messages.size());
     	assertNull("No total count", messageIds.getTotalCount());
@@ -213,7 +213,7 @@ public class MessageDaoIT {
     public void listMessages_ByParticipant() {
     	final String participant = "A3";
     	PagedResult<Long> messageIds = messageDao.listMessages(participant, null, null, null, null, 100, 0);
-    	List<Message> messages = messageDao.fetch(messageIds.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH);
+    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
     	for (Message message : messages) {
 			// The participant is one of the recipients or is the sender of the message
         	Set<String> recipients = message.getEnvelopes().stream().map(env -> env.getRecipient().getManagedIdentity()).collect(Collectors.toSet());
@@ -231,7 +231,7 @@ public class MessageDaoIT {
     public void listMessages_Context() {
     	final String context = "Context 1";
     	PagedResult<Long> messageIds = messageDao.listMessages(null, context, null, null, null, 100, 0);
-    	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
+    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
     	Set<String> bodies = messages.stream().map(m -> m.getBody()).collect(Collectors.toSet());
     	assertTrue("Body M0 present", bodies.contains("Body M0"));
     	assertTrue("Body M1 present", bodies.contains("Body M1"));
@@ -244,7 +244,7 @@ public class MessageDaoIT {
     public void listMessages_Since() {
     	final Instant since = Instant.parse("2020-02-13T14:00:00Z");
     	PagedResult<Long> messageIds = messageDao.listMessages(null, null, since, null, null, 100, 0);
-    	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
+    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
     	Set<String> bodies = messages.stream().map(m -> m.getBody()).collect(Collectors.toSet());
     	assertEquals("Only 2 messages", 2, messages.size());
     	assertEquals("Only 2 message bodies", 2, bodies.size());
@@ -256,7 +256,7 @@ public class MessageDaoIT {
     public void listMessages_Until() {
     	final Instant until = Instant.parse("2020-02-13T12:00:00Z");
     	PagedResult<Long> messageIds = messageDao.listMessages(null, null, null, until, null, 100, 0);
-    	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
+    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
 //    	dump("listMessages_Until", messages);
     	Set<String> bodies = messages.stream().map(m -> m.getBody()).collect(Collectors.toSet());
     	assertEquals("Only 3 message bodies", 3, bodies.size());
@@ -276,7 +276,7 @@ public class MessageDaoIT {
     public void listMessages_DeliveryModes_Default() {
     	prepareDeliveryModes();
     	PagedResult<Long> messageIds = messageDao.listMessages("A3", null, null, null, null, 100, 0);
-    	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
+    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
     	dump("listMessages_DeliveryModes", messages);
     	Set<DeliveryMode> modes = messages.stream().map(m -> m.getDeliveryMode()).collect(Collectors.toSet());
     	assertTrue("MESSAGE present", modes.contains(DeliveryMode.MESSAGE));
@@ -288,7 +288,7 @@ public class MessageDaoIT {
     public void listMessages_DeliveryModes_All() {
     	prepareDeliveryModes();
     	PagedResult<Long> messageIds = messageDao.listMessages("A3", null, null, null, DeliveryMode.ALL, 100, 0);
-    	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
+    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
     	dump("listMessages_DeliveryModes_All", messages);
     	Set<DeliveryMode> modes = messages.stream().map(m -> m.getDeliveryMode()).collect(Collectors.toSet());
     	assertTrue("MESSAGE present", modes.contains(DeliveryMode.MESSAGE));
@@ -300,7 +300,7 @@ public class MessageDaoIT {
     public void listMessages_DeliveryModes_MessageOnly() {
     	prepareDeliveryModes();
     	PagedResult<Long> messageIds = messageDao.listMessages("A3", null, null, null, DeliveryMode.MESSAGE, 100, 0);
-    	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
+    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
     	dump("listMessages_DeliveryModes_MessageOnly", messages);
     	Set<DeliveryMode> modes = messages.stream().map(m -> m.getDeliveryMode()).collect(Collectors.toSet());
     	assertTrue("MESSAGE present", modes.contains(DeliveryMode.MESSAGE));
@@ -312,7 +312,7 @@ public class MessageDaoIT {
     public void listMessages_DeliveryModes_NotificationOnly() {
     	prepareDeliveryModes();
     	PagedResult<Long> messageIds = messageDao.listMessages("A3", null, null, null, DeliveryMode.NOTIFICATION, 100, 0);
-    	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
+    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
     	dump("listMessages_DeliveryModes_NotificationOnly", messages);
     	Set<DeliveryMode> modes = messages.stream().map(m -> m.getDeliveryMode()).collect(Collectors.toSet());
     	assertFalse("MESSAGE present", modes.contains(DeliveryMode.MESSAGE));
@@ -324,7 +324,7 @@ public class MessageDaoIT {
     public void listConversation() {
     	final String recipient = "A3";
     	PagedResult<Long> messageIds = messageDao.listConversations(recipient, 100, 0);
-    	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
+    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
 //    	dump("listConversation", messages);
     	Set<String> bodies = messages.stream().map(m -> m.getBody()).collect(Collectors.toSet());
     	assertEquals("Only 3 message bodies", 3, bodies.size());
@@ -339,7 +339,7 @@ public class MessageDaoIT {
     	prepareDeliveryModes();
     	final String recipient = "A3";
     	PagedResult<Long> messageIds = messageDao.listConversations(recipient, 100, 0);
-    	List<Message> messages = messageDao.fetch(messageIds.getData(), null);
+    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
 //    	dump("listConversation", messages);
     	Set<String> bodies = messages.stream().map(m -> m.getBody()).collect(Collectors.toSet());
     	assertEquals("Only 4 message bodies", 4, bodies.size());

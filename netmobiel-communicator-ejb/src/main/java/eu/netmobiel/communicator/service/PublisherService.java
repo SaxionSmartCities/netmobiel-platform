@@ -161,7 +161,7 @@ public class PublisherService {
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> mids = messageDao.listMessages(effectiveParticipant, context, since, until, mode, maxResults, offset);
-    		results = messageDao.fetch(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH);
+    		results = messageDao.loadGraphs(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
     	} else {
     		results = Collections.emptyList();
     	}
@@ -190,7 +190,7 @@ public class PublisherService {
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
         	PagedResult<Long> mids = messageDao.listConversations(effectiveParticipant, maxResults, offset);
-        	results = messageDao.fetch(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH);
+        	results = messageDao.loadGraphs(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
     	} else {
     		results = Collections.emptyList();
     	}

@@ -4,9 +4,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -165,14 +162,6 @@ public class RideDao extends AbstractDao<Ride, Long> {
         return new PagedResult<Long>(results, maxResults, offset, totalCount);
     }
 
-	@Override
-	public List<Ride> fetch(List<Long> ids, String graphName) {
-		// Create an identity map using the generic fetch. Rows are returned, but not necessarily in the same order
-		Map<Long, Ride> resultMap = super.fetch(ids, graphName).stream().collect(Collectors.toMap(Ride::getId, Function.identity()));
-		// Now return the rows in the same order as the ids.
-		return ids.stream().map(id -> resultMap.get(id)).collect(Collectors.toList());
-	}
-    
     public List<Long> findFollowingRideIds(RideTemplate template, Instant departureTime) {
     	TypedQuery<Long> tq = em.createQuery(
     			"select r.id from Ride r where r.rideTemplate = :template and r.departureTime > :departureTime " + 

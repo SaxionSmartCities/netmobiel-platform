@@ -4,9 +4,6 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Map;
-import java.util.function.Function;
-import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -137,14 +134,6 @@ public class MessageDao extends AbstractDao<Message, Long> {
         return new PagedResult<Long>(results, maxResults, offset, totalCount);
 	}
 	
-	@Override
-	public List<Message> fetch(List<Long> ids, String graphName) {
-		// Create an identity map using the generic fetch. Rows are returned, but not necessarily in the same order
-		Map<Long, Message> resultMap = super.fetch(ids, graphName).stream().collect(Collectors.toMap(Message::getId, Function.identity()));
-		// Now return the rows in the same order as the ids.
-		return ids.stream().map(id -> resultMap.get(id)).collect(Collectors.toList());
-	}
-
 /*
 Get the latest message for each context for recipient A2:
 select distinct m.id, m.body, m.context, m.subject, m.sender, m.created_time from envelope e join message m on m.id = e.message

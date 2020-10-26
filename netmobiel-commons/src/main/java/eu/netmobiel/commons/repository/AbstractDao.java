@@ -132,12 +132,15 @@ public abstract class AbstractDao<T, ID> {
     }
 
     /**
-     * Given a list of identifiers, return the objects. NOTE: The output list has NOT necessarily the same order as the input list
+     * Given a list of identifiers, return the objects according the graph and the query hint type. 
+     * The output list has NOT necessarily the same order as the input list, specify a keyMapper to guarantee the same order.
      * @param ids A list of primary keys
-     * @param graphName
+     * @param graphName The name of the named entity graph to apply.
+     * @param the JPA query hint name: javax.persistence.fetchgraph or javax.persistence.loadgraph
+     * @param a keymapper function, mapping the domain object to the identity key.
      * @return
      */
-    public List<T> fetch(List<ID> ids, String graphName) {
+    protected List<T> queryGraphs(List<ID> ids, String graphName, String queryHintType, Function<T, ID> keyMapper) {
     	if (ids == null || ids.isEmpty()) {
     		return Collections.emptyList();
     	}
@@ -149,24 +152,30 @@ public abstract class AbstractDao<T, ID> {
         cq.where(exp.in(ids));
         TypedQuery<T> tq = getEntityManager().createQuery(cq);
         if (graphName != null) {
-        	tq.setHint(JPA_HINT_LOAD, getEntityManager().getEntityGraph(graphName));
+        	tq.setHint(queryHintType, getEntityManager().getEntityGraph(graphName));
         }
-        return tq.getResultList();
+        List<T> results = tq.getResultList();
+        if (keyMapper != null) {
+			Map<ID, T> resultMap = results.stream()
+					.collect(Collectors.toMap(keyMapper, Function.identity())); 
+			// Now return the rows in the same order as the ids.
+			results = ids.stream()
+					.map(id -> resultMap.get(id))
+					.collect(Collectors.toList());
+        }
+        return results;
     }
+        
 
-	public List<T> fetch(List<ID> ids, String graphName, Function<T, ID> keyMapper) {
-		Map<ID, T> resultMap;
-		if (ids.size() > 0) {
-			// Create an identity map using the generic fetch. Rows are returned, but not necessarily in the same order
-			resultMap = fetch(ids, graphName).stream().collect(Collectors.toMap(keyMapper, Function.identity()));
-		} else {
-			resultMap = Collections.emptyMap();
-		}
-		// Now return the rows in the same order as the ids.
-		return ids.stream().map(id -> resultMap.get(id)).collect(Collectors.toList());
+	public List<T> loadGraphs(List<ID> ids, String graphName, Function<T, ID> keyMapper) {
+		return queryGraphs(ids, graphName, JPA_HINT_LOAD, keyMapper);
 	}
 
-    public boolean isLoaded(T entity) {
+	public List<T> fetchGraphs(List<ID> ids, String graphName, Function<T, ID> keyMapper) {
+		return queryGraphs(ids, graphName, JPA_HINT_FETCH, keyMapper);
+	}
+
+	public boolean isLoaded(T entity) {
         PersistenceUnitUtil puu = getEntityManager().getEntityManagerFactory().getPersistenceUnitUtil();
         return puu.isLoaded(entity);
     }

@@ -831,7 +831,7 @@ public class TripPlanManager {
     		// Get the actual data
     		PagedResult<Long> tripIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, maxResults, offset);
     		if (tripIds.getData().size() > 0) {
-    			results = tripPlanDao.fetch(tripIds.getData(), TripPlan.DETAILED_ENTITY_GRAPH, TripPlan::getId);
+    			results = tripPlanDao.loadGraphs(tripIds.getData(), TripPlan.DETAILED_ENTITY_GRAPH, TripPlan::getId);
     		}
     	}
     	return new PagedResult<TripPlan>(results, maxResults, offset, totalCount);
@@ -868,7 +868,7 @@ public class TripPlanManager {
     		PagedResult<Long> tripIds = tripPlanDao.findShoutOutPlans(location, startTime, depArrRadius, travelRadius, maxResults, offset);
     		if (tripIds.getData().size() > 0) {
     			// Return the plan and the traveller 
-    			results = tripPlanDao.fetch(tripIds.getData(), TripPlan.SHOUT_OUT_ENTITY_GRAPH, TripPlan::getId);
+    			results = tripPlanDao.loadGraphs(tripIds.getData(), TripPlan.SHOUT_OUT_ENTITY_GRAPH, TripPlan::getId);
     		}
     	}
     	return new PagedResult<TripPlan>(results, maxResults, offset, totalCount);
