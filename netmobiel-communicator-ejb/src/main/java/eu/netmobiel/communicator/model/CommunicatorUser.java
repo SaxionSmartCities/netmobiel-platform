@@ -25,7 +25,7 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 public class CommunicatorUser extends User  {
 
 	private static final long serialVersionUID = -4237705703151528786L;
-	public static final String URN_PREFIX = CommunicatorUrnHelper.createUrnPrefix(CommunicatorUser.class);
+	public static final String URN_PREFIX = CommunicatorUrnHelper.createUrnPrefix("user");
 	
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_sg")

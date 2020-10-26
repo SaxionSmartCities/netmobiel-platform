@@ -48,7 +48,7 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
      * @throws FoundException If the user does not exist.
      */
     public BankerUser getUserWithBalance(Long uid) throws NotFoundException {
-    	return userDao.find(uid, userDao.createLoadHint(BankerUser.GRAPH_WITH_BALANCE))
+    	return userDao.loadGraph(uid, BankerUser.GRAPH_WITH_BALANCE)
     			.orElseThrow(() -> new NotFoundException("No such user: " + uid));
     }
 

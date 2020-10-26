@@ -8,7 +8,6 @@ import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -29,6 +28,7 @@ import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -59,7 +59,7 @@ public class UsersResource implements UsersApi {
 
 	private static final Predicate<HttpServletRequest> isAdmin = rq -> rq.isUserInRole("admin");
 	
-    protected BankerUser resolveUserReference(String userId, boolean createIfNeeded) {
+    protected BankerUser resolveUserReference(String userId, boolean createIfNeeded) throws NotFoundException {
 		BankerUser user = null;
 		if ("me".equals(userId)) {
 			user = createIfNeeded ? userManager.registerCallingUser() : userManager.findCallingUser();
@@ -74,23 +74,30 @@ public class UsersResource implements UsersApi {
     @Override
 	public Response createDeposit(String userId, eu.netmobiel.banker.api.model.DepositRequest deposit) {
 		Response rsp = null;
-		BankerUser user = resolveUserReference(userId, true);
-		String paymentUrl = ledgerService.createDepositRequest(user.getPersonalAccount(), deposit.getAmountCredits(), deposit.getDescription(), deposit.getReturnUrl());
-		PaymentLink plink = new PaymentLink();
-		plink.setPaymentUrl(paymentUrl);
-		rsp = Response.ok(plink).build();
+		try {
+			BankerUser user = resolveUserReference(userId, true);
+			user = userManager.getUserWithBalance(user.getId());
+			String paymentUrl = ledgerService.createDepositRequest(user.getPersonalAccount(), deposit.getAmountCredits(), deposit.getDescription(), deposit.getReturnUrl());
+			PaymentLink plink = new PaymentLink();
+			plink.setPaymentUrl(paymentUrl);
+			rsp = Response.ok(plink).build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
 		return rsp;
 	}
 
 	@Override
 	public Response getUser(String userId) {
-		BankerUser user = resolveUserReference(userId, true);
+		Response rsp = null;
 		try {
+			BankerUser user = resolveUserReference(userId, true);
 			user = userManager.getUserWithBalance(user.getId());
+			rsp =Response.ok(userMapper.map(user)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
-		return Response.ok(userMapper.map(user)).build();
+		return rsp; 
 	}
 
 	@Override
@@ -100,6 +107,7 @@ public class UsersResource implements UsersApi {
 		Response rsp = null;
 		try {
 			BankerUser user = resolveUserReference(userId, true);
+			user = userManager.getUserWithBalance(user.getId());
 			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getNcan(), si, ui, maxResults, offset); 
 			rsp = Response.ok(accountingEntryMapper.map(result)).build();
 		} catch (BusinessException ex) {
@@ -114,6 +122,7 @@ public class UsersResource implements UsersApi {
 		try {
         	Long eid = UrnHelper.getId(AccountingEntry.URN_PREFIX, entryId);
     		BankerUser user = resolveUserReference(userId, true);
+			user = userManager.getUserWithBalance(user.getId());
 			AccountingEntry entry = ledgerService.getAccountingEntry(eid);
 			if (!entry.getAccount().equals(user.getPersonalAccount()) && !isAdmin.test(request)) {
 				throw new SecurityException("Access to resource not allowed by this user");
@@ -172,6 +181,7 @@ public class UsersResource implements UsersApi {
 		Response rsp = null;
 		try {
 			BankerUser user = resolveUserReference(userId, true);
+			user = userManager.getUserWithBalance(user.getId());
 			Long id = ledgerService.createWithdrawalRequest(user, user.getPersonalAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
 			String wrid = UrnHelper.createUrn(WithdrawalRequest.URN_PREFIX, id);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(wrid)).build();

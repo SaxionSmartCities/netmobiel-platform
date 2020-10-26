@@ -55,7 +55,7 @@ import eu.netmobiel.commons.model.User;
 @SequenceGenerator(name = "user_sg", sequenceName = "user_id_seq", allocationSize = 1, initialValue = 50)
 public class BankerUser extends User {
 	private static final long serialVersionUID = -4237705703151528786L;
-	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(BankerUser.class);
+	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix("user");
 	public static final String GRAPH_WITH_BALANCE = "user-graph-with-balance";
 	public static final String GRAPH_WITHOUT_BALANCE = "user-graph-without-balance";
 	

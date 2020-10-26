@@ -249,7 +249,7 @@ public class CharityManager {
      * @throws NotFoundException No matching charity found.
      */
     public Donation getDonation(Long charityId, Long donationId) throws NotFoundException {
-    	Donation donation = donationDao.find(donationId)
+    	Donation donation = donationDao.loadGraph(donationId, Donation.CHARITY_USER_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such donation: " + donationId));
     	return donation;
     }

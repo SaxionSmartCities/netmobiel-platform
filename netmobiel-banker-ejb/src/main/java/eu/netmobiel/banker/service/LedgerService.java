@@ -4,6 +4,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -50,6 +51,8 @@ import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.PaymentException;
+import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
@@ -162,7 +165,7 @@ public class LedgerService {
 			tr = ledger
 					.createTransaction(TransactionType.DEPOSIT, description, reference, when.toInstant(), Instant.now())
 					.debit(brab, amount, userAccountBalance.getAccount().getName())
-					.credit(userAccountBalance, amount, null)
+					.credit(userAccountBalance, amount, brab.getAccount().getName())
 					.build();
 	    	accountingTransactionDao.save(tr);
 		} catch (BalanceInsufficientException e) {
@@ -188,8 +191,8 @@ public class LedgerService {
     	expect(brab.getAccount(), AccountType.ASSET);
     	AccountingTransaction tr = ledger
     			.createTransaction(TransactionType.WITHDRAWAL, description, reference, when.toInstant(), Instant.now())
-    			.credit(brab, amount, null)
-				.debit(userAccountBalance, amount, userAccountBalance.getAccount().getName())
+    			.credit(brab, amount, userAccountBalance.getAccount().getName())
+				.debit(userAccountBalance, amount, brab.getAccount().getName())
     			.build();
     	accountingTransactionDao.save(tr);
     	return tr;
@@ -239,7 +242,7 @@ public class LedgerService {
     	expect(rb.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
     			.createTransaction(TransactionType.RESERVATION, description, reference, when.toInstant(), Instant.now())
-    			.debit(userBalance, amount, null)
+    			.debit(userBalance, amount, rb.getAccount().getName())
 				.credit(rb, amount, userBalance.getAccount().getName())
     			.build();
     	accountingTransactionDao.save(tr);
@@ -252,7 +255,7 @@ public class LedgerService {
     		throw new IllegalStateException("Cannot lookup a user in a transaction with more than 2 entries: " + tr.getTransactionRef());
     	}
     	AccountingEntry userEntry = rs_entries.stream()
-    			.filter(entry -> entry.getAccount().getNcan() != ACC_REF_RESERVATIONS)
+    			.filter(entry -> ! entry.getAccount().getNcan().equals(ACC_REF_RESERVATIONS))
     			.findFirst()
     			.orElseThrow(() -> new IllegalStateException("No user acount found when looking up transaction: " + tr.getTransactionRef()));
     	return userEntry;
@@ -288,7 +291,7 @@ public class LedgerService {
     	try {
         	tr = ledger
         			.createTransaction(TransactionType.RELEASE, reservation.getDescription(), reservation.getContext(), when.toInstant(), Instant.now())
-        			.credit(userBalance, userEntry.getAmount(), null)
+        			.credit(userBalance, userEntry.getAmount(), rb.getAccount().getName())
     				.debit(rb, userEntry.getAmount(), userEntry.getAccount().getName())
         			.build();
         	accountingTransactionDao.save(tr);
@@ -777,9 +780,9 @@ public class LedgerService {
     			.orElseThrow(() -> new IllegalStateException("No such withdrawal request: " + wr.getId()));
     	OffsetDateTime now = OffsetDateTime.now();
 		AccountingTransaction tr_r = release(wrdb.getTransaction(), now);
-    	AccountingEntry entry = lookupUserEntry(tr_r);
+    	AccountingEntry userEntry = lookupUserEntry(tr_r);
     	try {
-    		AccountingTransaction tr_w = withdraw(entry.getAccount(), entry.getAmount(), now, tr_r.getDescription(), tr_r.getContext());
+    		AccountingTransaction tr_w = withdraw(userEntry.getAccount(), userEntry.getAmount(), now, tr_r.getDescription(), tr_r.getContext());
     		wrdb.setTransaction(tr_w);
     		wrdb.setStatus(PaymentStatus.COMPLETED);
     		wrdb.setSettlementTime(now.toInstant());
@@ -794,15 +797,16 @@ public class LedgerService {
      * withdraw the credits. Each withdrawal request is settled in its own database transaction.
      * @param id the database id of the payment batch.
      * @throws NotFoundException If the object could not be found.
+     * @throws PaymentException 
      */
-    public void settlePaymentBatch(BankerUser settler, Long paymentBatchId) throws NotFoundException {
+    public void settlePaymentBatch(BankerUser settler, Long paymentBatchId) throws NotFoundException, UpdateException {
     	PaymentBatch pb = paymentBatchDao.find(paymentBatchId)
     			.orElseThrow(() -> new NotFoundException("No such payment batch: " + paymentBatchId));
     	pb.setSettledBy(settler);
-    	boolean failure = false;
     	// Process the withdrawal requests one by one. 
     	// A failure of one should not affect others. Use a new transaction for each withdrawal request.
     	// Flag the batch as completed if there are no failures.
+    	List<Exception> errors = new ArrayList<>();
     	for (WithdrawalRequest wr : pb.getWithdrawalRequests()) {
     		if (wr.getStatus() == PaymentStatus.COMPLETED || wr.getStatus() == PaymentStatus.EXPIRED) {
     			continue;
@@ -810,13 +814,15 @@ public class LedgerService {
     		try {
 				sessionContext.getBusinessObject(this.getClass()).settleWithdrawalRequest(settler, wr);
 			} catch (Exception e) {
-				failure = true;
+				errors.add(e);
 				log.error("Error settling withdrawal request " + wr.getId(), e);
 			}
 		}
-    	if (!failure) {
+    	if (errors.isEmpty()) {
     		// The batch has been processed successfully 
     		pb.setSettlementTime(Instant.now());
+    	} else {
+    		throw new UpdateException(String.format("Failure to process payment batch (%d errors)", errors.size()), errors.get(0));
     	}
     }
 }
