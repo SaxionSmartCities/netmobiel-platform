@@ -14,6 +14,10 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedAttributeNode;
+import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedEntityGraphs;
+import javax.persistence.NamedSubgraph;
 import javax.persistence.PostPersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
@@ -32,6 +36,25 @@ import eu.netmobiel.commons.model.ReferableObject;
  * @author Jaap Reitsma
  *
  */
+@NamedEntityGraphs({
+	@NamedEntityGraph(
+			name = WithdrawalRequest.LIST_GRAPH, 
+			attributeNodes = { 
+					@NamedAttributeNode(value = "account"),		
+					@NamedAttributeNode(value = "createdBy"),
+					@NamedAttributeNode(value = "paymentBatch", subgraph = "subgraph.paymentBatch"),		
+					@NamedAttributeNode(value = "settledBy")
+			},
+			subgraphs = {
+					@NamedSubgraph(
+							name = "subgraph.paymentBatch",
+							attributeNodes = {
+									@NamedAttributeNode(value = "id")
+							}
+					)
+			}
+	)
+})
 @Entity
 @Table(name = "withdrawal_request", uniqueConstraints = {
 	    @UniqueConstraint(name = "cs_transaction_unique", columnNames = { "transaction" })
@@ -43,7 +66,8 @@ public class WithdrawalRequest extends ReferableObject {
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(WithdrawalRequest.class);
 	public static final int DESCRIPTION_MAX_LENGTH = 128;
 	public static final int ORDER_REFERENCE_MAX_LENGTH = 32;
-	
+	public static final String LIST_GRAPH = "withdrawal-requests-list-graph";
+
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "withdrawal_request_sg")
     private Long id;

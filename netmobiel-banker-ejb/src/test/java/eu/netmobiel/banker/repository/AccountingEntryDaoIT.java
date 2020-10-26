@@ -116,7 +116,7 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
     	assertEquals(2, actual.getCount());
     	assertEquals(2, actual.getData().size());
     	assertNull(actual.getTotalCount());
-    	List<AccountingEntry> entries = accountingEntryDao.fetch(actual.getData(), null, AccountingEntry::getId);
+    	List<AccountingEntry> entries = accountingEntryDao.loadGraphs(actual.getData(), null, AccountingEntry::getId);
     	// sorting by transaction time desc, entry type asc
     	assertEquals(AccountingEntryType.CREDIT, entries.get(0).getEntryType());
     	assertEquals(AccountingEntryType.DEBIT, entries.get(1).getEntryType());
@@ -127,7 +127,7 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
     	actual = accountingEntryDao.listAccountingEntries(accref, since, until, 10, 0);
     	assertNotNull(actual);
     	assertEquals(3, actual.getData().size());
-    	entries = accountingEntryDao.fetch(actual.getData(), null, AccountingEntry::getId);
+    	entries = accountingEntryDao.loadGraphs(actual.getData(), null, AccountingEntry::getId);
     	dump("listEntries - " + accref, entries);
     	for (AccountingEntry entry : entries) {
     		assertEquals(accref, entry.getAccount().getNcan());
@@ -139,7 +139,7 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
     	actual = accountingEntryDao.listAccountingEntries(accref, since, until, 10, 0);
     	assertNotNull(actual);
     	assertEquals(2, actual.getData().size());
-    	entries = accountingEntryDao.fetch(actual.getData(), null, AccountingEntry::getId);
+    	entries = accountingEntryDao.loadGraphs(actual.getData(), null, AccountingEntry::getId);
     	dump("listEntries - since " + DateTimeFormatter.ISO_INSTANT.format(since), entries);
     	for (AccountingEntry entry : entries) {
     		assertTrue(!entry.getTransaction().getAccountingTime().isBefore(since));
@@ -150,7 +150,7 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
     	actual = accountingEntryDao.listAccountingEntries(accref, since, until, 10, 0);
     	assertNotNull(actual);
     	assertEquals(2, actual.getData().size());
-    	entries = accountingEntryDao.fetch(actual.getData(), null, AccountingEntry::getId);
+    	entries = accountingEntryDao.loadGraphs(actual.getData(), null, AccountingEntry::getId);
     	dump("listEntries - until " + DateTimeFormatter.ISO_INSTANT.format(until), entries);
     	for (AccountingEntry entry : entries) {
     		assertTrue(entry.getTransaction().getAccountingTime().isBefore(until));

@@ -3,9 +3,9 @@ package eu.netmobiel.banker.repository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -93,6 +93,11 @@ public class PaymentBatchDao extends AbstractDao<PaymentBatch, Long> {
         return new PagedResult<Long>(results, maxResults, offset, totalCount);
     }
 
+    /**
+     * Fetch for each given payment batch id the number of withdrawal requests contained in it. 
+     * @param ids The payment batch IDs to query.
+     * @return A map of payment batch id to withdrawal request count.
+     */
     public Map<Long, Integer> fetchCount(List<Long> ids) {
     	if (ids == null || ids.isEmpty()) {
     		return Collections.emptyMap();
@@ -106,12 +111,8 @@ public class PaymentBatchDao extends AbstractDao<PaymentBatch, Long> {
         cq.multiselect(idPath, countExpr);
         cq.where(idPath.in(ids));
         TypedQuery<Tuple> tq = getEntityManager().createQuery(cq);
-        List<Tuple> tuples = tq.getResultList();
-        Map<Long, Integer> pbs = new HashMap<>();
-        for (Tuple tuple : tuples) {
-            pbs.put(tuple.get(idPath), tuple.get(countExpr));
-        }
-        return pbs;
+        return tq.getResultList().stream()
+        		.collect(Collectors.toMap(tup -> tup.get(idPath), tup -> tup.get(countExpr)));
     }
 
 }

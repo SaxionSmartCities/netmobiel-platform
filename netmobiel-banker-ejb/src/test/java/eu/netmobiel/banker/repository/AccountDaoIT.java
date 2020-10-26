@@ -97,7 +97,7 @@ public class AccountDaoIT extends BankerIntegrationTestBase {
     	assertEquals(1, actual.getCount());
     	assertEquals(1, actual.getData().size());
     	assertNull(actual.getTotalCount());
-    	List<Account> accounts = accountDao.fetch(actual.getData(), null, Account::getId);
+    	List<Account> accounts = accountDao.loadGraphs(actual.getData(), null, Account::getId);
     	// sorting by ref asc
     	assertEquals(accref1, accounts.get(0).getNcan());
 
@@ -106,7 +106,7 @@ public class AccountDaoIT extends BankerIntegrationTestBase {
     	assertEquals(1, actual.getCount());
     	assertEquals(1, actual.getData().size());
     	assertNull(actual.getTotalCount());
-    	accounts = accountDao.fetch(actual.getData(), null, Account::getId);
+    	accounts = accountDao.loadGraphs(actual.getData(), null, Account::getId);
     	// sorting by id asc
     	assertEquals(accref2, accounts.get(0).getNcan());
 
@@ -119,7 +119,7 @@ public class AccountDaoIT extends BankerIntegrationTestBase {
     	actual = accountDao.listAccounts(AccountType.LIABILITY, 10, 0);
     	assertNotNull(actual);
     	assertEquals(2, actual.getCount());
-    	accounts = accountDao.fetch(actual.getData(), null, Account::getId);
+    	accounts = accountDao.loadGraphs(actual.getData(), null, Account::getId);
     	// sorting by ref asc
     	assertEquals(accref1, accounts.get(0).getNcan());
 

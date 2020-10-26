@@ -119,7 +119,7 @@ public class Fixture {
 		wr.setCreationTime(Instant.now());
 		wr.setDescription(description);
 		wr.setCreatedBy(requestor);
-		wr.setStatus(PaymentStatus.ACTIVE);
+		wr.setStatus(PaymentStatus.REQUESTED);
 		wr.setTransaction(transaction);
 		return wr;
 	}

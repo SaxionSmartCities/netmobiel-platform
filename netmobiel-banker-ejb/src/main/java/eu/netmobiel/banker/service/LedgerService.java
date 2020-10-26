@@ -368,7 +368,7 @@ public class LedgerService {
     	if (maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> lids = ledgerDao.listLedgers(maxResults, offset);
-    		results = ledgerDao.fetch(lids.getData(), null, Ledger::getId);
+    		results = ledgerDao.loadGraphs(lids.getData(), null, Ledger::getId);
     		totalCount = Long.valueOf(results.size());
     	}
     	if (maxResults == 0 || results.size() >= maxResults) {
@@ -391,7 +391,7 @@ public class LedgerService {
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> mids = accountDao.listAccounts(null, maxResults, offset);
-    		results = accountDao.fetch(mids.getData(), null, Account::getId);
+    		results = accountDao.loadGraphs(mids.getData(), null, Account::getId);
     	}
     	return new PagedResult<Account>(results, maxResults, offset, prs.getTotalCount());
     }
@@ -412,7 +412,7 @@ public class LedgerService {
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> ids = balanceDao.listBalances(acc, ledger, maxResults, offset);
-    		results = balanceDao.fetch(ids.getData(), null, Balance::getId);
+    		results = balanceDao.loadGraphs(ids.getData(), null, Balance::getId);
     	}
     	return new PagedResult<Balance>(results, maxResults, offset, prs.getTotalCount());
     }
@@ -433,7 +433,7 @@ public class LedgerService {
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> ids = accountingEntryDao.listAccountingEntries(accountReference, since, until, maxResults, offset);
-    		results = accountingEntryDao.fetch(ids.getData(), null, AccountingEntry::getId);
+    		results = accountingEntryDao.loadGraphs(ids.getData(), null, AccountingEntry::getId);
     	}
     	return new PagedResult<AccountingEntry>(results, maxResults, offset, prs.getTotalCount());
     }
@@ -630,15 +630,16 @@ public class LedgerService {
 	/**
 	 * Lists the withdrawal requests as a paged result set according the filter parameters. Supply null as values when
 	 * a parameter is don't care.
-	 * @param accountReference the netmobiel account number.
+	 * @param accountName the account name, use '%' for any substring and '_' for any character match. Use '\' to 
+	 * 					escape the special characters.  
 	 * @param since the first date to take into account for creation time.
 	 * @param until the last date (exclusive) to take into account for creation time.
-	 * @param anyStatus if true then list also processed withdrawal requests, otherwise the active (unprocessed) only. 
+	 * @param status the status to filter on. 
 	 * @param maxResults The maximum number of results per page. Only if set to 0 the total number of results is returned. 
 	 * @param offset the zero-based offset in the result set.
 	 * @return A paged result with 0 or more results. The results are ordered by creation time descending and then by id descending.
 	 */
-    public PagedResult<WithdrawalRequest> listWithdrawalRequests(String accountReference, Instant since, Instant until, Boolean anyStatus, Integer maxResults, Integer offset) 
+    public PagedResult<WithdrawalRequest> listWithdrawalRequests(String accountName, Instant since, Instant until, PaymentStatus status, Integer maxResults, Integer offset) 
     		throws BadRequestException {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
@@ -649,12 +650,12 @@ public class LedgerService {
         if (since != null && until != null && until.isBefore(since)) {
         	throw new BadRequestException("Until must be after since");
         }
-    	PagedResult<Long> prs = withdrawalRequestDao.list(accountReference, since, until, anyStatus, 0, offset);
+    	PagedResult<Long> prs = withdrawalRequestDao.list(accountName, since, until, status, 0, offset);
     	List<WithdrawalRequest> results = null;
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
-    		PagedResult<Long> ids = withdrawalRequestDao.list(accountReference, since, until, anyStatus, maxResults, offset);
-    		results = withdrawalRequestDao.fetch(ids.getData(), null, WithdrawalRequest::getId);
+    		PagedResult<Long> ids = withdrawalRequestDao.list(accountName, since, until, status, maxResults, offset);
+    		results = withdrawalRequestDao.fetchGraphs(ids.getData(), WithdrawalRequest.LIST_GRAPH, WithdrawalRequest::getId);
     	}
     	return new PagedResult<WithdrawalRequest>(results, maxResults, offset, prs.getTotalCount());
     }
@@ -677,7 +678,7 @@ public class LedgerService {
     	wr.setAmountEurocents(amountCredits * CREDIT_EXCHANGE_RATE);
     	wr.setDescription(description);
     	wr.setCreationTime(now.toInstant());
-    	wr.setStatus(PaymentStatus.ACTIVE);
+    	wr.setStatus(PaymentStatus.REQUESTED);
     	withdrawalRequestDao.save(wr);
     	// Assure PostPersist is called.
     	withdrawalRequestDao.flush();
@@ -698,7 +699,7 @@ public class LedgerService {
     			.orElseThrow(() -> new NotFoundException("No such withdrawal request: " + id));
     }
 
-	/**
+    /**
 	 * Lists the payment batches as a paged result set according the filter parameters. Supply null as values when
 	 * a parameter is don't care.
 	 * @param since the first date to take into account for creation time.
@@ -724,7 +725,7 @@ public class LedgerService {
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> ids = paymentBatchDao.list(since, until, settledToo, maxResults, offset);
-    		results = paymentBatchDao.fetch(ids.getData(), PaymentBatch.LIST_GRAPH, PaymentBatch::getId);
+    		results = paymentBatchDao.loadGraphs(ids.getData(), PaymentBatch.LIST_GRAPH, PaymentBatch::getId);
     		Map<Long, Integer> counts = paymentBatchDao.fetchCount(ids.getData());
     		results.forEach(pb -> pb.setCount(counts.get(pb.getId())));
     	}

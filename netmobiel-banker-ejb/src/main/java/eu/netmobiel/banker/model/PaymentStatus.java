@@ -8,7 +8,11 @@ package eu.netmobiel.banker.model;
  */
 public enum PaymentStatus {
 	/**
-	 * An active request, not expired and not completed yet.
+	 * A request, not yet picked up. Deposit requests are immediately active, withdrawal request are picked up in a batch.
+	 */
+	REQUESTED("R"),
+	/**
+	 * An active request, work in progress.
 	 */
 	ACTIVE("A"),
 	/**

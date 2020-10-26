@@ -141,7 +141,7 @@ public class LedgerDaoIT extends BankerIntegrationTestBase {
     	assertEquals(1, actual.getCount());
     	assertEquals(1, actual.getData().size());
     	assertNull(actual.getTotalCount());
-    	List<Ledger> ledgers = ledgerDao.fetch(actual.getData(), null, Ledger::getId);
+    	List<Ledger> ledgers = ledgerDao.loadGraphs(actual.getData(), null, Ledger::getId);
     	// sorting by startperiod desc
     	assertEquals("ledger-2", ledgers.get(0).getName());
 
@@ -150,7 +150,7 @@ public class LedgerDaoIT extends BankerIntegrationTestBase {
     	assertEquals(2, actual.getCount());
     	assertEquals(2, actual.getData().size());
     	assertNull(actual.getTotalCount());
-    	ledgers = ledgerDao.fetch(actual.getData(), null, Ledger::getId);
+    	ledgers = ledgerDao.loadGraphs(actual.getData(), null, Ledger::getId);
     	// sorting by startperiod desc
     	assertEquals("ledger-1", ledgers.get(0).getName());
     	assertEquals("ledger-0", ledgers.get(1).getName());

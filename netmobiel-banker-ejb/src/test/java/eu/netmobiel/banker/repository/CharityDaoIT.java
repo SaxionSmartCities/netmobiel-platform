@@ -151,24 +151,24 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     	// Search any
     	PagedResult<Long> actual = charityDao.findCharities(now, null, null, null, null, null, null, null, 0, 0);
     	assertNotNull(actual);
-    	dump("non closed", charityDao.fetch(actual.getData(), Charity.LIST_ENTITY_GRAPH));
+    	dump("non closed", charityDao.loadGraphs(actual.getData(), Charity.LIST_ENTITY_GRAPH, Charity::getId));
     	assertEquals(3, actual.getTotalCount().intValue());
 
     	// Search location
     	actual = charityDao.findCharities(now, Fixture.placeZieuwent, 1000, null, null, null, null, null, 10, 0);
     	assertNotNull(actual);
-    	dump("nearby Zieuwent", charityDao.fetch(actual.getData(), Charity.LIST_ENTITY_GRAPH));
+    	dump("nearby Zieuwent", charityDao.loadGraphs(actual.getData(), Charity.LIST_ENTITY_GRAPH, Charity::getId));
     	assertEquals(1, actual.getCount());
     	assertEquals(charity3.getId(), actual.getData().get(0));
     	actual = charityDao.findCharities(now, Fixture.placeZieuwent, 50000, null, null, null, null, null, 10, 0);
-    	dump("all around Zieuwent", charityDao.fetch(actual.getData(), Charity.LIST_ENTITY_GRAPH));
+    	dump("all around Zieuwent", charityDao.loadGraphs(actual.getData(), Charity.LIST_ENTITY_GRAPH, Charity::getId));
     	assertEquals(3, actual.getCount());
 
     	// Since 
     	Instant since = Instant.parse("2020-09-10T00:00:00Z");
     	actual = charityDao.findCharities(now, null, null, since, null, null, null, null, 10, 0);
     	assertNotNull(actual);
-    	dump("Start after " + since, charityDao.fetch(actual.getData(), Charity.LIST_ENTITY_GRAPH));
+    	dump("Start after " + since, charityDao.loadGraphs(actual.getData(), Charity.LIST_ENTITY_GRAPH, Charity::getId));
     	assertEquals(1, actual.getCount());
     	assertTrue(actual.getData().contains(charity3.getId()));
 
@@ -176,7 +176,7 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     	Instant until = Instant.parse("2020-09-10T00:00:00Z");
     	actual = charityDao.findCharities(now, null, null, null, until, null, null, null, 10, 0);
     	assertNotNull(actual);
-    	dump("Started before " + until, charityDao.fetch(actual.getData(), Charity.LIST_ENTITY_GRAPH));
+    	dump("Started before " + until, charityDao.loadGraphs(actual.getData(), Charity.LIST_ENTITY_GRAPH, Charity::getId));
     	assertEquals(2, actual.getCount());
     	assertTrue(actual.getData().contains(charity1.getId()));
     	assertTrue(actual.getData().contains(charity2.getId()));
@@ -184,13 +184,13 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     	// Closed too - false
     	actual = charityDao.findCharities(now, null, null, null, null, false, null, null, 10, 0);
     	assertNotNull(actual);
-    	dump("Active", charityDao.fetch(actual.getData(), Charity.LIST_ENTITY_GRAPH));
+    	dump("Active", charityDao.loadGraphs(actual.getData(), Charity.LIST_ENTITY_GRAPH, Charity::getId));
     	assertEquals(3, actual.getCount());
     	
     	// Closed too - true
     	actual = charityDao.findCharities(now, null, null, null, null, true, null, null, 10, 0);
     	assertNotNull(actual);
-    	dump("All", charityDao.fetch(actual.getData(), Charity.LIST_ENTITY_GRAPH));
+    	dump("All", charityDao.loadGraphs(actual.getData(), Charity.LIST_ENTITY_GRAPH, Charity::getId));
     	assertEquals(4, actual.getCount());
 
     }
@@ -224,7 +224,7 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     	assertEquals(charity2.getId(), actual.getData().get(2));
 
     	actual = charityDao.findCharities(now, null, null, null, null, null, CharitySortBy.SCORE, SortDirection.DESC, 10, 0);
-    	dump("sort by score desc", charityDao.fetch(actual.getData(), Charity.LIST_ENTITY_GRAPH));
+    	dump("sort by score desc", charityDao.loadGraphs(actual.getData(), Charity.LIST_ENTITY_GRAPH, Charity::getId));
     	assertEquals(charity3.getId(), actual.getData().get(0));
     	assertEquals(charity1.getId(), actual.getData().get(1));
     	assertEquals(charity2.getId(), actual.getData().get(2));

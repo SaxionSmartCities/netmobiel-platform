@@ -111,7 +111,7 @@ public class CharityManager {
     		PagedResult<Long> charityIds = charityDao.findCharities(now, location, radius, since, until, inactiveToo, sortBy, sortDir, maxResults, offset);
     		if (charityIds.getData().size() > 0) {
     			String graph = adminView ? Charity.LIST_ROLES_ENTITY_GRAPH : Charity.LIST_ENTITY_GRAPH;
-    			results = charityDao.fetch(charityIds.getData(), graph, Charity::getId);
+    			results = charityDao.loadGraphs(charityIds.getData(), graph, Charity::getId);
     		}
     	}
     	return new PagedResult<Charity>(results, maxResults, offset, totalCount);
@@ -282,7 +282,7 @@ public class CharityManager {
     	if (totalCount > 0 && !cursor.isCountingQuery()) {
     		// Get the actual data
     		String graph = includeUserData ? Donation.USER_GRAPH : null;
-			results = donationDao.fetch(prs.getData(), graph, Donation::getId);
+			results = donationDao.loadGraphs(prs.getData(), graph, Donation::getId);
     	}
     	// If there is user data, then check for anonymous donations.
     	// An anonymous donation is listed, but without the user, unless the admin is asking for it.
@@ -320,7 +320,7 @@ public class CharityManager {
     	List<Long> charityIds = prs.getData().stream()
     			.map(d -> d.charityId)
     			.collect(Collectors.toList());
-		List<Charity> charities = charityDao.fetch(charityIds, Charity.LIST_ENTITY_GRAPH, Charity::getId);
+		List<Charity> charities = charityDao.loadGraphs(charityIds, Charity.LIST_ENTITY_GRAPH, Charity::getId);
     	for (int ix = 0; ix < charities.size(); ix++) {
     		charities.get(ix).setDonorCount(Math.toIntExact(prs.getData().get(ix).donorCount));
 		}
@@ -344,7 +344,7 @@ public class CharityManager {
 		Long totalCount = prs.getTotalCount();
     	if (totalCount > 0 && !cursor.isCountingQuery()) {
     		// Get the actual data
-			results = donationDao.fetch(prs.getData(), Donation.CHARITY_GRAPH, Donation::getId);
+			results = donationDao.loadGraphs(prs.getData(), Donation.CHARITY_GRAPH, Donation::getId);
     	}
     	return new PagedResult<Donation>(results, cursor, totalCount);
     }
@@ -364,7 +364,7 @@ public class CharityManager {
     	List<Long> userIds = prs.getData().stream()
     			.map(d -> d.donorId)
     			.collect(Collectors.toList());
-		List<BankerUser> users = userDao.fetch(userIds, BankerUser.GRAPH_WITHOUT_BALANCE, BankerUser::getId);
+		List<BankerUser> users = userDao.loadGraphs(userIds, BankerUser.GRAPH_WITHOUT_BALANCE, BankerUser::getId);
     	for (int ix = 0; ix < users.size(); ix++) {
     		users.get(ix).setDonatedCredits(Math.toIntExact(prs.getData().get(ix).amount));
 		}

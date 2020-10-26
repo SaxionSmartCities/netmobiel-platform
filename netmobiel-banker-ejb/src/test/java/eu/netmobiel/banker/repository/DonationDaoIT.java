@@ -130,7 +130,7 @@ public class DonationDaoIT  extends BankerIntegrationTestBase {
 			Cursor cursor = new Cursor(3, 0);
 			PagedResult<Long> ids = donationDao.listDonations(filter, cursor);
 			assertNotNull(ids);
-			List<Donation> donations = donationDao.fetch(ids.getData(), Donation.CHARITY_GRAPH, Donation::getId);
+			List<Donation> donations = donationDao.loadGraphs(ids.getData(), Donation.CHARITY_GRAPH, Donation::getId);
 			dump("listDonations charity 1 limit 3", donations);
 			Donation d1 = donations.get(0); 
 			Donation d2 = donations.get(1);
@@ -187,7 +187,7 @@ public class DonationDaoIT  extends BankerIntegrationTestBase {
     	assertNotNull(id1);
     	assertNotNull(id2);
     	// Do not forget to add the identity function, otherwise the order is unspecified!
-    	List<Donation> donations = donationDao.fetch(ids.getData(), Donation.CHARITY_GRAPH, Donation::getId);
+    	List<Donation> donations = donationDao.loadGraphs(ids.getData(), Donation.CHARITY_GRAPH, Donation::getId);
     	dump("Default Recently Donated", donations);
     	Donation d1 = donations.get(0); 
     	Donation d2 = donations.get(1);

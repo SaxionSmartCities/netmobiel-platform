@@ -17,11 +17,14 @@ import eu.netmobiel.banker.api.mapping.annotation.PaymentBatchShallow;
 import eu.netmobiel.banker.api.mapping.annotation.UserCreditDetails;
 import eu.netmobiel.banker.api.mapping.annotation.UserMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.UserOnlyDetails;
+import eu.netmobiel.banker.api.mapping.annotation.WithdrawalRequestMapperQualifier;
+import eu.netmobiel.banker.api.mapping.annotation.WithdrawalRequestPaymentBatch;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.model.PaymentBatch;
+import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.commons.model.PagedResult;
 
 /**
@@ -32,7 +35,8 @@ import eu.netmobiel.commons.model.PagedResult;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
-		uses = { AccountingEntryMapper.class, CharityMapper.class, UserMapper.class, DonationMapper.class, PaymentBatchMapper.class })
+		uses = { AccountingEntryMapper.class, CharityMapper.class, UserMapper.class, DonationMapper.class, 
+				PaymentBatchMapper.class, WithdrawalRequestMapper.class })
 public interface PageMapper {
 	@Mapping(target = "data", source = "data", qualifiedBy = { AccountingEntryMapperQualifier.class } )
 	eu.netmobiel.banker.api.model.Page mapAccountingEntries(PagedResult<AccountingEntry> source);
@@ -60,4 +64,7 @@ public interface PageMapper {
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { PaymentBatchMapperQualifier.class, PaymentBatchShallow.class } )
 	eu.netmobiel.banker.api.model.Page mapPaymentBatches(PagedResult<PaymentBatch> source);
+
+	@Mapping(target = "data", source = "data", qualifiedBy = { WithdrawalRequestMapperQualifier.class, WithdrawalRequestPaymentBatch.class } )
+	eu.netmobiel.banker.api.model.Page mapWithdrawalRequests(PagedResult<WithdrawalRequest> source);
 }

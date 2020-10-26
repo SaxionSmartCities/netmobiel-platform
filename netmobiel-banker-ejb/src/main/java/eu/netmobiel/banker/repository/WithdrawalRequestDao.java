@@ -46,30 +46,30 @@ public class WithdrawalRequestDao extends AbstractDao<WithdrawalRequest, Long> {
 	public List<WithdrawalRequest> findPendingRequests() {
 		String q = "from WithdrawalRequest wr where wr.status = :status and wr.paymentBatch is null";
 		TypedQuery<WithdrawalRequest> tq = em.createQuery(q, WithdrawalRequest.class);
-		tq.setParameter("status", PaymentStatus.ACTIVE);
+		tq.setParameter("status", PaymentStatus.REQUESTED);
 		return tq.getResultList();
 	}
 	
 	/**
 	 * Lists the withdrawal requests as a paged result set according the filter parameters. Supply null as values when
 	 * a parameter is don't care.
-	 * @param accountReference the account reference. If null than any account.
+	 * @param accountName the account name, use '%' for any substring and '_' for any character match. Use '\' to 
+	 * 					escape the special characters.  
 	 * @param since the first date to take into account for creation time.
 	 * @param until the last date (exclusive) to take into account for creation time.
-	 * @param anyStatus if true then list also completed withdrawal requests, otherwise the active only. 
+	 * @param status the status to filter on. 
 	 * @param maxResults The maximum number of results per page. Only if set to 0 the total number of results is returned. 
 	 * @param offset the zero-based offset in the result set.
 	 * @return A paged result with 0 or more results. Total count is only determined when maxResults is set to 0. The results are ordered by creation time descending and
 	 * 		then by id descending.
 	 */
-    public PagedResult<Long> list(String accountReference, Instant since, Instant until, Boolean anyStatus, Integer maxResults, Integer offset) {
+    public PagedResult<Long> list(String accountName, Instant since, Instant until, PaymentStatus status, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<WithdrawalRequest> root = cq.from(WithdrawalRequest.class);
         List<Predicate> predicates = new ArrayList<>();
-        if (accountReference != null) {
-            Predicate predAccRef = cb.equal(root.get(WithdrawalRequest_.account).get(Account_.ncan), accountReference);
-            predicates.add(predAccRef);
+        if (accountName != null) {
+            predicates.add(cb.like(cb.lower(root.get(WithdrawalRequest_.account).get(Account_.name)), accountName.toLowerCase(), '\\'));
         }
         if (since != null) {
 	        predicates.add(cb.greaterThanOrEqualTo(root.get(WithdrawalRequest_.creationTime), since));
@@ -77,8 +77,8 @@ public class WithdrawalRequestDao extends AbstractDao<WithdrawalRequest, Long> {
         if (until != null) {
 	        predicates.add(cb.lessThan(root.get(WithdrawalRequest_.creationTime), until));
         }        
-        if (anyStatus == null || !anyStatus.booleanValue()) {
-	        predicates.add(cb.equal(root.get(WithdrawalRequest_.status), PaymentStatus.ACTIVE));
+        if (status != null) {
+	        predicates.add(cb.equal(root.get(WithdrawalRequest_.status), status));
         }
 
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));

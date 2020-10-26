@@ -8,6 +8,7 @@ import java.util.Collection;
 import java.util.List;
 
 import javax.inject.Inject;
+import javax.persistence.PersistenceUnitUtil;
 
 import org.jboss.arquillian.container.test.api.Deployment;
 import org.jboss.arquillian.junit.Arquillian;
@@ -19,9 +20,11 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.PaymentBatch;
+import eu.netmobiel.banker.model.PaymentBatch_;
 import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.TransactionType;
 import eu.netmobiel.banker.model.WithdrawalRequest;
+import eu.netmobiel.banker.model.WithdrawalRequest_;
 import eu.netmobiel.banker.test.BankerIntegrationTestBase;
 import eu.netmobiel.banker.test.Fixture;
 import eu.netmobiel.commons.model.PagedResult;
@@ -78,10 +81,10 @@ public class WithdrawalRequestDaoIT extends BankerIntegrationTestBase {
     	pb.addWithdrawalRequest(wr1);
 
     	WithdrawalRequest wr2 = Fixture.createWithdrawalRequest(account2, user2, "Test my request 2", 100, dummyTransaction2);
-    	wr2.setStatus(PaymentStatus.COMPLETED);
     	wr2.setSettlementTime(Instant.now());
     	wr2.setSettledBy(user2);
     	pb.addWithdrawalRequest(wr2);
+    	wr2.setStatus(PaymentStatus.COMPLETED);
     	em.persist(wr2);
     	
 		WithdrawalRequest wr3 = Fixture.createWithdrawalRequest(account1, user3, "Test my request 3", 100, dummyTransaction3);
@@ -99,22 +102,73 @@ public class WithdrawalRequestDaoIT extends BankerIntegrationTestBase {
     }
 
     @Test
-    public void list_Default() {
+    public void list_Default() throws Exception {
     	PagedResult<Long> actual = dao.list(null, null, null, null, 0, 0);
     	assertNotNull(actual);
-    	assertEquals(2, actual.getTotalCount().longValue());
-		List<WithdrawalRequest> results = dao.fetch(actual.getData(), null, WithdrawalRequest::getId);
-		results.forEach(r -> assertEquals(PaymentStatus.ACTIVE, r.getStatus()));
-
-    	actual = dao.list(null, null, null, Boolean.FALSE, 0, 0);
+    	assertEquals(3, actual.getTotalCount().longValue());
+    }
+    
+    @Test
+    public void list_Load() throws Exception {
+    	PagedResult<Long> actual = dao.list(null, null, null, PaymentStatus.ACTIVE, 10, 0);
     	assertNotNull(actual);
-    	assertEquals(2, actual.getTotalCount().longValue());
+    	assertEquals(1, actual.getCount());
+		List<WithdrawalRequest> results = dao.loadGraphs(actual.getData(), WithdrawalRequest.LIST_GRAPH, WithdrawalRequest::getId);
+    	assertNotNull(results);
+    	assertEquals(1, results.size());
+    	flush();
+		WithdrawalRequest wr = results.get(0);
+    	PersistenceUnitUtil puu = em.getEntityManagerFactory().getPersistenceUnitUtil();
+    	assertNotNull(wr);
+    	assertFalse(em.contains(wr));
+    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.ACCOUNT));
+    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.CREATED_BY));
+    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.SETTLED_BY));
+    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.PAYMENT_BATCH));
+    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.AMOUNT_CREDITS));
+    	assertFalse(puu.isLoaded(wr, WithdrawalRequest_.TRANSACTION));
+    	PaymentBatch pb = wr.getPaymentBatch();
+    	assertNotNull(pb);
+    	assertTrue(puu.isLoaded(pb, PaymentBatch_.CREATION_TIME));
+    	assertFalse(puu.isLoaded(pb, PaymentBatch_.WITHDRAWAL_REQUESTS));
+    	assertTrue(puu.isLoaded(pb, PaymentBatch_.CREATED_BY));
     }
 
     @Test
-    public void list_All() {
-    	PagedResult<Long> actual = dao.list(null, null, null, Boolean.TRUE, 0, 0);
+    public void list_Fetch() throws Exception {
+    	PagedResult<Long> actual = dao.list(null, null, null, PaymentStatus.ACTIVE, 10, 0);
     	assertNotNull(actual);
-    	assertEquals(3, actual.getTotalCount().longValue());
+    	assertEquals(1, actual.getCount());
+    	// There does not seem much difference between fetch and load in Hibvernate 5.3.
+		List<WithdrawalRequest> results = dao.fetchGraphs(actual.getData(), WithdrawalRequest.LIST_GRAPH, WithdrawalRequest::getId);
+    	assertNotNull(results);
+    	assertEquals(1, results.size());
+    	flush();
+		WithdrawalRequest wr = results.get(0);
+    	PersistenceUnitUtil puu = em.getEntityManagerFactory().getPersistenceUnitUtil();
+    	assertNotNull(wr);
+    	assertFalse(em.contains(wr));
+    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.ACCOUNT));
+    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.CREATED_BY));
+    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.SETTLED_BY));
+    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.PAYMENT_BATCH));
+    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.AMOUNT_CREDITS));
+    	assertFalse(puu.isLoaded(wr, WithdrawalRequest_.TRANSACTION));
+    	PaymentBatch pb = wr.getPaymentBatch();
+    	assertNotNull(pb);
+    	assertTrue(puu.isLoaded(pb, PaymentBatch_.CREATION_TIME));
+    	assertFalse(puu.isLoaded(pb, PaymentBatch_.WITHDRAWAL_REQUESTS));
+    	assertTrue(puu.isLoaded(pb, PaymentBatch_.CREATED_BY));
+    }
+
+    @Test
+    public void list_ByStatus() {
+    	PagedResult<Long> actual = dao.list(null, null, null, PaymentStatus.REQUESTED, 0, 0);
+    	assertNotNull(actual);
+    	assertEquals(1, actual.getTotalCount().longValue());
+
+    	actual = dao.list(null, null, null, PaymentStatus.COMPLETED, 0, 0);
+    	assertNotNull(actual);
+    	assertEquals(1, actual.getTotalCount().longValue());
     }
 }

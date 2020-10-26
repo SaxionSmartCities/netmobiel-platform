@@ -7,6 +7,7 @@ import java.util.LinkedHashSet;
 import java.util.Set;
 
 import javax.enterprise.inject.Vetoed;
+import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -82,6 +83,7 @@ public class PaymentBatch extends ReferableObject {
 	 * The order reference to be used by treasurer.
 	 */
 	@Size(max = ORDER_REFERENCE_MAX_LENGTH)
+    @Basic(fetch = FetchType.LAZY)
     @Column(name = "order_reference")
 	private String orderReference;
 
@@ -109,6 +111,7 @@ public class PaymentBatch extends ReferableObject {
     /**
      * Time of creation of the batch.
      */
+    @Basic(fetch = FetchType.LAZY)
     @Column(name = "creation_time", nullable = false, updatable = false)
     private Instant creationTime;
 
@@ -116,6 +119,7 @@ public class PaymentBatch extends ReferableObject {
      * Time of settlement of the batch.
      * If null then not all payments are cleared yet by the treasurer. If set then all payments are settled.
      */
+    @Basic(fetch = FetchType.LAZY)
     @Column(name = "settlement_time", nullable = true)
     private Instant settlementTime;
 
@@ -195,6 +199,7 @@ public class PaymentBatch extends ReferableObject {
 
 	public void addWithdrawalRequest(WithdrawalRequest request) {
 		request.setPaymentBatch(this);
+		request.setStatus(PaymentStatus.ACTIVE);
         withdrawalRequests.add(request);
     }
  
