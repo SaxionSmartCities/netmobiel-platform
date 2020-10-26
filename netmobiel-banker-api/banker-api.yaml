@@ -1181,6 +1181,7 @@ paths:
           - ACTIVE
           - EXPIRED
           - COMPLETED
+          - REQUESTED
           type: string
         in: query
       - name: maxResults
@@ -1717,7 +1718,9 @@ components:
           familyName: Pietersen
     PaymentStatus:
       title: Root Type for DepositStatus
-      description: Status of the deposit.
+      description: "Status of the deposit or withdrawal. A new deposit request is\
+        \ immediated active, \na withdrawal request becomes active after being picked\
+        \ up in a payment batch."
       required:
       - status
       type: object
@@ -1728,6 +1731,7 @@ components:
           - ACTIVE
           - EXPIRED
           - COMPLETED
+          - REQUESTED
           type: string
       example:
         status: COMPLETED
@@ -1760,6 +1764,7 @@ components:
           - ACTIVE
           - COMPLETED
           - EXPIRED
+          - REQUESTED
           type: string
         creationTime:
           format: date-time
@@ -1786,6 +1791,9 @@ components:
         settlementTime:
           format: date-time
           description: Thedate and time the requested was settled.
+          type: string
+        paymentBatchRef:
+          description: Reference to the payment batch.
           type: string
       example:
         description: Uitbetaling volgens afspraak 2020-10-09
