@@ -47,8 +47,8 @@ public class AccountingEntryDao extends AbstractDao<AccountingEntry, Long> {
 	 * @param until the last date (exclusive) to take into account for accountingTime.
 	 * @param maxResults The maximum number of results per page. Only if set to 0 the total number of results is returned. 
 	 * @param offset the zero-based offset in the result set.
-	 * @return A paged result with 0 or more results. Total count is only determined when maxResults is set to 0. The results are ordered by accounting time descending and
-	 * 		then by entry type ascending.
+	 * @return A paged result with 0 or more results. Total count is only determined when maxResults is set to 0. The results are ordered by transaction time descending and
+	 * 		then by id descending.
 	 */
     public PagedResult<Long> listAccountingEntries(String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
@@ -75,8 +75,8 @@ public class AccountingEntryDao extends AbstractDao<AccountingEntry, Long> {
           totalCount = em.createQuery(cq).getSingleResult();
         } else {
 	        cq.select(entry.get(AccountingEntry_.id));
-	        cq.orderBy(cb.desc(entry.get(AccountingEntry_.transaction).get(AccountingTransaction_.accountingTime)),
-	        		cb.asc(entry.get(AccountingEntry_.entryType)));
+	        cq.orderBy(cb.desc(entry.get(AccountingEntry_.transaction).get(AccountingTransaction_.transactionTime)),
+	        		cb.desc(entry.get(AccountingEntry_.id)));
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
 			tq.setMaxResults(maxResults);
