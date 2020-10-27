@@ -18,6 +18,8 @@ ALTER TABLE public.accounting_entry
     ADD CONSTRAINT cs_transaction_account_unique UNIQUE (account, transaction, counterparty)
 ;
 
+UPDATE public.accounting_entry SET counterparty = (SELECT a.id FROM account a WHERE a.name = accounting_entry.counterparty_name);
+
 ALTER TABLE public.accounting_entry DROP COLUMN counterparty_name;
 
 ALTER TABLE public.accounting_entry
