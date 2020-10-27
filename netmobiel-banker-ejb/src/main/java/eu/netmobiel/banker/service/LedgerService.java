@@ -74,9 +74,9 @@ import eu.netmobiel.payment.client.model.PaymentLinkStatus;
 @Logging
 public class LedgerService {
 	public static final String ACC_REF_BANKING_RESERVE = "banking-reserve";
-	public static final String ACC_NAME_BANKING_RESERVE = "Banking Reserve";
+	public static final String ACC_NAME_BANKING_RESERVE = "De NetMobiel Kluis";
 	public static final String ACC_REF_RESERVATIONS = "reservations";
-	public static final String ACC_NAME_RESERVATIONS = "Reservations";
+	public static final String ACC_NAME_RESERVATIONS = "NetMobiel Reserveringen";
 	public static final Integer MAX_RESULTS = 10; 
 	public static final Integer DEFAULT_LOOKBACK_DAYS = 90; 
 	public static final int PAYMENT_LINK_EXPIRATION_SECS = 15 * 60;
@@ -164,8 +164,8 @@ public class LedgerService {
 		try {
 			tr = ledger
 					.createTransaction(TransactionType.DEPOSIT, description, reference, when.toInstant(), Instant.now())
-					.debit(brab, amount, userAccountBalance.getAccount().getName())
-					.credit(userAccountBalance, amount, brab.getAccount().getName())
+					.debit(brab, amount, userAccountBalance.getAccount())
+					.credit(userAccountBalance, amount, brab.getAccount())
 					.build();
 	    	accountingTransactionDao.save(tr);
 		} catch (BalanceInsufficientException e) {
@@ -191,8 +191,8 @@ public class LedgerService {
     	expect(brab.getAccount(), AccountType.ASSET);
     	AccountingTransaction tr = ledger
     			.createTransaction(TransactionType.WITHDRAWAL, description, reference, when.toInstant(), Instant.now())
-    			.credit(brab, amount, userAccountBalance.getAccount().getName())
-				.debit(userAccountBalance, amount, brab.getAccount().getName())
+    			.credit(brab, amount, userAccountBalance.getAccount())
+				.debit(userAccountBalance, amount, brab.getAccount())
     			.build();
     	accountingTransactionDao.save(tr);
     	return tr;
@@ -218,8 +218,8 @@ public class LedgerService {
     	expect(beneficiaryBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
     			.createTransaction(TransactionType.PAYMENT, description, reference, when.toInstant(), Instant.now())
-    			.debit(originatorBalance, amount, beneficiaryBalance.getAccount().getName())
-				.credit(beneficiaryBalance, amount, originatorBalance.getAccount().getName())
+    			.debit(originatorBalance, amount, beneficiaryBalance.getAccount())
+				.credit(beneficiaryBalance, amount, originatorBalance.getAccount())
     			.build();
     	accountingTransactionDao.save(tr);
     	return tr;
@@ -242,8 +242,8 @@ public class LedgerService {
     	expect(rb.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
     			.createTransaction(TransactionType.RESERVATION, description, reference, when.toInstant(), Instant.now())
-    			.debit(userBalance, amount, rb.getAccount().getName())
-				.credit(rb, amount, userBalance.getAccount().getName())
+    			.debit(userBalance, amount, rb.getAccount())
+				.credit(rb, amount, userBalance.getAccount())
     			.build();
     	accountingTransactionDao.save(tr);
     	return tr;
@@ -291,8 +291,8 @@ public class LedgerService {
     	try {
         	tr = ledger
         			.createTransaction(TransactionType.RELEASE, reservation.getDescription(), reservation.getContext(), when.toInstant(), Instant.now())
-        			.credit(userBalance, userEntry.getAmount(), rb.getAccount().getName())
-    				.debit(rb, userEntry.getAmount(), userEntry.getAccount().getName())
+        			.credit(userBalance, userEntry.getAmount(), rb.getAccount())
+    				.debit(rb, userEntry.getAmount(), userEntry.getAccount())
         			.build();
         	accountingTransactionDao.save(tr);
 		} catch (BalanceInsufficientException e) {

@@ -72,8 +72,8 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
     	int oldAmount1 = balance1.getEndAmount();
     	int oldAmount2 = balance2.getEndAmount();
     	AccountingTransaction trans = ledger.createTransaction(TransactionType.PAYMENT, "description-1", "ref-1", Instant.parse("2020-04-07T17:00:00Z"), Instant.parse("2020-04-07T18:00:00Z"))
-    			.credit(balance1, 10, balance2.getAccount().getName())
-    			.debit(balance2, 10, balance1.getAccount().getName())
+    			.credit(balance1, 10, balance2.getAccount())
+    			.debit(balance2, 10, balance1.getAccount())
     			.build();
     	em.persist(trans);
     	checkBalance(balance1.getAccount(), oldAmount1 + 10);
@@ -82,8 +82,8 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
     	oldAmount2 -= 10;
 
     	trans = ledger.createTransaction(TransactionType.PAYMENT, "description-2", "ref-2", Instant.parse("2020-04-08T17:00:00Z"), Instant.parse("2020-04-08T18:00:00Z"))
-    			.credit(balance2, 20, balance1.getAccount().getName())
-    			.debit(balance1, 20, balance2.getAccount().getName())
+    			.credit(balance2, 20, balance1.getAccount())
+    			.debit(balance1, 20, balance2.getAccount())
     			.build();
     	em.persist(trans);
     	checkBalance(balance1.getAccount(), oldAmount1 - 20);
@@ -93,8 +93,8 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
 
     	int oldAmount3 = balance3.getEndAmount();
     	trans = ledger.createTransaction(TransactionType.PAYMENT, "description-3", "ref-3", Instant.parse("2020-04-09T17:00:00Z"), Instant.parse("2020-04-09T18:00:00Z"))
-    			.credit(balance3, 20, balance1.getAccount().getName())
-    			.debit(balance1, 20, balance3.getAccount().getName())
+    			.credit(balance3, 20, balance1.getAccount())
+    			.debit(balance1, 20, balance3.getAccount())
     			.build();
     	em.persist(trans);
     	checkBalance(balance3.getAccount(), oldAmount3 + 20);

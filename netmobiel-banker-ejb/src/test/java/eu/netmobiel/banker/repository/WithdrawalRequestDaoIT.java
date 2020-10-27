@@ -59,18 +59,18 @@ public class WithdrawalRequestDaoIT extends BankerIntegrationTestBase {
     	prepareBasicLedger();
     	createAndAssignUsers();
     	dummyTransaction1 = ledger.createTransaction(TransactionType.PAYMENT, "description-1", "ref-1", Instant.parse("2020-04-07T17:00:00Z"), Instant.parse("2020-04-07T18:00:00Z"))
-    			.credit(balance1, 10, balance2.getAccount().getName())
-    			.debit(balance2, 10, balance1.getAccount().getName())
+    			.credit(balance1, 10, balance2.getAccount())
+    			.debit(balance2, 10, balance1.getAccount())
     			.build();
     	em.persist(dummyTransaction1);
     	dummyTransaction2 = ledger.createTransaction(TransactionType.PAYMENT, "description-2", "ref-2", Instant.parse("2020-04-07T17:00:00Z"), Instant.parse("2020-04-07T18:00:00Z"))
-    			.credit(balance1, 10, balance2.getAccount().getName())
-    			.debit(balance2, 10, balance1.getAccount().getName())
+    			.credit(balance1, 10, balance2.getAccount())
+    			.debit(balance2, 10, balance1.getAccount())
     			.build();
     	em.persist(dummyTransaction2);
     	dummyTransaction3 = ledger.createTransaction(TransactionType.PAYMENT, "description-3", "ref-3", Instant.parse("2020-04-07T17:00:00Z"), Instant.parse("2020-04-07T18:00:00Z"))
-    			.credit(balance1, 10, balance2.getAccount().getName())
-    			.debit(balance2, 10, balance1.getAccount().getName())
+    			.credit(balance1, 10, balance2.getAccount())
+    			.debit(balance2, 10, balance1.getAccount())
     			.build();
     	em.persist(dummyTransaction3);
 

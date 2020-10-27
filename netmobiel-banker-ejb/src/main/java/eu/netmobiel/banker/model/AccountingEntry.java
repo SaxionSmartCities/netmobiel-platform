@@ -16,7 +16,6 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.Size;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
 
@@ -35,7 +34,6 @@ import eu.netmobiel.banker.util.BankerUrnHelper;
 @SequenceGenerator(name = "accounting_entry_sg", sequenceName = "accounting_entry_seq", allocationSize = 1, initialValue = 50)
 public class AccountingEntry implements Serializable {
 	private static final long serialVersionUID = -9042884607740676891L;
-	public static final int COUNTERPARTY_MAX_LENGTH = 96;
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix("statement");
 
 	@Id
@@ -47,29 +45,29 @@ public class AccountingEntry implements Serializable {
 	 */
 	@NotNull
 	@ManyToOne
-	@JoinColumn(name = "account", nullable = false, foreignKey = @ForeignKey(name = "accounting_entry_account_fk"))
+	@JoinColumn(name = "account", foreignKey = @ForeignKey(name = "accounting_entry_account_fk"))
     private Account account;
 
     /**
-     * The name of the counterparty in case of a payment. This field is added for convenience to create
-     * a statement for a particular account, without the necessity to retrieve the counter entry.
-     * The name of the counterparty account will be used for simplicity.  
+     * The counterparty in any transfer.
      */
-	@Size(max = COUNTERPARTY_MAX_LENGTH)
-    @Column(name = "counterparty", length = COUNTERPARTY_MAX_LENGTH, nullable = true)
-    private String counterparty;
+	@NotNull
+	@ManyToOne
+	@JoinColumn(name = "counterparty", foreignKey = @ForeignKey(name = "accounting_entry_counterparty_fk"))
+    private Account counterparty;
 
 	/**
 	 * The amount (of credits). Once saved in the database it cannot be changed.
 	 */
 	@NotNull
-	@Column(name = "amount", nullable = false)
+	@Column(name = "amount")
     private int amount;
 
     /**
      * The accounting entry type.
      */
-    @Column(name = "entry_type", nullable = false, length = 1)
+	@NotNull
+    @Column(name = "entry_type", length = 1)
     private AccountingEntryType entryType;
 
     /**
@@ -77,7 +75,7 @@ public class AccountingEntry implements Serializable {
      */
     @NotNull
 	@ManyToOne
-	@JoinColumn(name = "transaction", nullable = false, foreignKey = @ForeignKey(name = "accounting_entry_transaction_fk"))
+	@JoinColumn(name = "transaction", foreignKey = @ForeignKey(name = "accounting_entry_transaction_fk"))
     private AccountingTransaction transaction;
 	
     public AccountingEntry() {
@@ -106,11 +104,11 @@ public class AccountingEntry implements Serializable {
 		this.account = account;
 	}
 
-	public String getCounterparty() {
+	public Account getCounterparty() {
 		return counterparty;
 	}
 
-	public void setCounterparty(String counterparty) {
+	public void setCounterparty(Account counterparty) {
 		this.counterparty = counterparty;
 	}
 

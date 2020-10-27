@@ -27,6 +27,7 @@ public interface AccountingEntryMapper {
 	@Mapping(target = "description", source = "transaction.description")
 	@Mapping(target = "transactionType", source = "transaction.transactionType")
 	@Mapping(target = "context", source = "transaction.context")
+	@Mapping(target = "counterparty", source = "counterparty.name")
 	eu.netmobiel.banker.api.model.Statement map(AccountingEntry source);
 	
 	eu.netmobiel.banker.api.model.Page map(PagedResult<AccountingEntry> source);

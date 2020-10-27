@@ -199,7 +199,7 @@ public class AccountingTransaction {
 			this.transaction = tr;
 		}
 		
-		protected void addAccountingEntry(Account account, String counterparty, AccountingEntry entry) {
+		protected void addAccountingEntry(Account account, Account counterparty, AccountingEntry entry) {
 			entry.setAccount(account);
 			entry.setCounterparty(counterparty);
 			entry.setTransaction(transaction);
@@ -212,14 +212,14 @@ public class AccountingTransaction {
 			}
 		}
 		
-		public AccountingTransaction.Builder debit(Balance balance, int amount, String counterparty) throws BalanceInsufficientException {
+		public AccountingTransaction.Builder debit(Balance balance, int amount, Account counterparty) throws BalanceInsufficientException {
 			expectNotFinished();
 			addAccountingEntry(balance.getAccount(), counterparty, new AccountingEntry(AccountingEntryType.DEBIT, amount));
 			balance.debit(amount);
 			return this;
 		}
 		
-		public AccountingTransaction.Builder credit(Balance balance, int amount, String counterparty) throws BalanceInsufficientException {
+		public AccountingTransaction.Builder credit(Balance balance, int amount, Account counterparty) throws BalanceInsufficientException {
 			expectNotFinished();
 			addAccountingEntry(balance.getAccount(), counterparty, new AccountingEntry(AccountingEntryType.CREDIT, amount));
 			balance.credit(amount);
