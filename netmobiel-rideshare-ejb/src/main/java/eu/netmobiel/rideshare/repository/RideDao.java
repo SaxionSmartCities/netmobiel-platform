@@ -227,4 +227,15 @@ public class RideDao extends AbstractDao<Ride, Long> {
     	return trips; 
     }
 
+    public boolean existsTemporalOverlap(Ride ride) {
+    	Long count = em.createQuery(
+    			"select count(r) from Ride r where r != :myRide and r.driver = :driver and " + 
+    			"not (r.departureTime > :arrivalTime or r.arrivalTime < :departureTime)", Long.class)
+    			.setParameter("myRide", ride)
+    			.setParameter("driver", ride.getDriver())
+    			.setParameter("departureTime", ride.getDepartureTime())
+    			.setParameter("arrivalTime", ride.getArrivalTime())
+    			.getSingleResult();
+    	return count > 0;
+    }
 }

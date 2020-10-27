@@ -381,7 +381,11 @@ public class RideManager {
     	rideDao.save(ride);
     	// Update the car itinerary from the route planner
     	rideItineraryHelper.updateRideItinerary(ride);
+    	// Now we know the both departure time and arrival time. Is there any overlap?
     	// At this point the ride is completely defined. 
+    	if (rideDao.existsTemporalOverlap(ride)) {
+    		throw new CreateException("Ride overlaps existing ride");
+    	}
     	if (ride.getRideTemplate() != null && ride.getRideTemplate().getRecurrence() == null) {
     		log.warn("Inconsistence detected: Template defined without recurrency");
     		ride.setRideTemplate(null);

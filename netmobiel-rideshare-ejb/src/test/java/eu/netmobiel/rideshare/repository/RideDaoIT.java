@@ -289,4 +289,57 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
     	// No rides found, there is a booking again
     	testSimpleSearch(Fixture.placeZieuwent, Fixture.placeSlingeland, null, null, true, 1, 0);
     }
+
+    @Test
+    public void existsTemporalOverlap() throws Exception {
+    	Instant departureTime = Instant.parse("2020-06-02T11:00:00Z");
+    	Ride r1 = Fixture.createRideObject(car1, departureTime, departureTime.plusSeconds(3600));
+    	em.persist(r1);
+
+    	// Completely before
+    	Ride r2 = Fixture.createRideObject(car1, r1.getDepartureTime().minusSeconds(7200), r1.getArrivalTime().minusSeconds(7200));
+    	em.persist(r2);
+    	flush();
+    	assertFalse(rideDao.existsTemporalOverlap(r2));
+
+    	// Arrival in overlap
+    	r2 = rideDao.find(r2.getId()).orElseThrow(() -> new IllegalStateException("No such ride: "));
+    	r2.setDepartureTime(r1.getDepartureTime().minusSeconds(1800));
+    	r2.setArrivalTime(r1.getArrivalTime().minusSeconds(1800));
+    	flush();
+    	assertTrue(rideDao.existsTemporalOverlap(r2));
+
+    
+    	// Complete overlap
+    	r2 = rideDao.find(r2.getId()).orElseThrow(() -> new IllegalStateException("No such ride: "));
+    	r2.setDepartureTime(r1.getDepartureTime().minusSeconds(1800));
+    	r2.setArrivalTime(r1.getArrivalTime().plusSeconds(1800));
+    	flush();
+    	assertTrue(rideDao.existsTemporalOverlap(r2));
+
+    	// Complete containment
+    	r2 = rideDao.find(r2.getId()).orElseThrow(() -> new IllegalStateException("No such ride: "));
+    	r2.setDepartureTime(r1.getDepartureTime().plusSeconds(300));
+    	r2.setArrivalTime(r1.getArrivalTime().minusSeconds(300));
+    	flush();
+    	assertTrue(rideDao.existsTemporalOverlap(r2));
+   
+    	// Departure in overlap
+    	r2 = rideDao.find(r2.getId()).orElseThrow(() -> new IllegalStateException("No such ride: "));
+    	r2.setDepartureTime(r1.getDepartureTime().plusSeconds(1800));
+    	r2.setArrivalTime(r1.getArrivalTime().plusSeconds(1800));
+    	flush();
+    	assertTrue(rideDao.existsTemporalOverlap(r2));
+    	
+    	// Completely before
+    	r2 = rideDao.find(r2.getId()).orElseThrow(() -> new IllegalStateException("No such ride: "));
+    	flush();
+    	r2.setDepartureTime(r1.getDepartureTime().plusSeconds(7200));
+    	r2.setArrivalTime(r1.getArrivalTime().plusSeconds(7200));
+    	assertFalse(rideDao.existsTemporalOverlap(r2));
+
+   }
+    
+
+
 }
