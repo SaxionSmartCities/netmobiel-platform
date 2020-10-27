@@ -16,6 +16,7 @@ import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.CarType;
 import eu.netmobiel.rideshare.model.Recurrence;
 import eu.netmobiel.rideshare.model.Ride;
+import eu.netmobiel.rideshare.model.RideState;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
@@ -129,6 +130,7 @@ public class Fixture {
 		Ride r = template.createRide();
 		r.setDepartureTime(departureTime);
 		r.setArrivalTime(departureTime.plusSeconds(60 * 60));
+		r.setState(RideState.SCHEDULED);
 		return r;
 	}
 
@@ -153,6 +155,7 @@ public class Fixture {
 		} else if (arrivalTime == null) {
 			r.setArrivalTime(departureTime.plusSeconds(60 * 60));
 		}
+		r.setState(RideState.SCHEDULED);
 		r.setFrom(from);
 		r.setTo(to);
 		r.setMaxDetourMeters(10000);

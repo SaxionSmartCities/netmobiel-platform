@@ -18,6 +18,7 @@ import org.junit.Before;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.repository.AbstractDao;
+import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.rideshare.Resources;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.model.RideTemplate;
@@ -68,7 +69,9 @@ public abstract class RideshareIntegrationTestBase {
 	//  private AccessToken driverAccessToken;
     protected LoginContext loginContextDriver;
     protected LoginContext loginContextPassenger;
-  
+
+    private boolean expectFailure;
+
     public boolean isSecurityRequired() {
     	return false;
     }
@@ -85,6 +88,7 @@ public abstract class RideshareIntegrationTestBase {
 
 	@Before
 	public void prepareTest() throws Exception {
+		expectFailure = false;
 		if (isSecurityRequired()) {
 			prepareSecurity();
 		}
@@ -95,14 +99,27 @@ public abstract class RideshareIntegrationTestBase {
 
 	@After
 	public void finishTest() throws Exception {
-		commitTransaction();
-		if (isSecurityRequired()) {
-			finishSecurity();
+		try {
+			if (!expectFailure) {
+				commitTransaction();
+			}
+			if (isSecurityRequired()) {
+				finishSecurity();
+			}
+		} catch (Exception ex) {
+			log.error(String.join("\n", ExceptionUtil.unwindException(ex)));
+			throw ex;	
 		}
 	}
 
+	public void expectFailure() {
+		this.expectFailure = true;
+	}
+
 	protected void commitTransaction() throws Exception {
-		utx.commit();
+		if (em.isJoinedToTransaction()) {
+			utx.commit();
+		}
 	}
 
 	protected void prepareDriverLogin() throws Exception {

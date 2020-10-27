@@ -130,7 +130,9 @@ public class MessageDaoIT {
 
     @After
     public void commitTransaction() throws Exception {
-        utx.commit();
+		if (em.isJoinedToTransaction()) {
+			utx.commit();
+		}
     }
     
 //    private void assertContainsAllEnvelopes(Collection<Envelope> expectedEnvelopes, Collection<Envelope> retrievedEnvelopes) {

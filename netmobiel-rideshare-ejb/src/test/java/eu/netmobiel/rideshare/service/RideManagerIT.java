@@ -25,6 +25,7 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.rideshare.event.BookingSettledEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Booking_;
@@ -52,6 +53,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
         WebArchive archive = createDeploymentBase()
 //	            .addAsResource("logging.properties")
                 .addPackages(true, RideDao.class.getPackage())
+                .addPackage(BookingSettledEvent.class.getPackage())
 	            .addClass(RideItineraryHelper.class)
 	            .addClass(IdentityHelper.class)
 	            .addClass(EventListenerHelper.class)
@@ -237,6 +239,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 				.getSingleResult();
 		assertEquals(0L, count.longValue());
 		try {
+			expectFailure();
 			rideManager.removeRide(rideId, null, null);
 			fail("Expected a NotFoundException");
 		} catch (Exception ex) {
@@ -269,6 +272,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		// Test starts here
 		flush();
 		try {
+			expectFailure();
 			rideManager.removeRide(rideId, null, null);
 			fail("Expected a SoftRemovedException");
 		} catch (Exception ex) {

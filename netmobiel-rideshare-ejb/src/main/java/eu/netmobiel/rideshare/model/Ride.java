@@ -28,6 +28,7 @@ import javax.persistence.OrderColumn;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
@@ -153,6 +154,7 @@ public class Ride extends RideBase implements Serializable {
 	/**
 	 * The state of the ride. 
 	 */
+	@NotNull
     @Column(name = "state", length = 3)
     private RideState state;
 
@@ -325,7 +327,7 @@ public class Ride extends RideBase implements Serializable {
 
 	public String toStringCompact() {
 		return String.format("Ride %d %s %s D %s A %s %s %dm from %s to %s",
-				getId(), getDriver().getEmail(), state.name(), 
+				getId(), getDriver().getEmail(), state == null ? "<init>" : state.name(), 
 				formatTime(getDepartureTime()), formatTime(getArrivalTime()),
 				Duration.ofSeconds(getDuration()).toString(), getDistance(),
 				getFrom().toString(), getTo().toString());

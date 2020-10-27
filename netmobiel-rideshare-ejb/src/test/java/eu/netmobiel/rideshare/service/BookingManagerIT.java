@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.User_;
+import eu.netmobiel.rideshare.event.BookingSettledEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Booking_;
@@ -50,6 +51,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 	            .addClass(StopDao.class)
 	            .addClass(OpenTripPlannerDao.class)
 	            .addPackage(LegMapper.class.getPackage())
+	            .addPackage(BookingSettledEvent.class.getPackage())
 	            .addClass(EventListenerHelper.class)
 	            .addClass(RideItineraryHelper.class)
 	            .addClass(BookingManager.class);
@@ -132,6 +134,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(bookingRef);
 		flush();
 		try {
+			expectFailure();
 			Booking booking2 = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "trip-2");
 			bookingManager.createBooking(r.getRideRef(), passenger1, booking2);
 			fail("Expected exception");
@@ -293,6 +296,8 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
+		assertNotNull(b.getRide());
+		assertNotNull(rideItineraryHelper);
     	rideItineraryHelper.updateRideItinerary(b.getRide());
 		flush();
 		

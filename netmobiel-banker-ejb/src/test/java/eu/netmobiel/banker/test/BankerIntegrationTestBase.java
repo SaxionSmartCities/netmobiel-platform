@@ -136,7 +136,9 @@ public abstract class BankerIntegrationTestBase {
 	}
 
 	protected void commitTransaction() throws Exception {
-		utx.commit();
+		if (em.isJoinedToTransaction()) {
+			utx.commit();
+		}
 	}
 
 	protected void prepareDriverLogin() throws Exception {
