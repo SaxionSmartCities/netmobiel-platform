@@ -66,6 +66,10 @@ public abstract class TripPlanMapper {
     @Mapping(target = "stops", ignore = true)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "tripPlan", ignore = true)
+    @Mapping(target = "fareInCredits", ignore = true)
+    @Mapping(target = "append", ignore = true)
+    @Mapping(target = "prepend", ignore = true)
+    @Mapping(target = "modalities", ignore = true)
     public abstract eu.netmobiel.planner.model.Itinerary itineraryToItinerary(Itinerary itinerary);
 
     
@@ -83,6 +87,13 @@ public abstract class TripPlanMapper {
     @Mapping(target = "bookingId", ignore = true)
     @Mapping(target = "bookingRequired", ignore = true)
     @Mapping(target = "plannerReport", ignore = true)
+    @Mapping(target = "paymentId", ignore = true)
+    @Mapping(target = "paymentState", ignore = true)
+    @Mapping(target = "fareInCredits", ignore = true)
+    @Mapping(target = "confirmationRequested", ignore = true)
+    @Mapping(target = "confirmationByProviderRequested", ignore = true)
+    @Mapping(target = "confirmed", ignore = true)
+    @Mapping(target = "confirmedByProvider", ignore = true)
     public abstract eu.netmobiel.planner.model.Leg legToLeg(Leg leg);
     
     @Mapping(target = "name", source = "streetName")
