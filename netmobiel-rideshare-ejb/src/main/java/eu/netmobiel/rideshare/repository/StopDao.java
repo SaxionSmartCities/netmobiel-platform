@@ -17,7 +17,6 @@ import eu.netmobiel.rideshare.model.Stop;
 @Typed(StopDao.class)
 public class StopDao extends AbstractDao<Stop, Long> {
 
-    @SuppressWarnings("unused")
 	@Inject @RideshareDatabase
     private EntityManager em;
 

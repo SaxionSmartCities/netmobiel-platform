@@ -49,7 +49,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
 
     @Inject
     private TripDao tripDao;
-    @SuppressWarnings("unused")
+
 	@Inject
     private Logger log;
     

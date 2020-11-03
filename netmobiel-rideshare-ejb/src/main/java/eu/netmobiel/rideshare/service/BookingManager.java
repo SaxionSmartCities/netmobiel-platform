@@ -42,7 +42,6 @@ public class BookingManager {
 	public static final Integer MAX_RESULTS = 10; 
 	public static final boolean AUTO_CONFIRM_BOOKING = true; 
 
-	@SuppressWarnings("unused")
 	@Inject
 	private Logger log;
 	@Inject
