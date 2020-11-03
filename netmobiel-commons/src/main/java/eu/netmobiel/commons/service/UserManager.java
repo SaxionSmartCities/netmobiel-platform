@@ -1,5 +1,6 @@
 package eu.netmobiel.commons.service;
 
+import java.lang.reflect.InvocationTargetException;
 import java.util.List;
 import java.util.Optional;
 
@@ -39,9 +40,9 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     	T user = null;
     	if (nbuser != null) {
     		try {
-				user = getUserDao().getPersistentClass().newInstance();
+				user = getUserDao().getPersistentClass().getDeclaredConstructor().newInstance();
 	    		user.from(nbuser);
-			} catch (InstantiationException | IllegalAccessException e) {
+			} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
 				throw new EJBException(e);
 			}
     	}
@@ -51,9 +52,9 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
 	protected T createContextUser(String managedIdentity) {
     	T user = null;
 		try {
-			user = getUserDao().getPersistentClass().newInstance();
+			user = getUserDao().getPersistentClass().getDeclaredConstructor().newInstance();
 			user.setManagedIdentity(managedIdentity);
-		} catch (InstantiationException | IllegalAccessException e) {
+		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
 			throw new EJBException(e);
 		}
 		return user;
