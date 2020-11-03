@@ -181,7 +181,7 @@ public class AccountingTransaction {
 
 	public Optional<AccountingEntry> entryOf(Account acc) {
 		return getAccountingEntries().stream()
-				.filter(e -> e.equals(acc))
+				.filter(e -> e.getAccount().equals(acc))
 				.findFirst();
 	}
 
