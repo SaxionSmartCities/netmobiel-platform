@@ -151,8 +151,9 @@ paths:
       operation to perform the list task. '
   /users/{userId}:
     summary: Path used to manage a single User.
-    description: The REST endpoint/path used to get, single instances of a `User`.  This
-      path contains a `GET` operation used to perform the get task.
+    description: The REST endpoint/path used to get and update a single instance of
+      a `User`. This path contains a `GET` and a `PUT` operation used to perform the
+      get and put tasks, respectively.
     get:
       responses:
         "200":
@@ -169,7 +170,34 @@ paths:
       operationId: getUser
       summary: Get a User.
       description: Gets the details of a single instance of a `User`, including the
-        current amount of credits owned (i.e., the actual balance).
+        current amount of credits owned (i.e., the actual balance). The actual amount
+        is only visible to the owner and to the administrator. The iban number and
+        iban account holder are also only visible to the owner and the administrator.
+    put:
+      requestBody:
+        description: 'The request bodies consists of a user, but only the iban and
+          ibanHolder fields are accepted. All other fields are ignored and cannot
+          be updated through this call. '
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/User'
+        required: true
+      responses:
+        "204":
+          description: Success response, the user data has been updated.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: updateUser
+      summary: Updates a BankingUser.
+      description: "Updates the banking user details. Only the following details can\
+        \ be updated:\n - iban\n - ibanHolder\n\nThe update of the iban is considered\
+        \ sensitive. An additional restriction is placed on the bearer token used\
+        \ to update the iban: The token must have been issued less than a minute ago.\n\
+        \nThe following detauils can only be updated through Keycloak:\n - givenName\n\
+        \ - familyName\n - email\n\nThe managedIdentity is never changed.\n \nOnly\
+        \ the owning user and the administrator can modify the user details."
     parameters:
     - name: userId
       description: |-
@@ -527,7 +555,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Statement'
+                $ref: '#/components/schemas/Donation'
           description: A single `Donation` object.
         "404":
           $ref: '#/components/responses/NotFound'
@@ -835,7 +863,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       operationId: getCharity
       summary: Get a Charity
-      description: 'Gets the details of a single instance of a `Charity`. '
+      description: "Gets the details of a single instance of a `Charity`. The bank\
+        \ (iban) details are \nonly available to managers of the charity and to the\
+        \ administrators."
     put:
       requestBody:
         description: Updated `Charity` information.
@@ -851,9 +881,13 @@ paths:
           $ref: '#/components/responses/NotFound'
       operationId: updateCharity
       summary: Update a Charity
-      description: |-
-        Updates an existing `Charity`. Only the following fields can be updated: campaignStartTime, campaignEndTIme, description, name, location, goalAmount, imageUrl.
-        Only the admin role or the Charity Manager can make changes.
+      description: "Updates an existing `Charity`. Only the following fields can be\
+        \ updated: \n - campaignStartTime\n - campaignEndTIme\n - description\n -\
+        \ name\n - location\n - goalAmount\n - imageUrl.\nOnly the admin role or the\
+        \ Charity Manager can make changes.\n\nIn addition, the following can be updated\
+        \ too:\n - iban\n - ibanHolder\n\nThe update of the iban detailsare considered\
+        \ sensitive. An additional restriction is placed on the bearer token for updating:\
+        \ The token must have been issued less than a minute ago.\n"
     delete:
       responses:
         "204":
@@ -1010,39 +1044,6 @@ paths:
     parameters:
     - name: charityId
       description: The charity id to use. Specify a charity id or a charity urn.
-      schema:
-        type: string
-      in: path
-      required: true
-  /payment-batches/{paymentBatchId}:
-    summary: Path used to manage a single PaymentBatch.
-    description: The REST endpoint/path used to get, update, and delete single instances
-      of an `PaymentBatch`.  This path contains `GET`, `PUT`, and `DELETE` operations
-      used to perform the get, update, and delete tasks, respectively.
-    get:
-      parameters:
-      - name: format
-        description: The format of the payment batch. Default is JSON. Specify CSV
-          for a comma separated list.
-        schema:
-          type: string
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaymentBatch'
-          description: Successful response - returns a single `PaymentBatch`.
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: getPaymentBatch
-      summary: Get a PaymentBatch
-      description: Gets the details of a single instance of a `PaymentBatch`.
-    parameters:
-    - name: paymentBatchId
-      description: A unique identifier for a `PaymentBatch`.
       schema:
         type: string
       in: path
@@ -1212,6 +1213,216 @@ paths:
       description: "Gets a list of `WithdrawalRequest` entities matching the criteria.\
         \ The objects are sorted on creation time descending. \nThis is a priviledged\
         \ call. "
+  /withdrawal-requests/{withdrawalRequestId}:
+    summary: Path used to manage a single WithdrawalRequest.
+    description: The REST endpoint/path used to manage a single instance of a `WithdrawalRequest`.  This
+      path contains a `DELETE` operation used to perform the delete task.
+    delete:
+      parameters:
+      - name: reason
+        description: The reason to cancel the withdrawal request.
+        schema:
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the withdrawal request is cancelled.
+        "400":
+          description: The request to cancel was not accepted because the withdrawal
+            was already no longer requested nor active.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: cancelWithdrawalRequest
+      summary: Cancels a withdrawal request
+      description: |-
+        Cancels a withdrawal request. An optional reason specifies why the request was cancelled. Two scenarios are quite possible:
+        - The user gets seconds thoughts
+        - The penningmeester gets an error on the particular withdrawal while processing the payment batch.
+    parameters:
+    - name: withdrawalRequestId
+      description: The id of the withdrawal request. Use the database id or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /withdrawal-requests/{withdrawalRequestId}/settled:
+    summary: Settle the batch.
+    description: Simple call the notify the settlement of the batch, i.e. the settlement
+      of all individual withdrawal requests in the batch.
+    put:
+      responses:
+        "204":
+          description: The batch is settled.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: settleWithdrawalRequest
+      summary: Settles a withdrawal request.
+      description: Settles an individual withdrawal request, i.e. confirm the withdrawal
+        request has been processed by the treasurer of NetMobiel.
+    parameters:
+    - name: withdrawalRequestId
+      description: The id of the withdrawal request. Use the database id or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /payment-batches/{paymentBatchId}:
+    summary: Path used to manage a single PaymentBatch.
+    description: The REST endpoint/path used to get, and delete single instances of
+      an `PaymentBatch`.  This path contains `GET`  and `DELETE` operations used to
+      perform the get and delete tasks, respectively.
+    get:
+      parameters:
+      - name: format
+        description: The format of the payment batch. Default is JSON. Specify CSV
+          for a comma separated list.
+        schema:
+          type: string
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentBatch'
+          description: Successful response - returns a single `PaymentBatch`.
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: getPaymentBatch
+      summary: Get a PaymentBatch
+      description: Gets the details of a single instance of a `PaymentBatch`.
+    delete:
+      parameters:
+      - name: reason
+        description: The reason to cancel the payment batch.
+        schema:
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the payment batch is cancelled.
+        "400":
+          description: The request to cancel was not accepted because the batch was
+            already no longer active.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: cancelPaymentBatch
+      summary: Cancels a payment batch
+      description: 'Cancels a payment batch by cancelling all active withdrawal requests.
+        An optional reason specifies why the batch was cancelled. '
+    parameters:
+    - name: paymentBatchId
+      description: A unique identifier for a `PaymentBatch`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/account:
+    summary: Manage the user's personal credit account.
+    description: 'The REST endpoint/path used to manage the personal  `Account` of
+      a user. This path contains a `GET` and a `PUT` operation to perform the get
+      resp. put task. '
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+          description: Return the personal `Account`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getPersonalAccount
+      summary: Get the personal user account.
+      description: Gets the details of a single instance of a `Account`, including
+        the current amount of credits owned (i.e., the actual balance). The actual
+        amount is only visible to the owner and to the administrator.
+    put:
+      responses:
+        "204":
+          description: The account is updated.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: updatePersonalAccount
+      summary: Updates the account.
+      description: Updates the personal account of the user. The update is considered
+        as a sensitive operation, the access token cannot have an issue time of less
+        than 2 minutes ago.
+    parameters:
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/{charityId}/account:
+    summary: Manage the credit account of the charity.
+    description: 'The REST endpoint/path used to manage the `Account` of the charity.
+      This path contains a `GET` and a `PUT` operation to perform the get resp. put
+      task. '
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+          description: Return the `Account` of the charity.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getCharityAccount
+      summary: Get the charity account.
+      description: Gets the details of a single instance of a `Account`, including
+        the current amount of credits owned (i.e., the actual balance). The actual
+        amount is only visible to the manager and to the administrator.
+    put:
+      responses:
+        "204":
+          description: The account is updated.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: updateCharityAccount
+      summary: Updates the account of the charity.
+      description: Updates the account of the charity. The update is considered as
+        a sensitive operation, the access token cannot have an issue time of less
+        than 2 minutes ago.
+    parameters:
+    - name: charityId
+      description: A unique identifier for a `Charity`. Allowed are the database id
+        or a Charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
@@ -1237,46 +1448,6 @@ components:
         message: This is a really bad request
         reasonPhrase: Bad Request
         status: 400
-    User:
-      description: 'A user in the message service. '
-      required:
-      - managedIdentity
-      - givenName
-      - familyName
-      - credits
-      type: object
-      properties:
-        id:
-          format: int64
-          description: 'The unique user id. If referenced use the URN notation: urn:nb:bn:user:<id>'
-          type: integer
-        managedIdentity:
-          description: The user is as known by the IDM (Keycloak). The format is determined
-            by the IDM.
-          type: string
-        givenName:
-          description: The first name of the driver.
-          type: string
-        familyName:
-          description: The family name of the driver.
-          type: string
-        credits:
-          description: The amount of credits currently in possesion by the user.
-          type: integer
-        email:
-          description: The email address of the user.
-          type: string
-        donatedCredits:
-          description: Donated amount of credits. The attribute is defined only by
-            the generosity report. The value depends on the filter parameters of the
-            report.
-          type: integer
-      example:
-        familyName: Normalverbraucher
-        givenName: Otto
-        id: 2
-        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
-        credits: 10
     Page:
       title: Root Type for Page
       description: A page from a result set. For smaller sets the page contains the
@@ -1309,49 +1480,6 @@ components:
         start: 32
         count: 16
         data: []
-    Balance:
-      title: Root Type for Balance
-      description: A representation of the balance of an account.
-      required:
-      - ncan
-      - endAmount
-      - ledger
-      - startAmount
-      - modifiedTime
-      type: object
-      properties:
-        startAmount:
-          format: int32
-          description: The amount at the start of the accounting period.
-          type: integer
-        endAmount:
-          format: int32
-          description: The amount of credits currently held in this account.
-          type: integer
-        ledger:
-          description: The name of the accounting period, in general the fiscal year.
-          type: string
-        id:
-          description: Database refrence of the entity.
-          type: integer
-        modifiedTime:
-          format: date-time
-          description: Last modification time.
-          type: string
-        ncan:
-          description: The account number of the balance entry.
-          type: string
-        accountName:
-          description: 'The name of the account. '
-          type: string
-      example:
-        startAmount: 54
-        endAmount: 112
-        ledger: "2020"
-        ncan: PLA-1234567890
-        accountName: Nico Jansen
-        id: 23
-        modifiedTime: 2020-04-09T13:33:00.000Z
     Settings:
       title: Root Type for Settings
       description: A collection of banking settings.
@@ -1509,103 +1637,6 @@ components:
         description: Koop credits
         amountCredits: 100
         returnUrl: app://netmobielapp/payment-done
-    Charity:
-      title: Root Type for Charity
-      description: A charity is some noble purpose in need of funding. NetMobiel users
-        can donate credits to a charity of their choice.
-      required:
-      - location
-      - goalAmount
-      - donatedAmount
-      - name
-      - roles
-      - campaignStartTime
-      type: object
-      properties:
-        name:
-          description: The short display name of the charity.
-          type: string
-        location:
-          $ref: '#/components/schemas/Location'
-          description: The location (in GPS coordinates) and the label for the place
-            where the charity resides.
-          properties:
-            label:
-              type: string
-            latitude:
-              format: double
-              type: number
-            longitude:
-              format: double
-              type: number
-        goalAmount:
-          format: int32
-          description: The ultimate amount of credits this charity has set as a goal.
-          type: integer
-        donatedAmount:
-          format: int32
-          description: The total amount of donations to this charity.
-          type: integer
-        imageUrl:
-          description: The url to an image todisplay along the desription of the charity.
-          type: string
-        description:
-          description: A short description to explain the goal of the charity to the
-            potential donors.
-          type: string
-        roles:
-          description: An array of roles have rights to view or administer the charity.
-            Anyone can read the charity's attributes, but financial statements are
-            limite to these roles. Only a manager can make changes.
-          type: array
-          items:
-            $ref: '#/components/schemas/CharityUserRole'
-        reference:
-          description: The urn of this charity.
-          type: string
-        id:
-          description: The database id of this charity.
-          type: integer
-        balanceAmount:
-          description: The amount of credits on the balance. This is by definition
-            smaller or equal to the total amount of donations. This attribute is only
-            visible for users having a role in the charity or the admin.
-          type: integer
-        campaignStartTime:
-          format: date-time
-          description: The start date and time of the campaign to raise funds.
-          type: string
-        campaignEndTime:
-          format: date-time
-          description: 'The date and time the fund raising is ended. After this date
-            no more donations are accepted. '
-          type: string
-        donorCount:
-          description: The number of distinct donors that have donated credits to
-            the charity. This field is defined only when the object is created by
-            the charity popularity report.
-          type: integer
-      example:
-        name: Rozentuin Zieuwent
-        location:
-          label: Zieuwent R.K. Kerk
-          latitude: 52.004485
-          longitude: 6.519542
-        campaignStartTime: 2020-05-01T12:00:00Z
-        campaignEndTime: 2020-08-31T00:00:00Z
-        goalAmount: 10000
-        donatedAmount: 2478
-        imageUrl: some/image.jpg
-        description: Ondersteuning van de vrijwilligers van de Rozentuin achter de
-          kerk
-        roles:
-        - role: MANAGER
-          user:
-            email: pieter@oostgelre.nl
-            givenName: Pieter
-            familyName: Oude Zijlink
-            managedIdentity: 1234-5678-aabb
-            id: 1034
     CharityUserRole:
       title: Root Type for CharityUserRole
       description: Defines the role of a user with respect to the charity.
@@ -1668,54 +1699,6 @@ components:
         amount: 100
         description: Succes met de inzameling
         anonymous: false
-    PaymentBatch:
-      title: Root Type for PaymentBatch
-      description: 'A `PaymentBatch` is a collection of `WithdrawalRequest` objects
-        that need to be settled. '
-      type: object
-      properties:
-        creationTime:
-          format: date-time
-          description: The date and time the batch was created.
-          type: string
-        withdrawalRequests:
-          description: The list with withdrawal requests in this batch.
-          type: array
-          items:
-            $ref: '#/components/schemas/WithdrawalRequest'
-        createdBy:
-          $ref: '#/components/schemas/User'
-          description: 'The user that created the batch. '
-          properties:
-            familyName:
-              type: string
-        settledBy:
-          $ref: '#/components/schemas/User'
-          description: The user that cleared the batch.
-          properties:
-            familyName:
-              type: string
-        settlementTime:
-          format: date-time
-          description: The date and time that the batch was completely cleared.
-          type: string
-        id:
-          description: Database if of the batch.
-          type: integer
-        orderReference:
-          description: A short unique code for the batch, for external reference.
-          type: string
-        count:
-          description: The number of withdrawal requests in the batch.
-          type: integer
-      example:
-        creationTime: 2020-10-20T12:00:00Z
-        completionTime: 2020-10-26T14:25:00Z
-        withdrawalRequests: []
-        createdBy:
-          familyName: Pietersen
-        clearedBy:
-          familyName: Pietersen
     PaymentStatus:
       title: Root Type for DepositStatus
       description: "Status of the deposit or withdrawal. A new deposit request is\
@@ -1726,15 +1709,239 @@ components:
       type: object
       properties:
         status:
-          description: The status of the payment link referred to by the order_id.
+          description: The status of the payment link referred to by the order_id,
+            or the status of an withdrawal.
           enum:
           - ACTIVE
           - EXPIRED
           - COMPLETED
           - REQUESTED
+          - CANCELLED
           type: string
       example:
         status: COMPLETED
+    User:
+      description: 'A user in the message service. '
+      required:
+      - managedIdentity
+      - givenName
+      - familyName
+      - credits
+      type: object
+      properties:
+        id:
+          format: int64
+          description: 'The unique user id. If referenced use the URN notation: urn:nb:bn:user:<id>'
+          type: integer
+        managedIdentity:
+          description: The user is as known by the IDM (Keycloak). The format is determined
+            by the IDM.
+          type: string
+        givenName:
+          description: The first name of the driver.
+          type: string
+        familyName:
+          description: The family name of the driver.
+          type: string
+        email:
+          description: The email address of the user.
+          type: string
+        donatedCredits:
+          description: Donated amount of credits. The attribute is defined only as
+            part of the generosity report. The value depends on the filter parameters
+            of the report.
+          type: integer
+        personalAccount:
+          $ref: '#/components/schemas/Account'
+          description: The personal NetMobiel account for the user.
+      example:
+        familyName: Normalverbraucher
+        givenName: Otto
+        id: 2
+        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+        personalAccount:
+          credits: 10
+          iban: NL02ABNA0123456789,
+          ibanHolder: Jan Smit
+    Account:
+      description: A credits account in NetMobiel.
+      required:
+      - name
+      type: object
+      properties:
+        id:
+          format: int64
+          description: 'The uniqueaccount  id. If referenced use the URN notation:
+            urn:nb:bn:account:<id>'
+          type: integer
+        name:
+          description: The name of the account holder.
+          type: string
+        ncan:
+          description: "The Netmobiel Credit Account Number, a unique id. \nThe NACN\
+            \ is generated by the system and cannot be modified."
+          type: string
+        iban:
+          description: The International Bank Account Number (IBAN) belonging to this
+            account.
+          type: string
+        ibanHolder:
+          description: The name of the holder of the IBAN account. Mandatory if an
+            IBAN is defined.
+          type: string
+        credits:
+          description: |-
+            The amount of credits currently in possession. The reserved credits are subtracted.
+            The balance is only present after specific queries.
+            This is a read-only property.
+          type: integer
+      example:
+        name: Jantje NB Smit
+        ncan: PLA-1234567890
+        id: 2
+        iban: NL02ABNA0123456789,
+        ibanHolder: Jan Smit
+    Balance:
+      title: Root Type for Balance
+      description: A representation of the balance of an account.
+      required:
+      - endAmount
+      - ledger
+      - startAmount
+      - modifiedTime
+      type: object
+      properties:
+        startAmount:
+          format: int32
+          description: The amount at the start of the accounting period.
+          type: integer
+        endAmount:
+          format: int32
+          description: The amount of credits currently held in this account.
+          type: integer
+        ledger:
+          description: The name of the accounting period, in general the fiscal year.
+          type: string
+        id:
+          description: Database reference of the entity.
+          type: integer
+        modifiedTime:
+          format: date-time
+          description: Last modification time.
+          type: string
+        account:
+          $ref: '#/components/schemas/Account'
+          description: 'The account for the balance. '
+      example:
+        startAmount: 54
+        endAmount: 112
+        ledger: "2020"
+        account:
+          ncan: PLA-1234567890
+          name: Nico Jansen
+        id: 23
+        modifiedTime: 2020-04-09T13:33:00.000Z
+    Charity:
+      title: Root Type for Charity
+      description: A charity is some noble purpose in need of funding. NetMobiel users
+        can donate credits to a charity of their choice.
+      required:
+      - location
+      - goalAmount
+      - donatedAmount
+      - name
+      - roles
+      - campaignStartTime
+      type: object
+      properties:
+        name:
+          description: The short display name of the charity.
+          type: string
+        location:
+          $ref: '#/components/schemas/Location'
+          description: The location (in GPS coordinates) and the label for the place
+            where the charity resides.
+          properties:
+            label:
+              type: string
+            latitude:
+              format: double
+              type: number
+            longitude:
+              format: double
+              type: number
+        goalAmount:
+          format: int32
+          description: The ultimate amount of credits this charity has set as a goal.
+          type: integer
+        donatedAmount:
+          format: int32
+          description: The total amount of donations to this charity.
+          type: integer
+        imageUrl:
+          description: The url to an image todisplay along the desription of the charity.
+          type: string
+        description:
+          description: A short description to explain the goal of the charity to the
+            potential donors.
+          type: string
+        roles:
+          description: An array of roles have rights to view or administer the charity.
+            Anyone can read the charity's attributes, but financial statements are
+            limite to these roles. Only a manager can make changes.
+          type: array
+          items:
+            $ref: '#/components/schemas/CharityUserRole'
+        reference:
+          description: The urn of this charity.
+          type: string
+        id:
+          description: The database id of this charity.
+          type: integer
+        campaignStartTime:
+          format: date-time
+          description: The start date and time of the campaign to raise funds.
+          type: string
+        campaignEndTime:
+          format: date-time
+          description: 'The date and time the fund raising is ended. After this date
+            no more donations are accepted. '
+          type: string
+        donorCount:
+          description: The number of distinct donors that have donated credits to
+            the charity. This field is defined only when the object is created by
+            the charity popularity report.
+          type: integer
+        account:
+          $ref: '#/components/schemas/Account'
+          description: The NetMobiel account for the charity. This attribute is only
+            visible for users having a role in the charity or the admin.
+      example:
+        name: Rozentuin Zieuwent
+        location:
+          label: Zieuwent R.K. Kerk
+          latitude: 52.004485
+          longitude: 6.519542
+        campaignStartTime: 2020-05-01T12:00:00Z
+        campaignEndTime: 2020-08-31T00:00:00Z
+        goalAmount: 10000
+        donatedAmount: 2478
+        imageUrl: some/image.jpg
+        description: Ondersteuning van de vrijwilligers van de Rozentuin achter de
+          kerk,
+        account:
+          name: Jan P. Smit
+          iban: NL02ABNA0123456789,
+          ibanHolder: Jan Smit
+          credits: 1350
+        roles:
+        - role: MANAGER
+          user:
+            email: pieter@oostgelre.nl
+            givenName: Pieter
+            familyName: Oude Zijlink
+            managedIdentity: 1234-5678-aabb
+            id: 1034
     WithdrawalRequest:
       title: Root Type for Deposit
       description: Object for making a withdrawal from the Netmobiel credit system,
@@ -1742,8 +1949,13 @@ components:
       required:
       - creationTime
       - amountCredits
+      - iban
+      - ibanHolder
       type: object
       properties:
+        account:
+          $ref: '#/components/schemas/Account'
+          description: The NetMobiel account for the withdrawal request.
         description:
           description: The description to display on the payment page.
           type: string
@@ -1755,16 +1967,14 @@ components:
         amountEurocents:
           description: The calculated amount of eurocents to withdraw.
           type: integer
-        accountName:
-          description: Name of the account to withdraw from. Automatically added.
-          type: string
         status:
           description: 'Status of the withdrawal. '
           enum:
+          - REQUESTED
           - ACTIVE
           - COMPLETED
           - EXPIRED
-          - REQUESTED
+          - CANCELLED
           type: string
         creationTime:
           format: date-time
@@ -1785,23 +1995,97 @@ components:
           properties:
             familyName:
               type: string
-        settledBy:
-          $ref: '#/components/schemas/User'
-          description: The user that cleared the payment, in general the treasurer.
-        settlementTime:
-          format: date-time
-          description: Thedate and time the requested was settled.
-          type: string
         paymentBatchRef:
           description: Reference to the payment batch.
+          type: string
+        reason:
+          description: The reason for the current status. Used in particular when
+            a request has been cancelled.
+          type: string
+        modifiedBy:
+          $ref: '#/components/schemas/User'
+          description: The user that modified the request, in general the treasurer.
+        modificationTime:
+          format: date-time
+          description: Thedate and time the requested was settled.
           type: string
       example:
         description: Uitbetaling volgens afspraak 2020-10-09
         amountCredits: 1000
         amountEurocents: 19000
         creationTime: 2020-10-20T13:00:00Z
+        modificationTime: 2020-10-20T13:00:00Z
         id: 2345
         reference: urn:nb:bn:withdrawal:346
+        status: REQUESTED
+        account:
+          name: Smit, Jan
+          iban: NL02ABNA0123456789,
+          ibanHolder: Jan Smit
+    PaymentBatch:
+      title: Root Type for PaymentBatch
+      description: 'A `PaymentBatch` is a collection of `WithdrawalRequest` objects
+        that need to be settled. '
+      required:
+      - status
+      type: object
+      properties:
+        creationTime:
+          format: date-time
+          description: The date and time the batch was created.
+          type: string
+        withdrawalRequests:
+          description: The list with withdrawal requests in this batch.
+          type: array
+          items:
+            $ref: '#/components/schemas/WithdrawalRequest'
+        createdBy:
+          $ref: '#/components/schemas/User'
+          description: 'The user that created the batch. '
+          properties:
+            familyName:
+              type: string
+        id:
+          description: Database if of the batch.
+          type: integer
+        orderReference:
+          description: A short unique code for the batch, for external reference.
+          type: string
+        count:
+          description: The number of withdrawal requests in the batch.
+          type: integer
+        modifiedBy:
+          $ref: '#/components/schemas/User'
+          description: The user that modified the batch.
+          properties:
+            familyName:
+              type: string
+        modificationTime:
+          format: date-time
+          description: The date and time that the batch was modified in some way.
+          type: string
+        status:
+          description: 'The status of the batch. The list of status values is standardized,
+            in practise the batch can have the following values: ACTIVE, COMPLETED,
+            CANCELLED.'
+          enum:
+          - REQUESTED
+          - ACTIVE
+          - COMPLETED
+          - EXPIRED
+          - CANCELLED
+          type: string
+      example:
+        creationTime: 2020-10-20T12:00:00Z
+        completionTime: 2020-10-26T14:25:00Z
+        orderReference: NMPB-20301-354
+        withdrawalRequests: []
+        status: ACTIVE
+        createdBy:
+          familyName: Pietersen
+        clearedBy:
+          familyName: Pietersen,
+        count: 5
   responses:
     InternalServerError:
       content:
