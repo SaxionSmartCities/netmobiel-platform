@@ -173,31 +173,6 @@ paths:
         current amount of credits owned (i.e., the actual balance). The actual amount
         is only visible to the owner and to the administrator. The iban number and
         iban account holder are also only visible to the owner and the administrator.
-    put:
-      requestBody:
-        description: 'The request bodies consists of a user, but only the iban and
-          ibanHolder fields are accepted. All other fields are ignored and cannot
-          be updated through this call. '
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/User'
-        required: true
-      responses:
-        "204":
-          description: Success response, the user data has been updated.
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: updateUser
-      summary: Updates a BankingUser.
-      description: "Updates the banking user details. Only the following details can\
-        \ be updated:\n - iban\n - ibanHolder\n\nThe update of the iban is considered\
-        \ sensitive. An additional restriction is placed on the bearer token used\
-        \ to update the iban: The token must have been issued less than a minute ago.\n\
-        \nThe following detauils can only be updated through Keycloak:\n - givenName\n\
-        \ - familyName\n - email\n\nThe managedIdentity is never changed.\n \nOnly\
-        \ the owning user and the administrator can modify the user details."
     parameters:
     - name: userId
       description: |-
@@ -883,11 +858,8 @@ paths:
       summary: Update a Charity
       description: "Updates an existing `Charity`. Only the following fields can be\
         \ updated: \n - campaignStartTime\n - campaignEndTIme\n - description\n -\
-        \ name\n - location\n - goalAmount\n - imageUrl.\nOnly the admin role or the\
-        \ Charity Manager can make changes.\n\nIn addition, the following can be updated\
-        \ too:\n - iban\n - ibanHolder\n\nThe update of the iban detailsare considered\
-        \ sensitive. An additional restriction is placed on the bearer token for updating:\
-        \ The token must have been issued less than a minute ago.\n"
+        \ name\n - location\n - goalAmount\n - imageUrl\n\nOnly the admin role or\
+        \ the Charity Manager can make changes."
     delete:
       responses:
         "204":
@@ -1372,9 +1344,15 @@ paths:
         apikey: []
       operationId: updatePersonalAccount
       summary: Updates the account.
-      description: Updates the personal account of the user. The update is considered
-        as a sensitive operation, the access token cannot have an issue time of less
-        than 2 minutes ago.
+      description: |-
+        Updates the personal account of the user. Only the following details can be updated:
+         - name
+         - iban
+         - ibanHolder
+
+        The update of the iban is considered sensitive. An additional restriction is placed on the bearer token used to update the iban: The token must have been issued less than 2 minutes ago.
+
+        Only the owning user and the administrator can modify the user details.
     parameters:
     - name: userId
       description: |-
