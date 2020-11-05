@@ -1355,6 +1355,13 @@ paths:
         the current amount of credits owned (i.e., the actual balance). The actual
         amount is only visible to the owner and to the administrator.
     put:
+      requestBody:
+        description: Specify name, iban and ibanHolder. Other fields are ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+        required: true
       responses:
         "204":
           description: The account is updated.
@@ -1402,6 +1409,13 @@ paths:
         the current amount of credits owned (i.e., the actual balance). The actual
         amount is only visible to the manager and to the administrator.
     put:
+      requestBody:
+        description: Specify name, iban and ibanHolder. Other fields are ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+        required: true
       responses:
         "204":
           description: The account is updated.
