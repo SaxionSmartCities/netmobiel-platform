@@ -1071,11 +1071,14 @@ paths:
           format: date-time
           type: string
         in: query
-      - name: settledToo
-        description: Set this flag to 'true' if settled batches should be returned
-          as well. Default is false.
+      - name: status
+        description: 'The status to filter by. '
         schema:
-          type: boolean
+          enum:
+          - ACTIVE
+          - COMPLETED
+          - CANCELLED
+          type: string
         in: query
       - name: maxResults
         description: 'Paging: The maximum number of results per page. Default is 10.'
