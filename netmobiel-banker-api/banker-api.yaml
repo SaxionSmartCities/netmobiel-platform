@@ -1520,12 +1520,11 @@ components:
       description: An single accounting entry or booking statement.
       required:
       - accountingTime
-      - accountName
+      - account
       - amount
       - id
       - transactionTime
       - type
-      - ncan
       - transactionType
       type: object
       properties:
@@ -1548,9 +1547,6 @@ components:
           format: int32
           description: The amount of credits involved in the transaction.
           type: integer
-        accountName:
-          description: The name of the account.
-          type: string
         type:
           description: The type of the entry.
           enum:
@@ -1573,15 +1569,17 @@ components:
           description: The reference to a netmobiel object. This will be a urn to
             the object.
           type: string
-        ncan:
-          description: The Netmobiel Credit Account Number, a unique id.
+        account:
+          description: The account. Only present when statements for multiple accounts
+            are present.
           type: string
       example:
+        account:
+          ncan: PLA-51
+          name: M. Pietersen
         accountingTime: 2019-06-17T15:59:00Z
         transactionTime: 2019-06-17T16:30:00Z
         description: Rit met Coby Hoekstra naar Zelhem
-        ncan: PLA-51
-        accountName: M. Pietersen
         id: 12345
         amount: 5
         type: CREDIT
