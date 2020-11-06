@@ -14,117 +14,6 @@ servers:
 - url: https://api.netmobiel.eu/gwapi/acc/banker
   description: The credit service visible to the world (acceptance).
 paths:
-  /accounting-entries:
-    summary: Path used to manage the list of accounting entries.
-    description: The REST endpoint/path used to list zero or more `AccountingEntry`
-      entities.  This path contains a `GET` operation to perform the list task.
-    get:
-      parameters:
-      - name: user
-        description: |-
-          The user owning the account(s). Only allowed with elevated privilege. The user domain is the Keycloak managed identity.
-          Without this parameter the caller is considered to be the user.
-        schema:
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-11-30T12:00:00+01:00
-        name: since
-        description: The maximum lookback date of the listing. Default is not set.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-12-15T14:00:00+01:00
-        name: until
-        description: 'The date of the latest entry to retrieve. The `until` date must
-          be after the `since` parameter. Default is not set, meaning all entries
-          from now and before. '
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a `Page` with `AccountingEntry`
-            entities.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: listAccountingEntries
-      summary: List accounting entries.
-      description: "Gets a paged list of  `AccountingEntry` entities. Default the\
-        \ entries owned by the calling user are listed while applying \nthe filter\
-        \ criteria.\nThe administrator can request entries owned by any user. \n"
-  /balances:
-    summary: Path used to manage the list of balances.
-    description: The REST endpoint/path used to list `Balance` entities.  This path
-      contains a `GET` operation to perform the list task.
-    get:
-      parameters:
-      - name: user
-        description: |-
-          The user owning the account(s). Only allowed with elevated privilege. The user domain is the Keycloak managed identity.
-          Without this parameter the records of the calling user are retrieved.
-        schema:
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-11-30T12:00:00+01:00
-        name: period
-        description: A (random) date in the period concerning the balance. Default
-          is the balance of the active ledger.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a `Page` with `Balance` entities.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: listBalances
-      summary: List all balances
-      description: "Gets a paged list of  `Balance` entities. Default the entities\
-        \ owned by the calling user are listed while applying \nthe filter criteria.\n\
-        The administrator can request balances owned by any user. \n"
   /settings:
     summary: Path used to manage the list of settings.
     description: The REST endpoint/path used to list and create zero or more `Settings`
@@ -1562,8 +1451,8 @@ components:
           - RELEASE
           type: string
         counterparty:
-          description: The name of the other party involved in a payment.
-          type: string
+          $ref: '#/components/schemas/Account'
+          description: 'The account of the other party. Only the name is available. '
         context:
           description: The reference to a netmobiel object. This will be a urn to
             the object.
