@@ -9,13 +9,10 @@ import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
-import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
 import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
 import javax.persistence.PrePersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
@@ -35,15 +32,12 @@ import eu.netmobiel.banker.util.BankerUrnHelper;
  * the entities owning an account have a one-to-one relation with an account. It is therefore sufficient to
  * address the higher-level entities outside the credit service (at REST level).  
  * 
- * How do we relate the bank account number to the netmobiel account number?
- *  
  * @author Jaap Reitsma
  *
  */
 @Entity
 @Table(name = "account", uniqueConstraints = {
-	    @UniqueConstraint(name = "cs_account_unique", columnNames = { "ncan" }),
-	    @UniqueConstraint(name = "cs_actual_balance_unique", columnNames = { "actual_balance" })
+	    @UniqueConstraint(name = "cs_account_unique", columnNames = { "ncan" })
 })
 @Vetoed
 @SequenceGenerator(name = "account_sg", sequenceName = "account_seq", allocationSize = 1, initialValue = 50)
@@ -108,16 +102,20 @@ public class Account {
     
     /**
      * Reference to the actual balance, i.e. the balance referring to the ledger currently in use.
-     * The actual balance should never be null, but the account has to be created before the balance, so unless we
-     * modify the schema later on, actualBalance is allowed to be null.   
+     * Only present after certain calls, when the balance is explicitly queried.
      */
-    @OneToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "actual_balance", nullable = true, 
-		foreignKey = @ForeignKey(name = "account_actual_balance_fk", 
-		foreignKeyDefinition = "FOREIGN KEY (actual_balance) REFERENCES balance (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE SET NULL"))
+    @Transient
     private Balance actualBalance;
     
-    public Account() {
+	@Size(max = 48)
+    @Column(name = "iban")
+    private String iban;
+
+	@Size(max = 96)
+    @Column(name = "iban_holder")
+    private String ibanHolder;
+
+	public Account() {
     }
 
     public static Account newInstant(String aReference, String aName, AccountType aType) {
@@ -214,6 +212,22 @@ public class Account {
 		return balances;
 	}
 
+	public String getIban() {
+		return iban;
+	}
+
+	public void setIban(String iban) {
+		this.iban = iban;
+	}
+
+	public String getIbanHolder() {
+		return ibanHolder;
+	}
+
+	public void setIbanHolder(String ibanHolder) {
+		this.ibanHolder = ibanHolder;
+	}
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(ncan);
@@ -224,10 +238,7 @@ public class Account {
 		if (this == obj) {
 			return true;
 		}
-		if (obj == null) {
-			return false;
-		}
-		if (getClass() != obj.getClass()) {
+		if (!(obj instanceof Account)) {
 			return false;
 		}
 		Account other = (Account) obj;
@@ -238,4 +249,5 @@ public class Account {
 	public String toString() {
 		return String.format("Account [%s %s %s %s]", id, StringUtils.abbreviate(ncan, 11), name, accountType);
 	}
+
 }

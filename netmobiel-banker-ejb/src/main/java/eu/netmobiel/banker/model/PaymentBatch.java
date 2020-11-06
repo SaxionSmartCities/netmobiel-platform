@@ -43,14 +43,14 @@ import eu.netmobiel.commons.model.ReferableObject;
 			name = PaymentBatch.LIST_GRAPH, 
 			attributeNodes = { 
 					@NamedAttributeNode(value = "createdBy"),		
-					@NamedAttributeNode(value = "settledBy"),		
+					@NamedAttributeNode(value = "modifiedBy"),		
 			}
 	),
 	@NamedEntityGraph(
 			name = PaymentBatch.WITHDRAWALS_GRAPH, 
 			attributeNodes = { 
 					@NamedAttributeNode(value = "createdBy"),		
-					@NamedAttributeNode(value = "settledBy"),		
+					@NamedAttributeNode(value = "modifiedBy"),		
 					@NamedAttributeNode(value = "withdrawalRequests", subgraph = "subgraph.withdrawal")		
 			}, subgraphs = {
 					@NamedSubgraph(
@@ -58,7 +58,7 @@ import eu.netmobiel.commons.model.ReferableObject;
 							attributeNodes = {
 									@NamedAttributeNode(value = "account"),		
 									@NamedAttributeNode(value = "createdBy"),
-									@NamedAttributeNode(value = "settledBy")
+									@NamedAttributeNode(value = "modifiedBy")
 							}
 					)
 			}
@@ -98,37 +98,52 @@ public class PaymentBatch extends ReferableObject {
      */
 	@NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "created_by", nullable = false, foreignKey = @ForeignKey(name = "payment_batch_created_by_fk"))
+	@JoinColumn(name = "created_by", foreignKey = @ForeignKey(name = "payment_batch_created_by_fk"))
     private BankerUser createdBy;
 
-	/**
-     * The clearance of the batch is confirmed by a specific user.
-     */
-    @ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "settled_by", nullable = true, foreignKey = @ForeignKey(name = "payment_batch_settled_by_fk"))
-    private BankerUser settledBy;
-    
     /**
      * Time of creation of the batch.
      */
+    @NotNull
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "creation_time", nullable = false, updatable = false)
+    @Column(name = "creation_time", updatable = false)
     private Instant creationTime;
 
-    /**
-     * Time of settlement of the batch.
-     * If null then not all payments are cleared yet by the treasurer. If set then all payments are settled.
+	/**
+     * The modification of the batch is done by a specific user.
      */
+	@NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "modified_by", foreignKey = @ForeignKey(name = "payment_batch_modified_by_fk"))
+    private BankerUser modifiedBy;
+    
+    /**
+     * Time of modification of the batch (i.e. updating the status).
+     */
+    @NotNull
     @Basic(fetch = FetchType.LAZY)
-    @Column(name = "settlement_time", nullable = true)
-    private Instant settlementTime;
+    @Column(name = "modification_time")
+    private Instant modificationTime;
 
     /**
-     * Thenumber of withdrawal requests in this batch. Only filled in the list query.
+     * The number of withdrawal requests in this batch. Only filled in the list query.
      */
     @Transient
     private Integer count;
     
+	/**
+	 * The status of the batch.
+	 */
+	@Column(name = "status", length = 1, nullable = false)
+	private PaymentStatus status;
+
+	/**
+	 * The reason for the current status.
+	 */
+	@Size(max = 256)
+	@Column(name = "reason")
+	private String reason;
+	
 	public PaymentBatch() {
     }
 
@@ -181,20 +196,20 @@ public class PaymentBatch extends ReferableObject {
 		this.creationTime = creationTime;
 	}
 
-	public BankerUser getSettledBy() {
-		return settledBy;
+	public BankerUser getModifiedBy() {
+		return modifiedBy;
 	}
 
-	public void setSettledBy(BankerUser settledBy) {
-		this.settledBy = settledBy;
+	public void setModifiedBy(BankerUser modifiedBy) {
+		this.modifiedBy = modifiedBy;
 	}
 
-	public Instant getSettlementTime() {
-		return settlementTime;
+	public Instant getModificationTime() {
+		return modificationTime;
 	}
 
-	public void setSettlementTime(Instant settlementTime) {
-		this.settlementTime = settlementTime;
+	public void setModificationTime(Instant modificationTime) {
+		this.modificationTime = modificationTime;
 	}
 
 	public void addWithdrawalRequest(WithdrawalRequest request) {
@@ -209,6 +224,22 @@ public class PaymentBatch extends ReferableObject {
 
 	public void setCount(Integer count) {
 		this.count = count;
+	}
+
+	public PaymentStatus getStatus() {
+		return status;
+	}
+
+	public void setStatus(PaymentStatus status) {
+		this.status = status;
+	}
+
+	public String getReason() {
+		return reason;
+	}
+
+	public void setReason(String reason) {
+		this.reason = reason;
 	}
 
 	/**

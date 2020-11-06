@@ -3,6 +3,7 @@ package eu.netmobiel.banker.api.resource;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
+import javax.ejb.EJBAccessException;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
@@ -15,11 +16,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.banker.api.CharitiesApi;
+import eu.netmobiel.banker.api.mapping.AccountMapper;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
 import eu.netmobiel.banker.api.mapping.CharityMapper;
 import eu.netmobiel.banker.api.mapping.DonationMapper;
 import eu.netmobiel.banker.api.mapping.PageMapper;
 import eu.netmobiel.banker.filter.DonationFilter;
+import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
@@ -50,6 +53,9 @@ public class CharitiesResource implements CharitiesApi {
 
 	@Inject
 	private AccountingEntryMapper accountingEntryMapper;
+
+	@Inject
+	private AccountMapper accountMapper;
 
 	@Inject
 	private CharityMapper charityMapper;
@@ -85,7 +91,7 @@ public class CharitiesResource implements CharitiesApi {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
         	Charity charity = charityManager.getCharity(cid);
 			boolean adminView = request.isUserInRole("admin");
-			rsp = Response.ok(adminView ? charityMapper.mapWithRolesAndBalance(charity) : charityMapper.mapWithoutRoles(charity)).build();
+			rsp = Response.ok(adminView ? charityMapper.mapWithRolesAndAccount(charity) : charityMapper.mapWithoutRoles(charity)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -166,6 +172,9 @@ public class CharitiesResource implements CharitiesApi {
 		try {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
 			Charity charity = charityManager.getCharity(cid);
+			if (charity.getAccount() == null) {
+				throw new EJBAccessException("You do not have access to the statements of this charity: " + charityId);
+			}
 			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(charity.getAccount().getNcan(), si, ui, maxResults, offset); 
 			rsp = Response.ok(accountingEntryMapper.map(result)).build();
 		} catch (BusinessException ex) {
@@ -266,15 +275,45 @@ public class CharitiesResource implements CharitiesApi {
 	    	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
 			Charity charity = charityManager.getCharity(cid);
 			// Is this user allowed to do the withdrawal?
-			charity.getRoles().stream()
+			boolean canWithdraw = charity.getRoles() != null && charity.getRoles().stream()
 				.filter(r -> r.getUser().equals(user) && r.getRole() == CharityUserRoleType.MANAGER)
 				.findFirst()
-				.orElseThrow(() -> new ForbiddenException(String.format("User %d is not a manager of charity %d", user.getId(), cid)));
+				.isPresent();
+			if (! canWithdraw) {
+				throw new ForbiddenException(String.format("User %d is not a manager of charity %d and not an admin", user.getId(), cid));
+			}
 			Long id = ledgerService.createWithdrawalRequest(user, charity.getAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
 			String wrid = UrnHelper.createUrn(WithdrawalRequest.URN_PREFIX, id);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(wrid)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response getCharityAccount(String charityId) {
+		Response rsp = null;
+		try {
+        	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
+        	Account acc = charityManager.getCharityAccount(cid);
+			rsp = Response.ok(accountMapper.map(acc)).build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response updateCharityAccount(String charityId, eu.netmobiel.banker.api.model.Account acc) {
+		Response rsp = null;
+		try {
+        	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
+        	Account accdom = accountMapper.map(acc);
+        	charityManager.updateCharityAccount(cid, accdom);
+			rsp = Response.noContent().build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
 		}
 		return rsp;
 	}

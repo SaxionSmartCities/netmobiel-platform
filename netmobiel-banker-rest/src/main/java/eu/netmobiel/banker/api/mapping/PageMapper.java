@@ -7,7 +7,7 @@ import org.mapstruct.ReportingPolicy;
 import eu.netmobiel.banker.api.mapping.annotation.AccountingEntryMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.CharityDetails;
 import eu.netmobiel.banker.api.mapping.annotation.CharityMapperQualifier;
-import eu.netmobiel.banker.api.mapping.annotation.CharityWithRoleAndBalanceDetails;
+import eu.netmobiel.banker.api.mapping.annotation.CharityWithRoleAndAccountDetails;
 import eu.netmobiel.banker.api.mapping.annotation.DonationDetails;
 import eu.netmobiel.banker.api.mapping.annotation.DonationMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.DonationWithCharity;
@@ -41,7 +41,7 @@ public interface PageMapper {
 	@Mapping(target = "data", source = "data", qualifiedBy = { AccountingEntryMapperQualifier.class } )
 	eu.netmobiel.banker.api.model.Page mapAccountingEntries(PagedResult<AccountingEntry> source);
 
-	@Mapping(target = "data", source = "data", qualifiedBy = { CharityMapperQualifier.class, CharityWithRoleAndBalanceDetails.class } )
+	@Mapping(target = "data", source = "data", qualifiedBy = { CharityMapperQualifier.class, CharityWithRoleAndAccountDetails.class } )
 	eu.netmobiel.banker.api.model.Page mapCharitiesWithRoleAndBalance(PagedResult<Charity> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { CharityMapperQualifier.class, CharityDetails.class } )

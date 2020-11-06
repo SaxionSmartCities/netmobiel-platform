@@ -43,7 +43,7 @@ import eu.netmobiel.commons.model.ReferableObject;
 					@NamedAttributeNode(value = "account"),		
 					@NamedAttributeNode(value = "createdBy"),
 					@NamedAttributeNode(value = "paymentBatch", subgraph = "subgraph.paymentBatch"),		
-					@NamedAttributeNode(value = "settledBy")
+					@NamedAttributeNode(value = "modifiedBy")
 			},
 			subgraphs = {
 					@NamedSubgraph(
@@ -131,8 +131,8 @@ public class WithdrawalRequest extends ReferableObject {
      * The settling of the request is confirmed by a specific user.
      */
     @ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "settled_by", nullable = true, foreignKey = @ForeignKey(name = "withdrawal_settled_by_fk"))
-    private BankerUser settledBy;
+	@JoinColumn(name = "modified_by", nullable = true, foreignKey = @ForeignKey(name = "withdrawal_modified_by_fk"))
+    private BankerUser modifiedBy;
     
     /**
      * Time of creation of the request.
@@ -141,11 +141,11 @@ public class WithdrawalRequest extends ReferableObject {
     private Instant creationTime;
 
     /**
-     * Time of settlement of the request
-     * If null then the request is open.
+     * Time of modification of the request.
      */
-    @Column(name = "settlement_time", nullable = true)
-    private Instant settlementTime;
+    @Column(name = "modification_time")
+	@NotNull
+    private Instant modificationTime;
 
 	/**
 	 * The status of the request
@@ -153,14 +153,22 @@ public class WithdrawalRequest extends ReferableObject {
 	@Column(name = "status", length = 1, nullable = false)
 	private PaymentStatus status;
 
-    /**
+	/**
+	 * The reason for the current status.
+	 */
+	@Size(max = 256)
+	@Column(name = "reason")
+	private String reason;
+	
+	/**
      * The transaction of the withdrawal. Can refer to the reservation, the release or the final withdrawal, depending on the state.
      * Can be null, because we first need to save the request, then we can insert the reference into the transaction. 
      */
 	@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transaction", nullable = true, foreignKey = @ForeignKey(name = "withdrawal_transaction_fk"))
     private AccountingTransaction transaction = null;
-    
+
+	
 	public WithdrawalRequest() {
     }
 
@@ -253,20 +261,28 @@ public class WithdrawalRequest extends ReferableObject {
 		this.status = status;
 	}
 
-	public BankerUser getSettledBy() {
-		return settledBy;
+	public String getReason() {
+		return reason;
 	}
 
-	public void setSettledBy(BankerUser settledBy) {
-		this.settledBy = settledBy;
+	public void setReason(String reason) {
+		this.reason = reason;
 	}
 
-	public Instant getSettlementTime() {
-		return settlementTime;
+	public BankerUser getModifiedBy() {
+		return modifiedBy;
 	}
 
-	public void setSettlementTime(Instant settlementTime) {
-		this.settlementTime = settlementTime;
+	public void setModifiedBy(BankerUser modifiedBy) {
+		this.modifiedBy = modifiedBy;
+	}
+
+	public Instant getModificationTime() {
+		return modificationTime;
+	}
+
+	public void setModificationTime(Instant modificationTime) {
+		this.modificationTime = modificationTime;
 	}
 
 	public AccountingTransaction getTransaction() {

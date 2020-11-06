@@ -22,7 +22,11 @@ public enum PaymentStatus {
 	/**
 	 * The payment was successful, the credits are transferred to or from the account.
 	 */
-	COMPLETED("C");
+	COMPLETED("C"),
+	/**
+	 * The payment was cancelled.
+	 */
+	CANCELLED("X");
 	
 	private String code;
 	 
@@ -34,4 +38,7 @@ public enum PaymentStatus {
         return code;
     }
 
+    public boolean isFinal() {
+    	return this == COMPLETED || this == EXPIRED || this == CANCELLED;
+    }
 }

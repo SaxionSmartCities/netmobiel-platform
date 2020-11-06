@@ -119,6 +119,8 @@ public class Fixture {
 		wr.setCreationTime(Instant.now());
 		wr.setDescription(description);
 		wr.setCreatedBy(requestor);
+		wr.setModificationTime(wr.getCreationTime());
+		wr.setModifiedBy(wr.getCreatedBy());
 		wr.setStatus(PaymentStatus.REQUESTED);
 		wr.setTransaction(transaction);
 		return wr;
@@ -128,6 +130,9 @@ public class Fixture {
     	PaymentBatch pb = new PaymentBatch();
     	pb.setCreatedBy(requestor);
     	pb.setCreationTime(Instant.now());
+		pb.setModificationTime(pb.getCreationTime());
+		pb.setModifiedBy(pb.getCreatedBy());
+		pb.setStatus(PaymentStatus.ACTIVE);
     	return pb;
 	}
 

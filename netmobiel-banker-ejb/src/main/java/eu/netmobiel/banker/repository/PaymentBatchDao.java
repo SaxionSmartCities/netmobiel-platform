@@ -55,13 +55,13 @@ public class PaymentBatchDao extends AbstractDao<PaymentBatch, Long> {
 	 * a parameter is don't care.
 	 * @param since the first date to take into account for creation time.
 	 * @param until the last date (exclusive) to take into account for creation time.
-	 * @param settledToo if true then list also settled payment batches, otherwise the active (unprocessed) only. 
+	 * @param status The status to filter by. 
 	 * @param maxResults The maximum number of results per page. Only if set to 0 the total number of results is returned. 
 	 * @param offset the zero-based offset in the result set.
 	 * @return A paged result with 0 or more results. Total count is only determined when maxResults is set to 0. 
 	 * 		   The results are ordered by creation time descending and	then by id descending.
 	 */
-    public PagedResult<Long> list(Instant since, Instant until, Boolean settledToo, Integer maxResults, Integer offset) {
+    public PagedResult<Long> list(Instant since, Instant until, PaymentStatus status, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<PaymentBatch> root = cq.from(PaymentBatch.class);
@@ -72,8 +72,8 @@ public class PaymentBatchDao extends AbstractDao<PaymentBatch, Long> {
         if (until != null) {
 	        predicates.add(cb.lessThan(root.get(PaymentBatch_.creationTime), until));
         }        
-        if (settledToo == null || !settledToo.booleanValue()) {
-	        predicates.add(cb.isNull(root.get(PaymentBatch_.settlementTime)));
+        if (status != null) {
+	        predicates.add(cb.equal(root.get(PaymentBatch_.status), status));
         }
 
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));

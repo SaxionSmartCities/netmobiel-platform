@@ -47,20 +47,38 @@ import eu.netmobiel.commons.model.ReferableObject;
 
 @NamedEntityGraphs({
 	@NamedEntityGraph(
-			name = Charity.LIST_ENTITY_GRAPH, 
+			name = Charity.SHALLOW_ENTITY_GRAPH,
+			includeAllAttributes = true
+//			attributeNodes = { 
+//					@NamedAttributeNode(value = "name")		
+//			}
+	),
+	@NamedEntityGraph(
+			// Only users involved in a role can view the roles and the accounts.
+			name = Charity.ROLES_ENTITY_GRAPH, 
 			attributeNodes = { 
-					@NamedAttributeNode(value = "account", subgraph = "subgraph.account")		
+				@NamedAttributeNode(value = "roles", subgraph = "subgraph.roles"),		
+				@NamedAttributeNode(value = "account", subgraph = "subgraph.account"),		
 			}, subgraphs = {
 					@NamedSubgraph(
 							name = "subgraph.account",
 							attributeNodes = {
-									@NamedAttributeNode(value = "actualBalance")
+									@NamedAttributeNode(value = "ncan")
+							}
+					),
+					@NamedSubgraph(
+							name = "subgraph.roles",
+							attributeNodes = {
+									@NamedAttributeNode(value = "createdTime"),
+									@NamedAttributeNode(value = "modifiedTime"),
+									@NamedAttributeNode(value = "role"),
+									@NamedAttributeNode(value = "user")
 							}
 					)
 			}
 	),
 	@NamedEntityGraph(
-			name = Charity.LIST_ROLES_ENTITY_GRAPH, 
+			name = Charity.ACCOUNT_ROLES_ENTITY_GRAPH, 
 			attributeNodes = { 
 					@NamedAttributeNode(value = "account", subgraph = "subgraph.account"),		
 					@NamedAttributeNode(value = "roles", subgraph = "subgraph.roles")		
@@ -68,7 +86,7 @@ import eu.netmobiel.commons.model.ReferableObject;
 					@NamedSubgraph(
 							name = "subgraph.account",
 							attributeNodes = {
-									@NamedAttributeNode(value = "actualBalance")
+									@NamedAttributeNode(value = "ncan")
 							}
 					),
 					@NamedSubgraph(
@@ -95,8 +113,9 @@ public class Charity extends ReferableObject {
 	public static final int CHARITY_NAME_MAX_LENGTH = 96;
 	public static final int CHARITY_DESCRIPTION_MAX_LENGTH = 256;
 	public static final int CHARITY_PICTURE_URL_MAX_LENGTH = 256;
-	public static final String LIST_ENTITY_GRAPH = "list-charity-entity-graph";
-	public static final String LIST_ROLES_ENTITY_GRAPH = "list-charity-roles-entity-graph";
+	public static final String SHALLOW_ENTITY_GRAPH = "charity-entity-graph";
+	public static final String ROLES_ENTITY_GRAPH = "charity-roles-entity-graph";
+	public static final String ACCOUNT_ROLES_ENTITY_GRAPH = "charity-account-roles-entity-graph";
 
 
 	@Id
@@ -108,21 +127,21 @@ public class Charity extends ReferableObject {
      */
 	@Size(max = CHARITY_NAME_MAX_LENGTH)
 	@NotNull
-    @Column(name = "name", length = CHARITY_NAME_MAX_LENGTH, nullable = false)
+    @Column(name = "name")
     private String name;
 
 	/**
      * The charity description.
      */
 	@Size(max = CHARITY_DESCRIPTION_MAX_LENGTH)
-    @Column(name = "description", length = CHARITY_DESCRIPTION_MAX_LENGTH)
+    @Column(name = "description")
     private String description;
 
 	/**
      * The charity description.
      */
 	@Size(max = CHARITY_PICTURE_URL_MAX_LENGTH)
-    @Column(name = "image_url", length = CHARITY_PICTURE_URL_MAX_LENGTH)
+    @Column(name = "image_url")
     private String imageUrl;
 
 	/**
@@ -153,14 +172,14 @@ public class Charity extends ReferableObject {
     /**
      * Reference to the account of the charity. This is a one to one relation.
      */
-    @OneToOne(fetch = FetchType.EAGER)
+    @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "account", nullable = false, foreignKey = @ForeignKey(name = "charity_account_fk"))
     private Account account;
     
     /**
      * The roles having administrative access to the charity.
      */
-	@OneToMany(mappedBy = "charity", fetch = FetchType.LAZY, cascade = CascadeType.PERSIST)
+	@OneToMany(mappedBy = "charity", fetch = FetchType.LAZY, cascade = { CascadeType.PERSIST, CascadeType.DETACH })
 	private List<CharityUserRole> roles = new ArrayList<>();
 
     /**

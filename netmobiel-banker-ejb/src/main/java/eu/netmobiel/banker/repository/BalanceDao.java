@@ -42,28 +42,27 @@ public class BalanceDao extends AbstractDao<Balance, Long> {
 		return em;
 	}
 
-	public Balance findByLedgerAndAccount(@NotNull Ledger ledger, @NotNull Account account) throws NoResultException, NonUniqueResultException {
-		String q = "from Balance bal where bal.ledger = :ledger and bal.account = :account";
-		TypedQuery<Balance> tq = em.createQuery(q, Balance.class);
-		tq.setParameter("ledger", ledger);
-		tq.setParameter("account", account);
-		return tq.getSingleResult();
+	public Balance findActualBalance(@NotNull Account account) throws NoResultException, NonUniqueResultException {
+		String q = "from Balance bal where bal.ledger.endPeriod is null and bal.account = :account";
+		return em.createQuery(q, Balance.class)
+				.setParameter("account", account)
+				.getSingleResult();
 	}
 	
-//	public Balance findByLedgerAndAccount(@NotNull Ledger ledger, @NotNull Integer accountId) throws NoResultException, NonUniqueResultException {
-//		String q = "from Balance bal where bal.ledger = :ledger and bal.account.id = :accountId";
-//		TypedQuery<Balance> tq = em.createQuery(q, Balance.class);
-//		tq.setParameter("ledger", ledger);
-//		tq.setParameter("accountId", accountId);
-//		return tq.getSingleResult();
-//	}
-//	
+	public Balance findByLedgerAndAccount(@NotNull Ledger ledger, @NotNull Account account) throws NoResultException, NonUniqueResultException {
+		String q = "from Balance bal where bal.ledger = :ledger and bal.account = :account";
+		return em.createQuery(q, Balance.class)
+				.setParameter("ledger", ledger)
+				.setParameter("account", account)
+				.getSingleResult();
+	}
+	
 	public Balance findByLedgerAndAccountNumber(@NotNull Ledger ledger, @NotNull String ncan) throws NoResultException, NonUniqueResultException {
 		String q = "from Balance bal where bal.ledger = :ledger and bal.account.ncan = :ncan";
-		TypedQuery<Balance> tq = em.createQuery(q, Balance.class);
-		tq.setParameter("ledger", ledger);
-		tq.setParameter("ncan", ncan);
-		return tq.getSingleResult();
+		return em.createQuery(q, Balance.class)
+				.setParameter("ledger", ledger)
+				.setParameter("ncan", ncan)
+				.getSingleResult();
 	}
 	
     public PagedResult<Long> listBalances(Account acc, @NotNull Ledger ledger, Integer maxResults, Integer offset) {

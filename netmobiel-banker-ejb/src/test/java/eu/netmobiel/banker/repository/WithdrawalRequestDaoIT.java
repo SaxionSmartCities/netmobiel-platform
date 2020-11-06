@@ -81,8 +81,8 @@ public class WithdrawalRequestDaoIT extends BankerIntegrationTestBase {
     	pb.addWithdrawalRequest(wr1);
 
     	WithdrawalRequest wr2 = Fixture.createWithdrawalRequest(account2, user2, "Test my request 2", 100, dummyTransaction2);
-    	wr2.setSettlementTime(Instant.now());
-    	wr2.setSettledBy(user2);
+    	wr2.setModificationTime(Instant.now());
+    	wr2.setModifiedBy(user2);
     	pb.addWithdrawalRequest(wr2);
     	wr2.setStatus(PaymentStatus.COMPLETED);
     	em.persist(wr2);
@@ -123,7 +123,7 @@ public class WithdrawalRequestDaoIT extends BankerIntegrationTestBase {
     	assertFalse(em.contains(wr));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.ACCOUNT));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.CREATED_BY));
-    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.SETTLED_BY));
+    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.MODIFIED_BY));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.PAYMENT_BATCH));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.AMOUNT_CREDITS));
     	assertFalse(puu.isLoaded(wr, WithdrawalRequest_.TRANSACTION));
@@ -150,7 +150,7 @@ public class WithdrawalRequestDaoIT extends BankerIntegrationTestBase {
     	assertFalse(em.contains(wr));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.ACCOUNT));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.CREATED_BY));
-    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.SETTLED_BY));
+    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.MODIFIED_BY));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.PAYMENT_BATCH));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.AMOUNT_CREDITS));
     	assertFalse(puu.isLoaded(wr, WithdrawalRequest_.TRANSACTION));

@@ -14,13 +14,11 @@ import eu.netmobiel.commons.model.PagedResult;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN,
-	uses = { JavaTimeMapper.class, UserMapper.class })
+	uses = { JavaTimeMapper.class, UserMapper.class, AccountMapper.class })
 public interface BalanceMapper {
 
-//	@Mapping(target = "id", ignore = true)
+	// Domain --> API
 	@Mapping(target = "ledger", source = "ledger.name")
-	@Mapping(target = "ncan", source = "account.ncan")
-	@Mapping(target = "accountName", source = "account.name")
 	eu.netmobiel.banker.api.model.Balance map(Balance source);
 	
 	eu.netmobiel.banker.api.model.Page map(PagedResult<Balance> source);

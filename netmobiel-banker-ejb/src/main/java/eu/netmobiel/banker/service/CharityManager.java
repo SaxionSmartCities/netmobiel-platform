@@ -6,12 +6,14 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
+import javax.ejb.EJBAccessException;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
 import eu.netmobiel.banker.filter.DonationFilter;
+import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.CharitySortBy;
@@ -110,13 +112,20 @@ public class CharityManager {
     		// Get the actual data
     		PagedResult<Long> charityIds = charityDao.findCharities(now, location, radius, since, until, inactiveToo, sortBy, sortDir, maxResults, offset);
     		if (charityIds.getData().size() > 0) {
-    			String graph = adminView ? Charity.LIST_ROLES_ENTITY_GRAPH : Charity.LIST_ENTITY_GRAPH;
+    			String graph = adminView ? Charity.ROLES_ENTITY_GRAPH : Charity.SHALLOW_ENTITY_GRAPH;
     			results = charityDao.loadGraphs(charityIds.getData(), graph, Charity::getId);
     		}
     	}
     	return new PagedResult<Charity>(results, maxResults, offset, totalCount);
     }
 
+    protected boolean userHasRoleOnCharity(BankerUser user, Charity ch, CharityUserRoleType role) {
+		return ch.getRoles().stream()
+				.filter(r -> r.getUser().equals(user) && (role == null || role == r.getRole()))
+				.findFirst()
+				.isPresent();
+    }
+    
     /**
      * Retrieves a charity, including the roles. Anyone can read a charity, given the id. The amount of details depends on the caller.
      * @param id the charity id
@@ -124,9 +133,50 @@ public class CharityManager {
      * @throws NotFoundException No matching charity found.
      */
     public Charity getCharity(Long id) throws NotFoundException {
-    	Charity charitydb = charityDao.loadGraph(id, Charity.LIST_ROLES_ENTITY_GRAPH)
+    	Charity charitydb = charityDao.loadGraph(id, Charity.ACCOUNT_ROLES_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such charity: " + id));
+    	if (charitydb.getAccount() == null) {
+    		throw new IllegalStateException("Charity has no account: " + id);
+    	}
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
+    	charityDao.detach(charitydb);
+		boolean admin = sessionContext.isCallerInRole("admin");
+		if (!admin && !userHasRoleOnCharity(me, charitydb, null)) {
+			// Roles and Account are privileged
+			charitydb.getRoles().clear();
+			charitydb.setAccount(null);
+		}
     	return charitydb;
+    }
+
+    public Account getCharityAccount(Long id) throws NotFoundException {
+    	Charity ch = getCharity(id);
+    	if (ch.getAccount() == null) {
+    		throw new EJBAccessException("Read access to charity account not allowed");
+    	}
+    	return ch.getAccount();
+    }
+
+    public void updateCharityAccount(Long charityId, Account acc) throws NotFoundException {
+    	Charity charitydb = charityDao.loadGraph(charityId, Charity.ACCOUNT_ROLES_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such charity: " + charityId));
+    	if (charitydb.getAccount() == null) {
+    		throw new IllegalStateException("Charity has no account: " + charityId);
+    	}
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
+		boolean admin = sessionContext.isCallerInRole("admin");
+		if (!admin && !userHasRoleOnCharity(me, charitydb, CharityUserRoleType.MANAGER)) {
+    		throw new EJBAccessException("Write access to charity account not allowed");
+		}
+    	Account accdb = charitydb.getAccount();
+    	// Set only specific attributes
+    	accdb.setIban(acc.getIban());
+    	accdb.setIbanHolder(acc.getIbanHolder());
+    	accdb.setName(acc.getName());
     }
 
     protected void validateCharityInput(Charity charity, boolean lenient) throws BadRequestException {
@@ -177,7 +227,7 @@ public class CharityManager {
      */
     public void updateCharity(Long id, Charity charity)  throws NotFoundException, BadRequestException {
     	validateCharityInput(charity, true);
-    	Charity charitydb = charityDao.loadGraph(id, Charity.LIST_ENTITY_GRAPH)
+    	Charity charitydb = charityDao.loadGraph(id, Charity.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such charity: " + id));
     	// Only copy those fields that are allowed to be updated.
     	if (charity.getAccount().getName() != null) {
@@ -208,7 +258,7 @@ public class CharityManager {
      * @throws NotFoundException No matching charity found.
      */
     public void stopCampaigning(Long id) throws NotFoundException {
-    	Charity charitydb = charityDao.loadGraph(id, Charity.LIST_ENTITY_GRAPH)
+    	Charity charitydb = charityDao.loadGraph(id, Charity.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such charity: " + id));
     	charitydb.setCampaignEndTime(Instant.now());
     }
@@ -222,7 +272,7 @@ public class CharityManager {
      * @throws BusinessException in case of trouble, especially when the balance of the donor is insufficient for the amount to donate.
      */
     public Long donate(BankerUser user, Long charityId, Donation donation) throws BusinessException {
-    	Charity charitydb = charityDao.loadGraph(charityId, Charity.LIST_ENTITY_GRAPH)
+    	Charity charitydb = charityDao.loadGraph(charityId, Charity.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such charity: " + charityId));
     	if (donation.getAmount() <= 0) {
     		throw new BadRequestException("Not a valid amount: " + donation.getAmount());
@@ -320,7 +370,7 @@ public class CharityManager {
     	List<Long> charityIds = prs.getData().stream()
     			.map(d -> d.charityId)
     			.collect(Collectors.toList());
-		List<Charity> charities = charityDao.loadGraphs(charityIds, Charity.LIST_ENTITY_GRAPH, Charity::getId);
+		List<Charity> charities = charityDao.loadGraphs(charityIds, Charity.SHALLOW_ENTITY_GRAPH, Charity::getId);
     	for (int ix = 0; ix < charities.size(); ix++) {
     		charities.get(ix).setDonorCount(Math.toIntExact(prs.getData().get(ix).donorCount));
 		}
@@ -364,7 +414,7 @@ public class CharityManager {
     	List<Long> userIds = prs.getData().stream()
     			.map(d -> d.donorId)
     			.collect(Collectors.toList());
-		List<BankerUser> users = userDao.loadGraphs(userIds, BankerUser.GRAPH_WITHOUT_BALANCE, BankerUser::getId);
+		List<BankerUser> users = userDao.loadGraphs(userIds, BankerUser.GRAPH_WITHOUT_ACCOUNT, BankerUser::getId);
     	for (int ix = 0; ix < users.size(); ix++) {
     		users.get(ix).setDonatedCredits(Math.toIntExact(prs.getData().get(ix).amount));
 		}

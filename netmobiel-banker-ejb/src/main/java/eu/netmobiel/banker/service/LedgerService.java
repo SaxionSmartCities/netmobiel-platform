@@ -10,6 +10,10 @@ import java.util.Map;
 import java.util.Optional;
 
 import javax.annotation.Resource;
+import javax.annotation.security.DeclareRoles;
+import javax.annotation.security.PermitAll;
+import javax.annotation.security.RolesAllowed;
+import javax.ejb.EJBAccessException;
 import javax.ejb.Schedule;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
@@ -72,6 +76,8 @@ import eu.netmobiel.payment.client.model.PaymentLinkStatus;
 		
 @Stateless
 @Logging
+@DeclareRoles({ "admin" })
+@PermitAll
 public class LedgerService {
 	public static final String ACC_REF_BANKING_RESERVE = "banking-reserve";
 	public static final String ACC_NAME_BANKING_RESERVE = "De NetMobiel Kluis";
@@ -302,11 +308,9 @@ public class LedgerService {
     }
 
     public String reserve(NetMobielUser nmuser, int amount, String description, String reference) throws BalanceInsufficientException {
-    	Optional<BankerUser> user = lookupUser(nmuser);
-    	if (! user.isPresent()) {
-    		throw new BalanceInsufficientException("User has no deposits made yet: " + nmuser.getManagedIdentity());
-    	}
-    	AccountingTransaction tr = reserve(user.get().getPersonalAccount(), amount, OffsetDateTime.now(), description, reference);
+    	BankerUser user = lookupUser(nmuser)
+    			.orElseThrow(() -> new BalanceInsufficientException("User has no deposits made yet: " + nmuser.getManagedIdentity()));
+    	AccountingTransaction tr = reserve(user.getPersonalAccount(), amount, OffsetDateTime.now(), description, reference);
     	return tr.getTransactionRef();
     }
 
@@ -316,17 +320,15 @@ public class LedgerService {
     }
 
     public String charge(NetMobielUser nmbeneficiary, String reservationId, int actualAmount) throws BalanceInsufficientException, OverdrawnException {
-    	Optional<BankerUser> beneficiary = lookupUser(nmbeneficiary);
-    	if (! beneficiary.isPresent()) {
-    		throw new BalanceInsufficientException("Beneficiary has no account, nothing to transfer to: " + nmbeneficiary.getManagedIdentity());
-    	}
+    	BankerUser beneficiary = lookupUser(nmbeneficiary)
+    			.orElseThrow(() -> new BalanceInsufficientException("Beneficiary has no account, nothing to transfer to: " + nmbeneficiary.getManagedIdentity()));
     	AccountingTransaction release = release(reservationId, OffsetDateTime.now());
     	int overspent = actualAmount - release.getAccountingEntries().get(0).getAmount(); 
     	if (overspent > 0) {
     		throw new OverdrawnException("Charge exceeds reservation: " + reservationId + " " + overspent);
     	}
     	AccountingEntry userEntry = lookupUserEntry(release);
-    	AccountingTransaction charge_tr = transfer(userEntry.getAccount(), beneficiary.get().getPersonalAccount(), actualAmount, OffsetDateTime.now(), release.getDescription(), release.getContext());
+    	AccountingTransaction charge_tr = transfer(userEntry.getAccount(), beneficiary.getPersonalAccount(), actualAmount, OffsetDateTime.now(), release.getDescription(), release.getContext());
     	return charge_tr.getTransactionRef();
     }
 
@@ -504,6 +506,19 @@ public class LedgerService {
 		dbUser.setPersonalAccount(acc);
     }
 
+    public AccountingEntry getAccountingEntry(Long entryId) throws NotFoundException {
+    	return accountingEntryDao.find(entryId)
+    			.orElseThrow(() -> new NotFoundException("No such AccountingEntry: " + entryId));
+    }
+
+    /**
+     * Event handler for handling a settlement order.
+     */
+    public void onNewSettlementOrder(final @Observes(during = TransactionPhase.IN_PROGRESS) @Created SettlementOrder order) throws BalanceInsufficientException {
+    	transfer(order.getOriginator(), order.getBeneficiary(), order.getAmount(), 
+    			order.getEntryTime().atOffset(ZoneOffset.UTC), order.getDescription(), order.getContext());
+    }
+    
     /**
      * Event handler for handling new charities. The ledger service must create and assign a personal monetary account.
      * @param charity the new user account. The user record. It must be persistent already.
@@ -532,6 +547,10 @@ public class LedgerService {
     	return ncan;
     }
     
+    /*  =========================================================== */ 
+    /*  ======================== DEPOSIT ========================== */ 
+    /*  =========================================================== */ 
+
     /**
      * Creates a payment link request at the payment provider of netmobiel
      * @param account account to deposit credits to.
@@ -617,20 +636,11 @@ public class LedgerService {
     	}
     }
     
-    public AccountingEntry getAccountingEntry(Long entryId) throws NotFoundException {
-    	return accountingEntryDao.find(entryId)
-    			.orElseThrow(() -> new NotFoundException("No such AccountingEntry: " + entryId));
-    }
+    /*  ============================================================== */ 
+    /*  ========================= WITHDRAWAL ========================= */ 
+    /*  ============================================================== */ 
 
     /**
-     * Event handler for handling a settlement order.
-     */
-    public void onNewSettlementOrder(final @Observes(during = TransactionPhase.IN_PROGRESS) @Created SettlementOrder order) throws BalanceInsufficientException {
-    	transfer(order.getOriginator(), order.getBeneficiary(), order.getAmount(), 
-    			order.getEntryTime().atOffset(ZoneOffset.UTC), order.getDescription(), order.getContext());
-    }
-    
-	/**
 	 * Lists the withdrawal requests as a paged result set according the filter parameters. Supply null as values when
 	 * a parameter is don't care.
 	 * @param accountName the account name, use '%' for any substring and '_' for any character match. Use '\' to 
@@ -664,15 +674,16 @@ public class LedgerService {
     }
 
     /**
-     * Creates a payment link request at the payment provider of netmobiel
+     * Creates a withdrawal request.
      * @param requestedBy user requesting the withdrawal.
      * @param account account to deposit credits to.
      * @param amountCredits the number of credits to deposit. 
      * @param description the description to use on the payment page
      * @return the id of the withdrawal object.
      * @throws BalanceInsufficientException 
+     * @throws NotFoundException 
      */
-    public Long createWithdrawalRequest(BankerUser requestedBy, Account acc, int amountCredits, String description) throws BalanceInsufficientException {
+    public Long createWithdrawalRequest(BankerUser requestedBy, Account acc, int amountCredits, String description) throws BalanceInsufficientException, NotFoundException {
     	OffsetDateTime now = OffsetDateTime.now();
     	WithdrawalRequest wr = new WithdrawalRequest();
 		wr.setCreatedBy(requestedBy);
@@ -703,16 +714,78 @@ public class LedgerService {
     }
 
     /**
+     * Settles a single withdrawal request. This method start a new transaction.
+     * @param withdrawalId the withdrawal request.
+     * @throws BadRequestException 
+     */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    @RolesAllowed({ "admin" })
+    public void settleWithdrawalRequest(Long withdrawalId) throws NotFoundException, BadRequestException {
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
+    	WithdrawalRequest wrdb = withdrawalRequestDao.find(withdrawalId)
+    			.orElseThrow(() -> new IllegalStateException("No such withdrawal request: " + withdrawalId));
+		if (wrdb.getStatus().isFinal()) {
+			throw new BadRequestException(String.format("Withdrawal request has already reached final state: %d %s", withdrawalId, wrdb.getStatus()));
+		}
+    	OffsetDateTime now = OffsetDateTime.now();
+		AccountingTransaction tr_r = release(wrdb.getTransaction(), now);
+    	AccountingEntry userEntry = lookupUserEntry(tr_r);
+    	try {
+    		AccountingTransaction tr_w = withdraw(userEntry.getAccount(), userEntry.getAmount(), now, tr_r.getDescription(), tr_r.getContext());
+    		wrdb.setTransaction(tr_w);
+    		wrdb.setStatus(PaymentStatus.COMPLETED);
+    		wrdb.setModificationTime(now.toInstant());
+    		wrdb.setModifiedBy(me);
+    	} catch (BalanceInsufficientException e) {
+    		throw new IllegalStateException("Withdraw after release cannot cause insufficient funds", e);
+    	}
+    }
+
+    /**
+     * Cancels a single withdrawal request. The withdrawal can only be cancelled by the original requestor or by an admin.
+     * @param withdrawalId the withdrawal request to cancel
+     * @throws BadRequestException 
+     */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public void cancelWithdrawalRequest(Long withdrawalId)  throws NotFoundException, BadRequestException {
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
+    	WithdrawalRequest wrdb = withdrawalRequestDao.find(withdrawalId)
+    			.orElseThrow(() -> new IllegalStateException("No such withdrawal request: " + withdrawalId));
+		boolean admin = sessionContext.isCallerInRole("admin");
+		if (!admin && ! me.equals(wrdb.getCreatedBy())) {
+			throw new EJBAccessException("You are not allowed to cancel this withdrawal request: " + withdrawalId);
+		}
+		if (wrdb.getStatus().isFinal()) {
+			throw new BadRequestException(String.format("Withdrawal request has already reached final state: %d %s", withdrawalId, wrdb.getStatus()));
+		}
+    	OffsetDateTime now = OffsetDateTime.now();
+		AccountingTransaction tr_r = release(wrdb.getTransaction(), now);
+		wrdb.setTransaction(tr_r);
+		wrdb.setStatus(PaymentStatus.CANCELLED);
+		wrdb.setModificationTime(now.toInstant());
+		wrdb.setModifiedBy(me);
+    }
+    
+    /*  ============================================================= */ 
+    /*  ======================= PAYMENT BATCH ======================= */ 
+    /*  ============================================================= */ 
+
+    /**
 	 * Lists the payment batches as a paged result set according the filter parameters. Supply null as values when
 	 * a parameter is don't care.
 	 * @param since the first date to take into account for creation time.
 	 * @param until the last date (exclusive) to take into account for creation time.
-	 * @param settledToo if true then list also settled payment batches, otherwise the active (unprocessed) only. 
+	 * @param status the status to filter on. If omitted then list any. 
 	 * @param maxResults The maximum number of results per page. Only if set to 0 the total number of results is returned. 
 	 * @param offset the zero-based offset in the result set.
 	 * @return A paged result with 0 or more results. The results are ordered by creation time descending and then by id descending.
 	 */
-    public PagedResult<PaymentBatch> listPaymentBatches(Instant since, Instant until, Boolean settledToo, Integer maxResults, Integer offset) 
+    @RolesAllowed({ "admin" })
+    public PagedResult<PaymentBatch> listPaymentBatches(Instant since, Instant until, PaymentStatus status, Integer maxResults, Integer offset) 
     		throws BadRequestException {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
@@ -723,11 +796,11 @@ public class LedgerService {
         if (since != null && until != null && until.isBefore(since)) {
         	throw new BadRequestException("Until must be after since");
         }
-    	PagedResult<Long> prs = paymentBatchDao.list(since, until, settledToo, 0, offset);
+    	PagedResult<Long> prs = paymentBatchDao.list(since, until, status, 0, offset);
     	List<PaymentBatch> results = null;
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
-    		PagedResult<Long> ids = paymentBatchDao.list(since, until, settledToo, maxResults, offset);
+    		PagedResult<Long> ids = paymentBatchDao.list(since, until, status, maxResults, offset);
     		results = paymentBatchDao.loadGraphs(ids.getData(), PaymentBatch.LIST_GRAPH, PaymentBatch::getId);
     		Map<Long, Integer> counts = paymentBatchDao.fetchCount(ids.getData());
     		results.forEach(pb -> pb.setCount(counts.get(pb.getId())));
@@ -741,15 +814,22 @@ public class LedgerService {
      * @return The ID of the new payment batch.
      * @throws BusinessException a NotFoundException is thrown when there are no pending withdrawal requests.
      */
-    public Long createPaymentBatch(BankerUser requester) throws BusinessException {
+    @RolesAllowed({ "admin" })
+    public Long createPaymentBatch() throws BusinessException {
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
     	// Are there any pending withdrawal requests
     	List<WithdrawalRequest> wdrs = withdrawalRequestDao.findPendingRequests();
     	if (wdrs.isEmpty()) {
     		throw new NotFoundException("No active withdrawal requests");
     	}
     	PaymentBatch pb = new PaymentBatch();
-    	pb.setCreatedBy(requester);
+    	pb.setCreatedBy(me);
     	pb.setCreationTime(Instant.now());
+    	pb.setModifiedBy(me);
+    	pb.setModificationTime(Instant.now());
+		pb.setStatus(PaymentStatus.ACTIVE);
     	wdrs.forEach(wr -> pb.addWithdrawalRequest(wr));
     	paymentBatchDao.save(pb);
     	// Assure PostPersist is called.
@@ -764,65 +844,105 @@ public class LedgerService {
      * @return The object.
      * @throws NotFoundException If the object could not be found.
      */
+    @RolesAllowed({ "admin" })
     public PaymentBatch getPaymentBatch(Long id) throws NotFoundException {
+//		boolean adminView = sessionContext.isCallerInRole("admin");
+//		if (!adminView) {
+//			throw new EJBAccessException("You are not allowed to view a payment batch");
+//		}
     	return paymentBatchDao.fetchGraph(id, PaymentBatch.WITHDRAWALS_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such payment batch: " + id));
     }
 
     /**
-     * Settles a single withdrawal request. This method start a new transaction.
-     * @param settledBy user settling the request.
-     * @param wr the withdrawal request.
-     */
-    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-    public void settleWithdrawalRequest(BankerUser settledBy, WithdrawalRequest wr) {
-    	WithdrawalRequest wrdb = withdrawalRequestDao.find(wr.getId())
-    			.orElseThrow(() -> new IllegalStateException("No such withdrawal request: " + wr.getId()));
-    	OffsetDateTime now = OffsetDateTime.now();
-		AccountingTransaction tr_r = release(wrdb.getTransaction(), now);
-    	AccountingEntry userEntry = lookupUserEntry(tr_r);
-    	try {
-    		AccountingTransaction tr_w = withdraw(userEntry.getAccount(), userEntry.getAmount(), now, tr_r.getDescription(), tr_r.getContext());
-    		wrdb.setTransaction(tr_w);
-    		wrdb.setStatus(PaymentStatus.COMPLETED);
-    		wrdb.setSettlementTime(now.toInstant());
-    		wrdb.setSettledBy(settledBy);
-    	} catch (BalanceInsufficientException e) {
-    		throw new IllegalStateException("Withdraw after release cannot cause insufficient funds", e);
-    	}
-    }
-    
-    /**
      * Settles a specific payment batch: For each withdrawal request in the batch transfer the credits from reserved to not reserved and then 
      * withdraw the credits. Each withdrawal request is settled in its own database transaction.
      * @param id the database id of the payment batch.
      * @throws NotFoundException If the object could not be found.
+     * @throws BadRequestException 
      * @throws PaymentException 
      */
-    public void settlePaymentBatch(BankerUser settler, Long paymentBatchId) throws NotFoundException, UpdateException {
-    	PaymentBatch pb = paymentBatchDao.find(paymentBatchId)
+    @RolesAllowed({ "admin" })
+    public void settlePaymentBatch(Long paymentBatchId) throws NotFoundException, UpdateException, BadRequestException {
+//		boolean adminView = sessionContext.isCallerInRole("admin");
+//		if (!adminView) {
+//			throw new EJBAccessException("You are not allowed to view a payment batch");
+//		}
+    	PaymentBatch pb = paymentBatchDao.loadGraph(paymentBatchId, PaymentBatch.WITHDRAWALS_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such payment batch: " + paymentBatchId));
-    	pb.setSettledBy(settler);
+		if (pb.getStatus().isFinal()) {
+			throw new BadRequestException(String.format("Payment Batch has already reached final state: %d %s", paymentBatchId, pb.getStatus()));
+		}
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
+    	pb.setModifiedBy(me);
     	// Process the withdrawal requests one by one. 
     	// A failure of one should not affect others. Use a new transaction for each withdrawal request.
     	// Flag the batch as completed if there are no failures.
     	List<Exception> errors = new ArrayList<>();
     	for (WithdrawalRequest wr : pb.getWithdrawalRequests()) {
-    		if (wr.getStatus() == PaymentStatus.COMPLETED || wr.getStatus() == PaymentStatus.EXPIRED) {
+    		if (wr.getStatus().isFinal()) {
     			continue;
     		}
     		try {
-				sessionContext.getBusinessObject(this.getClass()).settleWithdrawalRequest(settler, wr);
+				sessionContext.getBusinessObject(this.getClass()).settleWithdrawalRequest(wr.getId());
 			} catch (Exception e) {
 				errors.add(e);
 				log.error("Error settling withdrawal request " + wr.getId(), e);
 			}
 		}
+		pb.setModificationTime(Instant.now());
     	if (errors.isEmpty()) {
     		// The batch has been processed successfully 
-    		pb.setSettlementTime(Instant.now());
+    		pb.setStatus(PaymentStatus.COMPLETED);
     	} else {
-    		throw new UpdateException(String.format("Failure to process payment batch (%d errors)", errors.size()), errors.get(0));
+    		throw new UpdateException(String.format("Failure to settle payment batch (%d errors)", errors.size()), errors.get(0));
+    	}
+    }
+
+    /**
+     * Cancels specific payment batch: Cancel each active withdrawal request. 
+     * @param id the database id of the payment batch.
+     * @throws NotFoundException If the object could not be found.
+     * @throws BadRequestException 
+     */
+    @RolesAllowed({ "admin" })
+    public void cancelPaymentBatch(Long paymentBatchId) throws NotFoundException, UpdateException, BadRequestException {
+//		boolean adminView = sessionContext.isCallerInRole("admin");
+//		if (!adminView) {
+//			throw new EJBAccessException("You are not allowed to view a payment batch");
+//		}
+    	PaymentBatch pb = paymentBatchDao.loadGraph(paymentBatchId, PaymentBatch.WITHDRAWALS_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such payment batch: " + paymentBatchId));
+		if (pb.getStatus().isFinal()) {
+			throw new BadRequestException(String.format("Payment Batch has already reached final state: %d %s", paymentBatchId, pb.getStatus()));
+		}
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
+    	pb.setModifiedBy(me);
+    	// Process the withdrawal requests one by one. 
+    	// A failure of one should not affect others. Use a new transaction for each withdrawal request.
+    	// Flag the batch as completed if there are no failures.
+    	List<Exception> errors = new ArrayList<>();
+    	for (WithdrawalRequest wr : pb.getWithdrawalRequests()) {
+    		if (wr.getStatus().isFinal()) {
+    			continue;
+    		}
+    		try {
+				sessionContext.getBusinessObject(this.getClass()).cancelWithdrawalRequest(wr.getId());
+			} catch (Exception e) {
+				errors.add(e);
+				log.error("Error cancellingwithdrawal request " + wr.getId(), e);
+			}
+		}
+		pb.setModificationTime(Instant.now());
+    	if (errors.isEmpty()) {
+    		// The batch has been processed successfully 
+    		pb.setStatus(PaymentStatus.CANCELLED);
+    	} else {
+    		throw new UpdateException(String.format("Failure to cancel payment batch (%d errors)", errors.size()), errors.get(0));
     	}
     }
 }

@@ -15,15 +15,15 @@ import eu.netmobiel.banker.model.BankerUser;
  * @author Jaap Reitsma
  *
  */
-@Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
+@Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN,
+	uses = { AccountMapper.class })
 @UserMapperQualifier
 public interface UserMapper {
 
-	@Mapping(target = "credits", source = "personalAccount.actualBalance.endAmount")
 	@UserCreditDetails
 	eu.netmobiel.banker.api.model.User map(BankerUser source);
 
-	@Mapping(target = "credits", ignore = true)
+	@Mapping(target = "personalAccount", ignore = true)
 	@UserOnlyDetails
 	eu.netmobiel.banker.api.model.User mapUserOnly(BankerUser source);
 }

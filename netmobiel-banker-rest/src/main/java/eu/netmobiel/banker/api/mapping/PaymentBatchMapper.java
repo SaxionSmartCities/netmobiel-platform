@@ -26,13 +26,13 @@ public interface PaymentBatchMapper {
 
 	// Domain --> API
 	@Mapping(target = "createdBy", source = "createdBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
-	@Mapping(target = "settledBy", source = "settledBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
+	@Mapping(target = "modifiedBy", source = "modifiedBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
 	@Mapping(target = "withdrawalRequests", ignore = true)
 	@PaymentBatchShallow
 	eu.netmobiel.banker.api.model.PaymentBatch mapShallow(PaymentBatch source);
 
 	@Mapping(target = "createdBy", source = "createdBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
-	@Mapping(target = "settledBy", source = "settledBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
+	@Mapping(target = "modifiedBy", source = "modifiedBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
 	@Mapping(target = "withdrawalRequests", source = "withdrawalRequests", qualifiedBy = { WithdrawalRequestMapperQualifier.class, WithdrawalRequestShallow.class })
 	@PaymentBatchWithdrawals
 	eu.netmobiel.banker.api.model.PaymentBatch mapWithWithdrawals(PaymentBatch source);

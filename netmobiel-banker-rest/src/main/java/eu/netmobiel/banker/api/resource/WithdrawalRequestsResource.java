@@ -3,13 +3,10 @@ package eu.netmobiel.banker.api.resource;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
-import javax.enterprise.context.RequestScoped;
+import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
-import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import eu.netmobiel.banker.api.WithdrawalRequestsApi;
@@ -19,8 +16,9 @@ import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.util.UrnHelper;
 
-@RequestScoped
+@ApplicationScoped
 public class WithdrawalRequestsResource implements WithdrawalRequestsApi {
 
 	@Inject
@@ -29,16 +27,9 @@ public class WithdrawalRequestsResource implements WithdrawalRequestsApi {
 	@Inject
 	private PageMapper pageMapper;
 
-	@Context
-	private HttpServletRequest request;
-
 	@Override
 	public Response listWithdrawalRequests(String accountName, OffsetDateTime since, OffsetDateTime until,
 			String status, Integer maxResults, Integer offset) {
-		boolean adminView = request.isUserInRole("admin");
-		if (!adminView) {
-			throw new ForbiddenException("You are not allowed to list payment batches");
-		}
 		Instant si = since != null ? since.toInstant() : null;
 		Instant ui = until != null ? until.toInstant() : null;
 		Response rsp = null;
@@ -52,6 +43,28 @@ public class WithdrawalRequestsResource implements WithdrawalRequestsApi {
 			throw new WebApplicationException(e);
 		}
 		return rsp;
+	}
+
+	@Override
+	public Response settleWithdrawalRequest(String withdrawalRequestId) {
+		try {
+	    	Long wrid = UrnHelper.getId(WithdrawalRequest.URN_PREFIX, withdrawalRequestId);
+			ledgerService.settleWithdrawalRequest(wrid);
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return Response.noContent().build();
+	}
+
+	@Override
+	public Response cancelWithdrawalRequest(String withdrawalRequestId, String reason) {
+		try {
+	    	Long wrid = UrnHelper.getId(WithdrawalRequest.URN_PREFIX, withdrawalRequestId);
+			ledgerService.cancelWithdrawalRequest(wrid);
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return Response.noContent().build();
 	}
 
 }

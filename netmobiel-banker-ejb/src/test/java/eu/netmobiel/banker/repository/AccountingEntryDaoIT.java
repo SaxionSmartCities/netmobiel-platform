@@ -22,7 +22,6 @@ import org.slf4j.Logger;
 import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountingEntry;
-import eu.netmobiel.banker.model.AccountingEntryType;
 import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.TransactionType;
@@ -116,11 +115,15 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
     	assertEquals(2, actual.getCount());
     	assertEquals(2, actual.getData().size());
     	assertNull(actual.getTotalCount());
+    	
     	List<AccountingEntry> entries = accountingEntryDao.loadGraphs(actual.getData(), null, AccountingEntry::getId);
     	// sorting by transaction time desc, entry type asc
-    	assertEquals(AccountingEntryType.CREDIT, entries.get(0).getEntryType());
-    	assertEquals(AccountingEntryType.DEBIT, entries.get(1).getEntryType());
+    	assertEquals(2, actual.getData().size());
     	dump("listEntries 2", entries);
+    	// Transaction time is same or most recent first
+    	assertFalse(entries.get(0).getTransaction().getTransactionTime().isBefore(entries.get(1).getTransaction().getTransactionTime()));
+    	assertTrue(entries.get(0).getTransaction().getTransactionTime().equals(entries.get(1).getTransaction().getTransactionTime()) || 
+    			entries.get(0).getId().longValue() > entries.get(1).getId().longValue());
 
     	// TEST Account reference
     	accref = account1.getNcan();

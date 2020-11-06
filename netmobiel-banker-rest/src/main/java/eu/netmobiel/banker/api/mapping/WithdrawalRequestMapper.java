@@ -18,21 +18,19 @@ import eu.netmobiel.banker.model.WithdrawalRequest;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN,
-uses = { JavaTimeMapper.class, UserMapper.class })
+uses = { JavaTimeMapper.class, UserMapper.class, AccountMapper.class })
 @WithdrawalRequestMapperQualifier
 public interface WithdrawalRequestMapper {
 
 	// Domain --> API
 	@Mapping(target = "createdBy", source = "createdBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
-	@Mapping(target = "settledBy", source = "settledBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
-	@Mapping(target = "accountName", source = "account.name")
+	@Mapping(target = "modifiedBy", source = "modifiedBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
 	@Mapping(target = "paymentBatchRef", ignore = true)
 	@WithdrawalRequestShallow
 	eu.netmobiel.banker.api.model.WithdrawalRequest mapShallow(WithdrawalRequest source);
 
 	@Mapping(target = "createdBy", source = "createdBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
-	@Mapping(target = "settledBy", source = "settledBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
-	@Mapping(target = "accountName", source = "account.name")
+	@Mapping(target = "modifiedBy", source = "modifiedBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
 	@Mapping(target = "paymentBatchRef", source = "paymentBatch.reference")
 	@WithdrawalRequestPaymentBatch
 	eu.netmobiel.banker.api.model.WithdrawalRequest mapWithPaymentBatch(WithdrawalRequest source);

@@ -4,21 +4,25 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.function.Predicate;
 
+import javax.ejb.EJBAccessException;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
+import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.banker.api.UsersApi;
+import eu.netmobiel.banker.api.mapping.AccountMapper;
 import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
 import eu.netmobiel.banker.api.mapping.PageMapper;
 import eu.netmobiel.banker.api.mapping.UserMapper;
 import eu.netmobiel.banker.api.model.PaymentLink;
 import eu.netmobiel.banker.filter.DonationFilter;
+import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Donation;
@@ -41,6 +45,9 @@ public class UsersResource implements UsersApi {
 
 	@Inject
 	private AccountingEntryMapper accountingEntryMapper;
+
+	@Inject
+	private AccountMapper accountMapper;
 
 	@Inject
 	private UserMapper userMapper;
@@ -93,7 +100,7 @@ public class UsersResource implements UsersApi {
 		try {
 			BankerUser user = resolveUserReference(userId, true);
 			user = userManager.getUserWithBalance(user.getId());
-			rsp =Response.ok(userMapper.map(user)).build();
+			rsp = Response.ok(userMapper.map(user)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -182,11 +189,43 @@ public class UsersResource implements UsersApi {
 		try {
 			BankerUser user = resolveUserReference(userId, true);
 			user = userManager.getUserWithBalance(user.getId());
+	    	String caller = request.getUserPrincipal().getName();
+			boolean admin = request.isUserInRole("admin");
+			if (!admin && ! caller.equals(user.getManagedIdentity())) {
+				throw new ForbiddenException("You are not allowed to create a withdrawal request for this user: " + userId);
+			}
 			Long id = ledgerService.createWithdrawalRequest(user, user.getPersonalAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
 			String wrid = UrnHelper.createUrn(WithdrawalRequest.URN_PREFIX, id);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(wrid)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response getPersonalAccount(String userId) {
+		Response rsp = null;
+		try {
+			BankerUser user = resolveUserReference(userId, true);
+        	Account acc = userManager.getPersonalAccount(user.getId());
+			rsp = Response.ok(accountMapper.map(acc)).build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response updatePersonalAccount(String userId, eu.netmobiel.banker.api.model.Account acc) {
+		Response rsp = null;
+		try {
+			BankerUser user = resolveUserReference(userId, true);
+	    	Account accdom = accountMapper.map(acc);
+        	userManager.updatePersonalUserAccount(user.getId(), accdom);
+    		rsp = Response.noContent().build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
 		}
 		return rsp;
 	}
