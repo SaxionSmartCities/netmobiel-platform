@@ -1520,7 +1520,6 @@ components:
       description: An single accounting entry or booking statement.
       required:
       - accountingTime
-      - account
       - amount
       - id
       - transactionTime
@@ -1570,9 +1569,9 @@ components:
             the object.
           type: string
         account:
+          $ref: '#/components/schemas/Account'
           description: The account. Only present when statements for multiple accounts
             are present.
-          type: string
       example:
         account:
           ncan: PLA-51
