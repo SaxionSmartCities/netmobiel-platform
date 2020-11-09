@@ -27,8 +27,6 @@ import javax.ws.rs.core.Application;
 
 import org.slf4j.Logger;
 
-import eu.netmobiel.banker.api.resource.AccountingEntriesResource;
-import eu.netmobiel.banker.api.resource.BalancesResource;
 import eu.netmobiel.banker.api.resource.CharitiesResource;
 import eu.netmobiel.banker.api.resource.DepositEventsResource;
 import eu.netmobiel.banker.api.resource.PaymentBatchesResource;
@@ -79,8 +77,6 @@ public class BankerApplication extends Application {
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new HashSet<>();
-        resources.add(AccountingEntriesResource.class);
-        resources.add(BalancesResource.class);
         resources.add(CharitiesResource.class);
         resources.add(DepositEventsResource.class);
         resources.add(PaymentBatchesResource.class);

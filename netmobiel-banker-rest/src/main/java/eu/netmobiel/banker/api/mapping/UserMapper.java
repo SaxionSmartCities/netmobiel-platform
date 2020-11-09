@@ -4,6 +4,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import eu.netmobiel.banker.api.mapping.annotation.AccountAll;
+import eu.netmobiel.banker.api.mapping.annotation.AccountMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.UserCreditDetails;
 import eu.netmobiel.banker.api.mapping.annotation.UserMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.UserOnlyDetails;
@@ -21,6 +23,7 @@ import eu.netmobiel.banker.model.BankerUser;
 public interface UserMapper {
 
 	@UserCreditDetails
+	@Mapping(target = "personalAccount", source = "personalAccount", qualifiedBy = { AccountMapperQualifier.class, AccountAll.class })
 	eu.netmobiel.banker.api.model.User map(BankerUser source);
 
 	@Mapping(target = "personalAccount", ignore = true)

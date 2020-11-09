@@ -23,7 +23,6 @@ import eu.netmobiel.planner.model.Trip;
 public interface TripMapper {
 
 	// Domain trip --> Api Trip in full detail
-	@Mapping(target = "travellerRef", source = "traveller.reference")
 	@Mapping(target = "itinerary", source = "itinerary", qualifiedBy = { ItineraryMapperQualifier.class })
 	@TripDetails
 	eu.netmobiel.planner.api.model.Trip mapInDetail(Trip source );

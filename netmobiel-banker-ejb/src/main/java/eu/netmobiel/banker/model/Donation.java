@@ -17,11 +17,13 @@ import javax.persistence.NamedEntityGraphs;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.model.ReferableObject;
+import eu.netmobiel.commons.util.UrnHelper;
 
 /**
  * A Donation is a gift from a user to a charity. The donation acts as an order for the ledger service.
@@ -108,6 +110,12 @@ public class Donation extends ReferableObject {
     @Column(name = "anonymous", nullable = false)
     private boolean anonymous;
 
+//	@Transient
+//    private String charityRef;
+    
+	@Transient
+    private String donorRef;
+    
     public Donation() {
     }
 
@@ -133,7 +141,17 @@ public class Donation extends ReferableObject {
 	public String getUrnPrefix() {
 		return URN_PREFIX;
 	}
-    
+
+//	@Transient
+	public String getCharityRef() {
+		return UrnHelper.createUrn(Charity.URN_PREFIX, getCharity().getId());
+	}
+
+	@Transient
+	public String getDonorRef() {
+		return UrnHelper.createUrn(BankerUser.URN_PREFIX, getUser().getId());
+	}
+
 	public String getDescription() {
 		return description;
 	}

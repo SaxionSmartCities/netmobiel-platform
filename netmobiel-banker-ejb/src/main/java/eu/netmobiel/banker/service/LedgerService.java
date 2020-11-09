@@ -682,8 +682,9 @@ public class LedgerService {
      * @return the id of the withdrawal object.
      * @throws BalanceInsufficientException 
      * @throws NotFoundException 
+     * @throws BadRequestException 
      */
-    public Long createWithdrawalRequest(BankerUser requestedBy, Account acc, int amountCredits, String description) throws BalanceInsufficientException, NotFoundException {
+    public Long createWithdrawalRequest(BankerUser requestedBy, Account acc, int amountCredits, String description) throws BalanceInsufficientException, NotFoundException, BadRequestException {
     	OffsetDateTime now = OffsetDateTime.now();
     	WithdrawalRequest wr = new WithdrawalRequest();
 		wr.setCreatedBy(requestedBy);
@@ -693,11 +694,19 @@ public class LedgerService {
     	wr.setDescription(description);
     	wr.setCreationTime(now.toInstant());
     	wr.setStatus(PaymentStatus.REQUESTED);
+    	if (wr.getAccount().getIban() == null || wr.getAccount().getIban().isBlank()) {
+    		throw new BadRequestException("Account has no IBAN: " + wr.getAccount().getName());
+    	}
+    	if (wr.getAccount().getIbanHolder() == null || wr.getAccount().getIbanHolder().isBlank()) {
+    		throw new BadRequestException("Account has no IBAN Holder: " + wr.getAccount().getName());
+    	}
+    	wr.setIban(wr.getAccount().getIban());
+    	wr.setIbanHolder(wr.getAccount().getIbanHolder());
     	withdrawalRequestDao.save(wr);
     	// Assure PostPersist is called.
     	withdrawalRequestDao.flush();
     	// Save the request first, otherwise we cannot insert the reference in the transaction. 
-    	AccountingTransaction tr = reserve(acc, amountCredits, now, description, wr.getReference());
+    	AccountingTransaction tr = reserve(acc, amountCredits, now, description, wr.getUrn());
     	wr.setTransaction(tr);
     	return wr.getId();
     }

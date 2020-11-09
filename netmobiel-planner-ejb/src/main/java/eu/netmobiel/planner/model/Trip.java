@@ -39,6 +39,7 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 /**
@@ -158,6 +159,13 @@ public class Trip implements Serializable {
 	@JoinColumn(name = "traveller", nullable = false, foreignKey = @ForeignKey(name = "trip_traveller_fk"))
     private PlannerUser traveller;
 
+    /**
+     * A URN reference to the traveller. 
+     */
+    @Transient
+    private String travellerRef;
+    
+
     @Column(name = "state", length = 3)
     private TripState state;
 
@@ -218,13 +226,19 @@ public class Trip implements Serializable {
 		return tripRef;
 	}
 
-
 	public PlannerUser getTraveller() {
 		return traveller;
 	}
 
 	public void setTraveller(PlannerUser traveller) {
 		this.traveller = traveller;
+	}
+
+	public String getTravellerRef() {
+		if (travellerRef == null) {
+			travellerRef = UrnHelper.createUrn(PlannerUser.URN_PREFIX, getTraveller().getId());
+		}
+		return travellerRef;
 	}
 
 	public TripState getState() {

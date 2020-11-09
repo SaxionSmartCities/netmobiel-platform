@@ -18,6 +18,7 @@
 <!--          <property name="javax.persistence.schema-generation.scripts.action" value="create" /> -->
 <!--          <property name="javax.persistence.schema-generation.scripts.create-target" value="../standalone/tmp/banker-create.sql" /> -->
          <!-- Properties for Hibernate -->
+<!-- 		<property name="hibernate.jpa.compliance.proxy" value="true"/> -->
 		<property name="hibernate.jdbc.batch_size" value="100"/>
 		<property name="hibernate.order_inserts" value="true"/>
 		<property name="hibernate.order_updates" value="true"/>

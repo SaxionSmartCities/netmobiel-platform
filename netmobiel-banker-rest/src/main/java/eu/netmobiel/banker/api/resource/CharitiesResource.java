@@ -17,7 +17,6 @@ import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.banker.api.CharitiesApi;
 import eu.netmobiel.banker.api.mapping.AccountMapper;
-import eu.netmobiel.banker.api.mapping.AccountingEntryMapper;
 import eu.netmobiel.banker.api.mapping.CharityMapper;
 import eu.netmobiel.banker.api.mapping.DonationMapper;
 import eu.netmobiel.banker.api.mapping.PageMapper;
@@ -50,9 +49,6 @@ public class CharitiesResource implements CharitiesApi {
 
 	@Inject
     private BankerUserManager userManager;
-
-	@Inject
-	private AccountingEntryMapper accountingEntryMapper;
 
 	@Inject
 	private AccountMapper accountMapper;
@@ -176,7 +172,7 @@ public class CharitiesResource implements CharitiesApi {
 				throw new EJBAccessException("You do not have access to the statements of this charity: " + charityId);
 			}
 			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(charity.getAccount().getNcan(), si, ui, maxResults, offset); 
-			rsp = Response.ok(accountingEntryMapper.map(result)).build();
+			rsp = Response.ok(pageMapper.mapAccountingEntriesShallow(result)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -211,7 +207,7 @@ public class CharitiesResource implements CharitiesApi {
 		try {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
         	Long did = UrnHelper.getId(Donation.URN_PREFIX, donationId);
-			Donation donation = charityManager.getDonation(cid, did);
+			Donation donation = charityManager.getDonation(cid, did, null);
 			rsp = Response.ok(donationMapper.mapPlain(donation)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
@@ -297,7 +293,7 @@ public class CharitiesResource implements CharitiesApi {
 		try {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
         	Account acc = charityManager.getCharityAccount(cid);
-			rsp = Response.ok(accountMapper.map(acc)).build();
+			rsp = Response.ok(accountMapper.mapAll(acc)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

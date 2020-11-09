@@ -4,7 +4,6 @@ import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.function.Predicate;
 
-import javax.ejb.EJBAccessException;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
@@ -116,7 +115,7 @@ public class UsersResource implements UsersApi {
 			BankerUser user = resolveUserReference(userId, true);
 			user = userManager.getUserWithBalance(user.getId());
 			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getNcan(), si, ui, maxResults, offset); 
-			rsp = Response.ok(accountingEntryMapper.map(result)).build();
+			rsp = Response.ok(pageMapper.mapAccountingEntriesShallow(result)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -134,7 +133,7 @@ public class UsersResource implements UsersApi {
 			if (!entry.getAccount().equals(user.getPersonalAccount()) && !isAdmin.test(request)) {
 				throw new SecurityException("Access to resource not allowed by this user");
 			}
-			rsp = Response.ok(accountingEntryMapper.map(entry)).build();
+			rsp = Response.ok(accountingEntryMapper.mapWithAccount(entry)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -209,7 +208,7 @@ public class UsersResource implements UsersApi {
 		try {
 			BankerUser user = resolveUserReference(userId, true);
         	Account acc = userManager.getPersonalAccount(user.getId());
-			rsp = Response.ok(accountMapper.map(acc)).build();
+			rsp = Response.ok(accountMapper.mapAll(acc)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

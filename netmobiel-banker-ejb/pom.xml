@@ -152,6 +152,10 @@
             <artifactId>keycloak-adapter-spi</artifactId>
 		    <scope>provided</scope>
         </dependency>
+		<dependency>
+		    <groupId>nl.garvelink.oss</groupId>
+		    <artifactId>iban</artifactId>
+		</dependency>
 
 		<!-- TEST Dependencies -->
         <dependency>

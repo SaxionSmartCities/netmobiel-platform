@@ -32,7 +32,7 @@ public class SettlementOrder {
 			 donation.getAmount(), 
 			 donation.getDescription(), 
 			 donation.getDonationTime(), 
-			 donation.getReference()
+			 donation.getUrn()
 		);
 	}
 	

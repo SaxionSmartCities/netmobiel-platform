@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Iterator;
 import java.util.List;
+import java.util.Objects;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.AttributeOverride;
@@ -116,7 +117,6 @@ public class Charity extends ReferableObject {
 	public static final String SHALLOW_ENTITY_GRAPH = "charity-entity-graph";
 	public static final String ROLES_ENTITY_GRAPH = "charity-roles-entity-graph";
 	public static final String ACCOUNT_ROLES_ENTITY_GRAPH = "charity-account-roles-entity-graph";
-
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "charity_sg")
@@ -337,8 +337,8 @@ public class Charity extends ReferableObject {
          if (!(o instanceof Charity)) {
             return false;
         }
-         Charity other = (Charity) o;
-        return id != null && id.equals(other.getId());
+        Charity other = (Charity) o;
+        return Objects.equals(getId(), other.getId());
     }
 
 	/**

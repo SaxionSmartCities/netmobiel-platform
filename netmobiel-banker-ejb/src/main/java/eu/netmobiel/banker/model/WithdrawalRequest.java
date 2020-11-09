@@ -3,6 +3,7 @@ package eu.netmobiel.banker.model;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
+import java.util.Objects;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
@@ -17,17 +18,19 @@ import javax.persistence.ManyToOne;
 import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
-import javax.persistence.NamedSubgraph;
 import javax.persistence.PostPersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
+import eu.netmobiel.banker.validator.IBANBankAccount;
 import eu.netmobiel.commons.model.ReferableObject;
+import eu.netmobiel.commons.util.UrnHelper;
 
 /**
  * Class to capture a request to withdraw credits from the NetMobiel banker system. The WithDrawalRequest is ultimately connected to 
@@ -42,16 +45,7 @@ import eu.netmobiel.commons.model.ReferableObject;
 			attributeNodes = { 
 					@NamedAttributeNode(value = "account"),		
 					@NamedAttributeNode(value = "createdBy"),
-					@NamedAttributeNode(value = "paymentBatch", subgraph = "subgraph.paymentBatch"),		
 					@NamedAttributeNode(value = "modifiedBy")
-			},
-			subgraphs = {
-					@NamedSubgraph(
-							name = "subgraph.paymentBatch",
-							attributeNodes = {
-									@NamedAttributeNode(value = "id")
-							}
-					)
 			}
 	)
 })
@@ -111,6 +105,12 @@ public class WithdrawalRequest extends ReferableObject {
 	@JoinColumn(name = "payment_batch", nullable = true, foreignKey = @ForeignKey(name = "withdrawal_payment_batch_fk"))
     private PaymentBatch paymentBatch;
 
+    /**
+     * Reference to the payment batch.
+     */
+    @Transient
+    private String paymentBatchRef;
+    
 	/**
      * The request is related to an account
      */
@@ -168,7 +168,22 @@ public class WithdrawalRequest extends ReferableObject {
     @JoinColumn(name = "transaction", nullable = true, foreignKey = @ForeignKey(name = "withdrawal_transaction_fk"))
     private AccountingTransaction transaction = null;
 
-	
+	/**
+	 * The IBAN number. This is copied at the time of the creation of the withdrawal request to prevent change of bank 
+	 * account during processing of the request. 
+	 */
+    @IBANBankAccount
+	@Size(max = 48)
+    @Column(name = "iban")
+    private String iban;
+
+	/**
+	 * The holder of the IBAN. A copy, see IBAN comment.
+	 */
+	@Size(max = 96)
+    @Column(name = "iban_holder")
+    private String ibanHolder;
+
 	public WithdrawalRequest() {
     }
 
@@ -227,6 +242,14 @@ public class WithdrawalRequest extends ReferableObject {
 
 	public void setPaymentBatch(PaymentBatch paymentBatch) {
 		this.paymentBatch = paymentBatch;
+		this.paymentBatchRef = null;
+	}
+
+	public String getPaymentBatchRef() {
+		if (paymentBatch != null && paymentBatchRef == null) {
+			paymentBatchRef = UrnHelper.createUrn(PaymentBatch.URN_PREFIX, paymentBatch.getId());
+		}
+		return paymentBatchRef;
 	}
 
 	public Account getAccount() {
@@ -293,6 +316,22 @@ public class WithdrawalRequest extends ReferableObject {
 		this.transaction = transaction;
 	}
 
+	public String getIban() {
+		return iban;
+	}
+
+	public void setIban(String iban) {
+		this.iban = iban;
+	}
+
+	public String getIbanHolder() {
+		return ibanHolder;
+	}
+
+	public void setIbanHolder(String ibanHolder) {
+		this.ibanHolder = ibanHolder;
+	}
+
 	/**
 	 * Using the database ID as equals test!
 	 * @see https://vladmihalcea.com/the-best-way-to-implement-equals-hashcode-and-tostring-with-jpa-and-hibernate/
@@ -306,7 +345,7 @@ public class WithdrawalRequest extends ReferableObject {
             return false;
         }
          WithdrawalRequest other = (WithdrawalRequest) o;
-        return id != null && id.equals(other.getId());
+        return Objects.equals(getId(), other.getId());
     }
 
 	/**

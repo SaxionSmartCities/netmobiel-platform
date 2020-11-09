@@ -48,6 +48,10 @@ public abstract class AbstractDao<T, ID> {
         return this.persistentClass;
     }
 
+	public T getReference(ID id) {
+        return getEntityManager().getReference(getPersistentClass(), id);
+    }
+
     public void clear() {
         getEntityManager().clear();
     }
@@ -186,11 +190,11 @@ public abstract class AbstractDao<T, ID> {
     }
     
     public Map<String, Object> createLoadHint(String graphName) {
-        return Collections.singletonMap(JPA_HINT_LOAD, getEntityManager().getEntityGraph(graphName));
+        return graphName != null ? Collections.singletonMap(JPA_HINT_LOAD, getEntityManager().getEntityGraph(graphName)) : Collections.emptyMap();
     }
 
     public Map<String, Object> createFetchHint(String graphName) {
-        return Collections.singletonMap(JPA_HINT_FETCH, getEntityManager().getEntityGraph(graphName));
+        return graphName != null ? Collections.singletonMap(JPA_HINT_FETCH, getEntityManager().getEntityGraph(graphName)) : Collections.emptyMap();
     }
 
     public Optional<T> loadGraph(ID id, String graphName) {

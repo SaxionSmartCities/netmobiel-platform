@@ -9,6 +9,8 @@
          data source, this example data source is just for development and testing! -->
       <jta-data-source>java:jboss/datasources/plannerDS</jta-data-source>
       <class>eu.netmobiel.commons.model.GeoLocation</class>
+      <class>eu.netmobiel.commons.model.ReferableObject</class>
+      <class>eu.netmobiel.commons.model.User</class>
       <exclude-unlisted-classes>false</exclude-unlisted-classes>
       <properties>
          <!-- create or drop-and-create will automatically try to run /import.sql -->

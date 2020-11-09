@@ -40,6 +40,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 /**
@@ -122,6 +123,12 @@ public class TripPlan {
     @ManyToOne (fetch = FetchType.LAZY)
 	@JoinColumn(name = "traveller", nullable = false, foreignKey = @ForeignKey(name = "trip_plan_traveller_fk"))
     private PlannerUser traveller;
+    
+    /**
+     * A URN reference to the traveller. 
+     */
+    @Transient
+    private String travellerRef;
     
     /**  
      * The time and date of the travel. This time can be used in the planner as time of departure or time of arrival, depending
@@ -265,6 +272,14 @@ public class TripPlan {
 	public PlannerUser getTraveller() {
 		return traveller;
 	}
+
+	public String getTravellerRef() {
+		if (travellerRef == null) {
+			travellerRef = UrnHelper.createUrn(PlannerUser.URN_PREFIX, getTraveller().getId());
+		}
+		return travellerRef;
+	}
+
 
 	public Set<TraverseMode> getTraverseModes() {
 		return traverseModes;

@@ -111,7 +111,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
         	Long providedSolutionPlanId = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, travelOffer.getPlanRef());
 			PlannerUser driver = userManager.registerCallingUser();
 			if (travelOffer.getDriverRef() != null) {
-				if (!driver.getReference().equals(travelOffer.getDriverRef()) && !driver.getKeyCloakUrn().equals(travelOffer.getDriverRef())) {
+				if (!driver.getUrn().equals(travelOffer.getDriverRef()) && !driver.getKeyCloakUrn().equals(travelOffer.getDriverRef())) {
 					throw new SecurityException(String.format("User %s is not allowed to offer rides on behalf of %s", driver.getManagedIdentity(), travelOffer.getDriverRef()));
 				}
 			}

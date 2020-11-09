@@ -4,6 +4,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import eu.netmobiel.banker.api.mapping.annotation.AccountAll;
+import eu.netmobiel.banker.api.mapping.annotation.AccountMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.CharityDetails;
 import eu.netmobiel.banker.api.mapping.annotation.CharityMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.CharityWithRoleAndAccountDetails;
@@ -25,6 +27,7 @@ public interface CharityMapper {
 
 	// Domain --> API
 	@CharityWithRoleAndAccountDetails
+	@Mapping(target = "account", source = "account", qualifiedBy = { AccountMapperQualifier.class, AccountAll.class })
 	eu.netmobiel.banker.api.model.Charity mapWithRolesAndAccount(Charity source);
 
 	// Domain --> API
@@ -39,7 +42,7 @@ public interface CharityMapper {
 	
 	// API --> Domain
 	@Mapping(target = "id", ignore = true)
-	@Mapping(target = "reference", ignore = true)
+//	@Mapping(target = "reference", ignore = true)
 	@Mapping(target = "roles", ignore = true)
 	@Mapping(target = "donatedAmount", ignore = true)
 	@Mapping(target = "account", ignore = true)

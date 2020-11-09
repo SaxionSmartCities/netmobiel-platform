@@ -24,6 +24,8 @@ import javax.validation.constraints.Size;
 import org.apache.commons.lang3.StringUtils;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
+import eu.netmobiel.banker.validator.IBANBankAccount;
+import nl.garvelink.iban.IBAN;
 
 /**
  * Formal record that represents, in words, money or other unit of measurement, certain resources, claims to such 
@@ -107,6 +109,7 @@ public class Account {
     @Transient
     private Balance actualBalance;
     
+    @IBANBankAccount
 	@Size(max = 48)
     @Column(name = "iban")
     private String iban;
@@ -216,8 +219,11 @@ public class Account {
 		return iban;
 	}
 
-	public void setIban(String iban) {
-		this.iban = iban;
+	public void setIban(String ibanValue) {
+		if (ibanValue != null) {
+			ibanValue = IBAN.toPretty(ibanValue);
+		}
+		this.iban = ibanValue;
 	}
 
 	public String getIbanHolder() {

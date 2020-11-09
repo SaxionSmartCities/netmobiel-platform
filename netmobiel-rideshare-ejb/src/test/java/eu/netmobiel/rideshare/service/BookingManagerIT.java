@@ -27,6 +27,7 @@ import eu.netmobiel.rideshare.model.Leg_;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.Ride_;
 import eu.netmobiel.rideshare.model.RideshareUser;
+import eu.netmobiel.rideshare.model.RideshareUser_;
 import eu.netmobiel.rideshare.repository.BookingDao;
 import eu.netmobiel.rideshare.repository.LegDao;
 import eu.netmobiel.rideshare.repository.OpenTripPlannerDao;
@@ -174,7 +175,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     	assertNotNull(but.getState());
     	assertTrue(puu.isLoaded(but, Booking_.LEGS));
     	assertTrue(puu.isLoaded(but, Booking_.PASSENGER));
-    	assertTrue(puu.isLoaded(but.getPassenger(), User_.ID));
+    	assertTrue(puu.isLoaded(but.getPassenger(), RideshareUser_.ID));
     	assertTrue(puu.isLoaded(but.getPassenger(), User_.GIVEN_NAME));
     	assertTrue(puu.isLoaded(but.getPassenger(), User_.FAMILY_NAME));
     	assertTrue(puu.isLoaded(but.getPassenger(), User_.MANAGED_IDENTITY));
@@ -182,7 +183,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     	Ride ride = but.getRide();
     	assertTrue(puu.isLoaded(ride, Ride_.ID));
     	assertTrue(puu.isLoaded(ride, Ride_.DRIVER));
-    	assertTrue(puu.isLoaded(ride.getDriver(), User_.ID));
+    	assertTrue(puu.isLoaded(ride.getDriver(), RideshareUser_.ID));
     	assertTrue(puu.isLoaded(ride.getDriver(), User_.GIVEN_NAME));
     	assertTrue(puu.isLoaded(ride.getDriver(), User_.FAMILY_NAME));
     	assertTrue(puu.isLoaded(ride.getDriver(), User_.MANAGED_IDENTITY));
@@ -311,7 +312,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     	assertFalse(em.contains(but));
     	assertNotNull(but);
     	assertTrue(puu.isLoaded(but, Booking_.PASSENGER));
-    	assertTrue(puu.isLoaded(but.getPassenger(), User_.ID));
+    	assertTrue(puu.isLoaded(but.getPassenger(), RideshareUser_.ID));
     	assertTrue(puu.isLoaded(but, Booking_.RIDE));
     	assertTrue(puu.isLoaded(but.getRide(), Ride_.ID));
     	assertTrue(puu.isLoaded(but, Booking_.LEGS));

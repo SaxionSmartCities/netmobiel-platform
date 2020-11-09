@@ -4,7 +4,9 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import eu.netmobiel.banker.api.mapping.annotation.AccountingEntryAccount;
 import eu.netmobiel.banker.api.mapping.annotation.AccountingEntryMapperQualifier;
+import eu.netmobiel.banker.api.mapping.annotation.AccountingEntryShallow;
 import eu.netmobiel.banker.api.mapping.annotation.CharityDetails;
 import eu.netmobiel.banker.api.mapping.annotation.CharityMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.CharityWithRoleAndAccountDetails;
@@ -36,10 +38,13 @@ import eu.netmobiel.commons.model.PagedResult;
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
 		uses = { AccountingEntryMapper.class, CharityMapper.class, UserMapper.class, DonationMapper.class, 
-				PaymentBatchMapper.class, WithdrawalRequestMapper.class })
+				PaymentBatchMapper.class, WithdrawalRequestMapper.class, AccountMapper.class })
 public interface PageMapper {
-	@Mapping(target = "data", source = "data", qualifiedBy = { AccountingEntryMapperQualifier.class } )
-	eu.netmobiel.banker.api.model.Page mapAccountingEntries(PagedResult<AccountingEntry> source);
+	@Mapping(target = "data", source = "data", qualifiedBy = { AccountingEntryMapperQualifier.class, AccountingEntryShallow.class } )
+	eu.netmobiel.banker.api.model.Page mapAccountingEntriesShallow(PagedResult<AccountingEntry> source);
+
+	@Mapping(target = "data", source = "data", qualifiedBy = { AccountingEntryMapperQualifier.class, AccountingEntryAccount.class } )
+	eu.netmobiel.banker.api.model.Page mapAccountingEntriesWithAccount(PagedResult<AccountingEntry> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { CharityMapperQualifier.class, CharityWithRoleAndAccountDetails.class } )
 	eu.netmobiel.banker.api.model.Page mapCharitiesWithRoleAndBalance(PagedResult<Charity> source);
