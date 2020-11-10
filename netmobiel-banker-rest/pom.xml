@@ -86,17 +86,22 @@
             <artifactId>javax.persistence-api</artifactId>
             <scope>provided</scope>
         </dependency>
-        <!--  Hibernate spatial extensions -->
-<!-- 		<dependency> -->
-<!-- 		    <groupId>org.hibernate</groupId> -->
-<!-- 		    <artifactId>hibernate-spatial</artifactId> -->
-<!-- 		    <scope>provided</scope> -->
-<!-- 		</dependency> -->
 		<!--  Bean validation -->
 		<dependency>
 	        <groupId>javax.validation</groupId>
 	        <artifactId>validation-api</artifactId>
 		    <scope>provided</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+          <groupId>org.jboss.spec.javax.el</groupId>
+          <artifactId>jboss-el-api_3.0_spec</artifactId>
+          <scope>provided</scope>
         </dependency>
 
         <dependency>
@@ -183,6 +188,11 @@
 		<dependency>
 			<groupId>com.vividsolutions</groupId>
 			<artifactId>jts-core</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>nl.garvelink.oss</groupId>
+		    <artifactId>iban</artifactId>
 			<scope>provided</scope>
 		</dependency>
 

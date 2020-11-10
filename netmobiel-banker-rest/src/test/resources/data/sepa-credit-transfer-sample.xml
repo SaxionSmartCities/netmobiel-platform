@@ -1,0 +1,95 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03 pain.001.001.03.xsd">
+  <CstmrCdtTrfInitn>
+    <GrpHdr>
+      <MsgId>Batch-01</MsgId>
+      <CreDtTm>2020-11-10T16:51:42.827213100Z</CreDtTm>
+      <NbOfTxs>2</NbOfTxs>
+      <CtrlSum>4.55</CtrlSum>
+      <InitgPty>
+        <Nm>NetMobiel</Nm>
+      </InitgPty>
+    </GrpHdr>
+    <PmtInf>
+      <PmtInfId>Batch-01</PmtInfId>
+      <PmtMtd>TRF</PmtMtd>
+      <NbOfTxs>2</NbOfTxs>
+      <CtrlSum>4.55</CtrlSum>
+      <PmtTpInf>
+        <SvcLvl>
+          <Cd>SEPA</Cd>
+        </SvcLvl>
+      </PmtTpInf>
+      <ReqdExctnDt>2020-11-10</ReqdExctnDt>
+      <Dbtr>
+        <Nm>Stichting Netmobiel</Nm>
+      </Dbtr>
+      <DbtrAcct>
+        <Id>
+          <IBAN>NL02ABNA0123456789</IBAN>
+        </Id>
+      </DbtrAcct>
+      <DbtrAgt>
+        <FinInstnId>
+          <Othr>
+            <Id>NOTPROVIDED</Id>
+          </Othr>
+        </FinInstnId>
+      </DbtrAgt>
+      <ChrgBr>SLEV</ChrgBr>
+      <CdtTrfTxInf>
+        <PmtId>
+          <EndToEndId>End2End-21</EndToEndId>
+        </PmtId>
+        <Amt>
+          <InstdAmt Ccy="EUR">1.50</InstdAmt>
+        </Amt>
+        <CdtrAgt>
+          <FinInstnId>
+            <Othr>
+              <Id>NOTPROVIDED</Id>
+            </Othr>
+          </FinInstnId>
+        </CdtrAgt>
+        <Cdtr>
+          <Nm>P. Pietersen</Nm>
+        </Cdtr>
+        <CdtrAcct>
+          <Id>
+            <IBAN>NL69INGB0123456789</IBAN>
+          </Id>
+        </CdtrAcct>
+        <RmtInf>
+          <Ustrd>Rit van A naar B met Henk</Ustrd>
+        </RmtInf>
+      </CdtTrfTxInf>
+      <CdtTrfTxInf>
+        <PmtId>
+          <EndToEndId>End2End-22</EndToEndId>
+        </PmtId>
+        <Amt>
+          <InstdAmt Ccy="EUR">3.05</InstdAmt>
+        </Amt>
+        <CdtrAgt>
+          <FinInstnId>
+            <Othr>
+              <Id>NOTPROVIDED</Id>
+            </Othr>
+          </FinInstnId>
+        </CdtrAgt>
+        <Cdtr>
+          <Nm>J. Jansen</Nm>
+        </Cdtr>
+        <CdtrAcct>
+          <Id>
+            <IBAN>NL44RABO0123456789</IBAN>
+          </Id>
+        </CdtrAcct>
+        <RmtInf>
+          <Ustrd>Rit van C naar D met Jan</Ustrd>
+        </RmtInf>
+      </CdtTrfTxInf>
+    </PmtInf>
+  </CstmrCdtTrfInitn>
+</Document>
+
