@@ -56,7 +56,7 @@ public class SepaPaymentInformation {
 		this.accountHolder = name;
 	}
 
-	public static class SepaPaymnetInformationBuilder {
+	public static class Builder {
 		private String batchId;
 		// Number of transaction in the batch
 		private int nrTransactions;
@@ -66,29 +66,29 @@ public class SepaPaymentInformation {
 		private IBAN account;
 		private String name;
 		
-		public SepaPaymnetInformationBuilder(String batchId) {
-			this.batchId = batchId;
+		public Builder(String batchId) {
+			this.batchId = SepaFormat.identifier(batchId);
 		}
 
-		public SepaPaymnetInformationBuilder of(Collection<SepaTransaction> transactions) {
+		public Builder of(Collection<SepaTransaction> transactions) {
 			this.nrTransactions = transactions.size();
 			this.controlSum = transactions.stream()
 					.map(t -> t.getAmount())
 					.reduce(BigDecimal.ZERO, (accu, v) -> accu.add(v));
 			return this;
 		}
-		public SepaPaymnetInformationBuilder withExecutionDate(LocalDate time) {
+		public Builder withExecutionDate(LocalDate time) {
 			this.executionDate = time;
 			return this;
 		}
 
-		public SepaPaymnetInformationBuilder withAccount(String iban) {
+		public Builder withAccount(String iban) {
 			this.account = IBAN.valueOf(iban);
 			return this;
 		}
 
-		public SepaPaymnetInformationBuilder withAccountHolder(String name) {
-			this.name = name;
+		public Builder withAccountHolder(String name) {
+			this.name = SepaFormat.text(name);
 			return this;
 		}
 

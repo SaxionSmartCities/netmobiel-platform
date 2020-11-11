@@ -22,5 +22,13 @@ public abstract class SepaDocument {
 		node.append(groupHeader.toXml(document));
 		return node;
 	}
+
+	public XMLNode getDocument() {
+		return document;
+	}
+
+	public SepaGroupHeader getGroupHeader() {
+		return groupHeader;
+	}
 	
 }

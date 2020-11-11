@@ -48,7 +48,7 @@ public class SepaTransaction {
 		this.xmlEmitter = xmlEmitter;
 	}
 
-	public static class CreditTransferBuilder {
+	public static class Builder {
 		private IBAN accountNumber;
 		private String name;
 		private BigDecimal amount;
@@ -57,27 +57,27 @@ public class SepaTransaction {
 		private String remittance;
 		private BiFunction<SepaTransaction, XMLNode, XMLNode> xmlEmitter;
 
-		public CreditTransferBuilder(String account) {
+		public Builder(String account) {
 			accountNumber = IBAN.valueOf(account);
 		}
 
-		public CreditTransferBuilder withName(String accountHolder) {
-			this.name = accountHolder;
+		public Builder withName(String accountHolder) {
+			this.name = SepaFormat.text(accountHolder);
 			return this;
 		}
 
-		public CreditTransferBuilder withAmount(BigDecimal amount) {
+		public Builder withAmount(BigDecimal amount) {
 			this.amount = amount;
 			return this;
 		}
 
-		public CreditTransferBuilder withEnd2EndId(String id) {
-			this.endToEndId = id;
+		public Builder withEnd2EndId(String id) {
+			this.endToEndId = SepaFormat.identifier(id);
 			return this;
 		}
 
-		public CreditTransferBuilder withRemittance(String description) {
-			this.remittance = description;
+		public Builder withRemittance(String description) {
+			this.remittance = SepaFormat.text(description);
 			return this;
 		}
 

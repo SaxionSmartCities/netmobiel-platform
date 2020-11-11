@@ -12,8 +12,8 @@ import javax.validation.Payload;
 import javax.validation.constraints.Pattern;
 import javax.validation.constraints.Size;
 
-@Size(max = 140)
-@Pattern(regexp = "[a-zA-Z0-9/-?()\\., ]+", message = "must not contain special characters")
+@Size(max = SepaFormat.MAX_LENGTH_TEXT)
+@Pattern(regexp = SepaFormat.REGEX_TEXT, message = "must not contain special characters")
 @Documented
 @Retention(RUNTIME)
 @Target({ FIELD, METHOD, ANNOTATION_TYPE, TYPE_USE })

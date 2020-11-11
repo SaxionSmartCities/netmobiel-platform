@@ -38,30 +38,34 @@ public class SepaCreditTransferDocumentTest {
 	@Test
 	public void testToXml() {
 		List<SepaTransaction> transactions = new ArrayList<>();
-		transactions.add(new SepaTransaction.CreditTransferBuilder("NL69INGB0123456789")
+		transactions.add(new SepaTransaction.Builder("NL69INGB0123456789")
 				.withAmount(BigDecimal.valueOf(150, 2))
 				.withEnd2EndId("End2End-21")
 				.withName("P. Pietersen")
-				.withRemittance("Rit van A naar B met Henk")
+				.withRemittance("Rit van A naar B met Henk |||||")
 				.build()
 				);
-		transactions.add(new SepaTransaction.CreditTransferBuilder("NL44 RABO 0123 4567 89")
+		transactions.add(new SepaTransaction.Builder("NL44 RABO 0123 4567 89")
 				.withAmount(BigDecimal.valueOf(305, 2))
 				.withEnd2EndId("End2End-22")
 				.withName("J. Jansen")
-				.withRemittance("Rit van C naar D met Jan")
+				.withRemittance("Rit van C naar D met Jän")
 				.build()
 				);
-		SepaGroupHeader header = new SepaGroupHeader.SepaGroupHeaderBuilder("Batch-01")
+		SepaGroupHeader header = new SepaGroupHeader.Builder("Batch-01 0123456789012345678901234567890")
 				.of(transactions)
 				.withInitiatingParty("NetMobiel")
 				.build();
-		SepaPaymentInformation payinfo = new SepaPaymentInformation.SepaPaymnetInformationBuilder("Batch-01")
+		SepaPaymentInformation payinfo = new SepaPaymentInformation.Builder("Batch-01")
 				.of(transactions)
 				.withAccount("NL02ABNA0123456789")
 				.withAccountHolder("Stichting Netmobiel")
 				.build();
-		SepaCreditTransferDocument doc = new SepaCreditTransferDocument(header, payinfo, transactions);
+		SepaCreditTransferDocument doc = new SepaCreditTransferDocument.Builder()
+				.with(header)
+				.with(payinfo)
+				.with(transactions)
+				.build();
 //		ValidatorFactory factory = Validation.buildDefaultValidatorFactory();
 //		Validator validator = factory.getValidator();
 //		Set<ConstraintViolation<SepaCreditTransferDocument>> violations = validator.validate(doc);

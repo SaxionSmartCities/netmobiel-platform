@@ -1,0 +1,63 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<Document xmlns="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03" 
+xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance" xsi:schemaLocation="urn:iso:std:iso:20022:tech:xsd:pain.001.001.03 pain.001.001.03.xsd">                   
+	<CstmrCdtTrfInitn>                                                                                            
+		<GrpHdr>                                                                                                      
+			<MsgId>000001</MsgId>                                                                                
+			<CreDtTm>2012-05-02T14:52:09</CreDtTm>                                                               
+			<NbOfTxs>1</NbOfTxs>                                                                                 
+			<CtrlSum>386.00</CtrlSum>                                                                              
+			<InitgPty>                                                                                            
+				<Nm>Klantnaam</Nm>                                                               
+			</InitgPty>                                                                                           
+		</GrpHdr>
+		<PmtInf>                                                                                                      
+			<PmtInfId>12345</PmtInfId>
+			<PmtMtd>TRF</PmtMtd>                                                                                 
+			<NbOfTxs>1</NbOfTxs>                                                                                 
+			<CtrlSum>386.00</CtrlSum>                                                                              
+			<PmtTpInf>                                                                                            
+				<SvcLvl> <Cd>SEPA</Cd> </SvcLvl>
+			</PmtTpInf>                                                                                           
+			<ReqdExctnDt>2012-05-02</ReqdExctnDt>                                                                
+			<Dbtr>                                                                                                
+				<Nm>Debiteur</Nm>                                                               
+			</Dbtr>                                                                                               
+			<DbtrAcct>                                                                                            
+				<Id>                                                                                              
+					<IBAN>NL10ABNA1234567890</IBAN>                                                              
+				</Id>                                                                                             
+			</DbtrAcct>                                                                                           
+			<DbtrAgt>                                                                                             
+				<FinInstnId>                                                                                      
+					<BIC>ABNANL2A</BIC>                                                                          
+				</FinInstnId>                                                                                     
+			</DbtrAgt>      
+			<ChrgBr>SLEV</ChrgBr>                                                                            
+			<CdtTrfTxInf>                                                                                         
+				<PmtId>                                                                                           
+					<EndToEndId>Onze referentie: 123456</EndToEndId>                                                       
+				</PmtId>                                                                                                                                                                                
+				<Amt>                                                                                             
+					<InstdAmt Ccy="EUR">386.00</InstdAmt>                                                          
+				</Amt>                                                                                            
+				<CdtrAgt>                                                                                         
+					<FinInstnId>                                                                                  
+						<BIC>RABONL2U</BIC>                                                                      
+					</FinInstnId>                                                                                 
+				</CdtrAgt>                                                                                        
+				<Cdtr>                                                                                            
+					<Nm>Crediteur</Nm>                                                                     
+				</Cdtr>                                                                                           
+				<CdtrAcct>                                                                                        
+					<Id>                                                                                          
+						<IBAN>NL91RABO1234567890</IBAN>                                                          
+					</Id>                                                                                         
+				</CdtrAcct>                                                                                       
+				<RmtInf>                                                                                          
+					<Ustrd>Ref. 2012.0386</Ustrd>                                                                 
+				</RmtInf>                                                                                         
+			</CdtTrfTxInf>
+		</PmtInf>                                                                                        
+	</CstmrCdtTrfInitn>                                                                                           
+</Document>  

@@ -94,11 +94,6 @@
         </dependency>
 
         <dependency>
-            <groupId>org.hibernate.validator</groupId>
-            <artifactId>hibernate-validator</artifactId>
-            <scope>provided</scope>
-        </dependency>
-        <dependency>
           <groupId>org.jboss.spec.javax.el</groupId>
           <artifactId>jboss-el-api_3.0_spec</artifactId>
           <scope>provided</scope>
@@ -126,11 +121,23 @@
 		    <artifactId>resteasy-servlet-initializer</artifactId>
 		    <version>3.7.0.Final</version>
 			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.jboss.logging</groupId>
+					<artifactId>jboss-logging</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>org.jboss.resteasy</groupId>
 			<artifactId>resteasy-jackson2-provider</artifactId>
 			<scope>provided</scope>
+			<exclusions>
+				<exclusion>
+					<groupId>org.jboss.logging</groupId>
+					<artifactId>jboss-logging</artifactId>
+				</exclusion>
+			</exclusions>
 		</dependency>
 		<dependency>
 			<groupId>com.fasterxml.jackson.core</groupId>
@@ -167,6 +174,12 @@
             <groupId>org.keycloak</groupId>
             <artifactId>keycloak-authz-client</artifactId>
 		    <scope>provided</scope>
+		    <exclusions>
+		    	<exclusion>
+		    		<groupId>org.jboss.logging</groupId>
+		    		<artifactId>jboss-logging</artifactId>
+		    	</exclusion>
+		    </exclusions>
         </dependency>
         <dependency>
             <groupId>org.keycloak</groupId>
@@ -193,6 +206,11 @@
 		<dependency>
 		    <groupId>nl.garvelink.oss</groupId>
 		    <artifactId>iban</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.apache.commons</groupId>
+		    <artifactId>commons-lang3</artifactId>
 			<scope>provided</scope>
 		</dependency>
 
@@ -223,6 +241,20 @@
 		    <artifactId>shrinkwrap-resolver-impl-maven</artifactId>
 		    <scope>test</scope>
 		</dependency>
+
+		<!-- For testing constraints -->
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <scope>test</scope>
+        </dependency>
+		<!-- Needed by hibernate validator -->
+        <dependency>
+            <groupId>org.jboss.logmanager</groupId>
+            <artifactId>jboss-logmanager</artifactId>
+            <scope>test</scope>
+        </dependency>
+
     </dependencies>
 
 </project>

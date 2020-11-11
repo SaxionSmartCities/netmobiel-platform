@@ -37,18 +37,18 @@ public class SepaGroupHeader {
 		this.initiatingParty = initiator;
 	}
 
-	public static class SepaGroupHeaderBuilder {
+	public static class Builder {
 		private int nrTransactions;
 		private BigDecimal controlSum;
 		private String messageId;
 		private Instant creationDateTime = Instant.now();
 		private String initiatingParty;
 		
-		public SepaGroupHeaderBuilder(String msgId) {
-			this.messageId = msgId;
+		public Builder(String msgId) {
+			this.messageId = SepaFormat.identifier(msgId);
 		}
 
-		public SepaGroupHeaderBuilder of(Collection<SepaTransaction> transactions) {
+		public Builder of(Collection<SepaTransaction> transactions) {
 			this.nrTransactions = transactions.size();
 			this.controlSum = transactions.stream()
 					.map(t -> t.getAmount())
@@ -56,13 +56,13 @@ public class SepaGroupHeader {
 			return this;
 		}
 		
-		public SepaGroupHeaderBuilder withCreateDateTime(Instant time) {
+		public Builder withCreateDateTime(Instant time) {
 			this.creationDateTime = time;
 			return this;
 		}
 
-		public SepaGroupHeaderBuilder withInitiatingParty(String name) {
-			this.initiatingParty = name;
+		public Builder withInitiatingParty(String name) {
+			this.initiatingParty = SepaFormat.text(name);
 			return this;
 		}
 
