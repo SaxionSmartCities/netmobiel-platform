@@ -1149,13 +1149,23 @@ paths:
     get:
       parameters:
       - name: format
-        description: The format of the payment batch. Default is JSON. Specify PAIN.001
-          for a SEPA PAIN Credit Transfer XML document.
+        description: |-
+          The format of the payment batch. Default is JSON. Specify PAIN.001 for a SEPA PAIN Credit Transfer XML document.
+          When SEPA is selected, only the ACTIVE withdrawal requests are present in the PAIN file.
         schema:
           enum:
           - JSON
           - PAIN.001
           type: string
+        in: query
+      - name: forceUniqueId
+        description: "Optional, SEPA only. If set to true, the batch id is guaranteed\
+          \ to be unique. Default false.\nA SEPA batch file is not accepted if the\
+          \ messageId (batchId) already exists. The payment batch order id is used\
+          \ as the SEPA messageId. The feature is used to protect you paying the same\
+          \ bill twice. \n"
+        schema:
+          type: boolean
         in: query
       responses:
         "200":
@@ -1313,6 +1323,61 @@ paths:
     - name: charityId
       description: A unique identifier for a `Charity`. Allowed are the database id
         or a Charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /accounts/{accountId}:
+    summary: Manage an NetMobiel account.
+    description: "The REST endpoint/path used to manage an `Account`. This path contains\
+      \ a `GET` and a `PUT` operation to perform the get resp. put task. \nThis endpoint\
+      \ can be used by the administraotr only."
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+          description: Return an  `Account`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getAccount
+      summary: Get the account.
+      description: 'Gets the details of a single instance of an `Account`, including
+        the current amount of credits owned (i.e., the actual balance). '
+    put:
+      requestBody:
+        description: Specify name, iban and ibanHolder. Other fields are ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+        required: true
+      responses:
+        "204":
+          description: The account is updated.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: updateAccount
+      summary: Updates the account.
+      description: |-
+        Updates the account. Only the following details can be updated:
+         - name
+         - iban
+         - ibanHolder
+
+        The update of the iban is considered sensitive. An additional restriction is placed on the bearer token used to update the iban: The token must have been issued less than 2 minutes ago.
+    parameters:
+    - name: accountId
+      description: The account id to use. Specify a banker account id, or an account
+        urn.
       schema:
         type: string
       in: path
@@ -1883,6 +1948,16 @@ components:
           - EXPIRED
           - CANCELLED
           type: string
+        originatorIban:
+          description: The IBAN of the originator account, that is the bank account
+            held by the Stichting NetMobiel.
+          type: string
+        originatorName:
+          description: The name of the originator account holder.
+          type: string
+        originatorAccountRef:
+          description: A reference to the originator's account.
+          type: string
       example:
         creationTime: 2020-10-20T12:00:00Z
         completionTime: 2020-10-26T14:25:00Z
@@ -1909,7 +1984,7 @@ components:
       properties:
         account:
           $ref: '#/components/schemas/Account'
-          description: The NetMobiel account for the withdrawal request.
+          description: The NetMobiel beneficiary account for the withdrawal request.
         description:
           description: The description to display on the payment page.
           type: string
@@ -1961,12 +2036,12 @@ components:
           description: Thedate and time the requested was settled.
           type: string
         iban:
-          description: The International Bank Account Number (IBAN) belonging to this
+          description: The International Bank Account Number (IBAN) of the beneficiary
             account at the time the request was created.
           type: string
         ibanHolder:
-          description: "The name of the holder of the IBAN account at the time the\
-            \ request was created. \nMandatory if an IBAN is defined."
+          description: "The name of the holder of the IBAN beneficiary account at\
+            \ the time the request was created. \nMandatory if an IBAN is defined."
           type: string
         accountRef:
           description: The unique reference to the account.
