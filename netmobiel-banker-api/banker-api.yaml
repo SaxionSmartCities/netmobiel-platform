@@ -1952,11 +1952,11 @@ components:
           description: The IBAN of the originator account, that is the bank account
             held by the Stichting NetMobiel.
           type: string
-        originatorName:
-          description: The name of the originator account holder.
-          type: string
         originatorAccountRef:
           description: A reference to the originator's account.
+          type: string
+        originatorIbanHolder:
+          description: The name of the originator account holder.
           type: string
       example:
         creationTime: 2020-10-20T12:00:00Z
