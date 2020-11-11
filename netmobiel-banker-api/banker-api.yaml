@@ -1149,9 +1149,12 @@ paths:
     get:
       parameters:
       - name: format
-        description: The format of the payment batch. Default is JSON. Specify CSV
-          for a comma separated list.
+        description: The format of the payment batch. Default is JSON. Specify PAIN.001
+          for a SEPA PAIN Credit Transfer XML document.
         schema:
+          enum:
+          - JSON
+          - PAIN.001
           type: string
         in: query
       responses:
@@ -1160,7 +1163,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PaymentBatch'
-          description: Successful response - returns a single `PaymentBatch`.
+            text/xml:
+              schema:
+                $ref: '#/components/schemas/PaymentBatch'
+          description: Successful response - returns a single `PaymentBatch` as either
+            JSON or PAIN.001 format.
       security:
       - Bearer-only: []
         apikey: []
