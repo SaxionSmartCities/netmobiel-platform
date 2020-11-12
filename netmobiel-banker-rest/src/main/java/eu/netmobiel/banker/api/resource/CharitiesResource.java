@@ -33,6 +33,7 @@ import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
 import eu.netmobiel.banker.service.LedgerService;
+import eu.netmobiel.banker.service.WithdrawalService;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
@@ -64,6 +65,9 @@ public class CharitiesResource implements CharitiesApi {
 
 	@Inject
     private LedgerService ledgerService;
+	
+	@Inject
+    private WithdrawalService withdrawalService;
 	
 	@Context
 	private HttpServletRequest request;
@@ -278,7 +282,7 @@ public class CharitiesResource implements CharitiesApi {
 			if (! canWithdraw) {
 				throw new ForbiddenException(String.format("User %d is not a manager of charity %d and not an admin", user.getId(), cid));
 			}
-			Long id = ledgerService.createWithdrawalRequest(user, charity.getAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
+			Long id = withdrawalService.createWithdrawalRequest(user, charity.getAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
 			String wrid = UrnHelper.createUrn(WithdrawalRequest.URN_PREFIX, id);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(wrid)).build();
 		} catch (BusinessException e) {

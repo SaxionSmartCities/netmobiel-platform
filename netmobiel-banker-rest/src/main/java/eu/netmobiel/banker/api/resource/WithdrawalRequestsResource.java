@@ -13,7 +13,7 @@ import eu.netmobiel.banker.api.WithdrawalRequestsApi;
 import eu.netmobiel.banker.api.mapping.PageMapper;
 import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.WithdrawalRequest;
-import eu.netmobiel.banker.service.LedgerService;
+import eu.netmobiel.banker.service.WithdrawalService;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -22,7 +22,7 @@ import eu.netmobiel.commons.util.UrnHelper;
 public class WithdrawalRequestsResource implements WithdrawalRequestsApi {
 
 	@Inject
-    private LedgerService ledgerService;
+    private WithdrawalService withdrawalService;
 	
 	@Inject
 	private PageMapper pageMapper;
@@ -35,7 +35,7 @@ public class WithdrawalRequestsResource implements WithdrawalRequestsApi {
 		Response rsp = null;
 		try {
 			PaymentStatus ps = status == null ? null : PaymentStatus.valueOf(status);
-	    	PagedResult<WithdrawalRequest> results = ledgerService.listWithdrawalRequests(accountName, si, ui, ps, maxResults, offset);
+	    	PagedResult<WithdrawalRequest> results = withdrawalService.listWithdrawalRequests(accountName, si, ui, ps, maxResults, offset);
 			rsp = Response.ok(pageMapper.mapWithdrawalRequests(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -49,7 +49,7 @@ public class WithdrawalRequestsResource implements WithdrawalRequestsApi {
 	public Response settleWithdrawalRequest(String withdrawalRequestId) {
 		try {
 	    	Long wrid = UrnHelper.getId(WithdrawalRequest.URN_PREFIX, withdrawalRequestId);
-			ledgerService.settleWithdrawalRequest(wrid);
+			withdrawalService.settleWithdrawalRequest(wrid);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -60,7 +60,7 @@ public class WithdrawalRequestsResource implements WithdrawalRequestsApi {
 	public Response cancelWithdrawalRequest(String withdrawalRequestId, String reason) {
 		try {
 	    	Long wrid = UrnHelper.getId(WithdrawalRequest.URN_PREFIX, withdrawalRequestId);
-			ledgerService.cancelWithdrawalRequest(wrid);
+			withdrawalService.cancelWithdrawalRequest(wrid);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

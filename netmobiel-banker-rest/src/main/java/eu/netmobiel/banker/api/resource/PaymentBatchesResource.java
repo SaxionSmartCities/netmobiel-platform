@@ -26,7 +26,7 @@ import eu.netmobiel.banker.rest.sepa.SepaGroupHeader;
 import eu.netmobiel.banker.rest.sepa.SepaPaymentInformation;
 import eu.netmobiel.banker.rest.sepa.SepaTransaction;
 import eu.netmobiel.banker.service.BankerUserManager;
-import eu.netmobiel.banker.service.LedgerService;
+import eu.netmobiel.banker.service.WithdrawalService;
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
@@ -39,7 +39,7 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
     private BankerUserManager userManager;
 
 	@Inject
-    private LedgerService ledgerService;
+    private WithdrawalService withdrawalService;
 	
 	@Inject
 	private PageMapper pageMapper;
@@ -53,7 +53,7 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 		// The calling user will become a manager of the charity
 		try {
 			userManager.registerCallingUser();
-			String pbid = BankerUrnHelper.createUrn(PaymentBatch.URN_PREFIX, ledgerService.createPaymentBatch());
+			String pbid = BankerUrnHelper.createUrn(PaymentBatch.URN_PREFIX, withdrawalService.createPaymentBatch());
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(pbid)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -68,7 +68,7 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
     	Response rsp = null;
 		try {
         	Long pbid = UrnHelper.getId(PaymentBatch.URN_PREFIX, paymentBatchId);
-        	PaymentBatch pb = ledgerService.getPaymentBatch(pbid);
+        	PaymentBatch pb = withdrawalService.getPaymentBatch(pbid);
         	if ("PAIN.001".equals(format)) {
     			rsp = Response.ok(createCreditTransferDocument(pb, true, Boolean.TRUE.equals(forceUniqueId)).toXml().toString(), MediaType.TEXT_XML).build();
         	} else if ("JSON".equals(format)) {
@@ -91,7 +91,7 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 		Response rsp = null;
 		try {
 			PaymentStatus ps = status == null ? null : PaymentStatus.valueOf(status);
-	    	PagedResult<PaymentBatch> results = ledgerService.listPaymentBatches(si, ui, ps, maxResults, offset);
+	    	PagedResult<PaymentBatch> results = withdrawalService.listPaymentBatches(si, ui, ps, maxResults, offset);
 			rsp = Response.ok(pageMapper.mapPaymentBatches(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -105,7 +105,7 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 	public Response settlePaymentBatch(String paymentBatchId) {
 		try {
         	Long pbid = UrnHelper.getId(Charity.URN_PREFIX, paymentBatchId);
-        	ledgerService.settlePaymentBatch(pbid);
+        	withdrawalService.settlePaymentBatch(pbid);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -117,7 +117,7 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 	public Response cancelPaymentBatch(String paymentBatchId, String reason) {
 		try {
         	Long pbid = UrnHelper.getId(Charity.URN_PREFIX, paymentBatchId);
-        	ledgerService.cancelPaymentBatch(pbid);
+        	withdrawalService.cancelPaymentBatch(pbid);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

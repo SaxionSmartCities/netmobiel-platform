@@ -11,7 +11,7 @@ import eu.netmobiel.banker.api.DepositEventsApi;
 import eu.netmobiel.banker.api.mapping.DepositRequestMapper;
 import eu.netmobiel.banker.api.model.PaymentEvent;
 import eu.netmobiel.banker.model.DepositRequest;
-import eu.netmobiel.banker.service.LedgerService;
+import eu.netmobiel.banker.service.DepositService;
 
 @ApplicationScoped
 public class DepositEventsResource implements DepositEventsApi {
@@ -20,12 +20,12 @@ public class DepositEventsResource implements DepositEventsApi {
 	private DepositRequestMapper mapper;
 
     @Inject
-    private LedgerService ledgerService;
+    private DepositService depositService;
 
 	@Override
 	public Response updateDepositStatus(PaymentEvent paymentEvent) {
 		Response rsp = null;
-		Optional<DepositRequest> depositRequest = ledgerService.verifyDeposition(paymentEvent.getProjectId(), paymentEvent.getOrderId());
+		Optional<DepositRequest> depositRequest = depositService.verifyDeposition(paymentEvent.getProjectId(), paymentEvent.getOrderId());
 		if (!depositRequest.isPresent()) {
 			throw new NotFoundException("Order id not found");
 		}

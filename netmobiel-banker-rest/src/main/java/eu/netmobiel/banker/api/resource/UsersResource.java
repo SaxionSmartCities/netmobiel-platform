@@ -29,7 +29,9 @@ import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
+import eu.netmobiel.banker.service.DepositService;
 import eu.netmobiel.banker.service.LedgerService;
+import eu.netmobiel.banker.service.WithdrawalService;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
@@ -58,6 +60,12 @@ public class UsersResource implements UsersApi {
     private LedgerService ledgerService;
 	
 	@Inject
+    private DepositService depositService;
+	
+	@Inject
+    private WithdrawalService withdrawalService;
+	
+	@Inject
     private CharityManager charityManager;
 
 	@Context
@@ -83,7 +91,7 @@ public class UsersResource implements UsersApi {
 		try {
 			BankerUser user = resolveUserReference(userId, true);
 			user = userManager.getUserWithBalance(user.getId());
-			String paymentUrl = ledgerService.createDepositRequest(user.getPersonalAccount(), deposit.getAmountCredits(), deposit.getDescription(), deposit.getReturnUrl());
+			String paymentUrl = depositService.createDepositRequest(user.getPersonalAccount(), deposit.getAmountCredits(), deposit.getDescription(), deposit.getReturnUrl());
 			PaymentLink plink = new PaymentLink();
 			plink.setPaymentUrl(paymentUrl);
 			rsp = Response.ok(plink).build();
@@ -193,7 +201,7 @@ public class UsersResource implements UsersApi {
 			if (!admin && ! caller.equals(user.getManagedIdentity())) {
 				throw new ForbiddenException("You are not allowed to create a withdrawal request for this user: " + userId);
 			}
-			Long id = ledgerService.createWithdrawalRequest(user, user.getPersonalAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
+			Long id = withdrawalService.createWithdrawalRequest(user, user.getPersonalAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
 			String wrid = UrnHelper.createUrn(WithdrawalRequest.URN_PREFIX, id);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(wrid)).build();
 		} catch (BusinessException e) {
