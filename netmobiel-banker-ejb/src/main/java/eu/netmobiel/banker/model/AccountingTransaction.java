@@ -252,4 +252,39 @@ public class AccountingTransaction  implements Serializable {
 
 	}
 	
+    public AccountingEntry lookupByEntryAccount(String ncan) {
+    	List<AccountingEntry> rs_entries = getAccountingEntries();
+    	AccountingEntry entry = rs_entries.stream()
+    			.filter(e -> ! e.getAccount().getNcan().equals(ncan))
+    			.findFirst()
+    			.orElseThrow(() -> new IllegalStateException("No such account in transaction: " + ncan + " " + getId()));
+    	return entry;
+    }
+
+    public AccountingEntry lookupByCounterParty(String ncan) {
+    	List<AccountingEntry> rs_entries = getAccountingEntries();
+    	AccountingEntry entry = rs_entries.stream()
+    			.filter(e -> ! e.getCounterparty().getNcan().equals(ncan))
+    			.findFirst()
+    			.orElseThrow(() -> new IllegalStateException("No such counterparty account in transaction: " + ncan + " " + getId()));
+    	return entry;
+    }
+
+    public AccountingEntry lookupByEntryAccount(Account acc) {
+    	List<AccountingEntry> rs_entries = getAccountingEntries();
+    	AccountingEntry entry = rs_entries.stream()
+    			.filter(e -> ! e.getAccount().equals(acc))
+    			.findFirst()
+    			.orElseThrow(() -> new IllegalStateException("No such account in transaction: " + acc.getId() + " " + getId()));
+    	return entry;
+    }
+
+    public AccountingEntry lookupByCounterParty(Account acc) {
+    	List<AccountingEntry> rs_entries = getAccountingEntries();
+    	AccountingEntry entry = rs_entries.stream()
+    			.filter(e -> ! e.getCounterparty().equals(acc))
+    			.findFirst()
+    			.orElseThrow(() -> new IllegalStateException("No such counterparty account in transaction: " + acc.getId() + " " + getId()));
+    	return entry;
+    }
 }

@@ -21,7 +21,6 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.model.Account;
-import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.PaymentBatch;
@@ -180,9 +179,8 @@ public class WithdrawalService {
 		}
     	OffsetDateTime now = OffsetDateTime.now();
 		AccountingTransaction tr_r = ledgerService.release(wrdb.getTransaction(), now);
-    	AccountingEntry userEntry = ledgerService.lookupUserEntry(tr_r);
     	try {
-    		AccountingTransaction tr_w = ledgerService.withdraw(userEntry.getAccount(), userEntry.getAmount(), now, tr_r.getDescription(), tr_r.getContext());
+    		AccountingTransaction tr_w = ledgerService.withdraw(wrdb.getAccount(), wrdb.getAmountCredits(), now, tr_r.getDescription(), tr_r.getContext());
     		wrdb.setTransaction(tr_w);
     		wrdb.setStatus(PaymentStatus.COMPLETED);
     		wrdb.setModificationTime(now.toInstant());
