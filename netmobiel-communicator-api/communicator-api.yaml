@@ -247,34 +247,6 @@ components:
             givenName: Carla1
         creationTime: 2020-02-27T15:30+01:00
         subject: Meerijden Zieuwert - Doetinchem
-    User:
-      description: 'A user in the message service. '
-      required:
-      - managedIdentity
-      - givenName
-      - familyName
-      type: object
-      properties:
-        id:
-          format: int64
-          description: 'Read-only. The unique user id. If referenced use the URN notation:
-            urn:nb:cm:user:<id>'
-          type: integer
-        managedIdentity:
-          description: The user is as known by the IDM (Keycloak). The format is determined
-            by the IDM.
-          type: string
-        givenName:
-          description: The first name of the driver.
-          type: string
-        familyName:
-          description: The family name of the driver.
-          type: string
-      example:
-        familyName: Normalverbraucher
-        givenName: Otto
-        id: 2
-        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
     Page:
       title: Root Type for Page
       description: A page from a result set. For smaller sets the page contains the
@@ -342,6 +314,37 @@ components:
           managedIndentity: 1234-5678
           givenName: Jaap
           familiyName: Reitsma
+    User:
+      description: 'A user in the message service. '
+      required:
+      - managedIdentity
+      - givenName
+      - familyName
+      type: object
+      properties:
+        id:
+          format: int64
+          description: 'Read-only. The unique user id. If referenced use the URN notation:
+            urn:nb:cm:user:<id>'
+          type: integer
+        managedIdentity:
+          description: The user is as known by the IDM (Keycloak). The format is determined
+            by the IDM.
+          type: string
+        givenName:
+          description: The first name of the driver.
+          type: string
+        familyName:
+          description: The family name of the driver.
+          type: string
+        email:
+          description: The email address of the user.
+          type: string
+      example:
+        familyName: Normalverbraucher
+        givenName: Otto
+        id: 2
+        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
   responses:
     InternalServerError:
       content:
