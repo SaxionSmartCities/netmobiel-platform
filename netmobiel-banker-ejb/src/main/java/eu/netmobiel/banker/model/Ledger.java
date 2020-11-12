@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.model;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -34,7 +35,9 @@ import javax.validation.constraints.Size;
 })
 @Vetoed
 @SequenceGenerator(name = "ledger_sg", sequenceName = "ledger_seq", allocationSize = 1, initialValue = 50)
-public class Ledger {
+public class Ledger  implements Serializable {
+	private static final long serialVersionUID = 5759075491862308469L;
+
 	public static final int NAME_MAX_LENGTH = 32;
 
 	public static final Predicate<Ledger> notClosed = ldg -> ldg.getEndPeriod() == null;

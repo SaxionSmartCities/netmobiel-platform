@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.model;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
 import java.util.Set;
@@ -43,7 +44,8 @@ import nl.garvelink.iban.IBAN;
 })
 @Vetoed
 @SequenceGenerator(name = "account_sg", sequenceName = "account_seq", allocationSize = 1, initialValue = 50)
-public class Account {
+public class Account implements Serializable {
+	private static final long serialVersionUID = 2944298919351335815L;
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(Account.class);
 	public static final int ACCOUNT_NCAN_MAX_LENGTH = 32;
 	public static final int ACCOUNT_NAME_MAX_LENGTH = 96;

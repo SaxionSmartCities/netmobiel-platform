@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.model;
 
+import java.io.Serializable;
 import java.time.Instant;
 
 import javax.enterprise.inject.Vetoed;
@@ -36,7 +37,8 @@ import eu.netmobiel.banker.util.BankerUrnHelper;
 })
 @Vetoed
 @SequenceGenerator(name = "deposit_request_sg", sequenceName = "deposit_request_seq", allocationSize = 1, initialValue = 50)
-public class DepositRequest {
+public class DepositRequest  implements Serializable {
+	private static final long serialVersionUID = 9049873109831373272L;
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(DepositRequest.class);
 	public static final int DESCRIPTION_MAX_LENGTH = 128;
 	public static final int MERCHANT_ORDER_ID_MAX_LENGTH = 48;

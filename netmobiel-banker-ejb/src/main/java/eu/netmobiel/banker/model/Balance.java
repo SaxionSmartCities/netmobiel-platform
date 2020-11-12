@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.model;
 
+import java.io.Serializable;
 import java.time.Instant;
 
 import javax.enterprise.inject.Vetoed;
@@ -36,7 +37,8 @@ import eu.netmobiel.banker.exception.BalanceInsufficientException;
 })
 @Vetoed
 @SequenceGenerator(name = "balance_sg", sequenceName = "balance_seq", allocationSize = 1, initialValue = 50)
-public class Balance {
+public class Balance  implements Serializable {
+	private static final long serialVersionUID = -3028192785769364735L;
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "balance_sg")

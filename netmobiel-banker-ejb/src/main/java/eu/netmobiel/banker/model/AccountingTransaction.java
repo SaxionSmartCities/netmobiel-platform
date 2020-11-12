@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.model;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -39,7 +40,8 @@ import eu.netmobiel.banker.util.BankerUrnHelper;
 @Table(name = "accounting_transaction")
 @Vetoed
 @SequenceGenerator(name = "accounting_transaction_sg", sequenceName = "accounting_transaction_seq", allocationSize = 1, initialValue = 50)
-public class AccountingTransaction {
+public class AccountingTransaction  implements Serializable {
+	private static final long serialVersionUID = 3727743146030632429L;
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix("transaction");
 	public static final int DESCRIPTION_MAX_LENGTH = 256;
 
