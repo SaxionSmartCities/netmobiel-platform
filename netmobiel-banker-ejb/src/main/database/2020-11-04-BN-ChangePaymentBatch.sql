@@ -41,8 +41,8 @@ ALTER TABLE public.payment_batch
         ON DELETE NO ACTION
 ;
 ALTER TABLE public.withdrawal_request 
-	DROP CONSTRAINT withdrawal_request_settled_by_fk,
-	ADD CONSTRAINT withdrawal_request_modified_by_fk FOREIGN KEY (modified_by)
+	DROP CONSTRAINT withdrawal_settled_by_fk,
+	ADD CONSTRAINT withdrawal_modified_by_fk FOREIGN KEY (modified_by)
         REFERENCES public.bn_user (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE NO ACTION
