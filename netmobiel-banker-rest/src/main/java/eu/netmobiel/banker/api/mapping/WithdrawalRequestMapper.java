@@ -4,7 +4,6 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
-import eu.netmobiel.banker.api.mapping.annotation.AccountAll;
 import eu.netmobiel.banker.api.mapping.annotation.AccountMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.AccountMinimal;
 import eu.netmobiel.banker.api.mapping.annotation.UserMapperQualifier;

@@ -4,6 +4,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import eu.netmobiel.banker.api.mapping.annotation.AccountMapperQualifier;
+import eu.netmobiel.banker.api.mapping.annotation.AccountMinimal;
 import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.commons.model.PagedResult;
 
@@ -19,6 +21,7 @@ public interface BalanceMapper {
 
 	// Domain --> API
 	@Mapping(target = "ledger", source = "ledger.name")
+	@Mapping(target = "account", source = "account", qualifiedBy = { AccountMapperQualifier.class, AccountMinimal.class })
 	eu.netmobiel.banker.api.model.Balance map(Balance source);
 	
 	eu.netmobiel.banker.api.model.Page map(PagedResult<Balance> source);

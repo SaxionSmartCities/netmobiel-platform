@@ -245,6 +245,9 @@ public class WithdrawalRequest extends ReferableObject {
 		return account;
 	}
 
+	public String getAccountRef() {
+		return UrnHelper.createUrn(Account.URN_PREFIX, account.getId());
+	}
 	public void setAccount(Account account) {
 		this.account = account;
 	}
