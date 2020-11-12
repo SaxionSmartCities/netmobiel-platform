@@ -470,6 +470,36 @@ public class LedgerService {
     }
 
     /**
+     * Retrieves the specified account, including the actual balance.
+     * @param id
+     * @return
+     * @throws NotFoundException
+     */
+    @RolesAllowed({ "admin" })
+    public Account getAccount(Long id) throws NotFoundException {
+    	Account acc = accountDao.find(id)
+    			.orElseThrow(() -> new NotFoundException("No such Account: " + id));
+		Balance balance = balanceDao.findActualBalance(acc);
+		acc.setActualBalance(balance);
+		return acc;
+    }
+
+    /**
+     * Updates the specified account. Only name, iban and iban holder can be modified.
+     * @param accId the account id
+     * @param acc the updated parameters.
+     * @throws NotFoundException
+     */
+    @RolesAllowed({ "admin" })
+    public void updateAccount(Long accId, Account acc) throws NotFoundException {
+    	Account accdb = accountDao.find(accId)
+    			.orElseThrow(() -> new NotFoundException("No such Account: " + accId));
+    	accdb.setIban(acc.getIban());
+    	accdb.setIbanHolder(acc.getIbanHolder());
+    	accdb.setName(acc.getName());
+    }
+
+    /**
      * Create an account and connect it through a balance to the active ledger.   
      * @param holder the holder of the account.
      * @param reference the external reference to the account.
@@ -687,12 +717,14 @@ public class LedgerService {
     public Long createWithdrawalRequest(BankerUser requestedBy, Account acc, int amountCredits, String description) throws BalanceInsufficientException, NotFoundException, BadRequestException {
     	OffsetDateTime now = OffsetDateTime.now();
     	WithdrawalRequest wr = new WithdrawalRequest();
+    	wr.setCreationTime(now.toInstant());
 		wr.setCreatedBy(requestedBy);
+		wr.setModificationTime(now.toInstant());
+		wr.setModifiedBy(requestedBy);
     	wr.setAccount(acc);
     	wr.setAmountCredits(amountCredits);
     	wr.setAmountEurocents(amountCredits * CREDIT_EXCHANGE_RATE);
     	wr.setDescription(description);
-    	wr.setCreationTime(now.toInstant());
     	wr.setStatus(PaymentStatus.REQUESTED);
     	if (wr.getAccount().getIban() == null || wr.getAccount().getIban().isBlank()) {
     		throw new BadRequestException("Account has no IBAN: " + wr.getAccount().getName());
@@ -754,6 +786,8 @@ public class LedgerService {
 
     /**
      * Cancels a single withdrawal request. The withdrawal can only be cancelled by the original requestor or by an admin.
+     * Once a request is active, it is part of a paymaent batch. At that point the request cannot be cancelled anymore by 
+     * the requestor.
      * @param withdrawalId the withdrawal request to cancel
      * @throws BadRequestException 
      */
@@ -764,12 +798,15 @@ public class LedgerService {
 				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
     	WithdrawalRequest wrdb = withdrawalRequestDao.find(withdrawalId)
     			.orElseThrow(() -> new IllegalStateException("No such withdrawal request: " + withdrawalId));
+		if (wrdb.getStatus().isFinal()) {
+			throw new BadRequestException(String.format("Withdrawal request has already reached final state: %d %s", withdrawalId, wrdb.getStatus()));
+		}
 		boolean admin = sessionContext.isCallerInRole("admin");
 		if (!admin && ! me.equals(wrdb.getCreatedBy())) {
 			throw new EJBAccessException("You are not allowed to cancel this withdrawal request: " + withdrawalId);
 		}
-		if (wrdb.getStatus().isFinal()) {
-			throw new BadRequestException(String.format("Withdrawal request has already reached final state: %d %s", withdrawalId, wrdb.getStatus()));
+		if (!admin && wrdb.getStatus() == PaymentStatus.ACTIVE) {
+			throw new EJBAccessException("Withdrawal request is already being processed: " + withdrawalId);
 		}
     	OffsetDateTime now = OffsetDateTime.now();
 		AccountingTransaction tr_r = release(wrdb.getTransaction(), now);
@@ -833,7 +870,18 @@ public class LedgerService {
     	if (wdrs.isEmpty()) {
     		throw new NotFoundException("No active withdrawal requests");
     	}
+    	Account originator = accountDao.findByAccountNumber(ACC_REF_BANKING_RESERVE)
+    			.orElseThrow(() -> new IllegalStateException("No originator account found"));
     	PaymentBatch pb = new PaymentBatch();
+    	pb.setOriginatorAccount(originator);
+    	if (originator.getIban() == null || originator.getIban().isBlank()) {
+    		throw new BadRequestException("Originator account has no IBAN: " + originator.getName());
+    	}
+    	if (originator.getIbanHolder() == null || originator.getIbanHolder().isBlank()) {
+    		throw new BadRequestException("Originator account has no IBAN Holder: " + originator.getName());
+    	}
+    	pb.setOriginatorIban(originator.getIban());
+    	pb.setOriginatorIbanHolder(originator.getIbanHolder());
     	pb.setCreatedBy(me);
     	pb.setCreationTime(Instant.now());
     	pb.setModifiedBy(me);
@@ -885,7 +933,6 @@ public class LedgerService {
     	String caller = sessionContext.getCallerPrincipal().getName();
 		BankerUser me = userDao.findByManagedIdentity(caller)
 				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
-    	pb.setModifiedBy(me);
     	// Process the withdrawal requests one by one. 
     	// A failure of one should not affect others. Use a new transaction for each withdrawal request.
     	// Flag the batch as completed if there are no failures.
@@ -902,6 +949,7 @@ public class LedgerService {
 			}
 		}
 		pb.setModificationTime(Instant.now());
+    	pb.setModifiedBy(me);
     	if (errors.isEmpty()) {
     		// The batch has been processed successfully 
     		pb.setStatus(PaymentStatus.COMPLETED);
@@ -930,7 +978,6 @@ public class LedgerService {
     	String caller = sessionContext.getCallerPrincipal().getName();
 		BankerUser me = userDao.findByManagedIdentity(caller)
 				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
-    	pb.setModifiedBy(me);
     	// Process the withdrawal requests one by one. 
     	// A failure of one should not affect others. Use a new transaction for each withdrawal request.
     	// Flag the batch as completed if there are no failures.
@@ -947,6 +994,7 @@ public class LedgerService {
 			}
 		}
 		pb.setModificationTime(Instant.now());
+    	pb.setModifiedBy(me);
     	if (errors.isEmpty()) {
     		// The batch has been processed successfully 
     		pb.setStatus(PaymentStatus.CANCELLED);

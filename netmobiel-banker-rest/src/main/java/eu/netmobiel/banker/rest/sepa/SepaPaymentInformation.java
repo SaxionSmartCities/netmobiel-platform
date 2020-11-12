@@ -26,9 +26,12 @@ public class SepaPaymentInformation {
 
 	}
 
+	/**
+	 * According ABN Amro this id is not used.
+	 */
 	@NotNull
 	@SepaIdentifier
-	private String batchId;
+	private String id;
 
 	private int nrTransactions;
 	
@@ -47,8 +50,8 @@ public class SepaPaymentInformation {
 	
 	private LocalDate executionDate;
 
-	private SepaPaymentInformation(String batchId, int nrTx, BigDecimal sum, LocalDate executionDate, IBAN account, String name) {
-		this.batchId = batchId;
+	private SepaPaymentInformation(String id, int nrTx, BigDecimal sum, LocalDate executionDate, IBAN account, String name) {
+		this.id = id;
 		this.nrTransactions = nrTx;
 		this.controlSum = sum;
 		this.executionDate = executionDate;
@@ -57,7 +60,7 @@ public class SepaPaymentInformation {
 	}
 
 	public static class Builder {
-		private String batchId;
+		private String id;
 		// Number of transaction in the batch
 		private int nrTransactions;
 		// The sum of the amount in the batch
@@ -66,8 +69,8 @@ public class SepaPaymentInformation {
 		private IBAN account;
 		private String name;
 		
-		public Builder(String batchId) {
-			this.batchId = SepaFormat.identifier(batchId);
+		public Builder(String paymentInfoId) {
+			this.id = SepaFormat.identifier(paymentInfoId);
 		}
 
 		public Builder of(Collection<SepaTransaction> transactions) {
@@ -93,14 +96,14 @@ public class SepaPaymentInformation {
 		}
 
 		public SepaPaymentInformation build() {
-			return new SepaPaymentInformation(batchId, nrTransactions, controlSum, executionDate, account, name);
+			return new SepaPaymentInformation(id, nrTransactions, controlSum, executionDate, account, name);
 		}
 
 	}
 
 	public XMLNode toXml(XMLNode parent) {
 		XMLNode node = parent.append("PmtInf");
-		node.append("PmtInfId").value(batchId);
+		node.append("PmtInfId").value(id);
 		node.append("PmtMtd").value(PaymentMethods.TransferAdvice.getCode());
 		node.append("NbOfTxs").value(nrTransactions);
 		node.append("CtrlSum").value(controlSum.toPlainString());

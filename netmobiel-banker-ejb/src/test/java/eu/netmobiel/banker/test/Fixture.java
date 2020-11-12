@@ -126,13 +126,16 @@ public class Fixture {
 		return wr;
 	}
 
-	public static PaymentBatch createPaymentBatch(BankerUser requestor) {
+	public static PaymentBatch createPaymentBatch(Account originator, BankerUser requestor) {
     	PaymentBatch pb = new PaymentBatch();
     	pb.setCreatedBy(requestor);
     	pb.setCreationTime(Instant.now());
 		pb.setModificationTime(pb.getCreationTime());
 		pb.setModifiedBy(pb.getCreatedBy());
 		pb.setStatus(PaymentStatus.ACTIVE);
+		pb.setOriginatorAccount(originator);
+		pb.setOriginatorIban(originator.getIban());
+		pb.setOriginatorIbanHolder(originator.getIbanHolder());
     	return pb;
 	}
 

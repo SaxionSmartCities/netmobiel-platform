@@ -9,7 +9,10 @@ import javax.validation.Valid;
  * the allowed character. The latter seems omitted in the XSD scheme. 
  * 
  * The builder applied pattern used throughout the construction of the document assures proper 
- * validation (and adaptation) of the input.  
+ * validation (and adaptation) of the input. 
+ * 
+ * Although the specification allows for multiple payment information blocks, this implementation
+ * limits the number to one only. NetMobiel will never use multiple debtor accounts. 
  *  
  * @author Jaap Reitsma
  *

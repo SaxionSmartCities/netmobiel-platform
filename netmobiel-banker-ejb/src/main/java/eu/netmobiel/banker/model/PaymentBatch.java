@@ -30,7 +30,9 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
+import eu.netmobiel.banker.validator.IBANBankAccount;
 import eu.netmobiel.commons.model.ReferableObject;
+import eu.netmobiel.commons.util.UrnHelper;
 
 /**
  * Class to capture a bundle of WithdrawalRequests in a single PaymentBatch for the treasurer to process. 
@@ -144,6 +146,27 @@ public class PaymentBatch extends ReferableObject {
 	@Column(name = "reason")
 	private String reason;
 	
+	@NotNull
+    @ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name = "originator_account", nullable = false, foreignKey = @ForeignKey(name = "payment_batch_originator_account_fk"))
+    private Account originatorAccount;
+
+	/**
+	 * The originator IBAN number. This is copied at the time of the creation of the paymnet batch to prevent change of bank 
+	 * account during processing of the batch or afterwards (i.e. don't change the history). 
+	 */
+    @IBANBankAccount
+	@Size(max = 48)
+    @Column(name = "originator_iban")
+    private String originatorIban;
+
+	/**
+	 * The holder of the originator's IBAN account. A copy, see IBAN comment.
+	 */
+	@Size(max = 96)
+    @Column(name = "originator_iban_holder")
+    private String originatorIbanHolder;
+
 	public PaymentBatch() {
     }
 
@@ -240,6 +263,34 @@ public class PaymentBatch extends ReferableObject {
 
 	public void setReason(String reason) {
 		this.reason = reason;
+	}
+
+	public Account getOriginatorAccount() {
+		return originatorAccount;
+	}
+
+	public String getOriginatorAccountRef() {
+		return UrnHelper.createUrn(Account.URN_PREFIX, getOriginatorAccount().getId());
+	}
+
+	public void setOriginatorAccount(Account originatorAccount) {
+		this.originatorAccount = originatorAccount;
+	}
+
+	public String getOriginatorIban() {
+		return originatorIban;
+	}
+
+	public void setOriginatorIban(String originatorIban) {
+		this.originatorIban = originatorIban;
+	}
+
+	public String getOriginatorIbanHolder() {
+		return originatorIbanHolder;
+	}
+
+	public void setOriginatorIbanHolder(String originatorIbanHolder) {
+		this.originatorIbanHolder = originatorIbanHolder;
 	}
 
 	/**

@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.model;
 
+import java.beans.Transient;
 import java.time.Instant;
 
 import javax.enterprise.inject.Vetoed;
@@ -17,7 +18,6 @@ import javax.persistence.NamedEntityGraphs;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 
@@ -110,12 +110,6 @@ public class Donation extends ReferableObject {
     @Column(name = "anonymous", nullable = false)
     private boolean anonymous;
 
-//	@Transient
-//    private String charityRef;
-    
-	@Transient
-    private String donorRef;
-    
     public Donation() {
     }
 
@@ -142,7 +136,7 @@ public class Donation extends ReferableObject {
 		return URN_PREFIX;
 	}
 
-//	@Transient
+	@Transient
 	public String getCharityRef() {
 		return UrnHelper.createUrn(Charity.URN_PREFIX, getCharity().getId());
 	}

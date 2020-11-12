@@ -20,7 +20,6 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.PaymentBatch;
-import eu.netmobiel.banker.model.PaymentBatch_;
 import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.TransactionType;
 import eu.netmobiel.banker.model.WithdrawalRequest;
@@ -76,7 +75,7 @@ public class WithdrawalRequestDaoIT extends BankerIntegrationTestBase {
 
 		WithdrawalRequest wr1 = Fixture.createWithdrawalRequest(account1, user1, "Test my request 1", 100, dummyTransaction1);
     	em.persist(wr1);
-    	PaymentBatch pb = Fixture.createPaymentBatch(user1);
+    	PaymentBatch pb = Fixture.createPaymentBatch(bankingReserve, user1);
     	em.persist(pb);
     	pb.addWithdrawalRequest(wr1);
 
@@ -124,14 +123,11 @@ public class WithdrawalRequestDaoIT extends BankerIntegrationTestBase {
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.ACCOUNT));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.CREATED_BY));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.MODIFIED_BY));
-    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.PAYMENT_BATCH));
+    	assertFalse(puu.isLoaded(wr, WithdrawalRequest_.PAYMENT_BATCH));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.AMOUNT_CREDITS));
     	assertFalse(puu.isLoaded(wr, WithdrawalRequest_.TRANSACTION));
     	PaymentBatch pb = wr.getPaymentBatch();
     	assertNotNull(pb);
-    	assertTrue(puu.isLoaded(pb, PaymentBatch_.CREATION_TIME));
-    	assertFalse(puu.isLoaded(pb, PaymentBatch_.WITHDRAWAL_REQUESTS));
-    	assertTrue(puu.isLoaded(pb, PaymentBatch_.CREATED_BY));
     }
 
     @Test
@@ -151,14 +147,11 @@ public class WithdrawalRequestDaoIT extends BankerIntegrationTestBase {
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.ACCOUNT));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.CREATED_BY));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.MODIFIED_BY));
-    	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.PAYMENT_BATCH));
+    	assertFalse(puu.isLoaded(wr, WithdrawalRequest_.PAYMENT_BATCH));
     	assertTrue(puu.isLoaded(wr, WithdrawalRequest_.AMOUNT_CREDITS));
     	assertFalse(puu.isLoaded(wr, WithdrawalRequest_.TRANSACTION));
     	PaymentBatch pb = wr.getPaymentBatch();
     	assertNotNull(pb);
-    	assertTrue(puu.isLoaded(pb, PaymentBatch_.CREATION_TIME));
-    	assertFalse(puu.isLoaded(pb, PaymentBatch_.WITHDRAWAL_REQUESTS));
-    	assertTrue(puu.isLoaded(pb, PaymentBatch_.CREATED_BY));
     }
 
     @Test

@@ -21,7 +21,6 @@ import javax.persistence.NamedEntityGraphs;
 import javax.persistence.PostPersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
@@ -105,12 +104,6 @@ public class WithdrawalRequest extends ReferableObject {
 	@JoinColumn(name = "payment_batch", nullable = true, foreignKey = @ForeignKey(name = "withdrawal_payment_batch_fk"))
     private PaymentBatch paymentBatch;
 
-    /**
-     * Reference to the payment batch.
-     */
-    @Transient
-    private String paymentBatchRef;
-    
 	/**
      * The request is related to an account
      */
@@ -242,14 +235,10 @@ public class WithdrawalRequest extends ReferableObject {
 
 	public void setPaymentBatch(PaymentBatch paymentBatch) {
 		this.paymentBatch = paymentBatch;
-		this.paymentBatchRef = null;
 	}
 
 	public String getPaymentBatchRef() {
-		if (paymentBatch != null && paymentBatchRef == null) {
-			paymentBatchRef = UrnHelper.createUrn(PaymentBatch.URN_PREFIX, paymentBatch.getId());
-		}
-		return paymentBatchRef;
+		return paymentBatch == null ? null : UrnHelper.createUrn(PaymentBatch.URN_PREFIX, paymentBatch.getId());
 	}
 
 	public Account getAccount() {
