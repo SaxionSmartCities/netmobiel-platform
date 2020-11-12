@@ -1,5 +1,6 @@
 package eu.netmobiel.planner.model;
 
+import java.io.Serializable;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
@@ -83,7 +84,8 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 @Vetoed
 @Access(AccessType.FIELD)
 @SequenceGenerator(name = "trip_plan_sg", sequenceName = "trip_plan_id_seq", allocationSize = 1, initialValue = 50)
-public class TripPlan {
+public class TripPlan implements Serializable {
+	private static final long serialVersionUID = -4434111737718478002L;
 	public static final String DETAILED_ENTITY_GRAPH = "list-detailed-trip-plan-entity-graph";
 	public static final String SHOUT_OUT_ENTITY_GRAPH = "list-shout-out-trip-plan-entity-graph";
 	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(TripPlan.class);
