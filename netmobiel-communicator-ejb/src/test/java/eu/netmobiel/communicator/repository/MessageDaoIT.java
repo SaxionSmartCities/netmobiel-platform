@@ -92,7 +92,7 @@ public class MessageDaoIT {
         log.debug("Dumping old records...");
         em.createQuery("delete from Envelope").executeUpdate();
         em.createQuery("delete from Message").executeUpdate();
-        em.createQuery("delete from User").executeUpdate();
+        em.createQuery("delete from CommunicatorUser").executeUpdate();
         utx.commit();
     }
 
