@@ -219,11 +219,11 @@ public class LedgerService {
     public AccountingTransaction release(AccountingTransaction reservation, OffsetDateTime when) {
     	Ledger ledger = reservation.getLedger();
     	ledger.expectOpen();
+    	AccountingEntry userEntry = reservation.lookupByCounterParty(ACC_REF_RESERVATIONS);
     	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);  
-    	AccountingEntry userEntry = reservation.lookupByCounterParty(rb.getAccount());
     	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, userEntry.getAccount());  
-    	expect(userBalance.getAccount(), AccountType.LIABILITY);
     	expect(rb.getAccount(), AccountType.LIABILITY);
+    	expect(userBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = null;
     	try {
         	tr = ledger
