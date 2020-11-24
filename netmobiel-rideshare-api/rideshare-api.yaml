@@ -632,6 +632,30 @@ paths:
         schema:
           type: integer
         in: query
+      - name: state
+        description: Filter the rides to contain only rides with the specified state.
+          Specifying a state will override the flag `deletedToo`.
+        schema:
+          enum:
+          - SCHEDULED
+          - DEPARTING
+          - IN_TRANSIT
+          - ARRIVING
+          - VALIDATING
+          - COMPLETED
+          - CANCELLED
+          type: string
+        in: query
+      - name: bookingState
+        description: Only show rides with a booking having the specified state.
+        schema:
+          enum:
+          - Proposed
+          - Requested
+          - Confirmed
+          - Cancelled
+          type: string
+        in: query
       responses:
         "200":
           content:
