@@ -573,6 +573,32 @@ paths:
       operationId: searchRides
       summary: Search for rides
       description: Search and retrieve matching rides.
+  /rides/{rideId}/confirm/{value}:
+    summary: Path used to confirm a ride.
+    description: Endpoint used to confirm a ride, using a PUT.
+    put:
+      responses:
+        "204":
+          description: Success response, the ride has been confirmed.
+      operationId: confirmRide
+      summary: Confirms a ride.
+      description: Confirms that the driver has actually driven this ride. It cannot
+        be undone. Once the driver has confirmed the ride, the credits will be claimed
+        unless the passenger denies having been in the car. A confirmation can only
+        be issued once.
+    parameters:
+    - name: rideId
+      description: A unique identifier for a `Ride`.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: value
+      description: 'A confirmation alue: true of false.'
+      schema:
+        type: boolean
+      in: path
+      required: true
   /rides:
     summary: Path used to manage rides.
     description: The REST endpoint/path used to list and create zero or more `Ride`
@@ -608,30 +634,6 @@ paths:
           format: date-time
           type: string
         in: query
-      - name: deletedToo
-        description: If set to true then return also cancelled rides.
-        schema:
-          type: boolean
-        in: query
-      - name: sortDir
-        description: The sorting direction based on departure time, either ascending
-          (ASC) or descending (DESC). Default ascending.
-        schema:
-          enum:
-          - ASC
-          - DESC
-          type: string
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
       - name: state
         description: Filter the rides to contain only rides with the specified state.
           Specifying a state will override the flag `deletedToo`.
@@ -655,6 +657,30 @@ paths:
           - Confirmed
           - Cancelled
           type: string
+        in: query
+      - name: deletedToo
+        description: If set to true then return also cancelled rides.
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: The sorting direction based on departure time, either ascending
+          (ASC) or descending (DESC). Default ascending.
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
         in: query
       responses:
         "200":
@@ -745,32 +771,6 @@ paths:
         Add a new ride. The calling user will be the driver.
 
         If recurrence is set, then all future drivers up to 8 weeks in advance are generated as well.
-  /rides/{rideId}/confirm/{value}:
-    summary: Path used to confirm a ride.
-    description: Endpoint used to confirm a ride, using a PUT.
-    put:
-      responses:
-        "204":
-          description: Success response, the ride has been confirmed.
-      operationId: confirmRide
-      summary: Confirms a ride.
-      description: Confirms that the driver has actually driven this ride. It cannot
-        be undone. Once the driver has confirmed the ride, the credits will be claimed
-        unless the passenger denies having been in the car. A confirmation can only
-        be issued once.
-    parameters:
-    - name: rideId
-      description: A unique identifier for a `Ride`.
-      schema:
-        type: string
-      in: path
-      required: true
-    - name: value
-      description: 'A confirmation alue: true of false.'
-      schema:
-        type: boolean
-      in: path
-      required: true
 components:
   schemas:
     Car:
