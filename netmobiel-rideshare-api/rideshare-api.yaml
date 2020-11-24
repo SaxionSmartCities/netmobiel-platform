@@ -635,8 +635,7 @@ paths:
           type: string
         in: query
       - name: state
-        description: Filter the rides to contain only rides with the specified state.
-          Specifying a state will override the flag `deletedToo`.
+        description: 'Filter the rides to contain only rides with the specified state. '
         schema:
           enum:
           - SCHEDULED
@@ -659,7 +658,7 @@ paths:
           type: string
         in: query
       - name: deletedToo
-        description: If set to true then return also cancelled rides.
+        description: If set to true then return also deleted rides.
         schema:
           type: boolean
         in: query
