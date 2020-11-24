@@ -13,24 +13,27 @@ import javax.persistence.NoResultException;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
+import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
+import eu.netmobiel.rideshare.model.Booking_;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideState;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.RideTemplate_;
 import eu.netmobiel.rideshare.model.Ride_;
-import eu.netmobiel.rideshare.model.RideshareUser;
 
 @ApplicationScoped
 @Typed(RideDao.class)
@@ -53,44 +56,49 @@ public class RideDao extends AbstractDao<Ride, Long> {
 		return em;
 	}
 
-    public PagedResult<Long> findByDriver(RideshareUser driver, Instant since, Instant until, Boolean deletedToo, SortDirection sortDirection, Integer maxResults, Integer offset) {
+    public PagedResult<Long> findByDriver(RideFilter filter, Cursor cursor) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Ride> rides = cq.from(Ride.class);
         List<Predicate> predicates = new ArrayList<>();
-        Predicate predDriver = cb.equal(rides.get(RideTemplate_.driver), driver);
+        Predicate predDriver = cb.equal(rides.get(RideTemplate_.driver), filter.getDriver());
         predicates.add(predDriver);
-        if (since != null) {
-	        Predicate predSince = cb.greaterThanOrEqualTo(rides.get(Ride_.departureTime), since);
-	        predicates.add(predSince);
+        if (filter.getSince() != null) {
+	        predicates.add(cb.greaterThanOrEqualTo(rides.get(Ride_.departureTime), filter.getSince()));
         }        
-        if (until != null) {
-	        Predicate predUntil = cb.lessThanOrEqualTo(rides.get(Ride_.departureTime), until);
-	        predicates.add(predUntil);
+        if (filter.getUntil() != null) {
+	        predicates.add(cb.lessThanOrEqualTo(rides.get(Ride_.departureTime), filter.getUntil()));
         }        
-        if (deletedToo == null || !deletedToo) {
+        if (filter.getRideState() != null) {
+	        predicates.add(cb.equal(rides.get(Ride_.state), filter.getRideState()));
+        }        
+        if (filter.getBookingState() != null) {
+        	Join<Ride, Booking> booking = rides.join(Ride_.bookings);
+	        predicates.add(cb.equal(booking.get(Booking_.state), filter.getBookingState()));
+        }        
+        if (!filter.isDeletedToo()) {
             Predicate predNotDeleted = cb.or(cb.isNull(rides.get(Ride_.deleted)), cb.isFalse(rides.get(Ride_.deleted)));
 	        predicates.add(predNotDeleted);
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;
         List<Long> results = Collections.emptyList();
-        if (maxResults == 0) {
+        if (cursor.isCountingQuery()) {
             cq.select(cb.count(rides.get(Ride_.id)));
             totalCount = em.createQuery(cq).getSingleResult();
         } else {
             cq.select(rides.get(Ride_.id));
-            if (sortDirection == SortDirection.DESC) {
+            if (filter.getSortDir() == SortDirection.DESC) {
             	cq.orderBy(cb.desc(rides.get(Ride_.departureTime)));
             } else {
             	cq.orderBy(cb.asc(rides.get(Ride_.departureTime)));
             }
 	        TypedQuery<Long> tq = em.createQuery(cq);
-			tq.setFirstResult(offset);
-			tq.setMaxResults(maxResults);
+			tq.setFirstResult(cursor.getOffset());
+			tq.setMaxResults(cursor.getMaxResults());
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+        return new PagedResult<Long>(results, cursor, totalCount);
     }
 
 

@@ -21,6 +21,7 @@ import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.rideshare.Resources;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
+import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.RideTemplate_;
 import eu.netmobiel.rideshare.repository.converter.BookingStateConverter;
@@ -48,6 +49,7 @@ public abstract class RideshareIntegrationTestBase {
                 .addPackages(true, RideTemplate_.class.getPackage())
                 .addPackages(true, AbstractDao.class.getPackage())
                 .addPackages(true, BookingStateConverter.class.getPackage())
+                .addPackages(true, RideFilter.class.getPackage())
                 .addPackages(true, Fixture.class.getPackage())
                 .addClass(Resources.class)
             	.addAsResource("test-setup.properties")

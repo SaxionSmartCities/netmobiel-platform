@@ -1,6 +1,5 @@
 package eu.netmobiel.banker.filter;
 
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 
@@ -8,15 +7,12 @@ import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.filter.PeriodFilter;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.UrnHelper;
 
-public class DonationFilter {
-	/**
-	 * For development purposes. Used to validate the since and until parameters.
-	 */
-	private Instant now;
+public class DonationFilter extends PeriodFilter {
 	/** ============================== 
 	 * Selection of charities
 	 */
@@ -40,12 +36,6 @@ public class DonationFilter {
 	 */
 	private Long userId;
 	private BankerUser user;
-	
-	/** ==============================
-	 * Selection based on donation time
-	 */
-	private Instant since;
-	private Instant until;
 	
 	private DonationSortBy sortBy;
 	private SortDirection sortDir;
@@ -81,14 +71,6 @@ public class DonationFilter {
 		setSortBy(sortBy);
 		setSortDir(sortDir);
 		this.anonymousToo = anonymousToo;
-	}
-
-	public Instant getNow() {
-		return now;
-	}
-
-	public void setNow(Instant now) {
-		this.now = now;
 	}
 
 	public Long getCharityId() {
@@ -149,34 +131,6 @@ public class DonationFilter {
 		this.radius = radius;
 	}
 
-	public Instant getSince() {
-		return since;
-	}
-
-	public void setSince(Instant since) {
-		this.since = since;
-	}
-
-	public final void setSince(OffsetDateTime since) {
-		if (since != null) {
-			this.since = since.toInstant();
-		}
-	}
-
-	public Instant getUntil() {
-		return until;
-	}
-
-	public void setUntil(Instant until) {
-		this.until = until;
-	}
-
-	public final void setUntil(OffsetDateTime until) {
-		if (until != null) {
-			this.until = until.toInstant();
-		}
-	}
-
 	public boolean isOmitInactiveCharities() {
 		return omitInactiveCharities;
 	}
@@ -233,12 +187,7 @@ public class DonationFilter {
 	}
 
 	public void validate() throws BadRequestException {
-    	if (now == null) {
-    		now = Instant.now();
-    	}
-    	if (until != null && since != null && !until.isAfter(since)) {
-    		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
-    	}
+		super.validate();
     	if (this.sortBy == null) {
     		this.sortBy = DonationSortBy.DATE;
     	}

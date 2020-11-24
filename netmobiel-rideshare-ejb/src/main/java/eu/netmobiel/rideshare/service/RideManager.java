@@ -38,14 +38,15 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.exception.UpdateException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.event.BookingSettledEvent;
 import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
+import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.Recurrence;
@@ -217,49 +218,37 @@ public class RideManager {
 		return rides.size();
 	}
 
+    protected void completeTheFilter(RideFilter filter) throws BadRequestException, NotFoundException {
+    	filter.validate();
+    	if (filter.getDriver() == null && filter.getDriverId() != null) {
+    		filter.setDriver(userDao.find(filter.getDriverId())
+        			.orElseThrow(() -> new NotFoundException("No such user: " + filter.getDriverId())));
+    	}
+    }
+    	
     /**
      * List all rides owned by the calling user (driverId is null) or owned by the specified user. Soft deleted rides are omitted.
      * @return A list of rides owned by the calling user.
      * @throws BadRequestException 
      */
-    public PagedResult<Ride> listRides(Long driverId, Instant since, Instant until, Boolean deletedToo, 
-    		SortDirection sortDirection, Integer maxResults, Integer offset) throws NotFoundException, BadRequestException {
-    	if (until != null && since != null && ! until.isAfter(since)) {
-    		throw new BadRequestException("Constraint violation: The 'until' date must be greater than the 'since' date.");
-    	}
-    	if (maxResults != null && maxResults > 100) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
-    	}
-    	if (maxResults != null && maxResults < 0) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' >= 0.");
-    	}
-    	if (offset != null && offset < 0) {
-    		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
-    	}
-        if (maxResults == null) {
-        	maxResults = MAX_RESULTS;
-        }
-        if (offset == null) {
-        	offset = 0;
-        }
-    	RideshareUser driver = null;
-    	if (driverId == null) {
-    		throw new BadRequestException("Constraint violation: 'driverId' is mandatory.");
-    	}
-    	driver = userDao.find(driverId)
-    				.orElseThrow(() -> new NotFoundException("No such user: " + driverId));
+    public PagedResult<Ride> listRides(RideFilter filter, Cursor cursor ) throws NotFoundException, BadRequestException {
+    	completeTheFilter(filter);
+    	cursor.validate(MAX_RESULTS, 0);
+    	// Assure user is in persistence context
+    	userDao.find(filter.getDriver().getId())
+    				.orElseThrow(() -> new NotFoundException("No such user: " + filter.getDriver().getId()));
     	List<Ride> results = Collections.emptyList();
         Long totalCount = 0L;
-		PagedResult<Long> prs = rideDao.findByDriver(driver, since, until, deletedToo, sortDirection, 0, 0);
+		PagedResult<Long> prs = rideDao.findByDriver(filter, Cursor.COUNTING_CURSOR);
 		totalCount = prs.getTotalCount();
-    	if (totalCount > 0 && maxResults > 0) {
+    	if (totalCount > 0 && ! cursor.isCountingQuery()) {
     		// Get the actual data
-    		PagedResult<Long> rideIds = rideDao.findByDriver(driver, since, until, deletedToo, sortDirection, maxResults, offset);
+    		PagedResult<Long> rideIds = rideDao.findByDriver(filter, cursor);
     		if (rideIds.getData().size() > 0) {
     			results = rideDao.loadGraphs(rideIds.getData(), Ride.LIST_RIDES_ENTITY_GRAPH, Ride::getId);
     		}
     	}
-    	return new PagedResult<Ride>(results, maxResults, offset, totalCount);
+    	return new PagedResult<Ride>(results, cursor, totalCount);
     }
 
     /**

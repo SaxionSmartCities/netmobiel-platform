@@ -23,9 +23,11 @@ import org.junit.runner.RunWith;
 
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SoftRemovedException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.rideshare.event.BookingSettledEvent;
+import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Booking_;
@@ -506,7 +508,10 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		Long rideId = createRecurrentRides(nrRides);
 		assertNotNull(rideId);
 		flush();
-    	PagedResult<Ride> ruts = rideManager.listRides(driver1.getId(), null, null, null, null, 10, 0);
+    	RideFilter filter = new RideFilter(driver1, null, null);
+    	filter.validate();
+    	Cursor cursor = new Cursor(10, 0);
+    	PagedResult<Ride> ruts = rideManager.listRides(filter, cursor);
     	flush();
     	assertEquals(nrRides, ruts.getTotalCount().intValue());
 
@@ -534,9 +539,11 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	// Verify sorting
     	assertTrue(nrRides >= 2);
     	assertTrue(ruts.getData().get(0).getDepartureTime().isBefore(ruts.getData().get(1).getDepartureTime()));
-    	ruts = rideManager.listRides(driver1.getId(), null, null, null, SortDirection.ASC, 10, 0);
+    	filter.setSortDir(SortDirection.ASC);
+    	ruts = rideManager.listRides(filter, cursor);
     	assertTrue(ruts.getData().get(0).getDepartureTime().isBefore(ruts.getData().get(1).getDepartureTime()));
-    	ruts = rideManager.listRides(driver1.getId(), null, null, null, SortDirection.DESC, 10, 0);
+    	filter.setSortDir(SortDirection.DESC);
+    	ruts = rideManager.listRides(filter, cursor);
     	assertTrue(ruts.getData().get(0).getDepartureTime().isAfter(ruts.getData().get(1).getDepartureTime()));
 
     }
