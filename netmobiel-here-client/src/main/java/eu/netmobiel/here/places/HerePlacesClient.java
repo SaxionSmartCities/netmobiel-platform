@@ -1,5 +1,6 @@
 package eu.netmobiel.here.places;
 
+import java.util.Locale;
 import java.util.concurrent.TimeUnit;
 
 import javax.annotation.PostConstruct;
@@ -18,18 +19,23 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.here.places.model.AutosuggestMediaType;
-
+import eu.netmobiel.here.places.model.ErrorResponse;
+/**
+ * Old places API
+ * @see https://developer.here.com/documentation/places/dev_guide/topics/what-is.html
+ * @author Jaap Reitsma
+ *
+ */
 @ApplicationScoped
 public class HerePlacesClient {
     @Inject
     private Logger log;
 
-    @Resource(lookup = "java:global/geocode/hereAppId")
-    private String hereAppId;
-    @Resource(lookup = "java:global/geocode/hereAppCode")
-    private String hereAppCode;
-    @Resource(lookup = "java:global/geocode/hereAppPlacesUrl")
-    private String hereAppPlacesUrl; 
+    @Resource(lookup = "java:global/geocode/hereApiKey")
+    private String hereApiKey;
+    
+    // This url differs from the one used with legacy appId, appCode!
+    private static final String hereAppPlacesUrl = "https://places.ls.hereapi.com/places/v1"; 
 
     private ResteasyClient client;
     
@@ -77,10 +83,8 @@ public class HerePlacesClient {
     	}
 		WebTarget target = client.target(hereAppPlacesUrl)
 			.path("autosuggest")
-			.queryParam("app_id", hereAppId)
-			.queryParam("app_code", hereAppCode)
 			.queryParam("q", query)
-			.queryParam("in", String.format("%f,%f;r=%d", centre.getLatitude(), centre.getLongitude(), radius));
+			.queryParam("in", String.format((Locale)null, "%f,%f;r=%d", centre.getLatitude(), centre.getLongitude(), radius));
 		if (resultTypes != null && !resultTypes.isEmpty()) {
 			target = target.queryParam("result_types", resultTypes);
 		}
@@ -93,12 +97,14 @@ public class HerePlacesClient {
 		if (maxResults != null) {
 			target = target.queryParam("size", maxResults);
 		}
+		target = target.queryParam("apiKey", hereApiKey);
 		
 		AutosuggestMediaType result = null;
 		log.debug("URI: " + target.getUri().toString());
 		try (Response response = target.request(MediaType.APPLICATION_JSON).get()) {
 			if (response.getStatusInfo() != Response.Status.OK) {
-				throw new WebApplicationException("Error retrieving data from HERE", response);
+				ErrorResponse ersp = response.readEntity(ErrorResponse.class);
+				throw new WebApplicationException(ersp.toString(), ersp.status);
 			}
 	        result = response.readEntity(AutosuggestMediaType.class);
 		}
