@@ -138,12 +138,12 @@ public class Donation extends ReferableObject {
 
 	@Transient
 	public String getCharityRef() {
-		return UrnHelper.createUrn(Charity.URN_PREFIX, getCharity().getId());
+		return getCharity() != null ? UrnHelper.createUrn(Charity.URN_PREFIX, getCharity().getId()) : null;
 	}
 
 	@Transient
 	public String getDonorRef() {
-		return UrnHelper.createUrn(BankerUser.URN_PREFIX, getUser().getId());
+		return getUser() != null ? UrnHelper.createUrn(BankerUser.URN_PREFIX, getUser().getId()) : null;
 	}
 
 	public String getDescription() {

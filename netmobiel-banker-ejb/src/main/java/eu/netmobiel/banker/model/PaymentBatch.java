@@ -270,7 +270,7 @@ public class PaymentBatch extends ReferableObject {
 	}
 
 	public String getOriginatorAccountRef() {
-		return UrnHelper.createUrn(Account.URN_PREFIX, getOriginatorAccount().getId());
+		return getOriginatorAccount() != null ? UrnHelper.createUrn(Account.URN_PREFIX, getOriginatorAccount().getId()) : null;
 	}
 
 	public void setOriginatorAccount(Account originatorAccount) {
