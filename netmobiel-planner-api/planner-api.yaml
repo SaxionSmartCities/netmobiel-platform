@@ -21,14 +21,19 @@ servers:
   description: The planner service visible to the world (acceptance).
 paths:
   /maintenance/otpdatabase:
+    summary: Start and inspect a OTP database update.
+    description: "The OTP graph is updated every monday morning at around 4 o'clock.\
+      \ The database \nwith the stops and clusters need also an update then. In general\
+      \ the changes are\nminimal. The information is used for finding potential transfer\
+      \ stops between public\ntransport and shared rides."
     get:
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/MaintenanceStatus'
-          description: The current status of the OTP data.
+                $ref: '#/components/schemas/OperationStatus'
+          description: The current status of the OTP database update.
       operationId: getOtpMaintenanceStatus
       description: Retrieves the status of the update.
     post:
@@ -344,6 +349,8 @@ paths:
           description: Successful response.
         "400":
           $ref: '#/components/responses/BadRequest'
+        "402":
+          $ref: '#/components/responses/PaymentRequested'
       operationId: createTrip
       summary: Create a Trip
       description: Creates a new instance of a `Trip`.
@@ -839,18 +846,31 @@ paths:
         type: string
       in: path
       required: true
+  /maintenance/report/:
+    summary: Start and inspect the report job.
+    description: |-
+      This endpoint controls the manual reporting for the platform. The report is generated automatically
+      at the 1st of each month.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/OperationStatus'
+          description: The current status of the report job.
+      operationId: getReportStatus
+      description: Retrieves the status of the update.
+    post:
+      responses:
+        "202":
+          description: The update is an asynchronous operation. The post will start
+            a report if no report operation is running.
+      operationId: startReport
+      description: Starts a report cycle. Reports are collected and subsequently mailed
+        to netmobielbeheer@gmail.com.
 components:
   schemas:
-    MaintenanceStatus:
-      title: Root Type for MaintenanceStatus
-      description: Data type used to cummunicate the status of the OTP data.
-      type: object
-      properties:
-        isRunning:
-          description: If true the maintenance job is active.
-          type: boolean
-      example:
-        isRunning: false
     Error:
       title: Root Type for Error
       description: The error response.
@@ -1610,6 +1630,16 @@ components:
         planRef: urn:nb:pn:tripplan:95346
         vehicleRef: urn:nb:rs:car:439
         driverRef: urn:nb:kc:user:a9a0eba0-e0ef-5691-816b-f28d9efebcef
+    OperationStatus:
+      title: Root Type for MaintenanceStatus
+      description: Data type used to cummunicate the status of the OTP data.
+      type: object
+      properties:
+        isRunning:
+          description: If true the operation (job) is active.
+          type: boolean
+      example:
+        isRunning: false
   responses:
     InternalServerError:
       content:
@@ -1657,6 +1687,13 @@ components:
             $ref: '#/components/schemas/Error'
       description: The request was understood, but in incomplete or invalid and cannot
         be processed (400).
+    PaymentRequested:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: A payment is requested, i.e. balance (in credits) is insufficient
+        for a payment (402).
   securitySchemes:
     apikey:
       type: apiKey
