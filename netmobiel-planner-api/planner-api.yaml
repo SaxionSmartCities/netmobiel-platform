@@ -846,29 +846,6 @@ paths:
         type: string
       in: path
       required: true
-  /maintenance/report/:
-    summary: Start and inspect the report job.
-    description: |-
-      This endpoint controls the manual reporting for the platform. The report is generated automatically
-      at the 1st of each month.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/OperationStatus'
-          description: The current status of the report job.
-      operationId: getReportStatus
-      description: Retrieves the status of the update.
-    post:
-      responses:
-        "202":
-          description: The update is an asynchronous operation. The post will start
-            a report if no report operation is running.
-      operationId: startReport
-      description: Starts a report cycle. Reports are collected and subsequently mailed
-        to netmobielbeheer@gmail.com.
 components:
   schemas:
     Error:
