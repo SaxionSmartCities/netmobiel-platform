@@ -115,6 +115,10 @@
 			<artifactId>javax.mail</artifactId>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
+		</dependency>
 
 		<!-- TEST Dependencies -->
         <dependency>
