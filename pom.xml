@@ -27,6 +27,7 @@
         <module>netmobiel-here-client</module>
         <module>netmobiel-otp-client</module>
         <module>netmobiel-overseer-ejb</module>
+        <module>netmobiel-overseer-rest</module>
         <module>netmobiel-parent-pom</module>
         <module>netmobiel-payment-client</module>
         <module>netmobiel-planner-api</module>

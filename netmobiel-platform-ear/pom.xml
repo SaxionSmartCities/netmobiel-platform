@@ -84,6 +84,12 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-overseer-rest</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
 			<artifactId>netmobiel-payment-client</artifactId>
 			<version>${project.version}</version>
 			<type>jar</type>
@@ -206,6 +212,12 @@
 				<artifactId>netmobiel-communicator-rest</artifactId>
               	<contextRoot>/communicator</contextRoot>
               	<bundleFileName>netmobiel-communicator-rest.war</bundleFileName>
+            </webModule>
+            <webModule>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-overseer-rest</artifactId>
+              	<contextRoot>/overseer</contextRoot>
+              	<bundleFileName>netmobiel-overseer-rest.war</bundleFileName>
             </webModule>
             <webModule>
 				<groupId>${project.groupId}</groupId>
