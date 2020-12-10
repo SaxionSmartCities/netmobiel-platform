@@ -1,5 +1,6 @@
 package eu.netmobiel.communicator.repository;
 
+import java.time.Instant;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -9,9 +10,11 @@ import javax.persistence.EntityManager;
 import javax.persistence.NoResultException;
 import javax.persistence.TypedQuery;
 
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
 import eu.netmobiel.communicator.model.Envelope;
+import eu.netmobiel.communicator.model.NumericReportValue;
 
 @ApplicationScoped
 @Typed(EnvelopeDao.class)
@@ -43,4 +46,31 @@ public class EnvelopeDao extends AbstractDao<Envelope, Long> {
 		return tq.getSingleResult();
 	}
 	
+    public List<NumericReportValue> reportMessagesReceived(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListMessagesReceivedCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+    public List<NumericReportValue> reportNotificationsReceived(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListNotificationsReceivedCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+    public List<NumericReportValue> reportMessagesRead(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListMessagesReadCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+    public List<NumericReportValue> reportNotificationsRead(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListNotificationsReadCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
 }

@@ -147,5 +147,47 @@ select mm.context, count(*) from envelope e join message mm on mm.id = e.message
  select mm.context, count(*) from envelope e join message mm on mm.id = e.message  
  where e.recipient = 'recipient A2' and e.ack_time is null group by mm.context
  */
+	
+	/*
+select u.family_name, date_part('year', m.created_time) as year, 
+date_part('month', m.created_time) as month, count(*)
+from message m 
+join envelope e on m.id = e.message
+join cm_user u on u.id = e.recipient
+where m.delivery_mode = 'AL' or m.delivery_mode = 'MS'
+group by u.family_name, date_part('year', m.created_time), date_part('month', m.created_time)
+order by u.family_name, date_part('year', m.created_time), date_part('month', m.created_time)
+	 
+	 */
+
+//    protected List<NumericReportValue> reportMessagesReceived(Instant since, Instant until, Cursor cursor) throws BadRequestException {
+        // This criteria code can work only when registering the date_part function in the dialect.
+        // @see https://thorben-janssen.com/database-functions/
+//    	CriteriaBuilder cb = em.getCriteriaBuilder();
+//        CriteriaQuery<NumericReportValue> cq = cb.createQuery(NumericReportValue.class);
+//        Root<Message> message = cq.from(Message.class);
+//        List<Predicate> predicates = new ArrayList<>();
+//        Join<Message, Envelope> envelope = message.join(Message_.envelopes);
+//        if (since != null) {
+//	        predicates.add(cb.greaterThanOrEqualTo(message.get(Message_.creationTime), since));
+//        }        
+//        if (until != null) {
+//	        predicates.add(cb.lessThan(message.get(Message_.creationTime), until));
+//        }
+//        Predicate predMode = cb.equal(message.get(Message_.deliveryMode), DeliveryMode.MESSAGE);
+//        Predicate predModeAll = cb.equal(message.get(Message_.deliveryMode), DeliveryMode.ALL);
+//        predicates.add(cb.or(predMode, predModeAll));
+//        cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
+//        Expression<Integer> year = cb.function("date_part", Integer.class, cb.literal("year"), message.get(Message_.creationTime));
+//        Expression<Integer> month = cb.function("date_part", Integer.class, cb.literal("month"), message.get(Message_.creationTime));
+//        Path<String> user = envelope.get(Envelope_.recipient).get(CommunicatorUser_.managedIdentity);
+//        cq.groupBy(user, year, month);
+//    	cq.select(cb.construct(NumericReportValue.class, user, year, month, cb.count(message)));
+//        cq.orderBy(cb.asc(user), cb.asc(year), cb.asc(month));
+//        TypedQuery<NumericReportValue> tq = em.createQuery(cq);
+//		tq.setFirstResult(cursor.getOffset());
+//		tq.setMaxResults(cursor.getMaxResults());
+//		return tq.getResultList();
+//    }
 
 }

@@ -6,6 +6,8 @@ import java.time.format.DateTimeFormatter;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
+import javax.persistence.ColumnResult;
+import javax.persistence.ConstructorResult;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
@@ -14,13 +16,80 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedNativeQueries;
+import javax.persistence.NamedNativeQuery;
 import javax.persistence.SequenceGenerator;
+import javax.persistence.SqlResultSetMapping;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
+
+@NamedNativeQueries({
+	@NamedNativeQuery(
+		name = "ListMessagesReceivedCount",
+		query = "select u.managed_identity as managed_identity, "
+        		+ "date_part('year', m.created_time) as year, " 
+        		+ "date_part('month', m.created_time) as month, "
+        		+ "count(*) as count "
+        		+ "from envelope e "
+        		+ "join message m on m.id = e.message "
+        		+ "join cm_user u on u.id = e.recipient "
+        		+ "where m.created_time >= ? and m.created_time < ? and (m.delivery_mode = 'AL' or m.delivery_mode = 'MS') "
+        		+ "group by u.managed_identity, year, month "
+        		+ "order by u.managed_identity, year, month",
+        resultSetMapping = "ListMessageCountMapping"),
+	@NamedNativeQuery(
+			name = "ListNotificationsReceivedCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', e.push_time) as year, " 
+	        		+ "date_part('month', e.push_time) as month, "
+	        		+ "count(*) as count "
+	        		+ "from envelope e "
+	        		+ "join cm_user u on u.id = e.recipient "
+	        		+ "where e.push_time >= ? and e.push_time < ? "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = "ListMessageCountMapping"),
+	@NamedNativeQuery(
+			name = "ListMessagesReadCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', e.ack_time) as year, " 
+	        		+ "date_part('month', e.ack_time) as month, "
+	        		+ "count(*) as count "
+	        		+ "from envelope e "
+	        		+ "join message m on m.id = e.message "
+	        		+ "join cm_user u on u.id = e.recipient "
+	        		+ "where e.ack_time >= ? and e.ack_time < ? and (m.delivery_mode = 'AL' or m.delivery_mode = 'MS') "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = "ListMessageCountMapping"),
+	@NamedNativeQuery(
+			name = "ListNotificationsReadCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', e.ack_time) as year, " 
+	        		+ "date_part('month', e.ack_time) as month, "
+	        		+ "count(*) as count "
+	        		+ "from envelope e "
+	        		+ "join cm_user u on u.id = e.recipient "
+	        		+ "where e.ack_time >= ? and e.ack_time < ? and e.push_time is not null "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = "ListMessageCountMapping")
+})
+@SqlResultSetMapping(
+		name = "ListMessageCountMapping", 
+		classes = @ConstructorResult(
+			targetClass = NumericReportValue.class, 
+			columns = {
+					@ColumnResult(name = "managed_identity", type = String.class),
+					@ColumnResult(name = "year", type = int.class),
+					@ColumnResult(name = "month", type = int.class),
+					@ColumnResult(name = "count", type = int.class)
+			})
+	)
 
 @Entity
 @Table(name = "envelope", uniqueConstraints = {
@@ -69,12 +138,13 @@ public class Envelope implements Serializable {
 	}
 	
 	public Envelope(Message m, CommunicatorUser rcp) {
-		this(m, rcp, null);
+		this(m, rcp, null, null);
 	}
 	
-	public Envelope(Message m, CommunicatorUser rcp, Instant anAckTime) {
+	public Envelope(Message m, CommunicatorUser rcp, Instant aPushTime, Instant anAckTime) {
 		this.message = m;
 		this.recipient = rcp;
+		this.pushTime = aPushTime;
 		this.ackTime = anAckTime;
 	}
 
