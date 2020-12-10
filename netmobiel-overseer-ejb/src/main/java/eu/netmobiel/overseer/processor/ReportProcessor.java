@@ -6,11 +6,17 @@ import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.Collection;
+import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.activation.DataHandler;
 import javax.activation.DataSource;
@@ -37,14 +43,18 @@ import org.apache.commons.collections4.comparators.FixedOrderComparator;
 import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 
+import com.opencsv.bean.BeanField;
 import com.opencsv.bean.HeaderColumnNameMappingStrategy;
 import com.opencsv.bean.StatefulBeanToCsv;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
+import com.opencsv.exceptions.CsvBadConverterException;
+import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.communicator.model.ActivityReport;
 import eu.netmobiel.communicator.model.ReportKey;
 import eu.netmobiel.communicator.service.PublisherService;
+import eu.netmobiel.overseer.model.ActivitySpssReport;
 
 /**
  * Stateless bean for running a report on NetMobiel.
@@ -131,7 +141,7 @@ public class ReportProcessor {
 		try (Writer writer = new StringWriter()) {
 			HeaderColumnNameMappingStrategy<ActivityReport> strategy = new HeaderColumnNameMappingStrategy<>();
 		    strategy.setType(ActivityReport.class);
-		    String[] headers = {"COMPARATOR_ASC", "KEY", "MANAGEDIDENTITY", "YEAR", "MONTH", "MESSAGECOUNT", "MESSAGEACKEDCOUNT", "NOTIFICATIONCOUNT", "NOTIFICATIONACKEDCOUNT"};
+		    String[] headers = { "MANAGEDIDENTITY", "YEAR", "MONTH", "MESSAGECOUNT", "MESSAGEACKEDCOUNT", "NOTIFICATIONCOUNT", "NOTIFICATIONACKEDCOUNT"};
 		    FixedOrderComparator<String> activityComparator = new FixedOrderComparator<>(headers); 
 		    strategy.setColumnOrderOnWrite(activityComparator);
 //		    MultiValuedMap<Class<?>, Field> fields = new HashSetValuedHashMap<>();
@@ -143,6 +153,40 @@ public class ReportProcessor {
 		         .withIgnoreField(ActivityReport.class, ActivityReport.class.getDeclaredField("COMPARATOR_ASC"))
 		         .build();
 		    beanToCsv.write(activityReport);
+		    return writer;
+		}
+	}
+
+	private static class CustomHeaderColumnNameMappingStrategy extends HeaderColumnNameMappingStrategy<ActivitySpssReport> {
+		private ActivitySpssReport referenceBean;
+		
+		public CustomHeaderColumnNameMappingStrategy(Collection<ActivitySpssReport> activitySpssReport) {
+		    referenceBean = new ActivitySpssReport(null);
+		    for (ActivitySpssReport asr : activitySpssReport) {
+		    	referenceBean.getMessageCount().putAll(asr.getMessageCount());
+			}
+		}
+		
+		@Override
+		public String[] generateHeader(ActivitySpssReport bean) throws CsvRequiredFieldEmptyException {
+		    List<String> headers = new ArrayList<>();
+		    headers.add("managedIdentity");
+		    headers.addAll(referenceBean.getMessageCount().keySet().stream().sorted(Comparator.naturalOrder()).collect(Collectors.toList()));
+		    String[] header = headers.toArray(new String[headers.size()]);
+			headerIndex.initializeHeaderIndex(header);
+		    return header;
+		}
+	}
+
+	protected Writer convertToCsvforSpss(Collection<ActivitySpssReport> activitySpssReport) throws Exception {
+		try (Writer writer = new StringWriter()) {
+			CustomHeaderColumnNameMappingStrategy strategy = new CustomHeaderColumnNameMappingStrategy(activitySpssReport);
+		    strategy.setType(ActivitySpssReport.class);
+		    StatefulBeanToCsv<ActivitySpssReport> beanToCsv = new StatefulBeanToCsvBuilder<ActivitySpssReport>(writer)
+		         .withMappingStrategy(strategy)
+		         .withApplyQuotesToAll(true)
+		         .build();
+		    beanToCsv.write(activitySpssReport.stream());
 		    return writer;
 		}
 	}
@@ -179,5 +223,14 @@ public class ReportProcessor {
         } catch (MessagingException e) {
             throw new SystemException(String.format("Failed to send email on '%s' to %s", subject, recipient), e);
         }
+	}
+	
+	protected Collection<ActivitySpssReport> createActivitySpssReport(List<ActivityReport> activityReport) {
+		Map<String, ActivitySpssReport> spssReportMap = new LinkedHashMap<>();
+		for (ActivityReport ar : activityReport) {
+    		spssReportMap.computeIfAbsent(ar.getManagedIdentity(), k -> new ActivitySpssReport(k))
+    			.addActivityReport(ar);
+		}
+		return spssReportMap.values();
 	}
 }
