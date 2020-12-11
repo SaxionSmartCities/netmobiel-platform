@@ -2,20 +2,19 @@ package eu.netmobiel.overseer.processor;
 
 import java.io.StringWriter;
 import java.io.Writer;
+import java.lang.reflect.Field;
+import java.lang.reflect.InvocationTargetException;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.Collection;
-import java.util.Comparator;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.activation.DataHandler;
@@ -39,20 +38,20 @@ import javax.mail.internet.MimeMessage.RecipientType;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 
-import org.apache.commons.collections4.comparators.FixedOrderComparator;
 import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 
-import com.opencsv.bean.BeanField;
+import com.opencsv.bean.CsvBindAndJoinByName;
+import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.HeaderColumnNameMappingStrategy;
 import com.opencsv.bean.StatefulBeanToCsv;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
-import com.opencsv.exceptions.CsvBadConverterException;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 
 import eu.netmobiel.commons.exception.SystemException;
+import eu.netmobiel.commons.report.ReportKey;
+import eu.netmobiel.commons.report.SpssReportBase;
 import eu.netmobiel.communicator.model.ActivityReport;
-import eu.netmobiel.communicator.model.ReportKey;
 import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.overseer.model.ActivitySpssReport;
 
@@ -97,7 +96,18 @@ public class ReportProcessor {
     private static final String SUBJECT = "${subjectPrefix} Activation Report ${reportDate}";
     private static final String BODY = 
     			"Bijgaand de maandelijkse rapportage van het gebruik van het NetMobiel platform.\n";
-    
+
+    /**
+     * Returns whether the report job is running.
+     * @return
+     */
+	public boolean isJobRunning() {
+    	return jobRunning;
+    }
+
+	/**
+	 * Start the report job. This is an asynchronous job.
+	 */
 	@Asynchronous
     public void startReport() {
     	if (jobRunning) {
@@ -117,10 +127,14 @@ public class ReportProcessor {
     		log.info(String.format("Start report %s for period %s - %s", reportDate, since.format(DateTimeFormatter.ISO_LOCAL_DATE), until.format(DateTimeFormatter.ISO_LOCAL_DATE)));
 
     		List<ActivityReport> activityReport = publisherService.reportActivity(since.toInstant(), until.toInstant());
-    		Writer writer = convertToCsv(activityReport);
+    		Writer writer = convertToCsv(activityReport, ActivityReport.class);
+    		
+			Collection<ActivitySpssReport> spssReport = createSpssReport(activityReport, ActivitySpssReport.class); 
+			Writer spssWriter = convertToCsvforSpss(spssReport, ActivitySpssReport.class, since, until);
     		
     		Map<String, Writer> attachments = new LinkedHashMap<>();
     		attachments.put(String.format("%s-report-%s.csv", "activation", reportDate), writer);
+    		attachments.put(String.format("%s-report-spss-%s.csv", "activation", reportDate), spssWriter);
 
     		log.info("Sending report to " + reportRecipient);
     		Map<String, String> valuesMap = new HashMap<>();
@@ -137,63 +151,154 @@ public class ReportProcessor {
     	}
     }
 
-	protected Writer convertToCsv(List<ActivityReport> activityReport) throws Exception {
-		try (Writer writer = new StringWriter()) {
-			HeaderColumnNameMappingStrategy<ActivityReport> strategy = new HeaderColumnNameMappingStrategy<>();
-		    strategy.setType(ActivityReport.class);
-		    String[] headers = { "MANAGEDIDENTITY", "YEAR", "MONTH", "MESSAGECOUNT", "MESSAGEACKEDCOUNT", "NOTIFICATIONCOUNT", "NOTIFICATIONACKEDCOUNT"};
-		    FixedOrderComparator<String> activityComparator = new FixedOrderComparator<>(headers); 
-		    strategy.setColumnOrderOnWrite(activityComparator);
-//		    MultiValuedMap<Class<?>, Field> fields = new HashSetValuedHashMap<>();
-//		    fields.put(ActivityReport.class, ActivityReport.class.getDeclaredField("COMPARATOR_ASC"));
-//		    strategy.ignoreFields(fields);
-		    StatefulBeanToCsv<ActivityReport> beanToCsv = new StatefulBeanToCsvBuilder<ActivityReport>(writer)
-		         .withMappingStrategy(strategy)
-		         .withIgnoreField(ActivityReport.class, ReportKey.class.getDeclaredField("key"))
-		         .withIgnoreField(ActivityReport.class, ActivityReport.class.getDeclaredField("COMPARATOR_ASC"))
-		         .build();
-		    beanToCsv.write(activityReport);
-		    return writer;
-		}
-	}
+	/**
+	 * Class for creating a fixed order header for OpenCSV. Field names and order are retrieved
+	 * by reflection.
+	 *
+	 * @param <T> the report record type.
+	 */
+	private static class FixedOrderColumnNameMappingStrategy<T> extends HeaderColumnNameMappingStrategy<T> {
 
-	private static class CustomHeaderColumnNameMappingStrategy extends HeaderColumnNameMappingStrategy<ActivitySpssReport> {
-		private ActivitySpssReport referenceBean;
-		
-		public CustomHeaderColumnNameMappingStrategy(Collection<ActivitySpssReport> activitySpssReport) {
-		    referenceBean = new ActivitySpssReport(null);
-		    for (ActivitySpssReport asr : activitySpssReport) {
-		    	referenceBean.getMessageCount().putAll(asr.getMessageCount());
+		/**
+		 * Creates a list of all fields that should appear in the report. The condition is the 
+		 * presence of either annotation: CsvBindByName, CsvBindAndJoinByName.
+		 * This method does a depth-first recursive inspection.
+		 * @param fields The accumulator for the fields discovered.
+		 * @param clazz the class to inspect.
+		 */
+		protected void addAllReportFields(List<Field> fields, Class<?> clazz) {
+			Class<?> superClazz = clazz.getSuperclass();
+			if (superClazz != null) {
+				addAllReportFields(fields, superClazz);
+			}
+			for (Field f :  clazz.getDeclaredFields()) {
+				if (f.isAnnotationPresent(CsvBindByName.class) || f.isAnnotationPresent(CsvBindAndJoinByName.class)) {
+					fields.add(f);
+				}
 			}
 		}
 		
 		@Override
-		public String[] generateHeader(ActivitySpssReport bean) throws CsvRequiredFieldEmptyException {
-		    List<String> headers = new ArrayList<>();
-		    headers.add("managedIdentity");
-		    headers.addAll(referenceBean.getMessageCount().keySet().stream().sorted(Comparator.naturalOrder()).collect(Collectors.toList()));
+		public String[] generateHeader(T bean) throws CsvRequiredFieldEmptyException {
+			List<Field> fields = new ArrayList<>();
+			addAllReportFields(fields, bean.getClass());
+			List<String> headers = fields.stream().map(f -> f.getName()).collect(Collectors.toList());
 		    String[] header = headers.toArray(new String[headers.size()]);
 			headerIndex.initializeHeaderIndex(header);
 		    return header;
 		}
 	}
 
-	protected Writer convertToCsvforSpss(Collection<ActivitySpssReport> activitySpssReport) throws Exception {
+	/**
+	 * Creates a Writer with CSV records from a list of report records. 
+	 * @param <T> The type of the report record.
+	 * @param report The list of records.
+	 * @param beanClazz the type of the report record. 
+	 * @return A Writer with a CSV records.
+	 * @throws Exception In case of trouble.
+	 */
+	protected <T> Writer convertToCsv(List<T> report, Class<T> beanClazz) throws Exception {
 		try (Writer writer = new StringWriter()) {
-			CustomHeaderColumnNameMappingStrategy strategy = new CustomHeaderColumnNameMappingStrategy(activitySpssReport);
-		    strategy.setType(ActivitySpssReport.class);
-		    StatefulBeanToCsv<ActivitySpssReport> beanToCsv = new StatefulBeanToCsvBuilder<ActivitySpssReport>(writer)
+			FixedOrderColumnNameMappingStrategy<T> strategy = new FixedOrderColumnNameMappingStrategy<T>();
+		    strategy.setType(beanClazz);
+		    StatefulBeanToCsv<T> beanToCsv = new StatefulBeanToCsvBuilder<T>(writer)
 		         .withMappingStrategy(strategy)
-		         .withApplyQuotesToAll(true)
 		         .build();
-		    beanToCsv.write(activitySpssReport.stream());
+		    beanToCsv.write(report);
 		    return writer;
 		}
 	}
 
-	public boolean isJobRunning() {
-    	return jobRunning;
-    }
+	/**
+	 * Class for creating a fixed order and multi-valued header for OpenCSV, specifically for processing by SPSS. 
+	 * Field names and order are retrieved by reflection. Each combination of indicator, year, month has its own 
+	 * column in the report. Year and month columns are generated based on the provided since and until parameters
+	 * to avoid any gaps in case of absent values for a certain month.
+	 *
+	 * @param <T> the SPSS report record type.
+	 */
+	private static class SpssHeaderColumnNameMappingStrategy<T> extends FixedOrderColumnNameMappingStrategy<T> {
+		private ZonedDateTime since;
+		private ZonedDateTime until;
+		
+		public SpssHeaderColumnNameMappingStrategy(ZonedDateTime since, ZonedDateTime until) {
+			this.since = since;
+			this.until = until;
+		}
+		
+		@Override
+		public String[] generateHeader(T bean) throws CsvRequiredFieldEmptyException {
+			List<Field> fields = new ArrayList<>();
+			addAllReportFields(fields, bean.getClass());
+		    List<String> headers = new ArrayList<>();
+		    List<String> suffixes = new ArrayList<>();
+		    ZonedDateTime date = since;
+		    while (date.isBefore(until)) {
+		    	suffixes.add(String.format("_%d_%02d", date.getYear(), date.getMonthValue()));
+		    	date = date.plusMonths(1);
+		    }
+		    for (Field f: fields) {
+		    	if (f.isAnnotationPresent(CsvBindAndJoinByName.class)) {
+		    		suffixes.forEach(suffix -> headers.add(f.getName() + suffix));
+		    	} else {
+		    		headers.add(f.getName());
+		    	}
+		    }
+		    String[] header = headers.toArray(new String[headers.size()]);
+			headerIndex.initializeHeaderIndex(header);
+		    return header;
+		}
+	}
+
+	/**
+	 * Creates a Writer with CSV records for SPSS. 
+	 * @param <T> The SPSS record type.
+	 * @param spssReport the collection with SPSS records.
+	 * @param beanClazz the class of the SPSS record
+	 * @param since The start of the report period. Used to calculate the column expansion. 
+	 * @param until The end (exclusive) of the report period.
+	 * @return a Writer with the CSV records for SPSS.
+	 * @throws Exception
+	 */
+	protected <T> Writer convertToCsvforSpss(Collection<T> spssReport, Class<T> beanClazz, ZonedDateTime since, ZonedDateTime until) throws Exception {
+		try (Writer writer = new StringWriter()) {
+			SpssHeaderColumnNameMappingStrategy<T> strategy = new SpssHeaderColumnNameMappingStrategy<T>(since, until);
+		    strategy.setType(beanClazz);
+		    StatefulBeanToCsv<T> beanToCsv = new StatefulBeanToCsvBuilder<T>(writer)
+		         .withMappingStrategy(strategy)
+		         .withApplyQuotesToAll(true)
+		         .build();
+		    beanToCsv.write(spssReport.stream());
+		    return writer;
+		}
+	}
+
+	
+	/**
+	 * Creates the SPSS variant of a report: Denormalise the report by creating additional year/month columns for each report value.
+	 * In a SPSS report there is at most one record for each managed identity.  
+	 * @param <S> the SPSS variant of the report record 
+	 * @param <R> the normal report record
+	 * @param report The list of report records to convert 
+	 * @param spssClazz The class of the SPSS report record to convert to.
+	 * @return A collection of SPSS records, one record for each managed identity.
+	 */
+	protected <S extends SpssReportBase<R>, R extends ReportKey> Collection<S> createSpssReport(List<R> report, Class<S> spssClazz) {
+		Map<String, S> spssReportMap = new LinkedHashMap<>();
+		for (R ar : report) {
+    		spssReportMap.computeIfAbsent(ar.getManagedIdentity(), k -> {
+				try {
+					return spssClazz.getDeclaredConstructor(String.class).newInstance(k);
+				} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+						| InvocationTargetException | NoSuchMethodException | SecurityException e) {
+					throw new IllegalStateException("Error instantiating spss report class", e);
+				}
+				
+			})
+   			.addReportValues(ar);
+		}
+		return spssReportMap.values();
+	}
 
 	protected void sendEmail(String subject, String body, String recipient, Map<String, Writer> attachments) {
 		try {
@@ -223,14 +328,5 @@ public class ReportProcessor {
         } catch (MessagingException e) {
             throw new SystemException(String.format("Failed to send email on '%s' to %s", subject, recipient), e);
         }
-	}
-	
-	protected Collection<ActivitySpssReport> createActivitySpssReport(List<ActivityReport> activityReport) {
-		Map<String, ActivitySpssReport> spssReportMap = new LinkedHashMap<>();
-		for (ActivityReport ar : activityReport) {
-    		spssReportMap.computeIfAbsent(ar.getManagedIdentity(), k -> new ActivitySpssReport(k))
-    			.addActivityReport(ar);
-		}
-		return spssReportMap.values();
 	}
 }

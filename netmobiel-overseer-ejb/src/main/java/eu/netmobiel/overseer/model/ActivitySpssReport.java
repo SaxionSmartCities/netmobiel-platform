@@ -4,53 +4,66 @@ import org.apache.commons.collections4.MultiValuedMap;
 import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 
 import com.opencsv.bean.CsvBindAndJoinByName;
-import com.opencsv.bean.CsvBindByName;
 
+import eu.netmobiel.commons.report.SpssReportBase;
 import eu.netmobiel.communicator.model.ActivityReport;
 
-public class ActivitySpssReport {
-	/**
-	 * The identity of the user the report is about.
-	 */
-	@CsvBindByName(column = "ManagedIdentity")
-	private String managedIdentity;
+public class ActivitySpssReport extends SpssReportBase<ActivityReport> {
+
 	/**
 	 * The number of messages received.
 	 */
-	@CsvBindAndJoinByName(column = "MESSAGECOUNT_\\d{4}_\\d{2}", elementType = Integer.class)
+	@CsvBindAndJoinByName(column = "messageCount_\\d{4}_\\d{2}", elementType = Integer.class)
 	private MultiValuedMap<String, Integer> messageCount;
 	
 	/**
 	 * The number of messages acknowledged (i.e. read)  
 	 */
-//	private MultiValuedMap<String, Integer> messageAckedCount;
+	@CsvBindAndJoinByName(column = "messageAckedCount_\\d{4}_\\d{2}", elementType = Integer.class)
+	private MultiValuedMap<String, Integer> messageAckedCount;
 	
 	/**
 	 * The number of notifications received.
 	 */
-//	private MultiValuedMap<String, Integer> notificationCount;
+	@CsvBindAndJoinByName(column = "notificationCount_\\d{4}_\\d{2}", elementType = Integer.class)
+	private MultiValuedMap<String, Integer> notificationCount;
 	
 	/**
 	 * The number of notifications acknowledged (i.e. read)  
 	 */
-//	private MultiValuedMap<String, Integer> notificationAckedCount;
+	@CsvBindAndJoinByName(column = "notificationAckedCount_\\d{4}_\\d{2}", elementType = Integer.class)
+	private MultiValuedMap<String, Integer> notificationAckedCount;
 
 	public ActivitySpssReport(String managedIdentity) {
-		this.managedIdentity = managedIdentity;
+		super(managedIdentity);
 		this.messageCount = new ArrayListValuedHashMap<>();
+		this.messageAckedCount = new ArrayListValuedHashMap<>();
+		this.notificationCount = new ArrayListValuedHashMap<>();
+		this.notificationAckedCount = new ArrayListValuedHashMap<>();
 	}
 	
-	public void addActivityReport(ActivityReport ar) {
+	@Override
+	public void addReportValues(ActivityReport ar) {
 		messageCount.put(String.format("messageCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getMessageCount());
+		messageAckedCount.put(String.format("messageAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getMessageAckedCount());
+		notificationCount.put(String.format("notificationCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getNotificationCount());
+		notificationAckedCount.put(String.format("notificationAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getNotificationAckedCount());
 	}
-
-	public String getManagedIdentity() {
-		return managedIdentity;
-	}
-
+	
 	public MultiValuedMap<String, Integer> getMessageCount() {
 		return messageCount;
 	}
-	
+
+	public MultiValuedMap<String, Integer> getMessageAckedCount() {
+		return messageAckedCount;
+	}
+
+	public MultiValuedMap<String, Integer> getNotificationCount() {
+		return notificationCount;
+	}
+
+	public MultiValuedMap<String, Integer> getNotificationAckedCount() {
+		return notificationAckedCount;
+	}
 	
 }

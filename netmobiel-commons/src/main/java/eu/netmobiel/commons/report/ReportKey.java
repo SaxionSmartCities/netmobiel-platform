@@ -1,6 +1,9 @@
-package eu.netmobiel.communicator.model;
+package eu.netmobiel.commons.report;
 
 import java.io.Serializable;
+
+import com.opencsv.bean.CsvBindByName;
+import com.opencsv.bean.CsvIgnore;
 
 /**
  * This class defines the key for the report. 
@@ -14,21 +17,25 @@ public class ReportKey implements Serializable {
 	/**
 	 * The identity of the user the report is about.
 	 */
+	@CsvBindByName
 	private String managedIdentity;
 	
 	/**
 	 * The year the record is about.
 	 */
+	@CsvBindByName
 	private int year;
 	
 	/**
 	 * The month the record is about. Month 1 is january.
 	 */
+	@CsvBindByName
 	private int month;
 	
 	/**
 	 * The key to this report, containing the managed identity, year and month.
 	 */
+	@CsvIgnore
 	private String key;
 
 	public ReportKey() {

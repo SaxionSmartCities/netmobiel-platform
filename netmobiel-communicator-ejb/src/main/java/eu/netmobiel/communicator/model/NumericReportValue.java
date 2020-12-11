@@ -1,5 +1,7 @@
 package eu.netmobiel.communicator.model;
 
+import eu.netmobiel.commons.report.ReportKey;
+
 public class NumericReportValue extends ReportKey {
 
 	private static final long serialVersionUID = -9007011398666870472L;

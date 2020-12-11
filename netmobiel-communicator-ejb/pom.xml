@@ -158,6 +158,11 @@
             <artifactId>keycloak-adapter-spi</artifactId>
 		    <scope>provided</scope>
         </dependency>
+		<dependency>
+			<groupId>com.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
+		    <scope>compile</scope>
+		</dependency>
 
 		<!-- TEST Dependencies -->
         <dependency>

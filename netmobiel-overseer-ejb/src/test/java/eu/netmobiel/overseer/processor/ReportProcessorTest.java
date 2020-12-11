@@ -3,6 +3,7 @@ package eu.netmobiel.overseer.processor;
 import static org.junit.Assert.*;
 
 import java.io.Writer;
+import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.List;
@@ -18,8 +19,12 @@ public class ReportProcessorTest {
 
 	private List<ActivityReport> report; 
 	private ReportProcessor processor;
+	private ZonedDateTime since;
+	private ZonedDateTime until;
 	@Before
 	public void setUp() throws Exception {
+		since = ZonedDateTime.parse("2020-04-01T00:00:00+01:00[Europe/Amsterdam]");
+		until = ZonedDateTime.parse("2020-08-01T00:00:00+01:00[Europe/Amsterdam]");
 		processor = new ReportProcessor();
 		report = new ArrayList<>();
 		ActivityReport ar = new ActivityReport("A", 2020, 4);
@@ -40,8 +45,9 @@ public class ReportProcessorTest {
 	@Test
 	public void testPlainReport() {
 		try {
-			Writer w = processor.convertToCsv(report);
+			Writer w = processor.convertToCsv(report, ActivityReport.class);
 			System.out.println(w.toString());
+
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail("Unexpected exception: " + e.toString());
@@ -52,8 +58,8 @@ public class ReportProcessorTest {
 	@Test
 	public void testSpssReport() {
 		try {
-			Collection<ActivitySpssReport> spssReport = processor.createActivitySpssReport(report); 
-			Writer w = processor.convertToCsvforSpss(spssReport);
+			Collection<ActivitySpssReport> spssReport = processor.createSpssReport(report, ActivitySpssReport.class); 
+			Writer w = processor.convertToCsvforSpss(spssReport, ActivitySpssReport.class, since, until);
 			System.out.println(w.toString());
 		} catch (Exception e) {
 			e.printStackTrace();
