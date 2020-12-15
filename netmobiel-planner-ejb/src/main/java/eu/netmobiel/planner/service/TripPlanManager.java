@@ -1064,7 +1064,7 @@ public class TripPlanManager {
      * @throws NotFoundException
      */
     public void cancelBooking(String tripPlanRef, String bookingRef) throws NotFoundException {
-    	TripPlan plan = getTripPlan(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripPlanRef));
+    	TripPlan plan = getTripPlan(PlannerUrnHelper.getId(TripPlan.URN_PREFIX, tripPlanRef));
     	plan.getItineraries().stream()
     		.flatMap(it -> it.getLegs().stream())
     		.filter(leg -> bookingRef.equals(leg.getBookingId()))
