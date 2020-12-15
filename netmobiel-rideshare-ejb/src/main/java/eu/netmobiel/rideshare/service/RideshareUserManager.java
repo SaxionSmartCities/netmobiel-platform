@@ -58,10 +58,20 @@ public class RideshareUserManager extends UserManager<RideshareUserDao, Rideshar
     public Long createCar(Car car) throws CreateException {
     	RideshareUser caller = registerCallingUser();
     	car.setDriver(caller);
-    	if (carDao.exists(car)) {
+    	Car cardb = carDao.findByDriverandPlate(caller, car.getRegistrationCountry(), car.getLicensePlate())
+    				.orElse(null);
+    	if (cardb == null) {
+    		// New car for this user
+        	carDao.save(car);
+    	} else if (Boolean.TRUE.equals(cardb.getDeleted())) {
+    		// Car was soft-deleted, but is restored
+    		car.setId(cardb.getId());
+    		car.setDriver(caller);
+    		carDao.merge(car);
+    	} else {
+    		// Car already exists for this user
     		throw new DuplicateEntryException("Car exists" + car.toString());
     	}
-    	carDao.save(car);
     	return car.getId();
     }
 
@@ -90,8 +100,8 @@ public class RideshareUserManager extends UserManager<RideshareUserDao, Rideshar
     	Car cardb = carDao.find(carId)
     			.orElseThrow(NotFoundException::new);
     	checkOwnership(cardb.getDriver(), Car.class.getSimpleName());
-    	Long nrRefs = carDao.getNrRideTemplatesAttached(cardb);
-    	if (nrRefs > 0) {
+    	boolean inUse = carDao.getNrRideTemplatesAttached(cardb) > 0 || carDao.getNrRideTemplatesAttached(cardb) > 0;
+    	if (inUse) {
     		// The car is referenced in a template and cannot be removed. Do a soft delete.
     		cardb.setDeleted(true);
     	} else {

@@ -2,6 +2,7 @@ package eu.netmobiel.rideshare.repository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -52,7 +53,17 @@ public class CarDao extends AbstractDao<Car, Long> {
         TypedQuery<Car> tq = em.createQuery(cq);
         return tq.getResultList();
     }
-    
+
+    public Optional<Car> findByDriverandPlate(RideshareUser driver, String countryCode, String licensePlate) {
+    	TypedQuery<Car> tq = em.createQuery(
+    			"from Car c where driver = :driver and registrationCountry = :country and licensePlate = :plate", Car.class)
+    			.setParameter("driver", driver)
+    			.setParameter("country", countryCode)
+    			.setParameter("plate", licensePlate);
+    	List<Car> cars = tq.getResultList();
+    	return cars.isEmpty() ? Optional.empty() : Optional.of(cars.get(0));
+    }
+
     public boolean exists(Car c) {
     	return em.createQuery("select count(*) from Car " + 
     			"where driver = :driver and registrationCountry = :country and licensePlate = :plate", Long.class)
@@ -65,6 +76,13 @@ public class CarDao extends AbstractDao<Car, Long> {
     public Long getNrRideTemplatesAttached(Car car) {
     	TypedQuery<Long> tq = em.createQuery(
     			"select count(t) from RideTemplate t where t.car = :car", Long.class)
+    			.setParameter("car", car);
+    	return tq.getSingleResult();
+    }
+
+    public Long getNrRidesAttached(Car car) {
+    	TypedQuery<Long> tq = em.createQuery(
+    			"select count(t) from Ride r where r.car = :car", Long.class)
     			.setParameter("car", car);
     	return tq.getSingleResult();
     }
