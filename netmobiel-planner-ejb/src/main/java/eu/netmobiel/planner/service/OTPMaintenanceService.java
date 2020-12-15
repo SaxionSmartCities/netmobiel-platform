@@ -6,6 +6,7 @@ import javax.annotation.Resource;
 import javax.ejb.Asynchronous;
 import javax.ejb.ConcurrencyManagement;
 import javax.ejb.ConcurrencyManagementType;
+import javax.ejb.Schedule;
 import javax.ejb.SessionContext;
 import javax.ejb.Singleton;
 import javax.ejb.TransactionAttribute;
@@ -49,7 +50,19 @@ public class OTPMaintenanceService {
     private OTPDataManager  otpDataManager;
 
     private boolean maintenanceRunning = false;
-    
+
+    /**
+     * Runs the update of the OTP data every monday morning. The cron job of building the graph has finished around 4:30 in the morning.
+     */
+	@Schedule(info = "Update OTP Data", dayOfWeek = "Mon", hour = "5", minute = "0", second = "0", persistent = true)
+    public void timedUpdateOpenTripPlannerData() {
+		try {
+			startUpdatePublicTransportData();		
+		} catch (Exception ex) {
+			log.error("Error during timed update of OTP data: " + ex.toString());
+		}
+	}
+	
     private void updatePublicTransportStops() {
     	log.info("Fetch the stops and update");
         List<OtpStop> stops =  otpDao.fetchAllStops();
