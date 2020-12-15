@@ -86,7 +86,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
         		+ "where t.departure_time >= ? and t.departure_time < ? and t.state = 'CMP' "
         		+ "group by u.managed_identity, year, month "
         		+ "order by u.managed_identity, year, month",
-        resultSetMapping = "ListBookingCountMapping"),
+        resultSetMapping = "ListTripCountMapping"),
 	@NamedNativeQuery(
 			name = "ListTripCancelledCount",
 			query = "select u.managed_identity as managed_identity, "
@@ -98,7 +98,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ "where t.departure_time >= ? and t.departure_time < ? and t.state = 'CNC' "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListBookingCountMapping"),
+	        resultSetMapping = "ListTripCountMapping"),
 	@NamedNativeQuery(
 			name = "ListConfirmedTripWithRideshareCount",
 			query = "select u.managed_identity as managed_identity, "
@@ -113,7 +113,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ " and lg.traverse_mode = 'RS' and (lg.confirmed = true or lg.confirmed_prov = true) " 
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListBookingCountMapping"),
+	        resultSetMapping = "ListTripCountMapping"),
 	@NamedNativeQuery(
 			name = "ListTripWithoutRideshareAndWalkCount",
 			query = "select u.managed_identity as managed_identity, "
@@ -128,7 +128,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ " and lg.traverse_mode <> 'RS' and lg.traverse_mode <> 'WK' " 
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListBookingCountMapping"),
+	        resultSetMapping = "ListTripCountMapping"),
 })
 @SqlResultSetMapping(
 	name = "ListTripCountMapping", 
