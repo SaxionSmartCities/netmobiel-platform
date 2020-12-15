@@ -62,8 +62,8 @@ paths:
           $ref: '#/components/responses/Conflict'
       operationId: createCar
       summary: Create a Car
-      description: Creates a new instance of a `Car`. The car is owned (driven) by
-        the calling user.
+      description: Creates a new instance of a `Car` or restored a soft-deleted one.
+        The car is owned (driven) by the calling user.
   /cars/{carId}:
     summary: Path used to manage a single Car.
     description: |-
@@ -114,7 +114,8 @@ paths:
       operationId: deleteCar
       summary: Delete a Car
       description: "Deletes an existing `Car`. Cars are hard deleted if never used\
-        \ in a ride, \notherwise a soft delete is performed."
+        \ in a ride, \notherwise a soft delete is performed. If a car is soft-deleted,\
+        \ it can be restored\nby creating the car again. \n"
     parameters:
     - name: carId
       description: A unique identifier for a `Car`.
@@ -651,10 +652,10 @@ paths:
         description: Only show rides with a booking having the specified state.
         schema:
           enum:
-          - Proposed
-          - Requested
-          - Confirmed
-          - Cancelled
+          - PROPOSED
+          - REQUESTED
+          - CONFIRMED
+          - CANCELLED
           type: string
         in: query
       - name: deletedToo
