@@ -54,6 +54,8 @@ import eu.netmobiel.commons.report.SpssReportBase;
 import eu.netmobiel.communicator.model.ActivityReport;
 import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.overseer.model.ActivitySpssReport;
+import eu.netmobiel.rideshare.model.PassengerBookingReport;
+import eu.netmobiel.rideshare.service.BookingManager;
 
 /**
  * Stateless bean for running a report on NetMobiel.
@@ -91,6 +93,9 @@ public class ReportProcessor {
 	private PublisherService publisherService;
 
 	@Inject
+	private BookingManager bookingManager;
+
+	@Inject
     private Logger log;
 
     private static final String SUBJECT = "${subjectPrefix} Activation Report ${reportDate}";
@@ -125,31 +130,49 @@ public class ReportProcessor {
     		}
     		String reportDate = until.format(DateTimeFormatter.ISO_LOCAL_DATE);
     		log.info(String.format("Start report %s for period %s - %s", reportDate, since.format(DateTimeFormatter.ISO_LOCAL_DATE), until.format(DateTimeFormatter.ISO_LOCAL_DATE)));
-
-    		List<ActivityReport> activityReport = publisherService.reportActivity(since.toInstant(), until.toInstant());
-    		Writer writer = convertToCsv(activityReport, ActivityReport.class);
     		
-			Collection<ActivitySpssReport> spssReport = createSpssReport(activityReport, ActivitySpssReport.class); 
-			Writer spssWriter = convertToCsvforSpss(spssReport, ActivitySpssReport.class, since, until);
+    		createAndSendActivityReport(since, until, reportDate);
+    		createAndSendPassengerReport(since, until, reportDate);
     		
-    		Map<String, Writer> attachments = new LinkedHashMap<>();
-    		attachments.put(String.format("%s-report-%s.csv", "activation", reportDate), writer);
-    		attachments.put(String.format("%s-report-spss-%s.csv", "activation", reportDate), spssWriter);
-
-    		log.info("Sending report to " + reportRecipient);
-    		Map<String, String> valuesMap = new HashMap<>();
-    		valuesMap.put("subjectPrefix", subjectPrefix);
-    		valuesMap.put("reportDate", reportDate);
-    		StringSubstitutor substitutor = new StringSubstitutor(valuesMap);
-    		String subject = substitutor.replace(SUBJECT);
-    		String body = substitutor.replace(BODY);
-    	    sendEmail(subject, body, reportRecipient, attachments);
     	} catch (Exception e) {
 			log.error("Error creating report", e);
 		} finally {
     		jobRunning = false;
     	}
     }
+
+	protected void createAndSendActivityReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+    	try {
+			List<ActivityReport> activityReport = publisherService.reportActivity(since.toInstant(), until.toInstant());
+			Writer writer = convertToCsv(activityReport, ActivityReport.class);
+			
+			Collection<ActivitySpssReport> spssReport = createSpssReport(activityReport, ActivitySpssReport.class); 
+			Writer spssWriter = convertToCsvforSpss(spssReport, ActivitySpssReport.class, since, until);
+			
+			Map<String, Writer> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "activity", reportDate), writer);
+			reports.put(String.format("%s-report-spss-%s.csv", "activity", reportDate), spssWriter);
+	
+			sendReports(reportDate, reports);
+    	} catch (Exception e) {
+			log.error("Error creating and sending activity report", e);
+    	}
+	}
+
+	protected void createAndSendPassengerReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+    	try {
+			List<PassengerBookingReport> passengerReport = bookingManager.reportPassengerBehaviour(since.toInstant(), until.toInstant());
+			Writer writer = convertToCsv(passengerReport, PassengerBookingReport.class);
+			
+			
+			Map<String, Writer> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "passenger-behaviour", reportDate), writer);
+	
+			sendReports(reportDate, reports);
+    	} catch (Exception e) {
+			log.error("Error creating and sending passenger behaviour report", e);
+    	}
+	}
 
 	/**
 	 * Class for creating a fixed order header for OpenCSV. Field names and order are retrieved
@@ -298,6 +321,17 @@ public class ReportProcessor {
    			.addReportValues(ar);
 		}
 		return spssReportMap.values();
+	}
+
+	protected void sendReports(String reportDate, Map<String, Writer> reports) {
+		log.info("Sending report to " + reportRecipient);
+		Map<String, String> valuesMap = new HashMap<>();
+		valuesMap.put("subjectPrefix", subjectPrefix);
+		valuesMap.put("reportDate", reportDate);
+		StringSubstitutor substitutor = new StringSubstitutor(valuesMap);
+		String subject = substitutor.replace(SUBJECT);
+		String body = substitutor.replace(BODY);
+	    sendEmail(subject, body, reportRecipient, reports);
 	}
 
 	protected void sendEmail(String subject, String body, String recipient, Map<String, Writer> attachments) {

@@ -11,10 +11,10 @@ import javax.persistence.NoResultException;
 import javax.persistence.TypedQuery;
 
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
 import eu.netmobiel.communicator.model.Envelope;
-import eu.netmobiel.communicator.model.NumericReportValue;
 
 @ApplicationScoped
 @Typed(EnvelopeDao.class)

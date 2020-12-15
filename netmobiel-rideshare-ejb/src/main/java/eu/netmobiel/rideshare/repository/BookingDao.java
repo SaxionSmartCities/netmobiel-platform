@@ -15,7 +15,9 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.model.Booking;
@@ -96,4 +98,23 @@ public class BookingDao extends AbstractDao<Booking, Long> {
         return new PagedResult<Long>(results, maxResults, offset, totalCount);
     }
 
+    public List<NumericReportValue> reportBookingsConfirmed(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListBookingConfirmedCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+    public List<NumericReportValue> reportBookingsCancelledByPassenger(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListBookingCancelledByPassengerCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+    public List<NumericReportValue> reportBookingsCancelledByDriver(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListBookingCancelledByDriverCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
 }

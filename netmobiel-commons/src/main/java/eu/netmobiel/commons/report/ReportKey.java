@@ -1,6 +1,8 @@
 package eu.netmobiel.commons.report;
 
 import java.io.Serializable;
+import java.util.Comparator;
+import java.util.Objects;
 
 import com.opencsv.bean.CsvBindByName;
 import com.opencsv.bean.CsvIgnore;
@@ -11,7 +13,7 @@ import com.opencsv.bean.CsvIgnore;
  * @author Jaap Reitsma
  *
  */
-public class ReportKey implements Serializable {
+public class ReportKey implements Serializable, Comparable<ReportKey> {
 	private static final long serialVersionUID = -2609854526744056646L;
 
 	/**
@@ -85,6 +87,16 @@ public class ReportKey implements Serializable {
 
 	public void setMonth(int month) {
 		this.month = month;
+	}
+
+	@Override
+	public int compareTo(ReportKey other) {
+		return Objects.compare(getKey(), other.getKey(), Comparator.naturalOrder());
+	}
+
+	@Override
+	public String toString() {
+		return getKey();
 	}
 
 }

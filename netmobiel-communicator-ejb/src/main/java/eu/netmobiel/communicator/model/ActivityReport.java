@@ -1,23 +1,12 @@
 package eu.netmobiel.communicator.model;
 
-import java.util.Comparator;
-
 import com.opencsv.bean.CsvBindByName;
-import com.opencsv.bean.CsvIgnore;
 
 import eu.netmobiel.commons.report.ReportKey;
 
 public class ActivityReport extends ReportKey {
 	private static final long serialVersionUID = -2609854526744056646L;
 
-	@CsvIgnore
-	public static final Comparator<ActivityReport> COMPARATOR_ASC = new Comparator<>() {
-		
-		@Override
-		public int compare(ActivityReport r1, ActivityReport r2) {
-			return r1.getKey().compareTo(r2.getKey());
-		}
-	}; 
 	/**
 	 * The number of messages received.
 	 */
@@ -90,8 +79,8 @@ public class ActivityReport extends ReportKey {
 	@Override
 	public String toString() {
 		return String.format(
-				"%s %d-%02d mc %d mr%d nc %d nr %d",
-				getManagedIdentity(), getYear(), getMonth(), messageCount, messageAckedCount, notificationCount, notificationAckedCount);
+				"%s mr %d ma %d nr %d na %d",
+				getKey(), messageCount, messageAckedCount, notificationCount, notificationAckedCount);
 	}
 
 	

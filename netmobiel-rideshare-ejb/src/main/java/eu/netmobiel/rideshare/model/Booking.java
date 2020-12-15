@@ -10,6 +10,8 @@ import javax.enterprise.inject.Vetoed;
 import javax.persistence.AttributeOverride;
 import javax.persistence.AttributeOverrides;
 import javax.persistence.Column;
+import javax.persistence.ColumnResult;
+import javax.persistence.ConstructorResult;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -22,9 +24,12 @@ import javax.persistence.ManyToMany;
 import javax.persistence.ManyToOne;
 import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedNativeQueries;
+import javax.persistence.NamedNativeQuery;
 import javax.persistence.NamedSubgraph;
 import javax.persistence.OrderBy;
 import javax.persistence.SequenceGenerator;
+import javax.persistence.SqlResultSetMapping;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.validation.constraints.Max;
@@ -33,6 +38,7 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
@@ -43,6 +49,59 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
  * @author Jaap Reitsma
  *
  */
+
+@NamedNativeQueries({
+	@NamedNativeQuery(
+		name = "ListBookingConfirmedCount",
+		query = "select u.managed_identity as managed_identity, "
+        		+ "date_part('year', m.created_time) as year, " 
+        		+ "date_part('month', m.created_time) as month, "
+        		+ "count(*) as count "
+        		+ "from booking b "
+        		+ "join rs_user u on u.id = b.passenger "
+        		+ "where b.departure_time >= ? and b.departure_time < ? and b.state = 'CFM' "
+        		+ "group by u.managed_identity, year, month "
+        		+ "order by u.managed_identity, year, month",
+        resultSetMapping = "ListBookingCountMapping"),
+	@NamedNativeQuery(
+			name = "ListBookingCancelledByPassengerCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', m.created_time) as year, " 
+	        		+ "date_part('month', m.created_time) as month, "
+	        		+ "count(*) as count "
+	        		+ "from booking b "
+	        		+ "join rs_user u on u.id = b.passenger "
+	        		+ "where b.departure_time >= ? and b.departure_time < ? and b.state = 'CNC' " 
+	        		+ " and (b.cancelled_by_driver = false or b.cancelled_by_driver is null)"
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = "ListBookingCountMapping"),
+	@NamedNativeQuery(
+			name = "ListBookingCancelledByDriverCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', m.created_time) as year, " 
+	        		+ "date_part('month', m.created_time) as month, "
+	        		+ "count(*) as count "
+	        		+ "from booking b "
+	        		+ "join rs_user u on u.id = b.passenger "
+	        		+ "where b.departure_time >= ? and b.departure_time < ? and b.state = 'CNC' " 
+	        		+ " and b.cancelled_by_driver = true "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = "ListBookingCountMapping"),
+})
+@SqlResultSetMapping(
+	name = "ListBookingCountMapping", 
+	classes = @ConstructorResult(
+		targetClass = NumericReportValue.class, 
+		columns = {
+				@ColumnResult(name = "managed_identity", type = String.class),
+				@ColumnResult(name = "year", type = int.class),
+				@ColumnResult(name = "month", type = int.class),
+				@ColumnResult(name = "count", type = int.class)
+		}
+	)
+)
 
 @NamedEntityGraph(
 		name = Booking.SHALLOW_ENTITY_GRAPH, 

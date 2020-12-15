@@ -16,9 +16,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.DeliveryMode;
-import eu.netmobiel.communicator.model.NumericReportValue;
 import eu.netmobiel.communicator.test.CommunicatorIntegrationTestBase;
 import eu.netmobiel.communicator.test.Fixture;
 

@@ -2,7 +2,9 @@ package eu.netmobiel.rideshare.service;
 
 import java.time.Instant;
 import java.util.Collections;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.ejb.Stateless;
@@ -23,12 +25,14 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.event.BookingSettledEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
+import eu.netmobiel.rideshare.model.PassengerBookingReport;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.BookingDao;
@@ -253,5 +257,25 @@ public class BookingManager {
     			.orElseThrow(() -> new NotFoundException("Ride not found: " + rideRef));
 		EventFireWrapper.fire(bookingSettledEvent, new BookingSettledEvent(ride, bookingdb));
     }
-    
+
+    public List<PassengerBookingReport> reportPassengerBehaviour(Instant since, Instant until) throws BadRequestException {
+    	Map<String, PassengerBookingReport> reportMap = new HashMap<>();
+    	// The first could have been realized without lookup, but now it is all the same.
+    	for (NumericReportValue nrv : bookingDao.reportBookingsConfirmed(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBookingReport(nrv))
+			.setBookingsConfirmedCount(nrv.getValue());
+		}
+    	for (NumericReportValue nrv : bookingDao.reportBookingsCancelledByPassenger(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBookingReport(nrv))
+    			.setBookingsCancelledByPassengerCount(nrv.getValue());
+		}
+    	for (NumericReportValue nrv : bookingDao.reportBookingsCancelledByDriver(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBookingReport(nrv))
+    			.setBookingsCancelledByDriverCount(nrv.getValue());
+		}
+    	return reportMap.values().stream()
+    			.sorted()
+    			.collect(Collectors.toList());
+    	
+    }
 }

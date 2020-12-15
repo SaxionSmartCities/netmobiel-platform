@@ -25,6 +25,7 @@ import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @NamedNativeQueries({

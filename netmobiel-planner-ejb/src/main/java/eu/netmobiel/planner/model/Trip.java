@@ -16,6 +16,8 @@ import javax.persistence.AccessType;
 import javax.persistence.AttributeOverride;
 import javax.persistence.AttributeOverrides;
 import javax.persistence.Column;
+import javax.persistence.ColumnResult;
+import javax.persistence.ConstructorResult;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
@@ -28,9 +30,12 @@ import javax.persistence.ManyToOne;
 import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
+import javax.persistence.NamedNativeQueries;
+import javax.persistence.NamedNativeQuery;
 import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
+import javax.persistence.SqlResultSetMapping;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
@@ -39,6 +44,7 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
@@ -68,6 +74,75 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
  *  Once it is time, the trip will become in transit. When the traveller arrives, the trip is completed.  
  * 
  */
+@NamedNativeQueries({
+	@NamedNativeQuery(
+		name = "ListTripConfirmedCount",
+		query = "select u.managed_identity as managed_identity, "
+        		+ "date_part('year', m.created_time) as year, " 
+        		+ "date_part('month', m.created_time) as month, "
+        		+ "count(*) as count "
+        		+ "from trip t "
+        		+ "join pl_user u on u.id = t.traveller "
+        		+ "where t.departure_time >= ? and t.departure_time < ? and t.state = 'CMP' "
+        		+ "group by u.managed_identity, year, month "
+        		+ "order by u.managed_identity, year, month",
+        resultSetMapping = "ListBookingCountMapping"),
+	@NamedNativeQuery(
+			name = "ListTripCancelledCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', m.created_time) as year, " 
+	        		+ "date_part('month', m.created_time) as month, "
+	        		+ "count(*) as count "
+	        		+ "from trip t "
+	        		+ "join pl_user u on u.id = t.traveller "
+	        		+ "where t.departure_time >= ? and t.departure_time < ? and t.state = 'CNC' "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = "ListBookingCountMapping"),
+	@NamedNativeQuery(
+			name = "ListConfirmedTripWithRideshareCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', m.created_time) as year, " 
+	        		+ "date_part('month', m.created_time) as month, "
+	        		+ "count(distinct t.id) as count "
+	        		+ "from trip t "
+	        		+ "join pl_user u on u.id = t.traveller "
+	        		+ "join itinerary on it.id = t.itinerary "
+	        		+ "join leg lg on lg.itinerary = it.id "
+	        		+ "where t.departure_time >= ? and t.departure_time < ? and t.state = 'CMP' "
+	        		+ " and lg.traverse_mode = 'RS' and (lg.confirmed = true or lg.confirmed_prov = true) " 
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = "ListBookingCountMapping"),
+	@NamedNativeQuery(
+			name = "ListTripWithoutRideshareAndWalkCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', m.created_time) as year, " 
+	        		+ "date_part('month', m.created_time) as month, "
+	        		+ "count(distinct t.id) as count "
+	        		+ "from trip t "
+	        		+ "join pl_user u on u.id = t.traveller "
+	        		+ "join itinerary on it.id = t.itinerary "
+	        		+ "join leg lg on lg.itinerary = it.id "
+	        		+ "where t.departure_time >= ? and t.departure_time < ? and t.state = 'CMP' "
+	        		+ " and lg.traverse_mode <> 'RS' and lg.traverse_mode <> 'WK' " 
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = "ListBookingCountMapping"),
+})
+@SqlResultSetMapping(
+	name = "ListTripCountMapping", 
+	classes = @ConstructorResult(
+		targetClass = NumericReportValue.class, 
+		columns = {
+				@ColumnResult(name = "managed_identity", type = String.class),
+				@ColumnResult(name = "year", type = int.class),
+				@ColumnResult(name = "month", type = int.class),
+				@ColumnResult(name = "count", type = int.class)
+		}
+	)
+)
+
 @NamedEntityGraphs({
 	@NamedEntityGraph(
 			name = Trip.DETAILED_ENTITY_GRAPH, 

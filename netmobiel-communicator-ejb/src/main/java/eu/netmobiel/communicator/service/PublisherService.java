@@ -21,12 +21,12 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
-import eu.netmobiel.communicator.model.NumericReportValue;
 import eu.netmobiel.communicator.model.ActivityReport;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
@@ -251,7 +251,7 @@ public class PublisherService {
     			.setNotificationAckedCount(nrv.getValue());
 		}
     	return reportMap.values().stream()
-    			.sorted(ActivityReport.COMPARATOR_ASC)
+    			.sorted()
     			.collect(Collectors.toList());
     }
 

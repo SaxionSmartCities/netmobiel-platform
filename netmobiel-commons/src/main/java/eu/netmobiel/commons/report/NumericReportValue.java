@@ -1,6 +1,4 @@
-package eu.netmobiel.communicator.model;
-
-import eu.netmobiel.commons.report.ReportKey;
+package eu.netmobiel.commons.report;
 
 public class NumericReportValue extends ReportKey {
 
