@@ -100,7 +100,7 @@ public class RideshareUserManager extends UserManager<RideshareUserDao, Rideshar
     	Car cardb = carDao.find(carId)
     			.orElseThrow(NotFoundException::new);
     	checkOwnership(cardb.getDriver(), Car.class.getSimpleName());
-    	boolean inUse = carDao.getNrRideTemplatesAttached(cardb) > 0 || carDao.getNrRideTemplatesAttached(cardb) > 0;
+    	boolean inUse = carDao.getNrRideTemplatesAttached(cardb) > 0 || carDao.getNrRidesAttached(cardb) > 0;
     	if (inUse) {
     		// The car is referenced in a template and cannot be removed. Do a soft delete.
     		cardb.setDeleted(true);
