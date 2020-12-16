@@ -82,7 +82,7 @@ public class CarDao extends AbstractDao<Car, Long> {
 
     public Long getNrRidesAttached(Car car) {
     	TypedQuery<Long> tq = em.createQuery(
-    			"select count(t) from Ride r where r.car = :car", Long.class)
+    			"select count(r) from Ride r where r.car = :car", Long.class)
     			.setParameter("car", car);
     	return tq.getSingleResult();
     }
