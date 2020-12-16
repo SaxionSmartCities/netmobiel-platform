@@ -277,9 +277,6 @@ public class CharityManager {
     	if (donation.getAmount() <= 0) {
     		throw new BadRequestException("Not a valid amount: " + donation.getAmount());
     	}
-    	if (donation.getDescription() == null || donation.getDescription().trim().isEmpty()) {
-    		throw new BadRequestException("Description is mandatory");
-    	}
     	donation.setDonationTime(Instant.now());
     	donation.setUser(user);
     	donation.setCharity(charitydb);
