@@ -23,6 +23,7 @@ import javax.annotation.Resource;
 import javax.ejb.Asynchronous;
 import javax.ejb.ConcurrencyManagement;
 import javax.ejb.ConcurrencyManagementType;
+import javax.ejb.Schedule;
 import javax.ejb.Singleton;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
@@ -104,6 +105,18 @@ public class ReportProcessor {
     			"Bijgaand de maandelijkse (deel)rapportage van het gebruik van het NetMobiel platform.\n";
 
     /**
+     * Runs the report on NetMobiel each first day of the month in the morning.
+     */
+	@Schedule(info = "Report on NetMobiel", dayOfMonth = "1", dayOfWeek = "Mon", hour = "7", minute = "0", second = "0", persistent = true)
+    public void timedStartReporting() {
+		try {
+			startReport();		
+		} catch (Exception ex) {
+			log.error("Error during timed reporting: " + ex.toString());
+		}
+	}
+	
+	/**
      * Returns whether the report job is running.
      * @return
      */
