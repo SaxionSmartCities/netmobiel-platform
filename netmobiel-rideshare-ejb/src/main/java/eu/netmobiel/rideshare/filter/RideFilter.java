@@ -139,4 +139,40 @@ public class RideFilter extends PeriodFilter {
     		this.sortDir = SortDirection.ASC;
     	}
 	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("RideFilter [");
+		if (driverId != null) {
+			builder.append("driverId=");
+			builder.append(driverId);
+			builder.append(", ");
+		}
+		if (driver != null) {
+			builder.append("driver=");
+			builder.append(driver);
+			builder.append(", ");
+		}
+		if (rideState != null) {
+			builder.append("rideState=");
+			builder.append(rideState);
+			builder.append(", ");
+		}
+		if (bookingState != null) {
+			builder.append("bookingState=");
+			builder.append(bookingState);
+			builder.append(", ");
+		}
+		if (sortDir != null) {
+			builder.append("sortDir=");
+			builder.append(sortDir);
+			builder.append(", ");
+		}
+		builder.append("deletedToo=");
+		builder.append(deletedToo);
+		builder.append("]");
+		return builder.toString();
+	}
+
 }
