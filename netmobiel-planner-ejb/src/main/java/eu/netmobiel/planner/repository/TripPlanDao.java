@@ -19,10 +19,12 @@ import org.slf4j.Logger;
 
 import com.vividsolutions.jts.geom.Polygon;
 
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.GeoLocation_;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.planner.annotation.PlannerDatabase;
@@ -33,6 +35,7 @@ import eu.netmobiel.planner.model.TripPlan_;
 
 @ApplicationScoped
 @Typed(TripPlanDao.class)
+//@Logging
 public class TripPlanDao extends AbstractDao<TripPlan, Long> {
     @SuppressWarnings("unused")
 	@Inject
@@ -145,6 +148,30 @@ public class TripPlanDao extends AbstractDao<TripPlan, Long> {
 			results = tq.getResultList();
         }
         return new PagedResult<Long>(results, maxResults, offset, totalCount);
+    }
+
+    // RGP-11
+   public List<NumericReportValue> reportShoutOutIssuedCount(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListTripPlanShoutOutIssuedCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+   // RGP-12
+    public List<NumericReportValue> reportShoutOutAtLeastOneOfferCount(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListTripPlanShoutOutAtLeastOneOfferCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+    // RGP-13
+    public List<NumericReportValue> reportShoutOutAcceptedCount(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListTripPlanShoutOutAcceptedCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
     }
 
 }

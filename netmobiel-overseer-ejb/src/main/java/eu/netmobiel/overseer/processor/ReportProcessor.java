@@ -54,8 +54,9 @@ import eu.netmobiel.commons.report.SpssReportBase;
 import eu.netmobiel.communicator.model.ActivityReport;
 import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.overseer.model.ActivitySpssReport;
-import eu.netmobiel.rideshare.model.PassengerBookingReport;
-import eu.netmobiel.rideshare.service.BookingManager;
+import eu.netmobiel.planner.model.PassengerBehaviourReport;
+import eu.netmobiel.planner.model.PassengerModalityBehaviourReport;
+import eu.netmobiel.planner.service.TripManager;
 
 /**
  * Stateless bean for running a report on NetMobiel.
@@ -93,14 +94,14 @@ public class ReportProcessor {
 	private PublisherService publisherService;
 
 	@Inject
-	private BookingManager bookingManager;
+	private TripManager tripManager;
 
 	@Inject
     private Logger log;
 
-    private static final String SUBJECT = "${subjectPrefix} Activation Report ${reportDate}";
+    private static final String SUBJECT = "${subjectPrefix} Netmobiel Rapportage ${reportDate} - ${name}";
     private static final String BODY = 
-    			"Bijgaand de maandelijkse rapportage van het gebruik van het NetMobiel platform.\n";
+    			"Bijgaand de maandelijkse (deel)rapportage van het gebruik van het NetMobiel platform.\n";
 
     /**
      * Returns whether the report job is running.
@@ -153,7 +154,7 @@ public class ReportProcessor {
 			reports.put(String.format("%s-report-%s.csv", "activity", reportDate), writer);
 			reports.put(String.format("%s-report-spss-%s.csv", "activity", reportDate), spssWriter);
 	
-			sendReports(reportDate, reports);
+			sendReports("Activiteitsniveau", reportDate, reports);
     	} catch (Exception e) {
 			log.error("Error creating and sending activity report", e);
     	}
@@ -161,14 +162,16 @@ public class ReportProcessor {
 
 	protected void createAndSendPassengerReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
     	try {
-			List<PassengerBookingReport> passengerReport = bookingManager.reportPassengerBehaviour(since.toInstant(), until.toInstant());
-			Writer writer = convertToCsv(passengerReport, PassengerBookingReport.class);
-			
+			List<PassengerBehaviourReport> passengerReport = tripManager.reportPassengerBehaviour(since.toInstant(), until.toInstant());
+			Writer passengerBehaviourWriter = convertToCsv(passengerReport, PassengerBehaviourReport.class);
+			List<PassengerModalityBehaviourReport> passengerModalityReport = tripManager.reportPassengerModalityBehaviour(since.toInstant(), until.toInstant());
+			Writer passengerModalityBehaviourWriter = convertToCsv(passengerModalityReport, PassengerModalityBehaviourReport.class);
 			
 			Map<String, Writer> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "passenger-behaviour", reportDate), writer);
+			reports.put(String.format("%s-report-%s.csv", "passenger-behaviour", reportDate), passengerBehaviourWriter);
+			reports.put(String.format("%s-report-%s.csv", "passenger-modality-behaviour", reportDate), passengerModalityBehaviourWriter);
 	
-			sendReports(reportDate, reports);
+			sendReports("Reisgedrag Passagier", reportDate, reports);
     	} catch (Exception e) {
 			log.error("Error creating and sending passenger behaviour report", e);
     	}
@@ -323,11 +326,12 @@ public class ReportProcessor {
 		return spssReportMap.values();
 	}
 
-	protected void sendReports(String reportDate, Map<String, Writer> reports) {
+	protected void sendReports(String name, String reportDate, Map<String, Writer> reports) {
 		log.info("Sending report to " + reportRecipient);
 		Map<String, String> valuesMap = new HashMap<>();
 		valuesMap.put("subjectPrefix", subjectPrefix);
 		valuesMap.put("reportDate", reportDate);
+		valuesMap.put("name", name);
 		StringSubstitutor substitutor = new StringSubstitutor(valuesMap);
 		String subject = substitutor.replace(SUBJECT);
 		String body = substitutor.replace(BODY);

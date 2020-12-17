@@ -34,9 +34,7 @@ public class NumericReportValue extends ReportKey {
 	
 	@Override
 	public String toString() {
-		return String.format(
-				"%s %d-%02d #%d",
-				getManagedIdentity(), getYear(), getMonth(), value);
+		return String.format("%s %d", getKey(), value);
 	}
 
 }

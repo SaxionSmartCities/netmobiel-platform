@@ -19,18 +19,22 @@ import javax.persistence.criteria.Root;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.planner.annotation.PlannerDatabase;
 import eu.netmobiel.planner.model.Itinerary_;
+import eu.netmobiel.planner.model.ModalityNumericReportValue;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.Trip_;
-import eu.netmobiel.planner.model.PlannerUser;
 
 @ApplicationScoped
 @Typed(TripDao.class)
+//@Logging
 public class TripDao extends AbstractDao<Trip, Long> {
     @SuppressWarnings("unused")
 	@Inject
@@ -126,4 +130,87 @@ public class TripDao extends AbstractDao<Trip, Long> {
 		}
     	return Optional.ofNullable(tripId); 
     }
+    
+    // RGP-1
+    public List<NumericReportValue> reportTripsCreatedCount(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListTripsCreatedCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+    // RGP-2
+    public List<NumericReportValue> reportTripsCancelledCount(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListTripsCancelledCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+    // RGP-3
+    public List<NumericReportValue> reportCancelledByPassengerCount(Instant since, Instant until) throws BadRequestException {
+    	return Collections.emptyList();
+//        return em.createNamedQuery("ListTripsCancelledByPassengerCount", NumericReportValue.class)
+//        		.setParameter(1, since)
+//        		.setParameter(2, until)
+//        		.getResultList();
+    }
+
+    // RGP-4
+    public List<NumericReportValue> reportTripsCancelledByProviderCount(Instant since, Instant until) throws BadRequestException {
+    	return Collections.emptyList();
+//        return em.createNamedQuery("ListTripsCancelledByProviderCount", NumericReportValue.class)
+//        		.setParameter(1, since)
+//        		.setParameter(2, until)
+//        		.getResultList();
+    }
+
+    // RGP-5
+    public List<NumericReportValue> reportTripsWithConfirmedRideshareCount(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListTripsWithConfirmedRideshareCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+    // RGP-6
+    public List<NumericReportValue> reportTripsWithCancelledRidesharePaymentCount(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListTripsWithCancelledRidesharePaymentCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+    // RGP-7
+    public List<NumericReportValue> reportMonoModalTripsCount(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListMonoModalTripsCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+    // RGP-8
+    public List<ModalityNumericReportValue> reportMonoModalTripsByModalityCount(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListMonoModalTripsByModalityCount", ModalityNumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+    // RGP-9
+    public List<NumericReportValue> reportMultiModalTripsCount(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListMultiModalTripsCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
+    // RGP-10
+    public List<ModalityNumericReportValue> reportMultiModalTripsByModalityCount(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListMultiModalTripsByModalityCount", ModalityNumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+
 }

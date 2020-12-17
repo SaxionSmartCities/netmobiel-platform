@@ -7,8 +7,11 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 import javax.ejb.Schedule;
@@ -28,6 +31,7 @@ import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
@@ -40,15 +44,19 @@ import eu.netmobiel.planner.event.TripStateUpdatedEvent;
 import eu.netmobiel.planner.event.TripValidationExpiredEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
+import eu.netmobiel.planner.model.ModalityNumericReportValue;
+import eu.netmobiel.planner.model.PassengerBehaviourReport;
+import eu.netmobiel.planner.model.PassengerModalityBehaviourReport;
 import eu.netmobiel.planner.model.PaymentState;
 import eu.netmobiel.planner.model.PlanType;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripMonitorEvent;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
-import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.TripDao;
+import eu.netmobiel.planner.repository.TripPlanDao;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @Stateless
@@ -85,6 +93,9 @@ public class TripManager {
 
     @Inject
     private TripDao tripDao;
+
+    @Inject
+    private TripPlanDao tripPlanDao;
 
     @Inject
     private ItineraryDao itineraryDao;
@@ -605,4 +616,89 @@ public class TripManager {
 		}
 		
 	}
+	
+    public List<PassengerBehaviourReport> reportPassengerBehaviour(Instant since, Instant until) throws BadRequestException {
+    	Map<String, PassengerBehaviourReport> reportMap = new HashMap<>();
+    	// The first could have been realized without lookup, but now it is all the same.
+    	// RGP-1
+    	for (NumericReportValue nrv : tripDao.reportTripsCreatedCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBehaviourReport(nrv))
+			.setTripsCreatedCount(nrv.getValue());
+		}
+    	// RGP-2
+    	for (NumericReportValue nrv : tripDao.reportTripsCancelledCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBehaviourReport(nrv))
+    			.setTripsCancelledCount(nrv.getValue());
+		}
+    	// RGP-3
+    	for (NumericReportValue nrv : tripDao.reportCancelledByPassengerCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBehaviourReport(nrv))
+    			.setTripsCancelledByPassengerCount(nrv.getValue());
+		}
+    	// RGP-4
+    	for (NumericReportValue nrv : tripDao.reportTripsCancelledByProviderCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBehaviourReport(nrv))
+    			.setTripsCancelledByProviderCount(nrv.getValue());
+		}
+    	// RGP-5
+    	for (NumericReportValue nrv : tripDao.reportTripsWithConfirmedRideshareCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBehaviourReport(nrv))
+    			.setTripsWithConfirmedRideshareCount(nrv.getValue());
+		}
+    	// RGP-6
+    	for (NumericReportValue nrv : tripDao.reportTripsWithCancelledRidesharePaymentCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBehaviourReport(nrv))
+    			.setTripsWithCancelledRidesharePaymentCount(nrv.getValue());
+		}
+    	// RGP-7
+    	for (NumericReportValue nrv : tripDao.reportMonoModalTripsCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBehaviourReport(nrv))
+    			.setTripsCancelledByProviderCount(nrv.getValue());
+		}
+    	// RGP-9
+    	for (NumericReportValue nrv : tripDao.reportMultiModalTripsCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBehaviourReport(nrv))
+    			.setTripsMultiModalCount(nrv.getValue());
+		}
+
+    	// RGP-11
+    	for (NumericReportValue nrv : tripPlanDao.reportShoutOutIssuedCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBehaviourReport(nrv))
+    			.setTripPlanShoutOutIssuedCount(nrv.getValue());
+		}
+    	// RGP-12
+    	for (NumericReportValue nrv : tripPlanDao.reportShoutOutAtLeastOneOfferCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBehaviourReport(nrv))
+    			.setTripPlanShoutOutAtLeastOneOfferCount(nrv.getValue());
+		}
+    	// RGP-13
+    	for (NumericReportValue nrv : tripPlanDao.reportShoutOutAcceptedCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBehaviourReport(nrv))
+    			.setTripPlanShoutOutAcceptedCount(nrv.getValue());
+		}
+    	return reportMap.values().stream()
+    			.sorted()
+    			.collect(Collectors.toList());
+    	
+    }
+
+    public List<PassengerModalityBehaviourReport> reportPassengerModalityBehaviour(Instant since, Instant until) throws BadRequestException {
+    	Map<String, PassengerModalityBehaviourReport> reportMap = new HashMap<>();
+    	// The first could have been realized without lookup, but now it is all the same.
+    	// RGP-8
+    	for (ModalityNumericReportValue nrv : tripDao.reportMonoModalTripsByModalityCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerModalityBehaviourReport(nrv))
+    			.setTripsMonoModalCount(nrv.getValue());
+		}
+    	// RGP-10
+    	for (ModalityNumericReportValue nrv : tripDao.reportMultiModalTripsByModalityCount(since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerModalityBehaviourReport(nrv))
+    			.setTripsMultiModalCount(nrv.getValue());
+		}
+
+    	return reportMap.values().stream()
+    			.sorted()
+    			.collect(Collectors.toList());
+    	
+    }
 }

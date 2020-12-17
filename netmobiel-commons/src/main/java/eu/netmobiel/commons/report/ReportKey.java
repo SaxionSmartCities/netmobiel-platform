@@ -38,7 +38,7 @@ public class ReportKey implements Serializable, Comparable<ReportKey> {
 	 * The key to this report, containing the managed identity, year and month.
 	 */
 	@CsvIgnore
-	private String key;
+	protected String key;
 
 	public ReportKey() {
 		

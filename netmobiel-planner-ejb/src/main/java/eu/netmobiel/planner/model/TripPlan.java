@@ -18,6 +18,8 @@ import javax.persistence.AttributeOverrides;
 import javax.persistence.CascadeType;
 import javax.persistence.CollectionTable;
 import javax.persistence.Column;
+import javax.persistence.ColumnResult;
+import javax.persistence.ConstructorResult;
 import javax.persistence.ElementCollection;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
@@ -31,22 +33,87 @@ import javax.persistence.ManyToOne;
 import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
+import javax.persistence.NamedNativeQueries;
+import javax.persistence.NamedNativeQuery;
 import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
 import javax.persistence.OrderBy;
 import javax.persistence.SequenceGenerator;
+import javax.persistence.SqlResultSetMapping;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
+
 
 /**
  * A TripPlan is a set of ways to get from point A to point B at time T.
  */
+
+@NamedNativeQueries({
+	// RGP-11 Count the number of shout-outs issued in a period
+	@NamedNativeQuery(
+		name = "ListTripPlanShoutOutIssuedCount",
+		query = "select u.managed_identity as managed_identity, "
+        		+ "date_part('year', p.creation_time) as year, " 
+        		+ "date_part('month', p.creation_time) as month, "
+        		+ "count(*) as count "
+        		+ "from trip_plan p "
+        		+ "join pl_user u on u.id = p.traveller "
+        		+ "where p.creation_time >= ? and p.creation_time < ? and p.plan_type = 'SHO' "
+        		+ "group by u.managed_identity, year, month "
+        		+ "order by u.managed_identity, year, month",
+        resultSetMapping = "ListTripPlanCountMapping"),
+	// RGP-12 Count the number of shout-outs with at least one offer in a period
+	// --> Count the shout-outs that have itineraries attached
+	@NamedNativeQuery(
+		name = "ListTripPlanShoutOutAtLeastOneOfferCount",
+		query = "select u.managed_identity as managed_identity, "
+        		+ "date_part('year', p.creation_time) as year, " 
+        		+ "date_part('month', p.creation_time) as month, "
+        		+ "count(distinct it.trip_plan) as count "
+        		+ "from trip_plan p "
+        		+ "join pl_user u on u.id = p.traveller "
+        		+ "join itinerary it on it.trip_plan = p.id "
+        		+ "where p.creation_time >= ? and p.creation_time < ? and p.plan_type = 'SHO' "
+        		+ "group by u.managed_identity, year, month "
+        		+ "order by u.managed_identity, year, month",
+        resultSetMapping = "ListTripPlanCountMapping"),
+	// RGP-13 Count the number of accepted shout-outs issued in a period
+	// --> Shout-outs that have an itinerary that is also used by an trip.
+	@NamedNativeQuery(
+		name = "ListTripPlanShoutOutAcceptedCount",
+		query = "select u.managed_identity as managed_identity, "
+        		+ "date_part('year', p.creation_time) as year, " 
+        		+ "date_part('month', p.creation_time) as month, "
+        		+ "count(*) as count "
+        		+ "from trip_plan p "
+        		+ "join pl_user u on u.id = p.traveller "
+        		+ "join itinerary it on it.trip_plan = p.id "
+        		+ "join trip t on t.itinerary = it.id "
+        		+ "where p.creation_time >= ? and p.creation_time < ? and p.plan_type = 'SHO' "
+        		+ "group by u.managed_identity, year, month "
+        		+ "order by u.managed_identity, year, month",
+        resultSetMapping = "ListTripPlanCountMapping"),
+})
+@SqlResultSetMapping(
+		name = "ListTripPlanCountMapping", 
+		classes = @ConstructorResult(
+			targetClass = NumericReportValue.class, 
+			columns = {
+					@ColumnResult(name = "managed_identity", type = String.class),
+					@ColumnResult(name = "year", type = int.class),
+					@ColumnResult(name = "month", type = int.class),
+					@ColumnResult(name = "count", type = int.class)
+			}
+		)
+	)
+
 @NamedEntityGraphs({
 	@NamedEntityGraph(
 			name = TripPlan.DETAILED_ENTITY_GRAPH, 

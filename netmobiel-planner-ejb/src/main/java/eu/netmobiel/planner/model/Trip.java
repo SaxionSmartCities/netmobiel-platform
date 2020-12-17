@@ -36,6 +36,7 @@ import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.SqlResultSetMapping;
+import javax.persistence.SqlResultSetMappings;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
@@ -75,74 +76,190 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
  * 
  */
 @NamedNativeQueries({
+	// RGP-1 Number of trips 
 	@NamedNativeQuery(
-		name = "ListTripConfirmedCount",
+		name = "ListTripsCreatedCount",
 		query = "select u.managed_identity as managed_identity, "
-        		+ "date_part('year', m.created_time) as year, " 
-        		+ "date_part('month', m.created_time) as month, "
+        		+ "date_part('year', it.departure_time) as year, " 
+        		+ "date_part('month', it.departure_time) as month, "
         		+ "count(*) as count "
         		+ "from trip t "
         		+ "join pl_user u on u.id = t.traveller "
-        		+ "where t.departure_time >= ? and t.departure_time < ? and t.state = 'CMP' "
+        		+ "join itinerary it on it.id = t.itinerary "
+        		+ "where it.departure_time >= ? and it.departure_time < ? "
         		+ "group by u.managed_identity, year, month "
         		+ "order by u.managed_identity, year, month",
         resultSetMapping = "ListTripCountMapping"),
+	// RGP-2 Number of trips cancelled
 	@NamedNativeQuery(
-			name = "ListTripCancelledCount",
+			name = "ListTripsCancelledCount",
 			query = "select u.managed_identity as managed_identity, "
-	        		+ "date_part('year', m.created_time) as year, " 
-	        		+ "date_part('month', m.created_time) as month, "
+	        		+ "date_part('year', it.departure_time) as year, " 
+	        		+ "date_part('month', it.departure_time) as month, "
 	        		+ "count(*) as count "
 	        		+ "from trip t "
 	        		+ "join pl_user u on u.id = t.traveller "
-	        		+ "where t.departure_time >= ? and t.departure_time < ? and t.state = 'CNC' "
+	        		+ "join itinerary it on it.id = t.itinerary "
+	        		+ "where it.departure_time >= ? and it.departure_time < ? and t.state = 'CNC' "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = "ListTripCountMapping"),
+	// RGP-3 Number of trips cancelled by passenger - TO DO
 	@NamedNativeQuery(
-			name = "ListConfirmedTripWithRideshareCount",
+			name = "ListTripsCancelledByPassengerCount",
 			query = "select u.managed_identity as managed_identity, "
-	        		+ "date_part('year', m.created_time) as year, " 
-	        		+ "date_part('month', m.created_time) as month, "
+	        		+ "date_part('year', it.departure_time) as year, " 
+	        		+ "date_part('month', it.departure_time) as month, "
+	        		+ "count(*) as count "
+	        		+ "from trip t "
+	        		+ "join pl_user u on u.id = t.traveller "
+	        		+ "join itinerary it on it.id = t.itinerary "
+	        		+ "where it.departure_time >= ? and it.departure_time < ? and t.state = 'CNC' and t.cancelled_by_provider = false "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = "ListTripCountMapping"),
+	// RGP-4 Number of trips cancelled by the mobility provider - TO DO
+	@NamedNativeQuery(
+			name = "ListTripsCancelledByProviderCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', it.departure_time) as year, " 
+	        		+ "date_part('month', it.departure_time) as month, "
+	        		+ "count(*) as count "
+	        		+ "from trip t "
+	        		+ "join pl_user u on u.id = t.traveller "
+	        		+ "join itinerary it on it.id = t.itinerary "
+	        		+ "where it.departure_time >= ? and it.departure_time < ? and t.state = 'CNC' and t.cancelled_by_provider = true "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = "ListTripCountMapping"),
+	// RGP-5 Number of trips with a confirmed rideshare leg
+	// --> Count the number of trips with a rideshare leg with payment state 'Paid'
+	@NamedNativeQuery(
+			name = "ListTripsWithConfirmedRideshareCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', it.departure_time) as year, " 
+	        		+ "date_part('month', it.departure_time) as month, "
 	        		+ "count(distinct t.id) as count "
 	        		+ "from trip t "
 	        		+ "join pl_user u on u.id = t.traveller "
-	        		+ "join itinerary on it.id = t.itinerary "
-	        		+ "join leg lg on lg.itinerary = it.id "
-	        		+ "where t.departure_time >= ? and t.departure_time < ? and t.state = 'CMP' "
-	        		+ " and lg.traverse_mode = 'RS' and (lg.confirmed = true or lg.confirmed_prov = true) " 
+	        		+ "join itinerary it on it.id = t.itinerary "
+	        		+ "where it.departure_time >= ? and it.departure_time < ? and "
+	        		+ " exists (select 1 from leg lg where lg.itinerary = it.id and lg.traverse_mode = 'RS' and lg.payment_state = 'P') " 
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = "ListTripCountMapping"),
+	// RGP-6 Number of trips with a cancelled rideshare leg
+	// --> Count the number of trips with a rideshare leg with payment state 'Cancelled'
 	@NamedNativeQuery(
-			name = "ListTripWithoutRideshareAndWalkCount",
+			name = "ListTripsWithCancelledRidesharePaymentCount",
 			query = "select u.managed_identity as managed_identity, "
-	        		+ "date_part('year', m.created_time) as year, " 
-	        		+ "date_part('month', m.created_time) as month, "
+	        		+ "date_part('year', it.departure_time) as year, " 
+	        		+ "date_part('month', it.departure_time) as month, "
 	        		+ "count(distinct t.id) as count "
 	        		+ "from trip t "
 	        		+ "join pl_user u on u.id = t.traveller "
-	        		+ "join itinerary on it.id = t.itinerary "
-	        		+ "join leg lg on lg.itinerary = it.id "
-	        		+ "where t.departure_time >= ? and t.departure_time < ? and t.state = 'CMP' "
-	        		+ " and lg.traverse_mode <> 'RS' and lg.traverse_mode <> 'WK' " 
+	        		+ "join itinerary it on it.id = t.itinerary "
+	        		+ "where it.departure_time >= ? and it.departure_time < ? and "
+	        		+ " exists (select 1 from leg lg where lg.itinerary = it.id and lg.traverse_mode = 'RS' and lg.payment_state = 'C') " 
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = "ListTripCountMapping"),
+	// RGP-7 Number of completed monomodal trips (ignoring Walking)
+	// --> Count the number of trips with a just one non-walking leg
+	@NamedNativeQuery(
+			name = "ListMonoModalTripsCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', it.departure_time) as year, " 
+	        		+ "date_part('month', it.departure_time) as month, "
+	        		+ "count(distinct t.id) as count "
+	        		+ "from trip t "
+	        		+ "join pl_user u on u.id = t.traveller "
+	        		+ "join itinerary it on it.id = t.itinerary "
+	        		+ "where it.departure_time >= ? and it.departure_time < ? and t.state = 'CMP' and "
+	        		+ " (select count(distinct lg.traverse_mode) from leg lg where lg.itinerary = it.id and lg.traverse_mode <> 'WK') = 1 " 
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = "ListTripCountMapping"),
+	// RGP-8 Number of completed monomodal trips (ignoring Walking), for each modality
+	// --> Count the number of trips for each modality separately
+	@NamedNativeQuery(
+			name = "ListMonoModalTripsByModalityCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', it.departure_time) as year, " 
+	        		+ "date_part('month', it.departure_time) as month, "
+	        		+ "count(distinct t.id) as count, "
+	        		+ "lg.traverse_mode as modality " 
+	        		+ "from trip t "
+	        		+ "join pl_user u on u.id = t.traveller "
+	        		+ "join itinerary it on it.id = t.itinerary "
+	        		+ "join leg lg on it.id = lg.itinerary "
+	        		+ "where it.departure_time >= ? and it.departure_time < ? and t.state = 'CMP' and lg.traverse_mode <> 'WK' and t.state = 'CMP' and "
+	        		+ " (select count(distinct lg.traverse_mode) from leg lg where lg.itinerary = it.id and lg.traverse_mode <> 'WK') = 1 " 
+	        		+ "group by u.managed_identity, year, month, modality "
+	        		+ "order by u.managed_identity, year, month, modality",
+	        resultSetMapping = "ListTripCountByModalityMapping"),
+	// RGP-9 Number of completed multimodal trips (ignoring Walking)
+	// --> Count the number of trips with more than one non-walking leg
+	@NamedNativeQuery(
+			name = "ListMultiModalTripsCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', it.departure_time) as year, " 
+	        		+ "date_part('month', it.departure_time) as month, "
+	        		+ "count(distinct t.id) as count "
+	        		+ "from trip t "
+	        		+ "join pl_user u on u.id = t.traveller "
+	        		+ "join itinerary it on it.id = t.itinerary "
+	        		+ "where it.departure_time >= ? and it.departure_time < ? and t.state = 'CMP' and "
+	        		+ " (select count(distinct lg.traverse_mode) from leg lg where lg.itinerary = it.id and lg.traverse_mode <> 'WK') > 1 " 
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = "ListTripCountMapping"),
+	// RGP-10 Number of completed multi-modal trips (ignoring Walking), for each modality
+	// --> Count the number of trips for each modality separately
+	@NamedNativeQuery(
+			name = "ListMultiModalTripsByModalityCount",
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', it.departure_time) as year, " 
+	        		+ "date_part('month', it.departure_time) as month, "
+	        		+ "count(distinct t.id) as count, "
+	        		+ "lg.traverse_mode as modality " 
+	        		+ "from trip t "
+	        		+ "join pl_user u on u.id = t.traveller "
+	        		+ "join itinerary it on it.id = t.itinerary "
+	        		+ "join leg lg on it.id = lg.itinerary "
+	        		+ "where it.departure_time >= ? and it.departure_time < ? and t.state = 'CMP' and lg.traverse_mode <> 'WK' and t.state = 'CMP' and "
+	        		+ " (select count(distinct lg.traverse_mode) from leg lg where lg.itinerary = it.id and lg.traverse_mode <> 'WK') > 1 " 
+	        		+ "group by u.managed_identity, year, month, modality "
+	        		+ "order by u.managed_identity, year, month, modality",
+	        resultSetMapping = "ListTripCountByModalityMapping"),
 })
-@SqlResultSetMapping(
-	name = "ListTripCountMapping", 
-	classes = @ConstructorResult(
-		targetClass = NumericReportValue.class, 
-		columns = {
-				@ColumnResult(name = "managed_identity", type = String.class),
-				@ColumnResult(name = "year", type = int.class),
-				@ColumnResult(name = "month", type = int.class),
-				@ColumnResult(name = "count", type = int.class)
-		}
-	)
-)
-
+@SqlResultSetMappings({
+	@SqlResultSetMapping(
+			name = "ListTripCountMapping", 
+			classes = @ConstructorResult(
+				targetClass = NumericReportValue.class, 
+				columns = {
+						@ColumnResult(name = "managed_identity", type = String.class),
+						@ColumnResult(name = "year", type = int.class),
+						@ColumnResult(name = "month", type = int.class),
+						@ColumnResult(name = "count", type = int.class)
+				}
+			)
+		),
+	@SqlResultSetMapping(
+			name = "ListTripCountByModalityMapping", 
+			classes = @ConstructorResult(
+				targetClass = ModalityNumericReportValue.class, 
+				columns = {
+						@ColumnResult(name = "managed_identity", type = String.class),
+						@ColumnResult(name = "year", type = int.class),
+						@ColumnResult(name = "month", type = int.class),
+						@ColumnResult(name = "count", type = int.class),
+						@ColumnResult(name = "modality", type = String.class)
+				}
+			)
+		)
+})
 @NamedEntityGraphs({
 	@NamedEntityGraph(
 			name = Trip.DETAILED_ENTITY_GRAPH, 
