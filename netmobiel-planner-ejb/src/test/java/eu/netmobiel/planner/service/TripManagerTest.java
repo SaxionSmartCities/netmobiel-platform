@@ -35,6 +35,7 @@ import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.TripDao;
+import eu.netmobiel.planner.repository.TripPlanDao;
 import eu.netmobiel.planner.test.Fixture;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 import mockit.Expectations;
@@ -52,6 +53,8 @@ public class TripManagerTest {
 	private Logger logger;
 	@Injectable
     private TripDao tripDao;
+	@Injectable
+    private TripPlanDao tripPlanDao;
 
 	@Injectable
     private ItineraryDao itineraryDao;
