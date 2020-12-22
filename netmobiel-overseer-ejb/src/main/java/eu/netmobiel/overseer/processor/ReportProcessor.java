@@ -107,7 +107,7 @@ public class ReportProcessor {
     /**
      * Runs the report on NetMobiel each first day of the month in the morning.
      */
-	@Schedule(info = "Report on NetMobiel", dayOfMonth = "1", dayOfWeek = "Mon", hour = "7", minute = "0", second = "0", persistent = true)
+	@Schedule(info = "Report on NetMobiel", dayOfMonth = "1", hour = "7", minute = "0", second = "0", persistent = true)
     public void timedStartReporting() {
 		try {
 			startReport();		
