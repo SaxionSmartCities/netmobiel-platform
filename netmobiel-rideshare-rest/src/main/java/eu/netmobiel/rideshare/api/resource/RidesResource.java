@@ -55,7 +55,7 @@ public class RidesResource implements RidesApi {
      * @return A list of rides owned by the calling user.
      */
     public Response listRides(String driverId, OffsetDateTime since, OffsetDateTime until, String state, String bookingState,
-    		Boolean deletedToo, String sortDir, Integer maxResults, Integer offset) {
+    		String siblingRideId, Boolean deletedToo, String sortDir, Integer maxResults, Integer offset) {
     	Response rsp = null;
     	if (since == null) {
     		since = OffsetDateTime.now();
@@ -71,7 +71,8 @@ public class RidesResource implements RidesApi {
 				driver = userManager.findCallingUser();
 			}
 			if (driver.getId() != null) {
-				RideFilter filter = new RideFilter(driver.getId(), since, until, state, bookingState, sortDir, Boolean.TRUE.equals(deletedToo));
+				RideFilter filter = new RideFilter(driver.getId(), since, until, state, bookingState, 
+						RideshareUrnHelper.getId(Ride.URN_PREFIX, siblingRideId), sortDir, Boolean.TRUE.equals(deletedToo));
 				Cursor cursor = new Cursor(maxResults, offset);
 				rides = rideManager.listRides(filter, cursor);
 			} else {

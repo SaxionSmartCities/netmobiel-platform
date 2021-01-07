@@ -77,7 +77,7 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
     	Ride r1 = Fixture.createRide(t, departureTime.plusSeconds(depShift));
     	saveNewRide(r1);
     	
-    	List<Ride> rides = rideDao.findRidesBeyondTemplate(t);
+    	List<Ride> rides = rideDao.findRidesSameDriverBeyond(t.getDepartureTime());
     	assertNotNull(rides);
     	assertEquals(expectedCount, rides.size());
     }
@@ -88,7 +88,7 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
     	RideTemplate t = Fixture.createTemplate(car1, departureTime, null);
     	em.persist(t);
 
-    	List<Ride> rides = rideDao.findRidesBeyondTemplate(t);
+    	List<Ride> rides = rideDao.findRidesSameDriverBeyond(t.getDepartureTime());
     	assertNotNull(rides);
     	assertEquals(0, rides.size());
     }
@@ -199,6 +199,60 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
 
     }
 
+    @Test
+    public void listRides_Siblings_None() throws Exception {
+    	Instant departureTime = Instant.parse("2020-06-02T00:00:00Z");
+    	Ride r1 = Fixture.createRideObject(car1, departureTime, null);
+    	saveNewRide(r1);
+
+    	Instant departureTime2 = Instant.parse("2020-06-02T00:00:00Z");
+    	Ride r2 = Fixture.createRideObject(car1, departureTime2, null);
+    	saveNewRide(r2);
+
+    	RideFilter filter = new RideFilter(driver1, null, null, null, null);
+    	filter.validate();
+
+    	PagedResult<Long> rides = rideDao.findByDriver(filter, Cursor.COUNTING_CURSOR);
+    	assertNotNull(rides);
+    	assertEquals(2, rides.getTotalCount().intValue());
+    	
+    	filter.setSiblingRideId(r1.getId());
+    	rides = rideDao.findByDriver(filter, Cursor.COUNTING_CURSOR);
+    	assertNotNull(rides);
+    	assertEquals(0, rides.getTotalCount().intValue());
+    }
+
+    @Test
+    public void listRides_Siblings_Some() throws Exception {
+    	Instant departureTime = Instant.parse("2020-06-01T00:00:00Z");
+    	RideTemplate t = Fixture.createTemplate(car1, departureTime, null);
+    	em.persist(t);
+
+    	Ride r1 = Fixture.createRide(t, departureTime.plusSeconds(3600 * 24 * 1));
+    	saveNewRide(r1);
+
+    	Ride r2 = Fixture.createRide(t, departureTime.plusSeconds(3600 * 24 * 2));
+    	saveNewRide(r2);
+
+    	Instant departureTime3 = Instant.parse("2020-06-04T00:00:00Z");
+    	Ride r3 = Fixture.createRideObject(car1, departureTime3, null);
+    	saveNewRide(r3);
+
+
+    	RideFilter filter = new RideFilter(driver1, null, null, null, null);
+    	filter.validate();
+
+    	PagedResult<Long> rides = rideDao.findByDriver(filter, Cursor.COUNTING_CURSOR);
+    	assertNotNull(rides);
+    	assertEquals(3, rides.getTotalCount().intValue());
+    	
+    	filter.setSiblingRideId(r1.getId());
+    	rides = rideDao.findByDriver(filter, Cursor.COUNTING_CURSOR);
+    	assertNotNull(rides);
+    	assertEquals(2, rides.getTotalCount().intValue());
+    }
+
+    
     @Test
     public void listRides_Deleted() throws Exception {
     	Instant departureTime = Instant.parse("2020-06-02T00:00:00Z");

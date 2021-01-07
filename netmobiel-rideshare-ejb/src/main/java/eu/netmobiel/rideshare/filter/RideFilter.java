@@ -24,7 +24,11 @@ public class RideFilter extends PeriodFilter {
 	private RideState rideState;
 	private BookingState bookingState;
 	
-	
+	/** ==============================
+	 * Filter on same template parent 
+	 */
+	private Long siblingRideId;
+
 	/** ==============================
 	 * Sorting
 	 */
@@ -41,13 +45,14 @@ public class RideFilter extends PeriodFilter {
 	public RideFilter() {
 	}
 
-	public RideFilter(Long driverId, OffsetDateTime since, OffsetDateTime until, String rideState, String bookingState, String sortDir, boolean deletedToo) {
+	public RideFilter(Long driverId, OffsetDateTime since, OffsetDateTime until, String rideState, String bookingState, Long siblingRideId, String sortDir, boolean deletedToo) {
 		this.driverId = driverId;
 		setSince(since);
 		setUntil(until);
 		setRideState(rideState);
 		setBookingState(bookingState);
 		setSortDir(sortDir);
+		this.siblingRideId = siblingRideId;
 		this.deletedToo = deletedToo;
 	}
 	
@@ -117,6 +122,14 @@ public class RideFilter extends PeriodFilter {
 		if (bookingState != null) {
 			this.bookingState = BookingState.valueOf(bookingState);
 		}
+	}
+
+	public Long getSiblingRideId() {
+		return siblingRideId;
+	}
+
+	public void setSiblingRideId(Long siblingRideId) {
+		this.siblingRideId = siblingRideId;
 	}
 
 	public SortDirection getSortDir() {
