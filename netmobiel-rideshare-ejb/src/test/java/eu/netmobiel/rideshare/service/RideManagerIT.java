@@ -123,6 +123,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		assertEquals(r.getMaxDetourSeconds(), rdb.getMaxDetourSeconds());
 		assertEquals(r.getNrSeatsAvailable(), rdb.getNrSeatsAvailable());
 		assertNull(rdb.getRemarks());
+		assertEquals(r.getRemarks(), rdb.getRemarks());
 		assertNotNull(rdb.getShareEligibility());
     }
 
@@ -446,9 +447,119 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 				.getSingleResult();
 		assertEquals(oldArrivalTime.plusSeconds(delay), rdb.getArrivalTime());
 		verifyRideBase(r, rdb, departureTime, null);
+		assertEquals(r.getCancelReason(), rdb.getCancelReason());
+		assertEquals(r.getConfirmed(), rdb.getConfirmed());
+		assertEquals(r.getDeleted(), rdb.getDeleted());
+		assertEquals(r.getRideTemplate(), rdb.getRideTemplate());
+		assertEquals(r.getState(), rdb.getState());
+		assertEquals(r.isMonitored(), rdb.isMonitored());
 		checkRideConsistency(rdb);
     }
+
+    @Test
+    public void updateRide_AddRemoveRecurrence() throws Exception {
+    	Instant departureTime = Instant.now().plusSeconds(3600 * 4);
+    	Ride r = Fixture.createRide(car1, departureTime, null);
+		Long rideId = rideManager.createRide(r);
+		assertNotNull(rideId);
+		flush();
+//		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
+//				.setParameter("id", rideId)
+//				.getSingleResult();
+		// Horizon date is exclusive!
+    	Recurrence rc = new Recurrence(1, departureTime.plusSeconds(24 * 3600 * 3));
+
+    	RideTemplate rt = new RideTemplate();
+    	rt.setRecurrence(rc);
+    	r.setRideTemplate(rt);
+    	rideManager.updateRide(r, null);
+		flush();
+		List<Ride> rides = em.createQuery("from Ride order by departureTime asc", Ride.class).getResultList();
+		flush();
+		assertNotNull(rides);
+		assertEquals(3, rides.size());
+		Ride first = rides.get(0);
+		assertEquals(r.getId(), first.getId());
+		
+		r.setRideTemplate(null);
+    	rideManager.updateRide(r, RideScope.THIS_AND_FOLLOWING);
+		flush();
+		rides = em.createQuery("from Ride order by departureTime asc", Ride.class).getResultList();
+		flush();
+		assertNotNull(rides);
+		assertEquals(1, rides.size());
+		first = rides.get(0);
+		assertEquals(r.getId(), first.getId());
+
+		// At this point the situation is as at the start with 1 ride created.
+		
+    	rt = new RideTemplate();
+    	rt.setRecurrence(rc);
+    	r.setRideTemplate(rt);
+    	rideManager.updateRide(r, null);
+		flush();
+		rides = em.createQuery("from Ride order by departureTime asc", Ride.class).getResultList();
+		flush();
+		assertNotNull(rides);
+		assertEquals(3, rides.size());
+		first = rides.get(0);
+		assertEquals(r.getId(), first.getId());
+
+		r.setRideTemplate(null);
+    	rideManager.updateRide(r, RideScope.THIS);
+		flush();
+		rides = em.createQuery("from Ride order by departureTime asc", Ride.class).getResultList();
+		flush();
+		assertNotNull(rides);
+		assertEquals(3, rides.size());
+		first = rides.get(0);
+		// At this point r has again a template, but the database variant has no longer a template.
+		assertEquals(r.getId(), first.getId());
+		assertNull(first.getRideTemplate());
+		rides.remove(0);
+		for (Ride ride : rides) {
+			assertNotNull(ride.getRideTemplate());
+		}
+    }
     
+    @Test
+    public void updateRide_UpdateRecurrence() throws Exception {
+    	Instant departureTime = Instant.now().plusSeconds(3600 * 4);
+    	Ride r = Fixture.createRide(car1, departureTime, null);
+    	Recurrence rc = new Recurrence(1, departureTime.plusSeconds(24 * 3600 * 3));
+    	RideTemplate rt = new RideTemplate();
+    	rt.setRecurrence(rc);
+    	r.setRideTemplate(rt);
+		Long rideId = rideManager.createRide(r);
+		assertNotNull(rideId);
+		flush();
+		// Horizon date is exclusive!
+		List<Ride> rides = em.createQuery("from Ride order by departureTime asc", Ride.class).getResultList();
+		flush();
+		assertNotNull(rides);
+		assertEquals(3, rides.size());
+		Ride first = rides.get(0);
+		Ride second = rides.get(1);
+		assertEquals(rideId, first.getId());
+		
+		// Decrease seats available
+		second.setNrSeatsAvailable(2);
+    	second.setRideTemplate(rt);
+    	rideManager.updateRide(second, null);
+		flush();
+		rides = em.createQuery("from Ride order by departureTime asc", Ride.class).getResultList();
+		flush();
+		assertNotNull(rides);
+		assertEquals(3, rides.size());
+		first = rides.get(0);
+		second = rides.get(1);
+		for (Ride ride : rides) {
+			assertNotNull(ride.getRideTemplate());
+		}
+		assertNotEquals(first.getRideTemplate().getId(), second.getRideTemplate().getId());
+		assertEquals(second.getRideTemplate().getId(), rides.get(2).getRideTemplate().getId());
+    }
+
     @Test
     public void getRideDetail() throws Exception {
 		Long rideId = createRecurrentRides(1);

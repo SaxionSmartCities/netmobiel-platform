@@ -28,7 +28,6 @@ import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.annotation.Updated;
 import eu.netmobiel.commons.event.TripConfirmedByProviderEvent;
@@ -137,9 +136,6 @@ public class RideManager {
     @Inject @Removed
     private Event<Ride> rideRemovedEvent;
 
-    @Inject @Created
-    private Event<Ride> rideCreatedEvent;
-
     @Resource
     private TimerService timerService;
 
@@ -189,8 +185,8 @@ public class RideManager {
 	}
 
 	protected List<Ride> generateNonOverlappingRides(RideTemplate template, Instant systemHorizon) {
-		// Get the ride instances that overlap or are beyond the template ride
-		List<Ride> ridesBeyondTemplate  = rideDao.findRidesBeyondTemplate(template);
+		// Get the ride instances that overlap or are beyond the template ride, that are rides with the same driver
+		List<Ride> ridesBeyondTemplate  = rideDao.findRidesSameDriverBeyond(template.getDepartureTime());
 		List<Ride> rides = template.generateRides(systemHorizon);
 		// Remove generated rides that overlap with existing future rides
 		rides.removeIf(ride -> ridesBeyondTemplate.stream().filter(r -> r.hasTemporalOverlap(ride)).findFirst().isPresent());
@@ -214,6 +210,7 @@ public class RideManager {
 		List<Ride> rides = generateNonOverlappingRides(template, systemHorizon);
 		for (Ride ride : rides) {
 			rideItineraryHelper.saveNewRide(ride);
+			checkRideMonitoring(ride);
 		}
 		return rides.size();
 	}
@@ -313,10 +310,7 @@ public class RideManager {
     		throw new BadRequestException("Constraint violation: A ride must have a 'departureTime' and/or an 'arrivalTime'");
     	}
     	if (ride.getFrom() == null || ride.getTo() == null) {
-    		throw new BadRequestException("Constraint violation: A new ride must have a 'from' and a 'to'");
-    	}
-    	if (ride.getBookings() != null && !ride.getBookings().isEmpty()) {
-    		throw new BadRequestException("Constraint violation: A new ride cannot contain bookings");
+    		throw new BadRequestException("Constraint violation: A ride must have a 'from' and a 'to'");
     	}
     	if (ride.getCarRef() == null) {
     		throw new BadRequestException("Constraint violation: A ride must have a car defined");
@@ -351,11 +345,15 @@ public class RideManager {
     	}
     	ride.setCar(car);
     	validateCreateUpdateRide(ride);
+    	if (ride.getBookings() != null && !ride.getBookings().isEmpty()) {
+    		throw new BadRequestException("Constraint violation: A new ride cannot contain bookings");
+    	}
 //    	if (! RideshareUrnHelper.getId(User.URN_PREFIX, car.getDriverRef()).equals(ride.getDriver().getId())) {
 //    		throw new CreateException("Constraint violation: The car is not owned by the owner of the ride.");
 //    	}
     	// If the ride contains no departure then, then the arrival time is important
-    	// Assure both departure and arrival time are set, to avoid database constraint failure. 
+    	// Assure both departure and arrival time are set, to avoid database constraint failure.
+    	// Temporarily make departure and arrival tim ethe same, this will be adapted once the itinerary is known. 
     	if (ride.getDepartureTime() == null || ride.isArrivalTimePinned()) {
     		ride.setArrivalTimePinned(true);
     		ride.setDepartureTime(ride.getArrivalTime());
@@ -379,50 +377,106 @@ public class RideManager {
     		log.warn("Inconsistence detected: Template defined without recurrency");
     		ride.setRideTemplate(null);
     	}
-    	EventFireWrapper.fire(rideCreatedEvent, ride);
-    	Ride firstRide = ride;
-    	if (template != null) {
-    		// Create a template from the well-defined ride
-    		// Copy the (new) ride to the template
-    		RideBase.copy(ride, template);
-    		// Copy the geometry obtained from the planner to the template
-    		// Note: The strategy is currently to calculate the route of a recurrent ride only once (at creation or update).
-    		//       Alternative is to make the route time-dependent and to calculate the route for each generated ride. 
-    		//       In the latter case the legGeometry does not need to be on the template.
-    		template.setLegGeometry(ride.getLegs().get(0).getLegGeometry());
-    		rideTemplateDao.save(template);
-    		ride.setRideTemplate(template);
-			Instant systemHorizon = getDefaultSystemHorizon();
-			// Create rides including the initial simple leg structure.
-//			List<Ride> rides = generateNonOverlappingRides(template, systemHorizon);
-			List<Ride> rides = template.generateRides(systemHorizon);
-
-			// At this point is the question: Is the first generated ride the same as the one we already have?
-			// The client could issue an invalid first date.
-			if (rides.size() == 0) {
-				// This is unexpected, no rides at all. The horizon must be too short. Error.
-				throw new CreateException("No rides could be created from template setting. Is horizon too close?");
-			} else {
-				Ride firstGeneratedRide = rides.get(0);
-				if (firstGeneratedRide.hasTemporalOverlap(ride)) {
-					// The ride that was calculated has overlap with the first template-generated ride. 
-					// That is ok, skip the first, we have it already in the database
-					rides.remove(0);
-				} else {
-					// The one we calculated must have (initial) that does not match the recurrence pattern.
-					// Remove it from the database
-					rideDao.remove(ride);
-					firstRide = firstGeneratedRide;
-				}
-				// None of the rides in the list are in the persistence context
-				for (Ride r : rides) {
-					rideItineraryHelper.saveNewRide(r);
-				}
-			}
-    	}
+    	checkRideMonitoring(ride);
+    	Ride firstRide = template == null ? ride : attachTemplateAndInstantiateRides(ride, template);
     	return firstRide.getId();
     }
 
+    protected Ride attachTemplateAndInstantiateRides(Ride ride, RideTemplate template) throws BusinessException {
+    	Ride firstRide = ride;
+		// Create a template from the well-defined ride
+		// Copy the (new) ride to the template
+		RideBase.copy(ride, template);
+		// Perhaps an old persistent template was passed. Remove it.
+		template.setId(null);
+		// Copy the geometry obtained from the planner to the template
+		// Note: The strategy is currently to calculate the route of a recurrent ride only once (at creation or update).
+		//       Alternative is to make the route time-dependent and to calculate the route for each generated ride. 
+		//       In the latter case the legGeometry does not need to be on the template.
+		template.setLegGeometry(ride.getLegs().get(0).getLegGeometry());
+		rideTemplateDao.save(template);
+		ride.setRideTemplate(template);
+		Instant systemHorizon = getDefaultSystemHorizon();
+		// Create rides including the initial simple leg structure.
+//			List<Ride> rides = generateNonOverlappingRides(template, systemHorizon);
+		List<Ride> rides = template.generateRides(systemHorizon);
+
+		// At this point is the question: Is the first generated ride the same as the one we already have?
+		// The client could issue an invalid first date.
+		if (rides.size() == 0) {
+			// This is unexpected, no rides at all. The horizon must be too short. Error.
+			throw new CreateException("No rides could be created from template setting. Is horizon too close?");
+		} else {
+			Ride firstGeneratedRide = rides.get(0);
+			if (firstGeneratedRide.hasTemporalOverlap(ride)) {
+				// The ride that was calculated has overlap with the first template-generated ride. 
+				// That is ok, skip the first, we have it already in the database
+				rides.remove(0);
+			} else {
+				// The one we calculated must have (initial) that does not match the recurrence pattern.
+				// Remove it from the database
+				rideDao.remove(ride);
+				firstRide = firstGeneratedRide;
+			}
+			// None of the rides in the list are in the persistence context
+			for (Ride r : rides) {
+				rideItineraryHelper.saveNewRide(r);
+				checkRideMonitoring(r);
+			}
+		}
+    	return firstRide;
+    }
+    
+    /**
+     * Set horizon at current ride, remove future rides, save template. Remove template from ride. 
+     * Keep booked rides though
+     * @param ride the ride to modify the recurrence of. 
+     * @throws BusinessException
+     */
+    protected void detachTemplateAndRemoveFutureRides(Ride ride) throws BusinessException {
+    	// Get all future rides beyond this ride, i.e. all rides attached to the same template
+    	RideTemplate template = ride.getRideTemplate();
+    	List<Long> rideIds = rideDao.findFollowingRideIds(template, ride.getDepartureTime());
+    	List<Ride> rides = rideDao.loadGraphs(rideIds, Ride.LIST_RIDES_ENTITY_GRAPH, Ride::getId);
+    	for (Ride r : rides) {
+			if (! r.getActiveBooking().isPresent()) {
+				removeRide(r, "Template has changed");
+			}
+		}
+    	if (! ride.getActiveBooking().isPresent()) {
+    		ride.setRideTemplate(null);
+    	}
+		// At this point all future non-booked rides are removed
+		// The current ride is detached from the template
+		// If nobody is using the old template anymore, then it is removed.
+
+    	limitTemplateHorizonUpToRide(template, ride);
+		checkIfTemplateObsoleted(template); 
+    }
+
+    /**
+     * Sets the horizon of the given template to exclude the specified ride, i.e., no rides are 
+     * generated anymore beyond the specified ride, including that same ride. 
+     * @param template the template to modify
+     * @param rideToExclude the ride being the horizon of the template.
+     */
+    private void limitTemplateHorizonUpToRide(RideTemplate template, Ride rideToExclude) {
+    	if (!rideTemplateDao.contains(template)) {
+    		throw new IllegalStateException("Template should be in persistence context");
+    	}
+		template.getRecurrence().setHorizon(rideToExclude.getDepartureTime());
+    }
+    
+    /**
+     * Checks how many rides are attached to the template. If 0 then delete the template. 
+     * @param template
+     */
+    private void checkIfTemplateObsoleted(RideTemplate template) {
+		if (rideTemplateDao.getNrRidesAttached(template) == 0L) {
+			rideTemplateDao.remove(template);
+		}
+    }
+    
     /**
      * Retrieves a ride. Anyone can read a ride, given the id. All details are retrieved.
      * @param id
@@ -440,25 +494,49 @@ public class RideManager {
     }
 
     /**
-     * Updates an existing ride. If a booking is involved, it might change. The booking details themselves cannot be changed trough this call. 
-     * It is not possible to change the driver.
+     * Updates an existing ride. It is not possible to change the driver.
+     * A ride (recurrent or not) cannot be update with this call when it has a booking in REQUESTED or CONFIRMED state.
+     * Booked ride that are part of een recurrent sequence are not updated, instead they will be dissociated from the ride template
+     * and continue as independent rides. The driver has to make explicit decisions about booked rides.    
+     * Booked rides should be alterable, but for now this is too complex. 
      * @param ride The ride with the ID already provided
      * @param scope The extent of the update in case of a recurrent ride. Default RideScope.THIS.  
-     * @throws CreateException
-     * @throws NotFoundException
+     * @throws BusinessException 
      */
     //FIXME
-    public void updateRide(Ride ride, RideScope scope) throws UpdateException, NotFoundException, BadRequestException {
-    	Ride ridedb = rideDao.find(ride.getId())
-    			.orElseThrow(NotFoundException::new);
+    public void updateRide(Ride ride, RideScope scope) throws BusinessException {
+    	/**
+    	 * Attributes that are modifiable:
+    	 * allowedLuggage	- Not used now. Could be altered without updating legs. Booked rides could conflict with luggage taken. 
+    	 * carRef 			- A different car. Referenced in a passenger leg, i.e. not modifiable in a simple way once booked.
+    	 * arrivalTime 		- In theory a shift of travel time. Not modifiable for booked legs.
+    	 * departureTime 	- In theory a shift of travel time. Not modifiable for booked legs.
+    	 * fromPlace		- Replanning required. Not modifiable for booked legs.
+    	 * toPlace			- Replanning required. Not modifiable for booked legs.
+    	 * maxDetourMeters	- Can be modified. Booked rides might not satisfy new criteria.
+    	 * maxDetourSeconds	- Can be modified. Booked rides might not satisfy new criteria.
+    	 * nrSeatsAvailable	- Can be modified. Booked rides might not satisfy new criteria.
+    	 * recurrence		- Can be modified. Remove all future effectively non-booked  rides and optionally insert new ones.
+    	 * remarks			- Can be modified. Currently not used by the front-end. 
+    	 */
+    	// Get the ride with booking info
+    	Ride ridedb = rideDao.loadGraph(ride.getId(), Ride.LIST_RIDES_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such ride: " + ride.getId()));
+    	if (!ride.getState().isPreTravelState()) {
+    		throw new UpdateException("Ride can not be updated, travelling has already started!");
+    	}
     	ride.setDriver(ridedb.getDriver());	// It is not allowed to change driver
-//    	if (ridedb.getBookings().stream().filter(b -> ! b.isDeleted()).collect(Collectors.counting()) > 0) {
-//    		// What if there is already a booking
-//    		throw new CreateException("The ride has already bookings, an update is not allowed");
-//    	}
+    	if (ridedb.hasActiveBooking()) {
+    		// What if there is already a booking
+    		throw new UpdateException("The ride has already a booking, an update is not allowed");
+    	}
+    	if (ridedb.hasActiveBookingProcess()) {
+    		throw new UpdateException("The ride is involved in a shout-out or a booking is requested, an update is not allowed now");
+    	}
+    	
     	validateCreateUpdateRide(ride);
     	Long carId = RideshareUrnHelper.getId(Car.URN_PREFIX, ride.getCarRef());
-    	if (carId == null) {
+    	if (carId == null) { 
     		new NotFoundException("No Car ID found for Ride " + ride.getId());
     	}
     	Car car = carDao.find(carId)
@@ -466,17 +544,31 @@ public class RideManager {
     	if (! carDao.isDrivenBy(car, ridedb.getDriver())) {
     		throw new BadRequestException("Constraint violation: The car is not owned by the owner of the ride.");
     	}
-    	Recurrence newRecurrence = ride.getRideTemplate() != null ? ride.getRideTemplate().getRecurrence() : null;  
-    	// Set all relations
-    	ride.setCar(ridedb.getCar());
-    	ride.setRideTemplate(ridedb.getRideTemplate());
+    	ride.setCar(car);
+
+    	// Note: the input ride template consists of the recurrence only. 
+    	// The input template is by definition not persistent. Use the template from the database.
+    	RideTemplate newTemplate = ride.getRideTemplate();
+    	Recurrence newRecurrence = newTemplate != null ? newTemplate.getRecurrence() : null;  
+    	RideTemplate oldTemplate = ridedb.getRideTemplate();
+    	ride.setRideTemplate(oldTemplate);
+    	// Copy non-modifiable attributes to the input object
+    	ride.setCancelReason(ridedb.getCancelReason());
+    	ride.setConfirmed(ridedb.getConfirmed());
+    	ride.setDeleted(ridedb.getDeleted());
+    	ride.setMonitored(ridedb.isMonitored());
+    	ride.setState(ridedb.getState());
+    	
     	// If the ride contains no departure then, then the arrival time is important
     	// Assure both departure and arrival time are set, to avoid database constraint failure. 
+    	// Temporarily make departure and arrival time the same, this will be adapted once the itinerary is known. 
     	if (ride.getDepartureTime() == null) {
     		ride.setArrivalTimePinned(true);
     		ride.setDepartureTime(ride.getArrivalTime());
-    	} else {
+    	} else if (ride.getArrivalTime() == null){
     		ride.setArrivalTime(ride.getDepartureTime());
+    	} else {
+    		ride.setArrivalTimePinned(ridedb.isArrivalTimePinned());
     	}
     	ride.updateShareEligibility();
     	ridedb = rideDao.merge(ride);
@@ -484,37 +576,33 @@ public class RideManager {
     	rideItineraryHelper.updateRideItinerary(ridedb);
 
     	// Now comes the difficult part with the recurrence
-    	if (ridedb.getRideTemplate() == null && newRecurrence == null) {
+    	if (oldTemplate == null && newRecurrence == null) {
         	// 1. No recurrence in DB nor update -> no template
     		// Done.
-    	} else if (ridedb.getRideTemplate() == null && newRecurrence != null) {
+    	} else if (oldTemplate == null && newRecurrence != null) {
     		// 2. Recurrence in update only --> create template and generate rides as with a new ride
-    		throw new UnsupportedOperationException("Update with recurrence is not yet supported");
-    	} else if (ridedb.getRideTemplate() != null && newRecurrence == null) {
+    		// scope is ignored, because not applicable
+    		attachTemplateAndInstantiateRides(ridedb, newTemplate);
+    	} else if (oldTemplate != null && newRecurrence == null) {
 	    	// 3. Recurrence in DB only. 
-	    	// 3.1. THIS Remove template for this ride. Ride is no longer recurrent.
-	    	// 3.2. THIS_AND_FOLLOWING Set horizon at current ride, remove future rides, save template. Remove template from ride.
-    		//		Keep booked rides though
-    		throw new UnsupportedOperationException("Update with removal of recurrence is not yet supported");
-    	} else {
-	    	// 4. Recurrence in DB and update
-    		if (newRecurrence.equals(ridedb.getRideTemplate().getRecurrence())) {
-    	    	// 4.1 Recurrence is same
-    	    	// 4.1.1. THIS Create a new template for this ride, generate rides
-    	    	// 4.1.2. THIS_AND_FOLLOWING Set horizon at current template, remove all future rides and generate rides
-        		//  	  Keep booked rides though
-        		throw new UnsupportedOperationException("Update of recurrent rides is not yet supported");
+    		if (scope == RideScope.THIS) {
+    	    	// 3.1. THIS Remove template for this ride. Ride is no longer recurrent.
+    			ridedb.setRideTemplate(null);
+        		checkIfTemplateObsoleted(oldTemplate);
     		} else {
-    	    	// 4.2. Recurrence has changed - Remove all future unbooked rides
-    	    	// 4.2.1. THIS Create a new template for this ride, generate rides
-    	    	// 4.2.2. THIS_AND_FOLLOWING Set horizon at current template, remove all future rides (or reuse them) and generate rides
-        		//		  Keep booked rides though
-        		throw new UnsupportedOperationException("Update with modified recurrence is not yet supported");
+    	    	// 3.2. THIS_AND_FOLLOWING Set horizon at current ride, remove future rides, save template. Remove template from ride.
+        		//		Keep booked rides though
+    			detachTemplateAndRemoveFutureRides(ridedb);
     		}
+    	} else {
+	    	// 4. Recurrence in DB and update. This-and-following is implicit. Always replace the template, whether or
+    		// not the recurrrence is the same.
+			detachTemplateAndRemoveFutureRides(ridedb);
+    		attachTemplateAndInstantiateRides(ridedb, newTemplate);
     	}
     }
     
-    private void removeRideSliently(Long rideId, final String reason) {
+    private void removeRideById(Long rideId, final String reason) {
 		try {
 			Ride ridedb = rideDao.find(rideId)
 					.orElseThrow(NotFoundException::new);
@@ -562,14 +650,10 @@ public class RideManager {
     		if (scope == RideScope.THIS_AND_FOLLOWING) {
 	    		// Deletes this ride and all that follow
 	    		rideDao.findFollowingRideIds(ridedb.getRideTemplate(), ridedb.getDepartureTime())
-	    			.forEach(rid -> removeRideSliently(rid, reason));
-	    		// Set the horizon of the template to the departure date of this ride.
-	    		ridedb.getRideTemplate().getRecurrence().setHorizon(ridedb.getDepartureTime());
+	    			.forEach(rid -> removeRideById(rid, reason));
+	        	limitTemplateHorizonUpToRide(ridedb.getRideTemplate(), ridedb);
     		}
-	    	// Check how many rides are attached to the template. If 0 then delete the template too.
-	    	if (rideTemplateDao.getNrRidesAttached(ridedb.getRideTemplate()) == 0L) {
-	    		rideTemplateDao.remove(ridedb.getRideTemplate());
-	    	}
+    		checkIfTemplateObsoleted(ridedb.getRideTemplate());
     	}
     }
 
@@ -721,7 +805,7 @@ public class RideManager {
 				new RideInfo(RideMonitorEvent.TIME_TO_PREPARE, ride.getId()));
 	}
 
-    public void onRideCreated(@Observes(during = TransactionPhase.IN_PROGRESS) @Created Ride ride) {
+    protected void checkRideMonitoring(Ride ride) {
    		Duration timeLeftToDeparture = Duration.between(Instant.now(), ride.getDepartureTime());
 		if (log.isDebugEnabled()) {
 			log.debug(String.format("Ride %s is scheduled, time left to departure is %s", ride.getId(), timeLeftToDeparture.toString()));

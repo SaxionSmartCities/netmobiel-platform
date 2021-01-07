@@ -59,39 +59,45 @@ public class RideDao extends AbstractDao<Ride, Long> {
     public PagedResult<Long> findByDriver(RideFilter filter, Cursor cursor) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
-        Root<Ride> rides = cq.from(Ride.class);
+        Root<Ride> root = cq.from(Ride.class);
         List<Predicate> predicates = new ArrayList<>();
-        Predicate predDriver = cb.equal(rides.get(RideTemplate_.driver), filter.getDriver());
+        Predicate predDriver = cb.equal(root.get(RideTemplate_.driver), filter.getDriver());
         predicates.add(predDriver);
         if (filter.getSince() != null) {
-	        predicates.add(cb.greaterThanOrEqualTo(rides.get(Ride_.departureTime), filter.getSince()));
+	        predicates.add(cb.greaterThanOrEqualTo(root.get(Ride_.departureTime), filter.getSince()));
         }        
         if (filter.getUntil() != null) {
-	        predicates.add(cb.lessThanOrEqualTo(rides.get(Ride_.departureTime), filter.getUntil()));
+	        predicates.add(cb.lessThanOrEqualTo(root.get(Ride_.departureTime), filter.getUntil()));
         }        
         if (filter.getRideState() != null) {
-	        predicates.add(cb.equal(rides.get(Ride_.state), filter.getRideState()));
+	        predicates.add(cb.equal(root.get(Ride_.state), filter.getRideState()));
         }        
         if (filter.getBookingState() != null) {
-        	Join<Ride, Booking> booking = rides.join(Ride_.bookings);
+        	Join<Ride, Booking> booking = root.join(Ride_.bookings);
 	        predicates.add(cb.equal(booking.get(Booking_.state), filter.getBookingState()));
         }        
+        if (filter.getSiblingRideId() != null) {
+        	// Note: Database null == null is false!
+        	Root<Ride> sibling = cq.from(Ride.class);
+	        predicates.add(cb.equal(sibling.get(Ride_.id), filter.getSiblingRideId()));
+	        predicates.add(cb.equal(root.get(Ride_.rideTemplate), sibling.get(Ride_.rideTemplate)));
+        }        
         if (!filter.isDeletedToo()) {
-            Predicate predNotDeleted = cb.or(cb.isNull(rides.get(Ride_.deleted)), cb.isFalse(rides.get(Ride_.deleted)));
+            Predicate predNotDeleted = cb.or(cb.isNull(root.get(Ride_.deleted)), cb.isFalse(root.get(Ride_.deleted)));
 	        predicates.add(predNotDeleted);
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;
         List<Long> results = Collections.emptyList();
         if (cursor.isCountingQuery()) {
-            cq.select(cb.count(rides.get(Ride_.id)));
+            cq.select(cb.count(root.get(Ride_.id)));
             totalCount = em.createQuery(cq).getSingleResult();
         } else {
-            cq.select(rides.get(Ride_.id));
+            cq.select(root.get(Ride_.id));
             if (filter.getSortDir() == SortDirection.DESC) {
-            	cq.orderBy(cb.desc(rides.get(Ride_.departureTime)));
+            	cq.orderBy(cb.desc(root.get(Ride_.departureTime)));
             } else {
-            	cq.orderBy(cb.asc(rides.get(Ride_.departureTime)));
+            	cq.orderBy(cb.asc(root.get(Ride_.departureTime)));
             }
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(cursor.getOffset());
@@ -189,17 +195,17 @@ public class RideDao extends AbstractDao<Ride, Long> {
     }
     
     /**
-     * Finds all rides that have the same driver as in the template and have an overlap with the current template 
-     * or are more in the future than the current template.
+     * Finds all rides that have the same driver as in the template and have an temporal overlap with the given departure 
+     * time or are more in the future than the given departure time.
      * This call will also find the rides that are manually created and created with other templates.
      * @param template The reference template 
      * @return A list of rides, possibly empty.
      */
-    public List<Ride> findRidesBeyondTemplate(RideTemplate template) {
+    public List<Ride> findRidesSameDriverBeyond(Instant departureTime) {
     	TypedQuery<Ride> tq = em.createQuery(
-    			"from Ride r where r.driver = r.rideTemplate.driver and r.arrivalTime >= :templateDepartureTime"
+    			"from Ride r where r.driver = r.rideTemplate.driver and r.arrivalTime >= :departureTime"
     			, Ride.class)
-    			.setParameter("templateDepartureTime", template.getDepartureTime());
+    			.setParameter("departureTime", departureTime);
     	return tq.getResultList();
     }
 

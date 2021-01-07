@@ -7,17 +7,14 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
-import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.util.ClosenessFilter;
-import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
@@ -32,7 +29,7 @@ import eu.netmobiel.rideshare.repository.StopDao;
 
 /**
  * Class used to keep the itinerary of a ride up-to-date with regard to ride and booking properties.
- * All methods are suppoed to run in transaction context.
+ * All methods are assumed to run in transaction context.
  * 
  * @author Jaap Reitsma
  *
@@ -54,8 +51,6 @@ public class RideItineraryHelper {
     private StopDao stopDao;
     @Inject
     private OpenTripPlannerDao otpDao;
-    @Inject @Created
-    private Event<Ride> rideCreatedEvent;
 
     /**
      * Saves a fresh new ride, including the legs and stops.
@@ -66,7 +61,6 @@ public class RideItineraryHelper {
     	rideDao.save(r);
     	r.getStops().forEach(stop -> stopDao.save(stop));
     	r.getLegs().forEach(leg -> legDao.save(leg));
-    	EventFireWrapper.fire(rideCreatedEvent, r);
     }
 
     /**

@@ -313,6 +313,12 @@ public class Ride extends RideBase implements Serializable {
         booking.setRide(null);
     }
     
+    public boolean hasActiveBookingProcess() {
+    	return getBookings().stream()
+    			.filter(b -> b.getState() == BookingState.PROPOSED || b.getState() == BookingState.REQUESTED)
+    			.findAny().isPresent();
+    }
+
     public boolean hasActiveBooking() {
     	return getBookings().stream()
     			.filter(b -> b.getState() == BookingState.CONFIRMED)
