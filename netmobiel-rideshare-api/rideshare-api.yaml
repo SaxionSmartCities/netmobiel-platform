@@ -662,9 +662,10 @@ paths:
           - CANCELLED
           type: string
         in: query
-      - name: associatedRideId
-        description: Only show rides sharing the same template as the one specified.
-          If that ride has no template then no results are returned.
+      - name: siblingRideId
+        description: Only show rides that are siblings, i.e. rides sharing the same
+          template as the one specified. If that ride has no template then no results
+          are returned.
         schema:
           type: string
         in: query
