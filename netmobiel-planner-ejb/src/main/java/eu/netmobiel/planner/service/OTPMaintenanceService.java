@@ -70,12 +70,14 @@ public class OTPMaintenanceService {
     	if (stops.size() % CHUNK_SIZE_STOPS > 0) {
     		nrChunks++;
     	}
+    	otpDataManager.prepareUpdateStops();
     	for (int chunk = 0; chunk < nrChunks; chunk++) {
     		log.debug(String.format("Stops chunck %d/%d", chunk + 1, nrChunks));
     		List<OtpStop> sublist = stops.subList(chunk * CHUNK_SIZE_STOPS, Math.min((chunk + 1) * CHUNK_SIZE_STOPS, stops.size()));
     		// Force transaction demarcation
     		otpDataManager.bulkUpdateStops(sublist);
     	}
+    	otpDataManager.finishUpdateStops();
     }
 
     private void updatePublicTransportClusters() {
@@ -85,12 +87,14 @@ public class OTPMaintenanceService {
     	if (clusters.size() % CHUNK_SIZE_CLUSTERS > 0) {
     		nrChunks++;
     	}
+    	otpDataManager.prepareUpdateClusters();
     	for (int chunk = 0; chunk < nrChunks; chunk++) {
     		log.debug(String.format("Clusters chunck %d/%d", chunk + 1, nrChunks));
     		List<OtpCluster> sublist = clusters.subList(chunk * CHUNK_SIZE_CLUSTERS, Math.min((chunk + 1) * CHUNK_SIZE_CLUSTERS, clusters.size()));
     		// Force transaction demarcation
     		otpDataManager.bulkUpdateClusters(sublist);
     	}
+    	otpDataManager.finishUpdateClusters();
     }
     private void updatePublicTransportRoutes() {
     	log.info("Fetch the routes and update");
@@ -99,12 +103,14 @@ public class OTPMaintenanceService {
     	if (routes.size() % CHUNK_SIZE_ROUTES > 0) {
     		nrChunks++;
     	}
+    	otpDataManager.prepareUpdateRoutes();
     	for (int chunk = 0; chunk < nrChunks; chunk++) {
     		log.debug(String.format("Routes chunck %d/%d", chunk + 1, nrChunks));
     		List<OtpRoute> sublist = routes.subList(chunk * CHUNK_SIZE_ROUTES, Math.min((chunk + 1) * CHUNK_SIZE_ROUTES, routes.size()));
     		// Force transaction demarcation
     		otpDataManager.bulkUpdateRoutes(sublist);
     	}
+    	otpDataManager.finishUpdateRoutes();
     }
 
     @SuppressWarnings("unused")
@@ -129,8 +135,9 @@ public class OTPMaintenanceService {
     	if (maintenanceRunning) {
     		throw new IllegalStateException("Operation already running");
     	}
-		maintenanceRunning = true;
     	try {
+    		maintenanceRunning = true;
+    		log.debug("Start update public transport data");
 	    	updatePublicTransportStops();
 	    	updatePublicTransportClusters();
 	    	updatePublicTransportRoutes();
@@ -138,6 +145,10 @@ public class OTPMaintenanceService {
 	//    	updatePublicTransportTransfers();
 			otpDataManager.bulkUpdateClusterRoutes();
 			otpDataManager.bulkUpdateStopRoutes();
+    		log.debug("Update public transport data has completed succcessfully");
+    	} catch (Exception ex) {
+    		log.error("Update public transport data has completed with errors");
+    		throw ex;
     	} finally {
     		maintenanceRunning = false;
     	}

@@ -4,6 +4,7 @@ import java.io.Serializable;
 
 import javax.enterprise.inject.Vetoed;
 import javax.json.bind.annotation.JsonbProperty;
+import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
@@ -23,8 +24,9 @@ public class OtpTransfer implements Serializable {
 	/**
 	 * Distance between two stops
 	 */
+	@Column(name = "distance", nullable = false)
 	private int distance;
-	
+
 	@Id
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "from_stop", nullable = false, foreignKey = @ForeignKey(name = "otp_transfer_from_stop_fk"))
@@ -63,5 +65,4 @@ public class OtpTransfer implements Serializable {
 		this.toStop = toStop;
 	}
 
-	
 }

@@ -52,13 +52,28 @@ public class OtpClusterDao extends AbstractDao<OtpCluster, String> {
 	}
 
 	public void updateNrRoutes() {
+    	log.debug("updateNrRoutes: Start update route count");
     	Query q = em.createQuery("update OtpCluster c set c.nrRoutes = " + 
     			"(select count(distinct r) from OtpRoute r join r.stops s join s.cluster cc where cc = c)");
     	int affectedRows = q.executeUpdate();
     	log.debug("updateNrRoutes: Rows updated #" + affectedRows);
     }
 
-//    public void updateNrStops() {
+	public void markAllStale() {
+    	log.debug("markAllStale: Mark all clusters as stale");
+    	Query q = em.createQuery("update OtpCluster c set c.stale = true");
+    	int affectedRows = q.executeUpdate();
+    	log.debug("markAllStale: Rows updated #" + affectedRows);
+    }
+
+	public void removeAllStale() {
+    	log.debug("removeAllStale: Remove all stale clusters");
+    	Query q = em.createQuery("delete from OtpCluster where stale = true");
+    	int affectedRows = q.executeUpdate();
+    	log.debug("removeAllStale: Rows updated #" + affectedRows);
+    }
+
+	//    public void updateNrStops() {
 //    	Query q = em.createQuery("update OtpCluster c set c.nrStops = (select count(s) from OtpStop s where s.cluster = c)");
 //    	int affectedRows = q.executeUpdate();
 //    	log.debug("updateNrRoutes: Rows updated #" + affectedRows);

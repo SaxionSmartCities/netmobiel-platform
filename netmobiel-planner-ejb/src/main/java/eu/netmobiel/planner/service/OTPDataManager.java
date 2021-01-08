@@ -41,6 +41,15 @@ public class OTPDataManager {
     @Inject
     private OtpTransferDao otpTransferDao;
 
+    public void prepareUpdateStops() {
+    	otpStopDao.markAllStale();
+    }
+
+    @TransactionTimeout(1800)
+    public void finishUpdateStops() {
+    	otpStopDao.removeAllStale();
+    }
+
     public void bulkUpdateStops(List<OtpStop> stops) {
     	for (OtpStop otpStop : stops) {
 			otpStopDao.find(otpStop.getId()).map(s -> {
@@ -51,6 +60,15 @@ public class OTPDataManager {
 				return otpStopDao.save(otpStop);
 			});
 		}
+    }
+
+    public void prepareUpdateClusters() {
+    	otpClusterDao.markAllStale();
+    }
+    
+    @TransactionTimeout(1800)
+    public void finishUpdateClusters() {
+    	otpClusterDao.removeAllStale();
     }
 
     public void bulkUpdateClusters(List<OtpCluster> clusters) {
@@ -71,6 +89,15 @@ public class OTPDataManager {
 		}
     }
 
+    public void prepareUpdateRoutes() {
+    	otpRouteDao.markAllStale();
+    }
+    
+    @TransactionTimeout(1800)
+    public void finishUpdateRoutes() {
+    	otpRouteDao.removeAllStale();
+    }
+    
     public void bulkUpdateRoutes(List<OtpRoute> routes) {
     	for (OtpRoute otpRoute : routes) {
 			OtpRoute route = otpRouteDao.find(otpRoute.getId()).map(c -> {
@@ -87,6 +114,8 @@ public class OTPDataManager {
 		}
     }
 
+    // Obsoleted transfers are automatically removed with the stops
+    
     public void bulkUpdateTransfers(List<OtpTransfer> transfers) {
     	for (OtpTransfer otpTransfer : transfers) {
     		OtpTransferId tpk = new OtpTransferId(otpTransfer.getFromStop().getId(), otpTransfer.getToStop().getId()); 
@@ -99,14 +128,14 @@ public class OTPDataManager {
 			});
 		}
     }
-
-    @TransactionTimeout(300)
+    
+    @TransactionTimeout(1800)
     public void bulkUpdateClusterRoutes() {
     	log.info("Update cluster nr routes");
     	otpClusterDao.updateNrRoutes();
     }
 
-    @TransactionTimeout(600)
+    @TransactionTimeout(1800)
     public void bulkUpdateStopRoutes() {
     	log.info("Update stop nr routes");
     	otpStopDao.updateNrRoutes();

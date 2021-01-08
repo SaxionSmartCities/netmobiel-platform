@@ -20,6 +20,8 @@ public class OtpBase implements Serializable {
     @Column(name = "gtfs_id", length = 64)
     private String gtfsId;
     
+    @Column(name = "stale", nullable = false)
+    private boolean stale;
 
 	public OtpBase() {
 	}
@@ -38,6 +40,14 @@ public class OtpBase implements Serializable {
 
 	public void setGtfsId(String gtfsId) {
 		this.gtfsId = gtfsId;
+	}
+
+	public boolean isStale() {
+		return stale;
+	}
+
+	public void setStale(boolean stale) {
+		this.stale = stale;
 	}
 
 	@Override
