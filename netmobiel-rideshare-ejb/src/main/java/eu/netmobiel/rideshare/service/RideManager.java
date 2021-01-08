@@ -522,7 +522,7 @@ public class RideManager {
     	// Get the ride with booking info
     	Ride ridedb = rideDao.loadGraph(ride.getId(), Ride.LIST_RIDES_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such ride: " + ride.getId()));
-    	if (!ride.getState().isPreTravelState()) {
+    	if (!ridedb.getState().isPreTravelState()) {
     		throw new UpdateException("Ride can not be updated, travelling has already started!");
     	}
     	ride.setDriver(ridedb.getDriver());	// It is not allowed to change driver
