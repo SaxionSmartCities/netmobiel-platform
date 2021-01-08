@@ -7,7 +7,6 @@ import java.nio.file.Paths;
 import java.time.Instant;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.StampedLock;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
@@ -63,8 +62,7 @@ public class ProfileClient {
     private ResteasyClient client;
     private Configuration profileServiceAccount;
 
-    private AccessTokenResponse profileAccessTokenResponse;
-    private StampedLock lock = new StampedLock();
+    private String profileAccessToken;
     private Instant profileTokenExpiration;
     
     /**
@@ -109,29 +107,27 @@ public class ProfileClient {
 
 	/**
 	 * Acquires a profile service account token, but only when the current access token is near expiration.
+	 * This method may be accessed concurrently, we don't mind.
 	 * @return a service account  access token
 	 */
 	protected String getServiceAccountAccessToken() {
-		long stamp = lock.readLock();
-		try {
-			if (profileAccessTokenResponse == null || profileTokenExpiration == null ||
-				Instant.now().isAfter(profileTokenExpiration.minusSeconds(PROFILE_TIMEOUT_SLACK_SECS))) {
-				stamp = lock.tryConvertToWriteLock(stamp);
-	            if (stamp == 0L) {
-	                log.warn("Could not convert to write lock");
-	                stamp = lock.writeLock();
-	            }
-	            if (log.isDebugEnabled()) {
-	            	log.debug("Acquire service account access token");
-	            }
-	        	AuthzClient authzClient = AuthzClient.create(profileServiceAccount);
-	        	profileAccessTokenResponse = authzClient.obtainAccessToken();
-	            profileTokenExpiration = Instant.now().plusSeconds(profileAccessTokenResponse.getExpiresIn());
-			}
-		} finally {
-			lock.unlock(stamp);
+		// Get local copy to protect against concurrent access.
+		// Could also use synchronize, not sure how EJB reacts. StampedLock behaved badly. 
+		String token = profileAccessToken;
+		Instant expiration = profileTokenExpiration;
+		if (token == null || expiration == null ||
+			Instant.now().isAfter(expiration.minusSeconds(PROFILE_TIMEOUT_SLACK_SECS))) {
+            if (log.isDebugEnabled()) {
+            	log.debug("Acquire service account access token");
+            }
+        	AuthzClient authzClient = AuthzClient.create(profileServiceAccount);
+        	AccessTokenResponse rsp = authzClient.obtainAccessToken();
+        	token = rsp.getToken();
+            expiration = Instant.now().plusSeconds(rsp.getExpiresIn());
+        	profileAccessToken = token;
+            profileTokenExpiration = expiration; 
 		}
-		return profileAccessTokenResponse.getToken();
+		return token;
 	}
 
 	/**
@@ -149,13 +145,8 @@ public class ProfileClient {
 	 * For testing purposes: Clears the profile service token. 
 	 */
 	protected void clearToken() {
-		long stamp = lock.writeLock();
-		try {
-	    	profileAccessTokenResponse = null;
-	        profileTokenExpiration = null;
-		} finally {
-			lock.unlock(stamp);
-		}
+    	profileAccessToken = null;
+        profileTokenExpiration = null;
 	}
 
 	public String getFirebaseToken(String managedIdentity) throws BusinessException {
