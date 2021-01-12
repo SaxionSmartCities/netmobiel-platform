@@ -919,206 +919,6 @@ components:
         message: This is a really bad request
         reasonPhrase: Bad Request
         status: 400
-    Ride:
-      description: A Ride object specifies a ride with a car by a driver on a certain.
-        The retour can be specified as well.
-      required:
-      - nrSeatsAvailable
-      - carRef
-      - fromPlace
-      - toPlace
-      - legs
-      type: object
-      properties:
-        nrSeatsAvailable:
-          description: The maximum number of seats available for passengers (according
-            to the driver).
-          type: integer
-        remarks:
-          description: 'Remarks for passengers. '
-          type: string
-        id:
-          format: int64
-          description: '(Read-only) The unique id of this ride, assigned by the system.
-            When referenced use the URN notation: urn:nb:rs:ride:<id>'
-          type: integer
-        allowedLuggage:
-          description: The luggage the driver is allowing on the ride.
-          enum:
-          - HANDLUGGAGE
-          - PET
-          - WALKER
-          - STROLLER
-          - WHEELCHAIR
-          - GROCERIES
-          type: string
-        bookings:
-          description: (Read-only) A list of bookings for this `Ride`.
-          type: array
-          items:
-            $ref: '#/components/schemas/Booking'
-        maxDetourMeters:
-          description: The distance in meters the driver is prepared to detour to
-            pickup of dropoff a passenger. If the detour in meters as well as in seconds
-            is omitted, then a system defined percentage of the distance between departure
-            and destination is taken.
-          type: integer
-        carRef:
-          description: 'The car used for the ride. This is a URN: urn:nb:rs:car:<id>'
-          type: string
-        driverRef:
-          description: "The user driving the car. If omitted the user registering\
-            \ the ride. \nFormat is a URN according urn:nb:rs:user:<id>."
-          type: string
-        fromPlace:
-          $ref: '#/components/schemas/Location'
-          description: The place (a stop) to depart from.
-        toPlace:
-          $ref: '#/components/schemas/Location'
-          description: The final destination a stop for the ride.
-        maxDetourSeconds:
-          description: The time in seconds the driver is prepared to detour to pickup
-            or drop-off a passenger. It is also possible to specify the detour in
-            meters. The maximum detour is converted to meters using a system defined
-            nominal speed (around 30) km/h.
-          type: integer
-        rideRef:
-          description: (Read-only) The reference to a ride. Format is a URN according
-            urn:nb:rs:ride:<id>.
-          type: string
-        carthesianBearing:
-          description: (Read-only) The compass direction of the ride (as the crow
-            flies))
-          type: integer
-        carthesianDistance:
-          description: (Read-only) Distance as the crow flies (flat earth approximation)
-          type: integer
-        recurrence:
-          $ref: '#/components/schemas/Recurrence'
-          description: The recurrence pattern of a ride. Optional.
-        driver:
-          $ref: '#/components/schemas/User'
-          description: (Read-only) The driver of the car used for this ride.
-        car:
-          $ref: '#/components/schemas/Car'
-          description: (Read-only) The car used for this ride.
-        deleted:
-          description: (Read-only) If true then the ride was deleted / cancelled.
-          type: boolean
-        departureTime:
-          format: date-time
-          description: The departure date and time of the trip, formatted according
-            ISO 8601. On creation or update of a ride either departure or arrival
-            must be set. If both are given then departure time prevails.
-          type: string
-        legs:
-          description: '(Read-only) The ride split up in legs and stops. The legs
-            and stops are calculated by the service from the initial ride information
-            and the optional booking(s). '
-          type: array
-          items:
-            $ref: '#/components/schemas/Leg'
-        arrivalTime:
-          format: date-time
-          description: The time of arrival (under normal traffic conditions), formatted
-            according ISO 8601. On creation or update of a ride either departure or
-            arrival must be set. If both are given then departure time prevails.
-          type: string
-        distance:
-          description: (Read-only) The estimated distance in meter.
-          type: integer
-        arrivalTimePinned:
-          description: 'Flag to signal whether the original request is made use the
-            departure time as input (false) or the arrival time (true). This flag
-            is used when recalculating the route when a booking is added. Either departure
-            or arrival time will change then.  '
-          type: boolean
-        CO2Emission:
-          description: (Read-only) The amount of CO2 emitted by the car in this trip.
-          type: integer
-        duration:
-          description: (Read-only) The estimation duration of the trip.
-          type: integer
-        state:
-          description: (Read-only) The current state of the ride.
-          enum:
-          - SCHEDULED
-          - DEPARTING
-          - IN_TRANSIT
-          - ARRIVING
-          - VALIDATING
-          - COMPLETED
-          - CANCELLED
-          type: string
-        confirmed:
-          description: If true then the drivers has indeed executed the scheduled
-            ride. If false then the driver has not driven this ride. If unspecified
-            then it is unclear.
-          type: boolean
-      example:
-        bookings: []
-        car:
-          brand: Volvo
-          model: V70
-        carRef: urn:nb:rs:car:5
-        carthesianBearing: 265
-        carthesianDistance: 19009
-        departureTime: 2019-11-02T11:30:00Z
-        arrivalTime: 2019-11-02T11:58:40Z
-        co2Emission: 5055
-        distance: 23295
-        duration: 1720
-        fromPlace:
-          label: Rapenburgsestraat Lichtenvoorde
-          latitude: 51.987757
-          longitude: 6.564012
-    Recurrence:
-      title: Root Type for Recurrency
-      description: A descriptor for a recurrent ride.
-      required:
-      - unit
-      - interval
-      type: object
-      properties:
-        interval:
-          format: int32
-          description: The repetition interval. One week means every week. Two weeks
-            means every two weeks.
-          type: integer
-        unit:
-          description: The unit of the repetition.
-          enum:
-          - DAY
-          - WEEK
-          type: string
-        horizon:
-          format: date
-          description: 'Optional: the horizon date (a local date!) limits the recurrence
-            to a future date where the ride is no longer repeated. The horizon date
-            is exclusive.'
-          type: string
-        daysOfWeekMask:
-          format: int32
-          description: 'In case of unit ''week'': A bitmask of day included in the
-            recurrence. The days of the week are numbered according ISO8601: 1 to
-            7 for Monday to Sunday. The number of the weekday corresponds with the
-            bit number plus one, i.e., bit 0 corresponds with Monday.'
-          type: integer
-        timeZone:
-          description: 'The time zone of the recurrence. The zone is required to calculate
-            the local time, as it is the local departure/arrival time that is repeated.
-            Default: Europe/Amsterdam. '
-          type: string
-        templateRef:
-          description: 'The reference to the template of the recurrent rides. '
-          type: string
-      example:
-        interval: 2
-        unit: WEEK
-        daysOfWeek: 62
-        horizon: 2019-12-31
-        timeZone: Europe/Amsterdam
-        templateRef: urn:nb:rs:ridetemplate:43
     Page:
       title: Root Type for Page
       description: A page from a result set. For smaller sets the page contains the
@@ -1369,6 +1169,206 @@ components:
         legRefs:
         - urn:nb:rs:leg:54
         passengerTripRef: urn:nb:pl:trip:568
+    Recurrence:
+      title: Root Type for Recurrency
+      description: A descriptor for a recurrent ride.
+      required:
+      - unit
+      - interval
+      type: object
+      properties:
+        interval:
+          format: int32
+          description: The repetition interval. One week means every week. Two weeks
+            means every two weeks.
+          type: integer
+        unit:
+          description: The unit of the repetition.
+          enum:
+          - DAY
+          - WEEK
+          type: string
+        horizon:
+          format: date
+          description: 'Optional: the horizon date (a local date!) limits the recurrence
+            to a future date where the ride is no longer repeated. The horizon date
+            is exclusive.'
+          type: string
+        daysOfWeekMask:
+          format: int32
+          description: 'In case of unit ''week'': A bitmask of day included in the
+            recurrence. The days of the week are numbered according ISO8601: 1 to
+            7 for Monday to Sunday. The number of the weekday corresponds with the
+            bit number plus one, i.e., bit 0 corresponds with Monday.'
+          type: integer
+        timeZone:
+          description: 'The time zone of the recurrence. The zone is required to calculate
+            the local time, as it is the local departure/arrival time that is repeated.
+            Default: Europe/Amsterdam. '
+          type: string
+      example:
+        interval: 2
+        unit: WEEK
+        daysOfWeek: 62
+        horizon: 2019-12-31
+        timeZone: Europe/Amsterdam
+    Ride:
+      description: A Ride object specifies a ride with a car by a driver on a certain.
+        The retour can be specified as well.
+      required:
+      - nrSeatsAvailable
+      - carRef
+      - fromPlace
+      - toPlace
+      - legs
+      type: object
+      properties:
+        nrSeatsAvailable:
+          description: The maximum number of seats available for passengers (according
+            to the driver).
+          type: integer
+        remarks:
+          description: 'Remarks for passengers. '
+          type: string
+        id:
+          format: int64
+          description: '(Read-only) The unique id of this ride, assigned by the system.
+            When referenced use the URN notation: urn:nb:rs:ride:<id>'
+          type: integer
+        allowedLuggage:
+          description: The luggage the driver is allowing on the ride.
+          enum:
+          - HANDLUGGAGE
+          - PET
+          - WALKER
+          - STROLLER
+          - WHEELCHAIR
+          - GROCERIES
+          type: string
+        bookings:
+          description: (Read-only) A list of bookings for this `Ride`.
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+        maxDetourMeters:
+          description: The distance in meters the driver is prepared to detour to
+            pickup of dropoff a passenger. If the detour in meters as well as in seconds
+            is omitted, then a system defined percentage of the distance between departure
+            and destination is taken.
+          type: integer
+        carRef:
+          description: 'The car used for the ride. This is a URN: urn:nb:rs:car:<id>'
+          type: string
+        driverRef:
+          description: "The user driving the car. If omitted the user registering\
+            \ the ride. \nFormat is a URN according urn:nb:rs:user:<id>."
+          type: string
+        fromPlace:
+          $ref: '#/components/schemas/Location'
+          description: The place (a stop) to depart from.
+        toPlace:
+          $ref: '#/components/schemas/Location'
+          description: The final destination a stop for the ride.
+        maxDetourSeconds:
+          description: The time in seconds the driver is prepared to detour to pickup
+            or drop-off a passenger. It is also possible to specify the detour in
+            meters. The maximum detour is converted to meters using a system defined
+            nominal speed (around 30) km/h.
+          type: integer
+        rideRef:
+          description: (Read-only) The reference to a ride. Format is a URN according
+            urn:nb:rs:ride:<id>.
+          type: string
+        carthesianBearing:
+          description: (Read-only) The compass direction of the ride (as the crow
+            flies))
+          type: integer
+        carthesianDistance:
+          description: (Read-only) Distance as the crow flies (flat earth approximation)
+          type: integer
+        recurrence:
+          $ref: '#/components/schemas/Recurrence'
+          description: The recurrence pattern of a ride. Optional.
+        driver:
+          $ref: '#/components/schemas/User'
+          description: (Read-only) The driver of the car used for this ride.
+        car:
+          $ref: '#/components/schemas/Car'
+          description: (Read-only) The car used for this ride.
+        deleted:
+          description: (Read-only) If true then the ride was deleted / cancelled.
+          type: boolean
+        departureTime:
+          format: date-time
+          description: The departure date and time of the trip, formatted according
+            ISO 8601. On creation or update of a ride either departure or arrival
+            must be set. If both are given then departure time prevails.
+          type: string
+        legs:
+          description: '(Read-only) The ride split up in legs and stops. The legs
+            and stops are calculated by the service from the initial ride information
+            and the optional booking(s). '
+          type: array
+          items:
+            $ref: '#/components/schemas/Leg'
+        arrivalTime:
+          format: date-time
+          description: The time of arrival (under normal traffic conditions), formatted
+            according ISO 8601. On creation or update of a ride either departure or
+            arrival must be set. If both are given then departure time prevails.
+          type: string
+        distance:
+          description: (Read-only) The estimated distance in meter.
+          type: integer
+        arrivalTimePinned:
+          description: 'Flag to signal whether the original request is made use the
+            departure time as input (false) or the arrival time (true). This flag
+            is used when recalculating the route when a booking is added. Either departure
+            or arrival time will change then.  '
+          type: boolean
+        CO2Emission:
+          description: (Read-only) The amount of CO2 emitted by the car in this trip.
+          type: integer
+        duration:
+          description: (Read-only) The estimation duration of the trip.
+          type: integer
+        state:
+          description: (Read-only) The current state of the ride.
+          enum:
+          - SCHEDULED
+          - DEPARTING
+          - IN_TRANSIT
+          - ARRIVING
+          - VALIDATING
+          - COMPLETED
+          - CANCELLED
+          type: string
+        confirmed:
+          description: If true then the drivers has indeed executed the scheduled
+            ride. If false then the driver has not driven this ride. If unspecified
+            then it is unclear.
+          type: boolean
+        templateRef:
+          description: 'The reference to the template of the ride, if any. '
+          type: string
+      example:
+        bookings: []
+        car:
+          brand: Volvo
+          model: V70
+        carRef: urn:nb:rs:car:5
+        carthesianBearing: 265
+        carthesianDistance: 19009
+        departureTime: 2019-11-02T11:30:00Z
+        arrivalTime: 2019-11-02T11:58:40Z
+        co2Emission: 5055
+        distance: 23295
+        duration: 1720
+        fromPlace:
+          label: Rapenburgsestraat Lichtenvoorde
+          latitude: 51.987757
+          longitude: 6.564012
+        templateRef: urn:nb:rs:ridetemplate:43
   responses:
     InternalServerError:
       content:
