@@ -28,6 +28,7 @@ import javax.persistence.OrderColumn;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
+import javax.persistence.Version;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
@@ -85,6 +86,16 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 				)
 	}
 )
+@NamedEntityGraph(
+		name = Ride.UPDATE_DETAILS_ENTITY_GRAPH, 
+		attributeNodes = { 
+				// Do not include bookings too, that gives an error message: Cannot fetch multiple bags.
+			@NamedAttributeNode(value = "bookings"),		
+			@NamedAttributeNode(value = "car"),		
+			@NamedAttributeNode(value = "driver"),		
+			@NamedAttributeNode(value = "rideTemplate")		
+		}
+	)
 @Entity
 @Table(name = "ride")
 @Vetoed
@@ -95,11 +106,16 @@ public class Ride extends RideBase implements Serializable {
 	public static final String SEARCH_RIDES_ENTITY_GRAPH = "search-rides-graph";
 	public static final String LIST_RIDES_ENTITY_GRAPH = "list-rides-graph";
 	public static final String DETAILS_WITH_LEGS_ENTITY_GRAPH = "ride-details-graph";
+	public static final String UPDATE_DETAILS_ENTITY_GRAPH = "ride-update-details-graph";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ride_sg")
     private Long id;
 
+	@Version
+	@Column(name = "version")
+	private int version;
+	
     @Transient
     private String rideRef;
 
@@ -215,6 +231,14 @@ public class Ride extends RideBase implements Serializable {
 
 	public void setBookings(List<Booking> bookings) {
 		this.bookings = bookings;
+	}
+
+	public int getVersion() {
+		return version;
+	}
+
+	public void setVersion(int version) {
+		this.version = version;
 	}
 
 	public List<Stop> getStops() {

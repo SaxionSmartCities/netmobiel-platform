@@ -21,7 +21,8 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 	 * @param start the date (inclusive) from which iteration values are returned, if any. 
 	 * 					If set to null then the reference date is the first date. 
 	 * @param horizon The horizon to use, may be null. The horizon date is exclusive. i.e. 
-	 *                every iteration value is before the horizon.
+	 *                every iteration value is before the horizon. If the horizon is not specified, the 
+	 *                iterator will never end.
 	 */
 	public RecurrenceIterator(Recurrence aPattern, LocalDate reference, LocalDate start, LocalDate horizon) {
 		this.reference = reference;
@@ -38,13 +39,10 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 		if (this.start == null) {
 			this.start = this.reference;
 		}
-		if (this.horizon == null) {
-			throw new IllegalArgumentException("No horizon in sight!");
-		}
 		if (! this.reference.isBefore(this.start) && ! this.reference.isEqual(this.start)) {
 			throw new IllegalArgumentException("Reference date must be before or equal to start date!");
 		}
-		if (aPattern.getHorizon() != null && aPattern.getLocalHorizon().isBefore(horizon)) {
+		if (aPattern.getHorizon() != null && (horizon == null || aPattern.getLocalHorizon().isBefore(horizon))) {
 			this.horizon = aPattern.getLocalHorizon();  
 		}
 		if (aPattern.getUnit() == TimeUnit.DAY) {
@@ -83,7 +81,7 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 		}
 		@Override
 		public boolean hasNext() {
-			return cursor.isBefore(horizon);
+			return horizon == null || cursor.isBefore(horizon);
 		}
 
 		@Override
@@ -137,7 +135,7 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 
 		@Override
 		public boolean hasNext() {
-			return dowCursor <= 7 && dayCursor.isBefore(horizon);
+			return dowCursor <= 7 && (horizon == null || dayCursor.isBefore(horizon));
 		}
 
 		@Override

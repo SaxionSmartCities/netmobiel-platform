@@ -9,6 +9,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.time.ZoneId;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import javax.inject.Inject;
@@ -26,6 +27,7 @@ import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.event.BookingSettledEvent;
 import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
@@ -40,14 +42,23 @@ import eu.netmobiel.rideshare.model.RideBase;
 import eu.netmobiel.rideshare.model.RideScope;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.Ride_;
+import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.model.Stop;
 import eu.netmobiel.rideshare.model.TimeUnit;
-import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
 
+/**
+ * The tests use departures dates in th efuture to prevent the timer services kicking in.
+ * The timer services should be shutdown after finishing each test to prevent them from causing
+ * changes in rides yet to create in next test cases.
+ *   
+ * @author Jaap Reitsma
+ *
+ */
 @RunWith(Arquillian.class)
+@Logging
 public class RideManagerIT extends RideshareIntegrationTestBase {
 	
     @Deployment
@@ -94,7 +105,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		eventListenerHelper.reset();
     }
 
-    private void verifyRideBase(RideBase r, RideBase rdb, Instant departureTime, Instant arrivalTime) {
+	private void verifyRideBase(RideBase r, RideBase rdb, Instant departureTime, Instant arrivalTime) {
     	if (departureTime != null) {
     		assertEquals(departureTime, rdb.getDepartureTime());
     		assertNotNull(rdb.getArrivalTime());
@@ -154,12 +165,13 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(leg.getLegGeometryEncoded());
 
 		assertNotNull(rdb.getStops());
+		assertTrue(rdb.getStops().size() > 0);
 		assertEquals(2, rdb.getStops().size());
     }
 
     @Test
     public void createSimpleRide_Departure() throws Exception {
-    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Instant departureTime = LocalDate.now().plusDays(1L).atTime(10, 0).toInstant(ZoneOffset.UTC);
     	Ride r = Fixture.createRide(car1, departureTime, null);
 		Long rideId = rideManager.createRide(r);
 		assertNotNull(rideId);
@@ -172,7 +184,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 
     @Test
     public void createSimpleRide_Arrival() throws Exception {
-    	Instant arrivalTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Instant arrivalTime = LocalDate.now().plusDays(1L).atTime(10, 0).toInstant(ZoneOffset.UTC);
     	Ride r = Fixture.createRide(car1, null, arrivalTime);
 		Long rideId = rideManager.createRide(r);
 		flush();
@@ -186,11 +198,17 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     
     @Test
     public void createRecurrentRide_Departure() throws Exception {
-    	// Choose a time around the wintertime/summertime change: March 29 2020 02:00:00 Europe/Amsterdam
+    	LocalDate depDate = LocalDate.now().plusDays(1L);
+    	int delta_dow = DayOfWeek.MONDAY.getValue() - depDate.getDayOfWeek().getValue();
+    	if (delta_dow < 0) {
+    		delta_dow += 7;
+    	}
+    	depDate = depDate.plusDays(delta_dow);
+    	// We are on a monday
     	ZoneId myZone = ZoneId.of(Recurrence.DEFAULT_TIME_ZONE);
-    	LocalDateTime firstLocDep = LocalDateTime.parse("2020-03-25T10:00:00"); // A wednesday  
-    	LocalDate horizon = LocalDate.parse("2020-04-02");
-    	Instant departureTime = firstLocDep.atZone(myZone).toInstant();	
+    	Instant departureTime = depDate.atTime(10, 0).atZone(myZone).toInstant();
+    	// Choose a time around the wintertime/summertime change: March 29 2020 02:00:00 Europe/Amsterdam
+    	LocalDate horizon = depDate.plusDays(14);
     	Ride r = Fixture.createRide(car1, departureTime, null);
     	RideTemplate rt = new RideTemplate(); 
     	Recurrence rc = new Recurrence(1, Recurrence.dowMask(DayOfWeek.WEDNESDAY), horizon);
@@ -202,7 +220,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		Ride firstRide = em.createQuery("from Ride where id = :id", Ride.class)
 				.setParameter("id", rideId)
 				.getSingleResult();
-		verifyRideBase(r, firstRide, departureTime, null);
+		verifyRideBase(r, firstRide, LocalDateTime.ofInstant(departureTime, myZone).plusDays(DayOfWeek.WEDNESDAY.getValue() - DayOfWeek.MONDAY.getValue()).atZone(myZone).toInstant(), null);
 		checkRideConsistency(firstRide);
 		
 		List<Ride> rides = em.createQuery("from Ride r where r.rideTemplate = :template order by r.departureTime", Ride.class)
@@ -211,7 +229,8 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		assertEquals(2, rides.size());
 		Ride lastRide = rides.get(1);
 		checkRideConsistency(lastRide);
-		LocalDateTime lastLocDep = LocalDateTime.ofInstant(lastRide.getDepartureTime(), myZone);
+		LocalDate lastLocDep = LocalDateTime.ofInstant(lastRide.getDepartureTime(), myZone).toLocalDate();
+		LocalDate firstLocDep = LocalDateTime.ofInstant(firstRide.getDepartureTime(), myZone).toLocalDate();
 		assertEquals(firstLocDep.plusWeeks(1), lastLocDep);
     }
 
@@ -227,7 +246,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 
     @Test
     public void removeSimpleRide_NoBooking() throws Exception {
-    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Instant departureTime = LocalDate.now().plusDays(1L).atTime(10, 0).toInstant(ZoneOffset.UTC);
     	Ride r = Fixture.createRide(car1, departureTime, null);
 		Long rideId = rideManager.createRide(r);
 		assertNotNull(rideId);
@@ -253,8 +272,8 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 
     @Test
     public void removeSimpleRide_WithBooking() throws Exception {
-    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
-    	Instant arrivalTime = Instant.parse("2020-05-01T01:00:00Z");
+    	Instant departureTime = LocalDate.now().plusDays(1L).atTime(10, 0).toInstant(ZoneOffset.UTC);
+    	Instant arrivalTime = LocalDate.now().plusDays(1L).atTime(11, 0).toInstant(ZoneOffset.UTC);
     	Ride r = Fixture.createRide(car1, departureTime, null);
 		Long rideId = rideManager.createRide(r);
 		assertNotNull(rideId);
@@ -400,8 +419,8 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 
     @Test
     public void updateRide_AfterBooking() throws Exception {
-    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
-    	Instant arrivalTime = Instant.parse("2020-05-01T01:00:00Z");
+    	Instant departureTime = LocalDate.now().plusDays(1L).atTime(10, 0).toInstant(ZoneOffset.UTC);
+    	Instant arrivalTime = LocalDate.now().plusDays(1L).atTime(11, 0).toInstant(ZoneOffset.UTC);
     	Ride r = Fixture.createRide(car1, departureTime, null);
 		Long rideId = rideManager.createRide(r);
 		flush();
@@ -430,7 +449,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     
     @Test
     public void updateSimpleRide_Departure() throws Exception {
-    	Instant departureTime = Instant.parse("2020-05-01T00:00:00Z");
+    	Instant departureTime = LocalDate.now().plusDays(1L).atTime(10, 0).toInstant(ZoneOffset.UTC);
     	Ride r = Fixture.createRide(car1, departureTime, null);
 		Long rideId = rideManager.createRide(r);
 		assertNotNull(rideId);
@@ -438,6 +457,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		Instant oldArrivalTime =  r.getArrivalTime();
 		int delay = 60 * 30;
     	departureTime = departureTime.plusSeconds(delay);
+    	// Create a fresh new object
     	r = Fixture.createRide(car1, departureTime, null);
     	r.setId(rideId);
     	rideManager.updateRide(r, RideScope.THIS);
@@ -458,7 +478,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 
     @Test
     public void updateRide_AddRemoveRecurrence() throws Exception {
-    	Instant departureTime = Instant.now().plusSeconds(3600 * 4);
+    	Instant departureTime = LocalDate.now().plusDays(1L).atTime(10, 0).toInstant(ZoneOffset.UTC);
     	Ride r = Fixture.createRide(car1, departureTime, null);
 		Long rideId = rideManager.createRide(r);
 		assertNotNull(rideId);
@@ -524,7 +544,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     
     @Test
     public void updateRide_UpdateRecurrence() throws Exception {
-    	Instant departureTime = Instant.now().plusSeconds(3600 * 4);
+    	Instant departureTime = LocalDate.now().plusDays(1L).atTime(10, 0).toInstant(ZoneOffset.UTC);
     	Ride r = Fixture.createRide(car1, departureTime, null);
     	Recurrence rc = new Recurrence(1, departureTime.plusSeconds(24 * 3600 * 3));
     	RideTemplate rt = new RideTemplate();

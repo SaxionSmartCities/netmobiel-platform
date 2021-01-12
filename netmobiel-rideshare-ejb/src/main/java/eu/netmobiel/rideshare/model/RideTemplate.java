@@ -95,26 +95,33 @@ public class RideTemplate extends RideBase implements Serializable {
 		return r;
 	}
 
-	protected void advanceTemplateState(LocalDate theDate, ZoneId myZone, LocalTime theTime) {
+	protected void advanceTemplateState(LocalDate theNextDate, ZoneId myZone, LocalTime theTime) {
     	int duration = getDuration();
-		Instant newDepartureTime = LocalDateTime
-				.of(theDate, theTime)
+		Instant newTravelTime = LocalDateTime
+				.of(theNextDate, theTime)
 				.atZone(myZone)
 				.toInstant();
-		setDepartureTime(newDepartureTime);
-		setArrivalTime(newDepartureTime.plusSeconds(duration));
+		if (isArrivalTimePinned()) {
+			setDepartureTime(newTravelTime.minusSeconds(duration));
+			setArrivalTime(newTravelTime);
+		} else {
+			setDepartureTime(newTravelTime);
+			setArrivalTime(newTravelTime.plusSeconds(duration));
+		}
 	}
 
 	/**
 	 * Generate a set of rides. The template maintains the last reference departure (and arrival) date. Recurrence will
 	 * start from there. The actual generation will start after the start date.
 	 * No generation will take place if start date is after template or system horizon. 
-	 * @param horizon
-	 * @return
+	 * @param horizon the time instant (converted to local date) beyond which no rides 
+	 * 			are generated (horizon date is first date to exclude).
+	 * @return A list of rides according the recurrence pattern.
 	 */
     public List<Ride> generateRides(Instant systemHorizon) {
     	ZoneId myZone = ZoneId.of(recurrence.getTimeZone());
-		LocalDateTime reference = getDepartureTime().atZone(myZone).toLocalDateTime();
+    	Instant travelTime = isArrivalTimePinned() ? getArrivalTime() : getDepartureTime();
+		LocalDateTime reference = travelTime.atZone(myZone).toLocalDateTime();
     	List<Ride> rides = new ArrayList<>();
     	RecurrenceIterator rix = new RecurrenceIterator(recurrence, reference.toLocalDate(), null, systemHorizon.atZone(myZone).toLocalDate());
     	while (rix.hasNext()) {
@@ -124,6 +131,24 @@ public class RideTemplate extends RideBase implements Serializable {
 		}
 		advanceTemplateState(rix.next(), myZone, reference.toLocalTime());
     	return rides;
+    }
+
+    /**
+     * Takes the recurrence pattern and calculates the first valid travel time.
+     * @param travelTime the initial travel time.
+     * @return the first possible travel time matching the recurrence pattern.
+     * 
+     */
+    public Instant snapTravelTimeToPattern(Instant travelTime) {
+    	ZoneId myZone = ZoneId.of(recurrence.getTimeZone());
+		LocalDateTime reference = travelTime.atZone(myZone).toLocalDateTime();
+    	RecurrenceIterator rix = new RecurrenceIterator(recurrence, reference.toLocalDate(), null, null);
+    	if (! rix.hasNext()) {
+    		throw new IllegalStateException("Cannot snap the travel time to the pattern!?");
+    	}
+    	return LocalDateTime.of(rix.next(), reference.toLocalTime())
+				.atZone(myZone)
+				.toInstant();
     }
     
     private String formatTime(Instant instant) {

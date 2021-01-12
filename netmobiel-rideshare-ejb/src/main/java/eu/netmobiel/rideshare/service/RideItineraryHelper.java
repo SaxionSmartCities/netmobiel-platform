@@ -66,7 +66,7 @@ public class RideItineraryHelper {
     /**
      * Calculates the itinerary from the input ride. The collection legs and stops are not used to manage the legs and stops.
      * Instead, the legs and and stops are managed from the many side. 
-     * @param ride the input from the client. Must be persistence context.
+     * @param ride the input from the client. Must be persistence context. The legs and stops are NOT initialized!
      * @throws BadRequestException In case of bad parameters
      */
     public void updateRideItinerary(Ride ride) throws BadRequestException {

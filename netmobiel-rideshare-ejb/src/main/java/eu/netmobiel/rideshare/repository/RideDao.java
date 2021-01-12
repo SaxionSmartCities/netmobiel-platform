@@ -234,6 +234,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
     	List<Ride> trips = em.createQuery(
     			"from Ride r " + 
     			"where state = :state and monitored = false and r.departureTime < :departureTime " +
+    			" and (r.deleted is null or r.deleted = false) " +
     			"order by r.departureTime asc", Ride.class)
     			.setParameter("state", RideState.SCHEDULED)
     			.setParameter("departureTime", departureBefore)
@@ -243,8 +244,9 @@ public class RideDao extends AbstractDao<Ride, Long> {
 
     public boolean existsTemporalOverlap(Ride ride) {
     	Long count = em.createQuery(
-    			"select count(r) from Ride r where r != :myRide and r.driver = :driver and " + 
-    			"not (r.departureTime > :arrivalTime or r.arrivalTime < :departureTime)", Long.class)
+    			"select count(r) from Ride r where r != :myRide and r.driver = :driver " + 
+    			"and not (r.departureTime > :arrivalTime or r.arrivalTime < :departureTime) " +
+    			"and (r.deleted is null or r.deleted = false)", Long.class)
     			.setParameter("myRide", ride)
     			.setParameter("driver", ride.getDriver())
     			.setParameter("departureTime", ride.getDepartureTime())

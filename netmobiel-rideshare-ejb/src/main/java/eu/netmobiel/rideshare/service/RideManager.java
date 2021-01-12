@@ -12,6 +12,7 @@ import java.util.Date;
 import java.util.List;
 
 import javax.annotation.Resource;
+import javax.ejb.NoSuchObjectLocalException;
 import javax.ejb.Schedule;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
@@ -309,6 +310,9 @@ public class RideManager {
     	if (ride.getDepartureTime() == null && ride.getArrivalTime() == null) {
     		throw new BadRequestException("Constraint violation: A ride must have a 'departureTime' and/or an 'arrivalTime'");
     	}
+    	if (ride.getArrivalTime() == null && ride.isArrivalTimePinned()) {
+    		throw new BadRequestException("Constraint violation: 'arrivalTime' is pinned, but 'arrivalTime' is missing");
+    	}
     	if (ride.getFrom() == null || ride.getTo() == null) {
     		throw new BadRequestException("Constraint violation: A ride must have a 'from' and a 'to'");
     	}
@@ -348,21 +352,30 @@ public class RideManager {
     	if (ride.getBookings() != null && !ride.getBookings().isEmpty()) {
     		throw new BadRequestException("Constraint violation: A new ride cannot contain bookings");
     	}
-//    	if (! RideshareUrnHelper.getId(User.URN_PREFIX, car.getDriverRef()).equals(ride.getDriver().getId())) {
-//    		throw new CreateException("Constraint violation: The car is not owned by the owner of the ride.");
-//    	}
-    	// If the ride contains no departure then, then the arrival time is important
-    	// Assure both departure and arrival time are set, to avoid database constraint failure.
-    	// Temporarily make departure and arrival tim ethe same, this will be adapted once the itinerary is known. 
-    	if (ride.getDepartureTime() == null || ride.isArrivalTimePinned()) {
-    		ride.setArrivalTimePinned(true);
-    		ride.setDepartureTime(ride.getArrivalTime());
-    	} else {
-    		ride.setArrivalTime(ride.getDepartureTime());
+    	if (ride.getRideTemplate() != null && ride.getRideTemplate().getRecurrence() == null) {
+    		log.warn("Inconsistency detected: Template defined without recurrency");
+    		ride.setRideTemplate(null);
     	}
+    	// If the ride contains no departure then, then the arrival time is important
+    	RideTemplate template = ride.getRideTemplate();
+    	Instant travelTime = null; 
+    	if (ride.getDepartureTime() == null || ride.isArrivalTimePinned()) {
+    		travelTime = ride.getArrivalTime();
+			ride.setArrivalTimePinned(true);
+    	} else {
+    		travelTime = ride.getDepartureTime();
+    	}
+		if (template != null) {
+			// Snap the specified time to the first possible time matching the recurrence pattern
+			travelTime = template.snapTravelTimeToPattern(travelTime);
+		}
+    	// Assure both departure and arrival time are set, to avoid database constraint failure.
+    	// Temporarily make departure and arrival time the same, this will be adapted once the itinerary is known. 
+		ride.setDepartureTime(travelTime);
+		ride.setArrivalTime(travelTime);
+		// Calculate the ellipse
     	ride.updateShareEligibility();
     	// Put the ride into the persistence context, but omit the template for now
-    	RideTemplate template = ride.getRideTemplate();
     	ride.setRideTemplate(null);
     	ride.setState(RideState.SCHEDULED);
     	rideDao.save(ride);
@@ -373,21 +386,19 @@ public class RideManager {
     	if (rideDao.existsTemporalOverlap(ride)) {
     		throw new CreateException("Ride overlaps existing ride");
     	}
-    	if (ride.getRideTemplate() != null && ride.getRideTemplate().getRecurrence() == null) {
-    		log.warn("Inconsistence detected: Template defined without recurrency");
-    		ride.setRideTemplate(null);
+    	if (template != null) {
+    		// Create the current rides
+    		attachTemplateAndInstantiateRides(ride, template);
     	}
     	checkRideMonitoring(ride);
-    	Ride firstRide = template == null ? ride : attachTemplateAndInstantiateRides(ride, template);
-    	return firstRide.getId();
+    	return ride.getId();
     }
 
-    protected Ride attachTemplateAndInstantiateRides(Ride ride, RideTemplate template) throws BusinessException {
-    	Ride firstRide = ride;
+    protected void attachTemplateAndInstantiateRides(Ride ride, RideTemplate template) throws BusinessException {
 		// Create a template from the well-defined ride
 		// Copy the (new) ride to the template
 		RideBase.copy(ride, template);
-		// Perhaps an old persistent template was passed. Remove it.
+		// Perhaps an old persistent template was passed. Remove the id to make it a fresh new one.
 		template.setId(null);
 		// Copy the geometry obtained from the planner to the template
 		// Note: The strategy is currently to calculate the route of a recurrent ride only once (at creation or update).
@@ -398,6 +409,8 @@ public class RideManager {
 		ride.setRideTemplate(template);
 		Instant systemHorizon = getDefaultSystemHorizon();
 		// Create rides including the initial simple leg structure.
+		// Decision (2021-01-12 Timothy, Jaap): No check on overlapping rides in the sequence, it is too cumbersome.
+		// Note that the periodic instantiation of recurrent rides does have the overlap check
 //			List<Ride> rides = generateNonOverlappingRides(template, systemHorizon);
 		List<Ride> rides = template.generateRides(systemHorizon);
 
@@ -407,16 +420,13 @@ public class RideManager {
 			// This is unexpected, no rides at all. The horizon must be too short. Error.
 			throw new CreateException("No rides could be created from template setting. Is horizon too close?");
 		} else {
-			Ride firstGeneratedRide = rides.get(0);
-			if (firstGeneratedRide.hasTemporalOverlap(ride)) {
-				// The ride that was calculated has overlap with the first template-generated ride. 
-				// That is ok, skip the first, we have it already in the database
+			if (rides.get(0).hasTemporalOverlap(ride)) {
+				// The ride that was calculated should have overlap with the first template-generated ride. 
+				// That is ok, we snapped it already to the pattern. Skip the first, we have it already in the database.
 				rides.remove(0);
 			} else {
 				// The one we calculated must have (initial) that does not match the recurrence pattern.
-				// Remove it from the database
-				rideDao.remove(ride);
-				firstRide = firstGeneratedRide;
+				throw new IllegalStateException("First recurrent ride does not match!");
 			}
 			// None of the rides in the list are in the persistence context
 			for (Ride r : rides) {
@@ -424,7 +434,6 @@ public class RideManager {
 				checkRideMonitoring(r);
 			}
 		}
-    	return firstRide;
     }
     
     /**
@@ -433,10 +442,13 @@ public class RideManager {
      * @param ride the ride to modify the recurrence of. 
      * @throws BusinessException
      */
-    protected void detachTemplateAndRemoveFutureRides(Ride ride) throws BusinessException {
+    protected void detachTemplateAndRemoveFutureRides(Ride ride, Instant departureTime) throws BusinessException {
     	// Get all future rides beyond this ride, i.e. all rides attached to the same template
     	RideTemplate template = ride.getRideTemplate();
-    	List<Long> rideIds = rideDao.findFollowingRideIds(template, ride.getDepartureTime());
+    	List<Long> rideIds = rideDao.findFollowingRideIds(template, departureTime);
+    	// Don't remove the reference ride, it could be in the list when moved forward. 
+    	rideIds.remove(ride.getId());
+    	
     	List<Ride> rides = rideDao.loadGraphs(rideIds, Ride.LIST_RIDES_ENTITY_GRAPH, Ride::getId);
     	for (Ride r : rides) {
 			if (! r.getActiveBooking().isPresent()) {
@@ -520,7 +532,7 @@ public class RideManager {
     	 * remarks			- Can be modified. Currently not used by the front-end. 
     	 */
     	// Get the ride with booking info
-    	Ride ridedb = rideDao.loadGraph(ride.getId(), Ride.LIST_RIDES_ENTITY_GRAPH)
+    	Ride ridedb = rideDao.loadGraph(ride.getId(), Ride.UPDATE_DETAILS_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such ride: " + ride.getId()));
     	if (!ridedb.getState().isPreTravelState()) {
     		throw new UpdateException("Ride can not be updated, travelling has already started!");
@@ -549,7 +561,6 @@ public class RideManager {
     	// Note: the input ride template consists of the recurrence only. 
     	// The input template is by definition not persistent. Use the template from the database.
     	RideTemplate newTemplate = ride.getRideTemplate();
-    	Recurrence newRecurrence = newTemplate != null ? newTemplate.getRecurrence() : null;  
     	RideTemplate oldTemplate = ridedb.getRideTemplate();
     	ride.setRideTemplate(oldTemplate);
     	// Copy non-modifiable attributes to the input object
@@ -558,24 +569,39 @@ public class RideManager {
     	ride.setDeleted(ridedb.getDeleted());
     	ride.setMonitored(ridedb.isMonitored());
     	ride.setState(ridedb.getState());
-    	
+    	ride.setVersion(ridedb.getVersion());
     	// If the ride contains no departure then, then the arrival time is important
-    	// Assure both departure and arrival time are set, to avoid database constraint failure. 
-    	// Temporarily make departure and arrival time the same, this will be adapted once the itinerary is known. 
-    	if (ride.getDepartureTime() == null) {
-    		ride.setArrivalTimePinned(true);
-    		ride.setDepartureTime(ride.getArrivalTime());
-    	} else if (ride.getArrivalTime() == null){
-    		ride.setArrivalTime(ride.getDepartureTime());
+    	Instant travelTime = null; 
+    	if (ride.getDepartureTime() == null || ride.isArrivalTimePinned()) {
+    		travelTime = ride.getArrivalTime();
+			ride.setArrivalTimePinned(true);
     	} else {
-    		ride.setArrivalTimePinned(ridedb.isArrivalTimePinned());
+    		travelTime = ride.getDepartureTime();
     	}
+		if (newTemplate != null) {
+			// Snap the specified time to first possible time matching the recurrence pattern
+			travelTime = newTemplate.snapTravelTimeToPattern(travelTime);
+		}
+    	// Assure both departure and arrival time are set, to avoid database constraint failure.
+    	// Temporarily make departure and arrival time the same, this will be adapted once the itinerary is known. 
+		ride.setDepartureTime(travelTime);
+		ride.setArrivalTime(travelTime);
+		// Calculate the ellipse
+    	// Recalculate the ellipe for determining the rideshare eligibility
     	ride.updateShareEligibility();
+    	Instant originalDepartureTime = ridedb.getDepartureTime();
     	ridedb = rideDao.merge(ride);
-    	// ride and ridedb refer to the same object now
+    	// ride and ridedb refer to the same object now, 
+    	// ridebd bookings, legs and stops appear to be empty now! In the database the object are still there.
     	rideItineraryHelper.updateRideItinerary(ridedb);
-
-    	// Now comes the difficult part with the recurrence
+    	// At this point the ride is completely defined, except for the template.
+    	if (rideDao.existsTemporalOverlap(ride)) {
+    		throw new UpdateException("Ride overlaps existing ride");
+    	}
+    	// If there is recurrence, then the ride matches the first iteration.
+    	
+    	// Now comes the difficult part with the recurrence. There are 4 possibilities to consider, see below.
+    	Recurrence newRecurrence = newTemplate != null ? newTemplate.getRecurrence() : null;  
     	if (oldTemplate == null && newRecurrence == null) {
         	// 1. No recurrence in DB nor update -> no template
     		// Done.
@@ -584,22 +610,23 @@ public class RideManager {
     		// scope is ignored, because not applicable
     		attachTemplateAndInstantiateRides(ridedb, newTemplate);
     	} else if (oldTemplate != null && newRecurrence == null) {
-	    	// 3. Recurrence in DB only. 
+	    	// 3. Recurrence in DB only. Remove template and or rideas depending on ride scope. 
     		if (scope == RideScope.THIS) {
     	    	// 3.1. THIS Remove template for this ride. Ride is no longer recurrent.
     			ridedb.setRideTemplate(null);
         		checkIfTemplateObsoleted(oldTemplate);
     		} else {
-    	    	// 3.2. THIS_AND_FOLLOWING Set horizon at current ride, remove future rides, save template. Remove template from ride.
-        		//		Keep booked rides though
-    			detachTemplateAndRemoveFutureRides(ridedb);
+    	    	// 3.2. THIS_AND_FOLLOWING Set horizon at current ride, remove future rides (starting at the original time), save template. 
+    			//      Remove template from ride. Keep booked rides though
+    			detachTemplateAndRemoveFutureRides(ridedb, originalDepartureTime);
     		}
     	} else {
-	    	// 4. Recurrence in DB and update. This-and-following is implicit. Always replace the template, whether or
-    		// not the recurrrence is the same.
-			detachTemplateAndRemoveFutureRides(ridedb);
+	    	// 4. Recurrence in DB and update. Ride scope this-and-following is implicit. 
+    		// Always replace the template, whether or not the recurrrence is the same.
+			detachTemplateAndRemoveFutureRides(ridedb, originalDepartureTime);
     		attachTemplateAndInstantiateRides(ridedb, newTemplate);
     	}
+    	checkRideMonitoring(ridedb);
     }
     
     private void removeRideById(Long rideId, final String reason) {
@@ -731,64 +758,70 @@ public class RideManager {
 
 	@Timeout
 	public void onTimeout(Timer timer) {
-		if (! (timer.getInfo() instanceof RideInfo)) {
-			log.error("Don't know how to handle timeout: " + timer.getInfo());
-			return;
-		}
-		RideInfo rideInfo = (RideInfo) timer.getInfo();
-		if (log.isDebugEnabled()) {
-			log.debug("Received ride event: " + rideInfo.toString());
-		}
-			try {
-				Ride ride = rideDao.fetchGraph(rideInfo.rideId, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
-						.orElseThrow(() -> new IllegalArgumentException("No such ride: " + rideInfo.rideId));
-				Instant now = Instant.now();
-				switch (rideInfo.event) {
-				case TIME_TO_PREPARE:
-					updateRideState(ride, RideState.DEPARTING);
-					timerService.createTimer(Date.from(ride.getDepartureTime()), 
-							new RideInfo(RideMonitorEvent.TIME_TO_DEPART, ride.getId()));
-					break;
-				case TIME_TO_DEPART:
-					updateRideState(ride, RideState.IN_TRANSIT);
-					timerService.createTimer(Date.from(ride.getArrivalTime()), 
-							new RideInfo(RideMonitorEvent.TIME_TO_ARRIVE, ride.getId()));
-					break;
-				case TIME_TO_ARRIVE:
-					updateRideState(ride, RideState.ARRIVING);
-					if (ride.hasActiveBooking() && ride.getArrivalTime().plus(CONFIRMATION_PERIOD).isAfter(now)) {
-						timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRMATION_DELAY)), 
-								new RideInfo(RideMonitorEvent.TIME_TO_VALIDATE, ride.getId()));
-					} else {
-						timerService.createTimer(Date.from(ride.getArrivalTime().plus(ARRIVING_PERIOD)), 
-								new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
-					}
-					break;
-				case TIME_TO_VALIDATE:
-					updateRideState(ride, RideState.VALIDATING);
-					timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_1)), 
-							new RideInfo(RideMonitorEvent.TIME_TO_CONFIRM_REMINDER, ride.getId()));
-					break;
-				case TIME_TO_CONFIRM_REMINDER:
-					updateRideState(ride, RideState.VALIDATING);
-					timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_2)), 
-							new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
-					break;
-				case TIME_TO_COMPLETE:
-					updateRideState(ride, RideState.COMPLETED);
-					ride.setMonitored(false);
-					break;
-				default:
-					log.warn("Don't know how to handle event: " + rideInfo.event);
-					break;
-				}
-			} catch (BusinessException ex) {
-				log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
-				log.info("Rollback status after exception: " + context.getRollbackOnly()); 
+		try {
+			if (! (timer.getInfo() instanceof RideInfo)) {
+				log.error("Don't know how to handle timeout: " + timer.getInfo());
+				return;
 			}
+			RideInfo rideInfo = (RideInfo) timer.getInfo();
+			if (log.isDebugEnabled()) {
+				log.debug("Received ride event: " + rideInfo.toString());
+			}
+			Ride ride = rideDao.fetchGraph(rideInfo.rideId, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
+					.orElseThrow(() -> new IllegalArgumentException("No such ride: " + rideInfo.rideId));
+			Instant now = Instant.now();
+			switch (rideInfo.event) {
+			case TIME_TO_PREPARE:
+				updateRideState(ride, RideState.DEPARTING);
+				timerService.createTimer(Date.from(ride.getDepartureTime()), 
+						new RideInfo(RideMonitorEvent.TIME_TO_DEPART, ride.getId()));
+				break;
+			case TIME_TO_DEPART:
+				updateRideState(ride, RideState.IN_TRANSIT);
+				timerService.createTimer(Date.from(ride.getArrivalTime()), 
+						new RideInfo(RideMonitorEvent.TIME_TO_ARRIVE, ride.getId()));
+				break;
+			case TIME_TO_ARRIVE:
+				updateRideState(ride, RideState.ARRIVING);
+				if (ride.hasActiveBooking() && ride.getArrivalTime().plus(CONFIRMATION_PERIOD).isAfter(now)) {
+					timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRMATION_DELAY)), 
+							new RideInfo(RideMonitorEvent.TIME_TO_VALIDATE, ride.getId()));
+				} else {
+					timerService.createTimer(Date.from(ride.getArrivalTime().plus(ARRIVING_PERIOD)), 
+							new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
+				}
+				break;
+			case TIME_TO_VALIDATE:
+				updateRideState(ride, RideState.VALIDATING);
+				timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_1)), 
+						new RideInfo(RideMonitorEvent.TIME_TO_CONFIRM_REMINDER, ride.getId()));
+				break;
+			case TIME_TO_CONFIRM_REMINDER:
+				updateRideState(ride, RideState.VALIDATING);
+				timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_2)), 
+						new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
+				break;
+			case TIME_TO_COMPLETE:
+				updateRideState(ride, RideState.COMPLETED);
+				ride.setMonitored(false);
+				break;
+			default:
+				log.warn("Don't know how to handle event: " + rideInfo.event);
+				break;
+			}
+		} catch (BusinessException ex) {
+			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
+			log.info("Rollback status after exception: " + context.getRollbackOnly()); 
+		} catch(NoSuchObjectLocalException ex) {
+			log.error(String.format("Error handling timeout for %s: ", ex.toString()));
+		}
 	}
 
 	protected void startMonitoring(Ride ride) {
+		if (ride.isDeleted() ) {
+			log.warn("Cannot monitor, ride has been deleted: " + ride.getId());
+			return;
+		}
 		if (ride.getState() == RideState.CANCELLED) {
 			log.warn("Cannot monitor, ride has been canceled: " + ride.getId());
 			return;
@@ -819,6 +852,10 @@ public class RideManager {
     	// Otherwise leave to the scheduled retrieval of rides
     }	
 
+    /**
+     * Kills the timers for the specified Ride.  
+     * @param ride the ride for which to cancel all timers.
+     */
     protected void cancelRideTimers(Ride ride) {
     	// Find all timers related to this ride and cancel them
     	Collection<Timer> timers = timerService.getTimers();
@@ -827,6 +864,9 @@ public class RideManager {
 				RideInfo rideInfo = (RideInfo) timer.getInfo();
 				if (rideInfo.rideId.equals(ride.getId())) {
 					try {
+						if (log.isDebugEnabled()) {
+							log.debug("Cancel monitor timer for ride " + ride.getId());
+						}
 						timer.cancel();
 					} catch (Exception ex) {
 						log.error("Unable to cancel timer: " + ex.toString());
