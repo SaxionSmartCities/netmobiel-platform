@@ -1118,7 +1118,7 @@ components:
         daysOfWeek: 62
         horizon: 2019-12-31
         timeZone: Europe/Amsterdam
-        templateRef: urn:nb:rs:rideTemplate:43
+        templateRef: urn:nb:rs:ridetemplate:43
     Page:
       title: Root Type for Page
       description: A page from a result set. For smaller sets the page contains the
