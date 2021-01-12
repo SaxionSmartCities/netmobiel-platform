@@ -1,7 +1,10 @@
 package eu.netmobiel.commons.jaxrs;
 
+import java.util.List;
+
 import javax.ejb.EJBAccessException;
 import javax.ejb.EJBException;
+import javax.persistence.OptimisticLockException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -36,7 +39,14 @@ public class EJBExceptionMapper implements ExceptionMapper<EJBException> {
 		if (dspExc instanceof EJBAccessException) {
 			status = Response.Status.FORBIDDEN;
 		} else {
-			status = Response.Status.INTERNAL_SERVER_ERROR;
+			List<Throwable> causes = ExceptionUtil.listCauses(e);
+			if (causes.stream()
+				.filter(t -> t instanceof OptimisticLockException)
+				.findAny().isPresent()) {
+				status = Response.Status.CONFLICT;	
+			} else {
+				status = Response.Status.INTERNAL_SERVER_ERROR;
+			}
 		}
 		String[] msgs = ExceptionUtil.unwindExceptionMessage(null, dspExc);
 		ErrorResponse err = new ErrorResponse(status, String.join(" - ", msgs));

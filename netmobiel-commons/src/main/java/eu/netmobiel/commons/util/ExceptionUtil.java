@@ -3,6 +3,8 @@ package eu.netmobiel.commons.util;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.function.Function;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import javax.ws.rs.core.Response;
 
@@ -18,6 +20,11 @@ public class ExceptionUtil {
 	
 	public static String[] unwindException(Throwable exc) {
 		return unwindException(null, exc);
+	}
+
+	public static List<Throwable> listCauses(Throwable exc) {
+		return Stream.iterate(exc.getCause(), t -> t != null, t -> t.getCause())
+			.collect(Collectors.toList());
 	}
 
 	public static String[] unwindException(String msg, Throwable exc) {
