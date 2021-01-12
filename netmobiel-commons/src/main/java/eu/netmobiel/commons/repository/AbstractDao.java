@@ -20,10 +20,9 @@ import javax.persistence.criteria.Fetch;
 import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Root;
 
+import org.hibernate.jpa.QueryHints;
+
 public abstract class AbstractDao<T, ID> {
-	public static final String JPA_HINT_FETCH = "javax.persistence.fetchgraph";
-	public static final String JPA_HINT_LOAD = "javax.persistence.loadgraph";
-	
     
     protected abstract EntityManager getEntityManager();
 
@@ -172,11 +171,11 @@ public abstract class AbstractDao<T, ID> {
         
 
 	public List<T> loadGraphs(List<ID> ids, String graphName, Function<T, ID> keyMapper) {
-		return queryGraphs(ids, graphName, JPA_HINT_LOAD, keyMapper);
+		return queryGraphs(ids, graphName, QueryHints.HINT_LOADGRAPH, keyMapper);
 	}
 
 	public List<T> fetchGraphs(List<ID> ids, String graphName, Function<T, ID> keyMapper) {
-		return queryGraphs(ids, graphName, JPA_HINT_FETCH, keyMapper);
+		return queryGraphs(ids, graphName, QueryHints.HINT_FETCHGRAPH, keyMapper);
 	}
 
 	public boolean isLoaded(T entity) {
@@ -190,11 +189,11 @@ public abstract class AbstractDao<T, ID> {
     }
     
     public Map<String, Object> createLoadHint(String graphName) {
-        return graphName != null ? Collections.singletonMap(JPA_HINT_LOAD, getEntityManager().getEntityGraph(graphName)) : Collections.emptyMap();
+        return graphName != null ? Collections.singletonMap(QueryHints.HINT_LOADGRAPH, getEntityManager().getEntityGraph(graphName)) : Collections.emptyMap();
     }
 
     public Map<String, Object> createFetchHint(String graphName) {
-        return graphName != null ? Collections.singletonMap(JPA_HINT_FETCH, getEntityManager().getEntityGraph(graphName)) : Collections.emptyMap();
+        return graphName != null ? Collections.singletonMap(QueryHints.HINT_FETCHGRAPH, getEntityManager().getEntityGraph(graphName)) : Collections.emptyMap();
     }
 
     public Optional<T> loadGraph(ID id, String graphName) {

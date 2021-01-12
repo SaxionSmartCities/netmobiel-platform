@@ -27,6 +27,7 @@ import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
+import org.hibernate.annotations.QueryHints;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.annotation.Removed;
@@ -501,7 +502,7 @@ public class RideManager {
     	// Because Hibernate cannot fetch multiple bags in one step, we retrieve the bookings separately
     	// Detach ride to avoid propagation of changes
     	rideDao.detach(ridedb);
-    	ridedb.setBookings(bookingDao.findByRide(ridedb, BookingDao.JPA_HINT_FETCH, bookingDao.getEntityGraph(Booking.SHALLOW_ENTITY_GRAPH)));
+    	ridedb.setBookings(bookingDao.findByRide(ridedb, QueryHints.FETCHGRAPH, bookingDao.getEntityGraph(Booking.SHALLOW_ENTITY_GRAPH)));
     	return ridedb;
     }
 
