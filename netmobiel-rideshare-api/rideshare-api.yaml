@@ -1109,12 +1109,16 @@ components:
             the local time, as it is the local departure/arrival time that is repeated.
             Default: Europe/Amsterdam. '
           type: string
+        templateRef:
+          description: 'The reference to the template of the recurrent rides. '
+          type: string
       example:
         interval: 2
         unit: WEEK
         daysOfWeek: 62
         horizon: 2019-12-31
         timeZone: Europe/Amsterdam
+        templateRef: urn:nb:rs:rideTemplate:43
     Page:
       title: Root Type for Page
       description: A page from a result set. For smaller sets the page contains the
