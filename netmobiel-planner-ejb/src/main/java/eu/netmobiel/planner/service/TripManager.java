@@ -14,7 +14,9 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
+import javax.ejb.NoSuchObjectLocalException;
 import javax.ejb.Schedule;
+import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.ejb.Timeout;
 import javax.ejb.Timer;
@@ -100,6 +102,12 @@ public class TripManager {
     @Inject
     private ItineraryDao itineraryDao;
     
+    @Resource
+    private SessionContext context;
+
+    @Resource
+    private TimerService timerService;
+
     @Inject
     private Event<BookingRequestedEvent> bookingRequestedEvent;
 
@@ -111,15 +119,6 @@ public class TripManager {
 
     @Inject
     private Event<ShoutOutResolvedEvent> shoutOutResolvedEvent;
-
-//    @Inject @Removed
-//    private Event<Trip> tripCancelledEvent;
-//
-//    @Inject
-//    private Event<TripScheduledEvent> tripScheduledEvent;
-//
-    @Resource
-    private TimerService timerService;
 
     @Inject
     private Event<TripStateUpdatedEvent> tripStateUpdatedEvent;
@@ -490,19 +489,19 @@ public class TripManager {
 
     @Timeout
 	public void onTimeout(Timer timer) {
-		if (! (timer.getInfo() instanceof TripInfo)) {
-			log.error("Don't know how to handle timeout: " + timer.getInfo());
-			return;
-		}
-		TripInfo tripInfo = (TripInfo) timer.getInfo();
-		if (log.isDebugEnabled()) {
-			log.debug("Received trip event: " + tripInfo.toString());
-		}
-		Trip trip = tripDao.fetchGraph(tripInfo.tripId, Trip.DETAILED_ENTITY_GRAPH)
-				.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripInfo.tripId));
-		Instant now = Instant.now();
-		
 		try {
+			if (! (timer.getInfo() instanceof TripInfo)) {
+				log.error("Don't know how to handle timeout: " + timer.getInfo());
+				return;
+			}
+			TripInfo tripInfo = (TripInfo) timer.getInfo();
+			if (log.isDebugEnabled()) {
+				log.debug("Received trip event: " + tripInfo.toString());
+			}
+			Trip trip = tripDao.fetchGraph(tripInfo.tripId, Trip.DETAILED_ENTITY_GRAPH)
+					.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripInfo.tripId));
+			Instant now = Instant.now();
+			
 			switch (tripInfo.event) {
 			case TIME_TO_PREPARE:
 				updateTripState(trip, TripState.DEPARTING);
@@ -546,8 +545,11 @@ public class TripManager {
 				log.warn("Don't know how to handle event: " + tripInfo.event);
 				break;
 			}
-		} catch (Exception ex) {
+		} catch (BusinessException ex) {
 			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
+			log.info("Rollback status after exception: " + context.getRollbackOnly()); 
+		} catch(NoSuchObjectLocalException ex) {
+			log.error(String.format("Error handling timeout for %s: ", ex.toString()));
 		}
 	}
 
