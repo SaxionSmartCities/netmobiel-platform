@@ -1,9 +1,5 @@
 package eu.netmobiel.rideshare.api.mapping;
 
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
-
 import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -24,7 +20,7 @@ import eu.netmobiel.rideshare.model.Leg;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
-	uses = { BookingMapper.class })
+	uses = { BookingMapper.class, JavaTimeMapper.class })
 @LegMapperQualifier
 public abstract class LegMapper {
 
@@ -37,10 +33,5 @@ public abstract class LegMapper {
     @Mapping(target = "legRef", source = "legRef")
     @LegReference
 	public abstract eu.netmobiel.rideshare.api.model.Leg mapReferencesOnly(Leg source);
-
-    // Instant --> OffsetDateTime
-    public  OffsetDateTime map(Instant instant) {
-    	return instant == null ? null : instant.atOffset(ZoneOffset.UTC);
-    }
 
 }

@@ -1,8 +1,5 @@
 package eu.netmobiel.rideshare.api.mapping;
 
-import java.time.Instant;
-import java.time.OffsetDateTime;
-
 import org.mapstruct.AfterMapping;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.InheritConfiguration;
@@ -39,7 +36,7 @@ import eu.netmobiel.rideshare.model.RideTemplate;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
-	uses = { CarMapper.class, BookingMapper.class, LegMapper.class, StopMapper.class, UserMapper.class })
+	uses = { CarMapper.class, BookingMapper.class, LegMapper.class, StopMapper.class, UserMapper.class, JavaTimeMapper.class })
 @RideMapperQualifier
 public abstract class RideMapper {
 
@@ -77,6 +74,7 @@ public abstract class RideMapper {
 	@Mapping(target = "monitored", ignore = true)
 	@Mapping(target = "state", ignore = true)
 	@Mapping(target = "confirmed", ignore = true)
+	@Mapping(target = "version", ignore = true)
 	public abstract Ride commonInverseMap(eu.netmobiel.rideshare.api.model.Ride source);
 
 	
@@ -118,11 +116,6 @@ public abstract class RideMapper {
 	
 	@InheritConfiguration(name = "commonInverseMap")
 	public abstract Ride map(eu.netmobiel.rideshare.api.model.Ride source);
-
-    // OffsetDateTime --> Instant 
-    public  Instant  map(OffsetDateTime offsetDateTime) {
-    	return offsetDateTime == null ? null : offsetDateTime.toInstant();
-    }
 
     @AfterMapping
     public Ride fixTemplate(@MappingTarget Ride ride) {

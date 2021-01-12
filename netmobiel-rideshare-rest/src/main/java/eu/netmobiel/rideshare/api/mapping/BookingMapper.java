@@ -1,8 +1,5 @@
 package eu.netmobiel.rideshare.api.mapping;
 
-import java.time.Instant;
-import java.time.OffsetDateTime;
-
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
@@ -30,7 +27,7 @@ import eu.netmobiel.rideshare.model.Booking;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
-	uses = { RideMapper.class, LegMapper.class, StopMapper.class })
+	uses = { RideMapper.class, LegMapper.class, StopMapper.class, JavaTimeMapper.class })
 @BookingMapperQualifier
 public abstract class BookingMapper {
 
@@ -70,14 +67,4 @@ public abstract class BookingMapper {
 	@Mapping(target = "dropOff.point", ignore = true)
 	public abstract Booking map(eu.netmobiel.rideshare.api.model.Booking source);
 
-	// Domain -> API booking (list rides)
-//	@BookingReference
-//	public List<String> mapByReference(List<Booking> source) {
-//		return source.stream().map(Booking::getBookingRef).collect(Collectors.toList());
-//	}
-
-    // OffsetDateTime --> Instant 
-    public  Instant  map(OffsetDateTime offsetDateTime) {
-    	return offsetDateTime == null ? null : offsetDateTime.toInstant();
-    }
 }
