@@ -4,6 +4,7 @@ import static org.junit.Assert.*;
 
 import java.time.Instant;
 
+import javax.ejb.SessionContext;
 import javax.ejb.TimerService;
 import javax.enterprise.event.Event;
 
@@ -73,6 +74,9 @@ public class TripManagerTest {
 
     @Injectable
     private Event<ShoutOutResolvedEvent> shoutOutResolvedEvent;
+
+    @Injectable
+    private SessionContext context;
 
     @Injectable
     private TimerService timerService;
