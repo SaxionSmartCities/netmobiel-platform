@@ -170,11 +170,11 @@ public class ShoutOutProcessor {
 		// use a trip (refers to an itinerary) or shout-out tripplan. The latter is only used in case of proposals.
     	// The reference is to the shout-out plan!
     	b.setPassengerTripRef(sop.getPlanRef());
-		String bookingRef = bookingManager.createBooking(r.getRideRef(), sop.getTraveller(), b);
+		String bookingRef = bookingManager.createBooking(r.getUrn(), sop.getTraveller(), b);
 		tripPlanManager.assignBookingProposalReference(RideManager.AGENCY_ID, soi, r, bookingRef);
 
 		Message msg = new Message();
-		msg.setContext(b.getBookingRef());
+		msg.setContext(b.getUrn());
 		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
 		msg.addRecipient(b.getPassenger());
 		msg.setSubject("Je hebt een reisaanbieding!");

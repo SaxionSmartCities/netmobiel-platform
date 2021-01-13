@@ -32,8 +32,8 @@ import eu.netmobiel.rideshare.repository.BookingDao;
 import eu.netmobiel.rideshare.repository.LegDao;
 import eu.netmobiel.rideshare.repository.OpenTripPlannerDao;
 import eu.netmobiel.rideshare.repository.RideDao;
-import eu.netmobiel.rideshare.repository.StopDao;
 import eu.netmobiel.rideshare.repository.RideshareUserDao;
+import eu.netmobiel.rideshare.repository.StopDao;
 import eu.netmobiel.rideshare.repository.mapping.LegMapper;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
@@ -101,7 +101,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(rideId);
 		flush();
 		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "my-trip");
-		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
+		String bookingRef = bookingManager.createBooking(r.getUrn(), passenger1, booking);
 		assertNotNull(bookingRef);
 		flush();
 		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
@@ -131,13 +131,13 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(rideId);
 		flush();
 		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "trip-1");
-		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
+		String bookingRef = bookingManager.createBooking(r.getUrn(), passenger1, booking);
 		assertNotNull(bookingRef);
 		flush();
 		try {
 			expectFailure();
 			Booking booking2 = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "trip-2");
-			bookingManager.createBooking(r.getRideRef(), passenger1, booking2);
+			bookingManager.createBooking(r.getUrn(), passenger1, booking2);
 			fail("Expected exception");
 		} catch (CreateException ex) {
 			
@@ -150,7 +150,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     	Ride r = Fixture.createCompleteRide(car1, departureTime, null);
     	rideItineraryHelper.saveNewRide(r);
 		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "trip-1");
-		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
+		String bookingRef = bookingManager.createBooking(r.getUrn(), passenger1, booking);
     	flush();
 		Ride rdb = em.createQuery("from Ride where id = :id", Ride.class)
 				.setParameter("id", r.getId())
@@ -165,7 +165,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     	assertFalse(em.contains(but));
     	assertNotNull(but);
     	assertNotNull(but.getArrivalTime());
-    	assertNotNull(but.getBookingRef());
+    	assertNotNull(but.getUrn());
     	assertNull(but.getCancelledByDriver());
     	assertNull(but.getCancelReason());
     	assertNotNull(but.getDepartureTime());
@@ -206,7 +206,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(rideId);
 		flush();
 		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "trip-1");
-		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
+		String bookingRef = bookingManager.createBooking(r.getUrn(), passenger1, booking);
 		assertNotNull(bookingRef);
 		flush();
 		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
@@ -217,7 +217,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		flush();
 		// Reset all the counters.
 		eventListenerHelper.reset();
-    	return b.getBookingRef();
+    	return b.getUrn();
     }
     
     @Test
@@ -289,7 +289,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(rideId);
 		flush();
 		Booking booking = Fixture.createBooking(r, passenger1, Fixture.placeZieuwentRKKerk, r.getDepartureTime(), Fixture.placeSlingeland, r.getArrivalTime(), "trip-1");
-		String bookingRef = bookingManager.createBooking(r.getRideRef(), passenger1, booking);
+		String bookingRef = bookingManager.createBooking(r.getUrn(), passenger1, booking);
 		assertNotNull(bookingRef);
 		flush();
 		flush();

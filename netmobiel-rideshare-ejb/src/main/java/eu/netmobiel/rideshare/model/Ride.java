@@ -27,7 +27,6 @@ import javax.persistence.OrderBy;
 import javax.persistence.OrderColumn;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 import javax.persistence.Version;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -112,13 +111,13 @@ public class Ride extends RideBase implements Serializable {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ride_sg")
     private Long id;
 
+	/**
+	 * Optimistic locking version.
+	 */
 	@Version
-	@Column(name = "version")
+	@Column(name = "version", nullable = false)
 	private int version;
 	
-    @Transient
-    private String rideRef;
-
     /**
      * A recurrent ride has a ride template, shared by multiple rides. The pattern is used to instantiate new rides from the template(s), but also 
      * the recognize the instances that were derived from the same template.
@@ -192,6 +191,19 @@ public class Ride extends RideBase implements Serializable {
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	@Override
+	public String getUrnPrefix() {
+		return URN_PREFIX;
+	}
+
+	/**
+	 * Create a urn reference for the template without initializing the template.
+	 * @return A URN.
+	 */
+	public String getTemplateRef() {
+		return rideTemplate == null ? null : RideshareUrnHelper.createUrn(RideTemplate.URN_PREFIX, rideTemplate.getId()); 
 	}
 
 	public RideTemplate getRideTemplate() {
@@ -285,13 +297,6 @@ public class Ride extends RideBase implements Serializable {
 
 	public void setConfirmed(Boolean confirmed) {
 		this.confirmed = confirmed;
-	}
-
-	public String getRideRef() {
-		if (rideRef == null) {
-    		rideRef = RideshareUrnHelper.createUrn(Ride.URN_PREFIX, getId());
-		}
-		return rideRef;
 	}
 
 	/**

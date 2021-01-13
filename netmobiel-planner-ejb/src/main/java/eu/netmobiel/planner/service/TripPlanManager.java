@@ -291,7 +291,7 @@ public class TripPlanManager {
 		leg.setVehicleId(ride.getCarRef());
 		leg.setVehicleLicensePlate(ride.getCar().getLicensePlate());
 		leg.setVehicleName(ride.getCar().getName());
-		leg.setTripId(ride.getRideRef());
+		leg.setTripId(ride.getUrn());
 		leg.setTraverseMode(TraverseMode.RIDESHARE);
 		// For Rideshare booking is always required.
 		leg.setBookingRequired(true);

@@ -38,6 +38,7 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.ReferableObject;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
@@ -175,7 +176,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 @Vetoed
 @Table(name = "booking")
 @SequenceGenerator(name = "booking_sg", sequenceName = "booking_id_seq", allocationSize = 1, initialValue = 50)
-public class Booking implements Serializable {
+public class Booking extends ReferableObject implements Serializable {
 	private static final long serialVersionUID = 3727019200633708992L;
 	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix("booking");
 	public static final String SHALLOW_ENTITY_GRAPH = "booking-shallow-details-graph";
@@ -184,9 +185,6 @@ public class Booking implements Serializable {
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "booking_sg")
     private Long id;
-
-    @Transient
-    private String bookingRef;
 
 	/**
 	 * The state of the booking.
@@ -312,11 +310,9 @@ public class Booking implements Serializable {
 		this.id = id;
 	}
 
-	public String getBookingRef() {
-		if (bookingRef == null) {
-			bookingRef = RideshareUrnHelper.createUrn(Booking.URN_PREFIX, getId());
-		}
-		return bookingRef;
+	@Override
+	public String getUrnPrefix() {
+		return URN_PREFIX;
 	}
 
 	public BookingState getState() {

@@ -23,6 +23,7 @@ import javax.validation.constraints.Size;
 import com.vividsolutions.jts.geom.Geometry;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.ReferableObject;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
@@ -35,7 +36,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
  *
  */
 @MappedSuperclass
-public class RideBase implements Serializable {
+public abstract class RideBase extends ReferableObject implements Serializable {
 	private static final long serialVersionUID = 7659815346376185257L;
 	public static final float DEFAULT_RELATIVE_MAX_DETOUR = 0.30f;
 	public static final float DEFAULT_NOMINAL_SPEED = 25 * 1000 / 3600; 	/* km/h --> m/s */
@@ -205,7 +206,7 @@ public class RideBase implements Serializable {
 	}
 
 	public void setCarRef(String carRef) {
-		this.carRef = null;
+		this.car = null;
 		this.carRef = carRef;
 	}
 

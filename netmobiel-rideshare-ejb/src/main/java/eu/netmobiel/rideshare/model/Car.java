@@ -24,6 +24,7 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 
+import eu.netmobiel.commons.model.ReferableObject;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @NamedEntityGraph()
@@ -31,7 +32,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 @Table(name = "car", uniqueConstraints = @UniqueConstraint(name="car_uc", columnNames = {"driver", "registration_country", "license_plate"}))
 @Vetoed
 @SequenceGenerator(name = "car_sg", sequenceName = "car_id_seq", allocationSize = 1, initialValue = 50)
-public class Car implements Serializable {
+public class Car extends ReferableObject implements Serializable {
 
 	private static final long serialVersionUID = 1045941720040157428L;
 	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix("car");
@@ -120,6 +121,11 @@ public class Car implements Serializable {
 
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	@Override
+	public String getUrnPrefix() {
+		return URN_PREFIX;
 	}
 
 	public String getLicensePlate() {

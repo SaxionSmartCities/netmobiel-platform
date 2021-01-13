@@ -596,9 +596,6 @@ public class RideManager {
     	// ridebd bookings, legs and stops appear to be empty now! In the database the object are still there.
     	rideItineraryHelper.updateRideItinerary(ridedb);
     	// At this point the ride is completely defined, except for the template.
-    	if (rideDao.existsTemporalOverlap(ride)) {
-    		throw new UpdateException("Ride overlaps existing ride");
-    	}
     	// If there is recurrence, then the ride matches the first iteration.
     	
     	// Now comes the difficult part with the recurrence. There are 4 possibilities to consider, see below.
@@ -612,20 +609,25 @@ public class RideManager {
     		attachTemplateAndInstantiateRides(ridedb, newTemplate);
     	} else if (oldTemplate != null && newRecurrence == null) {
 	    	// 3. Recurrence in DB only. Remove template and or rideas depending on ride scope. 
-    		if (scope == RideScope.THIS) {
-    	    	// 3.1. THIS Remove template for this ride. Ride is no longer recurrent.
-    			ridedb.setRideTemplate(null);
-        		checkIfTemplateObsoleted(oldTemplate);
-    		} else {
-    	    	// 3.2. THIS_AND_FOLLOWING Set horizon at current ride, remove future rides (starting at the original time), save template. 
+    		if (scope == RideScope.THIS_AND_FOLLOWING) {
+    	    	// 3.1. THIS_AND_FOLLOWING Set horizon at current ride, remove future rides (starting at the original time), save template. 
     			//      Remove template from ride. Keep booked rides though
     			detachTemplateAndRemoveFutureRides(ridedb, originalDepartureTime);
+    		} else {
+    	    	// 3.2. THIS Remove template for this ride. Ride is no longer recurrent.
+    			ridedb.setRideTemplate(null);
+        		checkIfTemplateObsoleted(oldTemplate);
     		}
     	} else {
 	    	// 4. Recurrence in DB and update. Ride scope this-and-following is implicit. 
     		// Always replace the template, whether or not the recurrrence is the same.
 			detachTemplateAndRemoveFutureRides(ridedb, originalDepartureTime);
     		attachTemplateAndInstantiateRides(ridedb, newTemplate);
+    	}
+    	// Should we really prevent overlapping rides? Alternative is to let the user cleanup, 
+    	// just like the normal use of a planner.
+    	if (rideDao.existsTemporalOverlap(ride)) {
+    		throw new UpdateException("Ride overlaps existing ride");
     	}
     	checkRideMonitoring(ridedb);
     }
@@ -687,7 +689,7 @@ public class RideManager {
 
     public void onStaleItinerary(@Observes(during = TransactionPhase.IN_PROGRESS) @Updated Ride ride) throws BadRequestException {
 		if (ride.isDeleted()) {
-			log.debug("Ride is already deleted, ignoring update itinerary request: " + ride.getRideRef());
+			log.debug("Ride is already deleted, ignoring update itinerary request: " + ride.getUrn());
 		} else {
 			rideItineraryHelper.updateRideItinerary(ride);
 		}
@@ -710,7 +712,7 @@ public class RideManager {
     	ridedb.setConfirmed(confirmationValue);
     	if (ridedb.getActiveBooking().isPresent()) {
     		Booking b = ridedb.getActiveBooking().get();
-    		EventFireWrapper.fire(transportProviderConfirmedEvent, new TripConfirmedByProviderEvent(b.getBookingRef(),  b.getPassengerTripRef(), confirmationValue));
+    		EventFireWrapper.fire(transportProviderConfirmedEvent, new TripConfirmedByProviderEvent(b.getUrn(),  b.getPassengerTripRef(), confirmationValue));
     	}
     }
 

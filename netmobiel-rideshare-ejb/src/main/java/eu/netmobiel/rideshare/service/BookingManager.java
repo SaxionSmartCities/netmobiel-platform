@@ -220,7 +220,7 @@ public class BookingManager {
     		b.markAsCancelled(ride.getCancelReason(), true);	
    			// The driver has cancelled the ride. 
    			// The Trip Manager has to know about it.
-			BookingCancelledFromProviderEvent bce = new BookingCancelledFromProviderEvent(b.getBookingRef(), b.getPassenger(), b.getPassengerTripRef(),
+			BookingCancelledFromProviderEvent bce = new BookingCancelledFromProviderEvent(b.getUrn(), b.getPassenger(), b.getPassengerTripRef(),
 					ride.getCancelReason(), true);
 			// For now use a synchronous removal
 			EventFireWrapper.fire(bookingCancelledEvent, bce);
@@ -237,7 +237,7 @@ public class BookingManager {
     			.orElseThrow(() -> new NotFoundException("No such booking: " + id));
     	if (b.getState() != BookingState.PROPOSED && b.getState() != BookingState.REQUESTED) {
     		log.warn(String.format("Booking %d has an unexpected booking state at confirmation: %s", id, b.getState().toString()));
-    		throw new IllegalStateException("Unexpected booking state: " + b.getBookingRef() + " " + b.getState());
+    		throw new IllegalStateException("Unexpected booking state: " + b.getUrn() + " " + b.getState());
     	}
     	b.setState(BookingState.CONFIRMED);
     	b.setPassengerTripRef(passengerTripRef);

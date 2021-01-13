@@ -23,13 +23,16 @@ import javax.persistence.Table;
 
 import com.vividsolutions.jts.geom.MultiPoint;
 
+import eu.netmobiel.rideshare.util.RideshareUrnHelper;
+
 @Entity
 @Vetoed
 @Table(name = "ride_template")
 @SequenceGenerator(name = "ride_template_sg", sequenceName = "ride_template_id_seq", allocationSize = 1, initialValue = 50)
 public class RideTemplate extends RideBase implements Serializable {
 	private static final long serialVersionUID = -6389728915295371839L;
-	
+	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix(RideTemplate.class);
+
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ride_template_sg")
     private Long id;
@@ -52,6 +55,11 @@ public class RideTemplate extends RideBase implements Serializable {
 	}
 	public void setId(Long id) {
 		this.id = id;
+	}
+
+	@Override
+	public String getUrnPrefix() {
+		return URN_PREFIX;
 	}
 
 	public Recurrence getRecurrence() {

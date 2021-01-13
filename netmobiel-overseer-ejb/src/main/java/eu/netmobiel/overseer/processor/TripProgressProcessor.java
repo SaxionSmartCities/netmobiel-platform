@@ -206,7 +206,7 @@ public class TripProgressProcessor {
     protected void informDriverOnDeparture(Ride ride) throws CreateException, BadRequestException {
 		Booking b = ride.getActiveBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
 		Message msg = new Message();
-		msg.setContext(ride.getRideRef());
+		msg.setContext(ride.getUrn());
 		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
 		msg.addRecipient(ride.getDriver());
 		msg.setSubject("Je gaat bijna op pad!");
@@ -223,7 +223,7 @@ public class TripProgressProcessor {
 	protected void informDriverOnReview(Ride ride) throws CreateException, BadRequestException {
 		Booking b = ride.getActiveBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
 		Message msg = new Message();
-		msg.setContext(ride.getRideRef());
+		msg.setContext(ride.getUrn());
 		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
 		msg.addRecipient(ride.getDriver());
 		msg.setSubject("Jouw rit zit erop!");
@@ -238,7 +238,7 @@ public class TripProgressProcessor {
 
 	protected void remindDriverOnReview(Ride ride) throws CreateException, BadRequestException {
 		Message msg = new Message();
-		msg.setContext(ride.getRideRef());
+		msg.setContext(ride.getUrn());
 		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
 		msg.addRecipient(ride.getDriver());
 		msg.setSubject("Jouw rit zit erop!");

@@ -50,67 +50,69 @@ public abstract class RideMapper {
 	public abstract Recurrence map(eu.netmobiel.rideshare.api.model.Recurrence source);
 
 	// Default mapping domain Ride --> Api Ride (common)
-	@Mapping(target = "fromPlace", source = "from") 
-	@Mapping(target = "recurrence", source = "rideTemplate.recurrence") 
-	@Mapping(target = "toPlace", source = "to") 
 	@Mapping(target = "allowedLuggage", ignore = true)
-	@Mapping(target = "co2Emission", source = "CO2Emission")
 	@Mapping(target = "bookings", ignore = true)
+	@Mapping(target = "co2Emission", source = "CO2Emission")
+	@Mapping(target = "fromPlace", source = "from") 
 	@Mapping(target = "legs", ignore = true)
+	@Mapping(target = "recurrence", source = "rideTemplate.recurrence") 
+	@Mapping(target = "rideRef", source = "urn")
+	@Mapping(target = "toPlace", source = "to") 
 	public abstract eu.netmobiel.rideshare.api.model.Ride commonMap(Ride source);
 
 	// Common mapping Api --> domain Ride
 	@InheritInverseConfiguration(name = "commonMap")
-	@Mapping(target = "from.point", ignore = true)
-	@Mapping(target = "to.point", ignore = true)
-	@Mapping(target = "shareEligibility", ignore = true)
-	@Mapping(target = "cancelReason", ignore = true)
 	@Mapping(target = "bookings", ignore = true)
-	@Mapping(target = "deleted", ignore = true)
+	@Mapping(target = "cancelReason", ignore = true)
 	@Mapping(target = "car", ignore = true)
+	@Mapping(target = "confirmed", ignore = true)
+	@Mapping(target = "deleted", ignore = true)
 	@Mapping(target = "driver", ignore = true)
-	@Mapping(target = "stops", ignore = true)
+	@Mapping(target = "from.point", ignore = true)
+	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "legs", ignore = true)
 	@Mapping(target = "monitored", ignore = true)
+	@Mapping(target = "shareEligibility", ignore = true)
 	@Mapping(target = "state", ignore = true)
-	@Mapping(target = "confirmed", ignore = true)
+	@Mapping(target = "stops", ignore = true)
+	@Mapping(target = "to.point", ignore = true)
 	@Mapping(target = "version", ignore = true)
 	public abstract Ride commonInverseMap(eu.netmobiel.rideshare.api.model.Ride source);
 
 	
 	// Domain Ride --> Api Ride: All details, including car, driver, bookings, legs 
 	@InheritConfiguration(name = "commonMap")
+	@Mapping(target = "bookings", source = "bookings", qualifiedBy = { BookingMapperQualifier.class, BookingShallow.class })
 	@Mapping(target = "car", source = "car", 
 		qualifiedBy = { CarMapperQualifier.class, CarMyDetails.class } )
-	@Mapping(target = "bookings", source = "bookings", qualifiedBy = { BookingMapperQualifier.class, BookingShallow.class })
 	@Mapping(target = "legs", source = "legs", qualifiedBy = { LegMapperQualifier.class, LegDetails.class })
 	@RideDetails
 	public abstract eu.netmobiel.rideshare.api.model.Ride mapDetailed(Ride source);
 
 	// Domain Ride --> Api Ride: Some details, like car brand and model. No driver. Include bookings, but no legs 
 	@InheritConfiguration(name = "commonMap")
+	@Mapping(target = "bookings", source = "bookings", qualifiedBy = { BookingMapperQualifier.class, BookingFlat.class })
+	@Mapping(target = "car", source = "car", 
+	qualifiedBy = { CarMapperQualifier.class, CarBrandModelDetails.class } )
 	@Mapping(target = "driver", ignore = true)
 	@Mapping(target = "driverRef", ignore = true)
-	@Mapping(target = "car", source = "car", 
-		qualifiedBy = { CarMapperQualifier.class, CarBrandModelDetails.class } )
-	@Mapping(target = "bookings", source = "bookings", qualifiedBy = { BookingMapperQualifier.class, BookingFlat.class })
 	@RideMyDetails
 	public abstract eu.netmobiel.rideshare.api.model.Ride mapMine(Ride source);
 
 	// Domain Ride --> Api Ride: Some details, like car brand and model. Driver name. No bookings. No legs.
 	@InheritConfiguration(name = "commonMap")
-	@Mapping(target = "recurrence", ignore = true) 
 	@Mapping(target = "car", source = "car", 
 		qualifiedBy = { CarMapperQualifier.class, CarBrandModelDetails.class } )
 	@Mapping(target = "driver",	source = "driver",
 		qualifiedBy = { UserMapperQualifier.class, UserSomeDetails.class } )
+	@Mapping(target = "recurrence", ignore = true) 
 	@RideSearchDetails
 	public abstract eu.netmobiel.rideshare.api.model.Ride mapSearch(Ride source);
 
 	@BeanMapping(ignoreByDefault = true)
 	@Mapping(target = "car", source = "car", qualifiedBy = { CarMapperQualifier.class, CarBrandModelDetails.class } )
 	@Mapping(target = "driver",	source = "driver", qualifiedBy = { UserMapperQualifier.class, UserSomeDetails.class } )
-	@Mapping(target = "rideRef", source = "rideRef")
+	@Mapping(target = "rideRef", source = "urn")
 	@RideDetailsForBooking
 	public abstract eu.netmobiel.rideshare.api.model.Ride mapDetailsForBooking(Ride source);
 	

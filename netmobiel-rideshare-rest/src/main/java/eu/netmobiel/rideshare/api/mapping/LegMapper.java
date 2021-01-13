@@ -27,10 +27,11 @@ public abstract class LegMapper {
 	// Domain Leg --> API Leg
     @Mapping(target = "legGeometry", source = "legGeometryEncoded")
     @LegDetails
+    @Mapping(target = "legRef", source = "urn")
 	public abstract eu.netmobiel.rideshare.api.model.Leg mapDetails(Leg source);
 
     @BeanMapping(ignoreByDefault = true)
-    @Mapping(target = "legRef", source = "legRef")
+    @Mapping(target = "legRef", source = "urn")
     @LegReference
 	public abstract eu.netmobiel.rideshare.api.model.Leg mapReferencesOnly(Leg source);
 
