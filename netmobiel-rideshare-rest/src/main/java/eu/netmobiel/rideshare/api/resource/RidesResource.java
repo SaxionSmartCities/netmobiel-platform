@@ -139,7 +139,9 @@ public class RidesResource implements RidesApi {
     public Response updateRide(String rideId, String scope, eu.netmobiel.rideshare.api.model.Ride ridedt) {
     	Response rsp = null;
     	try {
+        	Long cid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideId);
 			Ride ride = mapper.map(ridedt);
+			ride.setId(cid);
     		RideScope rs = scope == null ? RideScope.THIS: RideScope.lookup(scope);
 			rideManager.updateRide(ride, rs);
 			rsp = Response.noContent().build();
