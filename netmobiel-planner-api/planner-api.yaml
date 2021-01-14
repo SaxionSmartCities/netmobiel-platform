@@ -731,33 +731,6 @@ paths:
         type: string
       in: path
       required: true
-  /trips/{tripId}/confirm/{value}:
-    summary: Path used to confirm a trip.
-    description: Endpoint used to confirm a trip, using a PUT.
-    put:
-      responses:
-        "204":
-          description: Success response, the trip has been confirmed.
-      operationId: confirmTrip
-      summary: Confirms a trip.
-      description: Confirms that the traveller has actually made this trip. All legs
-        in the itinerary are confirmed. A rideshare fare is credited after confirmation
-        of the passenger or after an expiration of the review period of several days
-        in which the passenger has neither confirmed nor denied the trip. A confirmation,
-        positive or negative, cannot be undone and can be issued only once.
-    parameters:
-    - name: tripId
-      description: A unique identifier for a `Trip`.
-      schema:
-        type: string
-      in: path
-      required: true
-    - name: value
-      description: 'The value of the confirmation: true if affirmative, false if negative. '
-      schema:
-        type: boolean
-      in: path
-      required: true
   /trips/{tripId}/settle/favors-traveller:
     summary: Settle a trip payment dispute in favor of the traveller.
     description: End-point for settling a dispute on payments.
@@ -850,6 +823,47 @@ paths:
       description: A unique identifier for a `Trip`.
       schema:
         type: string
+      in: path
+      required: true
+  /trips/{tripId}/confirm/{value}:
+    summary: Path used to confirm a trip.
+    description: Endpoint used to confirm a trip, using a PUT.
+    put:
+      parameters:
+      - name: reason
+        description: |
+          The reason for the given (negative) )confirmation value.
+           -  `TRIP_NOT_NEEDED`: The trip was not needed anymore;
+           -  `FOUND_OTHER_TRANSPORT`: The traveller found a different means of transport;
+           -  `NO_SHOW`: The means of transport did not show up
+        schema:
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the trip has been confirmed.
+      operationId: confirmTrip
+      summary: Confirms a trip.
+      description: Confirms that the traveller has actually made this trip. All legs
+        in the itinerary are confirmed. A rideshare fare is credited after confirmation
+        of the passenger or after an expiration of the review period of several days
+        in which the passenger has neither confirmed nor denied the trip. A confirmation,
+        positive or negative, cannot be undone and can be issued only once.
+    parameters:
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: value
+      description: 'The value of the confirmation: true if affirmative, false if negative. '
+      schema:
+        type: boolean
       in: path
       required: true
 components:
@@ -1173,188 +1187,6 @@ components:
         longitude: 6.519548800000001
         latitude: 52.0042224
         exit: Uitrit 32
-    Leg:
-      description: A leg is a displacement using a certain modality from one location
-        to another.
-      required:
-      - agencyTimeZoneOffset
-      type: object
-      properties:
-        startTime:
-          format: date-time
-          description: The time of departure in UTC time.
-          type: string
-        endTime:
-          format: date-time
-          description: Time of arrival at destination in UTC time.
-          type: string
-        state:
-          description: The state of the leg.
-          enum:
-          - PLANNING
-          - BOOKING
-          - SCHEDULED
-          - DEPARTING
-          - IN_TRANSIT
-          - ARRIVING
-          - VALIDATING
-          - COMPLETED
-          - CANCELLED
-          type: string
-        duration:
-          description: The total duration of the leg in seconds.
-          type: integer
-        distance:
-          description: The distance travelled in meters.
-          type: integer
-        from:
-          $ref: '#/components/schemas/Stop'
-          description: Departure location.
-        to:
-          $ref: '#/components/schemas/Stop'
-          description: Arrival location
-        traverseMode:
-          description: The name of the modality.
-          enum:
-          - AIRPLANE
-          - BICYCLE
-          - BUS
-          - CABLE_CAR
-          - CAR
-          - FERRY
-          - FUNICULAR
-          - GONDOLA
-          - LEG_SWITCH
-          - RAIL
-          - RIDESHARE
-          - SUBWAY
-          - TRAM
-          - TRANSIT
-          - WALK
-          type: string
-        routeType:
-          description: |
-            For transit legs, the type of the route. Non transit -1.
-            When 0-7: 0 Tram, 1 Subway, 2 Train, 3 Bus, 4 Ferry, 5 Cable Car, 6 Gondola, 7 Funicular.
-            When equal or higher than 100, it is coded using the Hierarchical Vehicle Type (HVT) codes from the European TPEG standard
-            Also see http://groups.google.com/group/gtfs-changes/msg/ed917a69cf8c5bef
-          type: integer
-        routeLongName:
-          description: The name of the route (transit).
-          type: string
-        routeShortName:
-          description: The short name of the route (transit), like a line number.
-          type: string
-        agencyName:
-          description: The name of the agency running the transport.
-          type: string
-        headsign:
-          description: For transit legs, the headsign of the bus or train being used.
-            For non-transit legs, null.
-          type: string
-        driverId:
-          description: 'In case of rideshare: the ID of the driver (a urn).'
-          type: string
-        driverName:
-          description: 'In case of rideshare: the name of the driver.'
-          type: string
-        vehicleId:
-          description: 'In case of rideshare: The ID of the car (a urn).'
-          type: string
-        vehicleName:
-          description: 'In case of rideshare: The brand and model of the car.'
-          type: string
-        vehicleLicensePlate:
-          description: 'In case of rideshare: The license plate of the car.'
-          type: string
-        bookingId:
-          description: 'For bookable legs: The reference to the booking (a urn).'
-          type: string
-        legGeometry:
-          $ref: '#/components/schemas/EncodedPolyline'
-          description: An encoded description of the leg in GPS coordinates.
-        guideSteps:
-          description: A list of steps to get at the destination of this leg.
-          type: array
-          items:
-            $ref: '#/components/schemas/GuideStep'
-        id:
-          format: int64
-          description: The unique leg id. Not intended to be referenced.
-          type: integer
-        routeId:
-          description: For transit legs, the ID of the route.
-          type: string
-        agencyTimeZoneOffset:
-          description: The timezone offset of the agency in milliseconds.
-          type: integer
-        agencyId:
-          description: Unique identification of the agency.
-          type: string
-        tripId:
-          description: |-
-            Unique identification of the trip that the agency provides for this leg. The trip ID is defined for transit and for rideshare.
-
-            Note: The tripId is an identifier from OTP, it has nothing to do with the word trip as used as a journey by a traveller elsewhere in this API.
-          type: string
-        bookingRequired:
-          description: 'Flag to signal whether the transport provider requires a booking
-            of the transport. '
-          type: boolean
-        fareInCredits:
-          description: The amount of credits charged for this leg.
-          type: integer
-        confirmationRequested:
-          description: Is conformation requested that the leg has actually been taken?
-          type: boolean
-        confirmationByProviderRequested:
-          description: Should the travelling along this leg be confirmed by the transport
-            provider?
-          type: boolean
-        confirmed:
-          description: If true the travel by this leg is explicitly confirmed by the
-            traveller. If false it is explicitly denied. If not set the traveller
-            has not responded to the request for confirmation.
-          type: boolean
-        confirmedByProvider:
-          description: If true the travelling along this leg has explicitly been confirmed
-            by the transport provider. If false it is explicitly denied. If not set
-            the provider has not responded to the request for confirmation.
-          type: boolean
-        paymentId:
-          description: The reference to the payment transaction (the meaning depends
-            on the payment state).
-          type: string
-        paymentState:
-          description: 'The state of the (credit) payment for the leg. '
-          enum:
-          - RESERVED
-          - RELEASED
-          - PAID
-          - CANCELLED
-          type: string
-      example:
-        distance: 152
-        duration: 123
-        startTime: 1572600896000
-        endTime: 1572601019000
-        from:
-          departureTime: 1572600896000
-          latitude: 52.004166
-          longitude: 6.517835
-          label: Zieuwent,Kennedystraat
-        legGeometry:
-          length: 11
-          points: _al|Hm_xf@?U?WHe@D_AF{@?QAQEW[iAs@@
-        traverseMode: WALK
-        to:
-          arrivalTime: 1572601019000
-          departureTime: 1572601020000
-          latitude: 52.004485
-          longitude: 6.519542
-          label: Zieuwent, R.K. Kerk
-          stopCode: "44930020"
-          stopId: NL:1532280
     Page:
       title: Root Type for Page
       description: A page from a result set. For smaller sets the page contains the
@@ -1623,6 +1455,214 @@ components:
           type: boolean
       example:
         isRunning: false
+    Leg:
+      description: A leg is a displacement using a certain modality from one location
+        to another.
+      required:
+      - agencyTimeZoneOffset
+      type: object
+      properties:
+        startTime:
+          format: date-time
+          description: The time of departure in UTC time.
+          type: string
+        endTime:
+          format: date-time
+          description: Time of arrival at destination in UTC time.
+          type: string
+        state:
+          description: The state of the leg.
+          enum:
+          - PLANNING
+          - BOOKING
+          - SCHEDULED
+          - DEPARTING
+          - IN_TRANSIT
+          - ARRIVING
+          - VALIDATING
+          - COMPLETED
+          - CANCELLED
+          type: string
+        duration:
+          description: The total duration of the leg in seconds.
+          type: integer
+        distance:
+          description: The distance travelled in meters.
+          type: integer
+        from:
+          $ref: '#/components/schemas/Stop'
+          description: Departure location.
+        to:
+          $ref: '#/components/schemas/Stop'
+          description: Arrival location
+        traverseMode:
+          description: The name of the modality.
+          enum:
+          - AIRPLANE
+          - BICYCLE
+          - BUS
+          - CABLE_CAR
+          - CAR
+          - FERRY
+          - FUNICULAR
+          - GONDOLA
+          - LEG_SWITCH
+          - RAIL
+          - RIDESHARE
+          - SUBWAY
+          - TRAM
+          - TRANSIT
+          - WALK
+          type: string
+        routeType:
+          description: |
+            For transit legs, the type of the route. Non transit -1.
+            When 0-7: 0 Tram, 1 Subway, 2 Train, 3 Bus, 4 Ferry, 5 Cable Car, 6 Gondola, 7 Funicular.
+            When equal or higher than 100, it is coded using the Hierarchical Vehicle Type (HVT) codes from the European TPEG standard
+            Also see http://groups.google.com/group/gtfs-changes/msg/ed917a69cf8c5bef
+          type: integer
+        routeLongName:
+          description: The name of the route (transit).
+          type: string
+        routeShortName:
+          description: The short name of the route (transit), like a line number.
+          type: string
+        agencyName:
+          description: The name of the agency running the transport.
+          type: string
+        headsign:
+          description: For transit legs, the headsign of the bus or train being used.
+            For non-transit legs, null.
+          type: string
+        driverId:
+          description: 'In case of rideshare: the ID of the driver (a urn).'
+          type: string
+        driverName:
+          description: 'In case of rideshare: the name of the driver.'
+          type: string
+        vehicleId:
+          description: 'In case of rideshare: The ID of the car (a urn).'
+          type: string
+        vehicleName:
+          description: 'In case of rideshare: The brand and model of the car.'
+          type: string
+        vehicleLicensePlate:
+          description: 'In case of rideshare: The license plate of the car.'
+          type: string
+        bookingId:
+          description: 'For bookable legs: The reference to the booking (a urn).'
+          type: string
+        legGeometry:
+          $ref: '#/components/schemas/EncodedPolyline'
+          description: An encoded description of the leg in GPS coordinates.
+        guideSteps:
+          description: A list of steps to get at the destination of this leg.
+          type: array
+          items:
+            $ref: '#/components/schemas/GuideStep'
+        id:
+          format: int64
+          description: The unique leg id. Not intended to be referenced.
+          type: integer
+        routeId:
+          description: For transit legs, the ID of the route.
+          type: string
+        agencyTimeZoneOffset:
+          description: The timezone offset of the agency in milliseconds.
+          type: integer
+        agencyId:
+          description: Unique identification of the agency.
+          type: string
+        tripId:
+          description: |-
+            Unique identification of the trip that the agency provides for this leg. The trip ID is defined for transit and for rideshare.
+
+            Note: The tripId is an identifier from OTP, it has nothing to do with the word trip as used as a journey by a traveller elsewhere in this API.
+          type: string
+        bookingRequired:
+          description: 'Flag to signal whether the transport provider requires a booking
+            of the transport. '
+          type: boolean
+        fareInCredits:
+          description: The amount of credits charged for this leg.
+          type: integer
+        confirmationRequested:
+          description: Is conformation requested that the leg has actually been taken?
+          type: boolean
+        confirmationByProviderRequested:
+          description: Should the travelling along this leg be confirmed by the transport
+            provider?
+          type: boolean
+        confirmed:
+          description: If true the travel by this leg is explicitly confirmed by the
+            traveller. If false it is explicitly denied. If not set the traveller
+            has not responded to the request for confirmation.
+          type: boolean
+        confirmedByProvider:
+          description: If true the travelling along this leg has explicitly been confirmed
+            by the transport provider. If false it is explicitly denied. If not set
+            the provider has not responded to the request for confirmation.
+          type: boolean
+        confirmationReason:
+          description: |-
+            The reason for the given (negative) confirmation value.
+             - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
+             - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
+             - `NO_SHOW`: The passenger did not show up
+             - `NO_TRIP`: The trip did not take place at all.
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          - NO_TRIP
+          type: string
+        confirmationReasonByProvider:
+          description: |-
+            The reason for the given (negative) confirmation value.
+             - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
+             - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
+             - `NO_SHOW`: The passenger did not show up
+             - `NO_TRIP`: The trip did not take place at all according the provider.
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          - NO_TRIP
+          type: string
+        paymentId:
+          description: The reference to the payment transaction (the meaning depends
+            on the payment state).
+          type: string
+        paymentState:
+          description: 'The state of the (credit) payment for the leg. '
+          enum:
+          - RESERVED
+          - RELEASED
+          - PAID
+          - CANCELLED
+          type: string
+      example:
+        distance: 152
+        duration: 123
+        startTime: 1572600896000
+        endTime: 1572601019000
+        from:
+          departureTime: 1572600896000
+          latitude: 52.004166
+          longitude: 6.517835
+          label: Zieuwent,Kennedystraat
+        legGeometry:
+          length: 11
+          points: _al|Hm_xf@?U?WHe@D_AF{@?QAQEW[iAs@@
+        traverseMode: WALK
+        to:
+          arrivalTime: 1572601019000
+          departureTime: 1572601020000
+          latitude: 52.004485
+          longitude: 6.519542
+          label: Zieuwent, R.K. Kerk
+          stopCode: "44930020"
+          stopId: NL:1532280
   responses:
     InternalServerError:
       content:
