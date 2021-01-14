@@ -1361,12 +1361,27 @@ components:
           - CANCELLED
           type: string
         confirmed:
-          description: If true then the drivers has indeed executed the scheduled
-            ride. If false then the driver has not driven this ride. If unspecified
-            then it is unclear.
+          description: (Read-only) If true then the drivers has indeed executed the
+            scheduled ride. If false then the driver has not driven this ride. If
+            unspecified then it is unclear.
           type: boolean
         templateRef:
-          description: 'The reference to the template of the ride, if any. '
+          description: '(Read-only) The reference to the template of the ride, if
+            any. '
+          type: string
+        confirmationReason:
+          description: |-
+            The reason of the (negative) confirmation.
+            The reason for the given (negative) confirmation value.
+             - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
+             - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
+             - `NO_SHOW`: The passenger did not show up
+             - `NO_RIDE`: The ride did not take place at all.
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          - NO_RIDE
           type: string
       example:
         bookings: []
