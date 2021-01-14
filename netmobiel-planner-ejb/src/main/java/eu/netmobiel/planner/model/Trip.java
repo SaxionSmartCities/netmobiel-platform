@@ -539,18 +539,31 @@ public class Trip implements Serializable {
 	}
 
     /**
-     * Assigns the lowest leg state (in ordinal terms) to the overall trip state. 
+     * Assigns the lowest leg state (in ordinal terms) to the overall trip state.
      * If there are no legs then the state remains as is.
+     * The new state cannot be lower than the current trip state
      */
    	public void updateTripState() {
    		if (getItinerary() == null || getItinerary().getLegs() == null) {
    			return;
    		}
    		Optional<Leg> minleg = getItinerary().getLegs().stream().min(Comparator.comparingInt(leg -> leg.getState().ordinal()));
-   		minleg.ifPresent(leg -> setState(leg.getState()));
+   		if (minleg.isPresent() && minleg.get().getState().ordinal() > getState().ordinal()) {
+			setState(minleg.get().getState());
+   		}
    	}
 
-    public Set<String> getAgencies() {
+    /**
+     * Assigns the current trip state to all legs, if any. 
+     */
+   	public void forceTripStateDown() {
+   		if (getItinerary() == null || getItinerary().getLegs() == null) {
+   			return;
+   		}
+   		getItinerary().getLegs().forEach(leg -> leg.setState(getState()));
+   	}
+
+   	public Set<String> getAgencies() {
     	Set<String> ags = new LinkedHashSet<>();
 		for (Leg leg: getItinerary().getLegs()) {
 			if (leg.getTraverseMode() == TraverseMode.WALK) {
