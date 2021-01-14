@@ -72,11 +72,10 @@ public class TripsResource implements TripsApi {
 	}
 
 	@Override
-	public Response deleteTrip(String tripId) {
+	public Response deleteTrip(String tripId, String reason) {
     	Response rsp = null;
     	try {
         	Long tid = UrnHelper.getId(Trip.URN_PREFIX, tripId);
-        	String reason = null;
 			tripManager.removeTrip(tid, reason);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
