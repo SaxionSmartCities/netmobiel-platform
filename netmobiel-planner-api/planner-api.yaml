@@ -45,52 +45,6 @@ paths:
       description: Retrieves all stops, clusters and routes from the OpenTripPlanner
         and inserts the data in the local database. In additonal, calculate for each
         stop and each cluster the number of routes passing by and the modalities involved.
-  /trips/{tripId}:
-    summary: Path used to manage a single Trip.
-    description: The REST endpoint/path used to get, update, and delete single instances
-      of an `Trip`.  This path contains `GET`, `PUT`, and `DELETE` operations used
-      to perform the get, update, and delete tasks, respectively.
-    get:
-      parameters:
-      - name: tripId
-        description: 'A unique identifier for a `Trip`. The trip id can be one of
-          the following identifiers: the database id of the trip, the urn of the trip,
-          the urn of the itinerary of the trip or the urn of one of the legs in the
-          trip.'
-        schema:
-          type: string
-        in: path
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Trip'
-          description: Successful response - returns a single `Trip`.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: getTrip
-      summary: Get a Trip
-      description: Gets the details of a single instance of a `Trip`.
-    delete:
-      responses:
-        "204":
-          description: Succesful response, trip is deleted.
-        "404":
-          $ref: '#/components/responses/NotFound'
-        "410":
-          $ref: '#/components/responses/Gone'
-      operationId: deleteTrip
-      summary: Delete a Trip
-      description: Deletes an existing `Trip`.
-    parameters:
-    - name: tripId
-      description: A unique identifier for a `Trip`.
-      schema:
-        type: string
-      in: path
-      required: true
   /shout-outs:
     summary: Path used to manage the list of trip plans that are active and unfulfilled
       yet.
@@ -839,6 +793,58 @@ paths:
       description: |-
         When a dispute arises around the payment for a trip (or a leg), mediation is required. Once the mediates resolves, this call or its sibling is used to pass the decision to the system.
         This call requires admin privileges.
+    parameters:
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /trips/{tripId}:
+    summary: Path used to manage a single Trip.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Trip`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively.
+    get:
+      parameters:
+      - name: tripId
+        description: 'A unique identifier for a `Trip`. The trip id can be one of
+          the following identifiers: the database id of the trip, the urn of the trip,
+          the urn of the itinerary of the trip or the urn of one of the legs in the
+          trip.'
+        schema:
+          type: string
+        in: path
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Trip'
+          description: Successful response - returns a single `Trip`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getTrip
+      summary: Get a Trip
+      description: Gets the details of a single instance of a `Trip`.
+    delete:
+      parameters:
+      - name: reason
+        description: Optional explanation for the removal (cancellation) of this trip.
+        schema:
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Succesful response, trip is deleted.
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "410":
+          $ref: '#/components/responses/Gone'
+      operationId: deleteTrip
+      summary: Delete a Trip
+      description: Deletes an existing `Trip`.
     parameters:
     - name: tripId
       description: A unique identifier for a `Trip`.
