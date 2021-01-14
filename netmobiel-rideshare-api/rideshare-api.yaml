@@ -1380,7 +1380,7 @@ components:
           - TRIP_NOT_NEEDED
           - FOUND_OTHER_TRANSPORT
           - NO_SHOW
-          - NO_RIDE
+          - NO_TRIP
           type: string
       example:
         bookings: []
