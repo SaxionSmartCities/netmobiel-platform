@@ -40,6 +40,7 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
+import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EventFireWrapper;
@@ -567,6 +568,7 @@ public class RideManager {
     	// Copy non-modifiable attributes to the input object
     	ride.setCancelReason(ridedb.getCancelReason());
     	ride.setConfirmed(ridedb.getConfirmed());
+    	ride.setConfirmationReason(ridedb.getConfirmationReason());
     	ride.setDeleted(ridedb.getDeleted());
     	ride.setMonitored(ridedb.isMonitored());
     	ride.setState(ridedb.getState());
@@ -700,7 +702,7 @@ public class RideManager {
      * @param rideId the ride to update.
      * @throws BusinessException 
      */
-    public void confirmRide(Long rideId, Boolean confirmationValue) throws BusinessException {
+    public void confirmRide(Long rideId, Boolean confirmationValue, ConfirmationReasonType reason) throws BusinessException {
     	Ride ridedb = rideDao.find(rideId)
     			.orElseThrow(() -> new NotFoundException("No such ride: " + rideId));
     	if (confirmationValue == null) {
@@ -710,9 +712,12 @@ public class RideManager {
     		throw new BadRequestException("Ride has already a confirmation value: " + rideId);
     	}
     	ridedb.setConfirmed(confirmationValue);
+    	ridedb.setConfirmationReason(reason);
     	if (ridedb.getActiveBooking().isPresent()) {
     		Booking b = ridedb.getActiveBooking().get();
-    		EventFireWrapper.fire(transportProviderConfirmedEvent, new TripConfirmedByProviderEvent(b.getUrn(),  b.getPassengerTripRef(), confirmationValue));
+    		EventFireWrapper.fire(transportProviderConfirmedEvent, 
+    				new TripConfirmedByProviderEvent(b.getUrn(),  b.getPassengerTripRef(), 
+    						confirmationValue, reason));
     	}
     }
 

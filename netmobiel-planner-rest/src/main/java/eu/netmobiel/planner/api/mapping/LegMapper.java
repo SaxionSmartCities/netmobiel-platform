@@ -2,11 +2,16 @@ package eu.netmobiel.planner.api.mapping;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.ReportingPolicy;
+import org.mapstruct.ValueMapping;
 
+import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.planner.api.mapping.annotation.LegDetails;
 import eu.netmobiel.planner.api.mapping.annotation.LegMapperQualifier;
 import eu.netmobiel.planner.api.mapping.annotation.LegShallow;
+import eu.netmobiel.planner.api.model.Leg.ConfirmationReasonByProviderEnum;
+import eu.netmobiel.planner.api.model.Leg.ConfirmationReasonEnum;
 import eu.netmobiel.planner.model.GuideStep;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Stop;
@@ -40,4 +45,15 @@ public interface LegMapper {
     // GuideStep <--> GuideStep
     eu.netmobiel.planner.api.model.GuideStep map(GuideStep source );
 
+    // Translation of the confirmation reason (used in confirmTrip)
+    @ValueMapping(target = "UNKNOWN", source = MappingConstants.ANY_REMAINING)
+    public abstract ConfirmationReasonType map(ConfirmationReasonEnum source);
+    
+    @ValueMapping(target = MappingConstants.NULL, source = "UNKNOWN")
+    @ValueMapping(target = MappingConstants.NULL, source = "DISPUTED")
+    public abstract ConfirmationReasonEnum map(ConfirmationReasonType source);
+
+    @ValueMapping(target = MappingConstants.NULL, source = "UNKNOWN")
+    @ValueMapping(target = MappingConstants.NULL, source = "DISPUTED")
+    public abstract ConfirmationReasonByProviderEnum mapToProviderEnum(ConfirmationReasonType source);
 }

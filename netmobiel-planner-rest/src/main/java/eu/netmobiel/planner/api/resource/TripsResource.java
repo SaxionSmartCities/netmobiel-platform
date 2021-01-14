@@ -16,12 +16,15 @@ import javax.ws.rs.core.UriBuilder;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.api.TripsApi;
+import eu.netmobiel.planner.api.mapping.LegMapper;
 import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripMapper;
+import eu.netmobiel.planner.api.model.Leg.ConfirmationReasonEnum;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlannerUser;
@@ -42,6 +45,10 @@ public class TripsResource implements TripsApi {
 
     @Inject
     private PageMapper pageMapper;
+
+    
+    @Inject
+    private LegMapper legMapper;
 
     @Inject
     private TripManager tripManager;
@@ -140,12 +147,16 @@ public class TripsResource implements TripsApi {
 	}
 
 	@Override
-	public Response confirmTrip(String tripId, Boolean confirmationValue) {
+	public Response confirmTrip(String tripId, Boolean confirmationValue, String reason) {
     	Response rsp = null;
     	try {
         	Long tid = UrnHelper.getId(Trip.URN_PREFIX, tripId);
+        	ConfirmationReasonEnum reasonEnum = reason == null ? null : 
+        		ConfirmationReasonEnum.valueOf(reason);
+        	ConfirmationReasonType reasonType = legMapper.map(reasonEnum); 
+
         	//TODO Add security restriction
-			tripManager.confirmTrip(tid, confirmationValue, false);
+			tripManager.confirmTrip(tid, confirmationValue, reasonType, false);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);
@@ -164,7 +175,7 @@ public class TripsResource implements TripsApi {
     	Response rsp = null;
     	try {
         	Long tid = UrnHelper.getId(Trip.URN_PREFIX, tripId);
-			tripManager.confirmTrip(tid, Boolean.TRUE, true);
+			tripManager.confirmTrip(tid, Boolean.TRUE, ConfirmationReasonType.DISPUTED, true);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);
@@ -182,7 +193,7 @@ public class TripsResource implements TripsApi {
 		}
     	Response rsp = null;
     	try {
-			tripManager.confirmTripByTransportProvider(tripId, null, Boolean.FALSE, true);
+			tripManager.confirmTripByTransportProvider(tripId, null, Boolean.FALSE, ConfirmationReasonType.DISPUTED, true);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);

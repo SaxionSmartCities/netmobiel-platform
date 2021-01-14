@@ -14,11 +14,13 @@ import javax.ws.rs.core.UriBuilder;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.filter.Cursor;
+import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.rideshare.api.RidesApi;
 import eu.netmobiel.rideshare.api.mapping.BookingMapper;
 import eu.netmobiel.rideshare.api.mapping.PageMapper;
 import eu.netmobiel.rideshare.api.mapping.RideMapper;
+import eu.netmobiel.rideshare.api.model.Ride.ConfirmationReasonEnum;
 import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Ride;
@@ -199,12 +201,15 @@ public class RidesResource implements RidesApi {
     }
     
 	@Override
-	public Response confirmRide(String rideId, Boolean confirmationValue) {
+	public Response confirmRide(String rideId, Boolean confirmationValue, String reason) {
     	Response rsp = null;
     	try {
         	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideId);
+        	ConfirmationReasonEnum reasonEnum = reason == null ? null : 
+        		ConfirmationReasonEnum.valueOf(reason);
+        	ConfirmationReasonType reasonType = mapper.map(reasonEnum); 
         	//TODO Add security restriction
-			rideManager.confirmRide(rid, confirmationValue);
+			rideManager.confirmRide(rid, confirmationValue, reasonType);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);

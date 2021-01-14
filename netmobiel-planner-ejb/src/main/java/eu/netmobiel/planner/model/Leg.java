@@ -29,6 +29,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 import com.vividsolutions.jts.geom.MultiPoint;
 
 import eu.netmobiel.commons.api.EncodedPolylineBean;
+import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.commons.util.PolylineEncoder;
@@ -282,6 +283,18 @@ public class Leg implements Serializable {
     @Column(name = "confirmed")
     private Boolean confirmed;
 
+    /**
+     * Explanation for the (negative) confirmation value of the transport provider.
+     */
+    @Column(name = "conf_reason_prov")
+    private ConfirmationReasonType confirmationReasonByProvider;
+    
+    /**
+     * Explanation for the (negative) confirmation value of the traveller.
+     */
+    @Column(name = "conf_reason")
+    private ConfirmationReasonType confirmationReason;
+    
     public Leg() {
     }
 
@@ -301,6 +314,8 @@ public class Leg implements Serializable {
 		this.confirmationByProviderRequested = other.confirmationByProviderRequested;
 		this.confirmed = other.confirmed;
 		this.confirmedByProvider = other.confirmedByProvider;
+		this.confirmationReason = other.confirmationReason;
+		this.confirmationReasonByProvider = other.confirmationReasonByProvider;
 		this.distance = other.distance;
 		this.driverId = other.driverId;
 		this.driverName = other.driverName;
@@ -663,6 +678,22 @@ public class Leg implements Serializable {
 
 	public boolean isDenied() {
 		return Boolean.FALSE.equals(confirmed);
+	}
+
+	public ConfirmationReasonType getConfirmationReasonByProvider() {
+		return confirmationReasonByProvider;
+	}
+
+	public void setConfirmationReasonByProvider(ConfirmationReasonType confirmationReasonByProvider) {
+		this.confirmationReasonByProvider = confirmationReasonByProvider;
+	}
+
+	public ConfirmationReasonType getConfirmationReason() {
+		return confirmationReason;
+	}
+
+	public void setConfirmationReason(ConfirmationReasonType confirmationReason) {
+		this.confirmationReason = confirmationReason;
 	}
 
 	/**

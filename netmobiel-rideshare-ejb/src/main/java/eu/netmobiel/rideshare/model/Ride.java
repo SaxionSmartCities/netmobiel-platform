@@ -31,6 +31,7 @@ import javax.persistence.Version;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 /**
@@ -180,10 +181,17 @@ public class Ride extends RideBase implements Serializable {
     private boolean monitored;
 
     /**
-     * If true then the ride is confirmed by the driver.
+     * If true then the ride is confirmed by the driver, i.e. all bookings are confirmed.
+     * This flag should sit at the booking.
      */
     @Column(name = "confirmed")
     private Boolean confirmed;
+    
+    /**
+     * The reason of the (negative) confirmation of the passenger's trip (from the perspective of the driver).
+     */
+    @Column(name = "conf_reason")
+    private ConfirmationReasonType confirmationReason;
     
     public Long getId() {
 		return id;
@@ -297,6 +305,14 @@ public class Ride extends RideBase implements Serializable {
 
 	public void setConfirmed(Boolean confirmed) {
 		this.confirmed = confirmed;
+	}
+
+	public ConfirmationReasonType getConfirmationReason() {
+		return confirmationReason;
+	}
+
+	public void setConfirmationReason(ConfirmationReasonType confirmationReason) {
+		this.confirmationReason = confirmationReason;
 	}
 
 	/**

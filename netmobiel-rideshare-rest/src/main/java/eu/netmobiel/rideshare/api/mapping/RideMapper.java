@@ -6,9 +6,12 @@ import org.mapstruct.InheritConfiguration;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
+import org.mapstruct.ValueMapping;
 
+import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.rideshare.api.mapping.annotation.BookingFlat;
 import eu.netmobiel.rideshare.api.mapping.annotation.BookingMapperQualifier;
 import eu.netmobiel.rideshare.api.mapping.annotation.BookingShallow;
@@ -24,6 +27,7 @@ import eu.netmobiel.rideshare.api.mapping.annotation.RideMyDetails;
 import eu.netmobiel.rideshare.api.mapping.annotation.RideSearchDetails;
 import eu.netmobiel.rideshare.api.mapping.annotation.UserMapperQualifier;
 import eu.netmobiel.rideshare.api.mapping.annotation.UserSomeDetails;
+import eu.netmobiel.rideshare.api.model.Ride.ConfirmationReasonEnum;
 import eu.netmobiel.rideshare.model.Recurrence;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideTemplate;
@@ -66,6 +70,7 @@ public abstract class RideMapper {
 	@Mapping(target = "cancelReason", ignore = true)
 	@Mapping(target = "car", ignore = true)
 	@Mapping(target = "confirmed", ignore = true)
+	@Mapping(target = "confirmationReason", ignore = true)
 	@Mapping(target = "deleted", ignore = true)
 	@Mapping(target = "driver", ignore = true)
 	@Mapping(target = "from.point", ignore = true)
@@ -128,4 +133,11 @@ public abstract class RideMapper {
     	return ride;
     }
 
+    // Translation of the confirmation reason (used in confirmRide)
+    @ValueMapping(target = "UNKNOWN", source = MappingConstants.ANY_REMAINING)
+    public abstract ConfirmationReasonType map(ConfirmationReasonEnum source);
+    
+    @ValueMapping(target = MappingConstants.NULL, source = "UNKNOWN")
+    @ValueMapping(target = MappingConstants.NULL, source = "DISPUTED")
+    public abstract ConfirmationReasonEnum map(ConfirmationReasonType source);
 }

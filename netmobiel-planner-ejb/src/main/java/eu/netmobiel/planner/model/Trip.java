@@ -554,13 +554,18 @@ public class Trip implements Serializable {
    	}
 
     /**
-     * Assigns the current trip state to all legs, if any. 
+     * Assigns the current trip state to all legs, if any, but only if the leg state is 
+     * lower in terms of the ordinal. A trip with a cancelled leg can never be set to completed.  
      */
    	public void forceTripStateDown() {
    		if (getItinerary() == null || getItinerary().getLegs() == null) {
    			return;
    		}
-   		getItinerary().getLegs().forEach(leg -> leg.setState(getState()));
+   		for (Leg leg: getItinerary().getLegs()) {
+   			if (leg.getState().ordinal() < getState().ordinal()) {
+   				leg.setState(getState());
+   			}
+   		}
    	}
 
    	public Set<String> getAgencies() {

@@ -303,8 +303,9 @@ public class BookingProcessor {
 
     public void onProviderConfirmation(@Observes(during = TransactionPhase.IN_PROGRESS) TripConfirmedByProviderEvent event) 
     		throws BusinessException {
-  		// The trip manager checks the state for reasonable values 
-		tripManager.confirmTripByTransportProvider(event.getTravellerTripRef(), event.getBookingRef(), event.getConfirmationByTransportProvider(), false);
+  		// The trip manager checks the state for reasonable values
+		tripManager.confirmTripByTransportProvider(event.getTravellerTripRef(), event.getBookingRef(), 
+				event.getConfirmationByTransportProvider(), event.getConfirmationReason(), false);
     }
 
     public void onTripValidationExpired(@Observes(during = TransactionPhase.IN_PROGRESS) TripValidationExpiredEvent event) 

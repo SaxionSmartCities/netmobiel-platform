@@ -31,6 +31,7 @@ import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.exception.UpdateException;
+import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.report.NumericReportValue;
@@ -372,7 +373,7 @@ public class TripManager {
      * @param overrideResponse If true then skip the check whether an answer was already available.
      * @throws BusinessException 
      */
-    public void confirmTrip(Long tripId, Boolean confirmationValue, boolean overrideResponse) throws BusinessException {
+    public void confirmTrip(Long tripId, Boolean confirmationValue, ConfirmationReasonType reason, boolean overrideResponse) throws BusinessException {
     	Trip tripdb = tripDao.fetchGraph(tripId, Trip.MY_LEGS_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripId));
     	if (confirmationValue == null) {
@@ -389,6 +390,7 @@ public class TripManager {
 	            		throw new BadRequestException("Leg has already a confirmation value: " + leg.getId());
 	            	}
 	            	leg.setConfirmed(confirmationValue);
+	            	leg.setConfirmationReason(reason);
         		}
         	}
         	EventFireWrapper.fire(tripConfirmedEvent, new TripConfirmedEvent(tripdb));
@@ -400,10 +402,12 @@ public class TripManager {
      * @param tripRef the trip reference to update.
      * @param bookingRef the reference to the booking 
      * @param confirmationValue the answer of the traveller.
+     * @param reason the reason for the given confirmation. This is an API 
      * @param overrideResponse If true then skip the check whether an answer was already available.
      * @throws BusinessException 
      */
-    public void confirmTripByTransportProvider(String tripRef, String bookingRef, Boolean confirmationValue, boolean overrideResponse) throws BusinessException {
+    public void confirmTripByTransportProvider(String tripRef, String bookingRef, 
+    		Boolean confirmationValue, ConfirmationReasonType reason, boolean overrideResponse) throws BusinessException {
     	Trip tripdb = tripDao.fetchGraph(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef), Trip.MY_LEGS_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
     	if (confirmationValue == null) {
@@ -425,6 +429,7 @@ public class TripManager {
 	            		throw new BadRequestException("Leg has already a confirmation value by provider: " + leg.getId());
 	            	}
 	            	leg.setConfirmedByProvider(confirmationValue);
+	            	leg.setConfirmationReasonByProvider(reason);
         		}
         	}
         	EventFireWrapper.fire(tripConfirmedEvent, new TripConfirmedEvent(tripdb));
@@ -456,10 +461,17 @@ public class TripManager {
 
     protected void updateTripAndLegState(Trip trip, TripState newState) throws BusinessException {
     	TripState previousState = trip.getState();
-		trip.setState(newState);
+    	if (newState.ordinal() >= previousState.ordinal()) {
+    		trip.setState(newState);
+    	} else if (newState != previousState) {
+    		log.warn(String.format("Trip %s: Blocked attempt to set back state from %s --> %s", trip.getId(), previousState, newState));
+    	}
 		trip.forceTripStateDown();
 		if (log.isDebugEnabled()) {
 			log.debug(String.format("updateTripAndLegState %s --> %s: %s", previousState, trip.getState(), trip.toStringCompact()));
+		}
+		if (trip.getState().isFinalState()) {
+       		cancelTripTimers(trip);
 		}
     	EventFireWrapper.fire(tripStateUpdatedEvent, new TripStateUpdatedEvent(previousState, trip));
     }
@@ -617,9 +629,8 @@ public class TripManager {
 		Optional<Leg> dueLeg =  tripdb.getItinerary().getLegs().stream()
 			.filter(lg -> leg.hasFareInCredits() && leg.isPaymentDue())
 			.findFirst();
-		if (!dueLeg.isPresent()) {
+		if (!dueLeg.isPresent() && trip.getState() == TripState.VALIDATING) {
 			// We're done! No more due payments 
-			cancelTripTimers(trip);
 			updateTripAndLegState(trip, TripState.COMPLETED);
 		}
 		
