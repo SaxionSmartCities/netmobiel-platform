@@ -774,7 +774,7 @@ paths:
           - TRIP_NOT_NEEDED
           - FOUND_OTHER_TRANSPORT
           - NO_SHOW
-          - NO_TRIP
+          - NO_RIDE
           type: string
         in: query
       responses:
