@@ -181,7 +181,8 @@ paths:
       - name: scope
         description: 'Flag indicating the extent of the delete. Only used in case
           of a recurrent ride: If set to `this-and-following`, then not only this
-          ride is removed, but also all following rides derived from the same pattern. '
+          ride is removed, but also all following rides derived from the same pattern.
+          Default: `this`'
         schema:
           enum:
           - this
@@ -578,32 +579,6 @@ paths:
       operationId: searchRides
       summary: Search for rides
       description: Search and retrieve matching rides.
-  /rides/{rideId}/confirm/{value}:
-    summary: Path used to confirm a ride.
-    description: Endpoint used to confirm a ride, using a PUT.
-    put:
-      responses:
-        "204":
-          description: Success response, the ride has been confirmed.
-      operationId: confirmRide
-      summary: Confirms a ride.
-      description: Confirms that the driver has actually driven this ride. It cannot
-        be undone. Once the driver has confirmed the ride, the credits will be claimed
-        unless the passenger denies having been in the car. A confirmation can only
-        be issued once.
-    parameters:
-    - name: rideId
-      description: A unique identifier for a `Ride`.
-      schema:
-        type: string
-      in: path
-      required: true
-    - name: value
-      description: 'A confirmation alue: true of false.'
-      schema:
-        type: boolean
-      in: path
-      required: true
   /rides:
     summary: Path used to manage rides.
     description: The REST endpoint/path used to list and create zero or more `Ride`
@@ -782,6 +757,48 @@ paths:
         Add a new ride. The calling user will be the driver.
 
         If recurrence is set, then all future drivers up to 8 weeks in advance are generated as well.
+  /rides/{rideId}/confirm/{value}:
+    summary: Path used to confirm a ride.
+    description: Endpoint used to confirm a ride, using a PUT.
+    put:
+      parameters:
+      - name: reason
+        description: |-
+          The reason for the given (negative) confirmation value.
+           - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
+           - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
+           - `NO_SHOW`: The passenger did not show up
+           - `NO_RIDE`: The ride did not take place at all.
+        schema:
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          - NO_TRIP
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the ride has been confirmed.
+      operationId: confirmRide
+      summary: Confirms a ride.
+      description: Confirms that the driver has actually driven this ride. It cannot
+        be undone. Once the driver has confirmed the ride, the credits will be claimed
+        unless the passenger denies having been in the car. A confirmation can only
+        be issued once.
+    parameters:
+    - name: rideId
+      description: A unique identifier for a `Ride`.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: value
+      description: 'A confirmation alue: true of false.'
+      schema:
+        type: boolean
+      in: path
+      required: true
 components:
   schemas:
     Car:
