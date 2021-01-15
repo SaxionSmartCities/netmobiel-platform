@@ -94,6 +94,8 @@ public abstract class TripPlanMapper {
     @Mapping(target = "confirmationByProviderRequested", ignore = true)
     @Mapping(target = "confirmed", ignore = true)
     @Mapping(target = "confirmedByProvider", ignore = true)
+    @Mapping(target = "confirmationReason", ignore = true)
+    @Mapping(target = "confirmationReasonByProvider", ignore = true)
     public abstract eu.netmobiel.planner.model.Leg legToLeg(Leg leg);
     
     @Mapping(target = "name", source = "streetName")
