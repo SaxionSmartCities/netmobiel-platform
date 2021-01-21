@@ -584,10 +584,14 @@ paths:
       description: Search and retrieve matching itineraries.
   /shout-outs/{shoutOutPlanId}/plan:
     summary: Path used to find a plan to combine the shout-out with a driver's ride.
-    description: |
-      The REST endpoint/path used to get a single instance of a `TripPlan`, resolving the shout-out plan of the traveller in one of the legs. This path contains a `GET` operations used to perform the get tasks.
-
-      Although in theory this call can be used for many transportation providers, the first use is for users (drivers) of the  NetMobiel Rideshare service.
+    description: "The REST endpoint/path used to get a single instance of a `TripPlan`,\
+      \ resolving the shout-out plan of the traveller in one of the legs. This path\
+      \ contains a `GET` operations used to perform the get tasks. The driver calls\
+      \ this endpoint to see whether he could offer a ride.\n\nAlthough in theory\
+      \ this call can be used for many transportation providers, the first use is\
+      \ for users (drivers) of the  NetMobiel Rideshare service.\n\nThe result is\
+      \ comparable when a rideshare ride would already be scheduled and the traveller\
+      \ would make a search. "
     get:
       parameters:
       - name: now
@@ -661,9 +665,10 @@ paths:
             shout-out of the passenger.
         "404":
           $ref: '#/components/responses/NotFound'
-      operationId: resolveShoutOut
+      operationId: planShoutOutSolution
       summary: Creates a matching plan.
       description: Creates a plan that can resolve the shout-out of the traveller.
+        It is still a proposal.
     parameters:
     - name: shoutOutPlanId
       description: A reference to the shout-out plan of the traveller. The reference
@@ -709,10 +714,11 @@ paths:
           $ref: '#/components/responses/NotFound'
       operationId: addSolution
       summary: Resolves a shout-out.
-      description: Resolves a shout-out of a traveller by extracting the itineraries
-        relevant for the traveller from the suggested trip plan. The suggested plan
-        (potential  from any transport provider) must at least contain the two stops
-        close (100 meter) to the departure, resp. destination location of the traveller.
+      description: Offers a solution for a shout-out of a traveller by extracting
+        the itineraries relevant for the traveller from the suggested trip plan. The
+        suggested plan (potential  from any transport provider) must at least contain
+        the two stops close (100 meter) to the departure, resp. destination location
+        of the traveller.
     delete:
       responses:
         "204":
