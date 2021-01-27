@@ -11,6 +11,7 @@ import javax.enterprise.inject.Vetoed;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -100,7 +101,7 @@ public class AccountingTransaction  implements Serializable {
 	/**
 	 * The entries making up the transaction. Debet and credit must balance.
 	 */
-    @OneToMany(mappedBy = "transaction", cascade = CascadeType.PERSIST)
+    @OneToMany(mappedBy = "transaction", cascade = CascadeType.PERSIST, fetch = FetchType.EAGER)
     private List<AccountingEntry> accountingEntries;
 
     public AccountingTransaction() {
