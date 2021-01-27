@@ -139,10 +139,12 @@ public class BookingProcessor {
     protected void cancelFare(Trip trip, Leg leg) throws BusinessException {
 		if (leg.hasFareInCredits()) {
 			// Release the fare
+			String releaseId = leg.getPaymentId();
 			if (leg.getPaymentState() != PaymentState.RESERVED) {
-				throw new IllegalStateException("Cannot cancel fare, payment state is invalid: " + leg.getLegRef() + " " + leg.getPaymentState());
+				logger.error("Cannot cancel fare, payment state is invalid: " + leg.getLegRef() + " " + leg.getPaymentState());
+			} else if (leg.getPaymentState() == PaymentState.RESERVED) {
+				releaseId = ledgerService.release(leg.getPaymentId());
 			}
-			String releaseId = ledgerService.release(leg.getPaymentId());
 			tripManager.updateLegPaymentState(trip, leg, PaymentState.CANCELLED, releaseId);
 			// Settled without payment
 			bookingManager.informBookingSettled(leg.getTripId(), leg.getBookingId());
