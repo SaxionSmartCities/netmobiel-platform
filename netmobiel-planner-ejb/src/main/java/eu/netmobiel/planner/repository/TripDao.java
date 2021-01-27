@@ -106,6 +106,17 @@ public class TripDao extends AbstractDao<Trip, Long> {
     	return trips; 
     }
 
+    /**
+     * Find all trips that are monitored right now, according to their monitor status.
+     * @return A list of trips with the monitor flag set.
+     */
+    public List<Trip> findMonitoredTrips() {
+    	List<Trip> trips = em.createQuery(
+    			"from Trip t where monitored = true order by t.itinerary.departureTime asc", Trip.class)
+    			.getResultList();
+    	return trips; 
+    }
+
     public Optional<Long> findTripIdByItineraryId(Long itineraryId) {
     	Long tripId = null;
     	try {

@@ -6,10 +6,14 @@ import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
+import java.util.AbstractMap;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
 import java.util.List;
+import java.util.Map;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 import javax.ejb.NoSuchObjectLocalException;
@@ -764,6 +768,54 @@ public class RideManager {
 		}
 	}
 
+	protected void handleRideEvent(RideInfo rideInfo) throws BusinessException {
+		if (log.isDebugEnabled()) {
+			log.debug("Received ride event: " + rideInfo.toString());
+		}
+		Ride ride = rideDao.fetchGraph(rideInfo.rideId, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
+				.orElseThrow(() -> new IllegalArgumentException("No such ride: " + rideInfo.rideId));
+		Instant now = Instant.now();
+		switch (rideInfo.event) {
+		case TIME_TO_PREPARE:
+			updateRideState(ride, RideState.DEPARTING);
+			timerService.createTimer(Date.from(ride.getDepartureTime()), 
+					new RideInfo(RideMonitorEvent.TIME_TO_DEPART, ride.getId()));
+			break;
+		case TIME_TO_DEPART:
+			updateRideState(ride, RideState.IN_TRANSIT);
+			timerService.createTimer(Date.from(ride.getArrivalTime()), 
+					new RideInfo(RideMonitorEvent.TIME_TO_ARRIVE, ride.getId()));
+			break;
+		case TIME_TO_ARRIVE:
+			updateRideState(ride, RideState.ARRIVING);
+			if (ride.hasActiveBooking() && ride.getArrivalTime().plus(CONFIRMATION_PERIOD).isAfter(now)) {
+				timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRMATION_DELAY)), 
+						new RideInfo(RideMonitorEvent.TIME_TO_VALIDATE, ride.getId()));
+			} else {
+				timerService.createTimer(Date.from(ride.getArrivalTime().plus(ARRIVING_PERIOD)), 
+						new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
+			}
+			break;
+		case TIME_TO_VALIDATE:
+			updateRideState(ride, RideState.VALIDATING);
+			timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_1)), 
+					new RideInfo(RideMonitorEvent.TIME_TO_CONFIRM_REMINDER, ride.getId()));
+			break;
+		case TIME_TO_CONFIRM_REMINDER:
+			updateRideState(ride, RideState.VALIDATING);
+			timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_2)), 
+					new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
+			break;
+		case TIME_TO_COMPLETE:
+			updateRideState(ride, RideState.COMPLETED);
+			ride.setMonitored(false);
+			break;
+		default:
+			log.warn("Don't know how to handle event: " + rideInfo.event);
+			break;
+		}
+	}
+
 	@Timeout
 	public void onTimeout(Timer timer) {
 		try {
@@ -772,51 +824,7 @@ public class RideManager {
 				return;
 			}
 			RideInfo rideInfo = (RideInfo) timer.getInfo();
-			if (log.isDebugEnabled()) {
-				log.debug("Received ride event: " + rideInfo.toString());
-			}
-			Ride ride = rideDao.fetchGraph(rideInfo.rideId, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
-					.orElseThrow(() -> new IllegalArgumentException("No such ride: " + rideInfo.rideId));
-			Instant now = Instant.now();
-			switch (rideInfo.event) {
-			case TIME_TO_PREPARE:
-				updateRideState(ride, RideState.DEPARTING);
-				timerService.createTimer(Date.from(ride.getDepartureTime()), 
-						new RideInfo(RideMonitorEvent.TIME_TO_DEPART, ride.getId()));
-				break;
-			case TIME_TO_DEPART:
-				updateRideState(ride, RideState.IN_TRANSIT);
-				timerService.createTimer(Date.from(ride.getArrivalTime()), 
-						new RideInfo(RideMonitorEvent.TIME_TO_ARRIVE, ride.getId()));
-				break;
-			case TIME_TO_ARRIVE:
-				updateRideState(ride, RideState.ARRIVING);
-				if (ride.hasActiveBooking() && ride.getArrivalTime().plus(CONFIRMATION_PERIOD).isAfter(now)) {
-					timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRMATION_DELAY)), 
-							new RideInfo(RideMonitorEvent.TIME_TO_VALIDATE, ride.getId()));
-				} else {
-					timerService.createTimer(Date.from(ride.getArrivalTime().plus(ARRIVING_PERIOD)), 
-							new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
-				}
-				break;
-			case TIME_TO_VALIDATE:
-				updateRideState(ride, RideState.VALIDATING);
-				timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_1)), 
-						new RideInfo(RideMonitorEvent.TIME_TO_CONFIRM_REMINDER, ride.getId()));
-				break;
-			case TIME_TO_CONFIRM_REMINDER:
-				updateRideState(ride, RideState.VALIDATING);
-				timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_2)), 
-						new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
-				break;
-			case TIME_TO_COMPLETE:
-				updateRideState(ride, RideState.COMPLETED);
-				ride.setMonitored(false);
-				break;
-			default:
-				log.warn("Don't know how to handle event: " + rideInfo.event);
-				break;
-			}
+			handleRideEvent(rideInfo);
 		} catch (BusinessException ex) {
 			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
 			log.info("Rollback status after exception: " + context.getRollbackOnly()); 
@@ -884,4 +892,65 @@ public class RideManager {
 		}
 		ride.setMonitored(false);
     }
+	public List<RideInfo> listAllTripMonitorTimers() {
+    	// Find all timers related to the trip manager
+    	Collection<Timer> timers = timerService.getTimers();
+    	return timers.stream()
+    			.filter(tm -> tm.getInfo() instanceof RideInfo)
+    			.map(tm -> (RideInfo) tm.getInfo())
+    			.collect(Collectors.toList());
+	}
+	
+	/**
+	 * Create a map to revive the monitor. Use the event that would cause a transition to the same state.
+	 */
+	private static Map<RideState, RideMonitorEvent> rideStateToMonitorRevivalEvent = Map.ofEntries(
+			new AbstractMap.SimpleEntry<>(RideState.DEPARTING, RideMonitorEvent.TIME_TO_PREPARE),
+			new AbstractMap.SimpleEntry<>(RideState.IN_TRANSIT, RideMonitorEvent.TIME_TO_DEPART),
+			new AbstractMap.SimpleEntry<>(RideState.ARRIVING, RideMonitorEvent.TIME_TO_ARRIVE),
+			new AbstractMap.SimpleEntry<>(RideState.VALIDATING, RideMonitorEvent.TIME_TO_VALIDATE)
+		);
+
+	/**
+	 * Revive the ride monitors that have been crashed due due to some unrecoverable errors.
+	 */
+	public void reviveRideMonitors() {
+		List<RideInfo> rideInfos = listAllTripMonitorTimers();
+		if (rideInfos.isEmpty()) {
+			log.info("NO active ride timers");
+		} else {
+			log.info("Active ride timers:\n" + String.join("\n\t", 
+					rideInfos.stream()
+					.map(ti -> ti.toString())
+					.collect(Collectors.toList()))
+			);
+		}		
+
+		Set<Long> timedTripIds = rideInfos.stream()
+				.map(ti -> ti.rideId)
+				.collect(Collectors.toSet());
+		List<Ride> monitoredTrips = rideDao.findMonitoredTrips();
+		monitoredTrips.removeIf(t -> timedTripIds.contains(t.getId()));
+		if (! monitoredTrips.isEmpty()) {
+			log.warn(String.format("There are %d rides without active monitoring, fixing now...", monitoredTrips.size()));
+			for (Ride ride : monitoredTrips) {
+				RideMonitorEvent event = rideStateToMonitorRevivalEvent.get(ride.getState());
+				if (event == null) {
+					log.warn(String.format("Trip state is %s, no suitable revival event found", ride.getState()));
+					// First check what is really needed before switching off the monitor 
+					// ride.setMonitored(false);
+			} else {
+					RideInfo ti = new RideInfo(event, ride.getId());
+					rideDao.detach(ride);
+					try {
+						handleRideEvent(ti);
+					} catch (BusinessException ex) {
+						log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
+					} catch (Exception ex) {
+						log.error(String.format("Error reviving ride monitor: %s", ex.toString()));
+					}
+				}
+			}
+		}
+	}
 }

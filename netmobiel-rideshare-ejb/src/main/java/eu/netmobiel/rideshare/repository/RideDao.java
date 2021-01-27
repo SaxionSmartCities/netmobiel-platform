@@ -242,6 +242,18 @@ public class RideDao extends AbstractDao<Ride, Long> {
     	return trips; 
     }
 
+    /**
+     * Find all rides that are monitored right now, according to their monitor status.
+     * @return A list of rides with the monitor flag set.
+     */
+    public List<Ride> findMonitoredTrips() {
+    	List<Ride> trips = em.createQuery(
+    			"from Ride r where monitored = true order by r.departureTime asc", Ride.class)
+    			.getResultList();
+    	return trips; 
+    }
+
+
     public boolean existsTemporalOverlap(Ride ride) {
     	Long count = em.createQuery(
     			"select count(r) from Ride r where r != :myRide and r.driver = :driver " + 
