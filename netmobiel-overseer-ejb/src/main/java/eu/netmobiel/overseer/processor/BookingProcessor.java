@@ -151,7 +151,15 @@ public class BookingProcessor {
 
     protected void payFare(Trip trip, Leg leg) throws BusinessException {
 		if (leg.hasFareInCredits()) {
-			String chargeId = ledgerService.charge(resolveDriverId(leg), leg.getPaymentId(), leg.getFareInCredits());
+			// Due to revival of the monitoring, some actions might already be taken
+			// Not entirely understood, this is handled in a single transaction. I thought.
+			String chargeId = null;
+			if (leg.getPaymentState() != PaymentState.PAID) {
+				chargeId = ledgerService.charge(resolveDriverId(leg), leg.getPaymentId(), leg.getFareInCredits());
+			} else {
+				// Already paid
+				chargeId = leg.getPaymentId();
+			}
 			tripManager.updateLegPaymentState(trip, leg, PaymentState.PAID, chargeId);
 			// Settled with payment
 			bookingManager.informBookingSettled(leg.getTripId(), leg.getBookingId());
