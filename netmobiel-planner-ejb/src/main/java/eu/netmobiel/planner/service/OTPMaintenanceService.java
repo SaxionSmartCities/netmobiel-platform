@@ -52,12 +52,21 @@ public class OTPMaintenanceService {
     private boolean maintenanceRunning = false;
 
     /**
+     * Flag to control the scheduled update of the OTP data. Useful in production, not so useful in development.
+     */
+    @Resource(lookup = "java:global/planner/scheduledUpdatePublicTransportData")
+    private Boolean automaticUpdatePublicTransportData;
+    /**
      * Runs the update of the OTP data every monday morning. The cron job of building the graph has finished around 4:30 in the morning.
      */
 	@Schedule(info = "Update OTP Data", dayOfWeek = "Mon", hour = "5", minute = "0", second = "0", persistent = true)
     public void timedUpdateOpenTripPlannerData() {
 		try {
-			startUpdatePublicTransportData();		
+			if (automaticUpdatePublicTransportData) {
+				startUpdatePublicTransportData();
+			} else {
+				log.info("Automatic update of OTP data is disabled by server configuration");
+			}
 		} catch (Exception ex) {
 			log.error("Error during timed update of OTP data: " + ex.toString());
 		}
