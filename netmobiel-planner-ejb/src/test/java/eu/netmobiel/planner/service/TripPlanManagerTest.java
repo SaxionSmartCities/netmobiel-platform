@@ -330,7 +330,7 @@ public class TripPlanManagerTest {
 			result = Fixture.createShoutOutSolution(driverPlan.getFrom(), null, shoutOutPlan); 
 		}};
 		try {
-			TripPlan plan = tested.resolveShoutOut(now, driver, shoutOutRef, driverPlan, TraverseMode.RIDESHARE);
+			TripPlan plan = tested.planShoutOutSolution(now, driver, shoutOutRef, driverPlan, TraverseMode.RIDESHARE);
 			assertEquals(1, plan.getItineraries().size());
 			Itinerary it = plan.getItineraries().iterator().next();
 			log.debug("Itinerary: " + it.toString());

@@ -63,7 +63,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
 	}
 
 	@Override
-	public Response resolveShoutOut(String planId, OffsetDateTime now, String from, String to, OffsetDateTime travelTime, 
+	public Response planShoutOutSolution(String planId, OffsetDateTime now, String from, String to, OffsetDateTime travelTime, 
 			Boolean useAsArrivalTime, String modality, String agencyId) {
     	Response rsp = null;
     	if (planId == null) {
@@ -92,7 +92,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
 			}
 			driverPlan.setTravelTime(travelTime != null ? travelTime.toInstant() : null);
 			driverPlan.setUseAsArrivalTime(Boolean.TRUE.equals(useAsArrivalTime));
-			driverPlan = tripPlanManager.resolveShoutOut(now.toInstant(), driver, planId, driverPlan, mode);
+			driverPlan = tripPlanManager.planShoutOutSolution(now.toInstant(), driver, planId, driverPlan, mode);
 			rsp = Response.ok(tripPlanMapper.map(driverPlan)).build();
 		} catch (Exception e) {
 			throw new WebApplicationException(e);

@@ -890,7 +890,12 @@ public class TripPlanManager {
     
 
     /**
-     * Resolves a shout-out by issuing a trip plan as a potential solution for the shout-out by a ride by the driver. 
+     * Resolves a shout-out (finds a possible itinerary) by issuing a trip plan as a potential solution for the 
+     * shout-out by a ride by the driver. This trip plan is requested by the driver using his own departure and 
+     * arrival location (if provided), and a proposed travel time. 
+     * The intermediate stops for the passenger are taken from the shout out plan (issued by 
+     * the traveller/passenger). The result is an integrated trip plan for the driver driving along the passenger's stops.
+     * The driver can review the plan and decide to make it an offer to the passenger.  
      * @param now The reference point in time. Especially used for testing.
      * @param driver The driver asking to verify a shout-out. 
      * @param shoutOutPlanRef A reference to the shout-out of a traveller.
@@ -898,7 +903,7 @@ public class TripPlanManager {
      * @return A trip plan calculated  to fill-in the shout-out.
      * @throws NotFoundException In case the shout-out could not be found.
      */
-    public TripPlan resolveShoutOut(Instant now, PlannerUser driver, String shoutOutPlanRef, TripPlan driverPlan, TraverseMode traverseMode) throws NotFoundException, BusinessException {
+    public TripPlan planShoutOutSolution(Instant now, PlannerUser driver, String shoutOutPlanRef, TripPlan driverPlan, TraverseMode traverseMode) throws NotFoundException, BusinessException {
     	Long pid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanRef);
     	TripPlan travPlan = tripPlanDao.find(pid).orElseThrow(() -> new NotFoundException("No such TripPlan: " + shoutOutPlanRef));
     	if (!travPlan.isInProgress()) {
@@ -960,8 +965,8 @@ public class TripPlanManager {
      * a ride with his car. More complex scenarios are possible with combinations with public transport.
      * @param shoutOutPlanId The original shout-out plan of the traveller, containing details about the desired travel.  
      * @param proposedPlanId The plan proposed by the transport provider. This plan is from the perspective of the transport provider
-     * 						and include his private departure and destination locations. The assumption for now is that the pickup and
-     * 						drop-off locations of the traveller are part of the providers itinerary. If not the (short) walks have to 
+     * 						and includes his private departure and destination locations. The assumption for now is that the pickup and
+     * 						drop-off locations of the traveller are part of the providers itinerary. If not, the (short) walks have to 
      * 						be inserted for the traveller, derived from the shout-out plan parameters.  
      * @param driverRef		The reference to the driver , if relevant.
      * @param vehicleRef	The reference to the vehicle to be used, if relevant.
