@@ -1016,110 +1016,6 @@ components:
         fareInCredits:
           description: The amount of credits charged in total for this itinerary.
           type: integer
-    Trip:
-      title: Root Type for Trip
-      description: A Trip is a journey in which you go somewhere, usually for a short
-        time. In NetMobiel a trip a a one-way journey. To get home you have to plan
-        another trip. A trip refers to an itinerary calculated by the trip planner.
-      required: []
-      type: object
-      properties:
-        state:
-          description: The state of the trip.
-          enum:
-          - PLANNING
-          - BOOKING
-          - SCHEDULED
-          - DEPARTING
-          - IN_TRANSIT
-          - ARRIVING
-          - VALIDATING
-          - COMPLETED
-          - CANCELLED
-          type: string
-        cancelReason:
-          description: If the trip was cancelled, the reason why.
-          type: string
-        travellerRef:
-          description: 'A reference to the user. It is a URN with the format: urn:nb:pl:user:12345'
-          type: string
-        traveller:
-          $ref: '#/components/schemas/User'
-          description: 'The user owning and using this trip. The user or traveller
-            is determined when the trip is saved: it is the calling user.'
-          properties:
-            managedIdentity:
-              type: string
-            givenName:
-              type: string
-            familiyName:
-              type: string
-        deleted:
-          description: Flag indicating whether the trip has been deleted by the traveller.
-          type: boolean
-        from:
-          $ref: '#/components/schemas/Location'
-          description: The place to depart from.
-          properties:
-            label:
-              type: string
-            latitude:
-              format: double
-              type: number
-            longitude:
-              format: double
-              type: number
-        to:
-          $ref: '#/components/schemas/Location'
-          description: The final destination of the trip.
-          properties:
-            label:
-              type: string
-            latitude:
-              format: double
-              type: number
-            longitude:
-              format: double
-              type: number
-        id:
-          format: int64
-          description: 'The unique trip id. If referenced use the URN notation: urn:nb:pn:trip:<id>'
-          type: integer
-        nrSeats:
-          description: The number of seats required for the trip.
-          type: integer
-        tripRef:
-          description: The reference urn of the trip. Format is urn:nb:pl:trip:{id}.
-          type: string
-        arrivalTimeIsPinned:
-          description: If true then the arrival time is leading for the passenger,
-            otherwise departure time.
-          type: boolean
-        itinerary:
-          $ref: '#/components/schemas/Itinerary'
-          description: The itinerary of this trip as calculated by the planner.
-        itineraryRef:
-          description: A reference urn to the itinerary.
-          type: string
-      example:
-        from:
-          label: Rapenburgsestraat Lichtenvoorde
-          latitude: 51.987757
-          longitude: 6.564012
-        to:
-          label: Rabobank Zutphen
-          latitude: 52.148125
-          longitude: 6.196966
-        itinerary:
-          departureTime: 2019-11-30T13:00:00
-          duration: 2124
-          legs: []
-        state: Scheduled
-        travellerRef: urn:nb:pl:User:234
-        traveller:
-          managedIdentity: 1234-5678-9012
-          givenName: Simon
-          familiyName: d'Hollosy
     Location:
       title: Root Type for Place
       description: A location on a map, comprising of a GPS coordinate and optional
@@ -1461,6 +1357,114 @@ components:
           type: boolean
       example:
         isRunning: false
+    Trip:
+      title: Root Type for Trip
+      description: A Trip is a journey in which you go somewhere, usually for a short
+        time. In NetMobiel a trip a a one-way journey. To get home you have to plan
+        another trip. A trip refers to an itinerary calculated by the trip planner.
+      required: []
+      type: object
+      properties:
+        state:
+          description: The state of the trip.
+          enum:
+          - PLANNING
+          - BOOKING
+          - SCHEDULED
+          - DEPARTING
+          - IN_TRANSIT
+          - ARRIVING
+          - VALIDATING
+          - COMPLETED
+          - CANCELLED
+          type: string
+        cancelReason:
+          description: If the trip was cancelled, the reason why.
+          type: string
+        travellerRef:
+          description: 'A reference to the user. It is a URN with the format: urn:nb:pl:user:12345'
+          type: string
+        traveller:
+          $ref: '#/components/schemas/User'
+          description: 'The user owning and using this trip. The user or traveller
+            is determined when the trip is saved: it is the calling user.'
+          properties:
+            managedIdentity:
+              type: string
+            givenName:
+              type: string
+            familiyName:
+              type: string
+        deleted:
+          description: Flag indicating whether the trip has been deleted by the traveller.
+          type: boolean
+        from:
+          $ref: '#/components/schemas/Location'
+          description: The place to depart from.
+          properties:
+            label:
+              type: string
+            latitude:
+              format: double
+              type: number
+            longitude:
+              format: double
+              type: number
+        to:
+          $ref: '#/components/schemas/Location'
+          description: The final destination of the trip.
+          properties:
+            label:
+              type: string
+            latitude:
+              format: double
+              type: number
+            longitude:
+              format: double
+              type: number
+        id:
+          format: int64
+          description: 'The unique trip id. If referenced use the URN notation: urn:nb:pn:trip:<id>'
+          type: integer
+        nrSeats:
+          description: The number of seats required for the trip.
+          type: integer
+        tripRef:
+          description: The reference urn of the trip. Format is urn:nb:pl:trip:{id}.
+          type: string
+        arrivalTimeIsPinned:
+          description: If true then the arrival time is leading for the passenger,
+            otherwise departure time.
+          type: boolean
+        itinerary:
+          $ref: '#/components/schemas/Itinerary'
+          description: The itinerary of this trip as calculated by the planner.
+        itineraryRef:
+          description: A reference urn to the itinerary.
+          type: string
+        cancelledByProvider:
+          description: If set this flag indicates the mobility provider has cancelled
+            (the booking of) a leg, thereby also cancelling the trip.
+          type: boolean
+      example:
+        from:
+          label: Rapenburgsestraat Lichtenvoorde
+          latitude: 51.987757
+          longitude: 6.564012
+        to:
+          label: Rabobank Zutphen
+          latitude: 52.148125
+          longitude: 6.196966
+        itinerary:
+          departureTime: 2019-11-30T13:00:00
+          duration: 2124
+          legs: []
+        state: Scheduled
+        travellerRef: urn:nb:pl:User:234
+        traveller:
+          managedIdentity: 1234-5678-9012
+          givenName: Simon
+          familiyName: d'Hollosy
     Leg:
       description: A leg is a displacement using a certain modality from one location
         to another.
@@ -1647,6 +1651,10 @@ components:
           - PAID
           - CANCELLED
           type: string
+        cancelledByProvider:
+          description: If set this flag indicates the mobility provider has cancelled
+            (the booking of) a leg.
+          type: boolean
       example:
         distance: 152
         duration: 123
