@@ -902,13 +902,16 @@ public class RideManager {
 	}
 	
 	/**
-	 * Create a map to revive the monitor. Use the event that would cause a transition to the same state.
+	 * Create a map to revive the monitor. Use the event that would cause the favourable transition.
+	 * Note that only rides that are monitored are considered, e.g. SCHEDULED AND monitored = true. 
 	 */
 	private static Map<RideState, RideMonitorEvent> rideStateToMonitorRevivalEvent = Map.ofEntries(
+			new AbstractMap.SimpleEntry<>(RideState.SCHEDULED, RideMonitorEvent.TIME_TO_PREPARE),
 			new AbstractMap.SimpleEntry<>(RideState.DEPARTING, RideMonitorEvent.TIME_TO_PREPARE),
 			new AbstractMap.SimpleEntry<>(RideState.IN_TRANSIT, RideMonitorEvent.TIME_TO_DEPART),
 			new AbstractMap.SimpleEntry<>(RideState.ARRIVING, RideMonitorEvent.TIME_TO_ARRIVE),
-			new AbstractMap.SimpleEntry<>(RideState.VALIDATING, RideMonitorEvent.TIME_TO_VALIDATE)
+			new AbstractMap.SimpleEntry<>(RideState.VALIDATING, RideMonitorEvent.TIME_TO_VALIDATE),
+			new AbstractMap.SimpleEntry<>(RideState.COMPLETED, RideMonitorEvent.TIME_TO_COMPLETE)
 		);
 
 	/**
@@ -931,12 +934,14 @@ public class RideManager {
 				.collect(Collectors.toSet());
 		List<Ride> monitoredTrips = rideDao.findMonitoredTrips();
 		monitoredTrips.removeIf(t -> timedTripIds.contains(t.getId()));
-		if (! monitoredTrips.isEmpty()) {
+		if (monitoredTrips.isEmpty()) {
+			log.info("All required ride monitors are in place");
+		} else {
 			log.warn(String.format("There are %d rides without active monitoring, fixing now...", monitoredTrips.size()));
 			for (Ride ride : monitoredTrips) {
 				RideMonitorEvent event = rideStateToMonitorRevivalEvent.get(ride.getState());
 				if (event == null) {
-					log.warn(String.format("Trip state is %s, no suitable revival event found", ride.getState()));
+					log.warn(String.format("Ride %s state is %s, no suitable revival event found", ride.getId(), ride.getState()));
 					// First check what is really needed before switching off the monitor 
 					// ride.setMonitored(false);
 			} else {

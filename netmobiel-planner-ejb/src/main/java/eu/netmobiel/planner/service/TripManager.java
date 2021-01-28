@@ -630,13 +630,16 @@ public class TripManager {
 	}
 	
 	/**
-	 * Create a map to revive the monitor. Use the event that would cause a transition to the same state.
+	 * Create a map to revive the monitor. Use the event that would cause the favourable transition.
+	 * Note that only trips that are monitored are considered, e.g. SCHEDULED AND monitored = true. 
 	 */
 	private static Map<TripState, TripMonitorEvent> tripStateToMonitorRevivalEvent = Map.ofEntries(
+			new AbstractMap.SimpleEntry<>(TripState.SCHEDULED, TripMonitorEvent.TIME_TO_PREPARE),
 			new AbstractMap.SimpleEntry<>(TripState.DEPARTING, TripMonitorEvent.TIME_TO_PREPARE),
 			new AbstractMap.SimpleEntry<>(TripState.IN_TRANSIT, TripMonitorEvent.TIME_TO_DEPART),
 			new AbstractMap.SimpleEntry<>(TripState.ARRIVING, TripMonitorEvent.TIME_TO_ARRIVE),
-			new AbstractMap.SimpleEntry<>(TripState.VALIDATING, TripMonitorEvent.TIME_TO_VALIDATE)
+			new AbstractMap.SimpleEntry<>(TripState.VALIDATING, TripMonitorEvent.TIME_TO_VALIDATE),
+			new AbstractMap.SimpleEntry<>(TripState.COMPLETED, TripMonitorEvent.TIME_TO_COMPLETE)
 		);
 	
 	/**
@@ -659,12 +662,14 @@ public class TripManager {
 				.collect(Collectors.toSet());
 		List<Trip> monitoredTrips = tripDao.findMonitoredTrips();
 		monitoredTrips.removeIf(t -> timedTripIds.contains(t.getId()));
-		if (! monitoredTrips.isEmpty()) {
+		if (monitoredTrips.isEmpty()) {
+			log.info("All required trip monitors are in place");
+		} else {
 			log.warn(String.format("There are %d trips without active monitoring, fixing now...", monitoredTrips.size()));
 			for (Trip trip : monitoredTrips) {
 				TripMonitorEvent event = tripStateToMonitorRevivalEvent.get(trip.getState());
 				if (event == null) {
-					log.warn(String.format("Trip state is %s, no suitable revival event found", trip.getState()));
+					log.warn(String.format("Trip %s state is %s, no suitable revival event found", trip.getId(), trip.getState()));
 					// First check what is really needed before switching off the monitor 
 					// trip.setMonitored(false);
 			} else {
@@ -692,7 +697,7 @@ public class TripManager {
 		Leg legdb = tripdb.getItinerary().getLegs().stream()
 				.filter(lg -> lg.getId().equals(leg.getId()))
 				.findFirst()
-				.orElseThrow(() -> new IllegalStateException("Expected a leg: " + leg.getId()));
+				.orElseThrow(() -> new IllegalStateException("Expected to find leg " + leg.getId() + "in trip " + trip.getId()));
 		legdb.setPaymentState(newState);
 		legdb.setPaymentId(paymentReference);
 		Optional<Leg> dueLeg =  tripdb.getItinerary().getLegs().stream()
