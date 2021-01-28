@@ -271,19 +271,21 @@ public class TripManager {
      * @param tripRef
      * @param bookingRef
      * @param reason
-     * @param cancelledByDriver
+     * @param cancelledByTransportProvider
      * @return the leg concerned
      * @throws BusinessException 
      */
-    public Leg cancelBooking(String tripRef, String bookingRef, String reason, boolean cancelledByDriver) throws BusinessException {
+    public Leg cancelBooking(String tripRef, String bookingRef, String reason, boolean cancelledByTransportProvider) throws BusinessException {
     	Trip trip = tripDao.find(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef))
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
+    	trip.setCancelledByProvider(cancelledByTransportProvider);
     	trip.setCancelReason(reason);
     	Leg leg = trip.getItinerary().findLegByBookingId(bookingRef)
     			.orElseThrow(() -> new NotFoundException("No such leg with bookingId " + bookingRef));
 		if (leg.getState() == TripState.CANCELLED) {
 			throw new IllegalStateException("Leg already cancelled: " + leg.getId());
 		}
+		leg.setCancelledByProvider(cancelledByTransportProvider);
 		leg.setState(TripState.CANCELLED);
 		updateTripState(trip);
 		return leg;
@@ -328,7 +330,9 @@ public class TripManager {
 
     /**
      * Removes a trip. Trips are always soft-deleted for reasons of analysis.
-     * This method is supposedly to be called by the traveller. 
+     * This method is supposedly to be called by the traveller.
+     * Not sure whether there is for the passenger another method to cancel a trip. The trip might already be 
+     * cancelled by the transport provider. 
      * @param tripId The trip to remove.
      * @param reason The reason for cancelling the trip (optional).
      * @throws BusinessException 
@@ -336,7 +340,11 @@ public class TripManager {
     public void removeTrip(Long tripId, String reason) throws BusinessException {
     	Trip tripdb = tripDao.find(tripId)
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripId));
-    	tripdb.setCancelReason(reason);
+    	if (! Boolean.TRUE.equals(tripdb.getCancelledByProvider())) {
+    		// Not already cancelled by the provider, so set my own reason for cancelling. 
+    		tripdb.setCancelledByProvider(false);
+    		tripdb.setCancelReason(reason);
+    	}
     	//FIXME State handling is not robust enough
        	if (! tripdb.getState().isFinalState() && tripdb.getItinerary().getLegs() != null) {
        		for (Leg leg : tripdb.getItinerary().getLegs()) {
@@ -356,6 +364,9 @@ public class TripManager {
 			    		}
 			    	}
 					leg.setState(TripState.CANCELLED);
+					if (! Boolean.TRUE.equals(leg.getCancelledByProvider())) {
+						leg.setCancelledByProvider(false);
+					}
 				} else if (leg.getState().isFinalState()) {
 		    		// Already cancelled or completed, no action required
 		    	} else {
@@ -724,7 +735,7 @@ public class TripManager {
     			.setTripsCancelledCount(nrv.getValue());
 		}
     	// RGP-3
-    	for (NumericReportValue nrv : tripDao.reportCancelledByPassengerCount(since, until)) {
+    	for (NumericReportValue nrv : tripDao.reportTripsCancelledByPassengerCount(since, until)) {
     		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBehaviourReport(nrv))
     			.setTripsCancelledByPassengerCount(nrv.getValue());
 		}

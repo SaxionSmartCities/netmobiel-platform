@@ -294,7 +294,13 @@ public class Leg implements Serializable {
      */
     @Column(name = "conf_reason")
     private ConfirmationReasonType confirmationReason;
-    
+
+    /**
+     * If true then the leg (in fact the booking) was cancelled by the mobility provider.
+     */
+    @Column(name = "cancelled_by_provider")
+    private Boolean cancelledByProvider;
+
     public Leg() {
     }
 
@@ -310,6 +316,7 @@ public class Leg implements Serializable {
 		this.agencyTimeZoneOffset = other.agencyTimeZoneOffset;
 		this.bookingId = other.bookingId;
 		this.bookingRequired = other.bookingRequired;
+		this.cancelledByProvider = other.cancelledByProvider;
 		this.confirmationRequested = other.confirmationRequested;
 		this.confirmationByProviderRequested = other.confirmationByProviderRequested;
 		this.confirmed = other.confirmed;
@@ -694,6 +701,14 @@ public class Leg implements Serializable {
 
 	public void setConfirmationReason(ConfirmationReasonType confirmationReason) {
 		this.confirmationReason = confirmationReason;
+	}
+
+	public Boolean getCancelledByProvider() {
+		return cancelledByProvider;
+	}
+
+	public void setCancelledByProvider(Boolean cancelledByProvider) {
+		this.cancelledByProvider = cancelledByProvider;
 	}
 
 	/**

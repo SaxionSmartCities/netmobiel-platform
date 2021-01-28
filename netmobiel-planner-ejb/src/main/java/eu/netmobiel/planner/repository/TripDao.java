@@ -159,21 +159,19 @@ public class TripDao extends AbstractDao<Trip, Long> {
     }
 
     // RGP-3
-    public List<NumericReportValue> reportCancelledByPassengerCount(Instant since, Instant until) throws BadRequestException {
-    	return Collections.emptyList();
-//        return em.createNamedQuery("ListTripsCancelledByPassengerCount", NumericReportValue.class)
-//        		.setParameter(1, since)
-//        		.setParameter(2, until)
-//        		.getResultList();
+    public List<NumericReportValue> reportTripsCancelledByPassengerCount(Instant since, Instant until) throws BadRequestException {
+        return em.createNamedQuery("ListTripsCancelledByPassengerCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
     }
 
     // RGP-4
     public List<NumericReportValue> reportTripsCancelledByProviderCount(Instant since, Instant until) throws BadRequestException {
-    	return Collections.emptyList();
-//        return em.createNamedQuery("ListTripsCancelledByProviderCount", NumericReportValue.class)
-//        		.setParameter(1, since)
-//        		.setParameter(2, until)
-//        		.getResultList();
+        return em.createNamedQuery("ListTripsCancelledByProviderCount", NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
     }
 
     // RGP-5

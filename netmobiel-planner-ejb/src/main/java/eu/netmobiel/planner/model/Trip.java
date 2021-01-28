@@ -63,7 +63,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
  * 
  * TODO: The trip state 'Cancelled' is incorrect with regard to analysis. Better is to introduce a separate cancel flag.
  * With the flag the last trip state is kept, so that we can analyse in which state a trip is cancelled.
- * Alternative: Maintain a log of the trip state change.
+ * Alternative: Maintain a history of the trip state changes.
  * 
  * A trip is created with a reference to an itinerary as calculated earlier by the planner. When a traveller does not get 
  * satisfactory results, he or she can issue a shout-out. A shout-out creates a trip plan, sets the 
@@ -104,7 +104,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = "ListTripCountMapping"),
-	// RGP-3 Number of trips cancelled by passenger - TO DO
+	// RGP-3 Number of trips cancelled by passenger
 	@NamedNativeQuery(
 			name = "ListTripsCancelledByPassengerCount",
 			query = "select u.managed_identity as managed_identity, "
@@ -114,11 +114,11 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ "from trip t "
 	        		+ "join pl_user u on u.id = t.traveller "
 	        		+ "join itinerary it on it.id = t.itinerary "
-	        		+ "where it.departure_time >= ? and it.departure_time < ? and t.state = 'CNC' and t.cancelled_by_provider = false "
+	        		+ "where it.departure_time >= ? and it.departure_time < ? and t.state = 'CNC' and (t.cancelled_by_provider = false or t.cancelled_by_provider is null)"
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = "ListTripCountMapping"),
-	// RGP-4 Number of trips cancelled by the mobility provider - TO DO
+	// RGP-4 Number of trips cancelled by the mobility provider
 	@NamedNativeQuery(
 			name = "ListTripsCancelledByProviderCount",
 			query = "select u.managed_identity as managed_identity, "
@@ -395,6 +395,13 @@ public class Trip implements Serializable {
     @Column(name = "monitored", nullable = false)
     private boolean monitored;
 
+    /**
+     * If true then the trip (in fact the booking of one of the legs) was cancelled by the mobility provider.
+     */
+    @Column(name = "cancelled_by_provider")
+    private Boolean cancelledByProvider;
+
+
     public Trip() {
     	
     }
@@ -519,6 +526,14 @@ public class Trip implements Serializable {
 
 	public void setMonitored(boolean monitored) {
 		this.monitored = monitored;
+	}
+
+	public Boolean getCancelledByProvider() {
+		return cancelledByProvider;
+	}
+
+	public void setCancelledByProvider(Boolean cancelledByProvider) {
+		this.cancelledByProvider = cancelledByProvider;
 	}
 
 	private String formatTime(Instant instant) {
