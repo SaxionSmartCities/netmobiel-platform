@@ -85,4 +85,37 @@ public class AccountingEntryDao extends AbstractDao<AccountingEntry, Long> {
         return new PagedResult<Long>(results, maxResults, offset, totalCount);
     }
 
+//    select distinct t.id, t.transaction_time, t.context, t.transaction_type from accounting_transaction t 
+//    where t.transaction_type = 'RS' and (t.context, t.transaction_time) in 
+//    (select tt.context, max(tt.transaction_time) from accounting_transaction tt  
+//       group by tt.context) order by t.transaction_type, t.transaction_time asc
+
+//	public PagedResult<Long> listConversations(String participant, Integer maxResults, Integer offset) {
+//		String basicQuery = 
+//				" from Message m where (m.context, m.creationTime) in " +
+//				" (select mm.context, max(mm.creationTime) from Message mm join mm.envelopes env" + 
+//				" where (env.recipient.managedIdentity = :participant or mm.sender.managedIdentity = :participant)" + 
+//				" group by mm.context) and m.deliveryMode in (:DeliveryModeAll, :DeliveryModeMessage)";
+//
+//		Long totalCount = null;
+//        List<Long> results = null;
+//        if (maxResults == 0) {
+//    		TypedQuery<Long> countQuery = em.createQuery("select count(m) " + basicQuery, Long.class);
+//    		countQuery.setParameter("participant", participant);
+//    		countQuery.setParameter("DeliveryModeAll", DeliveryMode.ALL);
+//    		countQuery.setParameter("DeliveryModeMessage", DeliveryMode.MESSAGE);
+//            totalCount = countQuery.getSingleResult();
+//            results = Collections.emptyList();
+//        } else {
+//    		TypedQuery<Long> selectQuery = em.createQuery("select m.id " + basicQuery + " order by m.creationTime desc", Long.class);
+//    		selectQuery.setParameter("participant", participant);
+//    		selectQuery.setParameter("DeliveryModeAll", DeliveryMode.ALL);
+//    		selectQuery.setParameter("DeliveryModeMessage", DeliveryMode.MESSAGE);
+//    		selectQuery.setFirstResult(offset);
+//    		selectQuery.setMaxResults(maxResults);
+//    		results = selectQuery.getResultList();
+//        }
+//        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+//	}
+
 }
