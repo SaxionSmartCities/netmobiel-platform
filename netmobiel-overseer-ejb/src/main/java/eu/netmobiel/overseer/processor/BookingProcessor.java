@@ -139,12 +139,11 @@ public class BookingProcessor {
     protected void cancelFare(Trip trip, Leg leg) throws BusinessException {
 		if (leg.hasFareInCredits()) {
 			// Release the fare
-			String releaseId = leg.getPaymentId();
-			if (leg.getPaymentState() != PaymentState.RESERVED) {
-				logger.error("Cannot cancel fare, payment state is invalid: " + leg.getLegRef() + " " + leg.getPaymentState());
-			} else if (leg.getPaymentState() == PaymentState.RESERVED) {
-				releaseId = ledgerService.release(leg.getPaymentId());
+			if (leg.getPaymentState() != PaymentState.RESERVED || leg.getPaymentId() == null) {
+				throw new IllegalStateException("Cannot cancel fare, payment state is invalid: " + 
+						leg.getLegRef() + " " + leg.getPaymentState() + " " + leg.getPaymentId());
 			}
+			String releaseId = ledgerService.release(leg.getPaymentId());
 			tripManager.updateLegPaymentState(trip, leg, PaymentState.CANCELLED, releaseId);
 			// Settled without payment
 			bookingManager.informBookingSettled(leg.getTripId(), leg.getBookingId());
@@ -153,15 +152,11 @@ public class BookingProcessor {
 
     protected void payFare(Trip trip, Leg leg) throws BusinessException {
 		if (leg.hasFareInCredits()) {
-			// Due to revival of the monitoring, some actions might already be taken
-			// Not entirely understood, this is handled in a single transaction. I thought.
-			String chargeId = null;
-			if (leg.getPaymentState() != PaymentState.PAID) {
-				chargeId = ledgerService.charge(resolveDriverId(leg), leg.getPaymentId(), leg.getFareInCredits());
-			} else {
-				// Already paid
-				chargeId = leg.getPaymentId();
+			if (leg.getPaymentState() != PaymentState.RESERVED) {
+				throw new IllegalStateException("Cannot pay fare, payment state is invalid: " + 
+						leg.getLegRef() + " " + leg.getPaymentState() + " " + leg.getPaymentId());
 			}
+			String chargeId = ledgerService.charge(resolveDriverId(leg), leg.getPaymentId(), leg.getFareInCredits());
 			tripManager.updateLegPaymentState(trip, leg, PaymentState.PAID, chargeId);
 			// Settled with payment
 			bookingManager.informBookingSettled(leg.getTripId(), leg.getBookingId());
