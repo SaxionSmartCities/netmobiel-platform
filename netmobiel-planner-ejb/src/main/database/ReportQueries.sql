@@ -201,6 +201,6 @@ where s.gtfs_id in ('NL:1532246', 'NL:1355699', 'NL:1355699', 'NL:1440434', 'NL:
 
 					
 -- Geef een overzicht van trip en bijbehorende legs.
-SELECT t.id, t.traveller, t.state, it.departure_time, t.deleted, t.cancel_reason, it.id, leg.id, leg.state
+SELECT t.id as trip_id, t.traveller, t.state, it.departure_time, t.deleted, t.cancel_reason, it.id as it_id, leg.id as leg_id, leg.state, leg.payment_state, leg.payment_id
 	FROM public.trip t join itinerary it on t.itinerary = it.id join leg leg on leg.itinerary = it.id
 	order by t.id asc;
