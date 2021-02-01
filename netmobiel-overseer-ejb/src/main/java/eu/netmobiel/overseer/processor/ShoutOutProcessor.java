@@ -163,13 +163,15 @@ public class ShoutOutProcessor {
 		// Which reference do we give to the booking? We do not have a trip yet. We do have a plan and an itinerary.
 		// The reference is only needed by the transport provider to inform the planner on a cancel of the ride,
 		// or to update some details like the car. Implicitly the reference is used to find the planner (in case of an
-		// external service. So the use from the perspective of the transport provider is twofold: 
+		// external service). So the use from the perspective of the transport provider is twofold: 
 		// Find the service that booked a ride, and find the specific trip or tripplan within that service.
 		
 		// As a principle we should not use an itinerary as key. Each change will create a new itinerary. Therefore, we 
-		// use a trip (refers to an itinerary) or shout-out tripplan. The latter is only used in case of proposals.
-    	// The reference is to the shout-out plan!
-    	b.setPassengerTripRef(sop.getPlanRef());
+		// use a trip (refers to an itinerary) or the shout-out tripplan. The latter is only used in case of proposals.
+    	// The booking will keep track of both references. First we don't like the use of a field to point to objects of 
+    	// different type, depending on the state. Secondly, we want to report on the use of the field as an measure 
+    	// for usage of the shout-out feature by th erideshare drivers.
+    	b.setPassengerTripPlanRef(sop.getPlanRef());
 		String bookingRef = bookingManager.createBooking(r.getUrn(), sop.getTraveller(), b);
 		tripPlanManager.assignBookingProposalReference(RideManager.AGENCY_ID, soi, r, bookingRef);
 

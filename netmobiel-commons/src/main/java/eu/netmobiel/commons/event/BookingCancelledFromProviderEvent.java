@@ -2,6 +2,7 @@ package eu.netmobiel.commons.event;
 
 import java.io.Serializable;
 
+import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.NetMobielUser;
@@ -12,8 +13,19 @@ import eu.netmobiel.commons.model.NetMobielUser;
  * @author Jaap Reitsma
  *
  */
-public class BookingCancelledFromProviderEvent extends BookingEventBase implements Serializable {
+public class BookingCancelledFromProviderEvent implements Serializable {
 	private static final long serialVersionUID = -6709947526702522195L;
+
+	/**
+	 * The reference to the traveller's booking at the transport provider (a transport provider specific urn). Only known after creation of the booking.
+	 */
+    private String bookingRef;
+
+	/**
+     * The Netmobiel user who is travelling. 
+     */
+    @NotNull
+    private NetMobielUser traveller;
 
     /**
      * The reason for cancelling.
@@ -30,12 +42,21 @@ public class BookingCancelledFromProviderEvent extends BookingEventBase implemen
     /**
      * No-args constructor.
      */
-    public BookingCancelledFromProviderEvent(String bookingRef, NetMobielUser traveller, String travellerTripRef, 
+    public BookingCancelledFromProviderEvent(String bookingRef, NetMobielUser traveller, 
     		String cancelReason, boolean cancelledByDriver) {
-    	super(bookingRef, traveller, travellerTripRef);
+    	this.bookingRef = bookingRef;
+    	this.traveller = traveller;
     	this.cancelReason = cancelReason;
     	this.cancelledByDriver = cancelledByDriver;
     }
+
+	public String getBookingRef() {
+		return bookingRef;
+	}
+
+	public NetMobielUser getTraveller() {
+		return traveller;
+	}
 
 	public String getCancelReason() {
 		return cancelReason;

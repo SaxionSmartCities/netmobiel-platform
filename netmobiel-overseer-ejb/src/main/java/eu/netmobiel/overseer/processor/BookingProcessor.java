@@ -50,7 +50,6 @@ import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PaymentState;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
-import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.service.TripManager;
 import eu.netmobiel.planner.service.TripPlanManager;
@@ -248,7 +247,7 @@ public class BookingProcessor {
     }
     
     /**
-     * Signals the removal of a booking through the provider API.
+     * Signals the removal of a booking through the provider API. 
      * 
      * @param event
      * @throws BusinessException 
@@ -261,17 +260,19 @@ public class BookingProcessor {
     			event.getCancelReason() != null ? event.getCancelReason() : "---"));
 		// The booking is cancelled by transport provider
 		Booking b = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, event.getBookingRef()));
-		if (UrnHelper.getPrefix(event.getTravellerTripRef()).equals(TripPlan.URN_PREFIX)) {
-			// The booking is only a proposal, no reservation done yet
-			tripPlanManager.cancelBooking(event.getTravellerTripRef(), event.getBookingRef());
-		} else {
-			// The call in in the trip manager checks the stste of the leg.
-			Leg leg = tripManager.cancelBooking(event.getTravellerTripRef(), event.getBookingRef(), event.getCancelReason(), event.isCancelledByDriver());
+		if (b.getPassengerTripRef() != null) {
+			// The call in in the trip manager checks the state of the leg.
+			Leg leg = tripManager.cancelBooking(b.getPassengerTripRef(), event.getBookingRef(), event.getCancelReason(), event.isCancelledByDriver());
 			if (leg.hasFareInCredits()) {
 				// cancel the reservation
-    			Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, event.getTravellerTripRef()));
+    			Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, b.getPassengerTripRef()));
 				cancelFare(trip, leg);
 			}
+		} else if (b.getPassengerTripPlanRef() != null) { 
+			// The booking is only a proposal, no reservation done yet, only a proposal for a shout-out
+			tripPlanManager.cancelBooking(b.getPassengerTripPlanRef(), event.getBookingRef());
+		} else {
+			logger.error(String.format("Booking %s has neither trip ref nor trip plan ref", event.getBookingRef()));
 		}
 		if (event.isCancelledByDriver()) {
 			// Notify the passenger

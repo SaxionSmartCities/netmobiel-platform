@@ -30,6 +30,7 @@ import javax.persistence.NamedSubgraph;
 import javax.persistence.OrderBy;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.SqlResultSetMapping;
+import javax.persistence.SqlResultSetMappings;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.validation.constraints.Max;
@@ -53,43 +54,88 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @NamedNativeQueries({
 	@NamedNativeQuery(
-		name = "ListBookingConfirmedCount",
-		query = "select u.managed_identity as managed_identity, "
-        		+ "date_part('year', m.created_time) as year, " 
-        		+ "date_part('month', m.created_time) as month, "
-        		+ "count(*) as count "
-        		+ "from booking b "
-        		+ "join rs_user u on u.id = b.passenger "
-        		+ "where b.departure_time >= ? and b.departure_time < ? and b.state = 'CFM' "
-        		+ "group by u.managed_identity, year, month "
-        		+ "order by u.managed_identity, year, month",
-        resultSetMapping = "ListBookingCountMapping"),
-	@NamedNativeQuery(
-			name = "ListBookingCancelledByPassengerCount",
+			name = Booking.RGC_2_BOOKINGS_CANCELLED_BY_PASSENGER_COUNT,
 			query = "select u.managed_identity as managed_identity, "
-	        		+ "date_part('year', m.created_time) as year, " 
-	        		+ "date_part('month', m.created_time) as month, "
+	        		+ "date_part('year', r.departure_time) as year, " 
+	        		+ "date_part('month', r.departure_time) as month, "
 	        		+ "count(*) as count "
 	        		+ "from booking b "
-	        		+ "join rs_user u on u.id = b.passenger "
-	        		+ "where b.departure_time >= ? and b.departure_time < ? and b.state = 'CNC' " 
+	        		+ "join ride r on r.id = b.ride "
+	        		+ "join rs_user u on u.id = r.driver "
+	        		+ "where r.departure_time >= ? and r.departure_time < ? and b.state = 'CNC' " 
 	        		+ " and (b.cancelled_by_driver = false or b.cancelled_by_driver is null)"
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = "ListBookingCountMapping"),
 	@NamedNativeQuery(
-			name = "ListBookingCancelledByDriverCount",
+			name = Booking.RGC_3_BOOKINGS_CANCELLED_BY_DRIVER_COUNT,
 			query = "select u.managed_identity as managed_identity, "
-	        		+ "date_part('year', m.created_time) as year, " 
-	        		+ "date_part('month', m.created_time) as month, "
+	        		+ "date_part('year', r.departure_time) as year, " 
+	        		+ "date_part('month', r.departure_time) as month, "
 	        		+ "count(*) as count "
 	        		+ "from booking b "
-	        		+ "join rs_user u on u.id = b.passenger "
-	        		+ "where b.departure_time >= ? and b.departure_time < ? and b.state = 'CNC' " 
+	        		+ "join ride r on r.id = b.ride "
+	        		+ "join rs_user u on u.id = r.driver "
+	        		+ "where r.departure_time >= ? and r.departure_time < ? and b.state = 'CNC' " 
 	        		+ " and b.cancelled_by_driver = true "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = "ListBookingCountMapping"),
+	@NamedNativeQuery(
+			name = Booking.RGC_4_BOOKINGS_CONFIRMED_COUNT,
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', r.departure_time) as year, " 
+	        		+ "date_part('month', r.departure_time) as month, "
+	        		+ "count(*) as count "
+	        		+ "from booking b "
+	        		+ "join ride r on r.id = b.ride "
+	        		+ "join rs_user u on u.id = r.driver "
+	        		+ "where r.departure_time >= ? and r.departure_time < ? and b.state = 'CFM' "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = Booking.RS_BOOKING_USER_YEAR_MONTH_COUNT_MAPPING),
+	@NamedNativeQuery(
+			name = Booking.RGC_7_RIDES_PROPOSED_COUNT,
+			// There can be multiple offers for the same plan by the same driver, count them as one.
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', r.departure_time) as year, " 
+	        		+ "date_part('month', r.departure_time) as month, "
+	        		+ "count(distinct b.passenger_trip_plan_ref) as count "
+	        		+ "from booking b "
+	        		+ "join ride r on r.id = b.ride "
+	        		+ "join rs_user u on u.id = r.driver "
+	        		+ "where r.departure_time >= ? and r.departure_time < ? and b.passenger_trip_plan_ref is not null "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = Booking.RS_BOOKING_USER_YEAR_MONTH_COUNT_MAPPING),
+	@NamedNativeQuery(
+			name = Booking.RGC_8_RIDES_PROPOSED_AND_ACCEPTED_COUNT,
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', r.departure_time) as year, " 
+	        		+ "date_part('month', r.departure_time) as month, "
+	        		+ "count(*) as count "
+	        		+ "from booking b "
+	        		+ "join ride r on r.id = b.ride "
+	        		+ "join rs_user u on u.id = r.driver "
+	        		+ "where r.departure_time >= ? and r.departure_time < ? "
+	        		+ " and b.passenger_trip_plan_ref is not null and b.state = 'CFM' "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = Booking.RS_BOOKING_USER_YEAR_MONTH_COUNT_MAPPING),
+})
+@SqlResultSetMappings({
+	@SqlResultSetMapping(
+			name = Booking.RS_BOOKING_USER_YEAR_MONTH_COUNT_MAPPING, 
+			classes = @ConstructorResult(
+				targetClass = NumericReportValue.class, 
+				columns = {
+						@ColumnResult(name = "managed_identity", type = String.class),
+						@ColumnResult(name = "year", type = int.class),
+						@ColumnResult(name = "month", type = int.class),
+						@ColumnResult(name = "count", type = int.class)
+				}
+			)
+		)
 })
 @SqlResultSetMapping(
 	name = "ListBookingCountMapping", 
@@ -181,6 +227,13 @@ public class Booking extends ReferableObject implements Serializable {
 	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix("booking");
 	public static final String SHALLOW_ENTITY_GRAPH = "booking-shallow-details-graph";
 	public static final String DEEP_ENTITY_GRAPH = "booking-deep-details-graph";
+
+	public static final String RS_BOOKING_USER_YEAR_MONTH_COUNT_MAPPING = "BookingUserYearMonthCountMapping";
+	public static final String RGC_2_BOOKINGS_CANCELLED_BY_PASSENGER_COUNT = "ListBookingsCancelledByPassengerCount";
+	public static final String RGC_3_BOOKINGS_CANCELLED_BY_DRIVER_COUNT = "ListBookingsCancelledByDriverCount";
+	public static final String RGC_4_BOOKINGS_CONFIRMED_COUNT = "ListBookingsConfirmedCount";
+	public static final String RGC_7_RIDES_PROPOSED_COUNT = "ListRidesProposedCount";
+	public static final String RGC_8_RIDES_PROPOSED_AND_ACCEPTED_COUNT = "ListRidesProposedAndAcceptedCount";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "booking_sg")
@@ -281,9 +334,16 @@ public class Booking extends ReferableObject implements Serializable {
     private List<Leg> legs;
 
 	/**
+	 * The reference to the passenger's (shout-out) trip plan (a planner URN).
+	 * This field is used to refer to the plan of the passenger asking for transport.
+	 */
+    @Column(name = "passenger_trip_plan_ref", length = 32, nullable = true)
+    private String passengerTripPlanRef;
+
+    /**
 	 * The reference to the passenger's trip (a planner URN). 
 	 */
-    @Column(name = "passenger_trip_ref", length = 32, nullable = false)
+    @Column(name = "passenger_trip_ref", length = 32, nullable = true)
     private String passengerTripRef;
 
     /**
@@ -415,6 +475,14 @@ public class Booking extends ReferableObject implements Serializable {
 
 	public void setLegs(List<Leg> legs) {
 		this.legs = legs;
+	}
+
+	public String getPassengerTripPlanRef() {
+		return passengerTripPlanRef;
+	}
+
+	public void setPassengerTripPlanRef(String passengerTripPlanRef) {
+		this.passengerTripPlanRef = passengerTripPlanRef;
 	}
 
 	public String getPassengerTripRef() {

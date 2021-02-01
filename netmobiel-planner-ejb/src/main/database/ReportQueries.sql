@@ -204,3 +204,11 @@ where s.gtfs_id in ('NL:1532246', 'NL:1355699', 'NL:1355699', 'NL:1440434', 'NL:
 SELECT t.id as trip_id, t.traveller, t.state, it.departure_time, t.deleted, t.cancel_reason, it.id as it_id, leg.id as leg_id, leg.state, leg.payment_state, leg.payment_id
 	FROM public.trip t join itinerary it on t.itinerary = it.id join leg leg on leg.itinerary = it.id
 	order by t.id asc;
+
+-- Geef een overzicht van trip plan, legs en booking id's
+select p.id as plan_id, it.id as it_id, it.departure_time, lg.id as leg_id, lg.booking_id, lg.state as leg_state, lg.driver_id from trip_plan p
+join itinerary it on it.trip_plan = p.id
+join leg lg on lg.itinerary = it.id
+where p.plan_type = 'SHO' and lg.traverse_mode= 'RS'
+order by p.id desc,lg.id desc
+
