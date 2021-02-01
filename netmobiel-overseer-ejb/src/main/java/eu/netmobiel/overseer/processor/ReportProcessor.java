@@ -59,7 +59,7 @@ import eu.netmobiel.communicator.service.CommunicatorReportService;
 import eu.netmobiel.overseer.model.ActivitySpssReport;
 import eu.netmobiel.planner.model.PassengerBehaviourReport;
 import eu.netmobiel.planner.model.PassengerModalityBehaviourReport;
-import eu.netmobiel.planner.service.TripManager;
+import eu.netmobiel.planner.service.PlannerReportService;
 import eu.netmobiel.rideshare.model.RideshareReport;
 import eu.netmobiel.rideshare.service.RideshareReportService;
 
@@ -100,7 +100,7 @@ public class ReportProcessor {
 	private CommunicatorReportService communicatorReportService;
 
 	@Inject
-	private TripManager tripManager;
+	private PlannerReportService plannerReportService;
 
 	@Inject
 	private RideshareReportService rideshareReportService;
@@ -188,13 +188,13 @@ public class ReportProcessor {
 
 	protected void createAndSendPassengerReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
     	try {
-    		Map<String, PassengerBehaviourReport> passengerReportMap = tripManager.reportPassengerBehaviour(since.toInstant(), until.toInstant());
+    		Map<String, PassengerBehaviourReport> passengerReportMap = plannerReportService.reportPassengerBehaviour(since.toInstant(), until.toInstant());
 			List<PassengerBehaviourReport> passengerReport = passengerReportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
 			Writer passengerBehaviourWriter = convertToCsv(passengerReport, PassengerBehaviourReport.class);
 			
-			Map<String, PassengerModalityBehaviourReport> passengerModalityReportMap = tripManager.reportPassengerModalityBehaviour(since.toInstant(), until.toInstant());
+			Map<String, PassengerModalityBehaviourReport> passengerModalityReportMap = plannerReportService.reportPassengerModalityBehaviour(since.toInstant(), until.toInstant());
 			List<PassengerModalityBehaviourReport> passengerModalityReport = passengerModalityReportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
