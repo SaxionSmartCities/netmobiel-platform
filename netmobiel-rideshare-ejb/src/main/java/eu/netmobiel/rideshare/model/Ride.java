@@ -11,6 +11,8 @@ import java.util.Optional;
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
+import javax.persistence.ColumnResult;
+import javax.persistence.ConstructorResult;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
@@ -21,17 +23,22 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedNativeQueries;
+import javax.persistence.NamedNativeQuery;
 import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
 import javax.persistence.OrderBy;
 import javax.persistence.OrderColumn;
 import javax.persistence.SequenceGenerator;
+import javax.persistence.SqlResultSetMapping;
+import javax.persistence.SqlResultSetMappings;
 import javax.persistence.Table;
 import javax.persistence.Version;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.ConfirmationReasonType;
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 /**
@@ -40,6 +47,35 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
  * @author Jaap Reitsma
  *
  */
+@NamedNativeQueries({
+	@NamedNativeQuery(
+		name = Ride.RGC_1_OFFERED_RIDES_COUNT,
+		query = "select u.managed_identity as managed_identity, "
+        		+ "date_part('year', r.departure_time) as year, " 
+        		+ "date_part('month', r.departure_time) as month, "
+        		+ "count(*) as count "
+        		+ "from ride r "
+        		+ "join rs_user u on u.id = r.driver "
+        		+ "where r.departure_time >= ? and r.departure_time < ? "
+        		+ "group by u.managed_identity, year, month "
+        		+ "order by u.managed_identity, year, month",
+        resultSetMapping = Ride.RIDE_USER_YEAR_MONTH_COUNT_MAPPING),
+})
+@SqlResultSetMappings({
+	@SqlResultSetMapping(
+			name = Ride.RIDE_USER_YEAR_MONTH_COUNT_MAPPING, 
+			classes = @ConstructorResult(
+				targetClass = NumericReportValue.class, 
+				columns = {
+						@ColumnResult(name = "managed_identity", type = String.class),
+						@ColumnResult(name = "year", type = int.class),
+						@ColumnResult(name = "month", type = int.class),
+						@ColumnResult(name = "count", type = int.class)
+				}
+			)
+		)
+})
+
 @NamedEntityGraph(
 	name = Ride.SEARCH_RIDES_ENTITY_GRAPH, 
 	attributeNodes = { 
@@ -107,6 +143,9 @@ public class Ride extends RideBase implements Serializable {
 	public static final String LIST_RIDES_ENTITY_GRAPH = "list-rides-graph";
 	public static final String DETAILS_WITH_LEGS_ENTITY_GRAPH = "ride-details-graph";
 	public static final String UPDATE_DETAILS_ENTITY_GRAPH = "ride-update-details-graph";
+	
+	public static final String RIDE_USER_YEAR_MONTH_COUNT_MAPPING = "RSRideUserYearMonthCountMapping";
+	public static final String RGC_1_OFFERED_RIDES_COUNT = "ListOfferedRidesCount";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ride_sg")

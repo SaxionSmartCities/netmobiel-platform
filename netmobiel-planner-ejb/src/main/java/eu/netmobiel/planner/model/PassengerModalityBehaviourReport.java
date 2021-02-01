@@ -2,6 +2,8 @@ package eu.netmobiel.planner.model;
 
 import com.opencsv.bean.CsvBindByName;
 
+import eu.netmobiel.commons.report.ReportKeyWithModality;
+
 public class PassengerModalityBehaviourReport extends ReportKeyWithModality {
 	
 	private static final long serialVersionUID = -7202730003166618230L;

@@ -30,7 +30,7 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @NamedNativeQueries({
 	@NamedNativeQuery(
-		name = "ListMessagesReceivedCount",
+		name = Envelope.ACT_1_MESSAGES_RECEIVED_COUNT,
 		query = "select u.managed_identity as managed_identity, "
         		+ "date_part('year', m.created_time) as year, " 
         		+ "date_part('month', m.created_time) as month, "
@@ -41,9 +41,9 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
         		+ "where m.created_time >= ? and m.created_time < ? and (m.delivery_mode = 'AL' or m.delivery_mode = 'MS') "
         		+ "group by u.managed_identity, year, month "
         		+ "order by u.managed_identity, year, month",
-        resultSetMapping = "ListMessageCountMapping"),
+        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-			name = "ListNotificationsReceivedCount",
+			name = Envelope.ACT_2_NOTIFICATIONS_RECEIVED_COUNT,
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', e.push_time) as year, " 
 	        		+ "date_part('month', e.push_time) as month, "
@@ -53,9 +53,9 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 	        		+ "where e.push_time >= ? and e.push_time < ? "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListMessageCountMapping"),
+	        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-			name = "ListMessagesReadCount",
+			name = Envelope.ACT_3_MESSAGES_READ_COUNT,
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', e.ack_time) as year, " 
 	        		+ "date_part('month', e.ack_time) as month, "
@@ -66,9 +66,9 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 	        		+ "where e.ack_time >= ? and e.ack_time < ? and (m.delivery_mode = 'AL' or m.delivery_mode = 'MS') "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListMessageCountMapping"),
+	        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-			name = "ListNotificationsReadCount",
+			name = Envelope.ACT_4_NOTIFICATIONS_READ_COUNT,
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', e.ack_time) as year, " 
 	        		+ "date_part('month', e.ack_time) as month, "
@@ -78,10 +78,36 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 	        		+ "where e.ack_time >= ? and e.ack_time < ? and e.push_time is not null "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListMessageCountMapping")
+	        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
+	@NamedNativeQuery(
+			name = Envelope.RGC_5_SHOUT_OUT_NOTIFICATIONS_RECEIVED_COUNT,
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', e.push_time) as year, " 
+	        		+ "date_part('month', e.push_time) as month, "
+	        		+ "count(*) as count "
+	        		+ "from envelope e "
+	        		+ "join message m on m.id = e.message "
+	        		+ "join cm_user u on u.id = e.recipient "
+	        		+ "where e.push_time >= ? and e.push_time < ? and m.context like 'urn:nb:pn:tripplan:' " 
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
+	@NamedNativeQuery(
+			name = Envelope.RGC_6_SHOUT_OUT_NOTIFICATIONS_READ_COUNT,
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', e.ack_time) as year, " 
+	        		+ "date_part('month', e.ack_time) as month, "
+	        		+ "count(*) as count "
+	        		+ "from envelope e "
+	        		+ "join message m on m.id = e.message "
+	        		+ "join cm_user u on u.id = e.recipient "
+	        		+ "where e.ack_time >= ? and e.ack_time < ? and e.push_time is not null and m.context like 'urn:nb:pn:tripplan:' "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
 })
 @SqlResultSetMapping(
-		name = "ListMessageCountMapping", 
+		name = Envelope.USER_YEAR_MONTH_COUNT_MAPPING, 
 		classes = @ConstructorResult(
 			targetClass = NumericReportValue.class, 
 			columns = {
@@ -103,6 +129,16 @@ public class Envelope implements Serializable {
 	private static final long serialVersionUID = 1045941720040157428L;
 	public static final String URN_PREFIX = CommunicatorUrnHelper.createUrnPrefix(Envelope.class);
 
+	public static final String USER_YEAR_MONTH_COUNT_MAPPING = "CMEnvelopeUserYearMonthCountMapping";
+	public static final String ACT_1_MESSAGES_RECEIVED_COUNT = "ListMessagesReceivedCount";
+	public static final String ACT_2_NOTIFICATIONS_RECEIVED_COUNT = "ListNotificationsReceivedCount";
+	public static final String ACT_3_MESSAGES_READ_COUNT = "ListMessagesReadCount";
+	public static final String ACT_4_NOTIFICATIONS_READ_COUNT = "ListNotificationsReadCount";
+
+	public static final String RGC_5_SHOUT_OUT_NOTIFICATIONS_RECEIVED_COUNT = "ListShoutOutNotificationsReceivedCount";
+	public static final String RGC_6_SHOUT_OUT_NOTIFICATIONS_READ_COUNT = "ListShoutOutNotificationsReadCount";
+
+	
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "envelope_sg")
     private Long id;

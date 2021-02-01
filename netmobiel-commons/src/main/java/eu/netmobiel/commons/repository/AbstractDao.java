@@ -1,6 +1,7 @@
 package eu.netmobiel.commons.repository;
 
 
+import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
 import java.util.Map;
@@ -21,6 +22,9 @@ import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Root;
 
 import org.hibernate.jpa.QueryHints;
+
+import eu.netmobiel.commons.report.ModalityNumericReportValue;
+import eu.netmobiel.commons.report.NumericReportValue;
 
 public abstract class AbstractDao<T, ID> {
     
@@ -280,5 +284,19 @@ public abstract class AbstractDao<T, ID> {
             joined.alias(join.getAlias());
             doJoins(join.getJoins(), joined);
         }
+    }
+
+	public List<NumericReportValue> reportCount(String queryName, Instant since, Instant until) {
+        return getEntityManager().createNamedQuery(queryName, NumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
+    }
+	
+	public List<ModalityNumericReportValue> reportModalityCount(String queryName, Instant since, Instant until) {
+        return getEntityManager().createNamedQuery(queryName, ModalityNumericReportValue.class)
+        		.setParameter(1, since)
+        		.setParameter(2, until)
+        		.getResultList();
     }
 }

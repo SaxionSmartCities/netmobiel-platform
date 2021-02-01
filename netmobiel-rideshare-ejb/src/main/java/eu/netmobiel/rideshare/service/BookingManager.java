@@ -2,9 +2,7 @@ package eu.netmobiel.rideshare.service;
 
 import java.time.Instant;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.ejb.Stateless;
@@ -25,14 +23,12 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.event.BookingSettledEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
-import eu.netmobiel.rideshare.model.PassengerBookingReport;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.BookingDao;
@@ -186,21 +182,21 @@ public class BookingManager {
      */
     public void removeBooking(String bookingRef, final String reason, Boolean cancelledByDriver, boolean cancelledFromRideshare) throws BusinessException {
     	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
-    	Booking bookingdb = bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
+    	Booking b = bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
-   		bookingdb.markAsCancelled(reason, cancelledByDriver);
+   		b.markAsCancelled(reason, cancelledByDriver);
    		if (cancelledFromRideshare) {
    			// The driver of passenger has cancelled the ride or the booking through the rideshare API. 
    			// The Trip Manager has to know about it.
 			BookingCancelledFromProviderEvent bce = new BookingCancelledFromProviderEvent(bookingRef, 
-					bookingdb.getPassenger(), bookingdb.getPassengerTripRef(), reason, cancelledByDriver);
+					b.getPassenger(), reason, cancelledByDriver);
 			// For now use a synchronous removal
 			EventFireWrapper.fire(bookingCancelledEvent, bce);
    		}
-		EventFireWrapper.fire(staleItineraryEvent, bookingdb.getRide());
+		EventFireWrapper.fire(staleItineraryEvent, b.getRide());
     	if (! cancelledByDriver) {
     		// Allow a notification to be sent to the driver
-			EventFireWrapper.fire(bookingRemovedEvent, bookingdb);
+			EventFireWrapper.fire(bookingRemovedEvent, b);
     	}
     }
 
@@ -220,8 +216,8 @@ public class BookingManager {
     		b.markAsCancelled(ride.getCancelReason(), true);	
    			// The driver has cancelled the ride. 
    			// The Trip Manager has to know about it.
-			BookingCancelledFromProviderEvent bce = new BookingCancelledFromProviderEvent(b.getUrn(), b.getPassenger(), b.getPassengerTripRef(),
-					ride.getCancelReason(), true);
+			BookingCancelledFromProviderEvent bce = new BookingCancelledFromProviderEvent(b.getUrn(), 
+					b.getPassenger(), ride.getCancelReason(), true);
 			// For now use a synchronous removal
 			EventFireWrapper.fire(bookingCancelledEvent, bce);
     	};
@@ -258,24 +254,4 @@ public class BookingManager {
 		EventFireWrapper.fire(bookingSettledEvent, new BookingSettledEvent(ride, bookingdb));
     }
 
-    public List<PassengerBookingReport> reportPassengerBehaviour(Instant since, Instant until) throws BadRequestException {
-    	Map<String, PassengerBookingReport> reportMap = new HashMap<>();
-    	// The first could have been realized without lookup, but now it is all the same.
-    	for (NumericReportValue nrv : bookingDao.reportBookingsConfirmed(since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBookingReport(nrv))
-			.setBookingsConfirmedCount(nrv.getValue());
-		}
-    	for (NumericReportValue nrv : bookingDao.reportBookingsCancelledByPassenger(since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBookingReport(nrv))
-    			.setBookingsCancelledByPassengerCount(nrv.getValue());
-		}
-    	for (NumericReportValue nrv : bookingDao.reportBookingsCancelledByDriver(since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new PassengerBookingReport(nrv))
-    			.setBookingsCancelledByDriverCount(nrv.getValue());
-		}
-    	return reportMap.values().stream()
-    			.sorted()
-    			.collect(Collectors.toList());
-    	
-    }
 }

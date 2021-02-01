@@ -1,4 +1,4 @@
-package eu.netmobiel.planner.model;
+package eu.netmobiel.commons.report;
 
 public class ModalityNumericReportValue extends ReportKeyWithModality {
 

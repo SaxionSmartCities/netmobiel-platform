@@ -56,9 +56,8 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
  */
 
 @NamedNativeQueries({
-	// RGP-11 Count the number of shout-outs issued in a period
 	@NamedNativeQuery(
-		name = "ListTripPlanShoutOutIssuedCount",
+		name = TripPlan.RGP_11_TRIP_PLAN_SHOUT_OUT_ISSUED_COUNT,
 		query = "select u.managed_identity as managed_identity, "
         		+ "date_part('year', p.creation_time) as year, " 
         		+ "date_part('month', p.creation_time) as month, "
@@ -68,11 +67,10 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
         		+ "where p.creation_time >= ? and p.creation_time < ? and p.plan_type = 'SHO' "
         		+ "group by u.managed_identity, year, month "
         		+ "order by u.managed_identity, year, month",
-        resultSetMapping = "ListTripPlanCountMapping"),
-	// RGP-12 Count the number of shout-outs with at least one offer in a period
-	// --> Count the shout-outs that have itineraries attached
+        resultSetMapping = TripPlan.PN_TRIP_PLAN_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-		name = "ListTripPlanShoutOutAtLeastOneOfferCount",
+		name = TripPlan.RGP_12_TRIP_PLAN_SHOUT_OUT_AT_LEAST_ONE_OFFER_COUNT,
+				// --> Count the shout-outs that have itineraries attached
 		query = "select u.managed_identity as managed_identity, "
         		+ "date_part('year', p.creation_time) as year, " 
         		+ "date_part('month', p.creation_time) as month, "
@@ -83,11 +81,10 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
         		+ "where p.creation_time >= ? and p.creation_time < ? and p.plan_type = 'SHO' "
         		+ "group by u.managed_identity, year, month "
         		+ "order by u.managed_identity, year, month",
-        resultSetMapping = "ListTripPlanCountMapping"),
-	// RGP-13 Count the number of accepted shout-outs issued in a period
-	// --> Shout-outs that have an itinerary that is also used by an trip.
+        resultSetMapping = TripPlan.PN_TRIP_PLAN_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-		name = "ListTripPlanShoutOutAcceptedCount",
+		name = TripPlan.RGP_13_TRIP_PLAN__SHOUT_OUT_ACCEPTED_COUNT,
+				// --> Shout-outs that have an itinerary that is also used by an trip.
 		query = "select u.managed_identity as managed_identity, "
         		+ "date_part('year', p.creation_time) as year, " 
         		+ "date_part('month', p.creation_time) as month, "
@@ -99,10 +96,10 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
         		+ "where p.creation_time >= ? and p.creation_time < ? and p.plan_type = 'SHO' "
         		+ "group by u.managed_identity, year, month "
         		+ "order by u.managed_identity, year, month",
-        resultSetMapping = "ListTripPlanCountMapping"),
+        resultSetMapping = TripPlan.PN_TRIP_PLAN_USER_YEAR_MONTH_COUNT_MAPPING),
 })
 @SqlResultSetMapping(
-		name = "ListTripPlanCountMapping", 
+		name = TripPlan.PN_TRIP_PLAN_USER_YEAR_MONTH_COUNT_MAPPING, 
 		classes = @ConstructorResult(
 			targetClass = NumericReportValue.class, 
 			columns = {
@@ -156,6 +153,11 @@ public class TripPlan implements Serializable {
 	public static final String DETAILED_ENTITY_GRAPH = "list-detailed-trip-plan-entity-graph";
 	public static final String SHOUT_OUT_ENTITY_GRAPH = "list-shout-out-trip-plan-entity-graph";
 	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(TripPlan.class);
+
+	public static final String PN_TRIP_PLAN_USER_YEAR_MONTH_COUNT_MAPPING = "PNTripPlanUserYearMonthCountMapping";
+	public static final String RGP_11_TRIP_PLAN_SHOUT_OUT_ISSUED_COUNT = "ListTripPlanShoutOutIssuedCount";
+	public static final String RGP_12_TRIP_PLAN_SHOUT_OUT_AT_LEAST_ONE_OFFER_COUNT = "ListTripPlanShoutOutAtLeastOneOfferCount";
+	public static final String RGP_13_TRIP_PLAN__SHOUT_OUT_ACCEPTED_COUNT = "ListTripPlanShoutOutAcceptedCount";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "trip_plan_sg")

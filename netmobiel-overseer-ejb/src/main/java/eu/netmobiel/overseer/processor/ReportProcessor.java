@@ -52,12 +52,16 @@ import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.report.ReportKey;
 import eu.netmobiel.commons.report.SpssReportBase;
+import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.model.ActivityReport;
-import eu.netmobiel.communicator.service.PublisherService;
+import eu.netmobiel.communicator.model.ShoutOutRecipientReport;
+import eu.netmobiel.communicator.service.CommunicatorReportService;
 import eu.netmobiel.overseer.model.ActivitySpssReport;
 import eu.netmobiel.planner.model.PassengerBehaviourReport;
 import eu.netmobiel.planner.model.PassengerModalityBehaviourReport;
 import eu.netmobiel.planner.service.TripManager;
+import eu.netmobiel.rideshare.model.RideshareReport;
+import eu.netmobiel.rideshare.service.RideshareReportService;
 
 /**
  * Stateless bean for running a report on NetMobiel.
@@ -69,6 +73,7 @@ import eu.netmobiel.planner.service.TripManager;
 @Singleton
 @ConcurrencyManagement(ConcurrencyManagementType.BEAN)
 @TransactionAttribute(TransactionAttributeType.NEVER)
+@Logging
 public class ReportProcessor {
 
 	@Resource(lookup = "java:global/report/recipientEmailAddress")
@@ -92,10 +97,13 @@ public class ReportProcessor {
 	private boolean jobRunning = false;
 	
 	@Inject
-	private PublisherService publisherService;
+	private CommunicatorReportService communicatorReportService;
 
 	@Inject
 	private TripManager tripManager;
+
+	@Inject
+	private RideshareReportService rideshareReportService;
 
 	@Inject
     private Logger log;
@@ -147,6 +155,7 @@ public class ReportProcessor {
     		
     		createAndSendActivityReport(since, until, reportDate);
     		createAndSendPassengerReport(since, until, reportDate);
+    		createAndSendDriverReport(since, until, reportDate);
     		
     	} catch (Exception e) {
 			log.error("Error creating report", e);
@@ -157,7 +166,11 @@ public class ReportProcessor {
 
 	protected void createAndSendActivityReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
     	try {
-			List<ActivityReport> activityReport = publisherService.reportActivity(since.toInstant(), until.toInstant());
+   		  	Map<String, ActivityReport> activityReportMap = communicatorReportService.reportActivity(since.toInstant(), until.toInstant());
+			List<ActivityReport> activityReport = activityReportMap.values().stream()
+	    			.sorted()
+	    			.collect(Collectors.toList());
+
 			Writer writer = convertToCsv(activityReport, ActivityReport.class);
 			
 			Collection<ActivitySpssReport> spssReport = createSpssReport(activityReport, ActivitySpssReport.class); 
@@ -175,9 +188,16 @@ public class ReportProcessor {
 
 	protected void createAndSendPassengerReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
     	try {
-			List<PassengerBehaviourReport> passengerReport = tripManager.reportPassengerBehaviour(since.toInstant(), until.toInstant());
+    		Map<String, PassengerBehaviourReport> passengerReportMap = tripManager.reportPassengerBehaviour(since.toInstant(), until.toInstant());
+			List<PassengerBehaviourReport> passengerReport = passengerReportMap.values().stream()
+	    			.sorted()
+	    			.collect(Collectors.toList());
 			Writer passengerBehaviourWriter = convertToCsv(passengerReport, PassengerBehaviourReport.class);
-			List<PassengerModalityBehaviourReport> passengerModalityReport = tripManager.reportPassengerModalityBehaviour(since.toInstant(), until.toInstant());
+			
+			Map<String, PassengerModalityBehaviourReport> passengerModalityReportMap = tripManager.reportPassengerModalityBehaviour(since.toInstant(), until.toInstant());
+			List<PassengerModalityBehaviourReport> passengerModalityReport = passengerModalityReportMap.values().stream()
+	    			.sorted()
+	    			.collect(Collectors.toList());
 			Writer passengerModalityBehaviourWriter = convertToCsv(passengerModalityReport, PassengerModalityBehaviourReport.class);
 			
 			Map<String, Writer> reports = new LinkedHashMap<>();
@@ -187,6 +207,32 @@ public class ReportProcessor {
 			sendReports("Reisgedrag Passagier", reportDate, reports);
     	} catch (Exception e) {
 			log.error("Error creating and sending passenger behaviour report", e);
+    	}
+	}
+
+	protected void createAndSendDriverReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+    	try {
+    		Map<String, RideshareReport> driverReportMap = rideshareReportService.reportActivity(since.toInstant(), until.toInstant());
+			List<ShoutOutRecipientReport> shoutOutRecipientReport = 
+					communicatorReportService.reportShoutOutActivity(since.toInstant(), until.toInstant());
+			// Merge the shout-out report into the driver report.
+			for (ShoutOutRecipientReport sorr : shoutOutRecipientReport) {
+				driverReportMap.computeIfAbsent(sorr.getKey(), k -> new RideshareReport(sorr))
+					.setShoutOutNotificationCount(sorr.getShoutOutNotificationCount());
+				driverReportMap.get(sorr.getKey())
+					.setShoutOutNotificationAckedCount(sorr.getShoutOutNotificationAckedCount());
+
+			}
+			List<RideshareReport> driverReport = driverReportMap.values().stream()
+	    			.sorted()
+	    			.collect(Collectors.toList());
+			Writer driverBehaviourWriter = convertToCsv(driverReport, RideshareReport.class);
+			Map<String, Writer> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "driver-behaviour", reportDate), driverBehaviourWriter);
+	
+			sendReports("Reisgedrag Chauffeur", reportDate, reports);
+    	} catch (Exception e) {
+			log.error("Error creating and sending driver behaviour report", e);
     	}
 	}
 

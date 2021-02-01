@@ -45,6 +45,7 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.report.ModalityNumericReportValue;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
@@ -76,9 +77,8 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
  * 
  */
 @NamedNativeQueries({
-	// RGP-1 Number of trips 
 	@NamedNativeQuery(
-		name = "ListTripsCreatedCount",
+		name = Trip.RGP_1_TRIPS_CREATED_COUNT,
 		query = "select u.managed_identity as managed_identity, "
         		+ "date_part('year', it.departure_time) as year, " 
         		+ "date_part('month', it.departure_time) as month, "
@@ -89,10 +89,9 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
         		+ "where it.departure_time >= ? and it.departure_time < ? "
         		+ "group by u.managed_identity, year, month "
         		+ "order by u.managed_identity, year, month",
-        resultSetMapping = "ListTripCountMapping"),
-	// RGP-2 Number of trips cancelled
+        resultSetMapping = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-			name = "ListTripsCancelledCount",
+			name = Trip.RGP_2_TRIPS_CANCELLED_COUNT,
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', it.departure_time) as year, " 
 	        		+ "date_part('month', it.departure_time) as month, "
@@ -103,10 +102,9 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ "where it.departure_time >= ? and it.departure_time < ? and t.state = 'CNC' "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListTripCountMapping"),
-	// RGP-3 Number of trips cancelled by passenger
+	        resultSetMapping = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-			name = "ListTripsCancelledByPassengerCount",
+			name = Trip.RGP_3_TRIPS_CANCELLED_BY_PASSENGER_COUNT,
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', it.departure_time) as year, " 
 	        		+ "date_part('month', it.departure_time) as month, "
@@ -117,10 +115,9 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ "where it.departure_time >= ? and it.departure_time < ? and t.state = 'CNC' and (t.cancelled_by_provider = false or t.cancelled_by_provider is null)"
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListTripCountMapping"),
-	// RGP-4 Number of trips cancelled by the mobility provider
+	        resultSetMapping = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-			name = "ListTripsCancelledByProviderCount",
+			name = Trip.RGP_4_TRIPS_CANCELLED_BY_PROVIDER_COUNT,
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', it.departure_time) as year, " 
 	        		+ "date_part('month', it.departure_time) as month, "
@@ -131,11 +128,10 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ "where it.departure_time >= ? and it.departure_time < ? and t.state = 'CNC' and t.cancelled_by_provider = true "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListTripCountMapping"),
-	// RGP-5 Number of trips with a confirmed rideshare leg
-	// --> Count the number of trips with a rideshare leg with payment state 'Paid'
+	        resultSetMapping = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-			name = "ListTripsWithConfirmedRideshareCount",
+			name = Trip.RGP_5_TRIPS_WITH_CONFIRMED_RIDESHARE_COUNT,
+					// --> Count the number of trips with a rideshare leg with payment state 'Paid'
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', it.departure_time) as year, " 
 	        		+ "date_part('month', it.departure_time) as month, "
@@ -147,11 +143,10 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ " exists (select 1 from leg lg where lg.itinerary = it.id and lg.traverse_mode = 'RS' and lg.payment_state = 'P') " 
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListTripCountMapping"),
-	// RGP-6 Number of trips with a cancelled rideshare leg
-	// --> Count the number of trips with a rideshare leg with payment state 'Cancelled'
+	        resultSetMapping = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-			name = "ListTripsWithCancelledRidesharePaymentCount",
+			name = Trip.RGP_6_TRIPS_WITH_CANCELLED_RIDESHARE_PAYMENT_COUNT,
+					// --> Count the number of trips with a rideshare leg with payment state 'Cancelled'
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', it.departure_time) as year, " 
 	        		+ "date_part('month', it.departure_time) as month, "
@@ -163,11 +158,10 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ " exists (select 1 from leg lg where lg.itinerary = it.id and lg.traverse_mode = 'RS' and lg.payment_state = 'C') " 
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListTripCountMapping"),
-	// RGP-7 Number of completed monomodal trips (ignoring Walking)
-	// --> Count the number of trips with a just one non-walking leg
+	        resultSetMapping = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-			name = "ListMonoModalTripsCount",
+			name = Trip.RGP_7_MONO_MODAL_TRIPS_COUNT,
+					// --> Count the number of completed trips with a just one non-walking leg
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', it.departure_time) as year, " 
 	        		+ "date_part('month', it.departure_time) as month, "
@@ -179,11 +173,10 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ " (select count(distinct lg.traverse_mode) from leg lg where lg.itinerary = it.id and lg.traverse_mode <> 'WK') = 1 " 
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListTripCountMapping"),
-	// RGP-8 Number of completed monomodal trips (ignoring Walking), for each modality
-	// --> Count the number of trips for each modality separately
+	        resultSetMapping = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-			name = "ListMonoModalTripsByModalityCount",
+			name = Trip.RGP_8_MONO_MODAL_TRIPS_BY_MODALITY_COUNT,
+					// --> Count the number of competed trips for each modality separately
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', it.departure_time) as year, " 
 	        		+ "date_part('month', it.departure_time) as month, "
@@ -198,10 +191,9 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ "group by u.managed_identity, year, month, modality "
 	        		+ "order by u.managed_identity, year, month, modality",
 	        resultSetMapping = "ListTripCountByModalityMapping"),
-	// RGP-9 Number of completed multimodal trips (ignoring Walking)
-	// --> Count the number of trips with more than one non-walking leg
 	@NamedNativeQuery(
-			name = "ListMultiModalTripsCount",
+			name = Trip.RGP_9_MULTI_MODAL_TRIPS_COUNT,
+					// --> Count the number of completed trips with more than one non-walking leg
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', it.departure_time) as year, " 
 	        		+ "date_part('month', it.departure_time) as month, "
@@ -213,11 +205,10 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ " (select count(distinct lg.traverse_mode) from leg lg where lg.itinerary = it.id and lg.traverse_mode <> 'WK') > 1 " 
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListTripCountMapping"),
-	// RGP-10 Number of completed multi-modal trips (ignoring Walking), for each modality
-	// --> Count the number of trips for each modality separately
+	        resultSetMapping = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
 			name = "ListMultiModalTripsByModalityCount",
+					// --> Count the number of completed trips for each modality separately (ignoring walking)
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', it.departure_time) as year, " 
 	        		+ "date_part('month', it.departure_time) as month, "
@@ -231,11 +222,11 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ " (select count(distinct lg.traverse_mode) from leg lg where lg.itinerary = it.id and lg.traverse_mode <> 'WK') > 1 " 
 	        		+ "group by u.managed_identity, year, month, modality "
 	        		+ "order by u.managed_identity, year, month, modality",
-	        resultSetMapping = "ListTripCountByModalityMapping"),
+	        resultSetMapping = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MODALITY_MAPPING),
 })
 @SqlResultSetMappings({
 	@SqlResultSetMapping(
-			name = "ListTripCountMapping", 
+			name = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MAPPING, 
 			classes = @ConstructorResult(
 				targetClass = NumericReportValue.class, 
 				columns = {
@@ -247,7 +238,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 			)
 		),
 	@SqlResultSetMapping(
-			name = "ListTripCountByModalityMapping", 
+			name = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MODALITY_MAPPING, 
 			classes = @ConstructorResult(
 				targetClass = ModalityNumericReportValue.class, 
 				columns = {
@@ -317,6 +308,19 @@ public class Trip implements Serializable {
 	public static final String MY_LEGS_ENTITY_GRAPH = "my-legs-trip-entity-graph";
 	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(Trip.class);
 	
+	public static final String PN_TRIP_USER_YEAR_MONTH_COUNT_MAPPING = "PNTripUserYearMonthCountMapping";
+	public static final String PN_TRIP_USER_YEAR_MONTH_COUNT_MODALITY_MAPPING = "PNTriptUserYearMonthModalityCountMapping";
+	public static final String RGP_1_TRIPS_CREATED_COUNT = "ListTripsCreatedCount";
+	public static final String RGP_2_TRIPS_CANCELLED_COUNT = "ListTripsCancelledCount";
+	public static final String RGP_3_TRIPS_CANCELLED_BY_PASSENGER_COUNT = "ListTripsCancelledByPassengerCount";
+	public static final String RGP_4_TRIPS_CANCELLED_BY_PROVIDER_COUNT = "ListTripsCancelledByProviderCount";
+	public static final String RGP_5_TRIPS_WITH_CONFIRMED_RIDESHARE_COUNT = "ListTripsWithConfirmedRideshareCount";
+	public static final String RGP_6_TRIPS_WITH_CANCELLED_RIDESHARE_PAYMENT_COUNT = "ListTripsWithCancelledRidesharePaymentCount";
+	public static final String RGP_7_MONO_MODAL_TRIPS_COUNT = "ListMonoModalTripsCount";
+	public static final String RGP_8_MONO_MODAL_TRIPS_BY_MODALITY_COUNT = "ListMonoModalTripsByModalityCount";
+	public static final String RGP_9_MULTI_MODAL_TRIPS_COUNT = "ListMultiModalTripsCount";
+	public static final String RGP_10_MULTI_MODAL_TRIPS_BY_MODALITY_COUNT = "ListMultiModalTripsByModalityCount";
+
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "trip_sg")
     private Long id;

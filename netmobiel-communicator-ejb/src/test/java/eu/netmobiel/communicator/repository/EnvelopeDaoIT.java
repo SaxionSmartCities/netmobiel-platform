@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.DeliveryMode;
+import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.test.CommunicatorIntegrationTestBase;
 import eu.netmobiel.communicator.test.Fixture;
 
@@ -68,55 +69,29 @@ public class EnvelopeDaoIT extends CommunicatorIntegrationTestBase {
         em.persist(Fixture.createMessage("Body M9", "Context 5", "Subject 5", DeliveryMode.ALL, "2020-04-21T17:00:00Z", user1, "2020-04-21T20:00:00Z", user2, user3));
     }
 
-    @Test
-    public void listReportMessagesReceived() throws Exception {
+    protected void testReportQuery(String queryName) throws Exception {
     	flush();
-		List<NumericReportValue> results = envelopeDao.reportMessagesReceived(Instant.parse("2020-01-01T00:00:00Z"), Instant.parse("2021-01-01T00:00:00Z"));
+		List<NumericReportValue> results = envelopeDao.reportCount(queryName, Instant.parse("2020-01-01T00:00:00Z"), Instant.parse("2021-01-01T00:00:00Z"));
 		assertNotNull(results);
 		for (NumericReportValue r : results) {
-			log.debug(String.format("Msg Rcv %s", r.toString()));
-		
+			log.debug(String.format("%s %s", queryName, r.toString()));
 		}
+    }
+
+    @Test
+    public void listReportMessagesReceived() throws Exception {
+    	testReportQuery(Envelope.ACT_1_MESSAGES_RECEIVED_COUNT);
     }
     @Test
     public void listReportNotificationsReceived() throws Exception {
-    	flush();
-		List<NumericReportValue> results = envelopeDao.reportNotificationsReceived(Instant.parse("2020-01-01T00:00:00Z"), Instant.parse("2021-01-01T00:00:00Z"));
-		assertNotNull(results);
-		for (NumericReportValue r : results) {
-			log.debug(String.format("Not Rcv %s", r.toString()));
-		
-		}
+    	testReportQuery(Envelope.ACT_2_NOTIFICATIONS_RECEIVED_COUNT);
     }
     @Test
     public void listReportMessagesRead() throws Exception {
-    	flush();
-		List<NumericReportValue> results = envelopeDao.reportMessagesRead(Instant.parse("2020-01-01T00:00:00Z"), Instant.parse("2021-01-01T00:00:00Z"));
-		assertNotNull(results);
-		for (NumericReportValue r : results) {
-			log.debug(String.format("Msg Rd %s", r.toString()));
-		
-		}
+    	testReportQuery(Envelope.ACT_3_MESSAGES_READ_COUNT);
     }
     @Test
     public void listReportNotificationsRead() throws Exception {
-    	flush();
-		List<NumericReportValue> results = envelopeDao.reportNotificationsRead(Instant.parse("2020-01-01T00:00:00Z"), Instant.parse("2021-01-01T00:00:00Z"));
-		assertNotNull(results);
-		for (NumericReportValue r : results) {
-			log.debug(String.format("Not Rd %s", r.toString()));
-		
-		}
+    	testReportQuery(Envelope.ACT_4_NOTIFICATIONS_READ_COUNT);
     }
-//    @Test
-//    public void listActivityReport() throws Exception {
-//    	prepareDeliveryModes();
-//    	flush();
-//		Collection<ActivityReport> results = messageDao.reportActivity(Instant.parse("2020-01-01T00:00:00Z"), Instant.parse("2021-01-01T00:00:00Z"));
-//		assertNotNull(results);
-//		for (ActivityReport r : results) {
-//			log.debug(r.toString());
-//		
-//		}
-//    }
 }

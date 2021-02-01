@@ -66,7 +66,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 	        		+ " and (b.cancelled_by_driver = false or b.cancelled_by_driver is null)"
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListBookingCountMapping"),
+	        resultSetMapping = Booking.RS_BOOKING_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
 			name = Booking.RGC_3_BOOKINGS_CANCELLED_BY_DRIVER_COUNT,
 			query = "select u.managed_identity as managed_identity, "
@@ -80,7 +80,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 	        		+ " and b.cancelled_by_driver = true "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
-	        resultSetMapping = "ListBookingCountMapping"),
+	        resultSetMapping = Booking.RS_BOOKING_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
 			name = Booking.RGC_4_BOOKINGS_CONFIRMED_COUNT,
 			query = "select u.managed_identity as managed_identity, "
@@ -138,7 +138,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 		)
 })
 @SqlResultSetMapping(
-	name = "ListBookingCountMapping", 
+	name = Booking.RS_BOOKING_USER_YEAR_MONTH_COUNT_MAPPING, 
 	classes = @ConstructorResult(
 		targetClass = NumericReportValue.class, 
 		columns = {
@@ -228,7 +228,7 @@ public class Booking extends ReferableObject implements Serializable {
 	public static final String SHALLOW_ENTITY_GRAPH = "booking-shallow-details-graph";
 	public static final String DEEP_ENTITY_GRAPH = "booking-deep-details-graph";
 
-	public static final String RS_BOOKING_USER_YEAR_MONTH_COUNT_MAPPING = "BookingUserYearMonthCountMapping";
+	public static final String RS_BOOKING_USER_YEAR_MONTH_COUNT_MAPPING = "RSBookingUserYearMonthCountMapping";
 	public static final String RGC_2_BOOKINGS_CANCELLED_BY_PASSENGER_COUNT = "ListBookingsCancelledByPassengerCount";
 	public static final String RGC_3_BOOKINGS_CANCELLED_BY_DRIVER_COUNT = "ListBookingsCancelledByDriverCount";
 	public static final String RGC_4_BOOKINGS_CONFIRMED_COUNT = "ListBookingsConfirmedCount";

@@ -2,9 +2,7 @@ package eu.netmobiel.communicator.service;
 
 import java.time.Instant;
 import java.util.Collections;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
@@ -21,17 +19,15 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
-import eu.netmobiel.communicator.model.ActivityReport;
-import eu.netmobiel.communicator.model.CommunicatorUser;
+import eu.netmobiel.communicator.repository.CommunicatorUserDao;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
 import eu.netmobiel.communicator.repository.MessageDao;
-import eu.netmobiel.communicator.repository.CommunicatorUserDao;
 import eu.netmobiel.firebase.messaging.FirebaseMessagingClient;
 import eu.netmobiel.profile.client.ProfileClient;
 
@@ -221,38 +217,6 @@ public class PublisherService {
     	} catch (NoResultException ex) {
     		throw new NotFoundException (String.format("No such recipient %s for message %d", caller, messageId));	
     	}
-    }
-
-    /**
-	 * Report on indicators of the communicator service, group by identity, year, month.
-	 * Indicators are: # received messages, # read messages, # received notifications, # read notifications.
- 	 * @param since start of period (inclusive). Use midnight of first day of first month to report on.
-	 * @param until end of period (exclusive). Use midnight of first day past last month to report on.
-	 * @return A sorted list (ascending on identity, year, month) of activity reports
-	 * @throws BadRequestException
-	 */
-    public List<ActivityReport> reportActivity(Instant since, Instant until) throws BadRequestException {
-    	Map<String, ActivityReport> reportMap = new HashMap<>();
-    	// The first could have been realized without lookup, but now it is all the same.
-    	for (NumericReportValue nrv : envelopeDao.reportMessagesReceived(since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new ActivityReport(nrv))
-			.setMessageCount(nrv.getValue());
-		}
-    	for (NumericReportValue nrv : envelopeDao.reportNotificationsReceived(since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new ActivityReport(nrv))
-    			.setNotificationCount(nrv.getValue());
-		}
-    	for (NumericReportValue nrv : envelopeDao.reportMessagesRead(since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new ActivityReport(nrv))
-    			.setMessageAckedCount(nrv.getValue());
-		}
-    	for (NumericReportValue nrv : envelopeDao.reportNotificationsRead(since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new ActivityReport(nrv))
-    			.setNotificationAckedCount(nrv.getValue());
-		}
-    	return reportMap.values().stream()
-    			.sorted()
-    			.collect(Collectors.toList());
     }
 
 }
