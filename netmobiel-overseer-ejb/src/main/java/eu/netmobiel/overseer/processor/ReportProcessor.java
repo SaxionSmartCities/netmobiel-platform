@@ -49,6 +49,8 @@ import com.opencsv.bean.StatefulBeanToCsv;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 
+import eu.netmobiel.banker.model.IncentiveModelPassengerReport;
+import eu.netmobiel.banker.service.BankerReportService;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.report.ReportKey;
 import eu.netmobiel.commons.report.SpssReportBase;
@@ -96,6 +98,9 @@ public class ReportProcessor {
 
 	private boolean jobRunning = false;
 	
+	@Inject
+	private BankerReportService bankerReportService;
+
 	@Inject
 	private CommunicatorReportService communicatorReportService;
 
@@ -156,7 +161,8 @@ public class ReportProcessor {
     		createAndSendActivityReport(since, until, reportDate);
     		createAndSendPassengerReport(since, until, reportDate);
     		createAndSendDriverReport(since, until, reportDate);
-    		
+    		createAndSendIncentiveModelPassengerReport(since, until, reportDate);
+    		log.info("Done reporting");
     	} catch (Exception e) {
 			log.error("Error creating report", e);
 		} finally {
@@ -233,6 +239,22 @@ public class ReportProcessor {
 			sendReports("Reisgedrag Chauffeur", reportDate, reports);
     	} catch (Exception e) {
 			log.error("Error creating and sending driver behaviour report", e);
+    	}
+	}
+
+	protected void createAndSendIncentiveModelPassengerReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+    	try {
+    		Map<String, IncentiveModelPassengerReport> reportMap = bankerReportService.reportActivity(since.toInstant(), until.toInstant());
+			List<IncentiveModelPassengerReport> report = reportMap.values().stream()
+	    			.sorted()
+	    			.collect(Collectors.toList());
+			Writer driverBehaviourWriter = convertToCsv(report, IncentiveModelPassengerReport.class);
+			Map<String, Writer> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "incentives-passenger", reportDate), driverBehaviourWriter);
+	
+			sendReports("Incentives Passagier", reportDate, reports);
+    	} catch (Exception e) {
+			log.error("Error creating and sending incentive model passenger report", e);
     	}
 	}
 

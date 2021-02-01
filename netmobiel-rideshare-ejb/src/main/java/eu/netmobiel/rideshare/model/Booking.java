@@ -137,18 +137,6 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 			)
 		)
 })
-@SqlResultSetMapping(
-	name = Booking.RS_BOOKING_USER_YEAR_MONTH_COUNT_MAPPING, 
-	classes = @ConstructorResult(
-		targetClass = NumericReportValue.class, 
-		columns = {
-				@ColumnResult(name = "managed_identity", type = String.class),
-				@ColumnResult(name = "year", type = int.class),
-				@ColumnResult(name = "month", type = int.class),
-				@ColumnResult(name = "count", type = int.class)
-		}
-	)
-)
 
 @NamedEntityGraph(
 		name = Booking.SHALLOW_ENTITY_GRAPH, 

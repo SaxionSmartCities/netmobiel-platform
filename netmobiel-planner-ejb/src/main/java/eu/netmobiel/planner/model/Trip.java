@@ -190,7 +190,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ " (select count(distinct lg.traverse_mode) from leg lg where lg.itinerary = it.id and lg.traverse_mode <> 'WK') = 1 " 
 	        		+ "group by u.managed_identity, year, month, modality "
 	        		+ "order by u.managed_identity, year, month, modality",
-	        resultSetMapping = "ListTripCountByModalityMapping"),
+	        resultSetMapping = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MODALITY_MAPPING),
 	@NamedNativeQuery(
 			name = Trip.RGP_9_MULTI_MODAL_TRIPS_COUNT,
 					// --> Count the number of completed trips with more than one non-walking leg
@@ -207,7 +207,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = Trip.PN_TRIP_USER_YEAR_MONTH_COUNT_MAPPING),
 	@NamedNativeQuery(
-			name = "ListMultiModalTripsByModalityCount",
+			name = Trip.RGP_10_MULTI_MODAL_TRIPS_BY_MODALITY_COUNT,
 					// --> Count the number of completed trips for each modality separately (ignoring walking)
 			query = "select u.managed_identity as managed_identity, "
 	        		+ "date_part('year', it.departure_time) as year, " 
@@ -309,7 +309,7 @@ public class Trip implements Serializable {
 	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(Trip.class);
 	
 	public static final String PN_TRIP_USER_YEAR_MONTH_COUNT_MAPPING = "PNTripUserYearMonthCountMapping";
-	public static final String PN_TRIP_USER_YEAR_MONTH_COUNT_MODALITY_MAPPING = "PNTriptUserYearMonthModalityCountMapping";
+	public static final String PN_TRIP_USER_YEAR_MONTH_COUNT_MODALITY_MAPPING = "PNTripUserYearMonthModalityCountMapping";
 	public static final String RGP_1_TRIPS_CREATED_COUNT = "ListTripsCreatedCount";
 	public static final String RGP_2_TRIPS_CANCELLED_COUNT = "ListTripsCancelledCount";
 	public static final String RGP_3_TRIPS_CANCELLED_BY_PASSENGER_COUNT = "ListTripsCancelledByPassengerCount";

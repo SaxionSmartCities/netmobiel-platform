@@ -8,7 +8,6 @@ import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Collections;
 import java.util.Date;
-import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -36,8 +35,6 @@ import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
-import eu.netmobiel.commons.report.ModalityNumericReportValue;
-import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
@@ -50,8 +47,6 @@ import eu.netmobiel.planner.event.TripStateUpdatedEvent;
 import eu.netmobiel.planner.event.TripValidationExpiredEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
-import eu.netmobiel.planner.model.PassengerBehaviourReport;
-import eu.netmobiel.planner.model.PassengerModalityBehaviourReport;
 import eu.netmobiel.planner.model.PaymentState;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.PlannerUser;
@@ -61,7 +56,6 @@ import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.TripDao;
-import eu.netmobiel.planner.repository.TripPlanDao;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @Stateless
@@ -98,9 +92,6 @@ public class TripManager {
 
     @Inject
     private TripDao tripDao;
-
-    @Inject
-    private TripPlanDao tripPlanDao;
 
     @Inject
     private ItineraryDao itineraryDao;

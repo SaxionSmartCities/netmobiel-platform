@@ -5,6 +5,8 @@ import java.time.format.DateTimeFormatter;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
+import javax.persistence.ColumnResult;
+import javax.persistence.ConstructorResult;
 import javax.persistence.Entity;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
@@ -12,12 +14,17 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedNativeQueries;
+import javax.persistence.NamedNativeQuery;
 import javax.persistence.SequenceGenerator;
+import javax.persistence.SqlResultSetMapping;
+import javax.persistence.SqlResultSetMappings;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
+import eu.netmobiel.commons.report.NumericReportValue;
 
 /**
  * An accounting (or journal) entry has an amount and an description and concerns a specific account. An entry is processed as part of a
@@ -26,6 +33,112 @@ import eu.netmobiel.banker.util.BankerUrnHelper;
  * @author Jaap Reitsma
  *
  */
+
+@NamedNativeQueries({
+	@NamedNativeQuery(
+			name = AccountingEntry.IMP_1_EARNED_CREDITS,
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', t.transaction_time) as year, " 
+	        		+ "date_part('month', t.transaction_time) as month, "
+	        		+ "sum(e.amount) as count "
+	        		+ "from accounting_entry e "
+	        		+ "join accounting_transaction t on t.id = e.transaction "
+	        		+ "join account a on a.id = e.account "
+	        		+ "join bn_user u on u.personal_account = a.id "
+	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'PY' "
+	        		+ " and e.entry_type = 'C' "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = AccountingEntry.BN_ACC_ENTRY_USER_YEAR_MONTH_COUNT_MAPPING),
+	@NamedNativeQuery(
+			name = AccountingEntry.IMP_3_SPENT_CREDITS,
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', t.transaction_time) as year, " 
+	        		+ "date_part('month', t.transaction_time) as month, "
+	        		+ "sum(e.amount) as count "
+	        		+ "from accounting_entry e "
+	        		+ "join accounting_transaction t on t.id = e.transaction "
+	        		+ "join account a on a.id = e.account "
+	        		+ "join bn_user u on u.personal_account = a.id "
+	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'PY' "
+	        		+ " and e.entry_type = 'D' "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = AccountingEntry.BN_ACC_ENTRY_USER_YEAR_MONTH_COUNT_MAPPING),
+	@NamedNativeQuery(
+			name = AccountingEntry.IMP_4_SPENT_CREDITS_TRAVELLING,
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', t.transaction_time) as year, " 
+	        		+ "date_part('month', t.transaction_time) as month, "
+	        		+ "sum(e.amount) as count "
+	        		+ "from accounting_entry e "
+	        		+ "join accounting_transaction t on t.id = e.transaction "
+	        		+ "join account a on a.id = e.account "
+	        		+ "join bn_user u on u.personal_account = a.id "
+	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'PY' "
+	        		+ " and e.entry_type = 'D' and t.context like 'urn:nb:pn:leg:%' "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = AccountingEntry.BN_ACC_ENTRY_USER_YEAR_MONTH_COUNT_MAPPING),
+	@NamedNativeQuery(
+			name = AccountingEntry.IMP_5_SPENT_CREDITS_CHARITIES,
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', t.transaction_time) as year, " 
+	        		+ "date_part('month', t.transaction_time) as month, "
+	        		+ "sum(e.amount) as count "
+	        		+ "from accounting_entry e "
+	        		+ "join accounting_transaction t on t.id = e.transaction "
+	        		+ "join account a on a.id = e.account "
+	        		+ "join bn_user u on u.personal_account = a.id "
+	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'PY' "
+	        		+ " and e.entry_type = 'D' and t.context like 'urn:nb:bn:donation:%' "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = AccountingEntry.BN_ACC_ENTRY_USER_YEAR_MONTH_COUNT_MAPPING),
+	@NamedNativeQuery(
+		name = AccountingEntry.IMP_7_DEPOSITED_CREDITS,
+		query = "select u.managed_identity as managed_identity, "
+        		+ "date_part('year', t.transaction_time) as year, " 
+        		+ "date_part('month', t.transaction_time) as month, "
+        		+ "sum(e.amount) as count "
+        		+ "from accounting_entry e "
+        		+ "join accounting_transaction t on t.id = e.transaction "
+        		+ "join account a on a.id = e.account "
+        		+ "join bn_user u on u.personal_account = a.id "
+        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'DP' "
+        		+ "group by u.managed_identity, year, month "
+        		+ "order by u.managed_identity, year, month",
+        resultSetMapping = AccountingEntry.BN_ACC_ENTRY_USER_YEAR_MONTH_COUNT_MAPPING),
+	@NamedNativeQuery(
+			name = AccountingEntry.IMP_8_WITHDRAWN_CREDITS,
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', t.transaction_time) as year, " 
+	        		+ "date_part('month', t.transaction_time) as month, "
+	        		+ "sum(e.amount) as count "
+	        		+ "from accounting_entry e "
+	        		+ "join accounting_transaction t on t.id = e.transaction "
+	        		+ "join account a on a.id = e.account "
+	        		+ "join bn_user u on u.personal_account = a.id "
+	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'WD' "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = AccountingEntry.BN_ACC_ENTRY_USER_YEAR_MONTH_COUNT_MAPPING),
+})
+@SqlResultSetMappings({
+	@SqlResultSetMapping(
+			name = AccountingEntry.BN_ACC_ENTRY_USER_YEAR_MONTH_COUNT_MAPPING, 
+			classes = @ConstructorResult(
+				targetClass = NumericReportValue.class, 
+				columns = {
+						@ColumnResult(name = "managed_identity", type = String.class),
+						@ColumnResult(name = "year", type = int.class),
+						@ColumnResult(name = "month", type = int.class),
+						@ColumnResult(name = "count", type = int.class)
+				}
+			)
+		),
+})
+
 @Entity
 @Table(name = "accounting_entry", uniqueConstraints = {
 	    @UniqueConstraint(name = "cs_transaction_account_unique", columnNames = { "account", "transaction" })
@@ -35,6 +148,17 @@ import eu.netmobiel.banker.util.BankerUrnHelper;
 public class AccountingEntry implements Serializable {
 	private static final long serialVersionUID = -9042884607740676891L;
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix("statement");
+
+	public static final String BN_ACC_ENTRY_USER_YEAR_MONTH_COUNT_MAPPING = "BNAccEntryUserYearMonthCountMapping";
+	public static final String IMP_1_EARNED_CREDITS = "ListEarnedCredits";
+	public static final String IMP_2_EARNED_CREDITS_BY_APP_USAGE = "ListEarnedCreditsByAppUsage";
+	public static final String IMP_3_SPENT_CREDITS = "ListSpentCredits";
+	public static final String IMP_4_SPENT_CREDITS_TRAVELLING = "ListSpentCreditsForTravelling";
+	public static final String IMP_5_SPENT_CREDITS_CHARITIES = "ListSpentCreditsForCharities";
+	public static final String IMP_6_SPENT_CREDITS_REWARDS = "ListSpentCreditsForRewards";
+	public static final String IMP_7_DEPOSITED_CREDITS = "ListDepositedCredits";
+	public static final String IMP_8_WITHDRAWN_CREDITS = "ListWithdrawnCredits";
+	public static final String IMP_9_TRIPS_REVIEWED_COUNT = "ListReviewedTripsCount";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "accounting_entry_sg")
