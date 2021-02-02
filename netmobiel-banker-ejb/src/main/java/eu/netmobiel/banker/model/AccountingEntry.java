@@ -123,6 +123,21 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = AccountingEntry.BN_ACC_ENTRY_USER_YEAR_MONTH_COUNT_MAPPING),
+	@NamedNativeQuery(
+			name = AccountingEntry.IMC_2_EARNED_CREDITS_BY_RIDES,
+			query = "select u.managed_identity as managed_identity, "
+	        		+ "date_part('year', t.transaction_time) as year, " 
+	        		+ "date_part('month', t.transaction_time) as month, "
+	        		+ "sum(e.amount) as count "
+	        		+ "from accounting_entry e "
+	        		+ "join accounting_transaction t on t.id = e.transaction "
+	        		+ "join account a on a.id = e.account "
+	        		+ "join bn_user u on u.personal_account = a.id "
+	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'PY' "
+	        		+ " and e.entry_type = 'C' and t.context like 'urn:nb:pn:leg:%' "
+	        		+ "group by u.managed_identity, year, month "
+	        		+ "order by u.managed_identity, year, month",
+	        resultSetMapping = AccountingEntry.BN_ACC_ENTRY_USER_YEAR_MONTH_COUNT_MAPPING),
 })
 @SqlResultSetMappings({
 	@SqlResultSetMapping(
@@ -160,6 +175,16 @@ public class AccountingEntry implements Serializable {
 	public static final String IMP_8_WITHDRAWN_CREDITS = "ListWithdrawnCredits";
 	public static final String IMP_9_TRIPS_REVIEWED_COUNT = "ListReviewedTripsCount";
 
+	public static final String IMC_1_EARNED_CREDITS = IMP_1_EARNED_CREDITS;
+	public static final String IMC_2_EARNED_CREDITS_BY_RIDES = "ListEarnedCreditsByRides";
+	public static final String IMC_3_EARNED_CREDITS_BY_APP_USAGE = IMP_2_EARNED_CREDITS_BY_APP_USAGE;
+	public static final String IMC_4_SPENT_CREDITS = IMP_3_SPENT_CREDITS;
+	public static final String IMC_5_SPENT_CREDITS_TRAVELLING = IMP_4_SPENT_CREDITS_TRAVELLING;
+	public static final String IMC_6_SPENT_CREDITS_CHARITIES = IMP_5_SPENT_CREDITS_CHARITIES;
+	public static final String IMC_7_SPENT_CREDITS_REWARDS = IMP_6_SPENT_CREDITS_REWARDS;
+	public static final String IMC_8_DEPOSITED_CREDITS = IMP_7_DEPOSITED_CREDITS;
+	public static final String IMC_9_WITHDRAWN_CREDITS = IMP_8_WITHDRAWN_CREDITS;
+	public static final String IMC_10_RIDES_REVIEWED_COUNT = "ListReviewedRidesCount";
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "accounting_entry_sg")
     private Long id;

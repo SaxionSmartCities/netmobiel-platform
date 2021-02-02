@@ -49,6 +49,7 @@ import com.opencsv.bean.StatefulBeanToCsv;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 
+import eu.netmobiel.banker.model.IncentiveModelDriverReport;
 import eu.netmobiel.banker.model.IncentiveModelPassengerReport;
 import eu.netmobiel.banker.service.BankerReportService;
 import eu.netmobiel.commons.exception.SystemException;
@@ -162,6 +163,7 @@ public class ReportProcessor {
     		createAndSendPassengerReport(since, until, reportDate);
     		createAndSendDriverReport(since, until, reportDate);
     		createAndSendIncentiveModelPassengerReport(since, until, reportDate);
+    		createAndSendIncentiveModelDriverReport(since, until, reportDate);
     		log.info("Done reporting");
     	} catch (Exception e) {
 			log.error("Error creating report", e);
@@ -244,7 +246,7 @@ public class ReportProcessor {
 
 	protected void createAndSendIncentiveModelPassengerReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
     	try {
-    		Map<String, IncentiveModelPassengerReport> reportMap = bankerReportService.reportActivity(since.toInstant(), until.toInstant());
+    		Map<String, IncentiveModelPassengerReport> reportMap = bankerReportService.reportIncentivesPassenger(since.toInstant(), until.toInstant());
 			List<IncentiveModelPassengerReport> report = reportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
@@ -255,6 +257,22 @@ public class ReportProcessor {
 			sendReports("Incentives Passagier", reportDate, reports);
     	} catch (Exception e) {
 			log.error("Error creating and sending incentive model passenger report", e);
+    	}
+	}
+
+	protected void createAndSendIncentiveModelDriverReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+    	try {
+    		Map<String, IncentiveModelDriverReport> reportMap = bankerReportService.reportIncentivesDriver(since.toInstant(), until.toInstant());
+			List<IncentiveModelDriverReport> report = reportMap.values().stream()
+	    			.sorted()
+	    			.collect(Collectors.toList());
+			Writer driverBehaviourWriter = convertToCsv(report, IncentiveModelDriverReport.class);
+			Map<String, Writer> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "incentives-driver", reportDate), driverBehaviourWriter);
+	
+			sendReports("Incentives Chauffeur", reportDate, reports);
+    	} catch (Exception e) {
+			log.error("Error creating and sending incentive model driver report", e);
     	}
 	}
 
