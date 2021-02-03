@@ -167,8 +167,21 @@ public abstract class RideBase extends ReferableObject implements Serializable {
    	} )
     private GeoLocation to;
 
+    /**
+     * The postal code 6 of the departure location.
+     */
+    @Size(max = 6)
+    @Column(name = "departure_postal_code")
+    private String departurePostalCode;
 
-	public RideshareUser getDriver() {
+    /**
+     * The postal code 6 of the arrival location.
+     */
+    @Size(max = 6)
+    @Column(name = "arrival_postal_code")
+    private String arrivalPostalCode;
+
+    public RideshareUser getDriver() {
 		return driver;
 	}
 
@@ -323,7 +336,23 @@ public abstract class RideBase extends ReferableObject implements Serializable {
 		this.to = to;
 	}
 
-    public Integer getDuration() {
+    public String getDeparturePostalCode() {
+		return departurePostalCode;
+	}
+
+	public void setDeparturePostalCode(String departurePostalCode) {
+		this.departurePostalCode = departurePostalCode;
+	}
+
+	public String getArrivalPostalCode() {
+		return arrivalPostalCode;
+	}
+
+	public void setArrivalPostalCode(String arrivalPostalCode) {
+		this.arrivalPostalCode = arrivalPostalCode;
+	}
+
+	public Integer getDuration() {
     	return departureTime != null && arrivalTime != null ? Math.toIntExact(arrivalTime.getEpochSecond() - departureTime.getEpochSecond()) : null;
     }
     
@@ -353,12 +382,14 @@ public abstract class RideBase extends ReferableObject implements Serializable {
      * @return The new ride. 
      */
     public static void copy(RideBase src, RideBase dst) {
+		dst.arrivalPostalCode = src.arrivalPostalCode;
 		dst.arrivalTime = src.arrivalTime;
 		dst.arrivalTimePinned = src.arrivalTimePinned;
 		dst.car = src.car;
 		dst.carthesianBearing = src.carthesianBearing;
 		dst.carthesianDistance = src.carthesianDistance;
 		dst.CO2Emission = src.CO2Emission;
+		dst.departurePostalCode = src.departurePostalCode;
 		dst.departureTime = src.departureTime;
 		dst.distance = src.distance;
 		dst.driver = src.driver;

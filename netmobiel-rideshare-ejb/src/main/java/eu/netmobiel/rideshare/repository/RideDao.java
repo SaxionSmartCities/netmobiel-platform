@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -231,7 +232,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
      * @return A list of rides to start monitoring
      */
     public List<Ride> findMonitorableRides(Instant departureBefore) {
-    	List<Ride> trips = em.createQuery(
+    	List<Ride> rides = em.createQuery(
     			"from Ride r " + 
     			"where state = :state and monitored = false and r.departureTime < :departureTime " +
     			" and (r.deleted is null or r.deleted = false) " +
@@ -239,18 +240,18 @@ public class RideDao extends AbstractDao<Ride, Long> {
     			.setParameter("state", RideState.SCHEDULED)
     			.setParameter("departureTime", departureBefore)
     			.getResultList();
-    	return trips; 
+    	return rides; 
     }
 
     /**
      * Find all rides that are monitored right now, according to their monitor status.
      * @return A list of rides with the monitor flag set.
      */
-    public List<Ride> findMonitoredTrips() {
-    	List<Ride> trips = em.createQuery(
+    public List<Ride> findMonitoredRides() {
+    	List<Ride> rides = em.createQuery(
     			"from Ride r where monitored = true order by r.departureTime asc", Ride.class)
     			.getResultList();
-    	return trips; 
+    	return rides; 
     }
 
 
@@ -265,5 +266,81 @@ public class RideDao extends AbstractDao<Ride, Long> {
     			.setParameter("arrivalTime", ride.getArrivalTime())
     			.getSingleResult();
     	return count > 0;
+    }
+    
+    /**
+     * Find the first ride without a departure or arrival postal code.
+     * @return A ride without a departure or arrival postal code or an empty Optional.
+     */
+    public Optional<Ride> findFirstRideWithoutPostalCode() {
+    	List<Ride> rides = em.createQuery(
+    			"from Ride r where r.departurePostalCode is null or r.arrivalPostalCode is null order by r.id asc", Ride.class)
+    			.setMaxResults(1)
+    			.getResultList();
+    	return rides.isEmpty() ? Optional.empty() : Optional.of(rides.get(0)); 
+    }
+
+    /**
+     * Find the first ride without a departure postal code.
+     * @return A ride without a departure postal code or an empty Optional.
+     */
+    public Optional<Ride> findFirstRideWithoutDeparturePostalCode() {
+    	List<Ride> rides = em.createQuery(
+    			"from Ride r where r.departurePostalCode is null order by r.id asc", Ride.class)
+    			.setMaxResults(1)
+    			.getResultList();
+    	return rides.isEmpty() ? Optional.empty() : Optional.of(rides.get(0)); 
+    }
+
+    /**
+     * Find the first ride without an arrival postal code.
+     * @return A ride without an  arrival postal code or an empty Optional.
+     */
+    public Optional<Ride> findFirstRideWithoutArrivalPostalCode() {
+    	List<Ride> rides = em.createQuery(
+    			"from Ride r where r.arrivalPostalCode is null order by r.id asc", Ride.class)
+    			.setMaxResults(1)
+    			.getResultList();
+    	return rides.isEmpty() ? Optional.empty() : Optional.of(rides.get(0)); 
+    }
+    
+    /**
+     * Find the ride with the same departure location (point).
+     * @return A list of rides with the same departure location.
+     */
+    public List<Ride> findWithSameDepartureLocation(GeoLocation location) {
+    	List<Ride> rides = em.createQuery(
+    			"from Ride r where equals(:myPoint, r.from.point) = true", Ride.class)
+    			.setParameter("myPoint", location.getPoint())
+   			.getResultList();
+    	return rides; 
+    }
+
+    /**
+     * Find the rides with the same arrival location (point).
+     * @return A list of rides with the same arrival location.
+     */
+    public List<Ride> findWithSameArrivalLocation(GeoLocation location) {
+    	List<Ride> rides = em.createQuery(
+    			"from Ride r where equals(:myPoint, r.to.point) = true order by r.id asc", Ride.class)
+    			.setParameter("myPoint", location.getPoint())
+   			.getResultList();
+    	return rides; 
+    }
+    
+    public int updateDeparturePostalCode(GeoLocation departureLocation, String postalCode) {
+    	return em.createQuery(
+    			"update Ride r set r.departurePostalCode = :postalCode where equals(:myPoint, r.from.point) = true")
+    			.setParameter("myPoint", departureLocation.getPoint())
+    			.setParameter("postalCode", postalCode)
+   			.executeUpdate();
+    }
+
+    public int updateArrivalPostalCode(GeoLocation arrivalLocation, String postalCode) {
+    	return em.createQuery(
+    			"update Ride r set r.arrivalPostalCode = :postalCode where equals(:myPoint, r.to.point) = true")
+    			.setParameter("myPoint", arrivalLocation.getPoint())
+    			.setParameter("postalCode", postalCode)
+   			.executeUpdate();
     }
 }

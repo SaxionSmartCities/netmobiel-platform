@@ -22,6 +22,7 @@ import eu.netmobiel.here.search.model.ErrorResponse;
 import eu.netmobiel.here.search.model.OpenSearchReverseGeocodeResponse;
 
 @ApplicationScoped
+//@Logging
 public class HereSearchClient {
     @Inject
     private Logger log;
@@ -87,6 +88,28 @@ public class HereSearchClient {
 	        result = response.readEntity(OpenSearchReverseGeocodeResponse.class);
 		}
         return result;
+    }
+
+    /**
+     * Retrieves the postal code 6 (1234XY) of a location. 
+     * @param location a GeoLocation object.
+     * @return The postal code associated with this location.
+     */
+    public String getPostalCode6(GeoLocation location) {
+    	OpenSearchReverseGeocodeResponse rsp = getReverseGeocode(location, null);
+    	String pc = null;
+    	if (rsp.items.length > 0) {
+    		if (rsp.items.length > 1) {
+    			log.warn("Multiple results on reverse geocoding of: " + location.toString());
+    		}
+    		if (rsp.items[0].address != null) {
+    			pc = rsp.items[0].address.postalCode;
+    			if (pc != null) {
+    				pc = pc.replaceAll(" ", "");
+    			}
+    		}
+    	}
+    	return pc;
     }
 
 }

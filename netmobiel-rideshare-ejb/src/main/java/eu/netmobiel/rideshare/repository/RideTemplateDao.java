@@ -9,6 +9,7 @@ import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 
+import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.model.RideTemplate;
@@ -55,4 +56,19 @@ public class RideTemplateDao extends AbstractDao<RideTemplate, Long> {
     	return tq.getResultList();
     }
     
+    public int updateDeparturePostalCode(GeoLocation departureLocation, String postalCode) {
+    	return em.createQuery(
+    			"update RideTemplate rt set rt.departurePostalCode = :postalCode where equals(:myPoint, rt.from.point) = true")
+    			.setParameter("myPoint", departureLocation.getPoint())
+    			.setParameter("postalCode", postalCode)
+   			.executeUpdate();
+    }
+
+    public int updateArrivalPostalCode(GeoLocation arrivalLocation, String postalCode) {
+    	return em.createQuery(
+    			"update RideTemplate rt set rt.arrivalPostalCode = :postalCode where equals(:myPoint, rt.to.point) = true")
+    			.setParameter("myPoint", arrivalLocation.getPoint())
+    			.setParameter("postalCode", postalCode)
+   			.executeUpdate();
+    }
 }

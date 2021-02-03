@@ -350,6 +350,20 @@ public class Trip implements Serializable {
    	} )
     private GeoLocation to;
 
+    /**
+     * The postal code 6 of the departure location.
+     */
+    @Size(max = 6)
+    @Column(name = "departure_postal_code")
+    private String departurePostalCode;
+
+    /**
+     * The postal code 6 of the arrival location.
+     */
+    @Size(max = 6)
+    @Column(name = "arrival_postal_code")
+    private String arrivalPostalCode;
+
     @NotNull
     @ManyToOne (fetch = FetchType.LAZY)
 	@JoinColumn(name = "traveller", nullable = false, foreignKey = @ForeignKey(name = "trip_traveller_fk"))
@@ -538,6 +552,22 @@ public class Trip implements Serializable {
 
 	public void setCancelledByProvider(Boolean cancelledByProvider) {
 		this.cancelledByProvider = cancelledByProvider;
+	}
+
+	public String getDeparturePostalCode() {
+		return departurePostalCode;
+	}
+
+	public void setDeparturePostalCode(String departurePostalCode) {
+		this.departurePostalCode = departurePostalCode;
+	}
+
+	public String getArrivalPostalCode() {
+		return arrivalPostalCode;
+	}
+
+	public void setArrivalPostalCode(String arrivalPostalCode) {
+		this.arrivalPostalCode = arrivalPostalCode;
 	}
 
 	private String formatTime(Instant instant) {

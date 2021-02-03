@@ -77,6 +77,11 @@
 		    <artifactId>netmobiel-otp-client</artifactId>
 		    <version>${project.version}</version>
 		</dependency>
+		<dependency>
+		    <groupId>${project.groupId}</groupId>
+		    <artifactId>netmobiel-here-client</artifactId>
+		    <version>${project.version}</version>
+		</dependency>
         <dependency>
             <groupId>javax.enterprise</groupId>
             <artifactId>cdi-api</artifactId>

@@ -33,11 +33,13 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.model.ConfirmationReasonType;
+import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.here.search.HereSearchClient;
 import eu.netmobiel.planner.event.BookingCancelledEvent;
 import eu.netmobiel.planner.event.BookingConfirmedEvent;
 import eu.netmobiel.planner.event.BookingRequestedEvent;
@@ -86,6 +88,9 @@ public class TripManager {
 	 * The total period after which a confirmation period expires.
 	 */
 	private static final Duration CONFIRMATION_PERIOD = CONFIRM_PERIOD_1.plus(CONFIRM_PERIOD_2);
+
+	@Inject
+	private HereSearchClient hereSearchClient;
 	
 	@Inject
     private Logger log;
@@ -193,7 +198,10 @@ public class TripManager {
     	trip.setNrSeats(plan.getNrSeats());
         trip.setFrom(plan.getFrom());
         trip.setTo(plan.getTo());
-       	tripDao.save(trip);
+        //TODO Use the local database first to lookup the coordinate. Omit for now. 
+        trip.setDeparturePostalCode(hereSearchClient.getPostalCode6(trip.getFrom()));
+        trip.setArrivalPostalCode(hereSearchClient.getPostalCode6(trip.getTo()));
+        tripDao.save(trip);
        	tripDao.flush();
        	List<BookingRequestedEvent> bookingRequestedEvents = new ArrayList<>();
        	List<BookingConfirmedEvent> bookingConfirmedEvents = new ArrayList<>();
@@ -572,7 +580,7 @@ public class TripManager {
 			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
 			log.info("Rollback status after exception: " + context.getRollbackOnly()); 
 		} catch (NoSuchObjectLocalException ex) {
-			log.error(String.format("Error handling timeout for %s: ", ex.toString()));
+			log.error(String.format("Error handling timeout: %s", ex.toString()));
 		}
 	}
 
@@ -711,4 +719,27 @@ public class TripManager {
 		}
 		
 	}
+
+	public Optional<GeoLocation> findNextMissingPostalCode() {
+		Optional<Trip> t = tripDao.findFirstTripWithoutPostalCode();
+		GeoLocation loc = null;
+		if (t.isPresent()) {
+			if (t.get().getDeparturePostalCode() == null) {
+				loc = t.get().getFrom();
+			} else {
+				loc = t.get().getTo();
+			}
+		}
+		return Optional.ofNullable(loc);
+	}
+
+	public int assignPostalCode(GeoLocation location, String postalCode) {
+		int affectedRows = 0;
+		// Now assign all rides with same departure location to this postal code
+		affectedRows += tripDao.updateDeparturePostalCode(location, postalCode);
+		// And assign all rides with same arrival location to same postal code
+		affectedRows += tripDao.updateArrivalPostalCode(location, postalCode);
+		return affectedRows;
+	}
+
 }

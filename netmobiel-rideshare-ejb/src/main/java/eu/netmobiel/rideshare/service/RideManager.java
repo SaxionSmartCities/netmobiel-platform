@@ -12,6 +12,7 @@ import java.util.Collections;
 import java.util.Date;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -50,6 +51,7 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.here.search.HereSearchClient;
 import eu.netmobiel.rideshare.event.BookingSettledEvent;
 import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
 import eu.netmobiel.rideshare.filter.RideFilter;
@@ -136,6 +138,8 @@ public class RideManager {
     private RideItineraryHelper rideItineraryHelper;
     @Inject
     private IdentityHelper identityHelper;
+    @Inject
+    private HereSearchClient hereSearchClient;
 
     @Resource
     private SessionContext context;
@@ -381,6 +385,8 @@ public class RideManager {
 		ride.setArrivalTime(travelTime);
 		// Calculate the ellipse
     	ride.updateShareEligibility();
+    	ride.setDeparturePostalCode(hereSearchClient.getPostalCode6(ride.getFrom()));
+    	ride.setArrivalPostalCode(hereSearchClient.getPostalCode6(ride.getTo()));
     	// Put the ride into the persistence context, but omit the template for now
     	ride.setRideTemplate(null);
     	ride.setState(RideState.SCHEDULED);
@@ -570,10 +576,12 @@ public class RideManager {
     	RideTemplate oldTemplate = ridedb.getRideTemplate();
     	ride.setRideTemplate(oldTemplate);
     	// Copy non-modifiable attributes to the input object
+    	ride.setArrivalPostalCode(ridedb.getArrivalPostalCode());
     	ride.setCancelReason(ridedb.getCancelReason());
     	ride.setConfirmed(ridedb.getConfirmed());
     	ride.setConfirmationReason(ridedb.getConfirmationReason());
     	ride.setDeleted(ridedb.getDeleted());
+    	ride.setDeparturePostalCode(ridedb.getDeparturePostalCode());
     	ride.setMonitored(ridedb.isMonitored());
     	ride.setState(ridedb.getState());
     	ride.setVersion(ridedb.getVersion());
@@ -597,6 +605,12 @@ public class RideManager {
     	// Recalculate the ellipe for determining the rideshare eligibility
     	ride.updateShareEligibility();
     	Instant originalDepartureTime = ridedb.getDepartureTime();
+    	if (!ride.getFrom().equals(ridedb.getFrom())) {
+    		ride.setDeparturePostalCode(hereSearchClient.getPostalCode6(ride.getFrom()));
+    	}
+    	if (!ride.getTo().equals(ridedb.getTo())) {
+    		ride.setArrivalPostalCode(hereSearchClient.getPostalCode6(ride.getTo()));
+    	}
     	ridedb = rideDao.merge(ride);
     	// ride and ridedb refer to the same object now, 
     	// ridebd bookings, legs and stops appear to be empty now! In the database the object are still there.
@@ -829,7 +843,7 @@ public class RideManager {
 			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
 			log.info("Rollback status after exception: " + context.getRollbackOnly()); 
 		} catch(NoSuchObjectLocalException ex) {
-			log.error(String.format("Error handling timeout for %s: ", ex.toString()));
+			log.error(String.format("Error handling timeout: %s", ex.toString()));
 		}
 	}
 
@@ -932,7 +946,7 @@ public class RideManager {
 		Set<Long> timedTripIds = rideInfos.stream()
 				.map(ti -> ti.rideId)
 				.collect(Collectors.toSet());
-		List<Ride> monitoredTrips = rideDao.findMonitoredTrips();
+		List<Ride> monitoredTrips = rideDao.findMonitoredRides();
 		monitoredTrips.removeIf(t -> timedTripIds.contains(t.getId()));
 		if (monitoredTrips.isEmpty()) {
 			log.info("All required ride monitors are in place");
@@ -958,4 +972,30 @@ public class RideManager {
 			}
 		}
 	}
+
+	public Optional<GeoLocation> findNextMissingPostalCode() {
+		Optional<Ride> r = rideDao.findFirstRideWithoutPostalCode();
+		GeoLocation loc = null;
+		if (r.isPresent()) {
+			if (r.get().getDeparturePostalCode() == null) {
+				loc = r.get().getFrom();
+			} else {
+				loc = r.get().getTo();
+			}
+		}
+		return Optional.ofNullable(loc);
+	}
+
+	public int assignPostalCode(GeoLocation location, String postalCode) {
+		int affectedRows = 0;
+		// Now assign all rides with same departure location to this postal code
+		affectedRows += rideDao.updateDeparturePostalCode(location, postalCode);
+		// And assign all rides with same arrival location to same postal code
+		affectedRows += rideDao.updateArrivalPostalCode(location, postalCode);
+		// Do the same for the templates
+		affectedRows += rideTemplateDao.updateDeparturePostalCode(location, postalCode);
+		affectedRows += rideTemplateDao.updateArrivalPostalCode(location, postalCode);
+		return affectedRows;
+	}
+
 }

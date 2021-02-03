@@ -440,6 +440,32 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
 
    }
     
+    @Test
+    public void findSameDepartureLocation() throws Exception {
+    	Instant departureTime = Instant.parse("2020-06-02T12:00:00Z");
+    	Instant arrivalTime = Instant.parse("2020-06-02T13:00:00Z");
+    	Ride r1 = Fixture.createRide(car1, Fixture.placeThuisLichtenvoorde, departureTime, Fixture.placeCentrumDoetinchem, arrivalTime);
+    	saveNewRide(r1);
 
+    	departureTime = Instant.parse("2020-06-03T12:00:00Z");
+    	arrivalTime = Instant.parse("2020-06-03T13:00:00Z");
+    	Ride r2 = Fixture.createRide(car1, Fixture.placeThuisLichtenvoorde, departureTime, Fixture.placeCentrumDoetinchem, arrivalTime);
+    	saveNewRide(r2);
+
+    	departureTime = Instant.parse("2020-06-03T16:00:00Z");
+    	arrivalTime = Instant.parse("2020-06-03T17:00:00Z");
+    	Ride r3 = Fixture.createRide(car1, Fixture.placeCentrumDoetinchem, departureTime, Fixture.placeThuisLichtenvoorde, arrivalTime);
+    	saveNewRide(r3);
+    	flush();
+    	
+    	List<Ride> rides = rideDao.findWithSameDepartureLocation(Fixture.placeThuisLichtenvoorde);
+    	assertEquals(2, rides.size());
+    	assertEquals(r1.getId(), rides.get(0).getId());
+    	assertEquals(r2.getId(), rides.get(1).getId());
+
+    	rides = rideDao.findWithSameArrivalLocation(Fixture.placeThuisLichtenvoorde);
+    	assertEquals(1, rides.size());
+    	assertEquals(r3.getId(), rides.get(0).getId());
+    }
 
 }
