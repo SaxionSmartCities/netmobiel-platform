@@ -1,8 +1,6 @@
-package eu.netmobiel.planner.model;
+package eu.netmobiel.commons.report;
 
 import com.opencsv.bean.CsvBindByName;
-
-import eu.netmobiel.commons.report.ReportKeyWithModality;
 
 public class PassengerModalityBehaviourReport extends ReportKeyWithModality {
 	

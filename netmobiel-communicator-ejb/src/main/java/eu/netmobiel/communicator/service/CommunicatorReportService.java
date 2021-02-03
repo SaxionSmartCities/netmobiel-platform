@@ -12,11 +12,11 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.report.ActivityReport;
 import eu.netmobiel.commons.report.NumericReportValue;
+import eu.netmobiel.commons.report.ShoutOutRecipientReport;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.communicator.model.ActivityReport;
 import eu.netmobiel.communicator.model.Envelope;
-import eu.netmobiel.communicator.model.ShoutOutRecipientReport;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
 
 /**

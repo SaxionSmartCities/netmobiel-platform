@@ -12,7 +12,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import eu.netmobiel.communicator.model.ActivityReport;
+import eu.netmobiel.commons.report.ActivityReport;
 import eu.netmobiel.overseer.model.ActivitySpssReport;
 
 public class ReportProcessorTest {

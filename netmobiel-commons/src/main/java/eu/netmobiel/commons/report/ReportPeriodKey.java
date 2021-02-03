@@ -1,27 +1,18 @@
 package eu.netmobiel.commons.report;
 
 import java.io.Serializable;
-import java.util.Comparator;
-import java.util.Objects;
 
 import com.opencsv.bean.CsvBindByName;
-import com.opencsv.bean.CsvIgnore;
 
 /**
- * This class defines the key for the report. 
+ * This class defines the key for a periodic report. 
  * 
  * @author Jaap Reitsma
  *
  */
-public class ReportKey implements Serializable, Comparable<ReportKey> {
+public class ReportPeriodKey extends ReportKey implements Serializable {
 	private static final long serialVersionUID = -2609854526744056646L;
 
-	/**
-	 * The identity of the user the report is about.
-	 */
-	@CsvBindByName
-	private String managedIdentity;
-	
 	/**
 	 * The year the record is about.
 	 */
@@ -34,43 +25,27 @@ public class ReportKey implements Serializable, Comparable<ReportKey> {
 	@CsvBindByName
 	private int month;
 	
-	/**
-	 * The key to this report, containing the managed identity, year and month.
-	 */
-	@CsvIgnore
-	protected String key;
-
-	public ReportKey() {
+	public ReportPeriodKey() {
 		
 	}
 	
-	public ReportKey(ReportKey key) {
-		super();
-		this.managedIdentity = key.managedIdentity;
+	public ReportPeriodKey(ReportPeriodKey key) {
+		super(key);
 		this.year = key.year;
 		this.month = key.month;
 	}
 	
-	public ReportKey(String managedIdentity, int year, int month) {
-		super();
-		this.managedIdentity = managedIdentity;
+	public ReportPeriodKey(String managedIdentity, int year, int month) {
+		super(managedIdentity);
 		this.year = year;
 		this.month = month;
 	}
 
 	public String getKey() {
 		if (this.key == null) {
-			this.key = String.format("%s-%d-%d", managedIdentity, year, month);
+			this.key = String.format("%s-%d-%d", getManagedIdentity(), year, month);
 		}
 		return this.key;
-	}
-
-	public String getManagedIdentity() {
-		return managedIdentity;
-	}
-
-	public void setManagedIdentity(String managedIdentity) {
-		this.managedIdentity = managedIdentity;
 	}
 
 	public int getYear() {
@@ -87,16 +62,6 @@ public class ReportKey implements Serializable, Comparable<ReportKey> {
 
 	public void setMonth(int month) {
 		this.month = month;
-	}
-
-	@Override
-	public int compareTo(ReportKey other) {
-		return Objects.compare(getKey(), other.getKey(), Comparator.naturalOrder());
-	}
-
-	@Override
-	public String toString() {
-		return getKey();
 	}
 
 }

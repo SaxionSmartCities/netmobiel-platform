@@ -1,10 +1,8 @@
-package eu.netmobiel.communicator.model;
+package eu.netmobiel.commons.report;
 
 import com.opencsv.bean.CsvBindByName;
 
-import eu.netmobiel.commons.report.ReportKey;
-
-public class ActivityReport extends ReportKey {
+public class ActivityReport extends ReportPeriodKey {
 	private static final long serialVersionUID = -2609854526744056646L;
 
 	/**
@@ -36,7 +34,7 @@ public class ActivityReport extends ReportKey {
 		
 	}
 	
-	public ActivityReport(ReportKey key) {
+	public ActivityReport(ReportPeriodKey key) {
 		super(key);
 	}
 

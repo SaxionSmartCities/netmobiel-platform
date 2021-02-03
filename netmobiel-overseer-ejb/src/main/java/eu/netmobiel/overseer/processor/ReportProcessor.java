@@ -49,21 +49,22 @@ import com.opencsv.bean.StatefulBeanToCsv;
 import com.opencsv.bean.StatefulBeanToCsvBuilder;
 import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 
-import eu.netmobiel.banker.model.IncentiveModelDriverReport;
-import eu.netmobiel.banker.model.IncentiveModelPassengerReport;
 import eu.netmobiel.banker.service.BankerReportService;
 import eu.netmobiel.commons.exception.SystemException;
-import eu.netmobiel.commons.report.ReportKey;
+import eu.netmobiel.commons.report.ActivityReport;
+import eu.netmobiel.commons.report.IncentiveModelDriverReport;
+import eu.netmobiel.commons.report.IncentiveModelPassengerReport;
+import eu.netmobiel.commons.report.PassengerBehaviourReport;
+import eu.netmobiel.commons.report.PassengerModalityBehaviourReport;
+import eu.netmobiel.commons.report.ReportPeriodKey;
+import eu.netmobiel.commons.report.RideReport;
+import eu.netmobiel.commons.report.RideshareReport;
+import eu.netmobiel.commons.report.ShoutOutRecipientReport;
 import eu.netmobiel.commons.report.SpssReportBase;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.communicator.model.ActivityReport;
-import eu.netmobiel.communicator.model.ShoutOutRecipientReport;
 import eu.netmobiel.communicator.service.CommunicatorReportService;
 import eu.netmobiel.overseer.model.ActivitySpssReport;
-import eu.netmobiel.planner.model.PassengerBehaviourReport;
-import eu.netmobiel.planner.model.PassengerModalityBehaviourReport;
 import eu.netmobiel.planner.service.PlannerReportService;
-import eu.netmobiel.rideshare.model.RideshareReport;
 import eu.netmobiel.rideshare.service.RideshareReportService;
 
 /**
@@ -159,11 +160,12 @@ public class ReportProcessor {
     		String reportDate = until.format(DateTimeFormatter.ISO_LOCAL_DATE);
     		log.info(String.format("Start report %s for period %s - %s", reportDate, since.format(DateTimeFormatter.ISO_LOCAL_DATE), until.format(DateTimeFormatter.ISO_LOCAL_DATE)));
     		
-    		createAndSendActivityReport(since, until, reportDate);
-    		createAndSendPassengerReport(since, until, reportDate);
-    		createAndSendDriverReport(since, until, reportDate);
-    		createAndSendIncentiveModelPassengerReport(since, until, reportDate);
-    		createAndSendIncentiveModelDriverReport(since, until, reportDate);
+//    		createAndSendActivityReport(since, until, reportDate);
+//    		createAndSendPassengerReport(since, until, reportDate);
+//    		createAndSendDriverReport(since, until, reportDate);
+//    		createAndSendIncentiveModelPassengerReport(since, until, reportDate);
+//    		createAndSendIncentiveModelDriverReport(since, until, reportDate);
+    		createAndSendRideshareRidesReport(since, until, reportDate);
     		log.info("Done reporting");
     	} catch (Exception e) {
 			log.error("Error creating report", e);
@@ -220,7 +222,7 @@ public class ReportProcessor {
 
 	protected void createAndSendDriverReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
     	try {
-    		Map<String, RideshareReport> driverReportMap = rideshareReportService.reportActivity(since.toInstant(), until.toInstant());
+    		Map<String, RideshareReport> driverReportMap = rideshareReportService.reportDriverActivity(since.toInstant(), until.toInstant());
 			List<ShoutOutRecipientReport> shoutOutRecipientReport = 
 					communicatorReportService.reportShoutOutActivity(since.toInstant(), until.toInstant());
 			// Merge the shout-out report into the driver report.
@@ -273,6 +275,19 @@ public class ReportProcessor {
 			sendReports("Incentives Chauffeur", reportDate, reports);
     	} catch (Exception e) {
 			log.error("Error creating and sending incentive model driver report", e);
+    	}
+	}
+
+	protected void createAndSendRideshareRidesReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+    	try {
+    		List<RideReport> report = rideshareReportService.reportRides(since.toInstant(), until.toInstant());
+			Writer ridesWriter = convertToCsv(report, RideReport.class);
+			Map<String, Writer> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "rides", reportDate), ridesWriter);
+	
+			sendReports("Rideshare Rides", reportDate, reports);
+    	} catch (Exception e) {
+			log.error("Error creating and sending Rideshare rides report", e);
     	}
 	}
 
@@ -408,7 +423,7 @@ public class ReportProcessor {
 	 * @param spssClazz The class of the SPSS report record to convert to.
 	 * @return A collection of SPSS records, one record for each managed identity.
 	 */
-	protected <S extends SpssReportBase<R>, R extends ReportKey> Collection<S> createSpssReport(List<R> report, Class<S> spssClazz) {
+	protected <S extends SpssReportBase<R>, R extends ReportPeriodKey> Collection<S> createSpssReport(List<R> report, Class<S> spssClazz) {
 		Map<String, S> spssReportMap = new LinkedHashMap<>();
 		for (R ar : report) {
     		spssReportMap.computeIfAbsent(ar.getManagedIdentity(), k -> {

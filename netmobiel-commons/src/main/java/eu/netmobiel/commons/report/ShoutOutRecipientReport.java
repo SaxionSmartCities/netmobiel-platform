@@ -1,8 +1,6 @@
-package eu.netmobiel.communicator.model;
+package eu.netmobiel.commons.report;
 
-import eu.netmobiel.commons.report.ReportKey;
-
-public class ShoutOutRecipientReport extends ReportKey {
+public class ShoutOutRecipientReport extends ReportPeriodKey {
 	private static final long serialVersionUID = -2609854526744056646L;
 
 	/**
@@ -20,7 +18,7 @@ public class ShoutOutRecipientReport extends ReportKey {
 		
 	}
 	
-	public ShoutOutRecipientReport(ReportKey key) {
+	public ShoutOutRecipientReport(ReportPeriodKey key) {
 		super(key);
 	}
 

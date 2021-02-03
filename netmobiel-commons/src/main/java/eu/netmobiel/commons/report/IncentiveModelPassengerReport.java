@@ -1,10 +1,8 @@
-package eu.netmobiel.banker.model;
+package eu.netmobiel.commons.report;
 
 import com.opencsv.bean.CsvBindByName;
 
-import eu.netmobiel.commons.report.ReportKey;
-
-public class IncentiveModelPassengerReport extends ReportKey {
+public class IncentiveModelPassengerReport extends ReportPeriodKey {
 	
 	private static final long serialVersionUID = -7202730003166618230L;
 
@@ -67,7 +65,7 @@ public class IncentiveModelPassengerReport extends ReportKey {
 		
 	}
 	
-	public IncentiveModelPassengerReport(ReportKey key) {
+	public IncentiveModelPassengerReport(ReportPeriodKey key) {
 		super(key);
 	}
 

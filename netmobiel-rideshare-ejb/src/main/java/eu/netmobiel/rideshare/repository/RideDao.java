@@ -343,4 +343,31 @@ public class RideDao extends AbstractDao<Ride, Long> {
     			.setParameter("postalCode", postalCode)
    			.executeUpdate();
     }
+    
+    public PagedResult<Long> listRides(Instant since, Instant until, Integer maxResults, Integer offset) {
+    	String baseQuery =     			
+    			"from Ride r where r.departureTime >= :since and r.departureTime < :until and " +
+    			" (r.deleted is null or r.deleted = false)";
+    	TypedQuery<Long> tq = null;
+    	if (maxResults == 0) {
+    		// Only request the possible number of results
+    		tq = em.createQuery("select count(r.id) " + baseQuery, Long.class);
+    	} else {
+    		// Get the data IDs
+    		tq = em.createQuery("select r.id " + baseQuery + " order by r.departureTime asc, r.id asc", Long.class);
+    	}
+    	tq.setParameter("since", since)
+			.setParameter("until", until);
+        Long totalCount = null;
+        List<Long> results = Collections.emptyList();
+        if (maxResults == 0) {
+            totalCount = tq.getSingleResult();
+        } else {
+			tq.setFirstResult(offset);
+			tq.setMaxResults(maxResults);
+			results = tq.getResultList();
+        }
+        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+    }
+
 }

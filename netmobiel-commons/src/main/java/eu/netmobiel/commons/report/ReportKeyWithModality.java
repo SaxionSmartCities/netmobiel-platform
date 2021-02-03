@@ -2,7 +2,7 @@ package eu.netmobiel.commons.report;
 
 import com.opencsv.bean.CsvBindByName;
 
-public class ReportKeyWithModality extends ReportKey {
+public class ReportKeyWithModality extends ReportPeriodKey {
 
 	private static final long serialVersionUID = -6559984699496241503L;
 

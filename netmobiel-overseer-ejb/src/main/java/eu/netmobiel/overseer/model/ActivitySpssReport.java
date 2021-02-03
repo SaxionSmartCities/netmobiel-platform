@@ -5,8 +5,8 @@ import org.apache.commons.collections4.multimap.ArrayListValuedHashMap;
 
 import com.opencsv.bean.CsvBindAndJoinByName;
 
+import eu.netmobiel.commons.report.ActivityReport;
 import eu.netmobiel.commons.report.SpssReportBase;
-import eu.netmobiel.communicator.model.ActivityReport;
 
 public class ActivitySpssReport extends SpssReportBase<ActivityReport> {
 

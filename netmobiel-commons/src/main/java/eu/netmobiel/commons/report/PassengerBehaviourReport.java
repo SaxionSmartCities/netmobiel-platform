@@ -1,10 +1,8 @@
-package eu.netmobiel.planner.model;
+package eu.netmobiel.commons.report;
 
 import com.opencsv.bean.CsvBindByName;
 
-import eu.netmobiel.commons.report.ReportKey;
-
-public class PassengerBehaviourReport extends ReportKey {
+public class PassengerBehaviourReport extends ReportPeriodKey {
 	
 	private static final long serialVersionUID = -7202730003166618230L;
 
@@ -78,7 +76,7 @@ public class PassengerBehaviourReport extends ReportKey {
 		
 	}
 	
-	public PassengerBehaviourReport(ReportKey key) {
+	public PassengerBehaviourReport(ReportPeriodKey key) {
 		super(key);
 	}
 

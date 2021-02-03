@@ -10,10 +10,10 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 
 import eu.netmobiel.banker.model.AccountingEntry;
-import eu.netmobiel.banker.model.IncentiveModelDriverReport;
-import eu.netmobiel.banker.model.IncentiveModelPassengerReport;
 import eu.netmobiel.banker.repository.AccountingEntryDao;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.report.IncentiveModelDriverReport;
+import eu.netmobiel.commons.report.IncentiveModelPassengerReport;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.Logging;
 
