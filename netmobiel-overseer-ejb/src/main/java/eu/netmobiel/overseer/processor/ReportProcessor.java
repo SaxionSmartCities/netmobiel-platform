@@ -56,6 +56,7 @@ import eu.netmobiel.commons.report.IncentiveModelDriverReport;
 import eu.netmobiel.commons.report.IncentiveModelPassengerReport;
 import eu.netmobiel.commons.report.PassengerBehaviourReport;
 import eu.netmobiel.commons.report.PassengerModalityBehaviourReport;
+import eu.netmobiel.commons.report.ProfileReport;
 import eu.netmobiel.commons.report.ReportPeriodKey;
 import eu.netmobiel.commons.report.RideReport;
 import eu.netmobiel.commons.report.RideshareReport;
@@ -161,6 +162,7 @@ public class ReportProcessor {
     		String reportDate = until.format(DateTimeFormatter.ISO_LOCAL_DATE);
     		log.info(String.format("Start report %s for period %s - %s", reportDate, since.format(DateTimeFormatter.ISO_LOCAL_DATE), until.format(DateTimeFormatter.ISO_LOCAL_DATE)));
     		
+    		createAndSendProfilesReport(reportDate);
     		createAndSendActivityReport(since, until, reportDate);
     		createAndSendPassengerReport(since, until, reportDate);
     		createAndSendDriverReport(since, until, reportDate);
@@ -175,6 +177,29 @@ public class ReportProcessor {
     		jobRunning = false;
     	}
     }
+
+	protected void createAndSendProfilesReport(String reportDate) {
+    	try {
+    		// Flawed logic about passengers and drivers
+    		Map<String, ProfileReport> reportMap = rideshareReportService.reportUsers();
+    		Map<String, ProfileReport> totalReport = plannerReportService.reportUsers();
+    		for (Map.Entry<String, ProfileReport> pr : reportMap.entrySet()) {
+				ProfileReport rep = totalReport.computeIfAbsent(pr.getKey(), k -> pr.getValue());
+				rep.setNrActiveCars(pr.getValue().getNrActiveCars());
+				rep.setIsDriver(pr.getValue().getIsDriver());
+			}
+    		List<ProfileReport> report = totalReport.values().stream()
+	    			.sorted()
+	    			.collect(Collectors.toList());
+			Writer ridesWriter = convertToCsv(report, ProfileReport.class);
+			Map<String, Writer> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "profiles", reportDate), ridesWriter);
+	
+			sendReports("Profielen", reportDate, reports);
+    	} catch (Exception e) {
+			log.error("Error creating and sending profiles report", e);
+    	}
+	}
 
 	protected void createAndSendActivityReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
     	try {
@@ -456,7 +481,7 @@ public class ReportProcessor {
 	}
 
 	protected void sendReports(String name, String reportDate, Map<String, Writer> reports) {
-		log.info("Sending report to " + reportRecipient);
+		log.info(String.format("Sending report '%s' to %s", name, reportRecipient));
 		Map<String, String> valuesMap = new HashMap<>();
 		valuesMap.put("subjectPrefix", subjectPrefix);
 		valuesMap.put("reportDate", reportDate);

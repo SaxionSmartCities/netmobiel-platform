@@ -21,12 +21,15 @@ import eu.netmobiel.commons.report.ModalityNumericReportValue;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.report.PassengerBehaviourReport;
 import eu.netmobiel.commons.report.PassengerModalityBehaviourReport;
+import eu.netmobiel.commons.report.ProfileReport;
 import eu.netmobiel.commons.report.TripReport;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.TriStateLogic;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
+import eu.netmobiel.planner.repository.PlannerUserDao;
 import eu.netmobiel.planner.repository.TripDao;
 import eu.netmobiel.planner.repository.TripPlanDao;
 
@@ -44,6 +47,8 @@ public class PlannerReportService {
     @Inject
     private TripPlanDao tripPlanDao;
 
+    @Inject
+    private PlannerUserDao userDao;
 	
     public Map<String, PassengerBehaviourReport> reportPassengerBehaviour(Instant since, Instant until) throws BadRequestException {
     	Map<String, PassengerBehaviourReport> reportMap = new HashMap<>();
@@ -187,4 +192,22 @@ public class PlannerReportService {
         return report;
     }
 
+    public Map<String, ProfileReport> reportUsers() throws BadRequestException {
+    	Map<String, ProfileReport> reportMap = new HashMap<>();
+		PagedResult<Long> prs = userDao.findAll(0, 0);
+        Long totalCount = prs.getTotalCount();
+        final int batchSize = 100;
+        for (int offset = 0; offset < totalCount; offset += batchSize) {
+    		PagedResult<Long> userIds = userDao.findAll(batchSize, offset);
+    		List<PlannerUser> users = userDao.loadGraphs(userIds.getData(), null, PlannerUser::getId);
+    		for (PlannerUser user : users) {
+    			ProfileReport rr = new ProfileReport(user.getManagedIdentity());
+    			reportMap.put(user.getManagedIdentity(), rr);
+    			// We don't know who is passenger and who is not, well, we could check who has trips scheduled
+    			// Wait for the profile service, they know.
+    			// rr.setIsPassenger(true);
+    		}
+   		}
+    	return reportMap;
+    }
 }

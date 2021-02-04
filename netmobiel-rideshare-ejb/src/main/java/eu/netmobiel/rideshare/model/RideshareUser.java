@@ -8,6 +8,7 @@ import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
@@ -19,7 +20,12 @@ import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.User;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
-@NamedEntityGraph()
+@NamedEntityGraph(
+		name = RideshareUser.LIST_USERS_WITH_CARS_ENTITY_GRAPH,
+		attributeNodes = { 
+			@NamedAttributeNode(value = "carsInUse"),		
+		}
+	)
 @Entity
 // You cannot have a table called 'user' in postgres, it is a reserved keyword
 @Table(name = "rs_user", uniqueConstraints = {
@@ -31,7 +37,8 @@ public class RideshareUser extends User {
 
 	private static final long serialVersionUID = -4237705703151528786L;
 	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix("user");
-	
+	public static final String LIST_USERS_WITH_CARS_ENTITY_GRAPH = "list-users-cars-graph";
+
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "user_sg")
     private Long id;

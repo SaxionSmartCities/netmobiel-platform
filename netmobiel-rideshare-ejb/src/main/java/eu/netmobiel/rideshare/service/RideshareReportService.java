@@ -17,14 +17,17 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.report.NumericReportValue;
+import eu.netmobiel.commons.report.ProfileReport;
 import eu.netmobiel.commons.report.RideReport;
 import eu.netmobiel.commons.report.RideshareReport;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Recurrence;
 import eu.netmobiel.rideshare.model.Ride;
+import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.BookingDao;
 import eu.netmobiel.rideshare.repository.RideDao;
+import eu.netmobiel.rideshare.repository.RideshareUserDao;
 
 @Stateless
 @Logging
@@ -37,6 +40,8 @@ public class RideshareReportService {
 	private RideDao rideDao;
 	@Inject
 	private BookingDao bookingDao;
+	@Inject
+	private RideshareUserDao userDao;
     
 
     public Map<String, RideshareReport> reportDriverActivity(Instant since, Instant until) throws BadRequestException {
@@ -115,4 +120,26 @@ public class RideshareReportService {
         return report;
     }
 
+    public Map<String, ProfileReport> reportUsers() throws BadRequestException {
+    	Map<String, ProfileReport> reportMap = new HashMap<>();
+		PagedResult<Long> prs = userDao.findAll(0, 0);
+        Long totalCount = prs.getTotalCount();
+        final int batchSize = 100;
+        for (int offset = 0; offset < totalCount; offset += batchSize) {
+    		PagedResult<Long> userIds = userDao.findAll(batchSize, offset);
+    		List<RideshareUser> users = userDao.loadGraphs(userIds.getData(), RideshareUser.LIST_USERS_WITH_CARS_ENTITY_GRAPH, RideshareUser::getId);
+    		for (RideshareUser user : users) {
+    			ProfileReport rr = new ProfileReport(user.getManagedIdentity());
+    			reportMap.put(user.getManagedIdentity(), rr);
+    			rr.setNrActiveCars(user.getCarsInUse() != null ? user.getCarsInUse().size() : 0);
+    			if (user.getYearOfBirth() != null) {
+    				rr.setYearOfBirth(Integer.parseInt(user.getYearOfBirth()));
+    			}
+    			if (rr.getNrActiveCars() > 0) {
+    				rr.setIsDriver(true);
+    			}
+    		}
+   		}
+    	return reportMap;
+    }
 }

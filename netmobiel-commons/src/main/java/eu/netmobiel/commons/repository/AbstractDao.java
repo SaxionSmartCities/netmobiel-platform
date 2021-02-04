@@ -23,6 +23,7 @@ import javax.persistence.criteria.Root;
 
 import org.hibernate.jpa.QueryHints;
 
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.report.ModalityNumericReportValue;
 import eu.netmobiel.commons.report.NumericReportValue;
 
@@ -136,6 +137,27 @@ public abstract class AbstractDao<T, ID> {
         CriteriaQuery<T> all = cq.select(rootEntry);
         TypedQuery<T> allQuery = getEntityManager().createQuery(all);
         return allQuery.getResultList();
+    }
+
+    public PagedResult<ID> findAll(Integer maxResults, Integer offset) {
+        CriteriaBuilder cb = getEntityManager().getCriteriaBuilder();
+	    Long totalCount = null;
+	    List<ID> results = Collections.emptyList();
+	    if (maxResults == 0) {
+	        CriteriaQuery<Long> cqc = cb.createQuery(Long.class);
+	        Root<T> root = cqc.from(getPersistentClass());
+	        cqc.select(cb.count(root));
+	        totalCount = getEntityManager().createQuery(cqc).getSingleResult();
+	    } else {
+	        CriteriaQuery<ID> cq = cb.createQuery(getPrimaryKeyClass());
+	        Root<T> rootEntry = cq.from(getPersistentClass());
+	        cq.select(rootEntry.get(rootEntry.getModel().getDeclaredId(getPrimaryKeyClass())));
+	        TypedQuery<ID> tq = getEntityManager().createQuery(cq);
+			tq.setFirstResult(offset);
+			tq.setMaxResults(maxResults);
+			results = tq.getResultList();
+	    }
+	    return new PagedResult<ID>(results, maxResults, offset, totalCount);
     }
 
     /**
