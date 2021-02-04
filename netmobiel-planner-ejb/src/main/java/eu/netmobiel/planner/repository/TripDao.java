@@ -139,86 +139,6 @@ public class TripDao extends AbstractDao<Trip, Long> {
 		}
     	return Optional.ofNullable(tripId); 
     }
-    
-//    // RGP-1
-//    public List<NumericReportValue> reportTripsCreatedCount(Instant since, Instant until) throws BadRequestException {
-//        return em.createNamedQuery("ListTripsCreatedCount", NumericReportValue.class)
-//        		.setParameter(1, since)
-//        		.setParameter(2, until)
-//        		.getResultList();
-//    }
-//
-//    // RGP-2
-//    public List<NumericReportValue> reportTripsCancelledCount(Instant since, Instant until) throws BadRequestException {
-//        return em.createNamedQuery("ListTripsCancelledCount", NumericReportValue.class)
-//        		.setParameter(1, since)
-//        		.setParameter(2, until)
-//        		.getResultList();
-//    }
-//
-//    // RGP-3
-//    public List<NumericReportValue> reportTripsCancelledByPassengerCount(Instant since, Instant until) throws BadRequestException {
-//        return em.createNamedQuery("ListTripsCancelledByPassengerCount", NumericReportValue.class)
-//        		.setParameter(1, since)
-//        		.setParameter(2, until)
-//        		.getResultList();
-//    }
-//
-//    // RGP-4
-//    public List<NumericReportValue> reportTripsCancelledByProviderCount(Instant since, Instant until) throws BadRequestException {
-//        return em.createNamedQuery("ListTripsCancelledByProviderCount", NumericReportValue.class)
-//        		.setParameter(1, since)
-//        		.setParameter(2, until)
-//        		.getResultList();
-//    }
-//
-//    // RGP-5
-//    public List<NumericReportValue> reportTripsWithConfirmedRideshareCount(Instant since, Instant until) throws BadRequestException {
-//        return em.createNamedQuery("ListTripsWithConfirmedRideshareCount", NumericReportValue.class)
-//        		.setParameter(1, since)
-//        		.setParameter(2, until)
-//        		.getResultList();
-//    }
-//
-//    // RGP-6
-//    public List<NumericReportValue> reportTripsWithCancelledRidesharePaymentCount(Instant since, Instant until) throws BadRequestException {
-//        return em.createNamedQuery("ListTripsWithCancelledRidesharePaymentCount", NumericReportValue.class)
-//        		.setParameter(1, since)
-//        		.setParameter(2, until)
-//        		.getResultList();
-//    }
-//
-//    // RGP-7
-//    public List<NumericReportValue> reportMonoModalTripsCount(Instant since, Instant until) throws BadRequestException {
-//        return em.createNamedQuery("ListMonoModalTripsCount", NumericReportValue.class)
-//        		.setParameter(1, since)
-//        		.setParameter(2, until)
-//        		.getResultList();
-//    }
-//
-//    // RGP-8
-//    public List<ModalityNumericReportValue> reportMonoModalTripsByModalityCount(Instant since, Instant until) throws BadRequestException {
-//        return em.createNamedQuery("ListMonoModalTripsByModalityCount", ModalityNumericReportValue.class)
-//        		.setParameter(1, since)
-//        		.setParameter(2, until)
-//        		.getResultList();
-//    }
-//
-//    // RGP-9
-//    public List<NumericReportValue> reportMultiModalTripsCount(Instant since, Instant until) throws BadRequestException {
-//        return em.createNamedQuery("ListMultiModalTripsCount", NumericReportValue.class)
-//        		.setParameter(1, since)
-//        		.setParameter(2, until)
-//        		.getResultList();
-//    }
-//
-//    // RGP-10
-//    public List<ModalityNumericReportValue> reportMultiModalTripsByModalityCount(Instant since, Instant until) throws BadRequestException {
-//        return em.createNamedQuery("ListMultiModalTripsByModalityCount", ModalityNumericReportValue.class)
-//        		.setParameter(1, since)
-//        		.setParameter(2, until)
-//        		.getResultList();
-//    }
 
     /**
      * Find the first ride without a departure or arrival postal code.
@@ -247,4 +167,32 @@ public class TripDao extends AbstractDao<Trip, Long> {
     			.setParameter("postalCode", postalCode)
    			.executeUpdate();
     }
+    
+    public PagedResult<Long> listTrips(Instant since, Instant until, Integer maxResults, Integer offset) {
+    	String baseQuery =     			
+    			"from Trip t where t.itinerary.departureTime >= :since and t.itinerary.departureTime < :until and " +
+    			" t.state = :state";
+    	TypedQuery<Long> tq = null;
+    	if (maxResults == 0) {
+    		// Only request the possible number of results
+    		tq = em.createQuery("select count(t.id) " + baseQuery, Long.class);
+    	} else {
+    		// Get the data IDs
+    		tq = em.createQuery("select t.id " + baseQuery + " order by t.itinerary.departureTime asc, t.id asc", Long.class);
+    	}
+    	tq.setParameter("since", since)
+			.setParameter("until", until)
+			.setParameter("state", TripState.COMPLETED);
+        Long totalCount = null;
+        List<Long> results = Collections.emptyList();
+        if (maxResults == 0) {
+            totalCount = tq.getSingleResult();
+        } else {
+			tq.setFirstResult(offset);
+			tq.setMaxResults(maxResults);
+			results = tq.getResultList();
+        }
+        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+    }
+
 }

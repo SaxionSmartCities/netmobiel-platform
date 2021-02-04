@@ -61,6 +61,7 @@ import eu.netmobiel.commons.report.RideReport;
 import eu.netmobiel.commons.report.RideshareReport;
 import eu.netmobiel.commons.report.ShoutOutRecipientReport;
 import eu.netmobiel.commons.report.SpssReportBase;
+import eu.netmobiel.commons.report.TripReport;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.service.CommunicatorReportService;
 import eu.netmobiel.overseer.model.ActivitySpssReport;
@@ -160,12 +161,13 @@ public class ReportProcessor {
     		String reportDate = until.format(DateTimeFormatter.ISO_LOCAL_DATE);
     		log.info(String.format("Start report %s for period %s - %s", reportDate, since.format(DateTimeFormatter.ISO_LOCAL_DATE), until.format(DateTimeFormatter.ISO_LOCAL_DATE)));
     		
-//    		createAndSendActivityReport(since, until, reportDate);
-//    		createAndSendPassengerReport(since, until, reportDate);
-//    		createAndSendDriverReport(since, until, reportDate);
-//    		createAndSendIncentiveModelPassengerReport(since, until, reportDate);
-//    		createAndSendIncentiveModelDriverReport(since, until, reportDate);
+    		createAndSendActivityReport(since, until, reportDate);
+    		createAndSendPassengerReport(since, until, reportDate);
+    		createAndSendDriverReport(since, until, reportDate);
+    		createAndSendIncentiveModelPassengerReport(since, until, reportDate);
+    		createAndSendIncentiveModelDriverReport(since, until, reportDate);
     		createAndSendRideshareRidesReport(since, until, reportDate);
+    		createAndSendTripsReport(since, until, reportDate);
     		log.info("Done reporting");
     	} catch (Exception e) {
 			log.error("Error creating report", e);
@@ -288,6 +290,19 @@ public class ReportProcessor {
 			sendReports("Rideshare Rides", reportDate, reports);
     	} catch (Exception e) {
 			log.error("Error creating and sending Rideshare rides report", e);
+    	}
+	}
+
+	protected void createAndSendTripsReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+    	try {
+    		List<TripReport> report = plannerReportService.reportTrips(since.toInstant(), until.toInstant());
+			Writer ridesWriter = convertToCsv(report, TripReport.class);
+			Map<String, Writer> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "trips", reportDate), ridesWriter);
+	
+			sendReports("Passenger Trips", reportDate, reports);
+    	} catch (Exception e) {
+			log.error("Error creating and sending passenger trips report", e);
     	}
 	}
 

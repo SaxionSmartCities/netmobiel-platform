@@ -1,8 +1,13 @@
 package eu.netmobiel.planner.service;
 
 import java.time.Instant;
+import java.time.ZoneId;
+import java.util.ArrayList;
+import java.util.Comparator;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
+import java.util.stream.Collectors;
 
 import javax.ejb.Stateless;
 import javax.inject.Inject;
@@ -10,11 +15,16 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.report.ModalityNumericReportValue;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.report.PassengerBehaviourReport;
 import eu.netmobiel.commons.report.PassengerModalityBehaviourReport;
+import eu.netmobiel.commons.report.TripReport;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.TriStateLogic;
+import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.repository.TripDao;
@@ -114,4 +124,67 @@ public class PlannerReportService {
     	return reportMap;
     	
     }
+    
+    
+    /**
+     * Creates a report on all trips made in specified period.
+     * @return A report with all trips in the specified period.
+     * @param since	start period.
+     * @param until end period exclusive.
+     * @throws BadRequestException 
+     */
+    public List<TripReport> reportTrips(Instant since, Instant until) throws NotFoundException, BadRequestException {
+    	List<TripReport> report = new ArrayList<>();
+		PagedResult<Long> prs = tripDao.listTrips(since, until, 0, 0);
+        Long totalCount = prs.getTotalCount();
+        final int batchSize = 100;
+        for (int offset = 0; offset < totalCount; offset += batchSize) {
+    		PagedResult<Long> tripIds = tripDao.listTrips(since, until, batchSize, offset);
+    		List<Trip> trips = tripDao.loadGraphs(tripIds.getData(), Trip.DETAILED_ENTITY_GRAPH, Trip::getId);
+    		for (Trip trip : trips) {
+    			TripReport rr = new TripReport(trip.getTraveller().getManagedIdentity());
+    			report.add(rr);
+    			// RSP-1
+    			rr.setDeparturePostalCode(trip.getDeparturePostalCode());
+    			// RSP-2
+    			rr.setArrivalPostalCode(trip.getArrivalPostalCode());
+    			// RSP-3
+    			rr.setTravelDate(trip.getItinerary().getDepartureTime().atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toLocalDateTime());
+    			// RSP-4
+    			rr.setTripDuration(trip.getItinerary().getDuration() / 60);
+    			// RSP-5
+    			rr.setWalkDuration(trip.getItinerary().getWalkTime() / 60);
+    			// RSP-6
+    			Boolean confirmed = trip.getItinerary().getLegs().stream()
+    					.map(lg -> lg.getConfirmed())
+    					.collect(Collectors.reducing(null, TriStateLogic::and));
+    			rr.setTripConfirmed(confirmed);
+    			// RSP-7
+    			Boolean driverConfirmed = trip.getItinerary().getLegs().stream()
+    					.map(lg -> lg.getConfirmedByProvider())
+    					.collect(Collectors.reducing(null, TriStateLogic::and));
+    			rr.setDriverHasConfirmed(driverConfirmed);
+    			// RSP-8
+    			boolean hasRideshareLeg = trip.getItinerary().getLegs().stream()
+    					.filter(lg -> lg.getTraverseMode() == TraverseMode.RIDESHARE)
+    					.findFirst()
+    					.isPresent();
+    			rr.setRideshareUsed(hasRideshareLeg);
+    			// RSP-9
+    			boolean hasPublicTransportLeg = trip.getItinerary().getLegs().stream()
+    					.filter(lg -> lg.getTraverseMode().isTransit())
+    					.findFirst()
+    					.isPresent();
+    			rr.setPublicTransportUsed(hasPublicTransportLeg);
+    			// RSP-10
+//    			rr.setReviewedByPassenger(reviewedByPassenger);
+    			// RSP-11
+//    			rr.setReviewByDriver(reviewedByDriver);
+			}
+    		
+		}
+        report.sort(Comparator.naturalOrder());
+        return report;
+    }
+
 }

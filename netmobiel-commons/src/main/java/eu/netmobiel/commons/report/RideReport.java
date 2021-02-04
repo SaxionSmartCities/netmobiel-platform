@@ -42,10 +42,10 @@ public class RideReport extends ReportKey {
 	private int nrOfPassengers;
 	
 	/**
-	 * RSC-6: Is the ride completed according to the driver.  
+	 * RSC-6: Is the ride confirmed by to the driver.  
 	 */
 	@CsvBindByName
-	private Boolean rideCompleted;
+	private Boolean rideConfirmedByDriver;
 	
 	/**
 	 * RSC-7: Is the ride reviewed by at least one passenger?
@@ -118,12 +118,12 @@ public class RideReport extends ReportKey {
 		this.nrOfPassengers = nrOfPassengers;
 	}
 
-	public Boolean getRideCompleted() {
-		return rideCompleted;
+	public Boolean getRideConfirmedByDriver() {
+		return rideConfirmedByDriver;
 	}
 
-	public void setRideCompleted(Boolean rideCompleted) {
-		this.rideCompleted = rideCompleted;
+	public void setRideConfirmedByDriver(Boolean rideConfirmedByDriver) {
+		this.rideConfirmedByDriver = rideConfirmedByDriver;
 	}
 
 	public Boolean getReviewedByPassenger() {

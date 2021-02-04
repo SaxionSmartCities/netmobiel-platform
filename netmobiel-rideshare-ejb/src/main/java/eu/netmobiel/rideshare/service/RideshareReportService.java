@@ -101,7 +101,7 @@ public class RideshareReportService {
         			rr.setNrOfPassengers(ride.getActiveBooking().get().getNrSeats());
     			}
     			// RSC-6
-    			rr.setRideCompleted(ride.getConfirmed());
+    			rr.setRideConfirmedByDriver(ride.getConfirmed());
     			// RSC-7
 //    			rr.setReviewedByDriver(reviewedByDriver);
     			// RSC-8

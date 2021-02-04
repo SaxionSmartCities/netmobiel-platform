@@ -17,11 +17,17 @@ public class ReportKey implements Serializable, Comparable<ReportKey> {
 	private static final long serialVersionUID = -2609854526744056646L;
 
 	/**
-	 * The identity of the user the report is about.
+	 * UserID: The identity of the user the report is about.
 	 */
 	@CsvBindByName
 	private String managedIdentity;
 	
+	/**
+	 * Home: The home locality of the user.
+	 */
+	@CsvBindByName
+	private String home;
+
 	/**
 	 * The key to this report, containing the managed identity, year and month.
 	 */
@@ -54,6 +60,14 @@ public class ReportKey implements Serializable, Comparable<ReportKey> {
 
 	public void setManagedIdentity(String managedIdentity) {
 		this.managedIdentity = managedIdentity;
+	}
+
+	public String getHome() {
+		return home;
+	}
+
+	public void setHome(String home) {
+		this.home = home;
 	}
 
 	@Override

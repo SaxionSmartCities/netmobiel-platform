@@ -347,7 +347,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
     public PagedResult<Long> listRides(Instant since, Instant until, Integer maxResults, Integer offset) {
     	String baseQuery =     			
     			"from Ride r where r.departureTime >= :since and r.departureTime < :until and " +
-    			" (r.deleted is null or r.deleted = false)";
+    			" state = :state";
     	TypedQuery<Long> tq = null;
     	if (maxResults == 0) {
     		// Only request the possible number of results
@@ -357,7 +357,8 @@ public class RideDao extends AbstractDao<Ride, Long> {
     		tq = em.createQuery("select r.id " + baseQuery + " order by r.departureTime asc, r.id asc", Long.class);
     	}
     	tq.setParameter("since", since)
-			.setParameter("until", until);
+			.setParameter("until", until)
+			.setParameter("state", RideState.COMPLETED);
         Long totalCount = null;
         List<Long> results = Collections.emptyList();
         if (maxResults == 0) {
