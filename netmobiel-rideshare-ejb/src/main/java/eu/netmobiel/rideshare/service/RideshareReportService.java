@@ -100,7 +100,9 @@ public class RideshareReportService {
     			// RSC-3
     			rr.setTravelDate(ride.getDepartureTime().atZone(ZoneId.of(Recurrence.DEFAULT_TIME_ZONE)).toLocalDateTime());
     			// RSC-4
-    			rr.setRideDuration(ride.getDuration() / 60);
+    			if (ride.getDuration() != null) {
+    				rr.setRideDuration(ride.getDuration() / 60);
+    			}
     			// RSC-5
     			if (ride.hasActiveBooking()) {
         			rr.setNrOfPassengers(ride.getActiveBooking().get().getNrSeats());

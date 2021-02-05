@@ -156,9 +156,13 @@ public class PlannerReportService {
     			// RSP-3
     			rr.setTravelDate(trip.getItinerary().getDepartureTime().atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toLocalDateTime());
     			// RSP-4
-    			rr.setTripDuration(trip.getItinerary().getDuration() / 60);
+    			if (trip.getItinerary().getDuration() != null) {
+    				rr.setTripDuration(trip.getItinerary().getDuration() / 60);
+    			}
     			// RSP-5
-    			rr.setWalkDuration(trip.getItinerary().getWalkTime() / 60);
+    			if (trip.getItinerary().getWalkTime() != null) {
+    				rr.setWalkDuration(trip.getItinerary().getWalkTime() / 60);
+    			}
     			// RSP-6
     			Boolean confirmed = trip.getItinerary().getLegs().stream()
     					.map(lg -> lg.getConfirmed())

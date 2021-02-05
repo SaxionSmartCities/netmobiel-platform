@@ -312,7 +312,7 @@ public class ReportProcessor {
 			Map<String, Writer> reports = new LinkedHashMap<>();
 			reports.put(String.format("%s-report-%s.csv", "rides", reportDate), ridesWriter);
 	
-			sendReports("Rideshare Rides", reportDate, reports);
+			sendReports("Reis Chauffeur", reportDate, reports);
     	} catch (Exception e) {
 			log.error("Error creating and sending Rideshare rides report", e);
     	}
@@ -325,7 +325,7 @@ public class ReportProcessor {
 			Map<String, Writer> reports = new LinkedHashMap<>();
 			reports.put(String.format("%s-report-%s.csv", "trips", reportDate), ridesWriter);
 	
-			sendReports("Passenger Trips", reportDate, reports);
+			sendReports("Reis Passagier", reportDate, reports);
     	} catch (Exception e) {
 			log.error("Error creating and sending passenger trips report", e);
     	}

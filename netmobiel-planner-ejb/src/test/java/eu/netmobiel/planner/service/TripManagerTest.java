@@ -21,6 +21,7 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.UrnHelper;
+import eu.netmobiel.here.search.HereSearchClient;
 import eu.netmobiel.planner.event.BookingCancelledEvent;
 import eu.netmobiel.planner.event.BookingConfirmedEvent;
 import eu.netmobiel.planner.event.BookingRequestedEvent;
@@ -30,10 +31,10 @@ import eu.netmobiel.planner.event.TripStateUpdatedEvent;
 import eu.netmobiel.planner.event.TripValidationExpiredEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
-import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.TripDao;
 import eu.netmobiel.planner.repository.TripPlanDao;
@@ -90,6 +91,9 @@ public class TripManagerTest {
     @Injectable
     private Event<TripValidationExpiredEvent> tripValidationExpiredEvent;
 
+    @Injectable
+	private HereSearchClient hereSearchClient;
+    
     private PlannerUser traveller;
 	
 	@Before

@@ -4,3 +4,7 @@ ALTER TABLE public.ride
 	ADD COLUMN departure_postal_code character varying(6),
 	ADD COLUMN arrival_postal_code character varying(6)
 ;
+ALTER TABLE public.ride_template 
+	ADD COLUMN departure_postal_code character varying(6),
+	ADD COLUMN arrival_postal_code character varying(6)
+;
