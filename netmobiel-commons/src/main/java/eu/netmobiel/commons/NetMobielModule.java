@@ -7,6 +7,7 @@ public enum NetMobielModule {
 	COMMUNICATOR("cm"),
 	KEYCLOAK("kc"),
 	PLANNER("pn"),
+	PROFILE("pf"),
 	RIDESHARE("rs");
 
 	private String code;
