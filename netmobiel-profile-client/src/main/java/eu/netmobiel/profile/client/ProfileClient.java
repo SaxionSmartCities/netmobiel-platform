@@ -219,9 +219,9 @@ public class ProfileClient {
 	 * @param pickup the pickup location of the traveller. 
 	 * @param dropOff the drop-off location of the traveller.
 	 * @param driverMaxRadiusMeter The radius of the circles that limits the eligibility of the the driver 
-	 * 			by demanding his living location to be in the two large circles around the pickup and drop-off location. 
+	 * 			by demanding his living location to be in both the two large circles around the pickup and drop-off location. 
 	 * @param driverNeighbouringRadiusMeter The radius of the circles that limits the eligibility of the the driver 
-	 * 			by demanding his living location to be in the neighbourhood of the pickup or drop-off location.
+	 * 			by demanding his living location to be in the neighbourhood of one of the pickup or drop-off locations.
 	 * @return A list of profiles of potential drivers, possibly empty.
 	 * @throws BusinessException In case of trouble.
 	 */
