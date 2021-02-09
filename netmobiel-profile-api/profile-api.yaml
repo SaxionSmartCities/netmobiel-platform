@@ -480,6 +480,8 @@ paths:
       parameters:
       - name: profileId
         description: The profile id of the user.
+        schema:
+          type: string
         in: path
         required: true
       responses:
