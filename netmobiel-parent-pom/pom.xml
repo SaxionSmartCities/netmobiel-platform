@@ -51,7 +51,7 @@
 		<!--  Use exactly the same SLF4J as defined by JBOSS  -->
 		<version.org.slf4j>1.7.22.jbossorg-1</version.org.slf4j>
 		<version-openapi-generator>4.2.1</version-openapi-generator>
-
+		<version.postgres>42.2.8</version.postgres>
 		<!-- A base list of dependency and plug-in version used in the various 
 			quick starts. -->
 		<version.wildfly.maven.plugin>2.0.2.Final</version.wildfly.maven.plugin>
@@ -228,6 +228,12 @@
 				<groupId>com.opencsv</groupId>
 				<artifactId>opencsv</artifactId>
 				<version>${version.opencsv}</version>
+			</dependency>
+			<!-- Postgres driver, used in arquillian error messages -->
+			<dependency>
+			    <groupId>org.postgresql</groupId>
+			    <artifactId>postgresql</artifactId>
+			    <version>${version.postgres}</version>
 			</dependency>
    		</dependencies>
 	</dependencyManagement>
