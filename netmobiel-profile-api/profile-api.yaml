@@ -41,7 +41,7 @@ paths:
                 $ref: '#/components/schemas/ProfileResponse'
           description: Successfull call. The result contains an array of `Profile`
             entities.
-      operationId: listRides
+      operationId: listProfiles
       summary: List profiles of users.
       description: |-
         List profiles matching the search criteria.
@@ -79,7 +79,7 @@ paths:
                   value:
                     success: false
                     message: Profile already exists (in Keycloak).
-          description: Profile already exists (in Keycloak)
+          description: Profile already exists (in Keycloak).
         "422":
           content:
             application/json:
@@ -91,7 +91,8 @@ paths:
                     success: false
                     message: Missing mandatory profile attributes (email, firstName
                       or lastName).
-          description: One or more required parameters are missing.
+          description: 'One or more required parameters are missing: email, firstName,
+            lastName.'
         "451":
           content:
             application/json:
@@ -102,7 +103,8 @@ paths:
                   value:
                     success: false
                     message: Terms have not been accepted.
-          description: Terms have not been accepted.
+          description: Terms have not been accepted, i.e. one of the consent options
+            is not checked.
         "500":
           $ref: '#/components/responses/InternalServerError'
       security:
@@ -188,7 +190,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/FirebaseMessagingToken'
+                $ref: '#/components/schemas/FirebaseTokenResponse'
           description: Returns a FCM token.
       operationId: getFcmToken
       summary: Retrieves a `Firebase Messaging Token`.
@@ -215,18 +217,19 @@ paths:
       - name: withInAnyCircles
         description: Takes a list of circles in the format lat:lon:radius where the
           radius is in kilometers and fetches all profiles that have a home address
-          within at least one of the circles.
+          within at least one of the circles. . Put the parameter value between square
+          brackets.
         schema:
           type: string
         in: query
         required: true
       - examples:
           aCircle:
-            value: '"52.004166:6.517835:50"'
+            value: '"[52.004166:6.517835:50,52.10:6.65:50]"'
         name: withInAllCircles
         description: Takes a list of circles in the format lat:lon:radius where the
           radius is in kilometers and fetches all profiles that have a home address
-          within all of the circles.
+          within all of the circles. Put the parameter value between square brackets.
         schema:
           type: string
         in: query
@@ -251,6 +254,245 @@ paths:
         \ assumption is that the driver is prepared to drive a certain maximum distance\
         \ (allCircles) and that \nthe pickup or drop-off location of the traveller\
         \ should be in the neighbourhood (anyCircles)."
+  /compliments:
+    summary: Path used to manage the list of compliments.
+    description: The REST endpoint/path used to list and create zero or more `Compliment`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - name: senderId
+        description: The user ID of the sender of the compliment.
+        schema:
+          type: string
+        in: query
+      - name: receiverId
+        description: The user ID of the receiver of the compliment.
+        schema:
+          type: string
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Compliment'
+          description: Successful response - returns an array of `Compliment` entities.
+      operationId: getCompliments
+      summary: List compliments
+      description: Gets a list of all `Compliment` entities.
+    post:
+      requestBody:
+        description: A new `Compliment` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Compliment'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "422":
+          description: Missing parameters.
+      operationId: createCompliment
+      summary: Create a Compliment
+      description: Creates a new instance of a `Compliment`.
+  /compliments/{complimentId}:
+    summary: Path used to manage a single Compliment.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Compliment`.  This path contains `GET`, `PUT`, and `DELETE` operations
+      used to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Compliment'
+          description: Successful response - returns a single `Compliment`.
+      operationId: getCompliment
+      summary: Get a Compliment
+      description: Gets the details of a single instance of a `Compliment`.
+    put:
+      requestBody:
+        description: Updated `Compliment` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Compliment'
+        required: true
+      responses:
+        "202":
+          description: Successful response.
+      operationId: updateCompliment
+      summary: Update a Compliment
+      description: Updates an existing `Compliment`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deleteCompliment
+      summary: Delete a Compliment
+      description: Deletes an existing `Compliment`.
+    parameters:
+    - name: complimentId
+      description: A unique identifier for a `Compliment`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /compliments/types:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplimentTypesResponse'
+          description: Returns a list of compliment strings.
+      operationId: getComplimentTypes
+      summary: List compliment types
+      description: Return an array of compliment types.
+  /reviews/{reviewId}:
+    summary: Path used to manage a single Review.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Review`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: Successful response - returns a single `Review`.
+      operationId: getReview
+      summary: Get a Review
+      description: Gets the details of a single instance of a `Review`.
+    put:
+      requestBody:
+        description: Updated `Review` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Review'
+        required: true
+      responses:
+        "202":
+          description: Successful response.
+      operationId: updateReview
+      summary: Update a Review
+      description: Updates an existing `Review`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deleteReview
+      summary: Delete a Review
+      description: Deletes an existing `Review`.
+    parameters:
+    - name: reviewId
+      description: A unique identifier for a `Review`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /reviews:
+    summary: Path used to manage the list of reviews.
+    description: The REST endpoint/path used to list and create zero or more `Review`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - name: senderId
+        description: The user ID of the sender of the review.
+        schema:
+          type: string
+        in: query
+      - name: receiverId
+        description: The user ID of the receiver of the review.
+        schema:
+          type: string
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Review'
+          description: Successful response - returns an array of `Review` entities.
+      operationId: getReviews
+      summary: List reviews
+      description: Gets a list of all `Review` entities.
+    post:
+      requestBody:
+        description: A new `Review` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Review'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "422":
+          description: Missing parameters.
+      operationId: createReview
+      summary: Create a Review
+      description: Creates a new instance of a `Review`.
+  /profiles/{profileId}/image:
+    summary: Manages the profile image.
+    description: Manage the profile image of the user of this profile.
+    get:
+      parameters:
+      - name: profileId
+        description: The profile is of the user.
+        schema:
+          type: string
+        in: path
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+          description: The relative path to the image or an empty string if none available.
+      operationId: getProfileImage
+      summary: Get the image path.
+      description: Gets the path to the profile image.
+    put:
+      requestBody:
+        description: The image to upload.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageUploadRequest'
+        required: true
+      parameters:
+      - name: profileId
+        description: The profile id of the user.
+        in: path
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: The updated profile.
+      operationId: uploadImage
+      summary: Uploads an image
+      description: Uploads an image. The previous image is removed. The path to the
+        image is saved in the profile.
 components:
   schemas:
     SearchPreferences:
@@ -274,13 +516,21 @@ components:
             type: string
         allowedTravelModes:
           description: 'The default preferences of travel modalities. Choose a combination
-            from the following options: `BICYCLE`, `BUS`, `CAR`, `RIDESHARE`, `RAIL`,
+            from the following options: `BICYCLE`, `BUS`, `CAR`, `RAIL`, `RIDESHARE`,
             `WALK`.'
           type: array
           items:
             type: string
         allowTransfer:
           description: If true then transfers between modalities are allowed.
+          type: boolean
+        allowFirstLegTransfer:
+          description: Flag to signal whether first leg can be a rideshare leg. Default
+            is false.
+          type: boolean
+        allowLastLegTransfer:
+          description: 'Flag to signal whether last leg (last mile) can be a rideshare
+            leg. Default is false. '
           type: boolean
     ProfileResponse:
       required:
@@ -306,6 +556,8 @@ components:
       - dateOfBirth
       - consent
       - id
+      - userRole
+      - notificationOptions
       type: object
       properties:
         email:
@@ -333,6 +585,10 @@ components:
           type: string
         userRole:
           description: The role of the user (?).
+          enum:
+          - passenger
+          - driver
+          - both
           type: string
         consent:
           $ref: '#/components/schemas/UserConsent'
@@ -341,12 +597,28 @@ components:
           $ref: '#/components/schemas/Address'
           description: The home address of the user.
         id:
-          description: The profile id, which is exactly equals to the Keycloak managed
+          description: The profile id, which is exactly equal to the Keycloak managed
             identity.
           type: string
         ridePlanOptions:
           $ref: '#/components/schemas/RidePlanOptions'
           description: The preferences of a driver role in NetMobiel.
+        image:
+          description: Path to the profile picture of the user. If the path is releatibve,
+            then it starts with /images.
+          type: string
+        interests:
+          description: A list of interests.
+          type: array
+          items:
+            type: string
+        favoriteLocations:
+          description: A list of favorite locations.
+          type: array
+          items: {}
+        notificationOptions:
+          $ref: '#/components/schemas/NotificationOptions'
+          description: The notification preferences
     UserConsent:
       title: Root Type for UserConsent
       description: Type user to flag consent with the terms of use of NetMobiel.
@@ -382,6 +654,9 @@ components:
         country:
           description: The country code according to ISO 3166-2.
           type: string
+        location:
+          $ref: '#/components/schemas/Location'
+          description: The GPS location of this address.
       example:
         street: Rembrandtstraat
         houseNumber: "8"
@@ -410,7 +685,191 @@ components:
         selectedCarId:
           description: The currently preferred car for ridesharing.
           type: integer
-    FirebaseMessagingToken:
+    Location:
+      title: Root Type for Location
+      description: A GPS location.
+      required:
+      - type
+      type: object
+      properties:
+        coordinates:
+          description: The coordinates of the location as a longitude, latitude pair.
+          type: array
+          items:
+            format: double
+            type: number
+        type:
+          description: The type of the location. Always `Point`.
+          type: string
+      example:
+        type: Point
+        coordinates:
+        - 6.6047
+        - 52.04157
+    NotificationOptions:
+      title: Root Type for NotificationOptions
+      description: Specified the preferences for notifications.
+      type: object
+      properties:
+        tripConfirmations:
+          type: boolean
+        tripUpdates:
+          type: boolean
+        tripReminders:
+          type: boolean
+        messages:
+          type: boolean
+        shoutouts:
+          type: boolean
+      example:
+        tripConfirmations: true
+        tripUpdates: true
+        tripReminders: true
+        messages: true
+        shoutouts: true
+    UserRef:
+      title: Root Type for UserRef
+      description: A reference to a user, with the name included.
+      type: object
+      properties:
+        id:
+          type: string
+        firstName:
+          type: string
+        lastName:
+          type: string
+      example:
+        id: 5c76c977-2ffd-4100-a8c0-77db7129660d
+        firstName: Passagier
+        lastName: Acceptatie
+    Compliment:
+      title: Root Type for Review
+      description: A review for a user.
+      required:
+      - receiver
+      - published
+      - id
+      - complimentType
+      - sender
+      type: object
+      properties:
+        id:
+          description: Unique id of the compliment
+          type: string
+        published:
+          format: date-time
+          description: Date of publishing of the compliment.
+          type: string
+        sender:
+          $ref: '#/components/schemas/UserRef'
+          description: The sender of the compliment, i.e. the reviewer.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        receiver:
+          $ref: '#/components/schemas/UserRef'
+          description: The user receiving the compliment.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        complimentType:
+          description: The compliment as an enum.
+          enum:
+          - Zelfde interesses
+          - Op tijd
+          - Soepele communicatie
+          - Gezellig
+          - Netjes
+          - Goede auto
+          type: string
+      example:
+        id: 5f9c1893bf7c52051be2231b
+        published: 2020-10-27T08:29:51.901Z
+        sender:
+          id: 5c76c977-2ffd-4100-a8c0-77db7129660d
+          firstName: Passagier
+          lastName: Acceptatie
+        receiver:
+          id: b0c0d6c0-0de8-4669-88c7-57732a8dcd22
+          firstName: Chauffeur
+          lastName: Acceptatie
+        complimentType: Soepele communicatie
+    ComplimentTypesResponse:
+      title: Root Type for ComplimentTypesResponse
+      description: The response on the request for compliment types.
+      type: object
+      properties:
+        complimentTypes:
+          description: A list of compliments.
+          type: array
+          items:
+            type: string
+      example:
+        complimentTypes:
+        - Soepele Communicatie
+        - Gezellig
+    Review:
+      title: Root Type for Review
+      description: A review for a user.
+      required:
+      - receiver
+      - published
+      - id
+      - review
+      - sender
+      type: object
+      properties:
+        id:
+          description: Unique id of the review
+          type: string
+        published:
+          format: date-time
+          description: Date of publishing of the review.
+          type: string
+        sender:
+          $ref: '#/components/schemas/UserRef'
+          description: The sender of the review, i.e. the reviewer.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        receiver:
+          $ref: '#/components/schemas/UserRef'
+          description: The user receiving the review.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        review:
+          description: The review text.
+          type: string
+      example:
+        id: 5f9c1893bf7c52051be2231b
+        published: 2020-10-27T08:29:51.901Z
+        sender:
+          id: 5c76c977-2ffd-4100-a8c0-77db7129660d
+          firstName: Passagier
+          lastName: Acceptatie
+        receiver:
+          id: b0c0d6c0-0de8-4669-88c7-57732a8dcd22
+          firstName: Chauffeur
+          lastName: Acceptatie
+        review: Tot de volgende keer.
+    FirebaseTokenResponse:
       title: Root Type for FirebaseMessagingToken
       description: Type of a messaging token.
       type: object
@@ -421,6 +880,24 @@ components:
           type: string
       example:
         fcmToken: "1234"
+    ImageResponse:
+      title: Root Type for ImageResponse
+      description: The response to a request for a profile image
+      type: object
+      properties:
+        image:
+          type: string
+      example:
+        image: /images/ab/cdef.png
+    ImageUploadRequest:
+      description: The request for uploading an image.
+      required:
+      - image
+      type: object
+      properties:
+        image:
+          description: The image data encoded in base64.
+          type: string
   responses:
     InternalServerError:
       content:
