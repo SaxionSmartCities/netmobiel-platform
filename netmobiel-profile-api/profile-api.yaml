@@ -16,102 +16,6 @@ servers:
 - url: https://api.netmobiel.eu/gwapi/acc/profiles
   description: The profile service visible to the world (acceptance).
 paths:
-  /profiles:
-    summary: Path used to manage profiles.
-    description: The REST endpoint/path used to list and create zero or more `Profile`
-      entities. This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
-    get:
-      parameters:
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProfileResponse'
-          description: Successfull call. The result contains an array of `Profile`
-            entities.
-      operationId: listProfiles
-      summary: List profiles of users.
-      description: |-
-        List profiles matching the search criteria.
-
-        TO BE IMPLEMENTED.
-    post:
-      requestBody:
-        description: A profile.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Profile'
-        required: true
-      responses:
-        "201":
-          description: The profile is created.
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProfileResponse'
-              examples:
-                "400response":
-                  value:
-                    succcess: false
-                    message: Invalid date of birth.
-          description: Invalid or missing date of birth.
-        "409":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProfileResponse'
-              examples:
-                "409example":
-                  value:
-                    success: false
-                    message: Profile already exists (in Keycloak).
-          description: Profile already exists (in Keycloak).
-        "422":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProfileResponse'
-              examples:
-                "422response":
-                  value:
-                    success: false
-                    message: Missing mandatory profile attributes (email, firstName
-                      or lastName).
-          description: 'One or more required parameters are missing: email, firstName,
-            lastName.'
-        "451":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProfileResponse'
-              examples:
-                "451example":
-                  value:
-                    success: false
-                    message: Terms have not been accepted.
-          description: Terms have not been accepted, i.e. one of the consent options
-            is not checked.
-        "500":
-          $ref: '#/components/responses/InternalServerError'
-      security:
-      - apikey: []
-      operationId: createProfile
-      summary: Create aprofile.
-      description: Creates a new profile
   /profiles/{profileId}:
     summary: Path used to manage a single `Profile`.
     description: The REST endpoint/path used to get, update, and delete a single instance
@@ -239,7 +143,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProfileResponse'
+                $ref: '#/components/schemas/Page'
           description: Successfull call. The result contains an array of `Profile`
             entities.
       operationId: searchShoutOutDrivers
@@ -495,6 +399,110 @@ paths:
       summary: Uploads an image
       description: Uploads an image. The previous image is removed. The path to the
         image is saved in the profile.
+  /profiles:
+    summary: Path used to manage profiles.
+    description: The REST endpoint/path used to list and create zero or more `Profile`
+      entities. This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - name: role
+        description: The role to search for. If omitted any role will do.
+        schema:
+          enum:
+          - PASSENGER
+          - DRIVER
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successfull call. The result contains a `Page` with `Profile`
+            entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      operationId: listProfiles
+      summary: List profiles of users.
+      description: "List profiles matching the search criteria. \n\nRequires admin\
+        \ role."
+    post:
+      requestBody:
+        description: A profile.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+        required: true
+      responses:
+        "201":
+          description: The profile is created.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+              examples:
+                "400response":
+                  value:
+                    succcess: false
+                    message: Invalid date of birth.
+          description: Invalid or missing date of birth.
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+              examples:
+                "409example":
+                  value:
+                    success: false
+                    message: Profile already exists (in Keycloak).
+          description: Profile already exists (in Keycloak).
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+              examples:
+                "422response":
+                  value:
+                    success: false
+                    message: Missing mandatory profile attributes (email, firstName
+                      or lastName).
+          description: 'One or more required parameters are missing: email, firstName,
+            lastName.'
+        "451":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+              examples:
+                "451example":
+                  value:
+                    success: false
+                    message: Terms have not been accepted.
+          description: Terms have not been accepted, i.e. one of the consent options
+            is not checked.
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - apikey: []
+      operationId: createProfile
+      summary: Create aprofile.
+      description: Creates a new profile
 components:
   schemas:
     SearchPreferences:
@@ -534,21 +542,6 @@ components:
           description: 'Flag to signal whether last leg (last mile) can be a rideshare
             leg. Default is false. '
           type: boolean
-    ProfileResponse:
-      required:
-      - success
-      - message
-      - profiles
-      type: object
-      properties:
-        success:
-          type: boolean
-        message:
-          type: string
-        profiles:
-          type: array
-          items:
-            $ref: '#/components/schemas/Profile'
     Profile:
       description: The profile attributes of a user of NetMobiel.
       required:
@@ -900,12 +893,64 @@ components:
         image:
           description: The image data encoded in base64.
           type: string
+    Page:
+      title: Root Type for Page
+      description: A page from a result set. For smaller sets the page contains the
+        complete result set.
+      type: object
+      properties:
+        totalCount:
+          format: int32
+          description: |-
+            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
+
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
+          type: integer
+        count:
+          format: int32
+          description: The number of items in this page.
+          type: integer
+        data:
+          description: An array with the actual payload. The payload depends on the
+            request being made.
+          type: array
+          items: {}
+        offset:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
+      example:
+        totalCount: 104
+        start: 32
+        count: 16
+        data: []
+    Error:
+      title: Root Type for Error
+      description: The error response.
+      type: object
+      properties:
+        message:
+          type: string
+        reasonPhrase:
+          type: string
+        status:
+          format: int32
+          type: integer
+        errorCode:
+          description: A string code identifying the error. This code can be used
+            to display an error message in the right language.
+          type: string
+      example:
+        message: This is a really bad request
+        reasonPhrase: Bad Request
+        status: 400
   responses:
     InternalServerError:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ProfileResponse'
+            $ref: '#/components/schemas/Page'
           examples:
             "500example":
               value:
@@ -917,7 +962,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ProfileResponse'
+            $ref: '#/components/schemas/Page'
           examples:
             "403example":
               value:
@@ -929,7 +974,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ProfileResponse'
+            $ref: '#/components/schemas/Page'
           examples:
             "401example":
               value:
@@ -941,7 +986,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ProfileResponse'
+            $ref: '#/components/schemas/Page'
           examples:
             "503example":
               value:
@@ -953,7 +998,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ProfileResponse'
+            $ref: '#/components/schemas/Page'
           examples:
             "404example":
               value:
@@ -964,7 +1009,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ProfileResponse'
+            $ref: '#/components/schemas/Page'
           examples:
             "410example":
               value:
@@ -975,7 +1020,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ProfileResponse'
+            $ref: '#/components/schemas/Page'
           examples:
             "409example":
               value:
@@ -986,7 +1031,7 @@ components:
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/ProfileResponse'
+            $ref: '#/components/schemas/Page'
           examples:
             "400example":
               value:
@@ -1004,3 +1049,6 @@ components:
       scheme: bearer
       type: http
       description: You need a valid access token.
+security:
+- apikey: []
+  Bearer-only: []
