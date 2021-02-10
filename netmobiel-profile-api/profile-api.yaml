@@ -641,7 +641,7 @@ components:
           description: The house number.
           type: string
         postalCode:
-          description: Thje postal code for the address.
+          description: The postal code for the address.
           type: string
         locality:
           description: The city or village name.
@@ -652,12 +652,25 @@ components:
         location:
           $ref: '#/components/schemas/Location'
           description: The GPS location of this address.
+        id:
+          description: Database identifier of this address.
+          type: number
+        label:
+          description: A short description of the place.
+          type: string
       example:
         street: Rembrandtstraat
         houseNumber: "8"
         postalCode: 7556WD
         locality: Hengelo
         country: NL
+        id: 1234567
+        label: Thuis
+        location:
+          type: Point
+          coordinates:
+          - 6.6047
+          - 52.04157
     RidePlanOptions:
       type: object
       properties:
