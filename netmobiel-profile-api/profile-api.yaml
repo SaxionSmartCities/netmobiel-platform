@@ -1067,7 +1067,7 @@ components:
         compliments:
           type: array
           items:
-            $ref: '#/components/schemas/Review'
+            $ref: '#/components/schemas/Compliment'
       example:
         message: Succes!
         success: true
