@@ -1049,7 +1049,8 @@ components:
           type: boolean
         profiles:
           type: array
-          items: {}
+          items:
+            $ref: '#/components/schemas/Profile'
       example:
         message: Succes!
         success: true
@@ -1065,7 +1066,8 @@ components:
           type: boolean
         compliments:
           type: array
-          items: {}
+          items:
+            $ref: '#/components/schemas/Review'
       example:
         message: Succes!
         success: true
@@ -1081,7 +1083,8 @@ components:
           type: boolean
         reviews:
           type: array
-          items: {}
+          items:
+            $ref: '#/components/schemas/Review'
       example:
         message: Succes!
         success: true
