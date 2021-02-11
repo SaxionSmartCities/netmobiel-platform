@@ -180,10 +180,8 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Compliment'
-          description: Successful response - returns an array of `Compliment` entities.
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Compliment` entities.
       operationId: getCompliments
       summary: List compliments
       description: Gets a list of all `Compliment` entities.
@@ -327,10 +325,8 @@ paths:
           content:
             application/json:
               schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Review'
-          description: Successful response - returns an array of `Review` entities.
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Review` entities.
       operationId: getReviews
       summary: List reviews
       description: Gets a list of all `Review` entities.
@@ -503,6 +499,40 @@ paths:
       operationId: createProfile
       summary: Create aprofile.
       description: Creates a new profile
+  /profiles/{profileId}/oldskool:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProfileResponse'
+          description: Success response.
+      operationId: getProfileOldskool
+    parameters:
+    - name: profileId
+      in: path
+      required: true
+  /compliments/oldskool:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplimentResponse'
+          description: List all compliments
+      operationId: getComplimentsOldskool
+  /reviews/oldskool:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ReviewResponse'
+          description: Get all reviews in oldskool stlye.
+      operationId: getReviewsOldskool
 components:
   schemas:
     SearchPreferences:
@@ -958,6 +988,54 @@ components:
         message: This is a really bad request
         reasonPhrase: Bad Request
         status: 400
+    ProfileResponse:
+      title: Root Type for ProfileResponse
+      description: Old response style for profiles return value.
+      type: object
+      properties:
+        message:
+          type: string
+        success:
+          type: boolean
+        profiles:
+          type: array
+          items: {}
+      example:
+        message: Succes!
+        success: true
+        profiles: []
+    ComplimentResponse:
+      title: Root Type for ProfileResponse
+      description: Old response style for profiles return value.
+      type: object
+      properties:
+        message:
+          type: string
+        success:
+          type: boolean
+        compliments:
+          type: array
+          items: {}
+      example:
+        message: Succes!
+        success: true
+        compliments: []
+    ReviewResponse:
+      title: Root Type for ProfileResponse
+      description: Old response style for profiles return value.
+      type: object
+      properties:
+        message:
+          type: string
+        success:
+          type: boolean
+        reviews:
+          type: array
+          items: {}
+      example:
+        message: Succes!
+        success: true
+        reviews: []
   responses:
     InternalServerError:
       content:
