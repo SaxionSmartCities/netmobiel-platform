@@ -692,7 +692,7 @@ components:
           type: number
         selectedCarId:
           description: The currently preferred car for ridesharing.
-          type: integer
+          type: string
     Location:
       title: Root Type for Location
       description: A GPS location.
