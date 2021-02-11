@@ -511,6 +511,8 @@ paths:
       operationId: getProfileOldskool
     parameters:
     - name: profileId
+      schema:
+        type: string
       in: path
       required: true
   /compliments/oldskool:
