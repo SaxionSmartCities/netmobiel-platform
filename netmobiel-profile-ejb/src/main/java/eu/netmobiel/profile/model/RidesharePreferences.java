@@ -23,6 +23,7 @@ import javax.validation.constraints.Max;
 import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
+import javax.validation.constraints.Size;
 
 @Entity
 @Table(name = "rideshare_preferences")
@@ -67,6 +68,9 @@ public class RidesharePreferences implements Serializable {
     @OrderBy("ASC")
 	private Set<LuggageOption> luggageOptions;
     
+    @Size(max = 32)
+    private String defaultCarRef;
+    
     public RidesharePreferences() {
     	super();
     }
@@ -86,13 +90,13 @@ public class RidesharePreferences implements Serializable {
 		this.id = id;
 	}
 
-	public Profile getProfile() {
-		return profile;
-	}
-
-	public void setProfile(Profile profile) {
-		this.profile = profile;
-	}
+//	public Profile getProfile() {
+//		return profile;
+//	}
+//
+//	public void setProfile(Profile profile) {
+//		this.profile = profile;
+//	}
 
 	public Integer getMaxMinutesDetour() {
 		return maxMinutesDetour;
@@ -119,6 +123,14 @@ public class RidesharePreferences implements Serializable {
 
 	public void setLuggageOptions(Set<LuggageOption> luggageOptions) {
 		this.luggageOptions = luggageOptions;
+	}
+
+	public String getDefaultCarRef() {
+		return defaultCarRef;
+	}
+
+	public void setDefaultCarRef(String defaultCarRef) {
+		this.defaultCarRef = defaultCarRef;
 	}
     
 

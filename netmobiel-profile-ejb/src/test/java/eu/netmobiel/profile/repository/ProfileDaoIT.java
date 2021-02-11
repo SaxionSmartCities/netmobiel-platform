@@ -2,7 +2,6 @@ package eu.netmobiel.profile.repository;
 
 import static org.junit.Assert.*;
 
-import java.time.Instant;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
@@ -61,7 +60,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	var address = Fixture.createAddressLichtenvoorde();
     	var path = "/images/my/image.png";
     	var phoneNr = "+31612345678";
-    	var consent16 = Instant.parse("2020-09-10T10:00:00Z");
+    	var consent16 = true;
     	var p = Fixture.createPassenger2();
     	log.debug("Create passenger2 with address");
     	p.setDateOfBirth(LocalDate.parse(birthDay));
@@ -107,7 +106,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	
     	log.debug("Check consent");
     	assertNotNull(p.getConsent());
-    	assertEquals(consent16, p.getConsent().getOlderThanSixteen());
+    	assertEquals(consent16, p.getConsent().isOlderThanSixteen());
 
     	log.debug("Check notification options");
     	assertNotNull(p.getNotificationOptions());
@@ -144,14 +143,14 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
 
     	log.debug("Fetch passenger2, standard");
     	p = profileDao.find(p.getId()).get();
-    	assertNull(p.getConsent().getOlderThanSixteen());
+    	assertFalse(p.getConsent().isOlderThanSixteen());
     	log.debug("Set consent flag passenger 2");
-    	p.getConsent().setOlderThanSixteen(Instant.now());
+    	p.getConsent().setOlderThanSixteen(true);
     	flush();
     	
     	log.debug("Fetch passenger2, standard, check consent");
     	p = profileDao.find(p.getId()).get();
-    	assertNotNull(p.getConsent().getOlderThanSixteen());
+    	assertTrue(p.getConsent().isOlderThanSixteen());
     	
     	log.debug("... and change searchPreferences");
     	p.getSearchPreferences().getAllowedTraverseModes().remove(TraverseMode.BUS);

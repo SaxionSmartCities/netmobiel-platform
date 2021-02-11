@@ -1,5 +1,6 @@
 package eu.netmobiel.profile.repository;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -7,18 +8,25 @@ import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
+import javax.persistence.criteria.CriteriaBuilder;
+import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Predicate;
+import javax.persistence.criteria.Root;
 
 import org.slf4j.Logger;
 
 import com.vividsolutions.jts.geom.Polygon;
 
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.UserDao;
 import eu.netmobiel.commons.util.EllipseHelper;
-import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.profile.annotation.ProfileDatabase;
+import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Profile;
+import eu.netmobiel.profile.model.Profile_;
 import eu.netmobiel.profile.model.UserRole;
 
 
@@ -42,7 +50,44 @@ public class ProfileDao extends UserDao<Profile> {
 		return em;
 	}
 
-	
+	/**
+	 * Retrieves the profile according the search criteria.
+	 * @param role The user role to select. Role 'both' is always included if driver or passenger is set.
+	 * @param maxResults The maximum results in one result set.
+	 * @param offset The offset (starting at 0) to start the result set.
+	 * @return A pages result. Total count is determined only when maxResults is set to 0.
+	 */
+	public PagedResult<Long> listProfiles(ProfileFilter filter, Cursor cursor) {
+    	CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<Profile> profile = cq.from(Profile.class);
+        List<Predicate> predicates = new ArrayList<>();
+        if (filter.getUserRole() != null) {
+        	Predicate rolePred = cb.equal(profile.get(Profile_.userRole), filter.getUserRole());  
+        	// Search for the profile with the specified role, or role 'both'
+        	if (filter.getUserRole() == UserRole.DRIVER || filter.getUserRole() == UserRole.PASSENGER) {
+		        predicates.add(cb.or(rolePred, cb.equal(profile.get(Profile_.userRole), UserRole.BOTH)));
+        	} else {
+		        predicates.add(rolePred);
+        	}
+        }        
+        cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
+        Long totalCount = null;
+        List<Long> results = null;
+        if (cursor.isCountingQuery()) {
+          cq.select(cb.count(profile.get(Profile_.id)));
+          totalCount = em.createQuery(cq).getSingleResult();
+        } else {
+	        cq.select(profile.get(Profile_.id));
+	        cq.orderBy(cb.asc(profile.get(Profile_.id)));
+	        TypedQuery<Long> tq = em.createQuery(cq);
+			tq.setFirstResult(cursor.getOffset());
+			tq.setMaxResults(cursor.getMaxResults());
+			results = tq.getResultList();
+        }
+        return new PagedResult<Long>(results, cursor, totalCount);
+	}
+
 	@Override
 	public void remove(Profile profile) {
 		profile.getAddresses().forEach(addr -> getEntityManager().remove(addr));
@@ -74,7 +119,6 @@ public class ProfileDao extends UserDao<Profile> {
 //    		logger.debug("Pickup small circle: " + GeometryHelper.createWKT(pickupSmallCircle));
 //    		logger.debug("Drop-off small circle: " + GeometryHelper.createWKT(dropOffSmallCircle));
 //    	}
-    	GeometryHelper.createWKT(dropOffSmallCircle);
     	TypedQuery<Profile> tq = em.createQuery("from Profile p where contains(:pickupLarge, p.homeAddress.location.point) = true and contains(:dropOffLarge, p.homeAddress.location.point) = true "
     			+ " and (contains(:pickupSmall, p.homeAddress.location.point) = true or contains(:dropOffSmall, p.homeAddress.location.point) = true) "
     			+ " and p.userRole != :passengerRole "

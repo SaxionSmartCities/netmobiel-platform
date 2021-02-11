@@ -1,13 +1,13 @@
 package eu.netmobiel.profile.model;
 
 import java.io.Serializable;
-import java.time.Instant;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
 import javax.persistence.AccessType;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
+import javax.validation.constraints.NotNull;
 
 @Embeddable
 @Vetoed
@@ -17,26 +17,27 @@ public class UserConsent implements Serializable {
 	/**
 	 * If set, the time the user accepted the terms.
 	 */
+	@NotNull
 	@Column(name = "accepted_terms")
-	private Instant acceptedTerms;
+	private boolean acceptedTerms = false;
 	/**
 	 * If set, the time the user stated to be older than 16.
 	 */
+	@NotNull
 	@Column(name = "older_than_sixteen")
-	private Instant olderThanSixteen;
+	private boolean olderThanSixteen = false;
 	
-	public Instant getAcceptedTerms() {
+	public boolean isAcceptedTerms() {
 		return acceptedTerms;
 	}
-	public void setAcceptedTerms(Instant acceptedTerms) {
+	public void setAcceptedTerms(boolean acceptedTerms) {
 		this.acceptedTerms = acceptedTerms;
 	}
-	public Instant getOlderThanSixteen() {
+	public boolean isOlderThanSixteen() {
 		return olderThanSixteen;
 	}
-	public void setOlderThanSixteen(Instant olderThanSixteen) {
+	public void setOlderThanSixteen(boolean olderThanSixteen) {
 		this.olderThanSixteen = olderThanSixteen;
 	}
-	
 	
 }

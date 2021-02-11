@@ -14,10 +14,20 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedAttributeNode;
+import javax.persistence.NamedEntityGraph;
+import javax.persistence.NamedEntityGraphs;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 
+@NamedEntityGraphs({
+	@NamedEntityGraph(name = Compliment.LIST_COMPLIMENTS_ENTITY_GRAPH,
+		attributeNodes = {
+			@NamedAttributeNode(value = "receiver"),
+			@NamedAttributeNode(value = "sender"),
+	}),
+})
 @Entity
 @Table(name = "compliment")
 @Vetoed
@@ -25,6 +35,7 @@ import javax.validation.constraints.NotNull;
 @SequenceGenerator(name = "compliment_sg", sequenceName = "compliment_id_seq", allocationSize = 1, initialValue = 50)
 public class Compliment implements Serializable {
 	private static final long serialVersionUID = 7052181227403511232L;
+	public static final String LIST_COMPLIMENTS_ENTITY_GRAPH = "list-compliments-entity-graph";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "compliment_sg")

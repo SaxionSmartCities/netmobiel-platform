@@ -87,7 +87,7 @@ public class Profile extends User  {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "profile_sg")
     private Long id;
 
-	@OneToMany(fetch = FetchType.LAZY, cascade = CascadeType.PERSIST, mappedBy = "profile")
+	@OneToMany(fetch = FetchType.LAZY, cascade = { CascadeType.ALL } , mappedBy = "profile", orphanRemoval = true)
 	private Set<Address> addresses;
 	
 	@ManyToOne(fetch = FetchType.LAZY) 
