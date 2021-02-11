@@ -2,10 +2,11 @@ package eu.netmobiel.commons.filter;
 
 import java.time.Instant;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 
 import eu.netmobiel.commons.exception.BadRequestException;
 
-public class PeriodFilter {
+public class PeriodFilter extends BaseFilter {
 	/**
 	 * For development purposes. Used to validate the since and until parameters.
 	 */
@@ -56,12 +57,31 @@ public class PeriodFilter {
 		}
 	}
 
+	@Override
 	public void validate() throws BadRequestException {
+		super.validate();
     	if (now == null) {
     		now = Instant.now();
     	}
     	if (until != null && since != null && !until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
     	}
+	}
+	
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		if (since != null) {
+			builder.append("since=");
+			builder.append(DateTimeFormatter.ISO_INSTANT.format(since));
+			builder.append(", ");
+		}
+		if (since != null) {
+			builder.append("until=");
+			builder.append(DateTimeFormatter.ISO_INSTANT.format(until));
+			builder.append(", ");
+		}
+		builder.append(super.toString());
+		return builder.toString();
 	}
 }

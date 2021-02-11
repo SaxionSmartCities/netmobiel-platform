@@ -3,9 +3,7 @@ package eu.netmobiel.rideshare.filter;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
-import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.filter.PeriodFilter;
-import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.RideState;
@@ -29,12 +27,6 @@ public class RideFilter extends PeriodFilter {
 	 */
 	private Long siblingRideId;
 
-	/** ==============================
-	 * Sorting
-	 */
-	private SortDirection sortDir;
-
-	
 	/**
 	 * Should we ignore the anonymous flag? Only when a user requests his own
 	 * donations, or when an admin requests the overview In report queries the
@@ -132,27 +124,6 @@ public class RideFilter extends PeriodFilter {
 		this.siblingRideId = siblingRideId;
 	}
 
-	public SortDirection getSortDir() {
-		return sortDir;
-	}
-
-	public void setSortDir(SortDirection sortDir) {
-		this.sortDir = sortDir;
-	}
-
-	public final void setSortDir(String sortDir) {
-		if (sortDir != null) {
-			this.sortDir = SortDirection.valueOf(sortDir);
-		}
-	}
-
-	public void validate() throws BadRequestException {
-		super.validate();
-    	if (this.sortDir == null) {
-    		this.sortDir = SortDirection.ASC;
-    	}
-	}
-
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -177,13 +148,14 @@ public class RideFilter extends PeriodFilter {
 			builder.append(bookingState);
 			builder.append(", ");
 		}
-		if (sortDir != null) {
-			builder.append("sortDir=");
-			builder.append(sortDir);
+		if (siblingRideId != null) {
+			builder.append("siblingRideId");
+			builder.append(siblingRideId);
 			builder.append(", ");
 		}
 		builder.append("deletedToo=");
 		builder.append(deletedToo);
+		builder.append(super.toString());
 		builder.append("]");
 		return builder.toString();
 	}

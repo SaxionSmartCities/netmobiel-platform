@@ -164,20 +164,6 @@ public class DonationFilter extends PeriodFilter {
 		}
 	}
 
-	public SortDirection getSortDir() {
-		return sortDir;
-	}
-
-	public void setSortDir(SortDirection sortDir) {
-		this.sortDir = sortDir;
-	}
-
-	public final void setSortDir(String sortDir) {
-		if (sortDir != null) {
-			this.sortDir = SortDirection.valueOf(sortDir);
-		}
-	}
-
 	public boolean isAnonymousToo() {
 		return anonymousToo;
 	}

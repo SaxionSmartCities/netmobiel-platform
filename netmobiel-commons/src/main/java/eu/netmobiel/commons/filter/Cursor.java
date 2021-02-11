@@ -13,6 +13,10 @@ public class Cursor {
 	private Integer offset;
 	public static final Cursor COUNTING_CURSOR = new Cursor(0, 0);
 	
+	public Cursor() {
+		
+	}
+	
 	public Cursor(Integer aMaxResult, Integer anOffset) {
 		this.maxResults = aMaxResult;
 		this.offset = anOffset;
