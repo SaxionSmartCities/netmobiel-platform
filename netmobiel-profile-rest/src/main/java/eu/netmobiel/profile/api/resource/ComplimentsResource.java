@@ -1,5 +1,9 @@
 package eu.netmobiel.profile.api.resource;
 
+import java.util.List;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
+
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
@@ -12,8 +16,10 @@ import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.profile.api.ComplimentsApi;
 import eu.netmobiel.profile.api.mapping.ComplimentMapper;
+import eu.netmobiel.profile.api.model.ComplimentTypesResponse;
 import eu.netmobiel.profile.filter.ComplimentFilter;
 import eu.netmobiel.profile.model.Compliment;
+import eu.netmobiel.profile.model.ComplimentType;
 import eu.netmobiel.profile.service.ProfileManager;
 
 @ApplicationScoped
@@ -92,8 +98,17 @@ public class ComplimentsResource implements ComplimentsApi {
 
 	@Override
 	public Response getComplimentTypes() {
-		// TODO Auto-generated method stub
-		return null;
+		ComplimentTypesResponse ctr = new ComplimentTypesResponse();
+		List<String> types = Stream.of(ComplimentType.values())
+				.map(dt -> mapper.map(dt).value())
+				.collect(Collectors.toList());
+		ctr.getComplimentTypes().addAll(types);
+		return Response.ok(ctr).build();
+	}
+
+	@Override
+	public Response getComplimentsOldskool() {
+		throw new UnsupportedOperationException("To be removed");
 	}
 
 }

@@ -34,10 +34,16 @@ import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.profile.api.ComplimentsApi;
 import eu.netmobiel.profile.api.ProfilesApi;
+import eu.netmobiel.profile.api.ReviewsApi;
+import eu.netmobiel.profile.api.model.Compliment;
+import eu.netmobiel.profile.api.model.ComplimentResponse;
 import eu.netmobiel.profile.api.model.FirebaseMessagingToken;
 import eu.netmobiel.profile.api.model.Profile;
 import eu.netmobiel.profile.api.model.ProfileResponse;
+import eu.netmobiel.profile.api.model.Review;
+import eu.netmobiel.profile.api.model.ReviewResponse;
 
 @ApplicationScoped
 @Logging
@@ -235,7 +241,7 @@ public class ProfileClient {
     			.register(new AddAuthHeadersRequestFilter(accessToken));
     	ProfilesApi api = target.proxy(ProfilesApi.class);
         ProfileResponse result = null;
-		try (Response response =  api.searchShoutOutDrivers(withinAnyCircles, withinAllCircles)) {
+		try (Response response =  api.searchShoutOutDriversOldskool(withinAnyCircles, withinAllCircles)) {
 			if (response.getStatusInfo() != Response.Status.OK) {
 				ExceptionUtil.throwExceptionFromResponse("Error retrieving data from profile service", response);
 			}
@@ -248,4 +254,43 @@ public class ProfileClient {
     	return searchShoutOutProfiles(getServiceAccountAccessToken(), pickup, dropOff, driverMaxRadiusMeter, driverNeighbouringRadiusMeter);
     }
 
+    /**
+     * Get all compliments.
+     * @param accessToken The token to use.
+     * @return A list of compliments.
+     * @throws BusinessException
+     */
+    public List<Compliment> getAllCompliments(String accessToken) throws BusinessException {
+    	ResteasyWebTarget target = client.target(profileServiceUrl)
+    			.register(new AddAuthHeadersRequestFilter(accessToken));
+        ComplimentsApi api = target.proxy(ComplimentsApi.class);
+        ComplimentResponse result = null;
+		try (Response response =  api.getComplimentsOldskool()) {
+			if (response.getStatusInfo() != Response.Status.OK) {
+				ExceptionUtil.throwExceptionFromResponse("Error retrieving data from profile service", response);
+			}
+	        result = response.readEntity(ComplimentResponse.class);
+		}
+        return result.getCompliments();
+    }
+
+    /**
+     * Get all compliments.
+     * @param accessToken The token to use.
+     * @return A list of compliments.
+     * @throws BusinessException
+     */
+    public List<Review> getAllReviews(String accessToken) throws BusinessException {
+    	ResteasyWebTarget target = client.target(profileServiceUrl)
+    			.register(new AddAuthHeadersRequestFilter(accessToken));
+        ReviewsApi api = target.proxy(ReviewsApi.class);
+        ReviewResponse result = null;
+		try (Response response =  api.getReviewsOldskool()) {
+			if (response.getStatusInfo() != Response.Status.OK) {
+				ExceptionUtil.throwExceptionFromResponse("Error retrieving data from profile service", response);
+			}
+	        result = response.readEntity(ReviewResponse.class);
+		}
+        return result.getReviews();
+    }
 }

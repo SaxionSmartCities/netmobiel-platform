@@ -92,4 +92,9 @@ public class ReviewsResource implements ReviewsApi {
 		return rsp;
 	}
 
+	@Override
+	public Response getReviewsOldskool() {
+		throw new UnsupportedOperationException("To be removed");
+	}
+
 }

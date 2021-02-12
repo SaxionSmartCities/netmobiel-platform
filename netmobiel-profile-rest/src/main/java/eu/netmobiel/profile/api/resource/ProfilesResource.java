@@ -173,4 +173,14 @@ public class ProfilesResource implements ProfilesApi {
 		}
 		return rsp;
 	}
+
+	@Override
+	public Response getProfileOldskool(String profileId) {
+		throw new UnsupportedOperationException("To be removed");
+	}
+
+	@Override
+	public Response searchShoutOutDriversOldskool(String withInAnyCircles, String withInAllCircles) {
+		throw new UnsupportedOperationException("To be removed");
+	}
 }
