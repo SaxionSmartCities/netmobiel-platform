@@ -126,6 +126,18 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-profile-ejb</artifactId>
+			<version>${project.version}</version>
+			<type>ejb</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-profile-rest</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
 			<artifactId>netmobiel-rideshare-api</artifactId>
 			<version>${project.version}</version>
 			<type>jar</type>
@@ -198,6 +210,11 @@
             </ejbModule>
 		    <ejbModule>
 				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-profile-ejb</artifactId>
+              	<bundleFileName>netmobiel-profile-ejb.jar</bundleFileName>
+            </ejbModule>
+		    <ejbModule>
+				<groupId>${project.groupId}</groupId>
 				<artifactId>netmobiel-rideshare-ejb</artifactId>
               	<bundleFileName>netmobiel-rideshare-ejb.jar</bundleFileName>
             </ejbModule>
@@ -224,6 +241,12 @@
 				<artifactId>netmobiel-planner-rest</artifactId>
               	<contextRoot>/planner</contextRoot>
               	<bundleFileName>netmobiel-planner-rest.war</bundleFileName>
+            </webModule>
+            <webModule>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-profile-rest</artifactId>
+              	<contextRoot>/profilesvc</contextRoot>
+              	<bundleFileName>netmobiel-profile-rest.war</bundleFileName>
             </webModule>
             <webModule>
 				<groupId>${project.groupId}</groupId>
