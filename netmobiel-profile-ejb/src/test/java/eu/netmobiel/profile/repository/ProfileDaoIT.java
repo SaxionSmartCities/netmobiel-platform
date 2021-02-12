@@ -35,7 +35,6 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     @Inject
     private ProfileDao profileDao;
 
-    @SuppressWarnings("unused")
 	@Inject
     private Logger log;
 
@@ -133,7 +132,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	log.debug("End of test: savePassenger");
     }
 
-//    @Test
+    @Test
     public void mergeChanges() throws Exception {
     	log.debug("Start of test: mergeChanges");
     	var p = Fixture.createPassenger2();
@@ -161,9 +160,12 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	p = profileDao.loadGraph(p.getId(), Profile.FULL_PROFILE_ENTITY_GRAPH).get();
     	var address = Fixture.createAddressLichtenvoorde();
     	log.debug("Add home address to passenger2");
-    	em.persist(address);
+//    	em.persist(address);
     	p.addAddress(address);
     	p.setHomeAddress(address);
+    	flush();
+
+    	p = profileDao.loadGraph(p.getId(), Profile.FULL_PROFILE_ENTITY_GRAPH).get();
     	log.debug("... and check searchPreferences");
     	p.getSearchPreferences().getAllowedTraverseModes().remove(TraverseMode.BUS);
     	assertFalse(p.getSearchPreferences().getAllowedTraverseModes().contains(TraverseMode.BUS));
@@ -171,7 +173,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	log.debug("End of test: mergeChanges");
     }
 
-//    @Test
+    @Test
     public void removeProfile() throws Exception {
     	log.debug("Start of test: removeProfile");
     	var p = Fixture.createPassenger2();
@@ -197,7 +199,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	log.debug("End of test: removeProfile");
     }
 
-//    @Test
+    @Test
     public void shoutOutCircles() throws Exception {
     	var carla1 = profileDao.find(driver1.getId()).get();
     	var addrCarla1 = Fixture.createAddressLichtenvoorde();

@@ -127,26 +127,54 @@
 		    <artifactId>jboss-ejb3-ext-api</artifactId>
 		    <scope>provided</scope>
 		</dependency>
-<!--         <dependency> -->
-<!--             <groupId>org.jboss.spec.javax.jms</groupId> -->
-<!--             <artifactId>jboss-jms-api_2.0_spec</artifactId> -->
-<!--             <scope>provided</scope> -->
-<!--         </dependency> -->
         <dependency>
             <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-authz-client</artifactId>
-		    <scope>provided</scope>
+            <artifactId>keycloak-admin-client</artifactId>
+		    <scope>compile</scope>
+		    <exclusions>
+		    	<exclusion>
+		    		<groupId>org.jboss.resteasy</groupId>
+		    		<artifactId>resteasy-client</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>org.jboss.resteasy</groupId>
+		    		<artifactId>resteasy-multipart-provider</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>org.jboss.resteasy</groupId>
+		    		<artifactId>resteasy-jackson2-provider</artifactId>
+		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>org.jboss.resteasy</groupId>
+		    		<artifactId>resteasy-jaxb-provider</artifactId>
+		    	</exclusion>
+		    </exclusions>
+        </dependency>
+        <!-- Contains the models, these are needed (more or less) in the admin API -->
+<!-- 		<dependency> -->
+<!-- 		    <groupId>org.keycloak</groupId> -->
+<!-- 		    <artifactId>keycloak-server-spi</artifactId> -->
+<!-- 		    <scope>provided</scope> -->
+<!-- 		</dependency> -->
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-client</artifactId>
+            <scope>provided</scope>
         </dependency>
         <dependency>
-            <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-adapter-core</artifactId>
-		    <scope>provided</scope>
-        </dependency>
-        <!--  Add the SPI as well, otherwise maven will complain -->
+        	<groupId>org.jboss.resteasy</groupId>
+        	<artifactId>resteasy-jaxb-provider</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>org.jboss.resteasy</groupId>
+			<artifactId>resteasy-jackson2-provider</artifactId>
+			<scope>provided</scope>
+		</dependency>
         <dependency>
-            <groupId>org.keycloak</groupId>
-            <artifactId>keycloak-adapter-spi</artifactId>
-		    <scope>provided</scope>
+            <groupId>org.jboss.spec.javax.ws.rs</groupId>
+            <artifactId>jboss-jaxrs-api_2.1_spec</artifactId>
+            <scope>provided</scope>
         </dependency>
 		<dependency>
 			<groupId>com.opencsv</groupId>

@@ -15,10 +15,10 @@ import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.profile.Resources;
 import eu.netmobiel.profile.annotation.ProfileDatabase;
+import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Profile_;
 import eu.netmobiel.profile.repository.converter.LuggageOptionConverter;
@@ -42,9 +42,11 @@ public abstract class ProfileIntegrationTestBase {
                 .addAsLibraries(deps)
                 .addPackages(true, ProfileDatabase.class.getPackage())
                 .addPackages(true, ProfileUrnHelper.class.getPackage())
+                .addPackages(true, ProfileFilter.class.getPackage())
+                .addPackages(true, ProfileFilter.class.getPackage())
                 .addPackages(true, Profile.class.getPackage())
                 .addPackages(true, Profile_.class.getPackage())
-                .addPackages(true, AbstractDao.class.getPackage())
+//                .addPackages(true, AbstractDao.class.getPackage())
                 .addPackages(true, LuggageOptionConverter.class.getPackage())
                 .addPackages(true, Fixture.class.getPackage())
                 .addClass(Resources.class)
