@@ -12,6 +12,7 @@ import eu.netmobiel.commons.api.ErrorResponse;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.exception.LegalReasonsException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.exception.UpdateException;
@@ -49,6 +50,8 @@ public class BusinessExceptionMapper implements
 			status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
 		} else if (e instanceof RemoveException) {
 			status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
+		} else if (e instanceof LegalReasonsException) {
+			status = ExtendedStatus.UNVAILABLE_FOR_LEGAL_REASONS;
 		}
 		ErrorResponse err = new ErrorResponse(status, e.getVendorCode(), String.join(" - ", msgs));
 		rsp =  Response.status(status).type(MediaType.APPLICATION_JSON).entity(err).build();

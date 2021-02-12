@@ -5,7 +5,8 @@ import javax.ws.rs.core.Response.Status.Family;
 
 public enum ExtendedStatus implements Response.StatusType {
 
-	UNPROCESSIBLE_ENTITY(422, "Unprocessable Entity");
+	UNPROCESSIBLE_ENTITY(422, "Unprocessable Entity"),
+	UNVAILABLE_FOR_LEGAL_REASONS(451, "Unavailable for Legal Reasons");
     private final int code;
     private final String reason;
     private final Family family;
