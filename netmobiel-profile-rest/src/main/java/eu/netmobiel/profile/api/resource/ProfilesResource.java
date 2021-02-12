@@ -8,10 +8,12 @@ import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.profile.api.ComplimentsApi;
 import eu.netmobiel.profile.api.ProfilesApi;
 import eu.netmobiel.profile.api.mapping.ProfileMapper;
 import eu.netmobiel.profile.api.model.FirebaseTokenResponse;
@@ -32,8 +34,18 @@ public class ProfilesResource implements ProfilesApi {
 
 	@Override
 	public Response createProfile(eu.netmobiel.profile.api.model.Profile profile) {
-		// TODO Auto-generated method stub
-		return null;
+    	Response rsp = null;
+		try {
+			Profile domprof = mapper.map(profile);
+	    	Long id = profileManager.createProfile(domprof);
+			rsp = Response.created(UriBuilder.fromResource(ProfilesApi.class)
+					.path(ComplimentsApi.class.getMethod("getProfile", String.class)).build(id)).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException | NoSuchMethodException e) {
+			throw new WebApplicationException(e);
+		}
+		return rsp;
 	}
 
 	@Override

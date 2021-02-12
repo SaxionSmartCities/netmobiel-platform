@@ -6,6 +6,7 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -30,8 +31,10 @@ import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.DuplicateEntryException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.NetMobielUserImpl;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.ExceptionUtil;
 
 @ApplicationScoped
@@ -173,4 +176,25 @@ public class KeycloakDao {
 		}
 		return Optional.ofNullable(user);
 	}
+
+	public PagedResult<NetMobielUser> listUsers(Cursor cursor) throws BadRequestException {
+		cursor.validate(100, 0);
+		List<NetMobielUser> users = null;
+		Long totalcount = null;
+		try (Keycloak kc = createKeycloakClient()) {
+			RealmResource realm = kc.realm(profileServiceAccount.getRealm());
+			if (cursor.isCountingQuery()) {
+				totalcount = realm.users().count().longValue();
+			} else {
+				users = realm.users().list(cursor.getOffset(), cursor.getMaxResults())
+						.stream()
+						.map(ur -> new NetMobielUserImpl(ur.getId(), ur.getFirstName(), ur.getLastName(), ur.getEmail()))
+						.collect(Collectors.toList());
+			}
+		} catch (Exception ex) {
+			throw new BadRequestException("Error retrieving users from keycloak", ex);
+		}
+		return new PagedResult<NetMobielUser>(users, cursor, totalcount);
+	}
+
 }

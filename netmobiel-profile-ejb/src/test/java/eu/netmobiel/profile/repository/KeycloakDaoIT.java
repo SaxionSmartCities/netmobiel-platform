@@ -19,8 +19,10 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.DuplicateEntryException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.NetMobielUserImpl;
+import eu.netmobiel.commons.model.PagedResult;
 
 @RunWith(Arquillian.class)
 public class KeycloakDaoIT {
@@ -109,5 +111,14 @@ public class KeycloakDaoIT {
    		keycloakDao.removeUser(mid);
    		Optional<NetMobielUser> user = keycloakDao.getUser(mid);
    		assertFalse(user.isPresent());
+    }
+
+    @Test
+    public void countUsers() throws Exception {
+    	PagedResult<NetMobielUser> pr = keycloakDao.listUsers(Cursor.COUNTING_CURSOR);
+   		assertNotNull(pr.getTotalCount());
+   		assertTrue(pr.getTotalCount() > 0);
+   		assertTrue(pr.getData().isEmpty());
+   		log.debug("countUsers in Keycloak: " + pr.getTotalCount());
     }
 }

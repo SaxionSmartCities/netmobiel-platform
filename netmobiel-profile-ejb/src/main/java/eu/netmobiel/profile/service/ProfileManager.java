@@ -19,9 +19,12 @@ import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.exception.LegalReasonsException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
@@ -34,6 +37,7 @@ import eu.netmobiel.profile.model.Compliment;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Review;
 import eu.netmobiel.profile.repository.ComplimentDao;
+import eu.netmobiel.profile.repository.KeycloakDao;
 import eu.netmobiel.profile.repository.ProfileDao;
 import eu.netmobiel.profile.repository.ReviewDao;
 
@@ -65,6 +69,9 @@ public class ProfileManager {
     @Inject
     private ComplimentDao complimentDao;
     
+    @Inject
+    private KeycloakDao keycloakDao;
+
     public ProfileManager() {
     }
 
@@ -84,6 +91,22 @@ public class ProfileManager {
     	}
     	return new PagedResult<Profile>(results, cursor, prs.getTotalCount());
 	}
+    
+    public Long createProfile(Profile profile) throws BusinessException {
+    	  // Validate required parameters.
+		if (StringUtils.isAllBlank(profile.getEmail()) || 
+				StringUtils.isAllBlank(profile.getGivenName()) || 
+				StringUtils.isAllBlank(profile.getFamilyName())) {
+			throw new BadRequestException("Email, firstName and familyName are mandatory profile attributes");
+		}
+		if (!profile.getConsent().isAcceptedTerms() || !profile.getConsent().isOlderThanSixteen()) {
+			throw new LegalReasonsException("Terms have not been accepted.");
+		}
+		String managedIdentity = keycloakDao.addUser(profile, true);
+		profile.setManagedIdentity(managedIdentity);
+		profileDao.save(profile);
+		return profile.getId();
+    }
 
     public Profile getProfileByManagedIdentity(String managedId) throws NotFoundException {
     	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.FULL_PROFILE_ENTITY_GRAPH)
