@@ -885,10 +885,6 @@ components:
         review:
           description: The review text.
           type: string
-        _id:
-          description: Object id from MongoDb. Temporarily added to the API for the
-            purpose of migration.
-          type: string
       example:
         id: 5f9c1893bf7c52051be2231b
         published: 2020-10-27T08:29:51.901Z
@@ -1080,10 +1076,6 @@ components:
           - Gezellig
           - Netjes
           - Goede auto
-          type: string
-        _id:
-          description: Object id from MongoDb. Temporarily added to the API for the
-            purpose of migration.
           type: string
       example:
         id: 5f9c1893bf7c52051be2231b
