@@ -830,66 +830,6 @@ components:
         id: 5c76c977-2ffd-4100-a8c0-77db7129660d
         firstName: Passagier
         lastName: Acceptatie
-    Compliment:
-      title: Root Type for Review
-      description: A review for a user.
-      required:
-      - receiver
-      - published
-      - id
-      - complimentType
-      - sender
-      type: object
-      properties:
-        id:
-          description: Unique id of the compliment
-          type: string
-        published:
-          format: date-time
-          description: Date of publishing of the compliment.
-          type: string
-        sender:
-          $ref: '#/components/schemas/UserRef'
-          description: The sender of the compliment, i.e. the reviewer.
-          properties:
-            id:
-              type: string
-            firstName:
-              type: string
-            lastName:
-              type: string
-        receiver:
-          $ref: '#/components/schemas/UserRef'
-          description: The user receiving the compliment.
-          properties:
-            id:
-              type: string
-            firstName:
-              type: string
-            lastName:
-              type: string
-        complimentType:
-          description: The compliment as an enum.
-          enum:
-          - Zelfde interesses
-          - Op tijd
-          - Soepele communicatie
-          - Gezellig
-          - Netjes
-          - Goede auto
-          type: string
-      example:
-        id: 5f9c1893bf7c52051be2231b
-        published: 2020-10-27T08:29:51.901Z
-        sender:
-          id: 5c76c977-2ffd-4100-a8c0-77db7129660d
-          firstName: Passagier
-          lastName: Acceptatie
-        receiver:
-          id: b0c0d6c0-0de8-4669-88c7-57732a8dcd22
-          firstName: Chauffeur
-          lastName: Acceptatie
-        complimentType: Soepele communicatie
     ComplimentTypesResponse:
       title: Root Type for ComplimentTypesResponse
       description: The response on the request for compliment types.
@@ -944,6 +884,10 @@ components:
               type: string
         review:
           description: The review text.
+          type: string
+        _id:
+          description: Object id from MongoDb. Temporarily added to the API for the
+            purpose of migration.
           type: string
       example:
         id: 5f9c1893bf7c52051be2231b
@@ -1089,6 +1033,70 @@ components:
         message: Succes!
         success: true
         reviews: []
+    Compliment:
+      title: Root Type for Review
+      description: A review for a user.
+      required:
+      - receiver
+      - published
+      - id
+      - complimentType
+      - sender
+      type: object
+      properties:
+        id:
+          description: Unique id of the compliment
+          type: string
+        published:
+          format: date-time
+          description: Date of publishing of the compliment.
+          type: string
+        sender:
+          $ref: '#/components/schemas/UserRef'
+          description: The sender of the compliment, i.e. the reviewer.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        receiver:
+          $ref: '#/components/schemas/UserRef'
+          description: The user receiving the compliment.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        complimentType:
+          description: The compliment as an enum.
+          enum:
+          - Zelfde interesses
+          - Op tijd
+          - Soepele communicatie
+          - Gezellig
+          - Netjes
+          - Goede auto
+          type: string
+        _id:
+          description: Object id from MongoDb. Temporarily added to the API for the
+            purpose of migration.
+          type: string
+      example:
+        id: 5f9c1893bf7c52051be2231b
+        published: 2020-10-27T08:29:51.901Z
+        sender:
+          id: 5c76c977-2ffd-4100-a8c0-77db7129660d
+          firstName: Passagier
+          lastName: Acceptatie
+        receiver:
+          id: b0c0d6c0-0de8-4669-88c7-57732a8dcd22
+          firstName: Chauffeur
+          lastName: Acceptatie
+        complimentType: Soepele communicatie
   responses:
     InternalServerError:
       content:
