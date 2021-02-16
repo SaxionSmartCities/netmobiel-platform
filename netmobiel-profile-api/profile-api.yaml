@@ -524,7 +524,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Page'
           description: List all compliments
-      operationId: getComplimentsOldskool
+      operationId: getComplimentsNewSkool
   /profiles/shout-out/newskool:
     summary: Path used to manage shout-outs.
     description: The REST endpoint/path used to search for drivers that are eligable
@@ -561,7 +561,7 @@ paths:
                 $ref: '#/components/schemas/Page'
           description: Successfull call. The result contains an array of `Profile`
             entities.
-      operationId: searchShoutOutDriversOldskool
+      operationId: searchShoutOutDriversNewSkool
       summary: Search for driver profiles with a geospatial query
       description: "Search for (driver) profiles where the driver has a home address\
         \ that satisfies the search criteria.\n\nThe search criteria is defined by\
@@ -582,7 +582,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Page'
           description: Get all reviews in oldskool stlye.
-      operationId: getReviewsOldskool
+      operationId: getReviewsNewSkool
 components:
   schemas:
     SearchPreferences:
