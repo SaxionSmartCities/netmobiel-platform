@@ -143,7 +143,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Page'
+                $ref: '#/components/schemas/ProfileResponse'
           description: Successfull call. The result contains an array of `Profile`
             entities.
       operationId: searchShoutOutDrivers
@@ -180,7 +180,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Page'
+                $ref: '#/components/schemas/ComplimentResponse'
           description: Successful response - returns a `Page` with `Compliment` entities.
       operationId: getCompliments
       summary: List compliments
@@ -325,7 +325,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Page'
+                $ref: '#/components/schemas/ReviewResponse'
           description: Successful response - returns a `Page` with `Review` entities.
       operationId: getReviews
       summary: List reviews
@@ -515,27 +515,17 @@ paths:
         type: string
       in: path
       required: true
-  /compliments/oldskool:
+  /compliments/newskool:
     get:
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ComplimentResponse'
+                $ref: '#/components/schemas/Page'
           description: List all compliments
       operationId: getComplimentsOldskool
-  /reviews/oldskool:
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ReviewResponse'
-          description: Get all reviews in oldskool stlye.
-      operationId: getReviewsOldskool
-  /profiles/shout-out/oldskool:
+  /profiles/shout-out/newskool:
     summary: Path used to manage shout-outs.
     description: The REST endpoint/path used to search for drivers that are eligable
       for helping a traveller with a requested trip, or perhaps with the first or
@@ -568,7 +558,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ProfileResponse'
+                $ref: '#/components/schemas/Page'
           description: Successfull call. The result contains an array of `Profile`
             entities.
       operationId: searchShoutOutDriversOldskool
@@ -583,6 +573,16 @@ paths:
         \ assumption is that the driver is prepared to drive a certain maximum distance\
         \ (allCircles) and that \nthe pickup or drop-off location of the traveller\
         \ should be in the neighbourhood (anyCircles)."
+  /reviews/newskool:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Get all reviews in oldskool stlye.
+      operationId: getReviewsOldskool
 components:
   schemas:
     SearchPreferences:
