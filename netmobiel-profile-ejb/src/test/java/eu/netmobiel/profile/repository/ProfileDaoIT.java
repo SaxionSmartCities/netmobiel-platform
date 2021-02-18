@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.profile.model.LuggageOption;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.TraverseMode;
+import eu.netmobiel.profile.model.UserRole;
 import eu.netmobiel.profile.test.Fixture;
 import eu.netmobiel.profile.test.ProfileIntegrationTestBase;
 
@@ -71,8 +72,8 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	p.getConsent().setOlderThanSixteen(consent16);
     	p.getNotificationOptions().setMessages(false);
     	p.getNotificationOptions().setTripReminders(false);
-    	p.getRidesharePreferences().setMaxMinutesDetour(30);
-    	p.getRidesharePreferences().getLuggageOptions().add(LuggageOption.PET);
+//    	p.getRidesharePreferences().setMaxMinutesDetour(30);
+//    	p.getRidesharePreferences().getLuggageOptions().add(LuggageOption.PET);
     	p.getSearchPreferences().getAllowedTraverseModes().remove(TraverseMode.RAIL);
     	p.getSearchPreferences().setNumberOfPassengers(2);
     	p.getSearchPreferences().getLuggageOptions().add(LuggageOption.WALKER);
@@ -118,10 +119,10 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	 * What is happening: Everything is fetched in a single query (full profile), except for the luggage options.
     	 */
     	log.debug("Check rideshare preferences");
-    	assertNotNull(p.getRidesharePreferences());
-    	assertEquals(30, p.getRidesharePreferences().getMaxMinutesDetour().intValue());
-    	log.debug("Check rideshare preferences - luggage");
-    	assertTrue(p.getRidesharePreferences().getLuggageOptions().contains(LuggageOption.PET));
+    	assertNull(p.getRidesharePreferences());
+//    	assertEquals(30, p.getRidesharePreferences().getMaxMinutesDetour().intValue());
+//    	log.debug("Check rideshare preferences - luggage");
+//    	assertTrue(p.getRidesharePreferences().getLuggageOptions().contains(LuggageOption.PET));
 
     	log.debug("Check search preferences");
     	assertNotNull(p.getSearchPreferences());
@@ -170,6 +171,31 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	p.getSearchPreferences().getAllowedTraverseModes().remove(TraverseMode.BUS);
     	assertFalse(p.getSearchPreferences().getAllowedTraverseModes().contains(TraverseMode.BUS));
     	assertFalse(p.getSearchPreferences().getAllowedTraverseModes().contains(TraverseMode.RAIL));
+    	
+    	// Role change, become a driver too
+    	assertEquals(UserRole.PASSENGER, p.getUserRole());
+    	assertNull(p.getRidesharePreferences());
+    	p.setUserRole(UserRole.BOTH);
+    	p.addRidesharePreferences();
+    	p.getRidesharePreferences().setMaxMinutesDetour(30);
+    	p.getRidesharePreferences().getLuggageOptions().add(LuggageOption.PET);
+    	flush();
+
+    	p = profileDao.loadGraph(p.getId(), Profile.FULL_PROFILE_ENTITY_GRAPH).get();
+    	assertEquals(UserRole.BOTH, p.getUserRole());
+    	assertNotNull(p.getRidesharePreferences());
+    	assertEquals(30, p.getRidesharePreferences().getMaxMinutesDetour().intValue());
+//    	log.debug("Check rideshare preferences - luggage");
+    	assertTrue(p.getRidesharePreferences().getLuggageOptions().contains(LuggageOption.PET));
+    	
+    	p.removeRidesharePreferences();
+    	p.setUserRole(UserRole.PASSENGER);
+    	flush();
+
+    	p = profileDao.loadGraph(p.getId(), Profile.FULL_PROFILE_ENTITY_GRAPH).get();
+    	assertEquals(UserRole.PASSENGER, p.getUserRole());
+    	assertNull(p.getRidesharePreferences());
+
     	log.debug("End of test: mergeChanges");
     }
 

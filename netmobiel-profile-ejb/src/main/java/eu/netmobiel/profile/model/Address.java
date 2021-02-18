@@ -150,5 +150,40 @@ public class Address implements Serializable {
 	public void setLocation(GeoLocation location) {
 		this.location = location;
 	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("Address [");
+		if (id != null) {
+			builder.append(id);
+			builder.append(", ");
+		}
+		if (street != null) {
+			builder.append(street);
+			builder.append(" ");
+		}
+		if (houseNumber != null) {
+			builder.append(houseNumber);
+			builder.append(", ");
+		}
+		if (postalCode != null) {
+			builder.append(postalCode);
+			builder.append(" ");
+		}
+		if (locality != null) {
+			builder.append(locality);
+			builder.append(" ");
+		}
+		if (countryCode != null) {
+			builder.append(countryCode);
+			builder.append(", ");
+		}
+		if (location != null) {
+			builder.append(location);
+		}
+		builder.append("]");
+		return builder.toString();
+	}
 	
 }

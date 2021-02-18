@@ -127,5 +127,5 @@ public abstract class User extends ReferableObject implements NetMobielUser {
 		User other = (User) obj;
 		return Objects.equals(managedIdentity, other.managedIdentity);
 	}
-    
+
 }

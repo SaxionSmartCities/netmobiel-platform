@@ -37,6 +37,7 @@ public class ProfilesResource implements ProfilesApi {
     	Response rsp = null;
 		try {
 			Profile domprof = mapper.map(profile);
+			domprof.linkOneToOneChildren();
 	    	Long id = profileManager.createProfile(domprof);
 			rsp = Response.created(UriBuilder.fromResource(ProfilesApi.class)
 					.path(ComplimentsApi.class.getMethod("getProfile", String.class)).build(id)).build();
@@ -128,6 +129,7 @@ public class ProfilesResource implements ProfilesApi {
     	Response rsp = null;
 		try {
 			Profile domainProfile = mapper.map(apiProfile);
+			domainProfile.linkOneToOneChildren();
 			profileManager.updateProfileByManagedIdentity(profileId, domainProfile);
         	domainProfile = profileManager.getProfileByManagedIdentity(profileId);
    			rsp = Response.ok(mapper.map(domainProfile)).build();
@@ -192,7 +194,7 @@ public class ProfilesResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response searchShoutOutDriversOldskool(String withInAnyCircles, String withInAllCircles) {
+	public Response searchShoutOutDriversNewSkool(String withInAnyCircles, String withInAllCircles) {
 		throw new UnsupportedOperationException("To be removed");
 	}
 }

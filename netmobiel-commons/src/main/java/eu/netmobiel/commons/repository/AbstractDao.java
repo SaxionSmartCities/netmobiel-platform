@@ -247,7 +247,7 @@ public abstract class AbstractDao<T, ID> {
      * @param countExpression the column expression to select for counting distinct.
      * @return The total number of results to expect.
      */
-    public Long countDistinct(final CriteriaBuilder cb, final CriteriaQuery<?> selectQuery, Root<T> root, Expression<?> countExpression) {
+    protected Long countDistinct(final CriteriaBuilder cb, final CriteriaQuery<?> selectQuery, Root<T> root, Expression<?> countExpression) {
         CriteriaQuery<Long> query = createCountQuery(cb, selectQuery, root, countExpression, true);
         return getEntityManager().createQuery(query).getSingleResult();
     }
@@ -260,7 +260,7 @@ public abstract class AbstractDao<T, ID> {
      * @param root the root object in the original query for obtaining the original joins.
      * @return The total number of results to expect.
      */
-    public Long count(final CriteriaBuilder cb, final CriteriaQuery<?> selectQuery, Root<T> root) {
+    protected Long count(final CriteriaBuilder cb, final CriteriaQuery<?> selectQuery, Root<T> root) {
         CriteriaQuery<Long> query = createCountQuery(cb, selectQuery, root, root, false);
         return getEntityManager().createQuery(query).getSingleResult();
     }

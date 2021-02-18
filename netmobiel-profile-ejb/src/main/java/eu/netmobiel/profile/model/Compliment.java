@@ -2,12 +2,14 @@ package eu.netmobiel.profile.model;
 
 import java.io.Serializable;
 import java.time.Instant;
+import java.util.Objects;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
 import javax.persistence.AccessType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -49,11 +51,11 @@ public class Compliment implements Serializable {
 	@Column(name = "published")
 	private Instant published;
 	
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "receiver", nullable = false, foreignKey = @ForeignKey(name = "compliment_receiver_profile_fk"))
 	private Profile receiver;
 
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "sender", nullable = false, foreignKey = @ForeignKey(name = "compliment_sender_profile_fk"))
 	private Profile sender;
 
@@ -95,6 +97,24 @@ public class Compliment implements Serializable {
 
 	public void setSender(Profile sender) {
 		this.sender = sender;
+	}
+
+	@Override
+	public int hashCode() {
+		return Objects.hash(compliment, published, receiver, sender);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof Compliment)) {
+			return false;
+		}
+		Compliment other = (Compliment) obj;
+		return compliment == other.compliment && Objects.equals(published, other.published)
+				&& Objects.equals(receiver, other.receiver) && Objects.equals(sender, other.sender);
 	}
 	
 	

@@ -61,7 +61,7 @@ public class PublisherService {
     @Inject
     private FirebaseMessagingClient firebaseMessagingClient;
     
-    private static final CommunicatorUser SYSTEM_USER = new CommunicatorUser("SYSTEM", "Netmobiel", "", null);
+    public static final CommunicatorUser SYSTEM_USER = new CommunicatorUser("SYSTEM", "Netmobiel", "", null);
 
     public PublisherService() {
     }

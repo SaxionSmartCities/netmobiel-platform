@@ -132,6 +132,14 @@ public class RidesharePreferences implements Serializable {
 	public void setDefaultCarRef(String defaultCarRef) {
 		this.defaultCarRef = defaultCarRef;
 	}
+
+	public Profile getProfile() {
+		return profile;
+	}
+
+	public void setProfile(Profile profile) {
+		this.profile = profile;
+	}
     
 
 }

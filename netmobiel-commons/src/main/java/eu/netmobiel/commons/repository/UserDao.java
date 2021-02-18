@@ -5,6 +5,9 @@ import java.util.Optional;
 
 import org.hibernate.jpa.QueryHints;
 
+import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.filter.Cursor;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.User;
 
 public abstract class UserDao<T extends User> extends AbstractDao<T, Long> {
@@ -33,7 +36,7 @@ public abstract class UserDao<T extends User> extends AbstractDao<T, Long> {
     	List<T> users = getEntityManager().createQuery(String.format("from %s where managedIdentity = :identity", 
     			getPersistentClass().getSimpleName()), getPersistentClass())
     			.setParameter("identity", managedId)
-    			.setHint(QueryHints.HINT_LOADGRAPH, getEntityManager().getEntityGraph(graphName))
+    			.setHint(QueryHints.HINT_LOADGRAPH, graphName ==  null ? null : getEntityManager().getEntityGraph(graphName))
     			.getResultList();
     	return Optional.ofNullable(users.size() > 0 ? users.get(0) : null); 
     }
@@ -46,4 +49,39 @@ public abstract class UserDao<T extends User> extends AbstractDao<T, Long> {
     			.getResultList();
     	return Optional.ofNullable(objs.size() > 0 ? getReference(objs.get(0)) : null); 
     }
+    
+    public PagedResult<T> listUsers(Cursor cursor) throws BadRequestException {
+    	cursor.validate(100, 0);
+    	Long totalCount = null;
+    	List<T> ids = null;
+    	if (cursor.isCountingQuery()) {
+    		totalCount = getEntityManager().createQuery(
+    				String.format("select count(u) from %s u order by u.id asc", getPersistentClass().getSimpleName()), 
+    				Long.class)
+    				.getSingleResult();
+    	} else {
+        	ids = getEntityManager().createQuery(String.format("from %s order by id asc", 
+        			getPersistentClass().getSimpleName()), getPersistentClass())
+        			.setFirstResult(cursor.getOffset())
+        			.setMaxResults(cursor.getMaxResults())
+        			.getResultList();
+    	}
+    	return new PagedResult<T>(ids, cursor, totalCount); 
+    }
+
+    public List<String> listManagedIdentities() {
+    	return getEntityManager().createQuery(String.format("select managedIdentity from %s order by managedIdentity asc", 
+    					getPersistentClass().getSimpleName()), String.class)
+    				.getResultList();
+    }
+    
+    public boolean userExists(String managedIdentity) {
+   		Long count = getEntityManager().createQuery(
+    				String.format("select count(u) from %s u where managedIdentity = :identity", getPersistentClass().getSimpleName()), 
+    				Long.class)
+   				.setParameter("identity", managedIdentity)	
+    			.getSingleResult();
+    	return count > 0; 
+    }
+
 }

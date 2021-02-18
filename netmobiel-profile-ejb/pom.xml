@@ -31,6 +31,34 @@
 					</archive>
 				</configuration>
         	</plugin>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<configuration>
+					<annotationProcessorPaths>
+						<path>
+							<groupId>org.mapstruct</groupId>
+							<artifactId>mapstruct-processor</artifactId>
+							<version>${version.org.mapstruct}</version>
+						</path>
+						<path>
+	                        <groupId>org.hibernate</groupId>
+	                        <artifactId>hibernate-jpamodelgen</artifactId>
+	                        <version>${version.hibernate}</version>
+                    	</path>
+						<path>
+							<groupId>javax.xml.bind</groupId>
+							<artifactId>jaxb-api</artifactId>
+							<version>${version.jaxb}</version>
+						</path>
+                    </annotationProcessorPaths>
+					<compilerArgs>
+			            <compilerArg>
+			                -Amapstruct.defaultComponentModel=cdi
+			            </compilerArg>
+			        </compilerArgs>
+				</configuration>
+			</plugin>
 		</plugins>
 	</build>
 
@@ -38,6 +66,11 @@
 		<dependency>
 		    <groupId>${project.groupId}</groupId>
 		    <artifactId>netmobiel-commons</artifactId>
+		    <version>${project.version}</version>
+		</dependency>
+		<dependency>
+		    <groupId>${project.groupId}</groupId>
+		    <artifactId>netmobiel-profile-client</artifactId>
 		    <version>${project.version}</version>
 		</dependency>
         <dependency>
@@ -185,6 +218,12 @@
 			<groupId>com.vividsolutions</groupId>
 			<artifactId>jts-core</artifactId>
 			<scope>provided</scope>
+		</dependency>
+		<!-- Bean Mapper -->
+		<dependency>
+			<groupId>org.mapstruct</groupId>
+			<artifactId>mapstruct</artifactId>
+            <scope>provided</scope>
 		</dependency>
 
 		<!-- TEST Dependencies -->

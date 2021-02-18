@@ -1,14 +1,17 @@
 package eu.netmobiel.profile.api.mapping;
 
+import java.util.List;
+
 import org.mapstruct.BeanMapping;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
-import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Review;
+import eu.netmobiel.profile.repository.mapping.GeometryMapper;
+import eu.netmobiel.profile.repository.mapping.JavaTimeMapper;
 
 /**
  * This mapper defines the mapping from the domain Booking to the API Booking as defined by OpenAPI.
@@ -20,7 +23,8 @@ import eu.netmobiel.profile.model.Review;
 	uses = { GeometryMapper.class, JavaTimeMapper.class })
 public abstract class ReviewMapper {
 
-	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Review> source);
+	public abstract List<eu.netmobiel.profile.api.model.Review> map(List<Review> source);
+//	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Review> source);
 
 	// Domain --> API
 	@Mapping(target = "id", source = "managedIdentity")

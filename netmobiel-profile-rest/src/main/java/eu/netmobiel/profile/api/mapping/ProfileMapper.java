@@ -1,9 +1,5 @@
 package eu.netmobiel.profile.api.mapping;
 
-import java.util.List;
-import java.util.Set;
-import java.util.stream.Collectors;
-
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
@@ -14,6 +10,7 @@ import eu.netmobiel.profile.model.Address;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
 import eu.netmobiel.profile.model.SearchPreferences;
+import eu.netmobiel.profile.repository.mapping.GeometryMapper;
 
 /**
  * This mapper defines the mapping from the domain Booking to the API Booking as defined by OpenAPI.
@@ -34,19 +31,15 @@ public abstract class ProfileMapper {
 	@Mapping(target = "lastName", source = "familyName")
 	@Mapping(target = "address", source = "homeAddress")
 	@Mapping(target = "ridePlanOptions", source = "ridesharePreferences")
-	@Mapping(target = "favoriteLocations", source = "addresses")
+	@Mapping(target = "favoritePlaces", source = "addresses")
+	@Mapping(target = "favoriteLocations", ignore = true)
 	// The id is defined as the keycloak identity.
 	@Mapping(target = "id", source = "managedIdentity")
 	public abstract eu.netmobiel.profile.api.model.Profile map(Profile source);
 
 	@InheritInverseConfiguration
+	@Mapping(target = "id", ignore = true)
 	public abstract Profile map(eu.netmobiel.profile.api.model.Profile source);
-
-	public Set<Address> map(List<Object> source) {
-		return source.stream()
-			.map(obj -> map((eu.netmobiel.profile.api.model.Address) obj))
-			.collect(Collectors.toSet());
-	}
 
 	@Mapping(target = "country", source ="countryCode")
 	@Mapping(target = "label", source ="location.label")
@@ -61,7 +54,7 @@ public abstract class ProfileMapper {
 	public abstract eu.netmobiel.profile.api.model.RidePlanOptions map(RidesharePreferences source);
 
 	@InheritInverseConfiguration
-//	@Mapping(target = "profile", ignore = true)
+	@Mapping(target = "profile", ignore = true)
 	@Mapping(target = "id", ignore = true)
 	public abstract RidesharePreferences map(eu.netmobiel.profile.api.model.RidePlanOptions source);
 
@@ -74,7 +67,7 @@ public abstract class ProfileMapper {
 	public abstract eu.netmobiel.profile.api.model.SearchPreferences map(SearchPreferences source);
 
 	@InheritInverseConfiguration
-//	@Mapping(target = "profile", ignore = true)
+	@Mapping(target = "profile", ignore = true)
 	@Mapping(target = "id", ignore = true)
 	public abstract SearchPreferences map(eu.netmobiel.profile.api.model.SearchPreferences source);
 }

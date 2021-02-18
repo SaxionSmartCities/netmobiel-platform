@@ -2,6 +2,7 @@ package eu.netmobiel.profile.repository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -84,4 +85,15 @@ public class ComplimentDao extends AbstractDao<Compliment, Long> {
         return new PagedResult<Long>(results, cursor, totalCount);
 	}
 
+	public Optional<Compliment> findComplimentByAttributes(Compliment r) {
+    	List<Compliment> results = em.createQuery("from Compliment r where r.receiver.managedIdentity = :receiver " 
+    				+ "and r.sender.managedIdentity = :sender and r.compliment = :compliment and r.published = :published",
+    			Compliment.class)
+    			.setParameter("receiver", r.getReceiver().getManagedIdentity())
+    			.setParameter("sender", r.getSender().getManagedIdentity())
+    			.setParameter("compliment", r.getCompliment())
+    			.setParameter("published", r.getPublished())
+    			.getResultList();
+    	return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0)); 
+	}
 }

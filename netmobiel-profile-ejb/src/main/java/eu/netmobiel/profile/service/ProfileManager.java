@@ -10,6 +10,7 @@ import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.Principal;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
@@ -33,6 +34,7 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.filter.ComplimentFilter;
 import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.filter.ReviewFilter;
+import eu.netmobiel.profile.model.Address;
 import eu.netmobiel.profile.model.Compliment;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Review;
@@ -104,6 +106,18 @@ public class ProfileManager {
 		}
 		String managedIdentity = keycloakDao.addUser(profile, true);
 		profile.setManagedIdentity(managedIdentity);
+		if (profile.getHomeAddress() != null) {
+			Address home = profile.getHomeAddress();
+			// Does this location exist in the favorites? If yes replace by a reference. otherwise add it to the addresses
+			Optional<Address> addr = profile.getAddresses().stream()
+					.filter(a -> a.getLocation().equals(home.getLocation()))
+					.findFirst();
+			if (addr.isPresent()) {
+				profile.setHomeAddress(addr.get());
+			} else {
+				profile.addAddress(home);
+			}
+		}
 		profileDao.save(profile);
 		return profile.getId();
     }
@@ -125,19 +139,19 @@ public class ProfileManager {
     }
 
     public String getFcmTokenByManagedIdentity(String managedId) throws NotFoundException {
-    	Profile profile = profileDao.findByManagedIdentity(managedId, null)
+    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	return profile.getFcmToken();
     }
 
     public String getImagePathByManagedIdentity(String managedId) throws NotFoundException {
-    	Profile profile = profileDao.findByManagedIdentity(managedId, null)
+    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	return profile.getImagePath();
     }
     
 	public void updateProfileByManagedIdentity(String managedId, Profile newProfile)  throws NotFoundException {
-    	Profile dbprofile = profileDao.findByManagedIdentity(managedId, null)
+    	Profile dbprofile = profileDao.findByManagedIdentity(managedId, Profile.FULLEST_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	profileDao.detach(dbprofile);
     	newProfile.setId(dbprofile.getId());
@@ -151,7 +165,7 @@ public class ProfileManager {
     public void removeProfile(String managedId) throws NotFoundException {
 		Principal me = sessionContext.getCallerPrincipal();
 		boolean privileged = sessionContext.isCallerInRole("admin");
-    	Profile profile = profileDao.findByManagedIdentity(managedId, null)
+    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	if (!privileged && !me.getName().equals(managedId)) {
 			new SecurityException("You have no privilege to remove the profile of someone else");

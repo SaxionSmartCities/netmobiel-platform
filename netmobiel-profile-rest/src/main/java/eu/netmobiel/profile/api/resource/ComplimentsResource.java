@@ -16,6 +16,7 @@ import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.profile.api.ComplimentsApi;
 import eu.netmobiel.profile.api.mapping.ComplimentMapper;
+import eu.netmobiel.profile.api.model.ComplimentResponse;
 import eu.netmobiel.profile.api.model.ComplimentTypesResponse;
 import eu.netmobiel.profile.filter.ComplimentFilter;
 import eu.netmobiel.profile.model.Compliment;
@@ -68,7 +69,11 @@ public class ComplimentsResource implements ComplimentsApi {
 			Cursor cursor = new Cursor();
 			ComplimentFilter filter = new ComplimentFilter(receiverId, senderId);
 	    	PagedResult<Compliment> results = profileManager.listCompliments(filter, cursor);
-			rsp = Response.ok(mapper.map(results)).build();
+	    	ComplimentResponse cr = new ComplimentResponse();
+	    	cr.setCompliments((List<eu.netmobiel.profile.api.model.Compliment>)mapper.map(results.getData()));
+	    	cr.setMessage("Success");
+	    	cr.setSuccess(true);
+			rsp = Response.ok(cr).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
@@ -107,8 +112,20 @@ public class ComplimentsResource implements ComplimentsApi {
 	}
 
 	@Override
-	public Response getComplimentsOldskool() {
-		throw new UnsupportedOperationException("To be removed");
+	public Response getComplimentsNewSkool() {
+//		Response rsp = null;
+//		try {
+//			Cursor cursor = new Cursor();
+//			ComplimentFilter filter = new ComplimentFilter();
+//	    	PagedResult<Compliment> results = profileManager.listCompliments(filter, cursor);
+//			rsp = Response.ok(mapper.map(results)).build();
+//		} catch (IllegalArgumentException e) {
+//			throw new BadRequestException(e);
+//		} catch (BusinessException e) {
+//			throw new WebApplicationException(e);
+//		}
+//		return rsp;
+		throw new UnsupportedOperationException("Not yet implemented");
 	}
 
 }

@@ -1,5 +1,7 @@
 package eu.netmobiel.commons.model;
 
+import java.util.Objects;
+
 public class NetMobielUserImpl implements NetMobielUser {
 	private String managedIdentity;
 	private String givenName;
@@ -52,6 +54,21 @@ public class NetMobielUserImpl implements NetMobielUser {
 		this.email = email;
 	}
 	
+	@Override
+	public int hashCode() {
+		return Objects.hash(managedIdentity);
+	}
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof NetMobielUserImpl)) {
+			return false;
+		}
+		NetMobielUserImpl other = (NetMobielUserImpl) obj;
+		return Objects.equals(managedIdentity, other.managedIdentity);
+	}
 	@Override
 	public String toString() {
 		return String.format("NetMobielUser [%s %s %s %s]", managedIdentity, givenName, familyName, email);

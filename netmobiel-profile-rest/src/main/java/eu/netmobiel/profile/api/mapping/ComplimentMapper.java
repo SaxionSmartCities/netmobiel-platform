@@ -1,5 +1,7 @@
 package eu.netmobiel.profile.api.mapping;
 
+import java.util.List;
+
 import org.mapstruct.BeanMapping;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
@@ -8,10 +10,11 @@ import org.mapstruct.ReportingPolicy;
 import org.mapstruct.ValueMapping;
 import org.mapstruct.ValueMappings;
 
-import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.profile.model.Compliment;
 import eu.netmobiel.profile.model.ComplimentType;
 import eu.netmobiel.profile.model.Profile;
+import eu.netmobiel.profile.repository.mapping.GeometryMapper;
+import eu.netmobiel.profile.repository.mapping.JavaTimeMapper;
 
 /**
  * This mapper defines the mapping from the domain Booking to the API Booking as defined by OpenAPI.
@@ -23,7 +26,9 @@ import eu.netmobiel.profile.model.Profile;
 	uses = { GeometryMapper.class, JavaTimeMapper.class })
 public abstract class ComplimentMapper {
 
-	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Compliment> source);
+//	public abstract List<Object> map(List<Compliment> source);
+	public abstract List<eu.netmobiel.profile.api.model.Compliment> map(List<Compliment> source);
+//	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Compliment> source);
 
 	// Domain --> API
 	@Mapping(target = "id", source = "managedIdentity")

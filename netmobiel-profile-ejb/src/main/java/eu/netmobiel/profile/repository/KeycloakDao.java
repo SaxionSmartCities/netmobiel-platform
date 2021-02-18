@@ -108,9 +108,9 @@ public class KeycloakDao {
 				urep.setEnabled(true);
 //				urep.setRequiredActions(List.of(UserModel.RequiredAction.UPDATE_PASSWORD.name()));
 				Response response = realm.users().create(urep);
-				if (log.isDebugEnabled()) {
-					log.debug(String.format("AddUser: Response is %s %s", response.getStatus(), response.getStatusInfo()));
-				}
+//				if (log.isDebugEnabled()) {
+//					log.debug(String.format("AddUser: Response is %s %s", response.getStatus(), response.getStatusInfo()));
+//				}
 				if (response.getStatusInfo() == Response.Status.CREATED) {
 					managedIdentity = CreatedResponseUtil.getCreatedId(response);
 				} else if (response.getStatusInfo() == Response.Status.CONFLICT) {
@@ -128,9 +128,9 @@ public class KeycloakDao {
 		try (Keycloak kc = createKeycloakClient()) {
 			RealmResource realm = kc.realm(profileServiceAccount.getRealm());
 			Response response = realm.users().delete(managedIdentity);
-			if (log.isDebugEnabled()) {
-				log.debug(String.format("RemoveUser: Response is %s %s", response.getStatus(), response.getStatusInfo()));
-			}
+//			if (log.isDebugEnabled()) {
+//				log.debug(String.format("RemoveUser: Response is %s %s", response.getStatus(), response.getStatusInfo()));
+//			}
 			if (response.getStatusInfo() != Response.Status.NO_CONTENT) {
 				ExceptionUtil.throwExceptionFromResponse("Error removing user from Keycloak", response);
 			}

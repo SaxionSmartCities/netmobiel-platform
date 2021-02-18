@@ -2,6 +2,7 @@ package eu.netmobiel.profile.repository;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -84,4 +85,15 @@ public class ReviewDao extends AbstractDao<Review, Long> {
         return new PagedResult<Long>(results, cursor, totalCount);
 	}
 
+	public Optional<Review> findReviewByAttributes(Review r) {
+    	List<Review> results = em.createQuery("from Review r where r.receiver.managedIdentity = :receiver " 
+    				+ "and r.sender.managedIdentity = :sender and r.review = :reviewText and r.published = :published",
+    			Review.class)
+    			.setParameter("receiver", r.getReceiver().getManagedIdentity())
+    			.setParameter("sender", r.getSender().getManagedIdentity())
+    			.setParameter("reviewText", r.getReview())
+    			.setParameter("published", r.getPublished())
+    			.getResultList();
+    	return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0)); 
+	}
 }

@@ -13,6 +13,7 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.profile.api.ComplimentsApi;
 import eu.netmobiel.profile.api.ReviewsApi;
 import eu.netmobiel.profile.api.mapping.ReviewMapper;
+import eu.netmobiel.profile.api.model.ReviewResponse;
 import eu.netmobiel.profile.filter.ReviewFilter;
 import eu.netmobiel.profile.model.Review;
 import eu.netmobiel.profile.service.ProfileManager;
@@ -64,7 +65,11 @@ public class ReviewsResource implements ReviewsApi {
 			Cursor cursor = new Cursor();
 			ReviewFilter filter = new ReviewFilter(receiverId, senderId);
 	    	PagedResult<Review> results = profileManager.listReviews(filter, cursor);
-			rsp = Response.ok(mapper.map(results)).build();
+	    	ReviewResponse rr = new ReviewResponse();
+	    	rr.setReviews(mapper.map(results.getData()));
+	    	rr.setMessage("Success");
+	    	rr.setSuccess(true);
+			rsp = Response.ok(rr).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
@@ -93,8 +98,20 @@ public class ReviewsResource implements ReviewsApi {
 	}
 
 	@Override
-	public Response getReviewsOldskool() {
-		throw new UnsupportedOperationException("To be removed");
+	public Response getReviewsNewSkool() {
+//		Response rsp = null;
+//		try {
+//			Cursor cursor = new Cursor();
+//			ReviewFilter filter = new ReviewFilter();
+//	    	PagedResult<Review> results = profileManager.listReviews(filter, cursor);
+//			rsp = Response.ok(mapper.map(results)).build();
+//		} catch (IllegalArgumentException e) {
+//			throw new BadRequestException(e);
+//		} catch (BusinessException e) {
+//			throw new WebApplicationException(e);
+//		}
+//		return rsp;
+		throw new UnsupportedOperationException("Not yet implemented");
 	}
 
 }

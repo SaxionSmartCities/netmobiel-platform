@@ -141,6 +141,15 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     }
 
     /**
+     * Retrieves all users.
+     * @return a list of User objects.
+     */
+    @PermitAll
+    public List<String> listManagedIdentities() {
+    	return getUserDao().listManagedIdentities();
+    }
+
+    /**
      * Retrieves a specific user. 
      * @param uid The id of the user.
      * @return A user object.

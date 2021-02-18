@@ -241,7 +241,7 @@ public class ProfileClient {
     			.register(new AddAuthHeadersRequestFilter(accessToken));
     	ProfilesApi api = target.proxy(ProfilesApi.class);
         ProfileResponse result = null;
-		try (Response response =  api.searchShoutOutDriversOldskool(withinAnyCircles, withinAllCircles)) {
+		try (Response response =  api.searchShoutOutDrivers(withinAnyCircles, withinAllCircles)) {
 			if (response.getStatusInfo() != Response.Status.OK) {
 				ExceptionUtil.throwExceptionFromResponse("Error retrieving data from profile service", response);
 			}
@@ -265,13 +265,17 @@ public class ProfileClient {
     			.register(new AddAuthHeadersRequestFilter(accessToken));
         ComplimentsApi api = target.proxy(ComplimentsApi.class);
         ComplimentResponse result = null;
-		try (Response response =  api.getComplimentsOldskool()) {
+		try (Response response =  api.getCompliments(null, null)) {
 			if (response.getStatusInfo() != Response.Status.OK) {
 				ExceptionUtil.throwExceptionFromResponse("Error retrieving data from profile service", response);
 			}
 	        result = response.readEntity(ComplimentResponse.class);
 		}
         return result.getCompliments();
+    }
+
+    public List<Compliment> getAllCompliments() throws BusinessException {
+    	return getAllCompliments(getServiceAccountAccessToken());
     }
 
     /**
@@ -285,12 +289,16 @@ public class ProfileClient {
     			.register(new AddAuthHeadersRequestFilter(accessToken));
         ReviewsApi api = target.proxy(ReviewsApi.class);
         ReviewResponse result = null;
-		try (Response response =  api.getReviewsOldskool()) {
+		try (Response response =  api.getReviews(null, null)) {
 			if (response.getStatusInfo() != Response.Status.OK) {
 				ExceptionUtil.throwExceptionFromResponse("Error retrieving data from profile service", response);
 			}
 	        result = response.readEntity(ReviewResponse.class);
 		}
         return result.getReviews();
+    }
+
+    public List<Review> getAllReviews() throws BusinessException {
+    	return getAllReviews(getServiceAccountAccessToken());
     }
 }

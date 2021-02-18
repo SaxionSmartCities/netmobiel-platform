@@ -46,7 +46,7 @@ import eu.netmobiel.profile.api.resource.ProfilesResource;
  */
 @ApplicationPath("/api")
 @ApplicationScoped
-public class CommunicatorApplication extends Application {
+public class ProfileServiceApplication extends Application {
     @Inject
     private Logger log;
 
@@ -57,7 +57,7 @@ public class CommunicatorApplication extends Application {
     public void postConstruct() {
         StringBuilder builder = new StringBuilder();
         builder.append("\n------------------------------------------------");
-        builder.append("\nStarting up NetMobiel Communicator REST Service");
+        builder.append("\nStarting up NetMobiel Profile Service REST Service");
         builder.append("\n\tVersion:  " + version.getVersionString());
         builder.append("\n\tBuilt On: " + version.getVersionDate().toString());
         builder.append("\n\tBuild:    " + version.getVersionInfo());

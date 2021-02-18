@@ -22,7 +22,6 @@ import javax.persistence.NamedEntityGraphs;
 import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
 import javax.persistence.OneToOne;
-import javax.persistence.PrePersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
@@ -39,6 +38,8 @@ import eu.netmobiel.profile.util.ProfileUrnHelper;
  * same with the addresses.
  */
 @NamedEntityGraphs({
+	@NamedEntityGraph(name = Profile.DEFAULT_PROFILE_ENTITY_GRAPH
+	),
 	@NamedEntityGraph(name = Profile.HOME_PROFILE_ENTITY_GRAPH,
 		attributeNodes = {
 			@NamedAttributeNode(value = "homeAddress"),
@@ -82,6 +83,7 @@ public class Profile extends User  {
 	public static final String FULLEST_PROFILE_ENTITY_GRAPH = "fullest-profile-entity-graph";
 	public static final String FULL_PROFILE_ENTITY_GRAPH = "full-profile-entity-graph";
 	public static final String HOME_PROFILE_ENTITY_GRAPH = "home-profile-entity-graph";
+	public static final String DEFAULT_PROFILE_ENTITY_GRAPH = "default-profile-entity-graph";
 	
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "profile_sg")
@@ -98,10 +100,10 @@ public class Profile extends User  {
 	)
 	private Address homeAddress;
 
-	@OneToOne(cascade = CascadeType.ALL, mappedBy = "profile", fetch = FetchType.LAZY, orphanRemoval = true)
+	@OneToOne(cascade = CascadeType.ALL, mappedBy = "profile", fetch = FetchType.LAZY, orphanRemoval = true, optional = true)
 	private RidesharePreferences ridesharePreferences;
 
-	@OneToOne(cascade = CascadeType.ALL, mappedBy = "profile", fetch = FetchType.LAZY, orphanRemoval = true) 
+	@OneToOne(cascade = CascadeType.ALL, mappedBy = "profile", fetch = FetchType.LAZY, orphanRemoval = true, optional = false) 
 	private SearchPreferences searchPreferences;
 
 	@Embedded
@@ -130,23 +132,34 @@ public class Profile extends User  {
 	private UserRole userRole;
 
 	public Profile() {
-    	
+		initializeEmbeddedRelations();
     }
     
     public Profile(NetMobielUser nbuser) {
     	super(nbuser);
+		initializeEmbeddedRelations();
     }
     
     public Profile(String identity, String givenName, String familyName, String email, UserRole role) {
     	super(identity, givenName, familyName, email);
     	this.userRole = role;
+		initializeEmbeddedRelations();
     }
     
     public Profile(String identity, UserRole role) {
     	this(identity, null, null, null, role);
     }
-    
-	public Long getId() {
+
+    private void initializeEmbeddedRelations() {
+		consent = new UserConsent();
+		notificationOptions = new NotificationOptions();
+		searchPreferences = new SearchPreferences(this);
+		if (userRole == UserRole.DRIVER || userRole == UserRole.BOTH) {
+			addRidesharePreferences();
+		}
+    }
+
+    public Long getId() {
 		return id;
 	}
 
@@ -159,23 +172,6 @@ public class Profile extends User  {
 		return URN_PREFIX;
 	}
 	
-
-	@PrePersist
-	public void addDefaultOptions() {
-		if (consent == null) {
-			consent = new UserConsent();
-		}
-		if (notificationOptions == null) {
-			notificationOptions = new NotificationOptions();
-		}
-		if (ridesharePreferences == null) {
-			ridesharePreferences = new RidesharePreferences(this);
-		}
-		if (searchPreferences == null) {
-			searchPreferences = new SearchPreferences(this);
-		}
-		
-	}
 	public Address getHomeAddress() {
 		return homeAddress;
 	}
@@ -185,9 +181,6 @@ public class Profile extends User  {
 	}
 
 	public RidesharePreferences getRidesharePreferences() {
-		if (ridesharePreferences == null) {
-			ridesharePreferences = new RidesharePreferences(this);
-		}
 		return ridesharePreferences;
 	}
 
@@ -195,9 +188,6 @@ public class Profile extends User  {
 		this.ridesharePreferences = ridesharePreferences;
 	}
 	public SearchPreferences getSearchPreferences() {
-		if (searchPreferences == null) {
-			searchPreferences = new SearchPreferences(this);
-		}
 		return searchPreferences;
 	}
 
@@ -206,9 +196,6 @@ public class Profile extends User  {
 	}
 
 	public UserConsent getConsent() {
-		if (consent == null) {
-			consent = new UserConsent();
-		}
 		return consent;
 	}
 
@@ -249,9 +236,6 @@ public class Profile extends User  {
 	}
 
 	public NotificationOptions getNotificationOptions() {
-		if (notificationOptions == null) {
-			notificationOptions = new NotificationOptions();
-		}
 		return notificationOptions;
 	}
 
@@ -286,5 +270,26 @@ public class Profile extends User  {
 	public void removeAddress(Address a) {
 		a.setProfile(null);
 		getAddresses().remove(a);
+	}
+
+	public final void addRidesharePreferences() {
+		this.ridesharePreferences = new RidesharePreferences(this);
+	}
+
+	public final void removeRidesharePreferences() {
+		this.ridesharePreferences = null;
+	}
+	
+	public void linkOneToOneChildren() {
+		if (this.searchPreferences != null) {
+			this.searchPreferences.setProfile(this);
+		}
+		if (this.ridesharePreferences != null) {
+			this.ridesharePreferences.setProfile(this);
+		}
+	}
+	
+	public void linkAddresses() {
+		getAddresses().forEach(addr -> addr.setProfile(this));
 	}
 }
