@@ -9,6 +9,7 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.Principal;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -136,14 +137,56 @@ public class ProfileManager {
     	profile.getAddresses().size();
     }
 
-    public Profile getProfileByManagedIdentity(String managedId) throws NotFoundException {
+    protected Profile getCompleteProfileByManagedIdentity(String managedId) throws NotFoundException {
     	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.FULL_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	// Initialize the fields that did not come with the query.
     	// What is faster, using the fullest graph, or use the one above? We have to test.
     	// Experiment: The fullest: 1 query, 1 connection, 16-30 msec
-    	//			   Full with uinitialization: 5 queries, 5 connections, 6 - 12 msec
+    	//			   Full with initialization: 5 queries, 5 connections, 6 - 12 msec
+    	// Conclusion: Extracting one big graph is expensive (due to carthesian product probably)
+    	//			   The experiment was without addresses.
     	initializeCompleteProfile(profile);
+    	return profile;
+    }
+
+    protected Profile getPublicProfileByManagedIdentity(String managedId) throws NotFoundException {
+    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.HOME_PROFILE_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
+    	profileDao.detach(profile);
+    	// Initialize the uninitialized fields, remove non-public info
+    	profile.setAddresses(Collections.emptySet());
+    	if (profile.getHomeAddress() != null) {
+    		Address addr = profile.getHomeAddress();
+    		addr.setHouseNumber(null);
+    		addr.setLocation(null);
+    		addr.setPostalCode(null);
+    		addr.setStreet(null);
+    	}
+    	profile.setFcmToken(null);
+    	profile.setConsent(null);
+    	profile.setNotificationOptions(null);
+    	profile.setPhoneNumber(null);
+    	profile.setRidesharePreferences(null);
+    	profile.setSearchPreferences(null);
+    	profile.setSearchPreferences(null);
+    	return profile;
+    }
+
+    /**
+     * Retrieves the profile of a user. If the calling user fetches something else then his own profile 
+     * the the public profile it returned, unless the caller has admin rights.
+     * @param managedId The managed identity.
+     * @return The profile
+     * @throws NotFoundException
+     */
+    public Profile getProfileByManagedIdentity(String managedId) throws NotFoundException {
+    	Profile profile = null;
+    	if (sessionContext.isCallerInRole("admin") || sessionContext.getCallerPrincipal().getName().equals(managedId)) {
+    		profile = getCompleteProfileByManagedIdentity(managedId);
+    	} else {
+    		profile = getPublicProfileByManagedIdentity(managedId);
+    	}
     	return profile;
     }
 
@@ -159,6 +202,12 @@ public class ProfileManager {
     	return profile.getImagePath();
     }
     
+    /**
+     * Updates all fields of the profile execept for: imagePath.
+     * @param managedId
+     * @param newProfile
+     * @throws NotFoundException
+     */
 	public void updateProfileByManagedIdentity(String managedId, Profile newProfile)  throws NotFoundException {
     	Profile dbprofile = profileDao.findByManagedIdentity(managedId, Profile.FULLEST_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
@@ -166,6 +215,21 @@ public class ProfileManager {
     	newProfile.setId(dbprofile.getId());
 		newProfile.linkOneToOneChildren();
 		newProfile.linkAddresses();
+		// Overwrite whatever image path is provided
+		newProfile.setImagePath(dbprofile.getImagePath());
+//		if (profile.getHomeAddress() != null) {
+//			Address home = profile.getHomeAddress();
+//			// Does this location exist in the favorites? If yes replace by a reference. otherwise add it to the addresses
+//			Optional<Address> addr = profile.getAddresses().stream()
+//					.filter(a -> a.getLocation().equals(home.getLocation()))
+//					.findFirst();
+//			if (addr.isPresent()) {
+//				profile.setHomeAddress(addr.get());
+//			} else {
+//				profile.addAddress(home);
+//			}
+//		}
+
     	profileDao.merge(newProfile);
 	}
 	

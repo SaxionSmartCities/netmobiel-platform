@@ -4,16 +4,19 @@ import java.time.Instant;
 import java.util.Base64;
 import java.util.Collections;
 
-import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.api.ComplimentsApi;
 import eu.netmobiel.profile.api.ProfilesApi;
 import eu.netmobiel.profile.api.mapping.ProfileMapper;
@@ -25,7 +28,8 @@ import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.service.ProfileManager;
 
-@ApplicationScoped
+@RequestScoped
+@Logging
 public class ProfilesResource implements ProfilesApi {
 
 	@Inject
@@ -33,6 +37,22 @@ public class ProfilesResource implements ProfilesApi {
 
 	@Inject
 	private ProfileManager profileManager;
+
+	@Context
+	private HttpServletRequest request;
+
+//	private final BooleanSupplier isAdmin = () -> request.isUserInRole("admin");
+//	private final Predicate<String> itIsMe = id -> request.getUserPrincipal().getName().equals(id);
+
+    private String resolveIdentity(String profileId) {
+		String mid = null;
+		if ("me".equals(profileId)) {
+			mid = request.getUserPrincipal().getName();
+		} else {
+			mid = profileId;
+		}
+		return mid;
+    }
 
 	@Override
 	public Response createProfile(eu.netmobiel.profile.api.model.Profile profile) {
@@ -55,7 +75,10 @@ public class ProfilesResource implements ProfilesApi {
 	public Response getProfile(String profileId) {
     	Response rsp = null;
 		try {
-        	Profile profile = profileManager.getProfileByManagedIdentity(profileId);
+			String mid = resolveIdentity(profileId);
+			// The profile is always completely initialized, but may only be filled in part,
+			// depending on the privileges of the caller.
+			Profile profile = profileManager.getProfileByManagedIdentity(mid);
         	ProfileResponse prsp = new ProfileResponse();
         	prsp.setProfiles(Collections.singletonList(mapper.mapComplete(profile)));
         	prsp.setMessage("Profile succesfully retrieved");
@@ -138,7 +161,11 @@ public class ProfilesResource implements ProfilesApi {
 			domainProfile.linkOneToOneChildren();
 			profileManager.updateProfileByManagedIdentity(profileId, domainProfile);
         	domainProfile = profileManager.getProfileByManagedIdentity(profileId);
-   			rsp = Response.ok(mapper.mapComplete(domainProfile)).build();
+        	ProfileResponse prsp = new ProfileResponse();
+        	prsp.setProfiles(Collections.singletonList(mapper.mapComplete(domainProfile)));
+        	prsp.setMessage("Profile succesfully retrieved");
+        	prsp.setSuccess(true);
+   			rsp = Response.ok(prsp).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -175,7 +202,11 @@ public class ProfilesResource implements ProfilesApi {
 			String filename = Instant.now().toEpochMilli() + "." + filetype;
 	    	profileManager.uploadImage(profileId, mimetype, filename, decodedImage);
         	Profile profile = profileManager.getProfileByManagedIdentity(profileId);
-   			rsp = Response.ok(mapper.mapComplete(profile)).build();
+        	ProfileResponse prsp = new ProfileResponse();
+        	prsp.setProfiles(Collections.singletonList(mapper.mapComplete(profile)));
+        	prsp.setMessage("Profile succesfully retrieved");
+        	prsp.setSuccess(true);
+   			rsp = Response.ok(prsp).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
