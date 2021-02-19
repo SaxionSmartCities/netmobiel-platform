@@ -10,6 +10,9 @@ public class IBANValidator implements ConstraintValidator<IBANBankAccount, Strin
 
 	@Override
 	public boolean isValid(String value, ConstraintValidatorContext context) {
+		if (value == null) {
+			return true;
+		}
 		IBAN iban = null; 
 		 // You can use the Modulo97 class directly to compute or verify the check digits on an input.
 		boolean valid = Modulo97.verifyCheckDigits(value);
