@@ -190,8 +190,8 @@ public class ProfileManager {
     	Path oldFile = null;
     	if (profile.getImagePath() != null) {
     		String[] parts = profile.getImagePath().split("/");
-    		String oldFolder = URLDecoder.decode(parts[parts.length - 2], StandardCharsets.UTF_8);
-    		String oldFilename = URLDecoder.decode(parts[parts.length - 1], StandardCharsets.UTF_8);
+    		String oldFolder = URLDecoder.decode(parts[0], StandardCharsets.UTF_8);
+    		String oldFilename = URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
     		oldFile = Path.of(oldFolder, oldFilename);
     	}
 		try {
@@ -200,7 +200,7 @@ public class ProfileManager {
 	    	if (oldFile != null) {
 	    		Files.deleteIfExists(Paths.get(profileServiceImageFolder).resolve(oldFile));
 	    	}
-			profile.setImagePath(String.format("/images/%s/%s", URLEncoder.encode(folder, StandardCharsets.UTF_8), URLEncoder.encode(filename, StandardCharsets.UTF_8)));
+			profile.setImagePath(String.format("%s/%s", URLEncoder.encode(folder, StandardCharsets.UTF_8), URLEncoder.encode(filename, StandardCharsets.UTF_8)));
 		} catch (IOException e) {
 			throw new UpdateException("Error writing or replacing image " + newPath , e);
 		}
