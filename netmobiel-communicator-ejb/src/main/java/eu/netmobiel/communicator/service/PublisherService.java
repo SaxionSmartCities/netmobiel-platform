@@ -29,7 +29,7 @@ import eu.netmobiel.communicator.repository.CommunicatorUserDao;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
 import eu.netmobiel.communicator.repository.MessageDao;
 import eu.netmobiel.firebase.messaging.FirebaseMessagingClient;
-import eu.netmobiel.profile.client.ProfileClient;
+import eu.netmobiel.profile.service.ProfileManager;
 
 /**
  * Bean class for Publisher enterprise bean. 
@@ -56,7 +56,7 @@ public class PublisherService {
     private CommunicatorUserDao userDao;
 
     @Inject
-    private ProfileClient profileClient;
+    private ProfileManager profileManager;
     
     @Inject
     private FirebaseMessagingClient firebaseMessagingClient;
@@ -117,7 +117,7 @@ public class PublisherService {
 			if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
 				for (Envelope env : msg.getEnvelopes()) {
 					try {
-						String fcmToken = profileClient.getFirebaseToken(env.getRecipient().getManagedIdentity());
+						String fcmToken = profileManager.getFcmTokenByManagedIdentity(env.getRecipient().getManagedIdentity());
 						firebaseMessagingClient.send(fcmToken, msg);
 						env.setPushTime(Instant.now());
 					} catch (Exception ex) {

@@ -29,8 +29,8 @@ import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.TripPlanManager;
-import eu.netmobiel.profile.api.model.Profile;
-import eu.netmobiel.profile.client.ProfileClient;
+import eu.netmobiel.profile.model.Profile;
+import eu.netmobiel.profile.service.ProfileManager;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Ride;
@@ -60,7 +60,7 @@ public class ShoutOutProcessor {
     private PublisherService publisherService;
 
     @Inject
-    private ProfileClient profileService;
+    private ProfileManager profileManager;
 
     @Inject
     private RideManager rideManager;
@@ -92,7 +92,7 @@ public class ShoutOutProcessor {
 //    @Asynchronous
     public void onShoutOutRequested(@Observes(during = TransactionPhase.IN_PROGRESS) TripPlan event) throws BusinessException {
     	// We have a shout-out request
-		List<Profile> profiles = profileService.searchShoutOutProfiles(event.getFrom(), event.getTo(), DRIVER_MAX_RADIUS_METERS, DRIVER_NEIGHBOURING_RADIUS_METERS);
+		List<Profile> profiles = profileManager.searchShoutOutProfiles(event.getFrom(), event.getTo(), DRIVER_MAX_RADIUS_METERS, DRIVER_NEIGHBOURING_RADIUS_METERS);
 		if (! profiles.isEmpty()) {
 			Message msg = new Message();
 			msg.setContext(event.getPlanRef());
@@ -117,7 +117,7 @@ public class ShoutOutProcessor {
 //							event.getTo().getLabel() 
 //							));
 			msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-			profiles.forEach(profile -> msg.addRecipient(new NetMobielUserImpl(profile.getId(), profile.getFirstName(), profile.getLastName(), profile.getEmail())));
+			profiles.forEach(profile -> msg.addRecipient(new NetMobielUserImpl(profile.getManagedIdentity(), profile.getGivenName(), profile.getFamilyName(), profile.getEmail())));
 			publisherService.publish(null, msg);
 		}
     }

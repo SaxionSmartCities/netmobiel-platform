@@ -47,7 +47,7 @@
 		</dependency>
 		<dependency>
 		    <groupId>${project.groupId}</groupId>
-		    <artifactId>netmobiel-profile-client</artifactId>
+		    <artifactId>netmobiel-profile-ejb</artifactId>
 		    <version>${project.version}</version>
 		</dependency>
         <dependency>
