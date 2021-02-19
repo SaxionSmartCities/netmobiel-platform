@@ -30,7 +30,10 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.Version;
 import eu.netmobiel.commons.jaxrs.BusinessExceptionMapper;
 import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
+import eu.netmobiel.commons.jaxrs.Jackson2ObjectMapperContextResolver;
+import eu.netmobiel.commons.jaxrs.JsonProcessingExceptionMapper;
 import eu.netmobiel.commons.jaxrs.OffsetDateTimeParamConverterProvider;
+import eu.netmobiel.commons.jaxrs.ProcessingExceptionMapper;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
 import eu.netmobiel.communicator.api.resource.MessagesResource;
@@ -73,12 +76,15 @@ public class CommunicatorApplication extends Application {
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new HashSet<>();
         resources.add(MessagesResource.class);
+        resources.add(Jackson2ObjectMapperContextResolver.class);
         resources.add(OffsetDateTimeParamConverterProvider.class);
         resources.add(WebApplicationExceptionMapper.class);
         resources.add(EJBExceptionMapper.class);
         resources.add(SecurityExceptionMapper.class);
         resources.add(BusinessExceptionMapper.class);
-        return resources;
+        resources.add(ProcessingExceptionMapper.class);
+        resources.add(JsonProcessingExceptionMapper.class);
+     return resources;
     }
 
 //	@Override

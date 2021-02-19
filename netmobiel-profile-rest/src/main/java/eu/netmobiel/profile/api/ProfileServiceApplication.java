@@ -16,6 +16,7 @@
  */
 package eu.netmobiel.profile.api;
 
+import java.io.IOException;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -23,14 +24,20 @@ import javax.annotation.PostConstruct;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.ApplicationPath;
+import javax.ws.rs.container.ContainerRequestContext;
+import javax.ws.rs.container.ContainerResponseContext;
 import javax.ws.rs.core.Application;
 
+import org.jboss.resteasy.plugins.interceptors.CorsFilter;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.Version;
 import eu.netmobiel.commons.jaxrs.BusinessExceptionMapper;
 import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
+import eu.netmobiel.commons.jaxrs.Jackson2ObjectMapperContextResolver;
+import eu.netmobiel.commons.jaxrs.JsonProcessingExceptionMapper;
 import eu.netmobiel.commons.jaxrs.OffsetDateTimeParamConverterProvider;
+import eu.netmobiel.commons.jaxrs.ProcessingExceptionMapper;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
 import eu.netmobiel.profile.api.resource.ComplimentsResource;
@@ -55,6 +62,58 @@ public class ProfileServiceApplication extends Application {
     @Inject
     private Version version;
 
+    private Set<Class<?>> resources = new HashSet<>();
+    private Set<Object> singletons = new HashSet<>();
+    
+    public static class MyCorsFilter extends CorsFilter  {
+
+		@Override
+		protected void preflight(String origin, ContainerRequestContext requestContext) throws IOException {
+			// TODO Auto-generated method stub
+			super.preflight(origin, requestContext);
+		}
+
+		@Override
+		protected void checkOrigin(ContainerRequestContext requestContext, String origin) {
+			// TODO Auto-generated method stub
+			super.checkOrigin(requestContext, origin);
+		}
+
+		@Override
+		public void filter(ContainerRequestContext requestContext) throws IOException {
+			// TODO Auto-generated method stub
+			super.filter(requestContext);
+		}
+
+		@Override
+		public void filter(ContainerRequestContext requestContext, ContainerResponseContext responseContext)
+				throws IOException {
+			// TODO Auto-generated method stub
+			super.filter(requestContext, responseContext);
+		}
+    	
+    }
+    public ProfileServiceApplication() {
+        resources.add(ComplimentsResource.class);
+        resources.add(ProfilesResource.class);
+        resources.add(ReviewsResource.class);
+        resources.add(OffsetDateTimeParamConverterProvider.class);
+        resources.add(WebApplicationExceptionMapper.class);
+        resources.add(EJBExceptionMapper.class);
+        resources.add(SecurityExceptionMapper.class);
+        resources.add(BusinessExceptionMapper.class);
+        resources.add(ProcessingExceptionMapper.class);
+        resources.add(JsonProcessingExceptionMapper.class);
+        resources.add(Jackson2ObjectMapperContextResolver.class);
+
+//        CorsFilter corsFilter = new MyCorsFilter();
+//        corsFilter.getAllowedOrigins().add("*");
+//        corsFilter.setExposedHeaders("*");
+//        singletons.add(corsFilter);
+//        singletons.add(new LocalDataParamConverterProvider());
+
+    }
+    
     @PostConstruct
     public void postConstruct() {
         StringBuilder builder = new StringBuilder();
@@ -65,7 +124,7 @@ public class ProfileServiceApplication extends Application {
         builder.append("\n\tBuild:    " + version.getVersionInfo());
         builder.append("\n------------------------------------------------");
         log.info(builder.toString());
-    }
+   }
 
     /**
      * When an REST interface is defined through an API, the scanning does not work. 
@@ -73,24 +132,13 @@ public class ProfileServiceApplication extends Application {
      */
     @Override
     public Set<Class<?>> getClasses() {
-        Set<Class<?>> resources = new HashSet<>();
-        resources.add(ComplimentsResource.class);
-        resources.add(ProfilesResource.class);
-        resources.add(ReviewsResource.class);
-        resources.add(OffsetDateTimeParamConverterProvider.class);
-        resources.add(WebApplicationExceptionMapper.class);
-        resources.add(EJBExceptionMapper.class);
-        resources.add(SecurityExceptionMapper.class);
-        resources.add(BusinessExceptionMapper.class);
         return resources;
     }
 
-//	@Override
-//	public Set<Object> getSingletons() {
-//        Set<Object> singletons = new HashSet<>();
-//        singletons.add(new LocalDataParamConverterProvider());
-//		return singletons;
-//	}
+	@Override
+	public Set<Object> getSingletons() {
+		return singletons;
+	}
     
     
 }
