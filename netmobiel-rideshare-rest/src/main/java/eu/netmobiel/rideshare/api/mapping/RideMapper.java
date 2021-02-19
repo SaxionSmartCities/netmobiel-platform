@@ -82,6 +82,8 @@ public abstract class RideMapper {
 	@Mapping(target = "stops", ignore = true)
 	@Mapping(target = "to.point", ignore = true)
 	@Mapping(target = "version", ignore = true)
+	@Mapping(target = "departurePostalCode", ignore = true)
+	@Mapping(target = "arrivalPostalCode", ignore = true)
 	public abstract Ride commonInverseMap(eu.netmobiel.rideshare.api.model.Ride source);
 
 	
