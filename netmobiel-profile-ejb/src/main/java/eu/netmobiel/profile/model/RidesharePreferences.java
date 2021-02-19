@@ -60,7 +60,7 @@ public class RidesharePreferences implements Serializable {
 	@Column(name = "max_passengers")
 	private Integer maxPassengers = DEFAULT_MAX_PASSENGERS;
 	
-    @ElementCollection()
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "ridehare_luggage", joinColumns = { 
     	@JoinColumn(name = "profile", foreignKey = @ForeignKey(foreignKeyDefinition = "rideshare_luggage_profile_fk")) 
     })

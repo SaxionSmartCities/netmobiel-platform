@@ -26,6 +26,8 @@
 		<property name="hibernate.dialect" value="org.hibernate.spatial.dialect.postgis.PostgisDialect"/>
 		<!-- Hibernate does not store time zone information, so make everything UTC -->
 <!-- 		<property name="hibernate.jdbc.time_zone" value="UTC"/> -->
+		<property name="hibernate.generate_statistics" value="false"/>
+
       </properties>
    </persistence-unit>
 </persistence>

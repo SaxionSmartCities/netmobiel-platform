@@ -2,6 +2,7 @@ package eu.netmobiel.profile.api.resource;
 
 import java.time.Instant;
 import java.util.Base64;
+import java.util.Collections;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
@@ -19,6 +20,7 @@ import eu.netmobiel.profile.api.mapping.ProfileMapper;
 import eu.netmobiel.profile.api.model.FirebaseTokenResponse;
 import eu.netmobiel.profile.api.model.ImageResponse;
 import eu.netmobiel.profile.api.model.ImageUploadRequest;
+import eu.netmobiel.profile.api.model.ProfileResponse;
 import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.service.ProfileManager;
@@ -54,7 +56,11 @@ public class ProfilesResource implements ProfilesApi {
     	Response rsp = null;
 		try {
         	Profile profile = profileManager.getProfileByManagedIdentity(profileId);
-   			rsp = Response.ok(mapper.map(profile)).build();
+        	ProfileResponse prsp = new ProfileResponse();
+        	prsp.setProfiles(Collections.singletonList(mapper.mapComplete(profile)));
+        	prsp.setMessage("Profile succesfully retrieved");
+        	prsp.setSuccess(true);
+   			rsp = Response.ok(prsp).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -132,7 +138,7 @@ public class ProfilesResource implements ProfilesApi {
 			domainProfile.linkOneToOneChildren();
 			profileManager.updateProfileByManagedIdentity(profileId, domainProfile);
         	domainProfile = profileManager.getProfileByManagedIdentity(profileId);
-   			rsp = Response.ok(mapper.map(domainProfile)).build();
+   			rsp = Response.ok(mapper.mapComplete(domainProfile)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -169,7 +175,7 @@ public class ProfilesResource implements ProfilesApi {
 			String filename = Instant.now().toEpochMilli() + "." + filetype;
 	    	profileManager.uploadImage(profileId, mimetype, filename, decodedImage);
         	Profile profile = profileManager.getProfileByManagedIdentity(profileId);
-   			rsp = Response.ok(mapper.map(profile)).build();
+   			rsp = Response.ok(mapper.mapComplete(profile)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

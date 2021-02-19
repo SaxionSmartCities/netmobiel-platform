@@ -59,7 +59,7 @@ public class SearchPreferences implements Serializable {
 	@Column(name = "number_of_passengers")
 	private Integer numberOfPassengers = DEFAULT_NR_PASSENGERS;
 	
-    @ElementCollection()
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "passenger_luggage", joinColumns = { 
     	@JoinColumn(name = "profile", foreignKey = @ForeignKey(foreignKeyDefinition = "passenger_luggage_profile_fk")) 
     })
@@ -79,7 +79,7 @@ public class SearchPreferences implements Serializable {
     /**
      * The eligible traverse modes
      */
-    @ElementCollection()
+    @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "preferred_traverse_mode", joinColumns = { 
     	@JoinColumn(name = "profile", foreignKey = @ForeignKey(foreignKeyDefinition = "preferred_traverse_mode__profile_fk")) 
     })

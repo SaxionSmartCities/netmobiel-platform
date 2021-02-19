@@ -29,6 +29,7 @@ import eu.netmobiel.commons.exception.LegalReasonsException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
+import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.filter.ComplimentFilter;
@@ -106,6 +107,8 @@ public class ProfileManager {
 		}
 		String managedIdentity = keycloakDao.addUser(profile, true);
 		profile.setManagedIdentity(managedIdentity);
+		profile.linkOneToOneChildren();
+		profile.linkAddresses();
 		if (profile.getHomeAddress() != null) {
 			Address home = profile.getHomeAddress();
 			// Does this location exist in the favorites? If yes replace by a reference. otherwise add it to the addresses
@@ -122,11 +125,7 @@ public class ProfileManager {
 		return profile.getId();
     }
 
-    public Profile getProfileByManagedIdentity(String managedId) throws NotFoundException {
-    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.FULL_PROFILE_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-    	// Initialize the fields that did not come with the query.
-    	// What is faster, using the fullest graph, or use the one above? We have to test.
+    private void initializeCompleteProfile(Profile profile) {
     	if (profile.getSearchPreferences() != null) {
     		profile.getSearchPreferences().getAllowedTraverseModes().size();
     		profile.getSearchPreferences().getLuggageOptions().size();
@@ -135,6 +134,16 @@ public class ProfileManager {
     		profile.getRidesharePreferences().getLuggageOptions().size();
     	}
     	profile.getAddresses().size();
+    }
+
+    public Profile getProfileByManagedIdentity(String managedId) throws NotFoundException {
+    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.FULL_PROFILE_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
+    	// Initialize the fields that did not come with the query.
+    	// What is faster, using the fullest graph, or use the one above? We have to test.
+    	// Experiment: The fullest: 1 query, 1 connection, 16-30 msec
+    	//			   Full with uinitialization: 5 queries, 5 connections, 6 - 12 msec
+    	initializeCompleteProfile(profile);
     	return profile;
     }
 
@@ -155,9 +164,8 @@ public class ProfileManager {
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	profileDao.detach(dbprofile);
     	newProfile.setId(dbprofile.getId());
-    	newProfile.getSearchPreferences().setId(dbprofile.getId());
-    	newProfile.getRidesharePreferences().setId(dbprofile.getId());
-    	newProfile.getAddresses().forEach(addr -> addr.setProfile(newProfile));
+		newProfile.linkOneToOneChildren();
+		newProfile.linkAddresses();
     	profileDao.merge(newProfile);
 	}
 	
@@ -199,6 +207,21 @@ public class ProfileManager {
 
 	}
 	
+	/**
+	 * Search for drivers that are eligible to drive a potential passenger to his/her destination.
+	 * @param pickup the pickup location of the passenger. 
+	 * @param dropOff the drop-off location of the passenger.
+	 * @param driverMaxRadiusMeter The radius of the circles that limits the eligibility of the the driver 
+	 * 			by demanding his living location to be in both the two large circles around the pickup and drop-off location. 
+	 * @param driverNeighbouringRadiusMeter The radius of the circles that limits the eligibility of the the driver 
+	 * 			by demanding his living location to be in the neighbourhood of one of the pickup or drop-off locations.
+	 * @return A list of profiles of potential drivers, possibly empty.
+	 * @throws BusinessException In case of trouble.
+	 */
+    public List<Profile> searchShoutOutProfiles(GeoLocation pickup, GeoLocation dropOff, int driverMaxRadiusMeter, int driverNeighbouringRadiusMeter) {
+    	return profileDao.searchShoutOutProfiles(pickup, dropOff, driverMaxRadiusMeter, driverNeighbouringRadiusMeter);
+    }
+    
 	/* ===================  REVIEW  ==================== */
 
 	public Long createReview(Review review) throws BadRequestException, NotFoundException {

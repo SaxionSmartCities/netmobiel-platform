@@ -1,7 +1,9 @@
 package eu.netmobiel.profile.repository.mapping;
 
+import org.mapstruct.AfterMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 
 import eu.netmobiel.profile.model.Profile;
@@ -30,6 +32,15 @@ public abstract class ProfileMapper {
 	@Mapping(target = "addresses", ignore = true)
 	public abstract Profile map(eu.netmobiel.profile.api.model.Profile source);
 
+	@AfterMapping
+	public Profile fixImagePath(eu.netmobiel.profile.api.model.Profile source, @MappingTarget Profile profile) {
+		// Remove the prefix from the image path, it should not be there.
+		if (profile.getImagePath() != null && profile.getImagePath().startsWith("/images/")) {
+			profile.setImagePath(profile.getImagePath().substring("/images/".length()));
+		}
+		return profile;
+	}
+	
 	@Mapping(target = "maxPassengers", source = "numPassengers")
 	@Mapping(target = "defaultCarRef", source = "selectedCarId")
 	@Mapping(target = "profile", ignore = true)

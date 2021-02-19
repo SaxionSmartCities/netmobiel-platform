@@ -54,19 +54,19 @@ import eu.netmobiel.profile.util.ProfileUrnHelper;
 		attributeNodes = {
 			@NamedAttributeNode(value = "addresses"),
 			@NamedAttributeNode(value = "homeAddress"),
-			@NamedAttributeNode(value = "ridesharePreferences", subgraph = "subgraph.luggage-options"),
-			@NamedAttributeNode(value = "searchPreferences", subgraph = "subgraph.luggage-options"),
-			@NamedAttributeNode(value = "searchPreferences", subgraph = "subgraph.traverse-modes")
+			@NamedAttributeNode(value = "ridesharePreferences", subgraph = "subgraph.rideshare-prefs"),
+			@NamedAttributeNode(value = "searchPreferences", subgraph = "subgraph.search-prefs"),
 		}, subgraphs =  {
 			@NamedSubgraph(
-					name = "subgraph.luggage-options",
+					name = "subgraph.rideshare-prefs",
 					attributeNodes = {
 							@NamedAttributeNode(value = "luggageOptions")
 			}),
 			@NamedSubgraph(
-					name = "subgraph.traverse-modes",
+					name = "subgraph.search-prefs",
 					attributeNodes = {
-							@NamedAttributeNode(value = "allowedTraverseModes")
+							@NamedAttributeNode(value = "allowedTraverseModes"),
+							@NamedAttributeNode(value = "luggageOptions")
 			}),
 	})
 })
@@ -283,9 +283,11 @@ public class Profile extends User  {
 	public void linkOneToOneChildren() {
 		if (this.searchPreferences != null) {
 			this.searchPreferences.setProfile(this);
+			this.searchPreferences.setId(this.getId());
 		}
 		if (this.ridesharePreferences != null) {
 			this.ridesharePreferences.setProfile(this);
+			this.ridesharePreferences.setId(this.getId());
 		}
 	}
 	

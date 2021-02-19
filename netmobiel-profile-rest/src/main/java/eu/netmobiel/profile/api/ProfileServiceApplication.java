@@ -33,7 +33,9 @@ import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
 import eu.netmobiel.commons.jaxrs.OffsetDateTimeParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
+import eu.netmobiel.profile.api.resource.ComplimentsResource;
 import eu.netmobiel.profile.api.resource.ProfilesResource;
+import eu.netmobiel.profile.api.resource.ReviewsResource;
 
 
 /**
@@ -72,7 +74,9 @@ public class ProfileServiceApplication extends Application {
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new HashSet<>();
+        resources.add(ComplimentsResource.class);
         resources.add(ProfilesResource.class);
+        resources.add(ReviewsResource.class);
         resources.add(OffsetDateTimeParamConverterProvider.class);
         resources.add(WebApplicationExceptionMapper.class);
         resources.add(EJBExceptionMapper.class);

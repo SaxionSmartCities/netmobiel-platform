@@ -1,11 +1,15 @@
 package eu.netmobiel.profile.api.mapping;
 
+import org.mapstruct.InheritConfiguration;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.profile.api.mapping.annotation.ProfileComplete;
+import eu.netmobiel.profile.api.mapping.annotation.ProfileMapperQualifier;
+import eu.netmobiel.profile.api.mapping.annotation.ProfileShallow;
 import eu.netmobiel.profile.model.Address;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
@@ -20,24 +24,39 @@ import eu.netmobiel.profile.repository.mapping.GeometryMapper;
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
 	uses = { GeometryMapper.class })
+@ProfileMapperQualifier
 public abstract class ProfileMapper {
 
+	@Mapping(target = "data", source = "data", qualifiedBy = { ProfileShallow.class } )
 	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Profile> source);
 
 	// Domain --> API
 	@Mapping(target = "firstName", source = "givenName")
 	@Mapping(target = "image", source = "imagePath")
-	@Mapping(target = "interests", ignore = true)
 	@Mapping(target = "lastName", source = "familyName")
 	@Mapping(target = "address", source = "homeAddress")
 	@Mapping(target = "ridePlanOptions", source = "ridesharePreferences")
-	@Mapping(target = "favoritePlaces", source = "addresses")
 	@Mapping(target = "favoriteLocations", ignore = true)
+	@Mapping(target = "favoritePlaces", source = "addresses")
+	@Mapping(target = "interests", ignore = true)
 	// The id is defined as the keycloak identity.
 	@Mapping(target = "id", source = "managedIdentity")
-	public abstract eu.netmobiel.profile.api.model.Profile map(Profile source);
+	public abstract eu.netmobiel.profile.api.model.Profile commonMap(Profile source);
 
-	@InheritInverseConfiguration
+	@InheritConfiguration(name = "commonMap")
+	@Mapping(target = "interests", ignore = true)
+	@Mapping(target = "favoriteLocations", ignore = true)
+	@Mapping(target = "favoritePlaces", ignore = true)
+	@Mapping(target = "ridePlanOptions", ignore = true)
+	@Mapping(target = "searchPreferences", ignore = true)
+	@ProfileShallow
+	public abstract eu.netmobiel.profile.api.model.Profile mapShallow(Profile source);
+
+	@InheritConfiguration(name = "commonMap")
+	@ProfileComplete
+	public abstract eu.netmobiel.profile.api.model.Profile mapComplete(Profile source);
+
+	@InheritInverseConfiguration(name = "commonMap")
 	@Mapping(target = "id", ignore = true)
 	public abstract Profile map(eu.netmobiel.profile.api.model.Profile source);
 
