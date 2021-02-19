@@ -9,6 +9,8 @@ import javax.ejb.Singleton;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.BankerUser;
@@ -25,6 +27,9 @@ import eu.netmobiel.commons.util.Logging;
 @Logging
 public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
 
+	@Inject
+    protected Logger log;
+
     @Inject
     private BankerUserDao userDao;
     
@@ -39,7 +44,12 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
 		return userDao;
 	}
     
-    @Override
+	@Override
+	protected Logger getLogger() {
+		return log;
+	}
+
+	@Override
 	protected BankerUser enrichUser(BankerUser user) {
     	if (user.getPersonalAccount() == null) {
     		// Act like a new user is created

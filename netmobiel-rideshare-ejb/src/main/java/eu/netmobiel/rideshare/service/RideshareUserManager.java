@@ -9,6 +9,8 @@ import javax.ejb.ConcurrencyManagementType;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+
 import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.DuplicateEntryException;
@@ -28,6 +30,14 @@ public class RideshareUserManager extends UserManager<RideshareUserDao, Rideshar
     @Inject
     private RideshareUserDao userDao;
     
+	@Inject
+    protected Logger log;
+
+	@Override
+	protected Logger getLogger() {
+		return log;
+	}
+
     @Inject
     private CarDao carDao;
     

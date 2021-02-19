@@ -7,6 +7,8 @@ import javax.ejb.ConcurrencyManagementType;
 import javax.ejb.Singleton;
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+
 import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.service.UserManager;
 import eu.netmobiel.commons.util.Logging;
@@ -20,6 +22,14 @@ public class CommunicatorUserManager extends UserManager<CommunicatorUserDao, Co
 
     @Inject
     private CommunicatorUserDao userDao;
+
+	@Inject
+    protected Logger log;
+
+	@Override
+	protected Logger getLogger() {
+		return log;
+	}
 
 	@Override
 	protected CommunicatorUserDao getUserDao() {

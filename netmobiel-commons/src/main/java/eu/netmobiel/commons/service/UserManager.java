@@ -11,7 +11,6 @@ import javax.ejb.EJBException;
 import javax.ejb.SessionContext;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
-import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
@@ -27,15 +26,13 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     @Resource
 	protected SessionContext sessionContext;
 
-	@Inject
-    protected Logger log;
-
     protected abstract D getUserDao();
+    protected abstract Logger getLogger();
 
 	protected T createContextUser() {
     	NetMobielUser nbuser = SecurityContextHelper.getUserContext(sessionContext.getCallerPrincipal());
-    	if (log.isTraceEnabled()) {
-    		log.trace("createCallingUser: " + (nbuser != null ? nbuser.toString() : "<null>"));
+    	if (getLogger().isTraceEnabled()) {
+    		getLogger().trace("createCallingUser: " + (nbuser != null ? nbuser.toString() : "<null>"));
     	}
     	T user = null;
     	if (nbuser != null) {
@@ -90,6 +87,7 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
      * @return the registered user.
      * @throws Exception
      */
+	//FIXME This call should be synchronized or lock.write
     public T register(T user) {
     	T dbuser = null;
     	dbuser = getUserDao().findByManagedIdentity(user.getManagedIdentity())
@@ -97,8 +95,8 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     	if (dbuser == null) {
 //    		dbuser = ctx.getBusinessObject(this.getClass()).findCorCreate(user);
     		T dbuser2 = findCorCreateLoopback(user);
-    		// Get the just created in the current pesistence context
-    		dbuser = loadUser(dbuser).orElseThrow(() -> new IllegalStateException("Still no user: " + dbuser2));
+    		// Get the just created in the current persistence context
+    		dbuser = loadUser(dbuser2).orElseThrow(() -> new IllegalStateException("Still no user: " + dbuser2));
     	} else {
 	    	dbuser.setFamilyName(user.getFamilyName()); 
 	    	dbuser.setGivenName(user.getGivenName());
