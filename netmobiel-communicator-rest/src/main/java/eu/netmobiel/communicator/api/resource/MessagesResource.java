@@ -37,7 +37,7 @@ public class MessagesResource implements MessagesApi {
 	public Response sendMessage(eu.netmobiel.communicator.api.model.Message msg) {
     	Response rsp = null;
 		try {
-			CommunicatorUser caller = userManager.registerCallingUser();
+			CommunicatorUser caller = userManager.findOrRegisterCallingUser();
 			publisherService.validateMessage(caller, mapper.map(msg));
 			publisherService.publish(caller, mapper.map(msg));
 			rsp = Response.status(Status.ACCEPTED).build();

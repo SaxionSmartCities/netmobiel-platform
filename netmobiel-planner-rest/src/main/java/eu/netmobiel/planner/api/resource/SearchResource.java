@@ -90,7 +90,7 @@ public class SearchResource implements SearchApi {
     		nrSeats = 1;
     	}
 		try {
-			PlannerUser traveller = userManager.registerCallingUser();
+			PlannerUser traveller = userManager.findOrRegisterCallingUser();
 			plan.setFrom(GeoLocation.fromString(from));
 			plan.setTo(GeoLocation.fromString(to));
 			plan.setTravelTime(toInstant(travelTime));

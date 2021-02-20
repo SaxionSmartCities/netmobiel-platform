@@ -23,7 +23,7 @@ import eu.netmobiel.rideshare.repository.CarDao;
 import eu.netmobiel.rideshare.repository.RideshareUserDao;
 
 @Singleton
-@ConcurrencyManagement(ConcurrencyManagementType.BEAN)
+@ConcurrencyManagement(ConcurrencyManagementType.CONTAINER)
 @Logging
 public class RideshareUserManager extends UserManager<RideshareUserDao, RideshareUser>{
 
@@ -66,7 +66,7 @@ public class RideshareUserManager extends UserManager<RideshareUserDao, Rideshar
     }
 
     public Long createCar(Car car) throws CreateException {
-    	RideshareUser caller = registerCallingUser();
+    	RideshareUser caller = findOrRegisterCallingUser();
     	car.setDriver(caller);
     	Car cardb = carDao.findByDriverandPlate(caller, car.getRegistrationCountry(), car.getLicensePlate())
     				.orElse(null);

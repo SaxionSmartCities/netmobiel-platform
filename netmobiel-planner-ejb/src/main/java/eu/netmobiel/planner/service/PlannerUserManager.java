@@ -16,7 +16,7 @@ import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.repository.PlannerUserDao;
 
 @Singleton
-@ConcurrencyManagement(ConcurrencyManagementType.BEAN)
+@ConcurrencyManagement(ConcurrencyManagementType.CONTAINER)
 @Logging
 public class PlannerUserManager extends UserManager<PlannerUserDao, PlannerUser> {
 

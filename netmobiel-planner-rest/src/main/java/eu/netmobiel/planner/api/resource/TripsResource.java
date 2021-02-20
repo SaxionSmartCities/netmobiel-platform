@@ -68,7 +68,7 @@ public class TripsResource implements TripsApi {
     	Response rsp = null;
 		// The owner of the trip will be the calling user.
 		try {
-			PlannerUser traveller = userManager.registerCallingUser();
+			PlannerUser traveller = userManager.findOrRegisterCallingUser();
 			Trip dtrip = tripMapper.map(trip);
 			String newTripId = PlannerUrnHelper.createUrn(Trip.URN_PREFIX, tripManager.createTrip(traveller, dtrip));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newTripId)).build();

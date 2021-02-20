@@ -5,6 +5,8 @@ import java.util.Optional;
 import javax.ejb.ConcurrencyManagement;
 import javax.ejb.ConcurrencyManagementType;
 import javax.ejb.EJBAccessException;
+import javax.ejb.Lock;
+import javax.ejb.LockType;
 import javax.ejb.Singleton;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
@@ -23,7 +25,8 @@ import eu.netmobiel.commons.service.UserManager;
 import eu.netmobiel.commons.util.Logging;
 
 @Singleton
-@ConcurrencyManagement(ConcurrencyManagementType.BEAN)
+@ConcurrencyManagement(ConcurrencyManagementType.CONTAINER)
+@Lock(LockType.READ)
 @Logging
 public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
 
@@ -102,6 +105,7 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
     	return userdb.getPersonalAccount();
     }
 
+    @Lock(LockType.WRITE)
     public void updatePersonalUserAccount(Long userId, Account acc) throws NotFoundException {
     	BankerUser userdb = userDao.loadGraph(userId, BankerUser.GRAPH_WITH_ACCOUNT)
     			.orElseThrow(() -> new NotFoundException("No such charity: " + userId));

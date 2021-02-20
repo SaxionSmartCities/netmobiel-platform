@@ -53,7 +53,7 @@ public class PlansResource implements PlansApi {
     	Response rsp = null;
 		// The owner of the trip will be the calling user.
 		try {
-			PlannerUser traveller = userManager.registerCallingUser();
+			PlannerUser traveller = userManager.findOrRegisterCallingUser();
 			TripPlan plan = tripPlanMapper.map(tripPlan);
 			String newPlanId = PlannerUrnHelper.createUrn(TripPlan.URN_PREFIX, tripPlanManager.createTripPlan(traveller, plan, Instant.now()));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newPlanId)).build();

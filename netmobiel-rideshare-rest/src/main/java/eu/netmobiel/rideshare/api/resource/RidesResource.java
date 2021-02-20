@@ -101,7 +101,7 @@ public class RidesResource implements RidesApi {
     	Response rsp = null;
 		try {
 			Ride ride = mapper.map(ridedt);
-			RideshareUser driver = userManager.registerCallingUser();
+			RideshareUser driver = userManager.findOrRegisterCallingUser();
 			ride.setDriver(driver);
 			// The owner of the ride will be the caller
 			String newRideId = RideshareUrnHelper.createUrn(Ride.URN_PREFIX, rideManager.createRide(ride));
@@ -190,7 +190,7 @@ public class RidesResource implements RidesApi {
 	public Response createBooking(String rideId, eu.netmobiel.rideshare.api.model.Booking bookingdt)  {
     	Response rsp = null;
 		try {
-			RideshareUser passenger = userManager.registerCallingUser();
+			RideshareUser passenger = userManager.findOrRegisterCallingUser();
         	Booking booking = bookingMapper.map(bookingdt);
 			String newBookingId = bookingManager.createBooking(rideId, passenger, booking);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newBookingId)).build();

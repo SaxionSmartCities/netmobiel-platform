@@ -59,7 +59,7 @@ public class SecurityContext implements ISecurityContext {
 	public void registerUser() {
         try {
         	if (user.getId() == null) {
-        		user = userManager.register(user);
+        		user = userManager.findCorCreate(user);
         	}
         } catch (Exception ex) {
         	throw new SecurityException("Unable to register or lookup user " + (user != null ? user.toString() : "<null>"), ex);

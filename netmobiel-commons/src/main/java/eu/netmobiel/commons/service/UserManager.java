@@ -8,9 +8,9 @@ import javax.annotation.Resource;
 import javax.annotation.security.PermitAll;
 import javax.ejb.EJBAccessException;
 import javax.ejb.EJBException;
+import javax.ejb.Lock;
+import javax.ejb.LockType;
 import javax.ejb.SessionContext;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
 
 import org.slf4j.Logger;
 
@@ -68,13 +68,6 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
 		return user;
 	}
 
-	@TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-    public synchronized T findCorCreate(T user) {
-    	user.setId(null);
-    	return getUserDao().findByManagedIdentity(user.getManagedIdentity())
-	    			.orElseGet(() -> getUserDao().save(user));
-    }
-    
 	protected abstract T findCorCreateLoopback(T user);
 	
 	protected Optional<T> loadUser(T user) {
@@ -83,32 +76,39 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
 
 	/**
      * Register the user, if not yet registered. This is a potential race condition if the client issues multiple requests in parallel.
+     * Therefore this call is write protected. Because the user might already be created by a different thread while waiting for the lock,
+     * another lookup is made before actually creating the user.
+     * This is the equivalent of a test-and-set operation.
+     * Do not call this method from application code.   
      * @param user the input record
      * @return the registered user.
      * @throws Exception
      */
-	//FIXME This call should be synchronized or lock.write
-    public T register(T user) {
+	@Lock(LockType.WRITE)
+    public T findCorCreate(T user) {
     	T dbuser = null;
     	dbuser = getUserDao().findByManagedIdentity(user.getManagedIdentity())
     			.orElse(null);
     	if (dbuser == null) {
-//    		dbuser = ctx.getBusinessObject(this.getClass()).findCorCreate(user);
-    		T dbuser2 = findCorCreateLoopback(user);
-    		// Get the just created in the current persistence context
-    		dbuser = loadUser(dbuser2).orElseThrow(() -> new IllegalStateException("Still no user: " + dbuser2));
-    	} else {
-	    	dbuser.setFamilyName(user.getFamilyName()); 
-	    	dbuser.setGivenName(user.getGivenName());
-	    	dbuser.setEmail(user.getEmail());
+    		// Ok, really create the user
+    		dbuser = getUserDao().save(user);
+    		dbuser = enrichUser(dbuser);
     	}
-    	return enrichUser(dbuser);
+    	return dbuser;
     }
 
-    public T registerCallingUser() {
-    	T caller = createContextUser();
+    /**
+     * Try to lookup a user. If the user does not exist then create the user in another EJB call that is write protected. 
+     *  
+     * @return A user that exists in the local database.
+     */
+    public T findOrRegisterCallingUser() {
+    	T caller = findCallingUser();
     	if (caller != null) {
-    		caller = register(caller);
+    		if (caller.getId() == null) {
+    			// Register the user in the database
+        		caller = findCorCreateLoopback(caller);
+    		}
     	} else {
         	throw new SecurityException("Unknown user");
     	}

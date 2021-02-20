@@ -16,7 +16,7 @@ import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.repository.CommunicatorUserDao;
 
 @Singleton
-@ConcurrencyManagement(ConcurrencyManagementType.BEAN)
+@ConcurrencyManagement(ConcurrencyManagementType.CONTAINER)
 @Logging
 public class CommunicatorUserManager extends UserManager<CommunicatorUserDao, CommunicatorUser> {
 

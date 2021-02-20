@@ -76,7 +76,7 @@ public class UsersResource implements UsersApi {
     protected BankerUser resolveUserReference(String userId, boolean createIfNeeded) throws NotFoundException {
 		BankerUser user = null;
 		if ("me".equals(userId)) {
-			user = createIfNeeded ? userManager.registerCallingUser() : userManager.findCallingUser();
+			user = createIfNeeded ? userManager.findOrRegisterCallingUser() : userManager.findCallingUser();
 		} else {
 			user = userManager
 					.resolveUrn(userId)

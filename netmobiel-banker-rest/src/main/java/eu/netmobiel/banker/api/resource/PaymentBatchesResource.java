@@ -52,7 +52,7 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
     	Response rsp = null;
 		// The calling user will become a manager of the charity
 		try {
-			userManager.registerCallingUser();
+			userManager.findOrRegisterCallingUser();
 			String pbid = BankerUrnHelper.createUrn(PaymentBatch.URN_PREFIX, withdrawalService.createPaymentBatch());
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(pbid)).build();
 		} catch (IllegalArgumentException e) {

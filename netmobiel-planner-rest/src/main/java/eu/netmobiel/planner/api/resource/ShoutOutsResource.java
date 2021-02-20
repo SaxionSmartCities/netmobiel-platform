@@ -84,7 +84,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
         	}
     	}
 		try {
-			PlannerUser driver = userManager.registerCallingUser();
+			PlannerUser driver = userManager.findOrRegisterCallingUser();
 			TripPlan driverPlan = new TripPlan();
 			driverPlan.setFrom(GeoLocation.fromString(from));
 			if (to != null) {
@@ -109,7 +109,7 @@ public class ShoutOutsResource implements ShoutOutsApi {
         		throw new eu.netmobiel.commons.exception.BadRequestException("planRef is a mandatory attribute");
         	}
         	Long providedSolutionPlanId = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, travelOffer.getPlanRef());
-			PlannerUser driver = userManager.registerCallingUser();
+			PlannerUser driver = userManager.findOrRegisterCallingUser();
 			if (travelOffer.getDriverRef() != null) {
 				if (!driver.getUrn().equals(travelOffer.getDriverRef()) && !driver.getKeyCloakUrn().equals(travelOffer.getDriverRef())) {
 					throw new SecurityException(String.format("User %s is not allowed to offer rides on behalf of %s", driver.getManagedIdentity(), travelOffer.getDriverRef()));

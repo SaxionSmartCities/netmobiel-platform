@@ -75,7 +75,7 @@ public class CharitiesResource implements CharitiesApi {
     protected BankerUser resolveUserReference(String userId, boolean createIfNeeded) {
 		BankerUser user = null;
 		if ("me".equals(userId)) {
-			user = createIfNeeded ? userManager.registerCallingUser() : userManager.findCallingUser();
+			user = createIfNeeded ? userManager.findOrRegisterCallingUser() : userManager.findCallingUser();
 		} else {
 			user = userManager
 					.resolveUrn(userId)
@@ -103,7 +103,7 @@ public class CharitiesResource implements CharitiesApi {
     	Response rsp = null;
 		// The calling user will become a manager of the charity
 		try {
-			BankerUser user = userManager.registerCallingUser();
+			BankerUser user = userManager.findOrRegisterCallingUser();
 			Charity dch = charityMapper.map(charity);
 			String newCharityId = BankerUrnHelper.createUrn(Charity.URN_PREFIX, charityManager.createCharity(user, dch));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newCharityId)).build();
@@ -192,7 +192,7 @@ public class CharitiesResource implements CharitiesApi {
 		Response rsp = null;
 		try {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
-			BankerUser user = userManager.registerCallingUser();
+			BankerUser user = userManager.findOrRegisterCallingUser();
 			Donation domainDonation = donationMapper.map(donation);
 			Long donationId = charityManager.donate(user, cid, domainDonation);
 			// This is the correct method to create a location header.
