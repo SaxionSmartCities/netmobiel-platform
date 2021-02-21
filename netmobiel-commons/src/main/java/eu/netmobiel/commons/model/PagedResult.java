@@ -24,7 +24,7 @@ public class PagedResult<T> {
 	private int offset;
 	
 	public PagedResult() {
-		
+		this(null, 0, 0, 0L);
 	}
 	
 	public PagedResult(List<T> someData, Cursor cursor, Long aTotalCount) {
