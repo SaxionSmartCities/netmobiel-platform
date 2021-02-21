@@ -78,7 +78,7 @@ public class RidesResource implements RidesApi {
 				Cursor cursor = new Cursor(maxResults, offset);
 				rides = rideManager.listRides(filter, cursor);
 			} else {
-				rides = new PagedResult<Ride>();
+				rides = PagedResult.empty();
 			}
 			// Map the rides as my rides: Brand/model car only, no driver info (because it is the specified driver)
 			rsp = Response.ok(pageMapper.mapMine(rides)).build();

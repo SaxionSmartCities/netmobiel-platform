@@ -51,7 +51,7 @@ public class BookingsResource implements BookingsApi {
     	Long userId = userManager.findCallingUser().getId();
 		try {
 			if (userId == null) {
-				bookings = new PagedResult<Booking>();
+				bookings = PagedResult.empty();
 			} else {
 				bookings = bookingManager.listBookings(userId, toInstant(sinceDate), toInstant(untilDate), maxResults, offset);
 			}
