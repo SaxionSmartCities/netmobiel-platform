@@ -155,6 +155,7 @@ public class RideFilter extends PeriodFilter {
 		}
 		builder.append("deletedToo=");
 		builder.append(deletedToo);
+		builder.append(", ");
 		builder.append(super.toString());
 		builder.append("]");
 		return builder.toString();
