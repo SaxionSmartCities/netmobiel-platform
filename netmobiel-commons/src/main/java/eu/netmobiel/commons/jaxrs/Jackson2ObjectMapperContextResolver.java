@@ -20,7 +20,9 @@ public class Jackson2ObjectMapperContextResolver implements ContextResolver<Obje
 		mapper.disable(SerializationFeature.WRITE_DATES_AS_TIMESTAMPS);
 		mapper.disable(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES);
 		mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
-		mapper.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+		// When the following statement is enabled, the complete Page object is omitted in case of an empty response.
+		// That is undesirable.
+//		mapper.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
 	}
 
     @Override
