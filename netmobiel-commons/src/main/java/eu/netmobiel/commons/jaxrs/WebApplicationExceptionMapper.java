@@ -58,7 +58,7 @@ public class WebApplicationExceptionMapper implements
 		String[] msgs = ExceptionUtil.unwindExceptionMessage(null, t);
 		ErrorResponse err = new ErrorResponse(status, errorCode, String.join(" - ", msgs));
 		rsp =  Response.status(status).type(MediaType.APPLICATION_JSON).entity(err).build();
-		if (e instanceof ServerErrorException) {
+		if (e instanceof ServerErrorException || status == Response.Status.INTERNAL_SERVER_ERROR) {
 			// Log stackdump
 			log.error("Server error", t);
 		} else {
