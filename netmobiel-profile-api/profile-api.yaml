@@ -695,11 +695,6 @@ components:
         notificationOptions:
           $ref: '#/components/schemas/NotificationOptions'
           description: The notification preferences
-        favoritePlaces:
-          description: A list of favorite places.
-          type: array
-          items:
-            $ref: '#/components/schemas/Address'
     UserConsent:
       title: Root Type for UserConsent
       description: Type user to flag consent with the terms of use of NetMobiel.
@@ -738,9 +733,6 @@ components:
         location:
           $ref: '#/components/schemas/Location'
           description: The GPS location of this address.
-        id:
-          description: Database identifier of this address.
-          type: number
         label:
           description: A short description of the place.
           type: string
