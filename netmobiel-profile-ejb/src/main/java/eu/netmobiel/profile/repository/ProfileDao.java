@@ -88,12 +88,6 @@ public class ProfileDao extends UserDao<Profile> {
         return new PagedResult<Long>(results, cursor, totalCount);
 	}
 
-	@Override
-	public void remove(Profile profile) {
-		profile.getAddresses().forEach(addr -> getEntityManager().remove(addr));
-		super.remove(profile);
-	}
-
 	/**
 	 * Search for drivers that are eligible to drive a potential passenger to his/her destination.
 	 * @param pickup the pickup location of the passenger. 

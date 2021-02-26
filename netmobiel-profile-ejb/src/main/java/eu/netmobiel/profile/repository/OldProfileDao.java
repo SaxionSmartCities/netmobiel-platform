@@ -46,7 +46,7 @@ public class OldProfileDao {
 		eu.netmobiel.profile.api.model.Profile oldProfile = profileClient.getProfile(managedIdentity);
 		Profile p = profileMapper.map(oldProfile);
 		p.linkOneToOneChildren();
-		p.linkAddresses();
+		p.linkPlaces();
 		return p;
 	}
 

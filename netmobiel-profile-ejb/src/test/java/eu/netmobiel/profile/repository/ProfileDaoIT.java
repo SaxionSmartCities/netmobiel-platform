@@ -65,7 +65,6 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	log.debug("Create passenger2 with address");
     	p.setDateOfBirth(LocalDate.parse(birthDay));
     	p.setFcmToken(token);
-    	p.addAddress(address);
     	p.setHomeAddress(address);
     	p.setImagePath(path);
     	p.setPhoneNumber(phoneNr);
@@ -162,7 +161,6 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	var address = Fixture.createAddressLichtenvoorde();
     	log.debug("Add home address to passenger2");
 //    	em.persist(address);
-    	p.addAddress(address);
     	p.setHomeAddress(address);
     	flush();
 
@@ -203,13 +201,12 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     public void removeProfile() throws Exception {
     	log.debug("Start of test: removeProfile");
     	var p = Fixture.createPassenger2();
+    	var address = Fixture.createAddressLichtenvoorde();
+    	p.setHomeAddress(address);
     	log.debug("Create passenger2");
     	profileDao.save(p);
-    	var address = Fixture.createAddressLichtenvoorde();
-    	log.debug("Add Address for passenger2");
-    	em.persist(address);
-    	p.addAddress(address);
-    	p.setHomeAddress(address);
+    	log.debug("Add favorite for passenger2");
+    	p.addPlace(Fixture.createPlace(Fixture.createAddressHengelo()));
     	flush();
 
     	/**
@@ -229,19 +226,17 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     public void shoutOutCircles() throws Exception {
     	var carla1 = profileDao.find(driver1.getId()).get();
     	var addrCarla1 = Fixture.createAddressLichtenvoorde();
-    	carla1.addAddress(addrCarla1);
     	carla1.setHomeAddress(addrCarla1);
     	var carla2 = Fixture.createDriver2();
     	var addrCarla2 = Fixture.createAddressHengelo();
-    	carla2.addAddress(addrCarla2);
     	carla2.setHomeAddress(addrCarla2);
     	profileDao.save(carla2);
     	flush();
 
-    	carla1 = profileDao.loadGraph(carla1.getId(), Profile.HOME_PROFILE_ENTITY_GRAPH).get();
+    	carla1 = profileDao.loadGraph(carla1.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	assertNotNull(carla1.getHomeAddress());
     	
-    	carla2 = profileDao.loadGraph(carla2.getId(), Profile.HOME_PROFILE_ENTITY_GRAPH).get();
+    	carla2 = profileDao.loadGraph(carla2.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	assertNotNull(carla2.getHomeAddress());
     	// So now , we have two drivers: Lichtenvoorde (carla1) and Hengelo (carla2).
     	// We want a ride from Zieuwent to Doetinchem. Lichtenvoorde is nearby, Hengelo is not.

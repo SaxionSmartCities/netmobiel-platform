@@ -5,17 +5,16 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.enterprise.inject.Vetoed;
+import javax.persistence.AttributeOverride;
+import javax.persistence.AttributeOverrides;
 import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
-import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
 import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
@@ -28,6 +27,7 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.User;
 import eu.netmobiel.profile.util.ProfileUrnHelper;
@@ -35,25 +35,19 @@ import eu.netmobiel.profile.util.ProfileUrnHelper;
 /*
  * The graphs are extracted as an carthesian product. In the case of the luggage options it is the question whether
  * it is worthwhile to repeat the complete profile structure just of a single luggage options, it is a lot of data.   
- * same with the addresses.
+ * same with the places.
  */
 @NamedEntityGraphs({
 	@NamedEntityGraph(name = Profile.DEFAULT_PROFILE_ENTITY_GRAPH
 	),
-	@NamedEntityGraph(name = Profile.HOME_PROFILE_ENTITY_GRAPH,
-		attributeNodes = {
-			@NamedAttributeNode(value = "homeAddress"),
-	}),
 	@NamedEntityGraph(name = Profile.FULL_PROFILE_ENTITY_GRAPH,
 		attributeNodes = {
-			@NamedAttributeNode(value = "homeAddress"),
 			@NamedAttributeNode(value = "ridesharePreferences"),
 			@NamedAttributeNode(value = "searchPreferences")
 	}),
 	@NamedEntityGraph(name = Profile.FULLEST_PROFILE_ENTITY_GRAPH,
 		attributeNodes = {
-			@NamedAttributeNode(value = "addresses"),
-			@NamedAttributeNode(value = "homeAddress"),
+			@NamedAttributeNode(value = "places"),
 			@NamedAttributeNode(value = "ridesharePreferences", subgraph = "subgraph.rideshare-prefs"),
 			@NamedAttributeNode(value = "searchPreferences", subgraph = "subgraph.search-prefs"),
 		}, subgraphs =  {
@@ -82,7 +76,6 @@ public class Profile extends User  {
 	public static final String URN_PREFIX = ProfileUrnHelper.createUrnPrefix("user");
 	public static final String FULLEST_PROFILE_ENTITY_GRAPH = "fullest-profile-entity-graph";
 	public static final String FULL_PROFILE_ENTITY_GRAPH = "full-profile-entity-graph";
-	public static final String HOME_PROFILE_ENTITY_GRAPH = "home-profile-entity-graph";
 	public static final String DEFAULT_PROFILE_ENTITY_GRAPH = "default-profile-entity-graph";
 	
 	@Id
@@ -90,14 +83,18 @@ public class Profile extends User  {
     private Long id;
 
 	@OneToMany(fetch = FetchType.LAZY, cascade = { CascadeType.ALL } , mappedBy = "profile", orphanRemoval = true)
-	private Set<Address> addresses;
-	
-	@ManyToOne(fetch = FetchType.LAZY) 
-	@JoinColumn(name = "home_address", nullable = true, foreignKey = 
-		@ForeignKey(
-			name = "profile_home_address_fk", 
-			foreignKeyDefinition = "FOREIGN KEY (home_address) REFERENCES address (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE SET NULL")
-	)
+	private Set<Place> places;
+
+	@Embedded
+    @AttributeOverrides({ 
+    	@AttributeOverride(name = "countryCode", column = @Column(name = "home_country_code", length = Address.MAX_COUNTRY_CODE_LENGTH)), 
+    	@AttributeOverride(name = "locality", column = @Column(name = "home_locality", length = Address.MAX_LOCALITY_LENGTH)), 
+    	@AttributeOverride(name = "street", column = @Column(name = "home_street", length = Address.MAX_STREET_LENGTH)), 
+    	@AttributeOverride(name = "houseNumber", column = @Column(name = "home_house_nr", length = Address.MAX_HOUSE_NR_LENGTH)), 
+    	@AttributeOverride(name = "postalCode", column = @Column(name = "home_postal_code", length = Address.MAX_POSTAL_CODE_LENGTH)), 
+    	@AttributeOverride(name = "location.label", column = @Column(name = "home_label", length = GeoLocation.MAX_LABEL_LENGTH)), 
+    	@AttributeOverride(name = "location.point", column = @Column(name = "home_point")), 
+   	} )
 	private Address homeAddress;
 
 	@OneToOne(cascade = CascadeType.ALL, mappedBy = "profile", fetch = FetchType.LAZY, orphanRemoval = true, optional = true)
@@ -251,25 +248,25 @@ public class Profile extends User  {
 		this.userRole = userRole;
 	}
 
-	public Set<Address> getAddresses() {
-		if (addresses == null) {
-			addresses = new HashSet<>();
+	public Set<Place> getPlaces() {
+		if (places == null) {
+			places = new HashSet<>();
 		}
-		return addresses;
+		return places;
 	}
 
-	public void setAddresses(Set<Address> addresses) {
-		this.addresses = addresses;
+	public void setPlaces(Set<Place> places) {
+		this.places = places;
 	}
 
-	public void addAddress(Address a) {
-		a.setProfile(this);
-		getAddresses().add(a);
+	public void addPlace(Place p) {
+		p.setProfile(this);
+		getPlaces().add(p);
 	}
 
-	public void removeAddress(Address a) {
-		a.setProfile(null);
-		getAddresses().remove(a);
+	public void removePlace(Place p) {
+		p.setProfile(null);
+		getPlaces().remove(p);
 	}
 
 	public final void addRidesharePreferences() {
@@ -291,7 +288,7 @@ public class Profile extends User  {
 		}
 	}
 	
-	public void linkAddresses() {
-		getAddresses().forEach(addr -> addr.setProfile(this));
+	public void linkPlaces() {
+		getPlaces().forEach(place -> place.setProfile(this));
 	}
 }

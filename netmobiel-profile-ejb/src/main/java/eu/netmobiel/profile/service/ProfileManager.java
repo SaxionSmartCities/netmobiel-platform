@@ -11,7 +11,6 @@ import java.nio.file.StandardOpenOption;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
@@ -91,7 +90,7 @@ public class ProfileManager {
     	if (prs.getTotalCount() > 0 && !cursor.isCountingQuery()) {
     		// Get the actual data
     		PagedResult<Long> pids = profileDao.listProfiles(filter, cursor);
-    		results = profileDao.loadGraphs(pids.getData(), Profile.HOME_PROFILE_ENTITY_GRAPH, Profile::getId);
+    		results = profileDao.loadGraphs(pids.getData(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH, Profile::getId);
     	}
     	return new PagedResult<Profile>(results, cursor, prs.getTotalCount());
 	}
@@ -109,19 +108,7 @@ public class ProfileManager {
 		String managedIdentity = keycloakDao.addUser(profile, true);
 		profile.setManagedIdentity(managedIdentity);
 		profile.linkOneToOneChildren();
-		profile.linkAddresses();
-		if (profile.getHomeAddress() != null) {
-			Address home = profile.getHomeAddress();
-			// Does this location exist in the favorites? If yes replace by a reference. otherwise add it to the addresses
-			Optional<Address> addr = profile.getAddresses().stream()
-					.filter(a -> a.getLocation().equals(home.getLocation()))
-					.findFirst();
-			if (addr.isPresent()) {
-				profile.setHomeAddress(addr.get());
-			} else {
-				profile.addAddress(home);
-			}
-		}
+		profile.linkPlaces();
 		profileDao.save(profile);
 		return profile.getId();
     }
@@ -134,7 +121,7 @@ public class ProfileManager {
     	if (profile.getRidesharePreferences() != null) {
     		profile.getRidesharePreferences().getLuggageOptions().size();
     	}
-    	profile.getAddresses().size();
+    	profile.getPlaces().size();
     }
 
     protected Profile getCompleteProfileByManagedIdentity(String managedId) throws NotFoundException {
@@ -151,11 +138,11 @@ public class ProfileManager {
     }
 
     protected Profile getPublicProfileByManagedIdentity(String managedId) throws NotFoundException {
-    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.HOME_PROFILE_ENTITY_GRAPH)
+    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	profileDao.detach(profile);
     	// Initialize the uninitialized fields, remove non-public info
-    	profile.setAddresses(Collections.emptySet());
+    	profile.setPlaces(Collections.emptySet());
     	if (profile.getHomeAddress() != null) {
     		Address addr = profile.getHomeAddress();
     		addr.setHouseNumber(null);
@@ -214,7 +201,7 @@ public class ProfileManager {
     	profileDao.detach(dbprofile);
     	newProfile.setId(dbprofile.getId());
 		newProfile.linkOneToOneChildren();
-		newProfile.linkAddresses();
+		newProfile.linkPlaces();
 		// Overwrite whatever image path is provided
 		newProfile.setImagePath(dbprofile.getImagePath());
 //		if (profile.getHomeAddress() != null) {

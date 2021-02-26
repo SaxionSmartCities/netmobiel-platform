@@ -2,6 +2,7 @@ package eu.netmobiel.profile.test;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.profile.model.Address;
+import eu.netmobiel.profile.model.Place;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.UserRole;
 
@@ -63,4 +64,9 @@ public class Fixture {
 		return ad;
 	}
 
+	public static Place createPlace(Address addr) {
+		Place p = new Place();
+		p.setAddress(addr);
+		return p;
+	}
 }

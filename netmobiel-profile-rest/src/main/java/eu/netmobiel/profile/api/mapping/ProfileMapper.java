@@ -37,7 +37,6 @@ public abstract class ProfileMapper {
 	@Mapping(target = "address", source = "homeAddress")
 	@Mapping(target = "ridePlanOptions", source = "ridesharePreferences")
 	@Mapping(target = "favoriteLocations", ignore = true)
-	@Mapping(target = "favoritePlaces", source = "addresses")
 	@Mapping(target = "interests", ignore = true)
 	// The id is defined as the keycloak identity.
 	@Mapping(target = "id", source = "managedIdentity")
@@ -46,7 +45,6 @@ public abstract class ProfileMapper {
 	@InheritConfiguration(name = "commonMap")
 	@Mapping(target = "interests", ignore = true)
 	@Mapping(target = "favoriteLocations", ignore = true)
-	@Mapping(target = "favoritePlaces", ignore = true)
 	@Mapping(target = "ridePlanOptions", ignore = true)
 	@Mapping(target = "searchPreferences", ignore = true)
 	@ProfileShallow
@@ -58,6 +56,7 @@ public abstract class ProfileMapper {
 
 	@InheritInverseConfiguration(name = "commonMap")
 	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "places", ignore = true)
 	public abstract Profile map(eu.netmobiel.profile.api.model.Profile source);
 
 	@Mapping(target = "country", source ="countryCode")
@@ -65,7 +64,6 @@ public abstract class ProfileMapper {
 	public abstract eu.netmobiel.profile.api.model.Address  map(Address source);
 
 	@InheritInverseConfiguration
-	@Mapping(target = "profile", ignore = true)
 	public abstract Address map(eu.netmobiel.profile.api.model.Address source);
 
 	@Mapping(target = "numPassengers", source = "maxPassengers")

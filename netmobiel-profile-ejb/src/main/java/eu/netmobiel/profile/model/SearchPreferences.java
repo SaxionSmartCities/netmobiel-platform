@@ -107,14 +107,14 @@ public class SearchPreferences implements Serializable {
 		this.id = id;
 	}
 
-//	public Profile getProfile() {
-//		return profile;
-//	}
-//
-//	public void setProfile(Profile profile) {
-//		this.profile = profile;
-//	}
-//
+	public Profile getProfile() {
+		return profile;
+	}
+
+	public void setProfile(Profile profile) {
+		this.profile = profile;
+	}
+
 	public Integer getMaxTransferTime() {
 		return maxTransferTime;
 	}
@@ -176,13 +176,4 @@ public class SearchPreferences implements Serializable {
 	public void setAllowedTraverseModes(Set<TraverseMode> allowedTraverseModes) {
 		this.allowedTraverseModes = allowedTraverseModes;
 	}
-
-	public Profile getProfile() {
-		return profile;
-	}
-
-	public void setProfile(Profile profile) {
-		this.profile = profile;
-	}
-
 }

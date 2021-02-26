@@ -2,7 +2,6 @@ package eu.netmobiel.profile.service;
 
 import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 import java.util.Set;
 import java.util.stream.Collectors;
 
@@ -22,7 +21,6 @@ import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.profile.model.Address;
 import eu.netmobiel.profile.model.Compliment;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Review;
@@ -110,20 +108,6 @@ public class ProfileMaintenance {
 			// Get the profile from the old profile service
 			try {
 				Profile profile = oldProfileDao.getProfile(managedIdentity);
-				if (profile.getHomeAddress() != null) {
-					Address home = profile.getHomeAddress();
-					log.debug("Home: " + home);
-					// Does this location exist in the favorites? If yes replace by a reference. otherwise add it to the addresses
-					Optional<Address> addr = profile.getAddresses().stream()
-							.filter(a -> a.getLocation() != null && a.getLocation().getPoint() != null && home.getLocation().getPoint() != null &&
-								a.getLocation().getPoint().equals(home.getLocation().getPoint()))
-							.findFirst();
-					if (addr.isPresent()) {
-						profile.setHomeAddress(addr.get());
-					} else {
-						profile.addAddress(home);
-					}
-				}
 				profileDao.save(profile);
 			} catch (BusinessException e) {
 				log.error("Failed to create profile for " + managedIdentity + " - " + e.toString());

@@ -18,13 +18,13 @@ public class UserConsent implements Serializable {
 	 * If set, the time the user accepted the terms.
 	 */
 	@NotNull
-	@Column(name = "accepted_terms")
+	@Column(name = "consent_accepted_terms")
 	private boolean acceptedTerms = false;
 	/**
 	 * If set, the time the user stated to be older than 16.
 	 */
 	@NotNull
-	@Column(name = "older_than_sixteen")
+	@Column(name = "consent_older_than_sixteen")
 	private boolean olderThanSixteen = false;
 	
 	public boolean isAcceptedTerms() {
