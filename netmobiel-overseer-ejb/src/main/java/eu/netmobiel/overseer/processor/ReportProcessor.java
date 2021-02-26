@@ -57,6 +57,7 @@ import eu.netmobiel.commons.report.IncentiveModelPassengerReport;
 import eu.netmobiel.commons.report.PassengerBehaviourReport;
 import eu.netmobiel.commons.report.PassengerModalityBehaviourReport;
 import eu.netmobiel.commons.report.ProfileReport;
+import eu.netmobiel.commons.report.ReportKey;
 import eu.netmobiel.commons.report.ReportPeriodKey;
 import eu.netmobiel.commons.report.RideReport;
 import eu.netmobiel.commons.report.RideshareReport;
@@ -67,6 +68,7 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.service.CommunicatorReportService;
 import eu.netmobiel.overseer.model.ActivitySpssReport;
 import eu.netmobiel.planner.service.PlannerReportService;
+import eu.netmobiel.profile.service.ProfileReportService;
 import eu.netmobiel.rideshare.service.RideshareReportService;
 
 /**
@@ -110,6 +112,9 @@ public class ReportProcessor {
 
 	@Inject
 	private PlannerReportService plannerReportService;
+
+	@Inject
+	private ProfileReportService profileReportService;
 
 	@Inject
 	private RideshareReportService rideshareReportService;
@@ -162,14 +167,15 @@ public class ReportProcessor {
     		String reportDate = until.format(DateTimeFormatter.ISO_LOCAL_DATE);
     		log.info(String.format("Start report %s for period %s - %s", reportDate, since.format(DateTimeFormatter.ISO_LOCAL_DATE), until.format(DateTimeFormatter.ISO_LOCAL_DATE)));
     		
-    		createAndSendProfilesReport(reportDate);
-    		createAndSendActivityReport(since, until, reportDate);
-    		createAndSendPassengerReport(since, until, reportDate);
-    		createAndSendDriverReport(since, until, reportDate);
-    		createAndSendIncentiveModelPassengerReport(since, until, reportDate);
-    		createAndSendIncentiveModelDriverReport(since, until, reportDate);
-    		createAndSendRideshareRidesReport(since, until, reportDate);
-    		createAndSendTripsReport(since, until, reportDate);
+    		Map<String, ProfileReport> profileReportMap = profileReportService.reportUsers();
+    		createAndSendProfilesReport(reportDate, profileReportMap);
+    		createAndSendActivityReport(since, until, reportDate, profileReportMap);
+    		createAndSendPassengerReport(since, until, reportDate, profileReportMap);
+    		createAndSendDriverReport(since, until, reportDate, profileReportMap);
+    		createAndSendIncentiveModelPassengerReport(since, until, reportDate, profileReportMap);
+    		createAndSendIncentiveModelDriverReport(since, until, reportDate, profileReportMap);
+    		createAndSendRideshareRidesReport(since, until, reportDate, profileReportMap);
+    		createAndSendTripsReport(since, until, reportDate, profileReportMap);
     		log.info("Done reporting");
     	} catch (Exception e) {
 			log.error("Error creating report", e);
@@ -178,17 +184,19 @@ public class ReportProcessor {
     	}
     }
 
-	protected void createAndSendProfilesReport(String reportDate) {
+	protected void createAndSendProfilesReport(String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
-    		// Flawed logic about passengers and drivers
-    		Map<String, ProfileReport> reportMap = rideshareReportService.reportUsers();
-    		Map<String, ProfileReport> totalReport = plannerReportService.reportUsers();
-    		for (Map.Entry<String, ProfileReport> pr : reportMap.entrySet()) {
-				ProfileReport rep = totalReport.computeIfAbsent(pr.getKey(), k -> pr.getValue());
-				rep.setNrActiveCars(pr.getValue().getNrActiveCars());
-				rep.setIsDriver(pr.getValue().getIsDriver());
+    		// Get the rideshare users for driver-specific attributes
+    		Map<String, ProfileReport> rideshareMap = rideshareReportService.reportUsers();
+    		for (Map.Entry<String, ProfileReport> pr : profileReportMap.entrySet()) {
+    			if (Boolean.TRUE.equals(pr.getValue().getIsDriver())) {
+    				ProfileReport pr_rs = rideshareMap.get(pr.getKey());
+    				if (pr_rs != null) {
+    					pr.getValue().setNrActiveCars(pr_rs.getNrActiveCars());
+    				}
+    			}
 			}
-    		List<ProfileReport> report = totalReport.values().stream()
+    		List<ProfileReport> report = profileReportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
 			Writer ridesWriter = convertToCsv(report, ProfileReport.class);
@@ -201,13 +209,22 @@ public class ReportProcessor {
     	}
 	}
 
-	protected void createAndSendActivityReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+	protected void copyProfileInfo(Collection<? extends ReportKey> target, Map<String, ProfileReport> sourceMap) {
+		for (ReportKey r : target) {
+			ProfileReport pr = sourceMap.get(r.getManagedIdentity());
+			if (pr != null) {
+				r.setHome(pr.getHome());
+			}
+		}
+	}
+
+	protected void createAndSendActivityReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
    		  	Map<String, ActivityReport> activityReportMap = communicatorReportService.reportActivity(since.toInstant(), until.toInstant());
 			List<ActivityReport> activityReport = activityReportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
-
+   		  	copyProfileInfo(activityReport, profileReportMap);
 			Writer writer = convertToCsv(activityReport, ActivityReport.class);
 			
 			Collection<ActivitySpssReport> spssReport = createSpssReport(activityReport, ActivitySpssReport.class); 
@@ -223,18 +240,20 @@ public class ReportProcessor {
     	}
 	}
 
-	protected void createAndSendPassengerReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+	protected void createAndSendPassengerReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		Map<String, PassengerBehaviourReport> passengerReportMap = plannerReportService.reportPassengerBehaviour(since.toInstant(), until.toInstant());
 			List<PassengerBehaviourReport> passengerReport = passengerReportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
+   		  	copyProfileInfo(passengerReport, profileReportMap);
 			Writer passengerBehaviourWriter = convertToCsv(passengerReport, PassengerBehaviourReport.class);
 			
 			Map<String, PassengerModalityBehaviourReport> passengerModalityReportMap = plannerReportService.reportPassengerModalityBehaviour(since.toInstant(), until.toInstant());
 			List<PassengerModalityBehaviourReport> passengerModalityReport = passengerModalityReportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
+   		  	copyProfileInfo(passengerModalityReport, profileReportMap);
 			Writer passengerModalityBehaviourWriter = convertToCsv(passengerModalityReport, PassengerModalityBehaviourReport.class);
 			
 			Map<String, Writer> reports = new LinkedHashMap<>();
@@ -247,7 +266,7 @@ public class ReportProcessor {
     	}
 	}
 
-	protected void createAndSendDriverReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+	protected void createAndSendDriverReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		Map<String, RideshareReport> driverReportMap = rideshareReportService.reportDriverActivity(since.toInstant(), until.toInstant());
 			List<ShoutOutRecipientReport> shoutOutRecipientReport = 
@@ -263,6 +282,7 @@ public class ReportProcessor {
 			List<RideshareReport> driverReport = driverReportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
+   		  	copyProfileInfo(driverReport, profileReportMap);
 			Writer driverBehaviourWriter = convertToCsv(driverReport, RideshareReport.class);
 			Map<String, Writer> reports = new LinkedHashMap<>();
 			reports.put(String.format("%s-report-%s.csv", "driver-behaviour", reportDate), driverBehaviourWriter);
@@ -273,12 +293,13 @@ public class ReportProcessor {
     	}
 	}
 
-	protected void createAndSendIncentiveModelPassengerReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+	protected void createAndSendIncentiveModelPassengerReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		Map<String, IncentiveModelPassengerReport> reportMap = bankerReportService.reportIncentivesPassenger(since.toInstant(), until.toInstant());
 			List<IncentiveModelPassengerReport> report = reportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
+   		  	copyProfileInfo(report, profileReportMap);
 			Writer driverBehaviourWriter = convertToCsv(report, IncentiveModelPassengerReport.class);
 			Map<String, Writer> reports = new LinkedHashMap<>();
 			reports.put(String.format("%s-report-%s.csv", "incentives-passenger", reportDate), driverBehaviourWriter);
@@ -289,12 +310,14 @@ public class ReportProcessor {
     	}
 	}
 
-	protected void createAndSendIncentiveModelDriverReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+	protected void createAndSendIncentiveModelDriverReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		Map<String, IncentiveModelDriverReport> reportMap = bankerReportService.reportIncentivesDriver(since.toInstant(), until.toInstant());
+   		  	copyProfileInfo(reportMap.values(), profileReportMap);
 			List<IncentiveModelDriverReport> report = reportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
+   		  	copyProfileInfo(report, profileReportMap);
 			Writer driverBehaviourWriter = convertToCsv(report, IncentiveModelDriverReport.class);
 			Map<String, Writer> reports = new LinkedHashMap<>();
 			reports.put(String.format("%s-report-%s.csv", "incentives-driver", reportDate), driverBehaviourWriter);
@@ -305,9 +328,10 @@ public class ReportProcessor {
     	}
 	}
 
-	protected void createAndSendRideshareRidesReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+	protected void createAndSendRideshareRidesReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		List<RideReport> report = rideshareReportService.reportRides(since.toInstant(), until.toInstant());
+   		  	copyProfileInfo(report, profileReportMap);
 			Writer ridesWriter = convertToCsv(report, RideReport.class);
 			Map<String, Writer> reports = new LinkedHashMap<>();
 			reports.put(String.format("%s-report-%s.csv", "rides", reportDate), ridesWriter);
@@ -318,9 +342,10 @@ public class ReportProcessor {
     	}
 	}
 
-	protected void createAndSendTripsReport(ZonedDateTime since, ZonedDateTime until, String reportDate) {
+	protected void createAndSendTripsReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		List<TripReport> report = plannerReportService.reportTrips(since.toInstant(), until.toInstant());
+   		  	copyProfileInfo(report, profileReportMap);
 			Writer ridesWriter = convertToCsv(report, TripReport.class);
 			Map<String, Writer> reports = new LinkedHashMap<>();
 			reports.put(String.format("%s-report-%s.csv", "trips", reportDate), ridesWriter);

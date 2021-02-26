@@ -291,4 +291,12 @@ public class Profile extends User  {
 	public void linkPlaces() {
 		getPlaces().forEach(place -> place.setProfile(this));
 	}
+	
+	public boolean isPassenger() {
+		return userRole == UserRole.PASSENGER || userRole == UserRole.BOTH;
+	}
+
+	public boolean isDriver() {
+		return userRole == UserRole.DRIVER || userRole == UserRole.BOTH;
+	}
 }
