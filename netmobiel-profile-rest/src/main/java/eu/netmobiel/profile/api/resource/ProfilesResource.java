@@ -17,7 +17,6 @@ import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.profile.api.ComplimentsApi;
 import eu.netmobiel.profile.api.ProfilesApi;
 import eu.netmobiel.profile.api.mapping.ProfileMapper;
 import eu.netmobiel.profile.api.model.FirebaseTokenResponse;
@@ -62,7 +61,7 @@ public class ProfilesResource implements ProfilesApi {
 			domprof.linkOneToOneChildren();
 	    	Long id = profileManager.createProfile(domprof);
 			rsp = Response.created(UriBuilder.fromResource(ProfilesApi.class)
-					.path(ComplimentsApi.class.getMethod("getProfile", String.class)).build(id)).build();
+					.path(ProfilesApi.class.getMethod("getProfile", String.class)).build(id)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException | NoSuchMethodException e) {

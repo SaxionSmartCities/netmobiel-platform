@@ -58,6 +58,14 @@ public class NetMobielUserImpl implements NetMobielUser {
 	public int hashCode() {
 		return Objects.hash(managedIdentity);
 	}
+	
+	public boolean isSame(NetMobielUser other) {
+		return equals(other) && 
+				Objects.equals(getEmail(), other.getEmail()) && 
+				Objects.equals(getFamilyName(), other.getFamilyName()) && 
+				Objects.equals(getGivenName(), other.getGivenName()) 
+		;
+	}
 	@Override
 	public boolean equals(Object obj) {
 		if (this == obj) {

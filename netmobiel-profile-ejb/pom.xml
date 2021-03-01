@@ -183,11 +183,12 @@
 		    	</exclusion>
 		    </exclusions>
         </dependency>
-        <!-- Contains the models, these are needed (more or less) in the admin API -->
+        <!-- Contains the models, these are needed (more or less) in the admin API for UPDATE_POLICY and VERIVY_EMAIL. -->
+        <!--  Don't add this dependency, it is too much server side. See KeycloakDao. -->
 <!-- 		<dependency> -->
 <!-- 		    <groupId>org.keycloak</groupId> -->
 <!-- 		    <artifactId>keycloak-server-spi</artifactId> -->
-<!-- 		    <scope>provided</scope> -->
+<!-- 		    <scope>compile</scope> -->
 <!-- 		</dependency> -->
         <dependency>
             <groupId>org.jboss.resteasy</groupId>

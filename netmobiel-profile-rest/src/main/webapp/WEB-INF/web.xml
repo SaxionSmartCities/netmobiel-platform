@@ -28,6 +28,13 @@
 	</security-constraint>
 	<security-constraint>
 		<web-resource-collection>
+			<web-resource-name>Create profile</web-resource-name>
+			<url-pattern>/api/profiles</url-pattern>
+			<http-method>POST</http-method>
+		</web-resource-collection>
+	</security-constraint>
+	<security-constraint>
+		<web-resource-collection>
 			<web-resource-name>All other resources</web-resource-name>
 			<url-pattern>/api/*</url-pattern>
 		</web-resource-collection>

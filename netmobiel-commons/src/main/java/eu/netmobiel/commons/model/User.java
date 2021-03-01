@@ -13,21 +13,23 @@ import org.apache.commons.lang3.StringUtils;
 @MappedSuperclass
 public abstract class User extends ReferableObject implements NetMobielUser {
 	private static final long serialVersionUID = 9057079525058141265L;
-
+	public static final int MAX_LENGTH_EMAIL = 64;
 	@NotNull
     @NotEmpty
     @Size(max = 36)
     @Column(name = "managed_identity")
     private String managedIdentity;
 
-    @Column(name = "given_name", length = 32)
+    @Size(max = 32)
+    @Column(name = "given_name")
 	private String givenName;
-    
-    @Column(name = "family_name", length = 64)
+
+    @Size(max = 64)
+    @Column(name = "family_name")
 	private String familyName;
 	
-    @Size(max = 64)
-    @Column(name = "email", length = 64)
+    @Size(max = MAX_LENGTH_EMAIL)
+    @Column(name = "email")
 	private String email;
 
     public User() {
@@ -111,6 +113,14 @@ public abstract class User extends ReferableObject implements NetMobielUser {
 	@Override
 	public int hashCode() {
 		return Objects.hash(managedIdentity);
+	}
+
+	public boolean isSame(NetMobielUser other) {
+		return equals(other) && 
+				Objects.equals(getEmail(), other.getEmail()) && 
+				Objects.equals(getFamilyName(), other.getFamilyName()) && 
+				Objects.equals(getGivenName(), other.getGivenName()) 
+		;
 	}
 
 	@Override

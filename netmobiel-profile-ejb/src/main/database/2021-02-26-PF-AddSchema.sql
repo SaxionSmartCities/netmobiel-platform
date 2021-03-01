@@ -109,7 +109,7 @@ CREATE TABLE public.preferred_traverse_mode (
 
 CREATE TABLE public.profile (
     id bigint NOT NULL,
-    email character varying(64),
+    email character varying(64) NOT NULL,
     family_name character varying(64),
     given_name character varying(32),
     managed_identity character varying(36) NOT NULL,
@@ -233,6 +233,8 @@ ALTER TABLE ONLY public.compliment
 ALTER TABLE ONLY public.profile
     ADD CONSTRAINT cs_managed_identity_unique UNIQUE (managed_identity);
 
+ALTER TABLE ONLY public.profile
+    ADD CONSTRAINT cs_email_unique UNIQUE (email);
 
 --
 -- TOC entry 4230 (class 2606 OID 308414)

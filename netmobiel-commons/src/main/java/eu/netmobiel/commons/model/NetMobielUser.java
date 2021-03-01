@@ -31,6 +31,13 @@ public interface NetMobielUser {
 	 */
 	String getEmail();
 	
+	/**
+	 * Compares the attributes of this user with those of the other user.
+	 * @param other the other user
+	 * @return true if all attributes are exactly the same, false otherwise.
+	 */
+	boolean isSame(NetMobielUser other);
+
 	default String getKeyCloakUrn() {
 		return UrnHelper.createUrnPrefix(NetMobielModule.KEYCLOAK.getCode(), "user") + getManagedIdentity();
 	}

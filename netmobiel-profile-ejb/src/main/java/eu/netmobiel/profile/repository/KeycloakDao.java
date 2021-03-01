@@ -78,52 +78,50 @@ public class KeycloakDao {
 	/**
 	 * Creates a user in Keycloak.
 	 * @param user The user to create. The email address is required and must be unique.
-	 * @param lenient If true than be permissive and allow an exisiting user, enabled the account, if necessary.
 	 * @return The managed identity of the new user.
 	 * @throws BusinessException 
 	 */
-	public String addUser(NetMobielUser user, boolean lenient) throws BusinessException {
+	public String addUser(NetMobielUser user) throws BusinessException {
 		String managedIdentity = null;
 		try (Keycloak kc = createKeycloakClient()) {
 			RealmResource realm = kc.realm(profileServiceAccount.getRealm());
-			Optional<UserRepresentation> existingUser = Optional.empty(); 
-			if (lenient) {
-				existingUser = realm.users().search(user.getEmail()).stream()
-					.filter(ur -> user.getEmail().equals(ur.getEmail()))
-					.findFirst();
-			}
-			if (existingUser.isPresent()) {
-				UserRepresentation urep = existingUser.get();
-				if (!Boolean.TRUE.equals(urep.isEnabled())) {
-					UserResource ur = realm.users().get(urep.getId());
-					urep.setEnabled(true);
-					ur.update(urep);
-				}
-				managedIdentity = urep.getId();
+			UserRepresentation urep = new UserRepresentation();
+			urep.setEmail(user.getEmail());
+			urep.setFirstName(user.getGivenName());
+			urep.setLastName(user.getFamilyName());
+			urep.setEnabled(true);
+			Response response = realm.users().create(urep);
+//			if (log.isDebugEnabled()) {
+//				log.debug(String.format("AddUser: Response is %s %s", response.getStatus(), response.getStatusInfo()));
+//			}
+			if (response.getStatusInfo() == Response.Status.CREATED) {
+				managedIdentity = CreatedResponseUtil.getCreatedId(response);
+			} else if (response.getStatusInfo() == Response.Status.CONFLICT) {
+				ErrorRepresentation error = response.readEntity(ErrorRepresentation.class);
+				throw new DuplicateEntryException(error.getErrorMessage());
 			} else {
-				UserRepresentation urep = new UserRepresentation();
-				urep.setEmail(user.getEmail());
-				urep.setFirstName(user.getGivenName());
-				urep.setLastName(user.getFamilyName());
-				urep.setEnabled(true);
-//				urep.setRequiredActions(List.of(UserModel.RequiredAction.UPDATE_PASSWORD.name()));
-				Response response = realm.users().create(urep);
-//				if (log.isDebugEnabled()) {
-//					log.debug(String.format("AddUser: Response is %s %s", response.getStatus(), response.getStatusInfo()));
-//				}
-				if (response.getStatusInfo() == Response.Status.CREATED) {
-					managedIdentity = CreatedResponseUtil.getCreatedId(response);
-				} else if (response.getStatusInfo() == Response.Status.CONFLICT) {
-					ErrorRepresentation error = response.readEntity(ErrorRepresentation.class);
-					throw new DuplicateEntryException(error.getErrorMessage());
-				} else {
-					ExceptionUtil.throwExceptionFromResponse("Error adding user to Keycloak", response);
-				}
+				ExceptionUtil.throwExceptionFromResponse("Error adding user to Keycloak", response);
 			}
 		}
 		return managedIdentity;
 	}
-	
+
+	public Optional<NetMobielUser> findUserByEmail(String email) throws BusinessException {
+		NetMobielUserImpl user = null;
+		try (Keycloak kc = createKeycloakClient()) {
+			RealmResource realm = kc.realm(profileServiceAccount.getRealm());
+			Optional<UserRepresentation> existingUser = Optional.empty(); 
+			existingUser = realm.users().search(email).stream()
+				.filter(ur -> email.equals(ur.getEmail()))
+				.findFirst();
+			if (existingUser.isPresent()) {
+				UserRepresentation urep = existingUser.get();
+				user = new NetMobielUserImpl(urep.getId(), urep.getFirstName(), urep.getLastName(), urep.getEmail());
+			}
+		}
+		return Optional.ofNullable(user); 
+	}
+
 	public void removeUser(String managedIdentity) throws BusinessException {
 		try (Keycloak kc = createKeycloakClient()) {
 			RealmResource realm = kc.realm(profileServiceAccount.getRealm());
@@ -155,10 +153,18 @@ public class KeycloakDao {
 		try (Keycloak kc = createKeycloakClient()) {
 			RealmResource realm = kc.realm(profileServiceAccount.getRealm());
 			UserResource ur = realm.users().get(managedIdentity);
+			// We don't want to include the keycloak-server-spi jar. Use the String instead.
 			ur.executeActionsEmail(List.of("VERIFY_EMAIL"));
 		}
 	}
 
+	public void forceUpdatePassword(String managedIdentity) {
+		try (Keycloak kc = createKeycloakClient()) {
+			RealmResource realm = kc.realm(profileServiceAccount.getRealm());
+			UserResource ur = realm.users().get(managedIdentity);
+			ur.executeActionsEmail(List.of("UPDATE_PASSWORD"));
+		}
+	}
 
 	public Optional<NetMobielUser> getUser(String managedIdentity) throws BadRequestException {
 		NetMobielUserImpl user = null;
@@ -171,8 +177,6 @@ public class KeycloakDao {
 			}
 		} catch (javax.ws.rs.NotFoundException ex) {
 			// Ignore
-		} catch (Exception ex) {
-			throw new BadRequestException("Error getting user from keycloak", ex);
 		}
 		return Optional.ofNullable(user);
 	}
@@ -191,10 +195,27 @@ public class KeycloakDao {
 						.map(ur -> new NetMobielUserImpl(ur.getId(), ur.getFirstName(), ur.getLastName(), ur.getEmail()))
 						.collect(Collectors.toList());
 			}
-		} catch (Exception ex) {
-			throw new BadRequestException("Error retrieving users from keycloak", ex);
 		}
 		return new PagedResult<NetMobielUser>(users, cursor, totalcount);
 	}
 
+	/**
+	 * Updates a user in Keycloak.
+	 * @param user The user to update. If the email is modified, then it might need confirmation. This process is managed by Keycloak.  
+	 * @throws BusinessException 
+	 */
+	public void updateUser(NetMobielUser user) {
+		try (Keycloak kc = createKeycloakClient()) {
+			RealmResource realm = kc.realm(profileServiceAccount.getRealm());
+			UserResource ur = realm.users().get(user.getManagedIdentity());
+			if (ur != null) {
+				UserRepresentation urep = ur.toRepresentation();
+				urep.setEnabled(true);
+				urep.setFirstName(user.getGivenName());
+				urep.setLastName(user.getFamilyName());
+				urep.setEmail(user.getEmail());
+				ur.update(urep);
+			}
+		}
+	}
 }

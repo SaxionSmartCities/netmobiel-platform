@@ -11,6 +11,7 @@ import java.nio.file.StandardOpenOption;
 import java.security.Principal;
 import java.util.Collections;
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
@@ -30,6 +31,8 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.NetMobielUser;
+import eu.netmobiel.commons.model.NetMobielUserImpl;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.filter.ComplimentFilter;
@@ -105,7 +108,25 @@ public class ProfileManager {
 		if (!profile.getConsent().isAcceptedTerms() || !profile.getConsent().isOlderThanSixteen()) {
 			throw new LegalReasonsException("Terms have not been accepted.");
 		}
-		String managedIdentity = keycloakDao.addUser(profile, true);
+		Optional<NetMobielUser> existingUser = Optional.empty();
+		if (profile.getEmail() != null) {
+			existingUser = keycloakDao.findUserByEmail(profile.getEmail());
+		}
+		String managedIdentity = null; 
+		if (!existingUser.isPresent()) {
+			managedIdentity = keycloakDao.addUser(profile);
+			// Update password is configured in Keycloak.
+		} else {
+			// No security incident, the user still has to logon. 
+			// It is however possible to create a profile using someone else's email.
+			// To use it you have to know the credentials.
+			managedIdentity = existingUser.get().getManagedIdentity();
+		}
+		// Although we have set 'verify_email'in the authentication flow, the email is not sent. Try manual override...
+		keycloakDao.verifyUserByEmail(managedIdentity);
+		// In the authentication flow is also specified to update the password. That works. We ask it anyway. 
+		
+		// If the profile already exists, then a constraint violation will occur.
 		profile.setManagedIdentity(managedIdentity);
 		profile.linkOneToOneChildren();
 		profile.linkPlaces();
@@ -190,12 +211,13 @@ public class ProfileManager {
     }
     
     /**
-     * Updates all fields of the profile execept for: imagePath.
+     * Updates all fields of the profile execpt for: imagePath.
      * @param managedId
      * @param newProfile
      * @throws NotFoundException
+     * @throws BusinessException 
      */
-	public void updateProfileByManagedIdentity(String managedId, Profile newProfile)  throws NotFoundException {
+	public void updateProfileByManagedIdentity(String managedId, Profile newProfile)  throws NotFoundException, BusinessException {
     	Profile dbprofile = profileDao.findByManagedIdentity(managedId, Profile.FULLEST_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	profileDao.detach(dbprofile);
@@ -204,19 +226,18 @@ public class ProfileManager {
 		newProfile.linkPlaces();
 		// Overwrite whatever image path is provided
 		newProfile.setImagePath(dbprofile.getImagePath());
-//		if (profile.getHomeAddress() != null) {
-//			Address home = profile.getHomeAddress();
-//			// Does this location exist in the favorites? If yes replace by a reference. otherwise add it to the addresses
-//			Optional<Address> addr = profile.getAddresses().stream()
-//					.filter(a -> a.getLocation().equals(home.getLocation()))
-//					.findFirst();
-//			if (addr.isPresent()) {
-//				profile.setHomeAddress(addr.get());
-//			} else {
-//				profile.addAddress(home);
-//			}
-//		}
-
+		NetMobielUser newuser = new NetMobielUserImpl(managedId, newProfile.getGivenName(), newProfile.getFamilyName(), newProfile.getEmail());
+		Optional<NetMobielUser> olduser = keycloakDao.getUser(managedId);
+		if (! olduser.isPresent()) {
+			throw new NotFoundException("No such user: " + managedId);
+		}
+		if (! newuser.isSame(olduser.get())) {
+			// Some attributes differ, update the user in Keycloak.
+			if (logger.isDebugEnabled()) {
+				logger.debug("Update user attributes in Keycloak: " + newuser);
+			}
+			keycloakDao.updateUser(newuser);
+		}
     	profileDao.merge(newProfile);
 	}
 	

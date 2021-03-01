@@ -13,6 +13,7 @@ import org.jboss.shrinkwrap.api.Archive;
 import org.jboss.shrinkwrap.api.ShrinkWrap;
 import org.jboss.shrinkwrap.api.spec.WebArchive;
 import org.jboss.shrinkwrap.resolver.api.maven.Maven;
+import org.junit.After;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
@@ -52,6 +53,18 @@ public class KeycloakDaoIT {
 	private static final String IDM_OTTO = "a8ee130f-23c6-4b26-bb79-b84a3799216d"; 
 	private static final NetMobielUser DISPOSABLE_ACCOUNT = 
 			new NetMobielUserImpl(null, "Pipo", "de Clown", "pipo.de.clown@nietbestaanddomein.nl");
+
+	@After
+	public void removeDisposableUser() {
+		try {
+	    	Optional<NetMobielUser> user = keycloakDao.findUserByEmail(DISPOSABLE_ACCOUNT.getEmail());
+	    	if (user.isPresent()) {
+	       		keycloakDao.removeUser(user.get().getManagedIdentity());
+	    	}
+		} catch (Exception ex) {
+       		log.error("Error cleaning up: " + ex.toString());
+	    }
+	}
 	
     @Test
     public void getUser_Otto() throws Exception {
@@ -72,11 +85,10 @@ public class KeycloakDaoIT {
 
     @Test
     public void addUser() throws Exception {
-    	String mid = keycloakDao.addUser(DISPOSABLE_ACCOUNT, true);
-    	log.debug("Keycloak adduser returned: " + mid);
+    	String mid = keycloakDao.addUser(DISPOSABLE_ACCOUNT);
     	assertNotNull(mid);
     	try {
-        	mid = keycloakDao.addUser(DISPOSABLE_ACCOUNT, false);
+        	mid = keycloakDao.addUser(DISPOSABLE_ACCOUNT);
         	fail("Expected: " + DuplicateEntryException.class.getSimpleName());
     	} catch (DuplicateEntryException ex) {
        		log.debug("Anticipated exception: " + ex.toString());
@@ -87,10 +99,29 @@ public class KeycloakDaoIT {
 
     @Test
     public void disableUser() throws Exception {
-    	String mid = keycloakDao.addUser(DISPOSABLE_ACCOUNT, true);
-    	log.debug("Keycloak adduser returned: " + mid);
+    	String mid = keycloakDao.addUser(DISPOSABLE_ACCOUNT);
     	assertNotNull(mid);
     	keycloakDao.disableUser(mid);
+    }
+
+    @Test
+    public void updateUser() throws Exception {
+    	try {
+	    	String mid = keycloakDao.addUser(DISPOSABLE_ACCOUNT);
+	    	assertNotNull(mid);
+	    	Optional<NetMobielUser> ouser = keycloakDao.getUser(mid);
+	    	assertTrue(ouser.isPresent());
+	    	NetMobielUserImpl user = (NetMobielUserImpl) ouser.get();
+	    	user.setGivenName("Klukkluk");
+	    	keycloakDao.updateUser(user);
+	    	ouser = keycloakDao.getUser(mid);
+	    	assertEquals("Klukkluk", ouser.get().getGivenName());
+    	} catch (Exception ex) {
+    		log.error("Error updating Keycloak user", ex);
+    		fail("Exception: " + ex.toString());
+    		
+    	}
+    	
     }
 
     @Test
@@ -107,7 +138,7 @@ public class KeycloakDaoIT {
 
     @Test
     public void removeUser() throws Exception {
-    	String mid = keycloakDao.addUser(DISPOSABLE_ACCOUNT, true);
+    	String mid = keycloakDao.addUser(DISPOSABLE_ACCOUNT);
    		keycloakDao.removeUser(mid);
    		Optional<NetMobielUser> user = keycloakDao.getUser(mid);
    		assertFalse(user.isPresent());

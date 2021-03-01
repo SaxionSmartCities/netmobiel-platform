@@ -66,10 +66,12 @@ import eu.netmobiel.profile.util.ProfileUrnHelper;
 })
 @Entity
 @Table(name = "profile", uniqueConstraints = {
-	    @UniqueConstraint(name = "cs_managed_identity_unique", columnNames = { "managed_identity" })
+	    @UniqueConstraint(name = "cs_managed_identity_unique", columnNames = { "managed_identity" }),
+	    @UniqueConstraint(name = "cs_email_unique", columnNames = { "email" })
 })
 @Vetoed
 @SequenceGenerator(name = "profile_sg", sequenceName = "profile_id_seq", allocationSize = 1, initialValue = 50)
+@AttributeOverride(name = "email", column = @Column(name="email", length = User.MAX_LENGTH_EMAIL, nullable = false))
 public class Profile extends User  {
 
 	private static final long serialVersionUID = -4237705703151528786L;
@@ -277,7 +279,19 @@ public class Profile extends User  {
 		this.ridesharePreferences = null;
 	}
 	
+	/**
+	 * Assures that all associations and embedded objects are defined. 
+	 */
 	public void linkOneToOneChildren() {
+		if (this.homeAddress == null) {
+			this.homeAddress = new Address();
+		}
+		if (this.notificationOptions == null) {
+			this.notificationOptions = new NotificationOptions();
+		}
+		if (this.consent == null) {
+			this.consent = new UserConsent();
+		}
 		if (this.searchPreferences != null) {
 			this.searchPreferences.setProfile(this);
 			this.searchPreferences.setId(this.getId());
