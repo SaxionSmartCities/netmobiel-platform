@@ -58,10 +58,10 @@ public class IncentiveModelPassengerSpssReport  extends SpssReportBase<Incentive
 	private MultiValuedMap<String, Integer> withdrawnCredits = new ArrayListValuedHashMap<>();
 	
 	/**
-	 * IMP-9: The number of trip that have been reviewed.
+	 * IMP-9: The number of trips that have been reviewed.
 	 */
-	@CsvBindAndJoinByName(column = "etripsReviewsCount_\\d{4}_\\d{2}", elementType = Integer.class)
-	private MultiValuedMap<String, Integer> tripsReviewsCount = new ArrayListValuedHashMap<>();
+	@CsvBindAndJoinByName(column = "tripsReviewedCount_\\d{4}_\\d{2}", elementType = Integer.class)
+	private MultiValuedMap<String, Integer> tripsReviewedCount = new ArrayListValuedHashMap<>();
 
 
 
@@ -81,14 +81,18 @@ public class IncentiveModelPassengerSpssReport  extends SpssReportBase<Incentive
 		spentCreditsForCharities.put(String.format("spentCreditsForCharities_%d_%02d", r.getYear(), r.getMonth()), r.getSpentCreditsForCharities());
 		spentCreditsOnRewards.put(String.format("spentCreditsOnRewards_%d_%02d", r.getYear(), r.getMonth()), r.getSpentCreditsOnRewards());
 		depositedCredits.put(String.format("depositedCredits_%d_%02d", r.getYear(), r.getMonth()), r.getDepositedCredits());
-		withdrawnCredits.put(String.format("withdrawnCredits_%d_%02d", r.getYear(), r.getMonth()), r.getTripsReviewsCount());
+		withdrawnCredits.put(String.format("withdrawnCredits_%d_%02d", r.getYear(), r.getMonth()), r.getWithdrawnCredits());
 
 		// 9 - 11
-		tripsReviewsCount.put(String.format("tripsReviewsCount_%d_%02d", r.getYear(), r.getMonth()), r.getWithdrawnCredits());
+		tripsReviewedCount.put(String.format("tripsReviewedCount_%d_%02d", r.getYear(), r.getMonth()), r.getTripsReviewedCount());
 	}
 
 	public MultiValuedMap<String, Integer> getEarnedCreditsTotal() {
 		return earnedCreditsTotal;
+	}
+
+	public void setEarnedCreditsTotal(MultiValuedMap<String, Integer> earnedCreditsTotal) {
+		this.earnedCreditsTotal = earnedCreditsTotal;
 	}
 
 	public MultiValuedMap<String, Integer> getEarnedCreditsByAppUsage() {
@@ -147,16 +151,12 @@ public class IncentiveModelPassengerSpssReport  extends SpssReportBase<Incentive
 		this.withdrawnCredits = withdrawnCredits;
 	}
 
-	public MultiValuedMap<String, Integer> getTripsReviewsCount() {
-		return tripsReviewsCount;
+	public MultiValuedMap<String, Integer> getTripsReviewedCount() {
+		return tripsReviewedCount;
 	}
 
-	public void setTripsReviewsCount(MultiValuedMap<String, Integer> tripsReviewsCount) {
-		this.tripsReviewsCount = tripsReviewsCount;
-	}
-
-	public void setEarnedCreditsTotal(MultiValuedMap<String, Integer> earnedCreditsTotal) {
-		this.earnedCreditsTotal = earnedCreditsTotal;
+	public void setTripsReviewedCount(MultiValuedMap<String, Integer> tripsReviewedCount) {
+		this.tripsReviewedCount = tripsReviewedCount;
 	}
 
 }

@@ -55,10 +55,10 @@ public class IncentiveModelPassengerReport extends ReportPeriodKey {
 	private int withdrawnCredits;
 	
 	/**
-	 * IMP-9: The number of trip that have been reviewed.
+	 * IMP-9: The number of trips that have been reviewed.
 	 */
 	@CsvBindByName
-	private int tripsReviewsCount;
+	private int tripsReviewedCount;
 
 	
 	public IncentiveModelPassengerReport() {
@@ -137,12 +137,12 @@ public class IncentiveModelPassengerReport extends ReportPeriodKey {
 		this.withdrawnCredits = withdrawnCredits;
 	}
 
-	public int getTripsReviewsCount() {
-		return tripsReviewsCount;
+	public int getTripsReviewedCount() {
+		return tripsReviewedCount;
 	}
 
-	public void setTripsReviewsCount(int tripsReviewsCount) {
-		this.tripsReviewsCount = tripsReviewsCount;
+	public void setTripsReviewedCount(int tripsReviewedCount) {
+		this.tripsReviewedCount = tripsReviewedCount;
 	}
 
 	@Override

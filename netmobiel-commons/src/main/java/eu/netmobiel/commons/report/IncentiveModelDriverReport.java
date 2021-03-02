@@ -64,7 +64,7 @@ public class IncentiveModelDriverReport extends ReportPeriodKey {
 	 * IMC-10: The number of rides that have been reviewed by the driver.
 	 */
 	@CsvBindByName
-	private int ridesReviewsCount;
+	private int ridesReviewedCount;
 
 	/**
 	 * IMC-11: The number of rides that have lead to credits for the driver.
@@ -156,12 +156,12 @@ public class IncentiveModelDriverReport extends ReportPeriodKey {
 		this.earnedCreditsRides = earnedCreditsRides;
 	}
 
-	public int getRidesReviewsCount() {
-		return ridesReviewsCount;
+	public int getRidesReviewedCount() {
+		return ridesReviewedCount;
 	}
 
-	public void setRidesReviewsCount(int ridesReviewsCount) {
-		this.ridesReviewsCount = ridesReviewsCount;
+	public void setRidesReviewedCount(int ridesReviewedCount) {
+		this.ridesReviewedCount = ridesReviewedCount;
 	}
 
 	public int getRidesCreditedCount() {

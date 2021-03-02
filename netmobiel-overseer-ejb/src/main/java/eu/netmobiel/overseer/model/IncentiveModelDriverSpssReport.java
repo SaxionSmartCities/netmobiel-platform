@@ -66,8 +66,8 @@ public class IncentiveModelDriverSpssReport  extends SpssReportBase<IncentiveMod
 	/**
 	 * IMC-10: The number of rides that have been reviewed by the driver.
 	 */
-	@CsvBindAndJoinByName(column = "ridesReviewsCount_\\d{4}_\\d{2}", elementType = Integer.class)
-	private MultiValuedMap<String, Integer> ridesReviewsCount = new ArrayListValuedHashMap<>();
+	@CsvBindAndJoinByName(column = "ridesReviewedCount_\\d{4}_\\d{2}", elementType = Integer.class)
+	private MultiValuedMap<String, Integer> ridesReviewedCount = new ArrayListValuedHashMap<>();
 
 	/**
 	 * IMC-11: The number of rides that have lead to credits for the driver.
@@ -97,9 +97,9 @@ public class IncentiveModelDriverSpssReport  extends SpssReportBase<IncentiveMod
 
 		// 9 - 11
 		withdrawnCredits.put(String.format("withdrawnCredits_%d_%02d", r.getYear(), r.getMonth()), r.getWithdrawnCredits());
-		ridesReviewsCount.put(String.format("ridesReviewsCount_%d_%02d", r.getYear(), r.getMonth()), r.getRidesReviewsCount());
+		ridesReviewedCount.put(String.format("ridesReviewedCount_%d_%02d", r.getYear(), r.getMonth()), r.getRidesReviewedCount());
 		ridesCreditedCount.put(String.format("ridesCreditedCount_%d_%02d", r.getYear(), r.getMonth()), r.getRidesCreditedCount());
-}
+	}
 
 	public MultiValuedMap<String, Integer> getEarnedCreditsTotal() {
 		return earnedCreditsTotal;
@@ -173,12 +173,12 @@ public class IncentiveModelDriverSpssReport  extends SpssReportBase<IncentiveMod
 		this.withdrawnCredits = withdrawnCredits;
 	}
 
-	public MultiValuedMap<String, Integer> getRidesReviewsCount() {
-		return ridesReviewsCount;
+	public MultiValuedMap<String, Integer> getRidesReviewedCount() {
+		return ridesReviewedCount;
 	}
 
-	public void setRidesReviewsCount(MultiValuedMap<String, Integer> ridesReviewsCount) {
-		this.ridesReviewsCount = ridesReviewsCount;
+	public void setRidesReviewedCount(MultiValuedMap<String, Integer> ridesReviewedCount) {
+		this.ridesReviewedCount = ridesReviewedCount;
 	}
 
 	public MultiValuedMap<String, Integer> getRidesCreditedCount() {
