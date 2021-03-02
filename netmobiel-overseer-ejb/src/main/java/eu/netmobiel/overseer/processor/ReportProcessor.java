@@ -58,11 +58,13 @@ import eu.netmobiel.commons.report.PassengerBehaviourReport;
 import eu.netmobiel.commons.report.PassengerModalityBehaviourReport;
 import eu.netmobiel.commons.report.ProfileReport;
 import eu.netmobiel.commons.report.ReportKey;
+import eu.netmobiel.commons.report.ReportKeyWithModality;
 import eu.netmobiel.commons.report.ReportPeriodKey;
 import eu.netmobiel.commons.report.RideReport;
 import eu.netmobiel.commons.report.DriverBehaviourReport;
 import eu.netmobiel.commons.report.ShoutOutRecipientReport;
 import eu.netmobiel.commons.report.SpssReportBase;
+import eu.netmobiel.commons.report.SpssReportWithModality;
 import eu.netmobiel.commons.report.TripReport;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.service.CommunicatorReportService;
@@ -71,6 +73,7 @@ import eu.netmobiel.overseer.model.DriverBehaviourSpssReport;
 import eu.netmobiel.overseer.model.IncentiveModelDriverSpssReport;
 import eu.netmobiel.overseer.model.IncentiveModelPassengerSpssReport;
 import eu.netmobiel.overseer.model.PassengerBehaviourSpssReport;
+import eu.netmobiel.overseer.model.PassengerModalityBehaviourSpssReport;
 import eu.netmobiel.planner.service.PlannerReportService;
 import eu.netmobiel.profile.service.ProfileReportService;
 import eu.netmobiel.rideshare.service.RideshareReportService;
@@ -174,8 +177,8 @@ public class ReportProcessor {
     		Map<String, ProfileReport> profileReportMap = profileReportService.reportUsers();
     		createAndSendProfilesReport(reportDate, profileReportMap);
     		createAndSendActivityReport(since, until, reportDate, profileReportMap);
-    		createAndSendPassengerReport(since, until, reportDate, profileReportMap);
-    		createAndSendDriverReport(since, until, reportDate, profileReportMap);
+    		createAndSendPassengerBehaviourReport(since, until, reportDate, profileReportMap);
+    		createAndSendDriverBehaviourReport(since, until, reportDate, profileReportMap);
     		createAndSendIncentiveModelPassengerReport(since, until, reportDate, profileReportMap);
     		createAndSendIncentiveModelDriverReport(since, until, reportDate, profileReportMap);
     		createAndSendRideshareRidesReport(since, until, reportDate, profileReportMap);
@@ -244,7 +247,7 @@ public class ReportProcessor {
     	}
 	}
 
-	protected void createAndSendPassengerReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
+	protected void createAndSendPassengerBehaviourReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		Map<String, PassengerBehaviourReport> passengerReportMap = plannerReportService.reportPassengerBehaviour(since.toInstant(), until.toInstant());
 			List<PassengerBehaviourReport> passengerReport = passengerReportMap.values().stream()
@@ -262,11 +265,15 @@ public class ReportProcessor {
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(passengerModalityReport, profileReportMap);
 			Writer passengerModalityBehaviourWriter = convertToCsv(passengerModalityReport, PassengerModalityBehaviourReport.class);
-			
+
+			Collection<PassengerModalityBehaviourSpssReport> spssModalityReport = createSpssModalityReport(passengerModalityReport, PassengerModalityBehaviourSpssReport.class); 
+			Writer passengerModalityBehaviourSpssWriter = convertToCsvforSpss(spssModalityReport, PassengerModalityBehaviourSpssReport.class, since, until);
+
 			Map<String, Writer> reports = new LinkedHashMap<>();
 			reports.put(String.format("%s-report-%s.csv", "passenger-behaviour", reportDate), passengerBehaviourWriter);
 			reports.put(String.format("%s-report-spss-%s.csv", "passenger-behaviour", reportDate), passengerBehaviourSpssWriter);
 			reports.put(String.format("%s-report-%s.csv", "passenger-modality-behaviour", reportDate), passengerModalityBehaviourWriter);
+			reports.put(String.format("%s-report-spss-%s.csv", "passenger-modality-behaviour", reportDate), passengerModalityBehaviourSpssWriter);
 	
 			sendReports("Reisgedrag Passagier", reportDate, reports);
     	} catch (Exception e) {
@@ -274,7 +281,7 @@ public class ReportProcessor {
     	}
 	}
 
-	protected void createAndSendDriverReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
+	protected void createAndSendDriverBehaviourReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		Map<String, DriverBehaviourReport> driverReportMap = rideshareReportService.reportDriverActivity(since.toInstant(), until.toInstant());
 			List<ShoutOutRecipientReport> shoutOutRecipientReport = 
@@ -524,22 +531,49 @@ public class ReportProcessor {
 	 */
 	protected <S extends SpssReportBase<R>, R extends ReportPeriodKey> Collection<S> createSpssReport(List<R> report, Class<S> spssClazz) {
 		Map<String, S> spssReportMap = new LinkedHashMap<>();
-		for (R ar : report) {
-    		spssReportMap.computeIfAbsent(ar.getManagedIdentity(), k -> {
+		for (R r : report) {
+    		spssReportMap.computeIfAbsent(r.getManagedIdentity(), k -> {
 				try {
 					// Create a report line with the managed identity and the home locality
-					return spssClazz.getDeclaredConstructor(String.class, String.class).newInstance(k, ar.getHome());
+					return spssClazz.getDeclaredConstructor(String.class, String.class).newInstance(k, r.getHome());
 				} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 						| InvocationTargetException | NoSuchMethodException | SecurityException e) {
 					throw new IllegalStateException("Error instantiating spss report class", e);
 				}
 				
 			})
-   			.addReportValues(ar);
+   			.addReportValues(r);
 		}
 		return spssReportMap.values();
 	}
 
+	/**
+	 * Creates the SPSS variant of a modality report: Denormalise the report by creating additional year/month columns for each report value.
+	 * In a SPSS report there is at most one record for each managed identity/modality combination.  
+	 * @param <S> the SPSS variant of the report record 
+	 * @param <R> the normal report record
+	 * @param report The list of report records to convert 
+	 * @param spssClazz The class of the SPSS report record to convert to.
+	 * @return A collection of SPSS records, one record for each managed identity.
+	 */
+	protected <S extends SpssReportWithModality<R>, R extends ReportKeyWithModality> Collection<S> createSpssModalityReport(List<R> report, Class<S> spssClazz) {
+		Map<String, S> spssReportMap = new LinkedHashMap<>();
+		for (R r : report) {
+    		spssReportMap.computeIfAbsent(r.getManagedIdentity(), k -> {
+				try {
+					// Create a report line with the managed identity, the home locality and the modality
+					return spssClazz.getDeclaredConstructor(String.class, String.class, String.class).newInstance(k, r.getHome(), r.getModality());
+				} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
+						| InvocationTargetException | NoSuchMethodException | SecurityException e) {
+					throw new IllegalStateException("Error instantiating spss modality report class", e);
+				}
+				
+			})
+   			.addReportValues(r);
+		}
+		return spssReportMap.values();
+	}
+	
 	protected void sendReports(String name, String reportDate, Map<String, Writer> reports) {
 		log.info(String.format("Sending report '%s' to %s", name, reportRecipient));
 		Map<String, String> valuesMap = new HashMap<>();
