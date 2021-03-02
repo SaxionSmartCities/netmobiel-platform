@@ -61,7 +61,7 @@ public class SearchPreferences implements Serializable {
 	
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "passenger_luggage", joinColumns = { 
-    	@JoinColumn(name = "profile", foreignKey = @ForeignKey(foreignKeyDefinition = "passenger_luggage_profile_fk")) 
+    	@JoinColumn(name = "profile", foreignKey = @ForeignKey(name = "passenger_luggage_profile_fk")) 
     })
     @Column(name = "luggage", length = 2)
     @OrderBy("ASC")
@@ -81,7 +81,7 @@ public class SearchPreferences implements Serializable {
      */
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "preferred_traverse_mode", joinColumns = { 
-    	@JoinColumn(name = "profile", foreignKey = @ForeignKey(foreignKeyDefinition = "preferred_traverse_mode__profile_fk")) 
+    	@JoinColumn(name = "profile", foreignKey = @ForeignKey(name = "preferred_traverse_mode__profile_fk")) 
     })
     @Column(name = "traverse_mode", length = 2)
     @OrderBy("ASC")

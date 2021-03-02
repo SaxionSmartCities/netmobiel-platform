@@ -118,7 +118,7 @@ public class PlannerReport implements Serializable {
      */
     @ElementCollection()
     @CollectionTable(name = "report_via", joinColumns = { 
-    		@JoinColumn(name = "report_id", foreignKey = @ForeignKey(foreignKeyDefinition = "via_report_fk"))
+    		@JoinColumn(name = "report_id", foreignKey = @ForeignKey(name = "via_report_fk"))
 	})
     @Column(name = "via_location")
     private List<GeoLocation> viaLocations;
@@ -136,7 +136,7 @@ public class PlannerReport implements Serializable {
      */
     @ElementCollection()
     @CollectionTable(name = "report_traverse_mode", joinColumns = { 
-    	@JoinColumn(name = "report_id", foreignKey = @ForeignKey(foreignKeyDefinition = "traverse_mode_report_fk")) 
+    	@JoinColumn(name = "report_id", foreignKey = @ForeignKey(name = "traverse_mode_report_fk")) 
     })
     @Column(name = "traverse_mode", length = 2)
     @OrderBy("ASC")

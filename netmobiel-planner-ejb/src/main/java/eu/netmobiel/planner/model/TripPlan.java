@@ -248,7 +248,7 @@ public class TripPlan implements Serializable {
      */
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "plan_traverse_mode", joinColumns = { 
-        	@JoinColumn(name = "plan_id", foreignKey = @ForeignKey(foreignKeyDefinition = "traverse_mode_trip_plan_fk")) 
+        	@JoinColumn(name = "plan_id", foreignKey = @ForeignKey(name = "traverse_mode_trip_plan_fk")) 
     })
     @Column(name = "traverse_mode", length = 2)
     private Set<TraverseMode> traverseModes;

@@ -62,7 +62,7 @@ public class RidesharePreferences implements Serializable {
 	
     @ElementCollection(fetch = FetchType.LAZY)
     @CollectionTable(name = "ridehare_luggage", joinColumns = { 
-    	@JoinColumn(name = "profile", foreignKey = @ForeignKey(foreignKeyDefinition = "rideshare_luggage_profile_fk")) 
+    	@JoinColumn(name = "profile", foreignKey = @ForeignKey(name = "rideshare_luggage_profile_fk")) 
     })
     @Column(name = "luggage", length = 2)
     @OrderBy("ASC")
