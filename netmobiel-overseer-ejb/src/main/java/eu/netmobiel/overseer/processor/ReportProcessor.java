@@ -67,6 +67,7 @@ import eu.netmobiel.commons.report.TripReport;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.service.CommunicatorReportService;
 import eu.netmobiel.overseer.model.ActivitySpssReport;
+import eu.netmobiel.overseer.model.DriverBehaviourSpssReport;
 import eu.netmobiel.overseer.model.PassengerBehaviourSpssReport;
 import eu.netmobiel.planner.service.PlannerReportService;
 import eu.netmobiel.profile.service.ProfileReportService;
@@ -289,8 +290,14 @@ public class ReportProcessor {
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(driverReport, profileReportMap);
 			Writer driverBehaviourWriter = convertToCsv(driverReport, DriverBehaviourReport.class);
+			
+			Collection<DriverBehaviourSpssReport> spssReport = createSpssReport(driverReport, DriverBehaviourSpssReport.class); 
+			Writer driverBehaviourSpssWriter = convertToCsvforSpss(spssReport, DriverBehaviourSpssReport.class, since, until);
+
+
 			Map<String, Writer> reports = new LinkedHashMap<>();
 			reports.put(String.format("%s-report-%s.csv", "driver-behaviour", reportDate), driverBehaviourWriter);
+			reports.put(String.format("%s-report-spss-%s.csv", "driver-behaviour", reportDate), driverBehaviourSpssWriter);
 	
 			sendReports("Reisgedrag Chauffeur", reportDate, reports);
     	} catch (Exception e) {
