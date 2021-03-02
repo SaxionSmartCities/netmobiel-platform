@@ -19,7 +19,7 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.report.ProfileReport;
 import eu.netmobiel.commons.report.RideReport;
-import eu.netmobiel.commons.report.RideshareReport;
+import eu.netmobiel.commons.report.DriverBehaviourReport;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Recurrence;
@@ -44,32 +44,32 @@ public class RideshareReportService {
 	private RideshareUserDao userDao;
     
 
-    public Map<String, RideshareReport> reportDriverActivity(Instant since, Instant until) throws BadRequestException {
-    	Map<String, RideshareReport> reportMap = new HashMap<>();
+    public Map<String, DriverBehaviourReport> reportDriverActivity(Instant since, Instant until) throws BadRequestException {
+    	Map<String, DriverBehaviourReport> reportMap = new HashMap<>();
     	// The first could have been realized without lookup, but now it is all the same.
     	for (NumericReportValue nrv : rideDao.reportCount(Ride.RGC_1_OFFERED_RIDES_COUNT, since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new RideshareReport(nrv))
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new DriverBehaviourReport(nrv))
     			.setRidesOfferedCount(nrv.getValue());
 		}
     	for (NumericReportValue nrv : bookingDao.reportCount(Booking.RGC_2_BOOKINGS_CANCELLED_BY_PASSENGER_COUNT, since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new RideshareReport(nrv))
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new DriverBehaviourReport(nrv))
     			.setBookingsCancelledByPassengerCount(nrv.getValue());
 		}
     	for (NumericReportValue nrv : bookingDao.reportCount(Booking.RGC_3_BOOKINGS_CANCELLED_BY_DRIVER_COUNT, since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new RideshareReport(nrv))
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new DriverBehaviourReport(nrv))
     			.setBookingsCancelledByDriverCount(nrv.getValue());
 		}
     	for (NumericReportValue nrv : bookingDao.reportCount(Booking.RGC_4_BOOKINGS_CONFIRMED_COUNT, since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new RideshareReport(nrv))
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new DriverBehaviourReport(nrv))
 			.setBookingsConfirmedCount(nrv.getValue());
 		}
     	// RGC_5 and RGC-6 are queries from the Communicator.
     	for (NumericReportValue nrv : bookingDao.reportCount(Booking.RGC_7_RIDES_PROPOSED_COUNT, since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new RideshareReport(nrv))
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new DriverBehaviourReport(nrv))
 			.setRidesProposedCount(nrv.getValue());
 		}
     	for (NumericReportValue nrv : bookingDao.reportCount(Booking.RGC_8_RIDES_PROPOSED_AND_ACCEPTED_COUNT, since, until)) {
-    		reportMap.computeIfAbsent(nrv.getKey(), k -> new RideshareReport(nrv))
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new DriverBehaviourReport(nrv))
 			.setRidesProposedAndAcceptedCount(nrv.getValue());
 		}
     	return reportMap;    	

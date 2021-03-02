@@ -34,8 +34,8 @@ public class ActivitySpssReport extends SpssReportBase<ActivityReport> {
 	@CsvBindAndJoinByName(column = "notificationAckedCount_\\d{4}_\\d{2}", elementType = Integer.class)
 	private MultiValuedMap<String, Integer> notificationAckedCount;
 
-	public ActivitySpssReport(String managedIdentity) {
-		super(managedIdentity);
+	public ActivitySpssReport(String managedIdentity, String home) {
+		super(managedIdentity, home);
 		this.messageCount = new ArrayListValuedHashMap<>();
 		this.messageAckedCount = new ArrayListValuedHashMap<>();
 		this.notificationCount = new ArrayListValuedHashMap<>();

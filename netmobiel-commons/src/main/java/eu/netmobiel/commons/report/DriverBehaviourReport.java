@@ -2,7 +2,7 @@ package eu.netmobiel.commons.report;
 
 import com.opencsv.bean.CsvBindByName;
 
-public class RideshareReport extends ReportPeriodKey {
+public class DriverBehaviourReport extends ReportPeriodKey {
 	
 	private static final long serialVersionUID = -7202730003166618230L;
 
@@ -56,15 +56,15 @@ public class RideshareReport extends ReportPeriodKey {
 	
 
 	
-	public RideshareReport() {
+	public DriverBehaviourReport() {
 		
 	}
 	
-	public RideshareReport(ReportPeriodKey key) {
+	public DriverBehaviourReport(ReportPeriodKey key) {
 		super(key);
 	}
 
-	public RideshareReport(String managedIdentity, int year, int month) {
+	public DriverBehaviourReport(String managedIdentity, int year, int month) {
 		super(managedIdentity, year, month);
 	}
 

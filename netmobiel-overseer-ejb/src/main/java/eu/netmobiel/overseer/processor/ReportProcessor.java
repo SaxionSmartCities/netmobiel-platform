@@ -60,13 +60,14 @@ import eu.netmobiel.commons.report.ProfileReport;
 import eu.netmobiel.commons.report.ReportKey;
 import eu.netmobiel.commons.report.ReportPeriodKey;
 import eu.netmobiel.commons.report.RideReport;
-import eu.netmobiel.commons.report.RideshareReport;
+import eu.netmobiel.commons.report.DriverBehaviourReport;
 import eu.netmobiel.commons.report.ShoutOutRecipientReport;
 import eu.netmobiel.commons.report.SpssReportBase;
 import eu.netmobiel.commons.report.TripReport;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.service.CommunicatorReportService;
 import eu.netmobiel.overseer.model.ActivitySpssReport;
+import eu.netmobiel.overseer.model.PassengerBehaviourSpssReport;
 import eu.netmobiel.planner.service.PlannerReportService;
 import eu.netmobiel.profile.service.ProfileReportService;
 import eu.netmobiel.rideshare.service.RideshareReportService;
@@ -248,7 +249,10 @@ public class ReportProcessor {
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(passengerReport, profileReportMap);
 			Writer passengerBehaviourWriter = convertToCsv(passengerReport, PassengerBehaviourReport.class);
-			
+
+			Collection<PassengerBehaviourSpssReport> spssReport = createSpssReport(passengerReport, PassengerBehaviourSpssReport.class); 
+			Writer passengerBehaviourSpssWriter = convertToCsvforSpss(spssReport, PassengerBehaviourSpssReport.class, since, until);
+
 			Map<String, PassengerModalityBehaviourReport> passengerModalityReportMap = plannerReportService.reportPassengerModalityBehaviour(since.toInstant(), until.toInstant());
 			List<PassengerModalityBehaviourReport> passengerModalityReport = passengerModalityReportMap.values().stream()
 	    			.sorted()
@@ -258,6 +262,7 @@ public class ReportProcessor {
 			
 			Map<String, Writer> reports = new LinkedHashMap<>();
 			reports.put(String.format("%s-report-%s.csv", "passenger-behaviour", reportDate), passengerBehaviourWriter);
+			reports.put(String.format("%s-report-spss-%s.csv", "passenger-behaviour", reportDate), passengerBehaviourSpssWriter);
 			reports.put(String.format("%s-report-%s.csv", "passenger-modality-behaviour", reportDate), passengerModalityBehaviourWriter);
 	
 			sendReports("Reisgedrag Passagier", reportDate, reports);
@@ -268,22 +273,22 @@ public class ReportProcessor {
 
 	protected void createAndSendDriverReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
-    		Map<String, RideshareReport> driverReportMap = rideshareReportService.reportDriverActivity(since.toInstant(), until.toInstant());
+    		Map<String, DriverBehaviourReport> driverReportMap = rideshareReportService.reportDriverActivity(since.toInstant(), until.toInstant());
 			List<ShoutOutRecipientReport> shoutOutRecipientReport = 
 					communicatorReportService.reportShoutOutActivity(since.toInstant(), until.toInstant());
 			// Merge the shout-out report into the driver report.
 			for (ShoutOutRecipientReport sorr : shoutOutRecipientReport) {
-				driverReportMap.computeIfAbsent(sorr.getKey(), k -> new RideshareReport(sorr))
+				driverReportMap.computeIfAbsent(sorr.getKey(), k -> new DriverBehaviourReport(sorr))
 					.setShoutOutNotificationCount(sorr.getShoutOutNotificationCount());
 				driverReportMap.get(sorr.getKey())
 					.setShoutOutNotificationAckedCount(sorr.getShoutOutNotificationAckedCount());
 
 			}
-			List<RideshareReport> driverReport = driverReportMap.values().stream()
+			List<DriverBehaviourReport> driverReport = driverReportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(driverReport, profileReportMap);
-			Writer driverBehaviourWriter = convertToCsv(driverReport, RideshareReport.class);
+			Writer driverBehaviourWriter = convertToCsv(driverReport, DriverBehaviourReport.class);
 			Map<String, Writer> reports = new LinkedHashMap<>();
 			reports.put(String.format("%s-report-%s.csv", "driver-behaviour", reportDate), driverBehaviourWriter);
 	
@@ -493,7 +498,8 @@ public class ReportProcessor {
 		for (R ar : report) {
     		spssReportMap.computeIfAbsent(ar.getManagedIdentity(), k -> {
 				try {
-					return spssClazz.getDeclaredConstructor(String.class).newInstance(k);
+					// Create a report line with the managed identity and the home locality
+					return spssClazz.getDeclaredConstructor(String.class, String.class).newInstance(k, ar.getHome());
 				} catch (InstantiationException | IllegalAccessException | IllegalArgumentException
 						| InvocationTargetException | NoSuchMethodException | SecurityException e) {
 					throw new IllegalStateException("Error instantiating spss report class", e);
