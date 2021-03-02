@@ -11,25 +11,25 @@ import eu.netmobiel.commons.report.SpssReportBase;
 public class ActivitySpssReport extends SpssReportBase<ActivityReport> {
 
 	/**
-	 * The number of messages received.
+	 * ACT-1: The number of messages received.
 	 */
 	@CsvBindAndJoinByName(column = "messageCount_\\d{4}_\\d{2}", elementType = Integer.class)
 	private MultiValuedMap<String, Integer> messageCount;
 	
 	/**
-	 * The number of messages acknowledged (i.e. read)  
+	 * ACT-2: The number of messages acknowledged (i.e. read)  
 	 */
 	@CsvBindAndJoinByName(column = "messageAckedCount_\\d{4}_\\d{2}", elementType = Integer.class)
 	private MultiValuedMap<String, Integer> messageAckedCount;
 	
 	/**
-	 * The number of notifications received.
+	 * ACT-3: The number of notifications received.
 	 */
 	@CsvBindAndJoinByName(column = "notificationCount_\\d{4}_\\d{2}", elementType = Integer.class)
 	private MultiValuedMap<String, Integer> notificationCount;
 	
 	/**
-	 * The number of notifications acknowledged (i.e. read)  
+	 * ACT-4: The number of notifications acknowledged (i.e. read)  
 	 */
 	@CsvBindAndJoinByName(column = "notificationAckedCount_\\d{4}_\\d{2}", elementType = Integer.class)
 	private MultiValuedMap<String, Integer> notificationAckedCount;
@@ -43,11 +43,11 @@ public class ActivitySpssReport extends SpssReportBase<ActivityReport> {
 	}
 	
 	@Override
-	public void addReportValues(ActivityReport ar) {
-		messageCount.put(String.format("messageCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getMessageCount());
-		messageAckedCount.put(String.format("messageAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getMessageAckedCount());
-		notificationCount.put(String.format("notificationCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getNotificationCount());
-		notificationAckedCount.put(String.format("notificationAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getNotificationAckedCount());
+	public void addReportValues(ActivityReport r) {
+		messageCount.put(String.format("messageCount_%d_%02d", r.getYear(), r.getMonth()), r.getMessageCount());
+		messageAckedCount.put(String.format("messageAckedCount_%d_%02d", r.getYear(), r.getMonth()), r.getMessageAckedCount());
+		notificationCount.put(String.format("notificationCount_%d_%02d", r.getYear(), r.getMonth()), r.getNotificationCount());
+		notificationAckedCount.put(String.format("notificationAckedCount_%d_%02d", r.getYear(), r.getMonth()), r.getNotificationAckedCount());
 	}
 	
 	public MultiValuedMap<String, Integer> getMessageCount() {

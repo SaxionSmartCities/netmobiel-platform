@@ -6,25 +6,25 @@ public class ActivityReport extends ReportPeriodKey {
 	private static final long serialVersionUID = -2609854526744056646L;
 
 	/**
-	 * The number of messages received.
+	 * ACT-1: The number of messages received.
 	 */
 	@CsvBindByName
 	private int messageCount;
 	
 	/**
-	 * The number of messages acknowledged (i.e. read)  
+	 * ACT-2: The number of messages acknowledged (i.e. read)  
 	 */
 	@CsvBindByName
 	private int messageAckedCount;
 	
 	/**
-	 * The number of notifications received.
+	 * ACT-3: The number of notifications received.
 	 */
 	@CsvBindByName
 	private int notificationCount;
 	
 	/**
-	 * The number of notifications acknowledged (i.e. read)  
+	 * ACT-4: The number of notifications acknowledged (i.e. read)  
 	 */
 	@CsvBindByName
 	private int notificationAckedCount;

@@ -63,18 +63,18 @@ public class DriverBehaviourSpssReport  extends SpssReportBase<DriverBehaviourRe
 	}
 
 	@Override
-	public void addReportValues(DriverBehaviourReport ar) {
+	public void addReportValues(DriverBehaviourReport r) {
 		// 1 - 4
-		ridesOfferedCount.put(String.format("ridesOfferedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getRidesOfferedCount());
-		bookingsCancelledByPassengerCount.put(String.format("bookingsCancelledByPassengerCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getBookingsCancelledByPassengerCount());
-		bookingsCancelledByDriverCount.put(String.format("bookingsCancelledByDriverCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getBookingsCancelledByDriverCount());
-		bookingsConfirmedCount.put(String.format("bookingsConfirmedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getBookingsConfirmedCount());
+		ridesOfferedCount.put(String.format("ridesOfferedCount_%d_%02d", r.getYear(), r.getMonth()), r.getRidesOfferedCount());
+		bookingsCancelledByPassengerCount.put(String.format("bookingsCancelledByPassengerCount_%d_%02d", r.getYear(), r.getMonth()), r.getBookingsCancelledByPassengerCount());
+		bookingsCancelledByDriverCount.put(String.format("bookingsCancelledByDriverCount_%d_%02d", r.getYear(), r.getMonth()), r.getBookingsCancelledByDriverCount());
+		bookingsConfirmedCount.put(String.format("bookingsConfirmedCount_%d_%02d", r.getYear(), r.getMonth()), r.getBookingsConfirmedCount());
 		
 		// 5 - 8
-		shoutOutNotificationCount.put(String.format("shoutOutNotificationCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getShoutOutNotificationCount());
-		shoutOutNotificationAckedCount.put(String.format("shoutOutNotificationAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getShoutOutNotificationAckedCount());
-		ridesProposedCount.put(String.format("ridesProposedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getRidesProposedCount());
-		ridesProposedAndAcceptedCount.put(String.format("ridesProposedAndAcceptedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getRidesProposedAndAcceptedCount());
+		shoutOutNotificationCount.put(String.format("shoutOutNotificationCount_%d_%02d", r.getYear(), r.getMonth()), r.getShoutOutNotificationCount());
+		shoutOutNotificationAckedCount.put(String.format("shoutOutNotificationAckedCount_%d_%02d", r.getYear(), r.getMonth()), r.getShoutOutNotificationAckedCount());
+		ridesProposedCount.put(String.format("ridesProposedCount_%d_%02d", r.getYear(), r.getMonth()), r.getRidesProposedCount());
+		ridesProposedAndAcceptedCount.put(String.format("ridesProposedAndAcceptedCount_%d_%02d", r.getYear(), r.getMonth()), r.getRidesProposedAndAcceptedCount());
 	}
 
 	public MultiValuedMap<String, Integer> getRidesOfferedCount() {

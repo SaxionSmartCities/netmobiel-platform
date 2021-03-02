@@ -88,25 +88,25 @@ public class PassengerBehaviourSpssReport  extends SpssReportBase<PassengerBehav
 	}
 
 	@Override
-	public void addReportValues(PassengerBehaviourReport ar) {
+	public void addReportValues(PassengerBehaviourReport r) {
 		// 1 - 4
-		tripsCreatedCount.put(String.format("messageCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getTripsCreatedCount());
-		tripsCancelledCount.put(String.format("messageAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getTripsCancelledCount());
-		tripsCancelledByPassengerCount.put(String.format("notificationCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getTripsCancelledByPassengerCount());
-		tripsCancelledByProviderCount.put(String.format("notificationAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getTripsCancelledByProviderCount());
+		tripsCreatedCount.put(String.format("messageCount_%d_%02d", r.getYear(), r.getMonth()), r.getTripsCreatedCount());
+		tripsCancelledCount.put(String.format("messageAckedCount_%d_%02d", r.getYear(), r.getMonth()), r.getTripsCancelledCount());
+		tripsCancelledByPassengerCount.put(String.format("notificationCount_%d_%02d", r.getYear(), r.getMonth()), r.getTripsCancelledByPassengerCount());
+		tripsCancelledByProviderCount.put(String.format("notificationAckedCount_%d_%02d", r.getYear(), r.getMonth()), r.getTripsCancelledByProviderCount());
 		
 		// 5 - 8
-		tripsWithConfirmedRideshareCount.put(String.format("notificationAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getTripsWithConfirmedRideshareCount());
-		tripsWithCancelledRidesharePaymentCount.put(String.format("notificationAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getTripsWithCancelledRidesharePaymentCount());
-		tripsMonoModalCount.put(String.format("notificationAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getTripsMonoModalCount());
+		tripsWithConfirmedRideshareCount.put(String.format("notificationAckedCount_%d_%02d", r.getYear(), r.getMonth()), r.getTripsWithConfirmedRideshareCount());
+		tripsWithCancelledRidesharePaymentCount.put(String.format("notificationAckedCount_%d_%02d", r.getYear(), r.getMonth()), r.getTripsWithCancelledRidesharePaymentCount());
+		tripsMonoModalCount.put(String.format("notificationAckedCount_%d_%02d", r.getYear(), r.getMonth()), r.getTripsMonoModalCount());
 		// No RGP-8
 		
 		//9 - 12
-		tripsMultiModalCount.put(String.format("notificationAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getTripsMultiModalCount());
+		tripsMultiModalCount.put(String.format("notificationAckedCount_%d_%02d", r.getYear(), r.getMonth()), r.getTripsMultiModalCount());
 		// No RGP-10
-		tripPlanShoutOutIssuedCount.put(String.format("notificationAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getTripPlanShoutOutIssuedCount());
-		tripPlanShoutOutAtLeastOneOfferCount.put(String.format("notificationAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getTripPlanShoutOutAtLeastOneOfferCount());
-		tripPlanShoutOutAcceptedCount.put(String.format("notificationAckedCount_%d_%02d", ar.getYear(), ar.getMonth()), ar.getTripPlanShoutOutAcceptedCount());
+		tripPlanShoutOutIssuedCount.put(String.format("notificationAckedCount_%d_%02d", r.getYear(), r.getMonth()), r.getTripPlanShoutOutIssuedCount());
+		tripPlanShoutOutAtLeastOneOfferCount.put(String.format("notificationAckedCount_%d_%02d", r.getYear(), r.getMonth()), r.getTripPlanShoutOutAtLeastOneOfferCount());
+		tripPlanShoutOutAcceptedCount.put(String.format("notificationAckedCount_%d_%02d", r.getYear(), r.getMonth()), r.getTripPlanShoutOutAcceptedCount());
 	}
 
 	public MultiValuedMap<String, Integer> getTripsCreatedCount() {

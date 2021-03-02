@@ -68,6 +68,8 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.service.CommunicatorReportService;
 import eu.netmobiel.overseer.model.ActivitySpssReport;
 import eu.netmobiel.overseer.model.DriverBehaviourSpssReport;
+import eu.netmobiel.overseer.model.IncentiveModelDriverSpssReport;
+import eu.netmobiel.overseer.model.IncentiveModelPassengerSpssReport;
 import eu.netmobiel.overseer.model.PassengerBehaviourSpssReport;
 import eu.netmobiel.planner.service.PlannerReportService;
 import eu.netmobiel.profile.service.ProfileReportService;
@@ -294,7 +296,6 @@ public class ReportProcessor {
 			Collection<DriverBehaviourSpssReport> spssReport = createSpssReport(driverReport, DriverBehaviourSpssReport.class); 
 			Writer driverBehaviourSpssWriter = convertToCsvforSpss(spssReport, DriverBehaviourSpssReport.class, since, until);
 
-
 			Map<String, Writer> reports = new LinkedHashMap<>();
 			reports.put(String.format("%s-report-%s.csv", "driver-behaviour", reportDate), driverBehaviourWriter);
 			reports.put(String.format("%s-report-spss-%s.csv", "driver-behaviour", reportDate), driverBehaviourSpssWriter);
@@ -312,9 +313,14 @@ public class ReportProcessor {
 	    			.sorted()
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(report, profileReportMap);
-			Writer driverBehaviourWriter = convertToCsv(report, IncentiveModelPassengerReport.class);
+			Writer incentiveModelWriter = convertToCsv(report, IncentiveModelPassengerReport.class);
+
+			Collection<IncentiveModelPassengerSpssReport> spssReport = createSpssReport(report, IncentiveModelPassengerSpssReport.class); 
+			Writer incentiveModelSpssWriter = convertToCsvforSpss(spssReport, IncentiveModelPassengerSpssReport.class, since, until);
+
 			Map<String, Writer> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "incentives-passenger", reportDate), driverBehaviourWriter);
+			reports.put(String.format("%s-report-%s.csv", "incentives-passenger", reportDate), incentiveModelWriter);
+			reports.put(String.format("%s-report-spss-%s.csv", "incentives-passenger", reportDate), incentiveModelSpssWriter);
 	
 			sendReports("Incentives Passagier", reportDate, reports);
     	} catch (Exception e) {
@@ -330,9 +336,14 @@ public class ReportProcessor {
 	    			.sorted()
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(report, profileReportMap);
-			Writer driverBehaviourWriter = convertToCsv(report, IncentiveModelDriverReport.class);
+			Writer incentiveModelWriter = convertToCsv(report, IncentiveModelDriverReport.class);
+			
+			Collection<IncentiveModelDriverSpssReport> spssReport = createSpssReport(report, IncentiveModelDriverSpssReport.class); 
+			Writer incentiveModelSpssWriter = convertToCsvforSpss(spssReport, IncentiveModelDriverSpssReport.class, since, until);
+
 			Map<String, Writer> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "incentives-driver", reportDate), driverBehaviourWriter);
+			reports.put(String.format("%s-report-%s.csv", "incentives-driver", reportDate), incentiveModelWriter);
+			reports.put(String.format("%s-report-spss-%s.csv", "incentives-driver", reportDate), incentiveModelSpssWriter);
 	
 			sendReports("Incentives Chauffeur", reportDate, reports);
     	} catch (Exception e) {
