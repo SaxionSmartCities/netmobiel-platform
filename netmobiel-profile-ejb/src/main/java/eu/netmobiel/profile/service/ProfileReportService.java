@@ -1,5 +1,6 @@
 package eu.netmobiel.profile.service;
 
+import java.time.Instant;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -11,10 +12,15 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.report.IncentiveModelDriverReport;
+import eu.netmobiel.commons.report.IncentiveModelPassengerReport;
+import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.report.ProfileReport;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.model.Profile;
+import eu.netmobiel.profile.model.Review;
 import eu.netmobiel.profile.repository.ProfileDao;
+import eu.netmobiel.profile.repository.ReviewDao;
 
 /**
  * Bean class for Profile Report session bean. 
@@ -29,7 +35,10 @@ public class ProfileReportService {
 
     @Inject
     private ProfileDao profileDao;
-    
+
+    @Inject
+    private ReviewDao reviewDao;
+
     public ProfileReportService() {
     }
 
@@ -56,4 +65,25 @@ public class ProfileReportService {
    		}
     	return reportMap;
     }
+    
+    public Map<String, IncentiveModelPassengerReport> reportIncentiveModelPassager(Instant since, Instant until) throws BadRequestException {
+    	Map<String, IncentiveModelPassengerReport> reportMap = new HashMap<>();
+    	// IMP-9
+    	for (NumericReportValue nrv : reviewDao.reportCount(Review.IMP_9_TRIPS_REVIEWED_COUNT, since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new IncentiveModelPassengerReport(nrv))
+			.setTripsReviewedCount(nrv.getValue());
+		}
+    	return reportMap;
+    }
+
+    public Map<String, IncentiveModelDriverReport> reportIncentiveModelDriver(Instant since, Instant until) throws BadRequestException {
+    	Map<String, IncentiveModelDriverReport> reportMap = new HashMap<>();
+    	// IMP-9
+    	for (NumericReportValue nrv : reviewDao.reportCount(Review.IMC_10_RIDES_REVIEWED_COUNT, since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new IncentiveModelDriverReport(nrv))
+			.setRidesReviewedCount(nrv.getValue());
+		}
+    	return reportMap;
+    }
+
 }

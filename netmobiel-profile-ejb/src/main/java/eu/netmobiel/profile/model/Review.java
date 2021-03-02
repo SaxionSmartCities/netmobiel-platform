@@ -8,6 +8,8 @@ import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
 import javax.persistence.AccessType;
 import javax.persistence.Column;
+import javax.persistence.ColumnResult;
+import javax.persistence.ConstructorResult;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
@@ -19,11 +21,59 @@ import javax.persistence.ManyToOne;
 import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
+import javax.persistence.NamedNativeQueries;
+import javax.persistence.NamedNativeQuery;
 import javax.persistence.SequenceGenerator;
+import javax.persistence.SqlResultSetMapping;
+import javax.persistence.SqlResultSetMappings;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import eu.netmobiel.commons.report.NumericReportValue;
+
+@NamedNativeQueries({
+	@NamedNativeQuery(
+		name = Review.IMP_9_TRIPS_REVIEWED_COUNT,
+		query = "select p.managed_identity as managed_identity, "
+        		+ "date_part('year', r.published) as year, " 
+        		+ "date_part('month', r.published) as month, "
+        		+ "count(*) as count "
+        		+ "from review r "
+        		+ "join profile p on p.id = r.sender "
+        		+ "where r.published >= ? and r.published < ? "
+//        		+ "and the review is about a trip"
+        		+ "group by p.managed_identity, year, month "
+        		+ "order by p.managed_identity, year, month",
+        resultSetMapping = Review.PR_REVIEW_USER_YEAR_MONTH_COUNT_MAPPING),
+	@NamedNativeQuery(
+			name = Review.IMC_10_RIDES_REVIEWED_COUNT,
+			query = "select p.managed_identity as managed_identity, "
+	        		+ "date_part('year', r.published) as year, " 
+	        		+ "date_part('month', r.published) as month, "
+	        		+ "count(*) as count "
+	        		+ "from review r "
+	        		+ "join profile p on p.id = r.sender "
+	        		+ "where r.published >= ? and r.published < ? "
+//	        		+ "and the review is about a ride"
+	        		+ "group by p.managed_identity, year, month "
+	        		+ "order by p.managed_identity, year, month",
+	        resultSetMapping = Review.PR_REVIEW_USER_YEAR_MONTH_COUNT_MAPPING),
+})
+@SqlResultSetMappings({
+	@SqlResultSetMapping(
+			name = Review.PR_REVIEW_USER_YEAR_MONTH_COUNT_MAPPING, 
+			classes = @ConstructorResult(
+				targetClass = NumericReportValue.class, 
+				columns = {
+						@ColumnResult(name = "managed_identity", type = String.class),
+						@ColumnResult(name = "year", type = int.class),
+						@ColumnResult(name = "month", type = int.class),
+						@ColumnResult(name = "count", type = int.class)
+				}
+			)
+		),
+})
 @NamedEntityGraphs({
 	@NamedEntityGraph(name = Review.LIST_REVIEWS_ENTITY_GRAPH,
 		attributeNodes = {
@@ -39,6 +89,9 @@ import javax.validation.constraints.Size;
 public class Review implements Serializable {
 	private static final long serialVersionUID = 7052181227403511232L;
 	public static final String LIST_REVIEWS_ENTITY_GRAPH = "list-reviews-entity-graph";
+	public static final String PR_REVIEW_USER_YEAR_MONTH_COUNT_MAPPING = "PRReviewUserYearMonthCountMapping";
+	public static final String IMP_9_TRIPS_REVIEWED_COUNT = "ListTripsReviewedCount";
+	public static final String IMC_10_RIDES_REVIEWED_COUNT = "ListRidesReviewedCount";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "review_sg")

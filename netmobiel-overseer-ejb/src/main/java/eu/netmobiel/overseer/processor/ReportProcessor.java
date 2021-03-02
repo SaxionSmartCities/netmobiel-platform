@@ -309,6 +309,12 @@ public class ReportProcessor {
 	protected void createAndSendIncentiveModelPassengerReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		Map<String, IncentiveModelPassengerReport> reportMap = bankerReportService.reportIncentivesPassenger(since.toInstant(), until.toInstant());
+    		Map<String, IncentiveModelPassengerReport> tripsReviewedReportMap = profileReportService.reportIncentiveModelPassager(since.toInstant(), until.toInstant());
+    		// Copy the review count into the main report
+    		for (Map.Entry<String, IncentiveModelPassengerReport> entry : tripsReviewedReportMap.entrySet()) {
+    			reportMap.computeIfAbsent(entry.getKey(), key -> new IncentiveModelPassengerReport(entry.getValue()))
+				.setTripsReviewedCount(entry.getValue().getTripsReviewedCount());
+			}
 			List<IncentiveModelPassengerReport> report = reportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
@@ -331,7 +337,12 @@ public class ReportProcessor {
 	protected void createAndSendIncentiveModelDriverReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		Map<String, IncentiveModelDriverReport> reportMap = bankerReportService.reportIncentivesDriver(since.toInstant(), until.toInstant());
-   		  	copyProfileInfo(reportMap.values(), profileReportMap);
+    		Map<String, IncentiveModelDriverReport> ridesReviewedReportMap = profileReportService.reportIncentiveModelDriver(since.toInstant(), until.toInstant());
+    		// Copy the review count into the main report
+    		for (Map.Entry<String, IncentiveModelDriverReport> entry : ridesReviewedReportMap.entrySet()) {
+    			reportMap.computeIfAbsent(entry.getKey(), key -> new IncentiveModelDriverReport(entry.getValue()))
+				.setRidesReviewedCount(entry.getValue().getRidesReviewedCount());
+			}
 			List<IncentiveModelDriverReport> report = reportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
