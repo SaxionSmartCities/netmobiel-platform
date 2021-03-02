@@ -36,9 +36,12 @@ public class ReportKeyWithModality extends ReportPeriodKey {
 		this.modality = modality;
 	}
 
+	/**
+	 * The key for the report. The month is two digits for proper sorting based on the string value of the key.
+	 */
 	public String getKey() {
 		if (this.key == null) {
-			this.key = String.format("%s-%d-%d-%s", getManagedIdentity(), getYear(), getMonth(), modality);
+			this.key = String.format("%s-%d-%02d-%s", getManagedIdentity(), getYear(), getMonth(), modality);
 		}
 		return this.key;
 	}

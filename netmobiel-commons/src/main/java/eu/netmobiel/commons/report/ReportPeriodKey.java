@@ -41,9 +41,12 @@ public class ReportPeriodKey extends ReportKey implements Serializable {
 		this.month = month;
 	}
 
+	/**
+	 * The key for the report. The month is two digits for proper sorting based on the string value of the key.
+	 */
 	public String getKey() {
 		if (this.key == null) {
-			this.key = String.format("%s-%d-%d", getManagedIdentity(), year, month);
+			this.key = String.format("%s-%d-%02d", getManagedIdentity(), year, month);
 		}
 		return this.key;
 	}

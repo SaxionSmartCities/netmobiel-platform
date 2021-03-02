@@ -70,6 +70,9 @@ public class ReportKey implements Serializable, Comparable<ReportKey> {
 		this.home = home;
 	}
 
+	/**
+	 * Compares the report based on the key. The key is designed be sortable in a decent way. 
+	 */
 	@Override
 	public int compareTo(ReportKey other) {
 		return Objects.compare(getKey(), other.getKey(), Comparator.naturalOrder());
