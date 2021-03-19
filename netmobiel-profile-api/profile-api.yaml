@@ -599,27 +599,14 @@ paths:
       operationId: getDelegation
       summary: Get a Delegation
       description: Gets the details of a single instance of a `Delegation`.
-    put:
-      requestBody:
-        description: Updated `Delegation` information.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Delegation'
-        required: true
-      responses:
-        "202":
-          description: Successful response.
-      operationId: updateDelegation
-      summary: Update a Delegation
-      description: Updates an existing `Delegation`.
     delete:
       responses:
         "204":
           description: Successful response.
       operationId: deleteDelegation
       summary: Delete a Delegation
-      description: Deletes an existing `Delegation`.
+      description: Deletes an existing `Delegation` by setting the revocation time.
+        The actual record is retained, but the delegation is no longer active.
     parameters:
     - name: delegationId
       description: A unique identifier for a `Delegation`.
@@ -1305,19 +1292,19 @@ components:
               type: string
         revocationTime:
           format: date-time
-          description: The time where the delgation has ended. The delegation is after
-            the revocation time no longer valid. If not set the end time of the delegation
-            is undecided.
+          description: Read-only. The time where the delegation has ended. The delegation
+            is after the revocation time no longer valid. If not set the end time
+            of the delegation is undecided.
           type: string
         activationTime:
           format: date-time
-          description: The time the delegation was activated. If not set then the
-            acceptation proces has not yet completed.
+          description: Read-only. The time the delegation was activated. If not set
+            then the acceptation proces has not yet completed.
           type: string
         submissionTime:
           format: date-time
-          description: The time the submission to become a delegate  was issued, it
-            marks the start of the delegation process.
+          description: Read-only. The time the submission to become a delegate  was
+            issued, it marks the start of the delegation process.
           type: string
         transferCode:
           description: When an designation is created, a transfer code is generated
