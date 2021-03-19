@@ -81,12 +81,26 @@ public class ProfileManager {
     public ProfileManager() {
     }
 
+//	if (UrnHelper.isUrn(delegationRef)) {
+//    	NetMobielModule module = NetMobielModule.getEnum(UrnHelper.getService(delegationRef));
+//    	if (module == NetMobielModule.PROFILE) {
+//			id = UrnHelper.getId(Profile.URN_PREFIX, delegationRef);
+//    	} else if (module == NetMobielModule.KEYCLOAK) {
+//    		mid = UrnHelper.getSuffix(delegationRef);
+//    	}
+//	} else if (UrnHelper.isKeycloakManagedIdentity(delegationRef)) {
+//		mid = delegationRef;
+//	} else {
+//		id = UrnHelper.getId(delegationRef);
+//	}
+
     @RolesAllowed({ "admin" })
 	public @NotNull PagedResult<Profile> listProfiles(ProfileFilter filter, Cursor cursor) throws BadRequestException {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
     	// For now don't do conditional things. First always total count, then data if data is requested. 
     	// Get the total count
+		filter.validate();
     	cursor.validate(MAX_RESULTS, 0);
     	PagedResult<Long> prs = profileDao.listProfiles(filter, Cursor.COUNTING_CURSOR);
     	List<Profile> results = null;

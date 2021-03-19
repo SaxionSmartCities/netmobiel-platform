@@ -10,7 +10,7 @@ import org.mapstruct.Qualifier;
 
 @Qualifier
 @Retention(CLASS)
-@Target(METHOD)
-public @interface Shallow {
+@Target(TYPE)
+public @interface DelegationMapperQualifier {
 
 }

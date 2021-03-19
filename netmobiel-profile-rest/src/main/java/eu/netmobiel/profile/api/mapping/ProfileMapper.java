@@ -9,7 +9,7 @@ import org.mapstruct.ReportingPolicy;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileComplete;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileMapperQualifier;
-import eu.netmobiel.profile.api.mapping.annotation.ProfileShallow;
+import eu.netmobiel.profile.api.mapping.annotation.Shallow;
 import eu.netmobiel.profile.model.Address;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
@@ -27,7 +27,7 @@ import eu.netmobiel.profile.repository.mapping.GeometryMapper;
 @ProfileMapperQualifier
 public abstract class ProfileMapper {
 
-	@Mapping(target = "data", source = "data", qualifiedBy = { ProfileShallow.class } )
+	@Mapping(target = "data", source = "data", qualifiedBy = { Shallow.class } )
 	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Profile> source);
 
 	// Domain --> API
@@ -47,7 +47,7 @@ public abstract class ProfileMapper {
 	@Mapping(target = "favoriteLocations", ignore = true)
 	@Mapping(target = "ridePlanOptions", ignore = true)
 	@Mapping(target = "searchPreferences", ignore = true)
-	@ProfileShallow
+	@Shallow
 	public abstract eu.netmobiel.profile.api.model.Profile mapShallow(Profile source);
 
 	@InheritConfiguration(name = "commonMap")

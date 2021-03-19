@@ -7,6 +7,8 @@ import java.security.SecureRandom;
 import java.util.Random;
 import java.util.UUID;
 
+import org.apache.commons.lang3.StringUtils;
+
 public class TokenGenerator {
 	private static final Random random = new SecureRandom();
 
@@ -41,5 +43,16 @@ public class TokenGenerator {
 			throw new IllegalStateException("Unable to create digest",  e);
 		}
 		return uid;
+	}
+
+	/**
+	 * Creates a zero-padded number of x digits.
+	 * @param nrDigits the number of digits required.
+	 * @return A random number string with exact nrDigits. 
+	 */
+	public static String createRandomNumber(int nrDigits) {
+		String s = String.valueOf(random.nextLong());
+		s = StringUtils.leftPad(s, nrDigits, "0");
+		return s.substring(s.length() - nrDigits);
 	}
 }

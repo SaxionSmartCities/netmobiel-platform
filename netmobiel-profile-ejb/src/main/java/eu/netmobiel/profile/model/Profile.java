@@ -5,6 +5,8 @@ import java.util.HashSet;
 import java.util.Set;
 
 import javax.enterprise.inject.Vetoed;
+import javax.persistence.Access;
+import javax.persistence.AccessType;
 import javax.persistence.AttributeOverride;
 import javax.persistence.AttributeOverrides;
 import javax.persistence.CascadeType;
@@ -72,6 +74,7 @@ import eu.netmobiel.profile.util.ProfileUrnHelper;
 @Vetoed
 @SequenceGenerator(name = "profile_sg", sequenceName = "profile_id_seq", allocationSize = 1, initialValue = 50)
 @AttributeOverride(name = "email", column = @Column(name="email", length = User.MAX_LENGTH_EMAIL, nullable = false))
+@Access(AccessType.FIELD)
 public class Profile extends User  {
 
 	private static final long serialVersionUID = -4237705703151528786L;
@@ -82,6 +85,7 @@ public class Profile extends User  {
 	
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "profile_sg")
+	@Access(AccessType.PROPERTY)
     private Long id;
 
 	@OneToMany(fetch = FetchType.LAZY, cascade = { CascadeType.ALL } , mappedBy = "profile", orphanRemoval = true)

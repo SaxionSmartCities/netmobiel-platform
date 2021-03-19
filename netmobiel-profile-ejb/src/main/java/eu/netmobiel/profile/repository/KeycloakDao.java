@@ -4,7 +4,9 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -52,7 +54,8 @@ public class KeycloakDao {
 
     private AdapterConfig profileServiceAccount;
 
-
+    private static final String DELEGATE_FOR_KEY = "delegateFor";
+    
     /**
      * Initializes the profile service account credentials. 
      */
@@ -214,6 +217,37 @@ public class KeycloakDao {
 				urep.setFirstName(user.getGivenName());
 				urep.setLastName(user.getFamilyName());
 				urep.setEmail(user.getEmail());
+				ur.update(urep);
+			}
+		}
+	}
+	
+	public void addDelegator(NetMobielUser delegate, NetMobielUser delegator) {
+		try (Keycloak kc = createKeycloakClient()) {
+			RealmResource realm = kc.realm(profileServiceAccount.getRealm());
+			UserResource ur = realm.users().get(delegate.getManagedIdentity());
+			if (ur != null) {
+				UserRepresentation urep = ur.toRepresentation();
+				Map<String, List<String>> attribs = urep.getAttributes();
+				attribs.computeIfAbsent(DELEGATE_FOR_KEY, k -> new ArrayList<>());
+				List<String> delegators = attribs.get(DELEGATE_FOR_KEY);
+				delegators.remove(delegator.getManagedIdentity());
+				delegators.add(delegator.getManagedIdentity());
+				ur.update(urep);
+			}
+		}
+	}
+
+	public void removeDelegator(NetMobielUser delegate, NetMobielUser delegator) {
+		try (Keycloak kc = createKeycloakClient()) {
+			RealmResource realm = kc.realm(profileServiceAccount.getRealm());
+			UserResource ur = realm.users().get(delegate.getManagedIdentity());
+			if (ur != null) {
+				UserRepresentation urep = ur.toRepresentation();
+				Map<String, List<String>> attribs = urep.getAttributes();
+				attribs.computeIfAbsent(DELEGATE_FOR_KEY, k -> new ArrayList<>());
+				List<String> delegators = attribs.get(DELEGATE_FOR_KEY);
+				delegators.remove(delegator.getManagedIdentity());
 				ur.update(urep);
 			}
 		}

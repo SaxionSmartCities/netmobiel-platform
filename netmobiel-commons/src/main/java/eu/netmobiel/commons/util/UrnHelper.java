@@ -58,4 +58,13 @@ public class UrnHelper {
 		return parts[2];
 	}
 
+	/** 
+	 * Checks for a string that could be a keycloak managed identity (an UUID). 
+	 * The check is extremely superficial,
+	 * @param value the string to check
+	 * @return true if not null and containing at least one '-' character, and also is not a urn.
+	 */
+	public static boolean isKeycloakManagedIdentity(String value) {
+		return value != null && value.contains("-") && !value.contains(":");
+	}
 }
