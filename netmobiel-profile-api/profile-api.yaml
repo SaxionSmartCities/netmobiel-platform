@@ -1303,26 +1303,21 @@ components:
               type: string
             id:
               type: string
-        startTime:
+        revocationTime:
           format: date-time
-          description: The time when the delegation become active. Before the start
-            time the delegation has not started yet.
-          type: string
-        endTime:
-          format: date-time
-          description: The time where the designation ends. The delegation is after
-            the end time no longer valid. If not set the end time of the delegation
+          description: The time where the delgation has ended. The delegation is after
+            the revocation time no longer valid. If not set the end time of the delegation
             is undecided.
           type: string
-        acceptanceTime:
+        activationTime:
           format: date-time
-          description: The time the delegation was accepted. If not set then the acceptation
-            proces has not yet completed.
+          description: The time the delegation was activated. If not set then the
+            acceptation proces has not yet completed.
           type: string
-        requestTime:
+        submissionTime:
           format: date-time
-          description: The time the initial request was issued, it marks the start
-            of the delegation process.
+          description: The time the submission to become a delegate  was issued, it
+            marks the start of the delegation process.
           type: string
         transferCode:
           description: When an designation is created, a transfer code is generated
@@ -1346,10 +1341,11 @@ components:
         delegator:
           givenName: Marietje
           id: 123421-567821
-        startTime: 2021-03-25T00:00:00Z
-        endTime: 2022-01-01T01.00.00Z
-        acceptanceTime: 2021-03-22T10:53:16Z
+        submissionTime: 2021-02-25T00:00:00Z
+        revocationTime: 2021-03-31T12.35.43Z
+        activationTime: 2021-02-26T10:53:16Z
         transferCode: "123456"
+        id: 1234
   responses:
     InternalServerError:
       content:
