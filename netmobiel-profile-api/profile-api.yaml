@@ -497,7 +497,7 @@ paths:
       security:
       - apikey: []
       operationId: createProfile
-      summary: Create aprofile.
+      summary: Create a profile.
       description: Creates a new profile
   /profiles/{profileId}/oldskool:
     get:
@@ -583,6 +583,145 @@ paths:
                 $ref: '#/components/schemas/Page'
           description: Get all reviews in oldskool stlye.
       operationId: getReviewsNewSkool
+  /delegations/{delegationId}:
+    summary: Path used to manage a single Delegation.
+    description: Admin only. The REST endpoint/path used to get, update, and delete
+      single instances of an `Delegation`.  This path contains `GET`, `PUT`, and `DELETE`
+      operations used to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Delegation'
+          description: Successful response - returns a single `Delegation`.
+      operationId: getDelegation
+      summary: Get a Delegation
+      description: Gets the details of a single instance of a `Delegation`.
+    put:
+      requestBody:
+        description: Updated `Delegation` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Delegation'
+        required: true
+      responses:
+        "202":
+          description: Successful response.
+      operationId: updateDelegation
+      summary: Update a Delegation
+      description: Updates an existing `Delegation`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deleteDelegation
+      summary: Delete a Delegation
+      description: Deletes an existing `Delegation`.
+    parameters:
+    - name: delegationId
+      description: A unique identifier for a `Delegation`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /delegations:
+    summary: Path used to manage the list of delegations.
+    description: Admin only. The REST endpoint/path used to list and create zero or
+      more `Delegation` entities.  This path contains a `GET` and `POST` operation
+      to perform the list and create tasks, respectively.
+    get:
+      parameters:
+      - name: delegate
+        description: |-
+          the user id acting as a representative for someone else. The format of the user id is the database id of a profile user, or an urn reference. Two formats are allowed:
+          urn:nb:ps:user:{primary-key}
+          urn:nb:kc:user:{managed-identity}
+        schema:
+          type: string
+        in: query
+      - name: delegator
+        description: |-
+          the user id being represented. The format of the user id is the database id of a profile user, or an urn reference. Two formats are allowed:
+          urn:nb:ps:user:{primary-key}
+          urn:nb:kc:user:{managed-identity}
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The start date at which to start the listing. Default is now.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The start date and later not to include in the listing. The `until`
+          date must be after the `since` parameter. Default is not set, meaning all
+          delegations (after since).
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: inactiveToo
+        description: 'Set this flag to ''true'' if inactive delegations should be
+          returned as well, that are delegations that been ended. Default is false. '
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting on departure time (or arrival time).\
+          \ Choose either \nascending (ASC, default) or descending (DESC)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Delegation'
+          description: Successful response - returns an array of `Delegation` entities.
+      operationId: getDelegations
+      summary: List all delegations
+      description: Gets a list of all `Delegation` entities.
+    post:
+      requestBody:
+        description: A new `Delegation` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Delegation'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+      operationId: createDelegation
+      summary: Create a Delegation
+      description: Creates a new instance of a `Delegation`.
 components:
   schemas:
     SearchPreferences:
@@ -1141,6 +1280,76 @@ components:
         distance: 101266
         favorite: true
         label: Hengelo
+    Delegation:
+      title: Root Type for Designation
+      description: A `Delegation` describes the delegation relation between two profiles.
+      type: object
+      properties:
+        delegate:
+          $ref: '#/components/schemas/Profile'
+          description: The person acting on NetMobiel on behalf of someone else (called
+            the delegator).
+          properties:
+            givenName:
+              type: string
+            id:
+              type: string
+        delegator:
+          $ref: '#/components/schemas/Profile'
+          description: The person who is represented in NetMobiel by someone else
+            (called the delegate).
+          properties:
+            givenName:
+              type: string
+            id:
+              type: string
+        startTime:
+          format: date-time
+          description: The time when the delegation become active. Before the start
+            time the delegation has not started yet.
+          type: string
+        endTime:
+          format: date-time
+          description: The time where the designation ends. The delegation is after
+            the end time no longer valid. If not set the end time of the delegation
+            is undecided.
+          type: string
+        acceptanceTime:
+          format: date-time
+          description: The time the delegation was accepted. If not set then the acceptation
+            proces has not yet completed.
+          type: string
+        requestTime:
+          format: date-time
+          description: The time the initial request was issued, it marks the start
+            of the delegation process.
+          type: string
+        transferCode:
+          description: When an designation is created, a transfer code is generated
+            and sent to the deleator. Only when the delegator trusts the delegate
+            and tells the transfer code, the delegation becomes active by giving the
+            acceptance time a value.
+          type: string
+        id:
+          description: The database identifier.
+          type: integer
+        delegateRef:
+          description: A reference to the delegate, the representative.
+          type: string
+        delegatorRef:
+          description: A reference to person being represented.
+          type: string
+      example:
+        delegate:
+          givenName: Jaap
+          id: 1234-5678
+        delegator:
+          givenName: Marietje
+          id: 123421-567821
+        startTime: 2021-03-25T00:00:00Z
+        endTime: 2022-01-01T01.00.00Z
+        acceptanceTime: 2021-03-22T10:53:16Z
+        transferCode: "123456"
   responses:
     InternalServerError:
       content:
