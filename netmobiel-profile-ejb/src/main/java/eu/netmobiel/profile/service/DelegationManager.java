@@ -104,7 +104,7 @@ public class DelegationManager {
 		}
 		// Constraint: Delegation cannot overlap in time
 		// --> Currently no active delegation (between two parties)
-		if (delegationDao.isDelegationActive(delegation.getDelegate(), delegation.getDelegator())) {
+		if (delegationDao.isDelegationActive(delegation.getDelegate(), delegation.getDelegator(), null)) {
 			throw new BadRequestException("Delegation relation already present");
 		}
 		delegationDao.save(delegation);

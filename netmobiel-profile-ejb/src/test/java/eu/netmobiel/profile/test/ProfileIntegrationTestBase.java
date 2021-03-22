@@ -149,11 +149,12 @@ public abstract class ProfileIntegrationTestBase {
 		utx.begin();
 		em.joinTransaction();
 		log.debug("Dumping old records...");
+		em.createQuery("delete from Place").executeUpdate();
 		em.createQuery("delete from Compliment").executeUpdate();
 		em.createQuery("delete from Review").executeUpdate();
+		em.createQuery("delete from Delegation").executeUpdate();
 		em.createQuery("delete from SearchPreferences").executeUpdate();
 		em.createQuery("delete from RidesharePreferences").executeUpdate();
-		em.createQuery("delete from Place").executeUpdate();
 		em.createQuery("delete from Profile").executeUpdate();
 		utx.commit();
 	}

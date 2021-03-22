@@ -1,7 +1,10 @@
 package eu.netmobiel.profile.test;
 
+import java.time.Instant;
+
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.profile.model.Address;
+import eu.netmobiel.profile.model.Delegation;
 import eu.netmobiel.profile.model.Place;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.UserRole;
@@ -68,5 +71,15 @@ public class Fixture {
 		Place p = new Place();
 		p.setAddress(addr);
 		return p;
+	}
+	
+	public static Delegation createDelegation(Profile delegate, Profile delegator, Instant theTime, String code) {
+    	Delegation del = new Delegation();
+    	del.setDelegate(delegate);
+    	del.setDelegator(delegator);
+    	del.setSubmissionTime(theTime);
+    	del.setActivationTime(theTime);
+    	del.setTransferCode(code);
+		return del;
 	}
 }

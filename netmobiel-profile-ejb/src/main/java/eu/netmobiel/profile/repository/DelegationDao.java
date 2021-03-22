@@ -1,5 +1,6 @@
 package eu.netmobiel.profile.repository;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -72,7 +73,8 @@ public class DelegationDao extends AbstractDao<Delegation, Long> {
         }
         if (!filter.isInactiveToo()) {
         	// Active delegation has no revocation time, or an revocation time beyond now
-        	predicates.add(cb.or(cb.isNull(root.get(Delegation_.revocationTime)), cb.greaterThan(root.get(Delegation_.revocationTime), filter.getNow())));
+        	predicates.add(cb.or(cb.isNull(root.get(Delegation_.revocationTime)), 
+        						 cb.between(cb.literal(filter.getNow()), root.get(Delegation_.activationTime), root.get(Delegation_.revocationTime))));
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;
@@ -93,16 +95,22 @@ public class DelegationDao extends AbstractDao<Delegation, Long> {
 	}
 
 	/**
-	 * Checks whether a delegation is active between two parties.
+	 * Checks whether a delegation is active between two parties. If the time is set, 
+	 * it checks whether a delegation was active at that specific time.
+	 * If null, it check whether there is a delegation without revocation time set.
+	 * Note that if the revocation time is set in the future (semantically strange, but technical possible)
+	 * this call would detect it only when checking at a specific time.  
 	 * @param delegate
 	 * @param delegator
 	 * @return
 	 */
-	public boolean isDelegationActive(Profile delegate, Profile delegator) {
-    	Long count = em.createQuery("select count(d) from Delegation d where d.revocationTime is null and " 
+	public boolean isDelegationActive(Profile delegate, Profile delegator, Instant pointOfTime) {
+    	Long count = em.createQuery("select count(d) from Delegation d where " 
+    			+ "(d.revocationTime is null or (:pointOfTime between d.activationTime and d.revocationTime)) and " 
 				+ "d.delegate = :delegate and d.delegator = :delegator", Long.class)
 			.setParameter("delegate", delegate)
 			.setParameter("delegator", delegator)
+			.setParameter("pointOfTime", pointOfTime)
 			.getSingleResult();
     	return count > 0; 
 	}
