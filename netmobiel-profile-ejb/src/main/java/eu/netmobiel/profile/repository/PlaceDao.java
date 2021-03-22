@@ -7,18 +7,18 @@ import javax.persistence.EntityManager;
 
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.profile.annotation.ProfileDatabase;
-import eu.netmobiel.profile.model.Address;
+import eu.netmobiel.profile.model.Place;
 
 
 @ApplicationScoped
-@Typed(AddressDao.class)
-public class AddressDao extends AbstractDao<Address, Long> {
+@Typed(PlaceDao.class)
+public class PlaceDao extends AbstractDao<Place, Long> {
 
 	@Inject @ProfileDatabase
     private EntityManager em;
 
-    public AddressDao() {
-		super(Address.class);
+    public PlaceDao() {
+		super(Place.class);
 	}
 
 	@Override
