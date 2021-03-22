@@ -3,7 +3,6 @@ package eu.netmobiel.profile.repository;
 import static org.junit.Assert.*;
 
 import java.time.Instant;
-import java.util.List;
 
 import javax.inject.Inject;
 
