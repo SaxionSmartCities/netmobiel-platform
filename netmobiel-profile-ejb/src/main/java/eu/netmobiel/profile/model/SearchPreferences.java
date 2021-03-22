@@ -24,6 +24,9 @@ import javax.validation.constraints.Min;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Entity
 @Table(name = "search_preferences")
 @Vetoed
@@ -65,6 +68,8 @@ public class SearchPreferences implements Serializable {
     })
     @Column(name = "luggage", length = 2)
     @OrderBy("ASC")
+    @JoinColumn(name = "profile")	// This definition is required by OnDelete, just a copy of the same column in @CollectionTable 
+    @OnDelete(action = OnDeleteAction.CASCADE)
 	private Set<LuggageOption> luggageOptions;
     
 	@Column(name = "allow_transfers", nullable = false)
@@ -85,6 +90,8 @@ public class SearchPreferences implements Serializable {
     })
     @Column(name = "traverse_mode", length = 2)
     @OrderBy("ASC")
+    @JoinColumn(name = "profile")	// This definition is required by OnDelete, just a copy of the same column in @CollectionTable 
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Set<TraverseMode> allowedTraverseModes;
 
     public SearchPreferences() {

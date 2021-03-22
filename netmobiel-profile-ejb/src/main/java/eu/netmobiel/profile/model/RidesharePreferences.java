@@ -25,6 +25,9 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 @Entity
 @Table(name = "rideshare_preferences")
 @Vetoed
@@ -66,6 +69,8 @@ public class RidesharePreferences implements Serializable {
     })
     @Column(name = "luggage", length = 2)
     @OrderBy("ASC")
+    @JoinColumn(name = "profile")	// This definition is required by OnDelete, just a copy of the same column in @CollectionTable 
+    @OnDelete(action = OnDeleteAction.CASCADE)
 	private Set<LuggageOption> luggageOptions;
     
     @Size(max = 32)
