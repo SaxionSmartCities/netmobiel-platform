@@ -181,6 +181,10 @@
 		    		<groupId>org.jboss.resteasy</groupId>
 		    		<artifactId>resteasy-jaxb-provider</artifactId>
 		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>org.keycloak</groupId>
+		    		<artifactId>keycloak-common</artifactId>
+		    	</exclusion>
 		    </exclusions>
         </dependency>
         <!-- Contains the models, these are needed (more or less) in the admin API for UPDATE_POLICY and VERIVY_EMAIL. -->
