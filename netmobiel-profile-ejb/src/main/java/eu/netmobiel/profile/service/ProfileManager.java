@@ -235,6 +235,7 @@ public class ProfileManager {
     	Profile dbprofile = profileDao.findByManagedIdentity(managedId, Profile.FULLEST_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	profileDao.detach(dbprofile);
+    	newProfile.setManagedIdentity(dbprofile.getManagedIdentity());
     	newProfile.setId(dbprofile.getId());
 		newProfile.linkOneToOneChildren();
 		newProfile.linkPlaces();

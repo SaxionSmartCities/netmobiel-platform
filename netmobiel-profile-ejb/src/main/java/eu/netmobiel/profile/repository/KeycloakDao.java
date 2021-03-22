@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -229,11 +230,16 @@ public class KeycloakDao {
 			if (ur != null) {
 				UserRepresentation urep = ur.toRepresentation();
 				Map<String, List<String>> attribs = urep.getAttributes();
+				if (attribs == null) {
+					attribs = new HashMap<>();
+					urep.setAttributes(attribs);
+				}
 				attribs.computeIfAbsent(DELEGATE_FOR_KEY, k -> new ArrayList<>());
 				List<String> delegators = attribs.get(DELEGATE_FOR_KEY);
-				delegators.remove(delegator.getManagedIdentity());
-				delegators.add(delegator.getManagedIdentity());
-				ur.update(urep);
+				if (! delegators.contains(delegator.getManagedIdentity())) {
+					delegators.add(delegator.getManagedIdentity());
+					ur.update(urep);
+				}
 			}
 		}
 	}
@@ -245,10 +251,14 @@ public class KeycloakDao {
 			if (ur != null) {
 				UserRepresentation urep = ur.toRepresentation();
 				Map<String, List<String>> attribs = urep.getAttributes();
-				attribs.computeIfAbsent(DELEGATE_FOR_KEY, k -> new ArrayList<>());
-				List<String> delegators = attribs.get(DELEGATE_FOR_KEY);
-				delegators.remove(delegator.getManagedIdentity());
-				ur.update(urep);
+				if (attribs != null) {
+					attribs.computeIfAbsent(DELEGATE_FOR_KEY, k -> new ArrayList<>());
+					List<String> delegators = attribs.get(DELEGATE_FOR_KEY);
+					if (delegators != null && delegators.contains(delegator.getManagedIdentity())) {
+						delegators.remove(delegator.getManagedIdentity());
+						ur.update(urep);
+					}
+				}
 			}
 		}
 	}

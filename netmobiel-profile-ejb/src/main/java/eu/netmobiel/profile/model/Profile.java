@@ -106,7 +106,7 @@ public class Profile extends User  {
 	@OneToOne(cascade = CascadeType.ALL, mappedBy = "profile", fetch = FetchType.LAZY, orphanRemoval = true, optional = true)
 	private RidesharePreferences ridesharePreferences;
 
-	@OneToOne(cascade = CascadeType.ALL, mappedBy = "profile", fetch = FetchType.LAZY, orphanRemoval = true, optional = false) 
+	@OneToOne(cascade = CascadeType.ALL, mappedBy = "profile", fetch = FetchType.LAZY, orphanRemoval = true, optional = true) 
 	private SearchPreferences searchPreferences;
 
 	@Embedded
@@ -156,7 +156,9 @@ public class Profile extends User  {
     private void initializeEmbeddedRelations() {
 		consent = new UserConsent();
 		notificationOptions = new NotificationOptions();
-		searchPreferences = new SearchPreferences(this);
+		if (userRole == UserRole.PASSENGER || userRole == UserRole.BOTH) {
+			addSearchPreferences();
+		}
 		if (userRole == UserRole.DRIVER || userRole == UserRole.BOTH) {
 			addRidesharePreferences();
 		}
@@ -275,6 +277,14 @@ public class Profile extends User  {
 		getPlaces().remove(p);
 	}
 
+	public final void addSearchPreferences() {
+		this.searchPreferences = new SearchPreferences(this);
+	}
+
+	public final void removeSearchPreferences() {
+		this.searchPreferences = null;
+	}
+	
 	public final void addRidesharePreferences() {
 		this.ridesharePreferences = new RidesharePreferences(this);
 	}
@@ -282,7 +292,7 @@ public class Profile extends User  {
 	public final void removeRidesharePreferences() {
 		this.ridesharePreferences = null;
 	}
-	
+
 	/**
 	 * Assures that all associations and embedded objects are defined. 
 	 */

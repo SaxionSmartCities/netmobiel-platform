@@ -93,7 +93,7 @@ public class DelegationManager {
 	public Long createDelegation(Delegation delegation, boolean acceptNow) throws BusinessException {
     	  // Validate required parameters.
 		if (delegation.getDelegate() == null || delegation.getDelegator() == null) { 
-			throw new BadRequestException("startTime, delegatorRef and delegateRef are mandatory attributes");
+			throw new BadRequestException("delegator and delegate are mandatory attributes");
 		}
 		delegation.setDelegate(resolveProfile(delegation.getDelegate()));
 		delegation.setDelegator(resolveProfile(delegation.getDelegator()));

@@ -1,11 +1,14 @@
 package eu.netmobiel.profile.api.mapping;
 
+import org.mapstruct.AfterMapping;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 
+import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileComplete;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileMapperQualifier;
@@ -63,8 +66,19 @@ public abstract class ProfileMapper {
 	@Mapping(target = "label", source ="location.label")
 	public abstract eu.netmobiel.profile.api.model.Address  map(Address source);
 
-	@InheritInverseConfiguration
+	@Mapping(target = "countryCode", source ="country")
 	public abstract Address map(eu.netmobiel.profile.api.model.Address source);
+
+	// Use this construction for the label, otherwise the conversion cannot do both coordinates and label.
+	@AfterMapping
+    protected void addLabel(eu.netmobiel.profile.api.model.Address source, @MappingTarget Address target) {
+		if (source.getLabel() != null) {
+			if (target.getLocation() == null) {
+				target.setLocation(new GeoLocation());
+			}
+			target.getLocation().setLabel(source.getLabel());
+		}
+    }
 
 	@Mapping(target = "numPassengers", source = "maxPassengers")
 	@Mapping(target = "selectedCarId", source = "defaultCarRef")

@@ -69,6 +69,9 @@ public class DelegationsResource implements DelegationsApi {
     	Response rsp = null;
 		try {
 			Delegation domprof = mapper.map(profile);
+			if (domprof.getDelegate() == null || domprof.getDelegator() == null) { 
+				throw new BadRequestException("delegator (or delegateRef) and delegate (or delegatorRef) are mandatory attributes");
+			}
 	    	Long id = delegationManager.createDelegation(domprof, true);
 			rsp = Response.created(UriBuilder.fromResource(DelegationsApi.class)
 					.path(DelegationsApi.class.getMethod("getDelegation", String.class)).build(id)).build();

@@ -41,6 +41,7 @@ import eu.netmobiel.commons.jaxrs.ProcessingExceptionMapper;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
 import eu.netmobiel.profile.api.resource.ComplimentsResource;
+import eu.netmobiel.profile.api.resource.DelegationsResource;
 import eu.netmobiel.profile.api.resource.ProfilesResource;
 import eu.netmobiel.profile.api.resource.ReviewsResource;
 
@@ -95,6 +96,7 @@ public class ProfileServiceApplication extends Application {
     }
     public ProfileServiceApplication() {
         resources.add(ComplimentsResource.class);
+        resources.add(DelegationsResource.class);
         resources.add(ProfilesResource.class);
         resources.add(ReviewsResource.class);
         resources.add(OffsetDateTimeParamConverterProvider.class);
