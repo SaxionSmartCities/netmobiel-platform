@@ -138,8 +138,9 @@ public class Profile extends User  {
 		initializeEmbeddedRelations();
     }
     
-    public Profile(NetMobielUser nbuser) {
+    public Profile(NetMobielUser nbuser, UserRole role) {
     	super(nbuser);
+    	this.userRole = role;
 		initializeEmbeddedRelations();
     }
     
@@ -149,10 +150,6 @@ public class Profile extends User  {
 		initializeEmbeddedRelations();
     }
     
-    public Profile(String identity, UserRole role) {
-    	this(identity, null, null, null, role);
-    }
-
     private void initializeEmbeddedRelations() {
 		consent = new UserConsent();
 		notificationOptions = new NotificationOptions();

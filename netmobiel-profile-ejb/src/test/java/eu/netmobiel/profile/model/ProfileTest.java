@@ -19,8 +19,18 @@ public class ProfileTest {
 	}
 
 	@Test
-	public void createProfileDefault() {
+	public void createProfile_Default() {
 		Profile p = new Profile();
+		assertNotNull(p.getConsent());
+		assertNotNull(p.getNotificationOptions());
+		assertNull(p.getSearchPreferences());
+		assertNull(p.getRidesharePreferences());
+	}
+
+	@Test
+	public void createProfile_NetMobielPassenger() {
+		NetMobielUserImpl user = new NetMobielUserImpl(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl");
+		Profile p = new Profile(user, UserRole.PASSENGER);
 		assertNotNull(p.getConsent());
 		assertNotNull(p.getNotificationOptions());
 		assertNotNull(p.getSearchPreferences());
@@ -28,12 +38,22 @@ public class ProfileTest {
 	}
 
 	@Test
-	public void createProfileNetMobielUser() {
+	public void createProfile_NetMobielDriver() {
 		NetMobielUserImpl user = new NetMobielUserImpl(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl");
-		Profile p = new Profile(user);
+		Profile p = new Profile(user, UserRole.DRIVER);
+		assertNotNull(p.getConsent());
+		assertNotNull(p.getNotificationOptions());
+		assertNull(p.getSearchPreferences());
+		assertNotNull(p.getRidesharePreferences());
+	}
+
+	@Test
+	public void createProfile_NetMobielBoth() {
+		NetMobielUserImpl user = new NetMobielUserImpl(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl");
+		Profile p = new Profile(user, UserRole.BOTH);
 		assertNotNull(p.getConsent());
 		assertNotNull(p.getNotificationOptions());
 		assertNotNull(p.getSearchPreferences());
-		assertNull(p.getRidesharePreferences());
+		assertNotNull(p.getRidesharePreferences());
 	}
 }
