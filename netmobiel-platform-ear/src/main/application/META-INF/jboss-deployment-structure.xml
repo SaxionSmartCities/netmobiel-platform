@@ -3,13 +3,17 @@
 	<ear-subdeployments-isolated>false</ear-subdeployments-isolated>
     <deployment>
         <dependencies>
+        	<module name="org.keycloak.keycloak-adapter-core" services="import"/>
+        	<module name="org.keycloak.keycloak-adapter-spi"/>
+            <module name="org.keycloak.keycloak-authz-client"/>
+        	<module name="org.keycloak.keycloak-core"/>
+        	<module name="org.keycloak.keycloak-common"/>
         </dependencies>
         <exclusions>
         </exclusions>
     </deployment>
     <sub-deployment name="netmobiel-banker-ejb.jar">
         <dependencies>
-        	<module name="org.keycloak.keycloak-core"/>
         </dependencies>
         <exclusions>
             <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
@@ -25,8 +29,6 @@
     </sub-deployment>
     <sub-deployment name="netmobiel-communicator-ejb.jar">
         <dependencies>
-        	<module name="org.keycloak.keycloak-core"/>
-        	<module name="org.keycloak.keycloak-authz-client"/>
         	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-profile-ejb.jar"/>
         </dependencies>
         <exclusions>
@@ -40,7 +42,6 @@
     </sub-deployment>
     <sub-deployment name="netmobiel-rideshare-ejb.jar">
         <dependencies>
-        	<module name="org.keycloak.keycloak-core"/>
         	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-communicator-ejb.jar"/>
         </dependencies>
         <exclusions>
@@ -61,7 +62,6 @@
     </sub-deployment>
     <sub-deployment name="netmobiel-planner-ejb.jar">
         <dependencies>
-        	<module name="org.keycloak.keycloak-core"/>
         	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-communicator-ejb.jar"/>
         	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-profile-ejb.jar"/>
         	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
@@ -72,7 +72,6 @@
     </sub-deployment>
     <sub-deployment name="netmobiel-profile-ejb.jar">
         <dependencies>
-        	<module name="org.keycloak.keycloak-core"/>
         </dependencies>
         <exclusions>
             <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
