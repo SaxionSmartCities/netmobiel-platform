@@ -64,7 +64,7 @@ public class DelegationManager {
 		if (p.getId() != null) {
 			pdb = profileDao.find(p.getId()).orElseThrow(() -> new NotFoundException("No such profile: " + p.getId()));
 		} else if (p.getManagedIdentity() != null) {
-			pdb = profileDao.findByManagedIdentity(p.getManagedIdentity()).orElseThrow(() -> new NotFoundException("No such profile: " + p.getId()));
+			pdb = profileDao.findByManagedIdentity(p.getManagedIdentity()).orElseThrow(() -> new NotFoundException("No such profile: " + p.getManagedIdentity()));
 		} else {
 			throw new BadRequestException("Profile has no identifier: " + p);
 		}
