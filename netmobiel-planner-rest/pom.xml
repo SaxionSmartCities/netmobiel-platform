@@ -92,6 +92,12 @@
             <artifactId>javax.persistence-api</artifactId>
             <scope>provided</scope>
         </dependency>
+        <!--  same reason: Prevent warnings on OnDeleteAction.CASCADE -->
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
         <!--  Hibernate spatial extensions -->
 <!-- 		<dependency> -->
 <!-- 		    <groupId>org.hibernate</groupId> -->
