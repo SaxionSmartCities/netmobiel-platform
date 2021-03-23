@@ -39,7 +39,7 @@ import eu.netmobiel.profile.api.ProfilesApi;
 import eu.netmobiel.profile.api.ReviewsApi;
 import eu.netmobiel.profile.api.model.Compliment;
 import eu.netmobiel.profile.api.model.ComplimentResponse;
-import eu.netmobiel.profile.api.model.FirebaseMessagingToken;
+import eu.netmobiel.profile.api.model.FirebaseTokenResponse;
 import eu.netmobiel.profile.api.model.Profile;
 import eu.netmobiel.profile.api.model.ProfileResponse;
 import eu.netmobiel.profile.api.model.Review;
@@ -166,12 +166,12 @@ public class ProfileClient {
     	ResteasyWebTarget target = client.target(profileServiceUrl)
     			.register(new AddAuthHeadersRequestFilter(accessToken));
         ProfilesApi api = target.proxy(ProfilesApi.class);
-        FirebaseMessagingToken result = null;
+        FirebaseTokenResponse result = null;
 		try (Response response =  api.getFcmToken(managedIdentity)) {
 			if (response.getStatusInfo() != Response.Status.OK) {
 				ExceptionUtil.throwExceptionFromResponse("Error retrieving data from profile service", response);
 			}
-	        result = response.readEntity(FirebaseMessagingToken.class);
+	        result = response.readEntity(FirebaseTokenResponse.class);
 	        if (result.getFcmToken() == null || result.getFcmToken().isEmpty()) {
 	        	throw new NotFoundException("Profile has no FCM token");
 	        }
