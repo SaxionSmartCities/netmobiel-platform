@@ -1,6 +1,7 @@
 package eu.netmobiel.profile.api.mapping;
 
 import org.mapstruct.AfterMapping;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
@@ -12,6 +13,7 @@ import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileComplete;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileMapperQualifier;
+import eu.netmobiel.profile.api.mapping.annotation.Secondary;
 import eu.netmobiel.profile.api.mapping.annotation.Shallow;
 import eu.netmobiel.profile.model.Address;
 import eu.netmobiel.profile.model.Profile;
@@ -52,6 +54,16 @@ public abstract class ProfileMapper {
 	@Mapping(target = "searchPreferences", ignore = true)
 	@Shallow
 	public abstract eu.netmobiel.profile.api.model.Profile mapShallow(Profile source);
+
+	@BeanMapping(ignoreByDefault = true)
+	@Mapping(target = "firstName", source = "givenName")
+	@Mapping(target = "image", source = "imagePath")
+	@Mapping(target = "lastName", source = "familyName")
+	@Mapping(target = "address", source = "homeAddress")
+	// The id is defined as the keycloak identity.
+	@Mapping(target = "id", source = "managedIdentity")
+	@Secondary
+	public abstract eu.netmobiel.profile.api.model.Profile mapSecondary(Profile source);
 
 	@InheritConfiguration(name = "commonMap")
 	@ProfileComplete

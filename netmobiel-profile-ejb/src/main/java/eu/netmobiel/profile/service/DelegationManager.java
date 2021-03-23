@@ -71,7 +71,7 @@ public class DelegationManager {
 		return pdb;
 	}
 
-	public @NotNull PagedResult<Delegation> listDelegations(DelegationFilter filter, Cursor cursor) throws BadRequestException, NotFoundException {
+	public @NotNull PagedResult<Delegation> listDelegations(DelegationFilter filter, Cursor cursor, String graphName) throws BadRequestException, NotFoundException {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
     	// For now don't do conditional things. First always total count, then data if data is requested. 
@@ -85,7 +85,7 @@ public class DelegationManager {
     	if (prs.getTotalCount() > 0 && !cursor.isCountingQuery()) {
     		// Get the actual data
     		PagedResult<Long> pids = delegationDao.listDelegations(filter, cursor);
-    		results = delegationDao.loadGraphs(pids.getData(), Delegation.DEFAULT_ENTITY_GRAPH, Delegation::getId);
+    		results = delegationDao.loadGraphs(pids.getData(), graphName, Delegation::getId);
     	}
     	return new PagedResult<Delegation>(results, cursor, prs.getTotalCount());
 	}

@@ -8,6 +8,7 @@ import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.mapping.annotation.DelegationMapperQualifier;
+import eu.netmobiel.profile.api.mapping.annotation.Secondary;
 import eu.netmobiel.profile.api.mapping.annotation.Shallow;
 import eu.netmobiel.profile.model.Delegation;
 import eu.netmobiel.profile.model.Profile;
@@ -19,17 +20,26 @@ import eu.netmobiel.profile.model.Profile;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
-	uses = { JavaTimeMapper.class })
+	uses = { JavaTimeMapper.class, ProfileMapper.class })
 @DelegationMapperQualifier
 public abstract class DelegationMapper {
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { Shallow.class } )
 	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Delegation> source);
 
+	@Mapping(target = "data", source = "data", qualifiedBy = { Secondary.class } )
+	public abstract eu.netmobiel.profile.api.model.Page mapWithShallowProfiles(PagedResult<Delegation> source);
+
 	// Domain --> API
 	@Mapping(target = "delegate", ignore = true)
 	@Mapping(target = "delegator", ignore = true)
+	@Shallow
 	public abstract eu.netmobiel.profile.api.model.Delegation map(Delegation source);
+
+	@Mapping(target = "delegate", source = "delegate", qualifiedBy = { Secondary.class })
+	@Mapping(target = "delegator", source = "delegate", qualifiedBy = { Secondary.class })
+	@Secondary
+	public abstract eu.netmobiel.profile.api.model.Delegation mapWithShallowProfiles(Delegation source);
 
 	// API --> Domain
 	@Mapping(target = "delegate", source = "delegateRef")

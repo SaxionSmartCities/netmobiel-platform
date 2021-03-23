@@ -42,7 +42,17 @@ import eu.netmobiel.profile.util.ProfileUrnHelper;
 				@NamedAttributeNode(value = "delegate"),
 				@NamedAttributeNode(value = "delegator"),
 		}
-	)
+	),
+	@NamedEntityGraph(name = Delegation.DELEGATE_PROFILE_ENTITY_GRAPH, 
+	attributeNodes = {
+			@NamedAttributeNode(value = "delegate"),
+	}
+),
+	@NamedEntityGraph(name = Delegation.DELEGATOR_PROFILE_ENTITY_GRAPH, 
+	attributeNodes = {
+			@NamedAttributeNode(value = "delegator"),
+	}
+)
 })
 @Entity
 @Table(name = "delegation")
@@ -55,6 +65,8 @@ public class Delegation extends ReferableObject implements Serializable {
 	public static final String URN_PREFIX = ProfileUrnHelper.createUrnPrefix("delegation");
 	public static final String DEFAULT_ENTITY_GRAPH = "default-delegation-entity-graph";
 	public static final String PROFILES_ENTITY_GRAPH = "profiles-delegation-entity-graph";
+	public static final String DELEGATOR_PROFILE_ENTITY_GRAPH = "delegator-profile-delegation-entity-graph";
+	public static final String DELEGATE_PROFILE_ENTITY_GRAPH = "delegate-profile-delegation-entity-graph";
 	
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "delegation_sg")
