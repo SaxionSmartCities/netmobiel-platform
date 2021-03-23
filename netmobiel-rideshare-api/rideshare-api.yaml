@@ -1159,10 +1159,16 @@ components:
           description: A short description of the ride, including the car and the
             driver's name.
         passengerTripRef:
-          description: The reference (a planner URN) to the passenger's trip or trip
-            plan. The refrence is used when interaction is needed with the planner,
-            e.g. in case of updating or cancelling a booking on initiative from the
-            rideshare service side.
+          description: "The reference (a planner URN) to the passenger's trip. The\
+            \ refrence is used when interaction is needed with the planner, e.g. in\
+            \ case of updating or cancelling a booking on initiative from the rideshare\
+            \ service side. In case of a shout-out, the \nbooking is provisionary.\
+            \ Use `passengerTripPlanRef` to find the shout-out plan."
+          type: string
+        passengerTripPlanRef:
+          description: |-
+            The reference to the passenger's (shout-out) trip plan (a planner URN).
+            This field is used to refer to the plan of the passenger asking for transport.
           type: string
       example:
         departureTime: 2020-05-27T10:00:00Z
