@@ -27,7 +27,10 @@ public class MyClaimInformationPointProvider implements ClaimInformationPointPro
 
         log.debug("resolve()");
         // put whatever claim you want into the map
-        claims.put("pipo", Collections.singletonList("de clown"));
+        claims.put("my-pipo-claim", Collections.singletonList("de clown"));
+        String delegatorId = httpFacade.getRequest().getHeader("X-Delegator");
+        log.debug("X-Delegator = " + delegatorId);
+        claims.put("delegator", Collections.singletonList(delegatorId));
         return claims;
     }
 }
