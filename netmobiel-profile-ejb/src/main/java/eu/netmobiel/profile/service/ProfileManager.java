@@ -159,7 +159,7 @@ public class ProfileManager {
     	profile.getPlaces().size();
     }
 
-    protected Profile getCompleteProfileByManagedIdentity(String managedId) throws NotFoundException {
+    private Profile getCompleteProfileByManagedIdentity(String managedId) throws NotFoundException {
     	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.FULL_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	// Initialize the fields that did not come with the query.
@@ -172,7 +172,7 @@ public class ProfileManager {
     	return profile;
     }
 
-    protected Profile getPublicProfileByManagedIdentity(String managedId) throws NotFoundException {
+    private Profile getPublicProfileByManagedIdentity(String managedId) throws NotFoundException {
     	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	profileDao.detach(profile);

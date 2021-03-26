@@ -13,8 +13,6 @@ import org.mapstruct.ValueMappings;
 import eu.netmobiel.profile.model.Compliment;
 import eu.netmobiel.profile.model.ComplimentType;
 import eu.netmobiel.profile.model.Profile;
-import eu.netmobiel.profile.repository.mapping.GeometryMapper;
-import eu.netmobiel.profile.repository.mapping.JavaTimeMapper;
 
 /**
  * This mapper defines the mapping from the domain Booking to the API Booking as defined by OpenAPI.

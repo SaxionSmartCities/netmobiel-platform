@@ -19,7 +19,6 @@ import eu.netmobiel.profile.model.Address;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
 import eu.netmobiel.profile.model.SearchPreferences;
-import eu.netmobiel.profile.repository.mapping.GeometryMapper;
 
 /**
  * This mapper defines the mapping from the domain Booking to the API Booking as defined by OpenAPI.

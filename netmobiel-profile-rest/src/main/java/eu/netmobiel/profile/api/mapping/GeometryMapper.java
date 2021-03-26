@@ -18,6 +18,9 @@ public abstract class GeometryMapper {
 
     // GeoLocation --> Location
 	public eu.netmobiel.profile.api.model.Location map(GeoLocation source) {
+		if (source == null || source.getLongitude() == null || source.getLatitude() == null) {
+			return null;
+		}
     	eu.netmobiel.profile.api.model.Location location = new eu.netmobiel.profile.api.model.Location();
     	location.setType("Point");
     	location.getCoordinates().add(source.getLongitude());

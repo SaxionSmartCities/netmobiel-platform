@@ -37,7 +37,7 @@ public abstract class DelegationMapper {
 	public abstract eu.netmobiel.profile.api.model.Delegation map(Delegation source);
 
 	@Mapping(target = "delegate", source = "delegate", qualifiedBy = { Secondary.class })
-	@Mapping(target = "delegator", source = "delegate", qualifiedBy = { Secondary.class })
+	@Mapping(target = "delegator", source = "delegator", qualifiedBy = { Secondary.class })
 	@Secondary
 	public abstract eu.netmobiel.profile.api.model.Delegation mapWithShallowProfiles(Delegation source);
 

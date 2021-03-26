@@ -19,15 +19,4 @@ public abstract class GeometryMapper {
     	return new GeoLocation(source.getCoordinates().get(1), source.getCoordinates().get(0));
     }
 
-    // GeoLocation --> Location
-	public eu.netmobiel.profile.api.model.Location map(GeoLocation source) {
-		if (source == null) {
-			return null;
-		}
-    	eu.netmobiel.profile.api.model.Location location = new eu.netmobiel.profile.api.model.Location();
-    	location.setType("Point");
-    	location.getCoordinates().add(source.getLongitude());
-    	location.getCoordinates().add(source.getLatitude());
-    	return location;
-    }
 }
