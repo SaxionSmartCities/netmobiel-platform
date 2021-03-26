@@ -12,7 +12,9 @@ import javax.servlet.ServletResponse;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 
+import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.adapters.OIDCAuthenticationError;
+import org.keycloak.representations.AccessToken;
 import org.slf4j.Logger;
 
 /**
@@ -71,8 +73,20 @@ public class KeycloakAuthenticationFilter implements Filter {
 //            }
 //        	log.info("User: " + (security != null ? security.toString() : "<null>"));
 //        }
+//		KeycloakSecurityContext ksc = getKeycloakSecurityContext(request);
+//		if (ksc != null) {
+//			AuthorizationContext ac = ksc.getAuthorizationContext();
+//			AccessToken token = ksc.getToken();
+//			if (token != null) {
+//	        	log.info(String.format("%s: %s %s %s", token.getSubject(), token.getEmail(), token.getFamilyName(), token.getGivenName()));
+//			}
+//		}        
         chain.doFilter(request, response);
     }
+
+//    private KeycloakSecurityContext getKeycloakSecurityContext(ServletRequest request) {
+//        return KeycloakSecurityContext.class.cast(request.getAttribute(KeycloakSecurityContext.class.getName()));
+//    }
 
     /**
      * @see javax.servlet.Filter#destroy()
