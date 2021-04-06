@@ -44,6 +44,7 @@ import eu.netmobiel.profile.api.resource.ComplimentsResource;
 import eu.netmobiel.profile.api.resource.DelegationsResource;
 import eu.netmobiel.profile.api.resource.ProfilesResource;
 import eu.netmobiel.profile.api.resource.ReviewsResource;
+import eu.netmobiel.profile.api.resource.TestsResource;
 
 
 /**
@@ -99,6 +100,7 @@ public class ProfileServiceApplication extends Application {
         resources.add(DelegationsResource.class);
         resources.add(ProfilesResource.class);
         resources.add(ReviewsResource.class);
+        resources.add(TestsResource.class);
         resources.add(OffsetDateTimeParamConverterProvider.class);
         resources.add(WebApplicationExceptionMapper.class);
         resources.add(EJBExceptionMapper.class);
