@@ -56,11 +56,13 @@ public abstract class ProfileMapper {
 
 	@BeanMapping(ignoreByDefault = true)
 	@Mapping(target = "firstName", source = "givenName")
-	@Mapping(target = "image", source = "imagePath")
 	@Mapping(target = "lastName", source = "familyName")
-	@Mapping(target = "address", source = "homeAddress")
+	@Mapping(target = "email", source = "email")
 	// The id is defined as the keycloak identity.
 	@Mapping(target = "id", source = "managedIdentity")
+	// Timothy wil ook de profiel foto en het adres (minimaal woonplaats)
+	@Mapping(target = "image", source = "imagePath")
+	@Mapping(target = "address", source = "homeAddress")
 	@Secondary
 	public abstract eu.netmobiel.profile.api.model.Profile mapSecondary(Profile source);
 

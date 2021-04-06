@@ -13,6 +13,12 @@ import eu.netmobiel.commons.model.GeoLocation;
 public abstract class GeometryMapper {
     // Location --> GeoLocation
 	public  GeoLocation map(eu.netmobiel.profile.api.model.Location source) {
+		if (source == null || source.getCoordinates() == null || source.getCoordinates().size() < 2) {
+			return null;
+		}
+		if (source.getCoordinates().get(0) == null || source.getCoordinates().get(1) == null) {
+			return null;
+		}
     	return new GeoLocation(source.getCoordinates().get(1), source.getCoordinates().get(0));
     }
 
