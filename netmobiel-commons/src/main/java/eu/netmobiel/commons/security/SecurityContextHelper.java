@@ -7,7 +7,6 @@ import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.representations.AccessToken;
 
 import eu.netmobiel.commons.model.NetMobielUser;
-import eu.netmobiel.commons.model.NetMobielUserImpl;
 
 public class SecurityContextHelper {
 	private SecurityContextHelper () {
@@ -15,20 +14,14 @@ public class SecurityContextHelper {
 	}
 	
 	public static NetMobielUser getUserContext(Principal p) {
-        NetMobielUserImpl user = null;
+        NetMobielUser user = null;
     	if (p != null && p instanceof KeycloakPrincipal) {
     		@SuppressWarnings("unchecked")
 			KeycloakPrincipal<KeycloakSecurityContext> kp = (KeycloakPrincipal<KeycloakSecurityContext>) p;
             KeycloakSecurityContext ksc = kp.getKeycloakSecurityContext(); 
 //                log.debug("Is user in role admin? " +  httpReq.isUserInRole("admin"));
             AccessToken token = ksc.getToken();
-            if (token != null) {
-                user = new NetMobielUserImpl();
-                user.setManagedIdentity(token.getSubject()); // Same as kp.getName()
-                user.setFamilyName(token.getFamilyName());
-                user.setGivenName(token.getGivenName());
-                user.setEmail(token.getEmail());
-            }
+            user = SecurityIdentity.createUserFromToken(token);
     	}
     	return user;
     }

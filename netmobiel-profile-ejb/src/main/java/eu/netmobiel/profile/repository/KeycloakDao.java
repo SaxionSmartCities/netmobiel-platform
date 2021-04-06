@@ -38,6 +38,7 @@ import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.NetMobielUserImpl;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.ExceptionUtil;
 
 @ApplicationScoped
@@ -53,10 +54,11 @@ public class KeycloakDao {
     @Resource(lookup = "java:global/profileService/serviceAccountPath")
     private String profileServiceAccountPath;
 
+    @Resource(lookup = "java:global/application/stage", description = "The development stage of the application. Use one of DEV, ACC, PROD")
+    private String applicationStage;
+
     private AdapterConfig profileServiceAccount;
 
-    private static final String DELEGATE_FOR_KEY = "delegateFor";
-    
     /**
      * Initializes the profile service account credentials. 
      */
@@ -234,8 +236,9 @@ public class KeycloakDao {
 					attribs = new HashMap<>();
 					urep.setAttributes(attribs);
 				}
-				attribs.computeIfAbsent(DELEGATE_FOR_KEY, k -> new ArrayList<>());
-				List<String> delegators = attribs.get(DELEGATE_FOR_KEY);
+    			String key = SecurityIdentity.getDelegatorsClaimName(applicationStage); 
+				attribs.computeIfAbsent(key, k -> new ArrayList<>());
+				List<String> delegators = attribs.get(key);
 				if (! delegators.contains(delegator.getManagedIdentity())) {
 					delegators.add(delegator.getManagedIdentity());
 					ur.update(urep);
@@ -252,8 +255,9 @@ public class KeycloakDao {
 				UserRepresentation urep = ur.toRepresentation();
 				Map<String, List<String>> attribs = urep.getAttributes();
 				if (attribs != null) {
-					attribs.computeIfAbsent(DELEGATE_FOR_KEY, k -> new ArrayList<>());
-					List<String> delegators = attribs.get(DELEGATE_FOR_KEY);
+	    			String key = SecurityIdentity.getDelegatorsClaimName(applicationStage); 
+					attribs.computeIfAbsent(key, k -> new ArrayList<>());
+					List<String> delegators = attribs.get(key);
 					if (delegators != null && delegators.contains(delegator.getManagedIdentity())) {
 						delegators.remove(delegator.getManagedIdentity());
 						ur.update(urep);

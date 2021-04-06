@@ -79,7 +79,7 @@ public class NetMobielUserImpl implements NetMobielUser {
 	}
 	@Override
 	public String toString() {
-		return String.format("NetMobielUser [%s %s %s %s]", managedIdentity, givenName, familyName, email);
+		return String.format("%s %s %s %s", managedIdentity, givenName, familyName, email);
 	}
 
 }

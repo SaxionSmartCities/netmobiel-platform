@@ -6,16 +6,15 @@ import java.util.Collections;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.api.ProfilesApi;
 import eu.netmobiel.profile.api.mapping.ProfileMapper;
@@ -37,16 +36,16 @@ public class ProfilesResource implements ProfilesApi {
 	@Inject
 	private ProfileManager profileManager;
 
-	@Context
-	private HttpServletRequest request;
-
+	@Inject
+	private SecurityIdentity securityIdentity;
+	
 //	private final BooleanSupplier isAdmin = () -> request.isUserInRole("admin");
 //	private final Predicate<String> itIsMe = id -> request.getUserPrincipal().getName().equals(id);
 
     private String resolveIdentity(String profileId) {
 		String mid = null;
 		if ("me".equals(profileId)) {
-			mid = request.getUserPrincipal().getName();
+			mid = securityIdentity.getEffectivePrincipal().getName();
 		} else {
 			mid = profileId;
 		}
@@ -93,7 +92,8 @@ public class ProfilesResource implements ProfilesApi {
 	public Response getFcmToken(String profileId) {
     	Response rsp = null;
 		try {
-        	String token = profileManager.getFcmTokenByManagedIdentity(profileId);
+			String mid = resolveIdentity(profileId);
+        	String token = profileManager.getFcmTokenByManagedIdentity(mid);
         	FirebaseTokenResponse ftr = new FirebaseTokenResponse();
         	ftr.setFcmToken(token);
    			rsp = Response.ok(ftr).build();
@@ -107,7 +107,8 @@ public class ProfilesResource implements ProfilesApi {
 	public Response getProfileImage(String profileId) {
     	Response rsp = null;
 		try {
-        	String imagePath = profileManager.getImagePathByManagedIdentity(profileId);
+			String mid = resolveIdentity(profileId);
+        	String imagePath = profileManager.getImagePathByManagedIdentity(mid);
         	ImageResponse ir = new ImageResponse();
         	ir.setImage(imagePath);
    			rsp = Response.ok(ir).build();
@@ -156,9 +157,10 @@ public class ProfilesResource implements ProfilesApi {
 	public Response updateProfile(String profileId, eu.netmobiel.profile.api.model.Profile apiProfile) {
     	Response rsp = null;
 		try {
+			String mid = resolveIdentity(profileId);
 			Profile domainProfile = mapper.map(apiProfile);
 			domainProfile.linkOneToOneChildren();
-			profileManager.updateProfileByManagedIdentity(profileId, domainProfile);
+			profileManager.updateProfileByManagedIdentity(mid, domainProfile);
         	domainProfile = profileManager.getProfileByManagedIdentity(profileId);
         	ProfileResponse prsp = new ProfileResponse();
         	prsp.setProfiles(Collections.singletonList(mapper.mapComplete(domainProfile)));
@@ -175,6 +177,7 @@ public class ProfilesResource implements ProfilesApi {
 	public Response uploadImage(String profileId, ImageUploadRequest imageUploadRequest) {
 		Response rsp = null;
 		try {
+			String mid = resolveIdentity(profileId);
 			// See https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsDataURL
 			// This is how the client passes the image
 			// Format: data:image/*;base64,
@@ -199,8 +202,8 @@ public class ProfilesResource implements ProfilesApi {
 			}
 			byte[] decodedImage = Base64.getDecoder().decode(parts[1]);
 			String filename = Instant.now().toEpochMilli() + "." + filetype;
-	    	profileManager.uploadImage(profileId, mimetype, filename, decodedImage);
-        	Profile profile = profileManager.getProfileByManagedIdentity(profileId);
+	    	profileManager.uploadImage(mid, mimetype, filename, decodedImage);
+        	Profile profile = profileManager.getProfileByManagedIdentity(mid);
         	ProfileResponse prsp = new ProfileResponse();
         	prsp.setProfiles(Collections.singletonList(mapper.mapComplete(profile)));
         	prsp.setMessage("Profile succesfully retrieved");
@@ -216,7 +219,8 @@ public class ProfilesResource implements ProfilesApi {
 	public Response deleteProfile(String profileId) {
 		Response rsp = null;
 		try {
-	    	profileManager.removeProfile(profileId);
+			String mid = resolveIdentity(profileId);
+	    	profileManager.removeProfile(mid);
 			rsp = Response.noContent().build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
