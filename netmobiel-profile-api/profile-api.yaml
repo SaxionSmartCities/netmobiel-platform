@@ -110,54 +110,6 @@ paths:
         type: string
       in: path
       required: true
-  /profiles/shout-out:
-    summary: Path used to manage shout-outs.
-    description: The REST endpoint/path used to search for drivers that are eligable
-      for helping a traveller with a requested trip, or perhaps with the first or
-      last leg of the trip. This path contains a `GET` operation to perform the search
-      task.
-    get:
-      parameters:
-      - name: withInAnyCircles
-        description: Takes a list of circles in the format lat:lon:radius where the
-          radius is in kilometers and fetches all profiles that have a home address
-          within at least one of the circles. . Put the parameter value between square
-          brackets.
-        schema:
-          type: string
-        in: query
-        required: true
-      - examples:
-          aCircle:
-            value: '"[52.004166:6.517835:50,52.10:6.65:50]"'
-        name: withInAllCircles
-        description: Takes a list of circles in the format lat:lon:radius where the
-          radius is in kilometers and fetches all profiles that have a home address
-          within all of the circles. Put the parameter value between square brackets.
-        schema:
-          type: string
-        in: query
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProfileResponse'
-          description: Successfull call. The result contains an array of `Profile`
-            entities.
-      operationId: searchShoutOutDrivers
-      summary: Search for driver profiles with a geospatial query
-      description: "Search for (driver) profiles where the driver has a home address\
-        \ that satisfies the search criteria.\n\nThe search criteria is defined by\
-        \ a list of two categories of circles:\n- A list of circles of which each\
-        \ contains the home address;\n- A list of circles of which at least one contains\
-        \ the home address.\n \nRationale: In a shout-out a prospecting traveller\
-        \ is looking for a rideshare driver to take him/her \nto the intended destination.\
-        \ The ride could also be the first or last leg of a multi-modal trip.\nThe\
-        \ assumption is that the driver is prepared to drive a certain maximum distance\
-        \ (allCircles) and that \nthe pickup or drop-off location of the traveller\
-        \ should be in the neighbourhood (anyCircles)."
   /compliments:
     summary: Path used to manage the list of compliments.
     description: The REST endpoint/path used to list and create zero or more `Compliment`
@@ -499,90 +451,6 @@ paths:
       operationId: createProfile
       summary: Create a profile.
       description: Creates a new profile
-  /profiles/{profileId}/oldskool:
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ProfileResponse'
-          description: Success response.
-      operationId: getProfileOldskool
-    parameters:
-    - name: profileId
-      schema:
-        type: string
-      in: path
-      required: true
-  /compliments/newskool:
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: List all compliments
-      operationId: getComplimentsNewSkool
-  /profiles/shout-out/newskool:
-    summary: Path used to manage shout-outs.
-    description: The REST endpoint/path used to search for drivers that are eligable
-      for helping a traveller with a requested trip, or perhaps with the first or
-      last leg of the trip. This path contains a `GET` operation to perform the search
-      task.
-    get:
-      parameters:
-      - name: withInAnyCircles
-        description: Takes a list of circles in the format lat:lon:radius where the
-          radius is in kilometers and fetches all profiles that have a home address
-          within at least one of the circles. . Put the parameter value between square
-          brackets.
-        schema:
-          type: string
-        in: query
-        required: true
-      - examples:
-          aCircle:
-            value: '"[52.004166:6.517835:50,52.10:6.65:50]"'
-        name: withInAllCircles
-        description: Takes a list of circles in the format lat:lon:radius where the
-          radius is in kilometers and fetches all profiles that have a home address
-          within all of the circles. Put the parameter value between square brackets.
-        schema:
-          type: string
-        in: query
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successfull call. The result contains an array of `Profile`
-            entities.
-      operationId: searchShoutOutDriversNewSkool
-      summary: Search for driver profiles with a geospatial query
-      description: "Search for (driver) profiles where the driver has a home address\
-        \ that satisfies the search criteria.\n\nThe search criteria is defined by\
-        \ a list of two categories of circles:\n- A list of circles of which each\
-        \ contains the home address;\n- A list of circles of which at least one contains\
-        \ the home address.\n \nRationale: In a shout-out a prospecting traveller\
-        \ is looking for a rideshare driver to take him/her \nto the intended destination.\
-        \ The ride could also be the first or last leg of a multi-modal trip.\nThe\
-        \ assumption is that the driver is prepared to drive a certain maximum distance\
-        \ (allCircles) and that \nthe pickup or drop-off location of the traveller\
-        \ should be in the neighbourhood (anyCircles)."
-  /reviews/newskool:
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Get all reviews in oldskool stlye.
-      operationId: getReviewsNewSkool
   /delegations/{delegationId}:
     summary: Path used to manage a single Delegation.
     description: Admin only. The REST endpoint/path used to get, update, and delete
@@ -776,6 +644,10 @@ paths:
         schema:
           type: integer
         in: query
+      - name: profileId
+        description: The unique id of the profile.
+        in: path
+        required: true
       responses:
         "200":
           content:
