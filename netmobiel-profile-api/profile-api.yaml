@@ -709,6 +709,103 @@ paths:
       operationId: createDelegation
       summary: Create a Delegation
       description: Creates a new instance of a `Delegation`.
+  /profiles/{profileId}/addresses/{addressId}:
+    summary: Path used to manage a single Address.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Address`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Address'
+          description: Successful response - returns a single `Address`.
+      operationId: getAddress
+      summary: Get a Address
+      description: Gets the details of a single instance of a `Address`.
+    put:
+      requestBody:
+        description: Updated `Address` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Address'
+        required: true
+      responses:
+        "202":
+          description: Successful response.
+      operationId: updateAddress
+      summary: Update a Address
+      description: Updates an existing `Address`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deleteAddress
+      summary: Delete a Address
+      description: Deletes an existing `Address`.
+    parameters:
+    - name: profileId
+      description: A unique identifier for a `Profile`.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: addressId
+      description: A unique identifier for an `Address`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /profiles/{profileId}/addresses:
+    summary: Path used to manage the list of addresses for an profile.
+    description: The REST endpoint/path used to list and create zero or more `Address`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a Page with an array of `Address`
+            entities.
+      operationId: getAddresses
+      summary: List All addresses
+      description: Gets a list of all `Address` entities of the profile.
+    post:
+      requestBody:
+        description: A new `Address` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Address'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+      operationId: createAddress
+      summary: Create a Address
+      description: Creates a new instance of a `Address`.
+    parameters:
+    - name: profileId
+      description: The unique id of the profile.
+      in: path
+      required: true
 components:
   schemas:
     SearchPreferences:
