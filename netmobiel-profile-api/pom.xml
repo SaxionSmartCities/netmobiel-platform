@@ -24,15 +24,14 @@
 			    <artifactId>openapi-generator-maven-plugin</artifactId>
 			    <executions>
 			        <execution>
+			        	<id>profile-api-model</id>
 			            <goals>
 			                <goal>generate</goal>
 			            </goals>
 			            <configuration>
 			                <inputSpec>${project.basedir}/profile-api.yaml</inputSpec>
-			                <configOptions>
-				            	<apiPackage>eu.netmobiel.profile.api</apiPackage>
-				            	<modelPackage>eu.netmobiel.profile.api.model</modelPackage>
-			                </configOptions>
+			            	<apiPackage>eu.netmobiel.profile.api</apiPackage>
+			            	<modelPackage>eu.netmobiel.profile.api.model</modelPackage>
 			            </configuration>
 			        </execution>
 			    </executions>

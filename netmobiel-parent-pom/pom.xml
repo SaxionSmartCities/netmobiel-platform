@@ -533,38 +533,31 @@
 					<groupId>org.openapitools</groupId>
 					<artifactId>openapi-generator-maven-plugin</artifactId>
 					<version>${version-openapi-generator}</version>
-					<executions>
-						<execution>
-							<goals>
-								<goal>generate</goal>
-							</goals>
-							<configuration>
-								<generatorName>jaxrs-spec</generatorName>
-								<configOptions>
-									<sortParamsByRequiredFlag>false</sortParamsByRequiredFlag>
-									<java8>true</java8>
-									<interfaceOnly>true</interfaceOnly>
-									<sourceFolder>src/main/java</sourceFolder>
-									<useSwaggerAnnotations>false</useSwaggerAnnotations>
-									<useBeanValidation>false</useBeanValidation>
-									<dateLibrary>java8</dateLibrary>
-									<withXml>false</withXml>
-									<generatePom>false</generatePom>
-									<disableHtmlEscaping>true</disableHtmlEscaping>
-									<returnResponse>true</returnResponse>
-									<!-- <additionalModelTypeAnnotations>JsonInclude(Include.NON_NULL)</additionalModelTypeAnnotations> -->
-									<openApiSpecFileLocation>${project.build.directory}/generated-sources/openapi/src/main/resources/META-INF</openApiSpecFileLocation>
-								</configOptions>
-								<configHelp>false</configHelp>
-								<skipValidateSpec>false</skipValidateSpec>
-								<generateApiTests>false</generateApiTests>
-								<generateModels>true</generateModels>
-								<generateModelTests>false</generateModelTests>
-								<generateModelDocumentation>true</generateModelDocumentation>
-								<generateSupportingFiles>false</generateSupportingFiles>
-							</configuration>
-						</execution>
-					</executions>
+					<configuration>
+						<generatorName>jaxrs-spec</generatorName>
+						<configOptions>
+							<sortParamsByRequiredFlag>false</sortParamsByRequiredFlag>
+							<java8>true</java8>
+							<interfaceOnly>true</interfaceOnly>
+							<sourceFolder>src/main/java</sourceFolder>
+							<useSwaggerAnnotations>false</useSwaggerAnnotations>
+							<useBeanValidation>false</useBeanValidation>
+							<dateLibrary>java8</dateLibrary>
+							<withXml>false</withXml>
+							<generatePom>false</generatePom>
+							<disableHtmlEscaping>true</disableHtmlEscaping>
+							<returnResponse>true</returnResponse>
+							<!-- <additionalModelTypeAnnotations>JsonInclude(Include.NON_NULL)</additionalModelTypeAnnotations> -->
+							<openApiSpecFileLocation>${project.build.directory}/generated-sources/openapi/src/main/resources/META-INF</openApiSpecFileLocation>
+						</configOptions>
+						<configHelp>false</configHelp>
+						<skipValidateSpec>false</skipValidateSpec>
+						<generateApiTests>false</generateApiTests>
+						<generateModels>true</generateModels>
+						<generateModelTests>false</generateModelTests>
+						<generateModelDocumentation>true</generateModelDocumentation>
+						<generateSupportingFiles>false</generateSupportingFiles>
+					</configuration>
 				</plugin>
 				<plugin>
 					<groupId>net.revelc.code</groupId>
