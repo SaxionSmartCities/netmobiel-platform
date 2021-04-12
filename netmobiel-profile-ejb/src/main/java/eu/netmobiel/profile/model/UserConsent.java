@@ -27,6 +27,10 @@ public class UserConsent implements Serializable {
 	@Column(name = "consent_older_than_sixteen")
 	private boolean olderThanSixteen = false;
 	
+	public static UserConsent createDefault() {
+		return new UserConsent();
+	}
+
 	public boolean isAcceptedTerms() {
 		return acceptedTerms;
 	}

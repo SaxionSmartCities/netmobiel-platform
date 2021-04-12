@@ -98,7 +98,6 @@ public abstract class ProfileMapper {
 	public abstract eu.netmobiel.profile.api.model.RidePlanOptions map(RidesharePreferences source);
 
 	@InheritInverseConfiguration
-	@Mapping(target = "profile", ignore = true)
 	@Mapping(target = "id", ignore = true)
 	public abstract RidesharePreferences map(eu.netmobiel.profile.api.model.RidePlanOptions source);
 
@@ -111,7 +110,6 @@ public abstract class ProfileMapper {
 	public abstract eu.netmobiel.profile.api.model.SearchPreferences map(SearchPreferences source);
 
 	@InheritInverseConfiguration
-	@Mapping(target = "profile", ignore = true)
 	@Mapping(target = "id", ignore = true)
 	public abstract SearchPreferences map(eu.netmobiel.profile.api.model.SearchPreferences source);
 }

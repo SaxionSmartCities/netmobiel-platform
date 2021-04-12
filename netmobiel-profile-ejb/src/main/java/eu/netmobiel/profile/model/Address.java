@@ -64,6 +64,10 @@ public class Address implements Serializable {
 	@Embedded
 	private GeoLocation location;
 
+	public static Address createDefault() {
+		return new Address();
+	}
+
 	public String getCountryCode() {
 		return countryCode;
 	}

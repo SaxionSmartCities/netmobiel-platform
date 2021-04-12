@@ -33,6 +33,10 @@ public class NotificationOptions implements Serializable {
 	public NotificationOptions() {
 	}
 
+	public static NotificationOptions createDefault() {
+		return new NotificationOptions();
+	}
+	
 	public boolean isMessages() {
 		return messages;
 	}

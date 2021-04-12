@@ -9,7 +9,6 @@ import javax.persistence.Access;
 import javax.persistence.AccessType;
 import javax.persistence.AttributeOverride;
 import javax.persistence.AttributeOverrides;
-import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
@@ -17,14 +16,12 @@ import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
-import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
-import javax.persistence.OneToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -34,42 +31,14 @@ import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.User;
 import eu.netmobiel.profile.util.ProfileUrnHelper;
 
-/*
- * The graphs are extracted as an carthesian product. In the case of the luggage options it is the question whether
- * it is worthwhile to repeat the complete profile structure just of a single luggage options, it is a lot of data.   
- * same with the places.
- */
 @NamedEntityGraphs({
 	@NamedEntityGraph(name = Profile.DEFAULT_PROFILE_ENTITY_GRAPH
 	),
-	@NamedEntityGraph(name = Profile.FULL_PROFILE_ENTITY_GRAPH,
-		attributeNodes = {
-			@NamedAttributeNode(value = "ridesharePreferences"),
-			@NamedAttributeNode(value = "searchPreferences")
-	}),
-	@NamedEntityGraph(name = Profile.FULLEST_PROFILE_ENTITY_GRAPH,
-		attributeNodes = {
-			@NamedAttributeNode(value = "places"),
-			@NamedAttributeNode(value = "ridesharePreferences", subgraph = "subgraph.rideshare-prefs"),
-			@NamedAttributeNode(value = "searchPreferences", subgraph = "subgraph.search-prefs"),
-		}, subgraphs =  {
-			@NamedSubgraph(
-					name = "subgraph.rideshare-prefs",
-					attributeNodes = {
-							@NamedAttributeNode(value = "luggageOptions")
-			}),
-			@NamedSubgraph(
-					name = "subgraph.search-prefs",
-					attributeNodes = {
-							@NamedAttributeNode(value = "allowedTraverseModes"),
-							@NamedAttributeNode(value = "luggageOptions")
-			}),
-	})
 })
 @Entity
 @Table(name = "profile", uniqueConstraints = {
 	    @UniqueConstraint(name = "cs_managed_identity_unique", columnNames = { "managed_identity" }),
-	    @UniqueConstraint(name = "cs_email_unique", columnNames = { "email" })
+	    @UniqueConstraint(name = "cs_email_unique", columnNames = { "email" }),
 })
 @Vetoed
 @SequenceGenerator(name = "profile_sg", sequenceName = "profile_id_seq", allocationSize = 1, initialValue = 50)
@@ -79,18 +48,25 @@ public class Profile extends User  {
 
 	private static final long serialVersionUID = -4237705703151528786L;
 	public static final String URN_PREFIX = ProfileUrnHelper.createUrnPrefix("user");
-	public static final String FULLEST_PROFILE_ENTITY_GRAPH = "fullest-profile-entity-graph";
-	public static final String FULL_PROFILE_ENTITY_GRAPH = "full-profile-entity-graph";
 	public static final String DEFAULT_PROFILE_ENTITY_GRAPH = "default-profile-entity-graph";
-	
+
+	/**
+	 * Primary key.
+	 */
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "profile_sg")
 	@Access(AccessType.PROPERTY)
     private Long id;
 
-	@OneToMany(fetch = FetchType.LAZY, cascade = { CascadeType.ALL } , mappedBy = "profile", orphanRemoval = true)
+	/**
+	 * The favorite places of this user.
+	 */
+	@OneToMany(fetch = FetchType.LAZY, mappedBy = "profile")
 	private Set<Place> places;
 
+	/** 
+	 * The home address of this user.
+	 */
 	@Embedded
     @AttributeOverrides({ 
     	@AttributeOverride(name = "countryCode", column = @Column(name = "home_country_code", length = Address.MAX_COUNTRY_CODE_LENGTH)), 
@@ -103,64 +79,85 @@ public class Profile extends User  {
    	} )
 	private Address homeAddress;
 
-	@OneToOne(cascade = CascadeType.ALL, mappedBy = "profile", fetch = FetchType.LAZY, orphanRemoval = true, optional = true)
+	/**
+	 * Rideshare preferences. Only needed for a driver. 
+	 * Because of the one-to-one nature, the foreign key is on the side on the preferences.
+	 * Experiments showed that bidirectional one-to-one leads to 3 separate queries, even if only the profile is needed. 
+	 * Decision: The preferences are fetched explicitly and only when required.
+	 * The relation is still in the profile, for easier handling in the rest interface.
+	 */
+	@Transient
 	private RidesharePreferences ridesharePreferences;
 
-	@OneToOne(cascade = CascadeType.ALL, mappedBy = "profile", fetch = FetchType.LAZY, orphanRemoval = true, optional = true) 
+	/**
+	 * Search preferences. Only needed for a passenger.  
+	 * Because of the one-to-one nature, the foreign key is on the side on the preferences.
+	 * Experiments showed that bidirectional one-to-one leads to 3 separate queries, even if only the profile is needed. 
+	 * Decision: The preferences are fetched explicitly and only when required.
+	 * The relation is still in the profile, for easier handling in the rest interface.
+	 */
+	@Transient
 	private SearchPreferences searchPreferences;
 
+	/**
+	 * Whether is user consents to some conditions.
+	 */
 	@Embedded
 	private UserConsent consent;
 
+	/**
+	 * The birthday of the user, used for reporting.
+	 */
 	@Column(name = "date_of_birth")
 	private LocalDate dateOfBirth;
 	
+	/**
+	 * The Firebase Cloud Messaging token, a unique token to send push messages to a mobile phone.
+	 */
 	@Size(max = 512)
 	@Column(name = "fcm_token")
 	private String fcmToken;
 	
+	/**
+	 * The (relative) path to a profile image of the user.
+	 */
 	@Size(max = 128)
 	@Column(name = "image_path")
 	private String imagePath;
 
+	/**
+	 * The phomne number of the user.
+	 */
 	@Size(max = 16)
 	@Column(name = "phone_number")
 	private String phoneNumber;
 	
+	/**
+	 * A list of notification options for this user.
+	 */
 	@Embedded
 	private NotificationOptions notificationOptions;
 
+	/**
+	 * The role of this user in NetMobiel.
+	 */
 	@NotNull
 	@Column(name = "user_role", length = 2)
 	private UserRole userRole;
 
 	public Profile() {
-		initializeEmbeddedRelations();
     }
     
     public Profile(NetMobielUser nbuser, UserRole role) {
     	super(nbuser);
     	this.userRole = role;
-		initializeEmbeddedRelations();
     }
     
     public Profile(String identity, String givenName, String familyName, String email, UserRole role) {
     	super(identity, givenName, familyName, email);
     	this.userRole = role;
-		initializeEmbeddedRelations();
     }
     
-    private void initializeEmbeddedRelations() {
-		consent = new UserConsent();
-		notificationOptions = new NotificationOptions();
-		if (userRole == UserRole.PASSENGER || userRole == UserRole.BOTH) {
-			addSearchPreferences();
-		}
-		if (userRole == UserRole.DRIVER || userRole == UserRole.BOTH) {
-			addRidesharePreferences();
-		}
-    }
-
     public Long getId() {
 		return id;
 	}
@@ -275,7 +272,7 @@ public class Profile extends User  {
 	}
 
 	public final void addSearchPreferences() {
-		this.searchPreferences = new SearchPreferences(this);
+		this.searchPreferences = SearchPreferences.createDefault(this);
 	}
 
 	public final void removeSearchPreferences() {
@@ -283,7 +280,7 @@ public class Profile extends User  {
 	}
 	
 	public final void addRidesharePreferences() {
-		this.ridesharePreferences = new RidesharePreferences(this);
+		this.ridesharePreferences = RidesharePreferences.createDefault(this);
 	}
 
 	public final void removeRidesharePreferences() {
@@ -295,22 +292,35 @@ public class Profile extends User  {
 	 */
 	public void linkOneToOneChildren() {
 		if (this.homeAddress == null) {
-			this.homeAddress = new Address();
+			this.homeAddress = Address.createDefault();
 		}
 		if (this.notificationOptions == null) {
-			this.notificationOptions = new NotificationOptions();
+			this.notificationOptions = NotificationOptions.createDefault();
 		}
 		if (this.consent == null) {
-			this.consent = new UserConsent();
+			this.consent = UserConsent.createDefault();
+		}
+		if (userRole == UserRole.PASSENGER || userRole == UserRole.BOTH) {
+			if (searchPreferences == null) {
+				searchPreferences = SearchPreferences.createDefault(this);
+			}
 		}
 		if (this.searchPreferences != null) {
-			this.searchPreferences.setProfile(this);
-			this.searchPreferences.setId(this.getId());
+			if (this.searchPreferences.getProfile() == null) {
+				this.searchPreferences.setProfile(this);
+			}
+		}
+		if (userRole == UserRole.DRIVER || userRole == UserRole.BOTH) {
+			if (ridesharePreferences == null) {
+				ridesharePreferences = RidesharePreferences.createDefault(this);
+			}
 		}
 		if (this.ridesharePreferences != null) {
-			this.ridesharePreferences.setProfile(this);
-			this.ridesharePreferences.setId(this.getId());
+			if (ridesharePreferences.getProfile() == null) {
+				this.ridesharePreferences.setProfile(this);
+			}
 		}
+		// Once the preferences are present, they will not be removed on a change of role.
 	}
 	
 	public void linkPlaces() {

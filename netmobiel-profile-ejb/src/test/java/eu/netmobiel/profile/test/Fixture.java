@@ -23,7 +23,9 @@ public class Fixture {
 	}
 
 	public static Profile createProfile(String identity, String givenName, String familyName, String email, UserRole role) {
-		return new Profile(identity, givenName, familyName, email, role);
+		Profile p = new Profile(identity, givenName, familyName, email, role);
+		p.linkOneToOneChildren();
+		return p;
 	}
 	
 	public static Profile createDriver1() {

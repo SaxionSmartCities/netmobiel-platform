@@ -18,6 +18,9 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.profile.model.LuggageOption;
 import eu.netmobiel.profile.model.Profile;
+import eu.netmobiel.profile.model.Profile_;
+import eu.netmobiel.profile.model.RidesharePreferences;
+import eu.netmobiel.profile.model.SearchPreferences;
 import eu.netmobiel.profile.model.TraverseMode;
 import eu.netmobiel.profile.model.UserRole;
 import eu.netmobiel.profile.test.Fixture;
@@ -28,13 +31,19 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     @Deployment
     public static Archive<?> createTestArchive() {
         WebArchive archive = createDeploymentBase()
-            .addClass(ProfileDao.class);
+            .addClass(ProfileDao.class)
+            .addClass(RidesharePreferencesDao.class)
+            .addClass(SearchPreferencesDao.class);
 //		System.out.println(archive.toString(true));
 		return archive;
     }
 
     @Inject
     private ProfileDao profileDao;
+    @Inject
+    private RidesharePreferencesDao ridesharePreferencesDao;
+    @Inject
+    private SearchPreferencesDao searchPreferencesDao;
 
 	@Inject
     private Logger log;
@@ -46,9 +55,11 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     protected void insertData() throws Exception {
         driver1 = Fixture.createDriver1();
 		em.persist(driver1);
+		em.persist(driver1.getRidesharePreferences());
 
-		passenger1= Fixture.createPassenger1();
+		passenger1 = Fixture.createPassenger1();
 		em.persist(passenger1);
+		em.persist(passenger1.getSearchPreferences());
     }
 
     
@@ -71,16 +82,17 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	p.getConsent().setOlderThanSixteen(consent16);
     	p.getNotificationOptions().setMessages(false);
     	p.getNotificationOptions().setTripReminders(false);
+    	profileDao.save(p);
 //    	p.getRidesharePreferences().setMaxMinutesDetour(30);
 //    	p.getRidesharePreferences().getLuggageOptions().add(LuggageOption.PET);
     	p.getSearchPreferences().getAllowedTraverseModes().remove(TraverseMode.RAIL);
     	p.getSearchPreferences().setNumberOfPassengers(2);
     	p.getSearchPreferences().getLuggageOptions().add(LuggageOption.WALKER);
-    	profileDao.save(p);
+    	searchPreferencesDao.save(p.getSearchPreferences());
     	flush();
     	
-    	log.debug("Fetch full profile passenger2");
-    	p = profileDao.loadGraph(p.getId(), Profile.FULL_PROFILE_ENTITY_GRAPH).get();
+    	log.debug("Fetch profile passenger2");
+    	p = profileDao.loadGraph(p.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	
     	log.debug("Check properties");
     	assertNotNull(p.getEmail());
@@ -114,16 +126,19 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	assertEquals(true, p.getNotificationOptions().isTripConfirmations());
     	assertEquals(false, p.getNotificationOptions().isTripReminders());
     	assertEquals(true, p.getNotificationOptions().isTripUpdates());
-    	/**
-    	 * What is happening: Everything is fetched in a single query (full profile), except for the luggage options.
-    	 */
+
     	log.debug("Check rideshare preferences");
     	assertNull(p.getRidesharePreferences());
+    	p.setRidesharePreferences(ridesharePreferencesDao.find(p.getId()).orElse(null));
+    	assertNull(p.getRidesharePreferences());
+    	
 //    	assertEquals(30, p.getRidesharePreferences().getMaxMinutesDetour().intValue());
 //    	log.debug("Check rideshare preferences - luggage");
 //    	assertTrue(p.getRidesharePreferences().getLuggageOptions().contains(LuggageOption.PET));
 
     	log.debug("Check search preferences");
+    	assertNull(p.getSearchPreferences());
+    	p.setSearchPreferences(searchPreferencesDao.loadGraph(p.getId(), SearchPreferences.FULL_SEARCH_PREFS_ENTITY_GRAPH).orElse(null));
     	assertNotNull(p.getSearchPreferences());
     	assertEquals(2, p.getSearchPreferences().getNumberOfPassengers().intValue());
     	log.debug("Check search preferences - luggage");
@@ -133,67 +148,97 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     }
 
     @Test
+    public void getProfile() throws Exception {
+    	Profile p = profileDao.loadGraph(passenger1.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
+    	assertTrue(profileDao.isLoaded(p, Profile_.CONSENT));
+    	assertTrue(profileDao.isLoaded(p, Profile_.HOME_ADDRESS));
+    	assertTrue(profileDao.isLoaded(p, Profile_.NOTIFICATION_OPTIONS));
+    }
+
+    @Test
     public void mergeChanges() throws Exception {
     	log.debug("Start of test: mergeChanges");
     	var p = Fixture.createPassenger2();
     	log.debug("Create passenger2");
     	profileDao.save(p);
+    	searchPreferencesDao.save(p.getSearchPreferences());
     	flush();
 
     	log.debug("Fetch passenger2, standard");
-    	p = profileDao.find(p.getId()).get();
+    	p = profileDao.loadGraph(p.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	assertFalse(p.getConsent().isOlderThanSixteen());
     	log.debug("Set consent flag passenger 2");
     	p.getConsent().setOlderThanSixteen(true);
     	flush();
     	
     	log.debug("Fetch passenger2, standard, check consent");
-    	p = profileDao.find(p.getId()).get();
+    	p = profileDao.loadGraph(p.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	assertTrue(p.getConsent().isOlderThanSixteen());
     	
     	log.debug("... and change searchPreferences");
-    	p.getSearchPreferences().getAllowedTraverseModes().remove(TraverseMode.BUS);
-    	p.getSearchPreferences().getAllowedTraverseModes().remove(TraverseMode.RAIL);
+    	SearchPreferences sp = searchPreferencesDao.loadGraph(p.getId(), SearchPreferences.FULL_SEARCH_PREFS_ENTITY_GRAPH).orElse(null);
+    	assertNotNull(sp);
+    	sp.getAllowedTraverseModes().remove(TraverseMode.BUS);
+    	sp.getAllowedTraverseModes().remove(TraverseMode.RAIL);
     	flush();
 
     	log.debug("Fetch passenger2, full profile");
-    	p = profileDao.loadGraph(p.getId(), Profile.FULL_PROFILE_ENTITY_GRAPH).get();
+    	p = profileDao.loadGraph(p.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	var address = Fixture.createAddressLichtenvoorde();
     	log.debug("Add home address to passenger2");
-//    	em.persist(address);
     	p.setHomeAddress(address);
     	flush();
 
-    	p = profileDao.loadGraph(p.getId(), Profile.FULL_PROFILE_ENTITY_GRAPH).get();
+    	p = profileDao.loadGraph(p.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
+    	assertEquals(address.getLocality(), p.getHomeAddress().getLocality());
     	log.debug("... and check searchPreferences");
-    	p.getSearchPreferences().getAllowedTraverseModes().remove(TraverseMode.BUS);
-    	assertFalse(p.getSearchPreferences().getAllowedTraverseModes().contains(TraverseMode.BUS));
-    	assertFalse(p.getSearchPreferences().getAllowedTraverseModes().contains(TraverseMode.RAIL));
+    	sp = searchPreferencesDao.loadGraph(p.getId(), SearchPreferences.FULL_SEARCH_PREFS_ENTITY_GRAPH).orElse(null);
+    	assertNotNull(sp);
+    	assertFalse(sp.getAllowedTraverseModes().contains(TraverseMode.BUS));
+    	assertFalse(sp.getAllowedTraverseModes().contains(TraverseMode.RAIL));
+    	flush();
     	
     	// Role change, become a driver too
     	assertEquals(UserRole.PASSENGER, p.getUserRole());
+    	p.setRidesharePreferences(ridesharePreferencesDao.loadGraph(p.getId(), RidesharePreferences.FULL_RIDESHARE_PREFS_ENTITY_GRAPH).orElse(null));
     	assertNull(p.getRidesharePreferences());
-    	p.setUserRole(UserRole.BOTH);
+    	
+    	p = profileDao.loadGraph(p.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	p.addRidesharePreferences();
+    	ridesharePreferencesDao.save(p.getRidesharePreferences());
+    	flush();
+    	
+    	p.setUserRole(UserRole.BOTH);
     	p.getRidesharePreferences().setMaxMinutesDetour(30);
+//    	p.getRidesharePreferences().getLuggageOptions().clear();
     	p.getRidesharePreferences().getLuggageOptions().add(LuggageOption.PET);
+    	profileDao.merge(p);
+    	ridesharePreferencesDao.merge(p.getRidesharePreferences());
     	flush();
 
-    	p = profileDao.loadGraph(p.getId(), Profile.FULL_PROFILE_ENTITY_GRAPH).get();
+    	p = profileDao.loadGraph(p.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	assertEquals(UserRole.BOTH, p.getUserRole());
+    	assertNull(p.getRidesharePreferences());
+    	p.setRidesharePreferences(ridesharePreferencesDao.loadGraph(p.getId(), RidesharePreferences.FULL_RIDESHARE_PREFS_ENTITY_GRAPH).orElse(null));
     	assertNotNull(p.getRidesharePreferences());
     	assertEquals(30, p.getRidesharePreferences().getMaxMinutesDetour().intValue());
 //    	log.debug("Check rideshare preferences - luggage");
     	assertTrue(p.getRidesharePreferences().getLuggageOptions().contains(LuggageOption.PET));
     	
+    	ridesharePreferencesDao.remove(p.getRidesharePreferences());
     	p.removeRidesharePreferences();
     	p.setUserRole(UserRole.PASSENGER);
     	flush();
-
-    	p = profileDao.loadGraph(p.getId(), Profile.FULL_PROFILE_ENTITY_GRAPH).get();
+    	    	
+    	p = profileDao.loadGraph(p.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	assertEquals(UserRole.PASSENGER, p.getUserRole());
+    	p.setRidesharePreferences(ridesharePreferencesDao.loadGraph(p.getId(), RidesharePreferences.FULL_RIDESHARE_PREFS_ENTITY_GRAPH).orElse(null));
     	assertNull(p.getRidesharePreferences());
 
+    	Long count = em.createQuery("select count(rp) from RidesharePreferences rp where id = :id", Long.class)
+    			.setParameter("id", p.getId())
+    			.getSingleResult();
+    	assertEquals(0L, count.longValue());
     	log.debug("End of test: mergeChanges");
     }
 
@@ -205,18 +250,21 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	p.setHomeAddress(address);
     	log.debug("Create passenger2");
     	profileDao.save(p);
+    	searchPreferencesDao.save(p.getSearchPreferences());
     	log.debug("Add favorite for passenger2");
     	p.addPlace(Fixture.createPlace(Fixture.createAddressHengelo()));
     	flush();
 
-    	/**
-    	 * What happens: With a standard load, 4 queries are fired: Fetch profile, fetch search preferences, 
-    	 * fetch rideshare preferences, fetch addresses.
-    	 * With full profile load, everything is fetched in a single query.
-    	 * The remove issues automatically queries to remove all child items, also for collection elements. 
-    	 */
     	log.debug("Fetch profile full");
-    	p = profileDao.loadGraph(p.getId(), Profile.FULL_PROFILE_ENTITY_GRAPH).get();
+    	p = profileDao.loadGraph(p.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
+    	p.setRidesharePreferences(ridesharePreferencesDao.find(p.getId()).orElse(null));
+    	if (p.getRidesharePreferences() != null) {
+    		ridesharePreferencesDao.remove(p.getRidesharePreferences());
+    	}
+    	p.setSearchPreferences(searchPreferencesDao.find(p.getId()).orElse(null));
+    	if (p.getSearchPreferences() != null) {
+    		searchPreferencesDao.remove(p.getSearchPreferences());
+    	}
     	log.debug("Remove profile");
     	profileDao.remove(p);
     	log.debug("End of test: removeProfile");
@@ -231,6 +279,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	var addrCarla2 = Fixture.createAddressHengelo();
     	carla2.setHomeAddress(addrCarla2);
     	profileDao.save(carla2);
+    	ridesharePreferencesDao.save(carla2.getRidesharePreferences());
     	flush();
 
     	carla1 = profileDao.loadGraph(carla1.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();

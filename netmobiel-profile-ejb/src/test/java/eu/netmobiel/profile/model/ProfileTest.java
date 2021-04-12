@@ -6,8 +6,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
-import eu.netmobiel.commons.model.NetMobielUserImpl;
-
 public class ProfileTest {
 
 	@Before
@@ -21,7 +19,9 @@ public class ProfileTest {
 	@Test
 	public void createProfile_Default() {
 		Profile p = new Profile();
+		p.linkOneToOneChildren();
 		assertNotNull(p.getConsent());
+		assertNotNull(p.getHomeAddress());
 		assertNotNull(p.getNotificationOptions());
 		assertNull(p.getSearchPreferences());
 		assertNull(p.getRidesharePreferences());
@@ -29,9 +29,10 @@ public class ProfileTest {
 
 	@Test
 	public void createProfile_NetMobielPassenger() {
-		NetMobielUserImpl user = new NetMobielUserImpl(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl");
-		Profile p = new Profile(user, UserRole.PASSENGER);
+		Profile p = new Profile(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl", UserRole.PASSENGER);
+		p.linkOneToOneChildren();
 		assertNotNull(p.getConsent());
+		assertNotNull(p.getHomeAddress());
 		assertNotNull(p.getNotificationOptions());
 		assertNotNull(p.getSearchPreferences());
 		assertNull(p.getRidesharePreferences());
@@ -39,9 +40,10 @@ public class ProfileTest {
 
 	@Test
 	public void createProfile_NetMobielDriver() {
-		NetMobielUserImpl user = new NetMobielUserImpl(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl");
-		Profile p = new Profile(user, UserRole.DRIVER);
+		Profile p = new Profile(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl", UserRole.DRIVER);
+		p.linkOneToOneChildren();
 		assertNotNull(p.getConsent());
+		assertNotNull(p.getHomeAddress());
 		assertNotNull(p.getNotificationOptions());
 		assertNull(p.getSearchPreferences());
 		assertNotNull(p.getRidesharePreferences());
@@ -49,9 +51,10 @@ public class ProfileTest {
 
 	@Test
 	public void createProfile_NetMobielBoth() {
-		NetMobielUserImpl user = new NetMobielUserImpl(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl");
-		Profile p = new Profile(user, UserRole.BOTH);
+		Profile p = new Profile(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl", UserRole.BOTH);
+		p.linkOneToOneChildren();
 		assertNotNull(p.getConsent());
+		assertNotNull(p.getHomeAddress());
 		assertNotNull(p.getNotificationOptions());
 		assertNotNull(p.getSearchPreferences());
 		assertNotNull(p.getRidesharePreferences());

@@ -28,6 +28,8 @@ import eu.netmobiel.profile.repository.ComplimentDao;
 import eu.netmobiel.profile.repository.OldProfileDao;
 import eu.netmobiel.profile.repository.ProfileDao;
 import eu.netmobiel.profile.repository.ReviewDao;
+import eu.netmobiel.profile.repository.RidesharePreferencesDao;
+import eu.netmobiel.profile.repository.SearchPreferencesDao;
 
 /**
  * Singleton startup bean for doing some maintenance on startup of the system.
@@ -46,6 +48,10 @@ public class ProfileMaintenance {
 
 	@Inject
 	private ProfileDao profileDao;
+    @Inject
+    private RidesharePreferencesDao ridesharePreferencesDao;
+    @Inject
+    private SearchPreferencesDao searchPreferencesDao;
 
 	@Inject
 	private ReviewDao reviewDao;
@@ -108,7 +114,15 @@ public class ProfileMaintenance {
 			// Get the profile from the old profile service
 			try {
 				Profile profile = oldProfileDao.getProfile(managedIdentity);
+				profile.linkOneToOneChildren();
 				profileDao.save(profile);
+				if (profile.getSearchPreferences() != null) {
+					searchPreferencesDao.save(profile.getSearchPreferences());				
+				}
+				if (profile.getRidesharePreferences() != null) {
+					ridesharePreferencesDao.save(profile.getRidesharePreferences());				
+				}
+
 			} catch (BusinessException e) {
 				log.error("Failed to create profile for " + managedIdentity + " - " + e.toString());
 			}

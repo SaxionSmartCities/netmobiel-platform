@@ -57,7 +57,6 @@ public class ProfilesResource implements ProfilesApi {
     	Response rsp = null;
 		try {
 			Profile domprof = mapper.map(profile);
-			domprof.linkOneToOneChildren();
 	    	Long id = profileManager.createProfile(domprof);
 			rsp = Response.created(UriBuilder.fromResource(ProfilesApi.class)
 					.path(ProfilesApi.class.getMethod("getProfile", String.class)).build(id)).build();
@@ -159,7 +158,6 @@ public class ProfilesResource implements ProfilesApi {
 		try {
 			String mid = resolveIdentity(profileId);
 			Profile domainProfile = mapper.map(apiProfile);
-			domainProfile.linkOneToOneChildren();
 			profileManager.updateProfileByManagedIdentity(mid, domainProfile);
         	domainProfile = profileManager.getProfileByManagedIdentity(profileId);
         	ProfileResponse prsp = new ProfileResponse();

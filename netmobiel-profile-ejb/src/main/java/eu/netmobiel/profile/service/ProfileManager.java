@@ -42,10 +42,14 @@ import eu.netmobiel.profile.model.Address;
 import eu.netmobiel.profile.model.Compliment;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Review;
+import eu.netmobiel.profile.model.RidesharePreferences;
+import eu.netmobiel.profile.model.SearchPreferences;
 import eu.netmobiel.profile.repository.ComplimentDao;
 import eu.netmobiel.profile.repository.KeycloakDao;
 import eu.netmobiel.profile.repository.ProfileDao;
 import eu.netmobiel.profile.repository.ReviewDao;
+import eu.netmobiel.profile.repository.RidesharePreferencesDao;
+import eu.netmobiel.profile.repository.SearchPreferencesDao;
 
 /**
  * Bean class for Publisher enterprise bean. 
@@ -68,6 +72,10 @@ public class ProfileManager {
 
     @Inject
     private ProfileDao profileDao;
+    @Inject
+    private RidesharePreferencesDao ridesharePreferencesDao;
+    @Inject
+    private SearchPreferencesDao searchPreferencesDao;
     
     @Inject
     private ReviewDao reviewDao;
@@ -145,30 +153,29 @@ public class ProfileManager {
 		profile.linkOneToOneChildren();
 		profile.linkPlaces();
 		profileDao.save(profile);
+		if (profile.getSearchPreferences() != null) {
+			searchPreferencesDao.save(profile.getSearchPreferences());				
+		}
+		if (profile.getRidesharePreferences() != null) {
+			ridesharePreferencesDao.save(profile.getRidesharePreferences());				
+		}
 		return profile.getId();
     }
 
-    private void initializeCompleteProfile(Profile profile) {
-    	if (profile.getSearchPreferences() != null) {
-    		profile.getSearchPreferences().getAllowedTraverseModes().size();
-    		profile.getSearchPreferences().getLuggageOptions().size();
-    	}
-    	if (profile.getRidesharePreferences() != null) {
-    		profile.getRidesharePreferences().getLuggageOptions().size();
-    	}
-    	profile.getPlaces().size();
-    }
-
     private Profile getCompleteProfileByManagedIdentity(String managedId) throws NotFoundException {
-    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.FULL_PROFILE_ENTITY_GRAPH)
+    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-    	// Initialize the fields that did not come with the query.
-    	// What is faster, using the fullest graph, or use the one above? We have to test.
-    	// Experiment: The fullest: 1 query, 1 connection, 16-30 msec
-    	//			   Full with initialization: 5 queries, 5 connections, 6 - 12 msec
-    	// Conclusion: Extracting one big graph is expensive (due to carthesian product probably)
-    	//			   The experiment was without addresses.
-    	initializeCompleteProfile(profile);
+    	profile.setRidesharePreferences(ridesharePreferencesDao.loadGraph(profile.getId(), RidesharePreferences.FULL_RIDESHARE_PREFS_ENTITY_GRAPH).orElse(null));
+    	profile.setSearchPreferences(searchPreferencesDao.loadGraph(profile.getId(), SearchPreferences.FULL_SEARCH_PREFS_ENTITY_GRAPH).orElse(null));
+    	profileDao.detach(profile);
+    	if (profile.getRidesharePreferences() != null) {
+    		ridesharePreferencesDao.detach(profile.getRidesharePreferences());
+    	}
+    	if (profile.getSearchPreferences() != null) {
+    		searchPreferencesDao.detach(profile.getSearchPreferences());
+    	}
+    	// Initialize some defaults. Detach to prevent save to database. 
+		profile.linkOneToOneChildren();
     	return profile;
     }
 
@@ -190,7 +197,6 @@ public class ProfileManager {
     	profile.setNotificationOptions(null);
     	profile.setPhoneNumber(null);
     	profile.setRidesharePreferences(null);
-    	profile.setSearchPreferences(null);
     	profile.setSearchPreferences(null);
     	return profile;
     }
@@ -232,15 +238,10 @@ public class ProfileManager {
      * @throws BusinessException 
      */
 	public void updateProfileByManagedIdentity(String managedId, Profile newProfile)  throws NotFoundException, BusinessException {
-    	Profile dbprofile = profileDao.findByManagedIdentity(managedId, Profile.FULLEST_PROFILE_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-    	profileDao.detach(dbprofile);
-    	newProfile.setManagedIdentity(dbprofile.getManagedIdentity());
-    	newProfile.setId(dbprofile.getId());
-		newProfile.linkOneToOneChildren();
-		newProfile.linkPlaces();
-		// Overwrite whatever image path is provided
-		newProfile.setImagePath(dbprofile.getImagePath());
+    	Profile dbprofile = getCompleteProfileByManagedIdentity(managedId);
+    	SearchPreferences searchPrefsDb = dbprofile.getSearchPreferences();
+    	RidesharePreferences ridePrefsDb = dbprofile.getRidesharePreferences();
+    	// Profile is detached at this point
 		NetMobielUser newuser = new NetMobielUserImpl(managedId, newProfile.getGivenName(), newProfile.getFamilyName(), newProfile.getEmail());
 		Optional<NetMobielUser> olduser = keycloakDao.getUser(managedId);
 		if (! olduser.isPresent()) {
@@ -253,7 +254,47 @@ public class ProfileManager {
 			}
 			keycloakDao.updateUser(newuser);
 		}
-    	profileDao.merge(newProfile);
+    	// Assure key attributes are set
+    	newProfile.setManagedIdentity(managedId);
+    	newProfile.setId(dbprofile.getId());
+		newProfile.linkOneToOneChildren();
+		newProfile.linkPlaces();
+		// Overwrite whatever image path is provided
+		newProfile.setImagePath(dbprofile.getImagePath());
+		dbprofile = profileDao.merge(newProfile);
+		// Transient properties are null now
+		
+		// Copy the database identifiers
+		if (newProfile.getSearchPreferences() != null && newProfile.getSearchPreferences().getNumberOfPassengers() == 0) {
+			// Silly value, get rid of the object
+			newProfile.setSearchPreferences(null);
+		}
+		if (newProfile.getSearchPreferences() != null) {
+			newProfile.getSearchPreferences().setProfile(dbprofile);
+			if (searchPrefsDb != null) {
+				newProfile.getSearchPreferences().setId(searchPrefsDb.getId());
+				searchPreferencesDao.merge(newProfile.getSearchPreferences());				
+			} else {
+				searchPreferencesDao.save(newProfile.getSearchPreferences());				
+			}
+		} else {
+			// Ignore, we dont't remove preferences once they are set.
+		}
+		if (newProfile.getRidesharePreferences() != null && newProfile.getRidesharePreferences().getMaxPassengers() == 0) {
+			// Silly value, get rid of the object
+			newProfile.setRidesharePreferences(null);
+		}
+		if (newProfile.getRidesharePreferences() != null) {
+			newProfile.getRidesharePreferences().setProfile(dbprofile);
+			if (ridePrefsDb != null) {
+				newProfile.getRidesharePreferences().setId(ridePrefsDb.getId());
+				ridesharePreferencesDao.merge(newProfile.getRidesharePreferences());				
+			} else {
+				ridesharePreferencesDao.save(newProfile.getRidesharePreferences());				
+			}
+		} else {
+			// Ignore, we dont't remove preferences once they are set.
+		}
 	}
 	
 
@@ -262,9 +303,18 @@ public class ProfileManager {
 		boolean privileged = sessionContext.isCallerInRole("admin");
     	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
+    	profile.setRidesharePreferences(ridesharePreferencesDao.find(profile.getId()).orElse(null));
+    	profile.setSearchPreferences(searchPreferencesDao.find(profile.getId()).orElse(null));
     	if (!privileged && !me.getName().equals(managedId)) {
 			new SecurityException("You have no privilege to remove the profile of someone else");
     	}
+    	if (profile.getRidesharePreferences() != null) {
+    		ridesharePreferencesDao.remove(profile.getRidesharePreferences());
+    	}
+    	if (profile.getSearchPreferences() != null) {
+    		searchPreferencesDao.remove(profile.getSearchPreferences());
+    	}
+
     	profileDao.remove(profile);
     }
 
