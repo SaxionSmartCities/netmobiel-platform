@@ -570,59 +570,9 @@ paths:
       operationId: createDelegation
       summary: Create a Delegation
       description: Creates a new instance of a `Delegation`.
-  /profiles/{profileId}/addresses/{addressId}:
-    summary: Path used to manage a single Address.
-    description: The REST endpoint/path used to get, update, and delete single instances
-      of an `Address`.  This path contains `GET`, `PUT`, and `DELETE` operations used
-      to perform the get, update, and delete tasks, respectively.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Address'
-          description: Successful response - returns a single `Address`.
-      operationId: getAddress
-      summary: Get a Address
-      description: Gets the details of a single instance of a `Address`.
-    put:
-      requestBody:
-        description: Updated `Address` information.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Address'
-        required: true
-      responses:
-        "202":
-          description: Successful response.
-      operationId: updateAddress
-      summary: Update a Address
-      description: Updates an existing `Address`.
-    delete:
-      responses:
-        "204":
-          description: Successful response.
-      operationId: deleteAddress
-      summary: Delete a Address
-      description: Deletes an existing `Address`.
-    parameters:
-    - name: profileId
-      description: A unique identifier for a `Profile`.
-      schema:
-        type: string
-      in: path
-      required: true
-    - name: addressId
-      description: A unique identifier for an `Address`.
-      schema:
-        type: string
-      in: path
-      required: true
-  /profiles/{profileId}/addresses:
-    summary: Path used to manage the list of addresses for an profile.
-    description: The REST endpoint/path used to list and create zero or more `Address`
+  /profiles/{profileId}/places:
+    summary: Path used to manage the list of places (favorite locations) for an profile.
+    description: The REST endpoint/path used to list and create zero or more `Place`
       entities.  This path contains a `GET` and `POST` operation to perform the list
       and create tasks, respectively.
     get:
@@ -643,28 +593,78 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Page'
-          description: Successful response - returns a Page with an array of `Address`
+          description: Successful response - returns a Page with an array of `Place`
             entities.
-      operationId: getAddresses
-      summary: List All addresses
-      description: Gets a list of all `Address` entities of the profile.
+      operationId: getPlaces
+      summary: List All Places
+      description: Gets a list of all `Place` entities of the profile.
     post:
       requestBody:
-        description: A new `Address` to be created.
+        description: A new `Place` to be created.
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Address'
+              $ref: '#/components/schemas/Place'
         required: true
       responses:
         "201":
           description: Successful response.
-      operationId: createAddress
-      summary: Create a Address
-      description: Creates a new instance of a `Address`.
+      operationId: createPlace
+      summary: Create a Place
+      description: Creates a new instance of a `Place`.
     parameters:
     - name: profileId
       description: The unique id of the profile.
+      schema:
+        type: string
+      in: path
+      required: true
+  /profiles/{profileId}/places/{placeId}:
+    summary: Path used to manage a single Place.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Place`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Place'
+          description: Successful response - returns a single `Place`.
+      operationId: getPlace
+      summary: Get a Place
+      description: Gets the details of a single instance of a `Place`.
+    put:
+      requestBody:
+        description: Updated `Place` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Place'
+        required: true
+      responses:
+        "202":
+          description: Successful response.
+      operationId: updatePlace
+      summary: Update a Place
+      description: Updates an existing `Place`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deletePlace
+      summary: Delete a Place
+      description: Deletes an existing `Place`.
+    parameters:
+    - name: profileId
+      description: A unique identifier for a `Profile`.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: placeId
+      description: A unique identifier for an `Place`.
       schema:
         type: string
       in: path
@@ -709,7 +709,7 @@ components:
             leg. Default is false. '
           type: boolean
     Profile:
-      description: The profile attributes of a user of NetMobiel.
+      description: The profile attributes of a user in NetMobiel.
       required:
       - email
       - firstName
@@ -745,7 +745,7 @@ components:
             Firebase Messaging.
           type: string
         userRole:
-          description: The role of the user (?).
+          description: The role of the user in NetMobiel.
           enum:
           - passenger
           - driver
@@ -755,7 +755,7 @@ components:
           $ref: '#/components/schemas/UserConsent'
           description: The consent flags for the user.
         address:
-          $ref: '#/components/schemas/Address'
+          $ref: '#/components/schemas/Place'
           description: The home address of the user.
         id:
           description: The profile id, which is exactly equal to the Keycloak managed
@@ -773,11 +773,6 @@ components:
           type: array
           items:
             type: string
-        favoriteLocations:
-          description: A list of favorite locations.
-          type: array
-          items:
-            $ref: '#/components/schemas/FavoriteLocation'
         notificationOptions:
           $ref: '#/components/schemas/NotificationOptions'
           description: The notification preferences
@@ -796,45 +791,6 @@ components:
       example:
         olderThanSixteen: true
         acceptedTerms: true
-    Address:
-      title: Root Type for Address
-      description: The address of a user.
-      type: object
-      properties:
-        street:
-          description: The name of the street.
-          type: string
-        houseNumber:
-          description: The house number.
-          type: string
-        postalCode:
-          description: The postal code for the address.
-          type: string
-        locality:
-          description: The city or village name.
-          type: string
-        country:
-          description: The country code according to ISO 3166-2.
-          type: string
-        location:
-          $ref: '#/components/schemas/Location'
-          description: The GPS location of this address.
-        label:
-          description: A short description of the place.
-          type: string
-      example:
-        street: Rembrandtstraat
-        houseNumber: "8"
-        postalCode: 7556WD
-        locality: Hengelo
-        country: NL
-        id: 1234567
-        label: Thuis
-        location:
-          type: Point
-          coordinates:
-          - 6.6047
-          - 52.04157
     RidePlanOptions:
       type: object
       properties:
@@ -1293,6 +1249,45 @@ components:
         activationTime: 2021-02-26T10:53:16Z
         transferCode: "123456"
         id: 1234
+    Place:
+      title: Root Type for Address
+      description: The address of a user.
+      type: object
+      properties:
+        street:
+          description: The name of the street.
+          type: string
+        houseNumber:
+          description: The house number.
+          type: string
+        postalCode:
+          description: The postal code for the address.
+          type: string
+        locality:
+          description: The city or village name.
+          type: string
+        country:
+          description: The country code according to ISO 3166-2.
+          type: string
+        location:
+          $ref: '#/components/schemas/Location'
+          description: The GPS location of this address.
+        label:
+          description: A short description of the place.
+          type: string
+      example:
+        street: Rembrandtstraat
+        houseNumber: "8"
+        postalCode: 7556WD
+        locality: Hengelo
+        country: NL
+        id: 1234567
+        label: Thuis
+        location:
+          type: Point
+          coordinates:
+          - 6.6047
+          - 52.04157
   responses:
     InternalServerError:
       content:
