@@ -36,7 +36,14 @@ public class UrnHelper {
 			}
 			id = getSuffix(value);
 		}
-		return id == null ? null : Long.parseLong(id);
+		if (id != null) {
+			try {
+				return Long.parseLong(id);
+			} catch (NumberFormatException ex) {
+				throw new IllegalArgumentException("Invalid urn or identifier: " + value, ex);
+			}
+		}
+		return null;
 	}
 	
 	public static Long getId(String value) {
