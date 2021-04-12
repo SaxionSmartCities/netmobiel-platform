@@ -304,13 +304,6 @@ paths:
     summary: Manages the profile image.
     description: Manage the profile image of the user of this profile.
     get:
-      parameters:
-      - name: profileId
-        description: The profile is of the user.
-        schema:
-          type: string
-        in: path
-        required: true
       responses:
         "200":
           content:
@@ -329,13 +322,6 @@ paths:
             schema:
               $ref: '#/components/schemas/ImageUploadRequest'
         required: true
-      parameters:
-      - name: profileId
-        description: The profile id of the user.
-        schema:
-          type: string
-        in: path
-        required: true
       responses:
         "200":
           content:
@@ -347,6 +333,13 @@ paths:
       summary: Uploads an image
       description: Uploads an image. The previous image is removed. The path to the
         image is saved in the profile.
+    parameters:
+    - name: profileId
+      description: The unique profile id.
+      schema:
+        type: string
+      in: path
+      required: true
   /profiles:
     summary: Path used to manage profiles.
     description: The REST endpoint/path used to list and create zero or more `Profile`
@@ -644,10 +637,6 @@ paths:
         schema:
           type: integer
         in: query
-      - name: profileId
-        description: The unique id of the profile.
-        in: path
-        required: true
       responses:
         "200":
           content:
@@ -676,6 +665,8 @@ paths:
     parameters:
     - name: profileId
       description: The unique id of the profile.
+      schema:
+        type: string
       in: path
       required: true
 components:
