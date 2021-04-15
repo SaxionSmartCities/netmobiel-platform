@@ -10,7 +10,6 @@ import javax.persistence.AccessType;
 import javax.persistence.Basic;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
-import javax.persistence.PostLoad;
 import javax.persistence.Transient;
 
 import com.vividsolutions.jts.algorithm.Angle;
@@ -88,12 +87,16 @@ public class GeoLocation implements Serializable {
 		}
 	}
 	
-	@PostLoad
-	public void updateLatLon() {
+//	@PostLoad
+	// Cannot use PostLoad at tghis place in Hibernate 5.3.10 (wildfly 17) due to 
+	// a nasty bug: https://hibernate.atlassian.net/browse/HHH-13110#icft=HHH-13110
+	private void updateLatLon() {
 		if (point != null) {
 			this.latitude = this.point.getY();
 			this.longitude = this.point.getX();
 		} else {
+			this.latitude = null;
+			this.longitude = null;
 		}
 	}
 
@@ -103,7 +106,7 @@ public class GeoLocation implements Serializable {
 
 	public void setPoint(Point point) {
 		this.point = point;
-		updatePoint();
+		updateLatLon();
 	}
 
 	public Double getLatitude() {

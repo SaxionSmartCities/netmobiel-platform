@@ -4,7 +4,6 @@ import javax.enterprise.inject.Vetoed;
 import javax.json.bind.annotation.JsonbProperty;
 import javax.persistence.Embedded;
 import javax.persistence.MappedSuperclass;
-import javax.persistence.PostLoad;
 import javax.persistence.Table;
 
 import eu.netmobiel.commons.model.GeoLocation;
@@ -21,11 +20,6 @@ public class OtpLocatedEntity extends OtpBase {
 	public OtpLocatedEntity() {
 	}
 	
-	@PostLoad
-	private void updateLocation() {
-		location.updateLatLon();
-	}
-
 	public GeoLocation getLocation() {
 		return location;
 	}
