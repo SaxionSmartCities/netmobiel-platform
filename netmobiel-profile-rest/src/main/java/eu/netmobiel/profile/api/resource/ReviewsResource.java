@@ -97,8 +97,8 @@ public class ReviewsResource implements ReviewsApi {
 		return rsp;
 	}
 
-	@Override
-	public Response getReviewsNewSkool() {
+//	@Override
+//	public Response getReviewsNewSkool() {
 //		Response rsp = null;
 //		try {
 //			Cursor cursor = new Cursor();
@@ -111,7 +111,7 @@ public class ReviewsResource implements ReviewsApi {
 //			throw new WebApplicationException(e);
 //		}
 //		return rsp;
-		throw new UnsupportedOperationException("Not yet implemented");
-	}
+//		throw new UnsupportedOperationException("Not yet implemented");
+//	}
 
 }

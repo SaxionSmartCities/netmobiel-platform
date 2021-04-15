@@ -111,8 +111,8 @@ public class ComplimentsResource implements ComplimentsApi {
 		return Response.ok(ctr).build();
 	}
 
-	@Override
-	public Response getComplimentsNewSkool() {
+//	@Override
+//	public Response getComplimentsNewSkool() {
 //		Response rsp = null;
 //		try {
 //			Cursor cursor = new Cursor();
@@ -125,7 +125,7 @@ public class ComplimentsResource implements ComplimentsApi {
 //			throw new WebApplicationException(e);
 //		}
 //		return rsp;
-		throw new UnsupportedOperationException("Not yet implemented");
-	}
+//		throw new UnsupportedOperationException("Not yet implemented");
+//	}
 
 }
