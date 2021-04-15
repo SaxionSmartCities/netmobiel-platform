@@ -1,0 +1,229 @@
+---
+openapi: 3.0.2
+info:
+  title: geo-service
+  version: 1.0.0
+  description: Service for geocoding and searching.
+  contact:
+    name: Jaap Reitsma
+    email: j.reitsma@saxion.nl
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+servers:
+- url: https://prod.netmobiel.eu/geosvc/api
+  description: The internal URL for the geo-service (production).
+- url: https://api.netmobiel.eu/gwapi/geosvc
+  description: The geo-service service visible to the world (production).
+- url: https://acc.netmobiel.eu/geosvc/api
+  description: The internal URL for the geo-service (acceptance).
+- url: https://api.netmobiel.eu/gwapi/acc/geosvc
+  description: The geo-service service visible to the world (acceptance).
+paths:
+  /suggestions:
+    summary: Get suggestions for geographics places.
+    description: The REST endpoint/path used to list `Suggestion` entities.  This
+      path contains a `GET`operation to perform the list task.
+    get:
+      parameters:
+      - name: query
+        description: The text to search for.
+        schema:
+          type: string
+        in: query
+        required: true
+      - examples:
+          Station-Borne:
+            value: Station Borne::52.298417,6.749157
+        name: center
+        description: The center of the circle in which to search for geographic places,
+          comprising of a latitude and longitude pair in degrees according WGS84.
+          For logging purposes you may prepend the coordinates with a place label
+          followed by two colons.
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: radius
+        description: the radius (in meter) of the circle around the center to search
+          for places. If omitted a radius of 50km is applied.
+        schema:
+          type: integer
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.
+          The maximum for HERE is 20.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return. '
+        schema:
+          type: integer
+        in: query
+      - name: lang
+        description: The preferred language to receive items in. Use a BCP 47 language
+          code.
+        schema:
+          type: string
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a page with an array of `Suggestion`
+            entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: getSuggestions
+      summary: List geographical suggestions.
+      description: Gets a list of geographical `Suggestion` entities, given the parameters.
+components:
+  schemas:
+    Error:
+      title: Root Type for Error
+      description: The error response.
+      type: object
+      properties:
+        message:
+          type: string
+        reasonPhrase:
+          type: string
+        status:
+          format: int32
+          type: integer
+        errorCode:
+          description: A string code identifying the error. This code can be used
+            to display an error message in the right language.
+          type: string
+      example:
+        message: This is a really bad request
+        reasonPhrase: Bad Request
+        status: 400
+    Page:
+      title: Root Type for Page
+      description: A page from a result set. For smaller sets the page contains the
+        complete result set.
+      type: object
+      properties:
+        totalCount:
+          format: int32
+          description: |-
+            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
+
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
+          type: integer
+        count:
+          format: int32
+          description: The number of items in this page.
+          type: integer
+        data:
+          description: An array with the actual payload. The payload depends on the
+            request being made.
+          type: array
+          items: {}
+        offset:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
+      example:
+        totalCount: 104
+        start: 32
+        count: 16
+        data: []
+    Suggestion:
+      title: Root Type for GeocodeSuggestion
+      description: A suggestion from the geocode service.
+      type: object
+      properties:
+        title:
+          description: The title of the suggestion.
+          type: string
+        highlightedTitle:
+          description: The title with the highlight text fragments inserted.
+          type: string
+        vicinity:
+          description: A text describing the vicinity of the place.
+          type: string
+        highlightedVicinity:
+          description: A text describing the vicinity of the matched suggestion, with
+            the highlight text fragments inserted.
+          type: string
+        position:
+          description: The position of the place in WGS-84 latitude, longitude degrees.
+          type: array
+          items:
+            format: double
+            type: number
+        category:
+          description: 'The formal category of the suggestion. Vendor specific. '
+          type: string
+        categoryTitle:
+          description: A human friendly category.
+          type: string
+        resultType:
+          description: The actual result the of the suggestion.
+          type: string
+        id:
+          description: A unique identifier for this suggestion. Format is a GUID.
+          type: string
+        distance:
+          format: int32
+          description: 'The distance in meter from the reference position specified
+            in the query to the suggestion. '
+          type: integer
+        completion:
+          description: ' The suggested query completion (in case of result type ''query'').'
+          type: string
+      example:
+        title: Enschede Airport Twente
+        highlightedTitle: <span class="search-hit">Ens</span>chede Airport Twente
+        vicinity: Vliegveldweg 333<br/>7524 PT Enschede
+        highlightedVicinity: Vliegveldweg 333<br/>7524 PT Enschede
+        position:
+        - 52.26387
+        - 6.89483
+        category: airport
+        categoryTitle: Airport
+        resultType: place
+        id: 528u1kck-c0a80b682f9643c8a75942f82d5c7ea8
+        distance: 108045
+  responses:
+    InternalServerError:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: Some application error occurred, indicating a bug in the application
+        (500).
+    ServiceUnavailableException:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: 'The (underlying) service is (temporarily) not available. Try again
+        later (503). '
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: A requested or supplied object could not be found (404).
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The request was understood, but in incomplete or invalid and cannot
+        be processed (400).
+  securitySchemes:
+    apikey:
+      type: apiKey
+      description: 'The Geocode service requires an Api Key: x-gravitee-api-key in
+        the header.'
+      name: Api-key
+      in: header
