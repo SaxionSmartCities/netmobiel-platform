@@ -1275,6 +1275,9 @@ components:
         label:
           description: A short description of the place.
           type: string
+        id:
+          description: The unique identifier of the `Place`.
+          type: integer
       example:
         street: Rembrandtstraat
         houseNumber: "8"
