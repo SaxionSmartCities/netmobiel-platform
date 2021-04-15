@@ -3,6 +3,8 @@ package eu.netmobiel.commons.repository;
 import java.util.List;
 import java.util.Optional;
 
+import javax.persistence.TypedQuery;
+
 import org.hibernate.jpa.QueryHints;
 
 import eu.netmobiel.commons.exception.BadRequestException;
@@ -33,11 +35,13 @@ public abstract class UserDao<T extends User> extends AbstractDao<T, Long> {
     }
 
     public Optional<T> findByManagedIdentity(String managedId, String graphName) {
-    	List<T> users = getEntityManager().createQuery(String.format("from %s where managedIdentity = :identity", 
+    	TypedQuery<T> tq = getEntityManager().createQuery(String.format("from %s where managedIdentity = :identity", 
     			getPersistentClass().getSimpleName()), getPersistentClass())
-    			.setParameter("identity", managedId)
-    			.setHint(QueryHints.HINT_LOADGRAPH, graphName ==  null ? null : getEntityManager().getEntityGraph(graphName))
-    			.getResultList();
+    			.setParameter("identity", managedId);
+    	if (graphName != null) {
+    		tq.setHint(QueryHints.HINT_LOADGRAPH, getEntityManager().getEntityGraph(graphName));
+    	}
+    	List<T> users = tq.getResultList();
     	return Optional.ofNullable(users.size() > 0 ? users.get(0) : null); 
     }
 

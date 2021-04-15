@@ -215,11 +215,19 @@ public abstract class AbstractDao<T, ID> {
     }
     
     public Map<String, Object> createLoadHint(String graphName) {
-        return graphName != null ? Collections.singletonMap(QueryHints.HINT_LOADGRAPH, getEntityManager().getEntityGraph(graphName)) : Collections.emptyMap();
+    	Object entityGraph = null;
+    	if (graphName != null) {
+    		entityGraph = getEntityManager().getEntityGraph(graphName);
+    	}
+        return entityGraph != null ? Collections.singletonMap(QueryHints.HINT_LOADGRAPH, entityGraph) : Collections.emptyMap();
     }
 
     public Map<String, Object> createFetchHint(String graphName) {
-        return graphName != null ? Collections.singletonMap(QueryHints.HINT_FETCHGRAPH, getEntityManager().getEntityGraph(graphName)) : Collections.emptyMap();
+    	Object entityGraph = null;
+    	if (graphName != null) {
+    		entityGraph = getEntityManager().getEntityGraph(graphName);
+    	}
+        return entityGraph != null ? Collections.singletonMap(QueryHints.HINT_FETCHGRAPH, entityGraph) : Collections.emptyMap();
     }
 
     public Optional<T> loadGraph(ID id, String graphName) {
