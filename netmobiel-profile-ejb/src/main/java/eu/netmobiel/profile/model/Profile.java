@@ -42,7 +42,7 @@ import eu.netmobiel.profile.util.ProfileUrnHelper;
 })
 @Vetoed
 @SequenceGenerator(name = "profile_sg", sequenceName = "profile_id_seq", allocationSize = 1, initialValue = 50)
-@AttributeOverride(name = "email", column = @Column(name="email", length = User.MAX_LENGTH_EMAIL, nullable = false))
+@AttributeOverride(name = "email", column = @Column(name = "email", length = User.MAX_LENGTH_EMAIL, nullable = false))
 @Access(AccessType.FIELD)
 public class Profile extends User  {
 
@@ -73,12 +73,20 @@ public class Profile extends User  {
     	@AttributeOverride(name = "locality", column = @Column(name = "home_locality", length = Address.MAX_LOCALITY_LENGTH)), 
     	@AttributeOverride(name = "street", column = @Column(name = "home_street", length = Address.MAX_STREET_LENGTH)), 
     	@AttributeOverride(name = "houseNumber", column = @Column(name = "home_house_nr", length = Address.MAX_HOUSE_NR_LENGTH)), 
-    	@AttributeOverride(name = "postalCode", column = @Column(name = "home_postal_code", length = Address.MAX_POSTAL_CODE_LENGTH)), 
-    	@AttributeOverride(name = "location.label", column = @Column(name = "home_label", length = GeoLocation.MAX_LABEL_LENGTH)), 
-    	@AttributeOverride(name = "location.point", column = @Column(name = "home_point")), 
-   	} )
+    	@AttributeOverride(name = "postalCode", column = @Column(name = "home_postal_code", length = Address.MAX_POSTAL_CODE_LENGTH))
+   	})
 	private Address homeAddress;
 
+	/**
+	 * The home GPS location and short name.
+	 */
+	@Embedded
+    @AttributeOverrides({ 
+    	@AttributeOverride(name = "label", column = @Column(name = "home_label", length = GeoLocation.MAX_LABEL_LENGTH, nullable = true)), 
+    	@AttributeOverride(name = "point", column = @Column(name = "home_point", nullable = true)) 
+   	})
+	private GeoLocation homeLocation;
+	
 	/**
 	 * Rideshare preferences. Only needed for a driver. 
 	 * Because of the one-to-one nature, the foreign key is on the side on the preferences.
@@ -177,6 +185,26 @@ public class Profile extends User  {
 
 	public void setHomeAddress(Address homeAddress) {
 		this.homeAddress = homeAddress;
+	}
+
+	public void addAddressIfNotExists() {
+		if (this.homeAddress == null) {
+			this.homeAddress = Address.createDefault();
+		}
+	}
+
+	public GeoLocation getHomeLocation() {
+		return homeLocation;
+	}
+
+	public void setHomeLocation(GeoLocation homeLocation) {
+		this.homeLocation = homeLocation;
+	}
+
+	public void addLocationIfNotExists() {
+		if (this.homeLocation == null) {
+			this.homeLocation = new GeoLocation();
+		}
 	}
 
 	public RidesharePreferences getRidesharePreferences() {
@@ -288,12 +316,9 @@ public class Profile extends User  {
 	}
 
 	/**
-	 * Assures that all associations and embedded objects are defined. 
+	 * Assures that required associations and embedded objects are defined. 
 	 */
 	public void linkOneToOneChildren() {
-		if (this.homeAddress == null) {
-			this.homeAddress = Address.createDefault();
-		}
 		if (this.notificationOptions == null) {
 			this.notificationOptions = NotificationOptions.createDefault();
 		}
@@ -321,10 +346,6 @@ public class Profile extends User  {
 			}
 		}
 		// Once the preferences are present, they will not be removed on a change of role.
-	}
-	
-	public void linkPlaces() {
-		getPlaces().forEach(place -> place.setProfile(this));
 	}
 	
 	public boolean isPassenger() {

@@ -45,10 +45,15 @@ public class Place implements Serializable {
     	@AttributeOverride(name = "street", column = @Column(name = "street", length = Address.MAX_STREET_LENGTH)), 
     	@AttributeOverride(name = "houseNumber", column = @Column(name = "house_nr", length = Address.MAX_HOUSE_NR_LENGTH)), 
     	@AttributeOverride(name = "postalCode", column = @Column(name = "postal_code", length = Address.MAX_POSTAL_CODE_LENGTH)), 
-    	@AttributeOverride(name = "location.label", column = @Column(name = "label", length = GeoLocation.MAX_LABEL_LENGTH)), 
-    	@AttributeOverride(name = "location.point", column = @Column(name = "point")), 
    	} )
 	private Address address;
+
+	@Embedded
+    @AttributeOverrides({ 
+    	@AttributeOverride(name = "label", column = @Column(name = "label", length = GeoLocation.MAX_LABEL_LENGTH)), 
+    	@AttributeOverride(name = "point", column = @Column(name = "point")), 
+   	})
+	private GeoLocation location;
 
 	public Long getId() {
 		return id;
@@ -74,6 +79,14 @@ public class Place implements Serializable {
 		this.address = address;
 	}
 
+	public GeoLocation getLocation() {
+		return location;
+	}
+
+	public void setLocation(GeoLocation location) {
+		this.location = location;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -84,6 +97,9 @@ public class Place implements Serializable {
 		}
 		if (address != null) {
 			builder.append(address);
+		}
+		if (location != null) {
+			builder.append(location);
 		}
 		builder.append("]");
 		return builder.toString();

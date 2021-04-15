@@ -7,10 +7,7 @@ import javax.persistence.Access;
 import javax.persistence.AccessType;
 import javax.persistence.Column;
 import javax.persistence.Embeddable;
-import javax.persistence.Embedded;
 import javax.validation.constraints.Size;
-
-import eu.netmobiel.commons.model.GeoLocation;
 
 @Embeddable
 @Vetoed
@@ -58,12 +55,6 @@ public class Address implements Serializable {
 	@Column(name = "postal_code")
 	private String postalCode;
 	
-	/**
-	 * The GPS location and short name.
-	 */
-	@Embedded
-	private GeoLocation location;
-
 	public static Address createDefault() {
 		return new Address();
 	}
@@ -108,14 +99,6 @@ public class Address implements Serializable {
 		this.postalCode = postalCode;
 	}
 
-	public GeoLocation getLocation() {
-		return location;
-	}
-
-	public void setLocation(GeoLocation location) {
-		this.location = location;
-	}
-
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -138,9 +121,6 @@ public class Address implements Serializable {
 		if (countryCode != null) {
 			builder.append(countryCode);
 			builder.append(", ");
-		}
-		if (location != null) {
-			builder.append(location);
 		}
 		return builder.toString();
 	}

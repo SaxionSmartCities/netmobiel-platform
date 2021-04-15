@@ -16,13 +16,16 @@ import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.ProfilesApi;
+import eu.netmobiel.profile.api.mapping.PlaceMapper;
 import eu.netmobiel.profile.api.mapping.ProfileMapper;
 import eu.netmobiel.profile.api.model.FirebaseTokenResponse;
 import eu.netmobiel.profile.api.model.ImageResponse;
 import eu.netmobiel.profile.api.model.ImageUploadRequest;
 import eu.netmobiel.profile.api.model.ProfileResponse;
 import eu.netmobiel.profile.filter.ProfileFilter;
+import eu.netmobiel.profile.model.Place;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.service.ProfileManager;
 
@@ -31,7 +34,9 @@ import eu.netmobiel.profile.service.ProfileManager;
 public class ProfilesResource implements ProfilesApi {
 
 	@Inject
-	private ProfileMapper mapper;
+	private ProfileMapper profileMapper;
+	@Inject
+	private PlaceMapper placeMapper;
 
 	@Inject
 	private ProfileManager profileManager;
@@ -56,7 +61,7 @@ public class ProfilesResource implements ProfilesApi {
 	public Response createProfile(eu.netmobiel.profile.api.model.Profile profile) {
     	Response rsp = null;
 		try {
-			Profile domprof = mapper.map(profile);
+			Profile domprof = profileMapper.map(profile);
 	    	Long id = profileManager.createProfile(domprof);
 			rsp = Response.created(UriBuilder.fromResource(ProfilesApi.class)
 					.path(ProfilesApi.class.getMethod("getProfile", String.class)).build(id)).build();
@@ -77,7 +82,7 @@ public class ProfilesResource implements ProfilesApi {
 			// depending on the privileges of the caller.
 			Profile profile = profileManager.getProfileByManagedIdentity(mid);
         	ProfileResponse prsp = new ProfileResponse();
-        	prsp.setProfiles(Collections.singletonList(mapper.mapComplete(profile)));
+        	prsp.setProfiles(Collections.singletonList(profileMapper.mapComplete(profile)));
         	prsp.setMessage("Profile succesfully retrieved");
         	prsp.setSuccess(true);
    			rsp = Response.ok(prsp).build();
@@ -125,7 +130,7 @@ public class ProfilesResource implements ProfilesApi {
 			ProfileFilter filter = new ProfileFilter();
 			filter.setUserRole(role);
 	    	PagedResult<Profile> results = profileManager.listProfiles(filter, cursor);
-			rsp = Response.ok(mapper.map(results)).build();
+			rsp = Response.ok(profileMapper.mapShallow(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
@@ -136,32 +141,15 @@ public class ProfilesResource implements ProfilesApi {
 
 	
 	@Override
-	public Response searchShoutOutDrivers(String withInAnyCircles, String withInAllCircles) {
-//		Example: withInAnyCircles=[52.004166:6.517835:50,52.10:6.65:50]
-//    	Response rsp = null;
-		if (withInAnyCircles == null || withInAnyCircles.length() < 3) {
-			throw new BadRequestException("withinAnyCircles is a mandatory parameter");
-		}
-		if (withInAllCircles == null || withInAllCircles.length() < 3) {
-			throw new BadRequestException("withInAllCircles is a mandatory parameter");
-		}
-		String[] anyCircles = withInAnyCircles.substring(1, withInAnyCircles.length() - 1).split(",");
-		if (anyCircles.length != 2) {
-			throw new BadRequestException("withinAnyCircles should contain two circles");
-		}
-		throw new UnsupportedOperationException("searchShoutOutDrivers is not implemented");
-	}
-
-	@Override
 	public Response updateProfile(String profileId, eu.netmobiel.profile.api.model.Profile apiProfile) {
     	Response rsp = null;
 		try {
 			String mid = resolveIdentity(profileId);
-			Profile domainProfile = mapper.map(apiProfile);
+			Profile domainProfile = profileMapper.map(apiProfile);
 			profileManager.updateProfileByManagedIdentity(mid, domainProfile);
         	domainProfile = profileManager.getProfileByManagedIdentity(profileId);
         	ProfileResponse prsp = new ProfileResponse();
-        	prsp.setProfiles(Collections.singletonList(mapper.mapComplete(domainProfile)));
+        	prsp.setProfiles(Collections.singletonList(profileMapper.mapComplete(domainProfile)));
         	prsp.setMessage("Profile succesfully retrieved");
         	prsp.setSuccess(true);
    			rsp = Response.ok(prsp).build();
@@ -203,7 +191,7 @@ public class ProfilesResource implements ProfilesApi {
 	    	profileManager.uploadImage(mid, mimetype, filename, decodedImage);
         	Profile profile = profileManager.getProfileByManagedIdentity(mid);
         	ProfileResponse prsp = new ProfileResponse();
-        	prsp.setProfiles(Collections.singletonList(mapper.mapComplete(profile)));
+        	prsp.setProfiles(Collections.singletonList(profileMapper.mapComplete(profile)));
         	prsp.setMessage("Profile succesfully retrieved");
         	prsp.setSuccess(true);
    			rsp = Response.ok(prsp).build();
@@ -226,13 +214,85 @@ public class ProfilesResource implements ProfilesApi {
 		return rsp;
 	}
 
+	// =========================   PLACE  =========================
+	
 	@Override
-	public Response getProfileOldskool(String profileId) {
-		throw new UnsupportedOperationException("To be removed");
+	public Response createPlace(String profileId, eu.netmobiel.profile.api.model.Place place) {
+		Response rsp = null;
+		try {
+			String mid = resolveIdentity(profileId);
+			Place p = placeMapper.mapApiPlace(place);
+	    	Long id = profileManager.createPlace(mid, p);
+			rsp = Response.created(UriBuilder.fromResource(ProfilesApi.class)
+					.path(ProfilesApi.class.getMethod("getPlace", String.class, String.class)).build(profileId, id)).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException | NoSuchMethodException e) {
+			throw new WebApplicationException(e);
+		}
+		return rsp;
 	}
 
 	@Override
-	public Response searchShoutOutDriversNewSkool(String withInAnyCircles, String withInAllCircles) {
-		throw new UnsupportedOperationException("To be removed");
+	public Response getPlace(String profileId, String placeId) {
+		Response rsp = null;
+		try {
+			String mid = resolveIdentity(profileId);
+	    	Place place = profileManager.getPlace(mid, UrnHelper.getId(placeId));
+			rsp = Response.ok(placeMapper.mapPlace(place)).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+		return rsp;
 	}
+
+	@Override
+	public Response getPlaces(String profileId, Integer maxResults, Integer offset) {
+		Response rsp = null;
+		try {
+			String mid = resolveIdentity(profileId);
+			Cursor cursor = new Cursor(maxResults, offset);
+	    	PagedResult<Place> results = profileManager.listPlaces(mid, cursor);
+			rsp = Response.ok(placeMapper.mapPlacesPage(results)).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response updatePlace(String profileId, String placeId, eu.netmobiel.profile.api.model.Place apiPlace) {
+    	Response rsp = null;
+		try {
+			String mid = resolveIdentity(profileId);
+			Place place= placeMapper.mapApiPlace(apiPlace);
+			profileManager.updatePlace(mid, UrnHelper.getId(placeId), place);
+   			rsp = Response.noContent().build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response deletePlace(String profileId, String placeId) {
+		Response rsp = null;
+		try {
+			String mid = resolveIdentity(profileId);
+	    	profileManager.removePlace(mid, UrnHelper.getId(placeId));
+			rsp = Response.noContent().build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
 }

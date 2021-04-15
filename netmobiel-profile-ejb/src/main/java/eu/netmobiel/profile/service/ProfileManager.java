@@ -40,12 +40,14 @@ import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.filter.ReviewFilter;
 import eu.netmobiel.profile.model.Address;
 import eu.netmobiel.profile.model.Compliment;
+import eu.netmobiel.profile.model.Place;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Review;
 import eu.netmobiel.profile.model.RidesharePreferences;
 import eu.netmobiel.profile.model.SearchPreferences;
 import eu.netmobiel.profile.repository.ComplimentDao;
 import eu.netmobiel.profile.repository.KeycloakDao;
+import eu.netmobiel.profile.repository.PlaceDao;
 import eu.netmobiel.profile.repository.ProfileDao;
 import eu.netmobiel.profile.repository.ReviewDao;
 import eu.netmobiel.profile.repository.RidesharePreferencesDao;
@@ -83,6 +85,9 @@ public class ProfileManager {
     @Inject
     private ComplimentDao complimentDao;
     
+    @Inject
+    private PlaceDao placeDao;
+
     @Inject
     private KeycloakDao keycloakDao;
 
@@ -151,7 +156,6 @@ public class ProfileManager {
 		// If the profile already exists, then a constraint violation will occur.
 		profile.setManagedIdentity(managedIdentity);
 		profile.linkOneToOneChildren();
-		profile.linkPlaces();
 		profileDao.save(profile);
 		if (profile.getSearchPreferences() != null) {
 			searchPreferencesDao.save(profile.getSearchPreferences());				
@@ -187,11 +191,12 @@ public class ProfileManager {
     	profile.setPlaces(Collections.emptySet());
     	if (profile.getHomeAddress() != null) {
     		Address addr = profile.getHomeAddress();
+    		// Only country and locality are passed
     		addr.setHouseNumber(null);
-    		addr.setLocation(null);
     		addr.setPostalCode(null);
     		addr.setStreet(null);
     	}
+    	profile.setHomeLocation(null);
     	profile.setFcmToken(null);
     	profile.setConsent(null);
     	profile.setNotificationOptions(null);
@@ -258,7 +263,6 @@ public class ProfileManager {
     	newProfile.setManagedIdentity(managedId);
     	newProfile.setId(dbprofile.getId());
 		newProfile.linkOneToOneChildren();
-		newProfile.linkPlaces();
 		// Overwrite whatever image path is provided
 		newProfile.setImagePath(dbprofile.getImagePath());
 		dbprofile = profileDao.merge(newProfile);
@@ -489,4 +493,58 @@ public class ProfileManager {
 		complimentDao.remove(c);
 	}
 
+    /* ===================  PLACE  ==================== */
+
+	public Long createPlace(String managedId, Place place) throws BadRequestException, NotFoundException {
+    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
+    	place.setProfile(profile);
+		placeDao.save(place);
+		return place.getId();
+	}
+
+	public @NotNull PagedResult<Place> listPlaces(String managedId, Cursor cursor) throws BadRequestException, NotFoundException {
+		cursor.validate(MAX_RESULTS, 0);
+    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
+    	PagedResult<Long> prs = placeDao.listPlaces(profile, Cursor.COUNTING_CURSOR);
+    	List<Place> results = null;
+    	if (prs.getTotalCount() > 0 && !cursor.isCountingQuery()) {
+    		// Get the actual data
+    		PagedResult<Long> pids = placeDao.listPlaces(profile, cursor);
+    		results = placeDao.loadGraphs(pids.getData(), null, Place::getId);
+    	}
+    	return new PagedResult<Place>(results, cursor, prs.getTotalCount());
+	}
+
+	public Place getPlace(String managedId, Long placeId) throws NotFoundException {
+    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
+		boolean privileged = sessionContext.isCallerInRole("admin");
+		Place place = placeDao.find(placeId)
+				.orElseThrow(() -> new NotFoundException("No such place: " + placeId));
+		if (! place.getProfile().getId().equals(profile.getId()) && ! privileged) {
+			new SecurityException("You have no privilege to remove this place: " + placeId);
+		}
+		return place;
+	}
+	
+	public void updatePlace(String managedId, Long placeId, Place place) throws BadRequestException, NotFoundException {
+    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
+    	place.setProfile(profile);
+		boolean privileged = sessionContext.isCallerInRole("admin");
+		Place dbplace = placeDao.find(placeId)
+				.orElseThrow(() -> new NotFoundException("No such place: " + place.getId()));
+		if (! dbplace.getProfile().getId().equals(profile.getId()) && ! privileged) {
+			new SecurityException("You have no privilege to update this place: " + place.getId());
+		}
+		place.setId(placeId);
+		placeDao.merge(place);
+	}
+
+	public void removePlace(String managedId, Long placeId) throws NotFoundException {
+		Place place = getPlace(managedId, placeId);
+		placeDao.remove(place);
+	}
 }

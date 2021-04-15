@@ -21,7 +21,8 @@ public class ProfileTest {
 		Profile p = new Profile();
 		p.linkOneToOneChildren();
 		assertNotNull(p.getConsent());
-		assertNotNull(p.getHomeAddress());
+//		assertNull(p.getHomeAddress());
+//		assertNull(p.getHomeLocation());
 		assertNotNull(p.getNotificationOptions());
 		assertNull(p.getSearchPreferences());
 		assertNull(p.getRidesharePreferences());
@@ -32,7 +33,8 @@ public class ProfileTest {
 		Profile p = new Profile(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl", UserRole.PASSENGER);
 		p.linkOneToOneChildren();
 		assertNotNull(p.getConsent());
-		assertNotNull(p.getHomeAddress());
+//		assertNull(p.getHomeAddress());
+//		assertNull(p.getHomeLocation());
 		assertNotNull(p.getNotificationOptions());
 		assertNotNull(p.getSearchPreferences());
 		assertNull(p.getRidesharePreferences());
@@ -43,7 +45,8 @@ public class ProfileTest {
 		Profile p = new Profile(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl", UserRole.DRIVER);
 		p.linkOneToOneChildren();
 		assertNotNull(p.getConsent());
-		assertNotNull(p.getHomeAddress());
+//		assertNull(p.getHomeAddress());
+//		assertNull(p.getHomeLocation());
 		assertNotNull(p.getNotificationOptions());
 		assertNull(p.getSearchPreferences());
 		assertNotNull(p.getRidesharePreferences());
@@ -54,7 +57,8 @@ public class ProfileTest {
 		Profile p = new Profile(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl", UserRole.BOTH);
 		p.linkOneToOneChildren();
 		assertNotNull(p.getConsent());
-		assertNotNull(p.getHomeAddress());
+//		assertNull(p.getHomeAddress());
+//		assertNull(p.getHomeLocation());
 		assertNotNull(p.getNotificationOptions());
 		assertNotNull(p.getSearchPreferences());
 		assertNotNull(p.getRidesharePreferences());

@@ -113,8 +113,9 @@ public class ProfileDao extends UserDao<Profile> {
 //    		logger.debug("Pickup small circle: " + GeometryHelper.createWKT(pickupSmallCircle));
 //    		logger.debug("Drop-off small circle: " + GeometryHelper.createWKT(dropOffSmallCircle));
 //    	}
-    	TypedQuery<Profile> tq = em.createQuery("from Profile p where contains(:pickupLarge, p.homeAddress.location.point) = true and contains(:dropOffLarge, p.homeAddress.location.point) = true "
-    			+ " and (contains(:pickupSmall, p.homeAddress.location.point) = true or contains(:dropOffSmall, p.homeAddress.location.point) = true) "
+    	TypedQuery<Profile> tq = em.createQuery("from Profile p where "
+    			+ "     contains(:pickupLarge, p.homeLocation.point) = true and contains(:dropOffLarge, p.homeLocation.point) = true "
+    			+ " and (contains(:pickupSmall, p.homeLocation.point) = true or contains(:dropOffSmall, p.homeLocation.point) = true) "
     			+ " and p.userRole != :passengerRole "
     			+ "order by id asc ", Profile.class)
     			.setParameter("pickupLarge", pickupLargeCircle)

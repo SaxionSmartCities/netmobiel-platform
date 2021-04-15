@@ -5,6 +5,7 @@ import static org.junit.Assert.*;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
 import java.util.List;
+import java.util.Optional;
 
 import javax.inject.Inject;
 
@@ -69,6 +70,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	var birthDay = "1946-10-30";
     	var token = "Hup-234";
     	var address = Fixture.createAddressLichtenvoorde();
+    	var location = Fixture.placeThuisLichtenvoorde;
     	var path = "/images/my/image.png";
     	var phoneNr = "+31612345678";
     	var consent16 = true;
@@ -77,6 +79,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	p.setDateOfBirth(LocalDate.parse(birthDay));
     	p.setFcmToken(token);
     	p.setHomeAddress(address);
+    	p.setHomeLocation(location);
     	p.setImagePath(path);
     	p.setPhoneNumber(phoneNr);
     	p.getConsent().setOlderThanSixteen(consent16);
@@ -110,10 +113,10 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	assertNotNull(p.getHomeAddress());
     	assertEquals(address.getCountryCode(), p.getHomeAddress().getCountryCode());
     	assertEquals(address.getLocality(), p.getHomeAddress().getLocality());
-    	assertEquals(address.getLocation(), p.getHomeAddress().getLocation());
     	assertEquals(address.getStreet(), p.getHomeAddress().getStreet());
     	assertEquals(address.getHouseNumber(), p.getHomeAddress().getHouseNumber());
     	assertEquals(address.getPostalCode(), p.getHomeAddress().getPostalCode());
+    	assertEquals(location, p.getHomeLocation());
     	
     	log.debug("Check consent");
     	assertNotNull(p.getConsent());
@@ -149,7 +152,10 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
 
     @Test
     public void getProfile() throws Exception {
-    	Profile p = profileDao.loadGraph(passenger1.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
+    	Profile p = profileDao.find(passenger1.getId()).get();
+    	Optional<Profile> optp = profileDao.loadGraph(passenger1.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH);
+    	assertFalse(optp.isEmpty());
+    	p = optp.get();
     	assertTrue(profileDao.isLoaded(p, Profile_.CONSENT));
     	assertTrue(profileDao.isLoaded(p, Profile_.HOME_ADDRESS));
     	assertTrue(profileDao.isLoaded(p, Profile_.NOTIFICATION_OPTIONS));
@@ -165,6 +171,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	flush();
 
     	log.debug("Fetch passenger2, standard");
+    	p = profileDao.find(p.getId()).get();
     	p = profileDao.loadGraph(p.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	assertFalse(p.getConsent().isOlderThanSixteen());
     	log.debug("Set consent flag passenger 2");
@@ -187,6 +194,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	var address = Fixture.createAddressLichtenvoorde();
     	log.debug("Add home address to passenger2");
     	p.setHomeAddress(address);
+    	p.setHomeLocation(Fixture.placeThuisLichtenvoorde);
     	flush();
 
     	p = profileDao.loadGraph(p.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
@@ -248,11 +256,12 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	var p = Fixture.createPassenger2();
     	var address = Fixture.createAddressLichtenvoorde();
     	p.setHomeAddress(address);
+    	p.setHomeLocation(Fixture.placeThuisLichtenvoorde);
     	log.debug("Create passenger2");
     	profileDao.save(p);
     	searchPreferencesDao.save(p.getSearchPreferences());
     	log.debug("Add favorite for passenger2");
-    	p.addPlace(Fixture.createPlace(Fixture.createAddressHengelo()));
+    	p.addPlace(Fixture.createPlace(Fixture.createAddressHengelo(), Fixture.placeThuisHengelo));
     	flush();
 
     	log.debug("Fetch profile full");
@@ -275,18 +284,22 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	var carla1 = profileDao.find(driver1.getId()).get();
     	var addrCarla1 = Fixture.createAddressLichtenvoorde();
     	carla1.setHomeAddress(addrCarla1);
+    	carla1.setHomeLocation(Fixture.placeThuisLichtenvoorde);
     	var carla2 = Fixture.createDriver2();
     	var addrCarla2 = Fixture.createAddressHengelo();
     	carla2.setHomeAddress(addrCarla2);
+    	carla2.setHomeLocation(Fixture.placeThuisHengelo);
     	profileDao.save(carla2);
     	ridesharePreferencesDao.save(carla2.getRidesharePreferences());
     	flush();
 
     	carla1 = profileDao.loadGraph(carla1.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	assertNotNull(carla1.getHomeAddress());
+    	assertNotNull(carla1.getHomeLocation());
     	
     	carla2 = profileDao.loadGraph(carla2.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	assertNotNull(carla2.getHomeAddress());
+    	assertNotNull(carla2.getHomeLocation());
     	// So now , we have two drivers: Lichtenvoorde (carla1) and Hengelo (carla2).
     	// We want a ride from Zieuwent to Doetinchem. Lichtenvoorde is nearby, Hengelo is not.
     	

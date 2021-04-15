@@ -49,7 +49,6 @@ public class Fixture {
 
 	public static Address createAddressLichtenvoorde() {
 		Address ad = new Address();
-		ad.setLocation(placeThuisLichtenvoorde);
 		ad.setCountryCode("NL");
 		ad.setLocality("Lichtenvoorde");
 		ad.setStreet("Rapenburgsestraat");
@@ -60,7 +59,6 @@ public class Fixture {
 
 	public static Address createAddressHengelo() {
 		Address ad = new Address();
-		ad.setLocation(placeThuisHengelo);
 		ad.setCountryCode("NL");
 		ad.setLocality("Hengelo");
 		ad.setStreet("Meester P.J. Troelstrastraat");
@@ -69,9 +67,10 @@ public class Fixture {
 		return ad;
 	}
 
-	public static Place createPlace(Address addr) {
+	public static Place createPlace(Address addr, GeoLocation location) {
 		Place p = new Place();
 		p.setAddress(addr);
+		p.setLocation(location);
 		return p;
 	}
 	

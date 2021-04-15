@@ -6,7 +6,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
 
-import eu.netmobiel.profile.model.Address;
+import eu.netmobiel.profile.model.Place;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
 import eu.netmobiel.profile.model.SearchPreferences;
@@ -27,6 +27,8 @@ public abstract class ProfileMapper {
 	@Mapping(target = "imagePath", source = "image")
 	@Mapping(target = "familyName", source = "lastName")
 	@Mapping(target = "homeAddress", source = "address")
+	@Mapping(target = "homeAddress.countryCode", source = "address.country")
+	@Mapping(target = "homeLocation", source = "address.location")
 	@Mapping(target = "ridesharePreferences", source = "ridePlanOptions")
 	// The id is defined as the keycloak identity.
 	@Mapping(target = "managedIdentity", source = "id")
@@ -74,7 +76,9 @@ public abstract class ProfileMapper {
 		return TraverseMode.valueOf(source);
 	}
 	
-	@Mapping(target = "countryCode", source = "country")
+	@Mapping(target = "address.countryCode", source = "country")
 	@Mapping(target = "location.label", source ="label")
-	public abstract Address map(eu.netmobiel.profile.api.model.Address source);
+	@Mapping(target = "profile", ignore = true)
+	@Mapping(target = "id", ignore = true)
+	public abstract Place map(eu.netmobiel.profile.api.model.Place source);
 }
