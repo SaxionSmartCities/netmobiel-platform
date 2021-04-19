@@ -57,9 +57,9 @@ paths:
         schema:
           type: string
         in: query
-      - name: detailed
-        description: 'If set to true then return the full address, if available, at
-          the cost of a small performance penalty. Default: false.'
+      - name: details
+        description: 'If set to true then include the address details, if available,
+          at the cost of a small performance penalty. Default: false.'
         schema:
           type: boolean
         in: query
