@@ -51,17 +51,6 @@ paths:
           type: integer
         in: query
         required: false
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.
-          The maximum for HERE is 100.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return. '
-        schema:
-          type: integer
-        in: query
       - name: lang
         description: The preferred language to receive items in. Use a BCP 47 language
           code.
@@ -73,6 +62,12 @@ paths:
           the cost of a small performance penalty. Default: false.'
         schema:
           type: boolean
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.
+          The maximum for HERE is 100.'
+        schema:
+          type: integer
         in: query
       responses:
         "200":
