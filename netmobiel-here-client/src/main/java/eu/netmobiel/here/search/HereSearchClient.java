@@ -18,8 +18,9 @@ import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.GeoLocation;
-import eu.netmobiel.here.search.model.ErrorResponse;
-import eu.netmobiel.here.search.model.OpenSearchReverseGeocodeResponse;
+import eu.netmobiel.here.search.api.model.ErrorResponse;
+import eu.netmobiel.here.search.api.model.OpenSearchAutosuggestResponse;
+import eu.netmobiel.here.search.api.model.OpenSearchReverseGeocodeResponse;
 
 @ApplicationScoped
 //@Logging
@@ -30,7 +31,7 @@ public class HereSearchClient {
     @Resource(lookup = "java:global/geocode/hereApiKey")
     private String hereApiKey;
 
-//    private static final String hereSearchAutoSuggestUrl = "https://autosuggest.search.hereapi.com/v1/autosuggest"; 
+    private static final String hereSearchAutoSuggestUrl = "https://autosuggest.search.hereapi.com/v1/autosuggest"; 
 //    private static final String hereSearchBrowseUrl = "https://browse.search.hereapi.com/v1/browse"; 
 //    private static final String hereSearchDiscoverUrl = "https://discover.search.hereapi.com/v1/discover"; 
 //    private static final String hereSearchGeocodeUrl = "https://geocode.search.hereapi.com/v1/geocode"; 
@@ -58,6 +59,15 @@ public class HereSearchClient {
 	
 
 	/**
+	 * Formats the error response a bit different from the generated version.
+	 * @param err the error response
+	 * @return A string containing the title, cause and action fields.
+	 */
+	private String formatErrorResponse(ErrorResponse err) {
+		return String.format("HERE: %s caused by %s - %s", err.getTitle(), err.getCause(), err.getAction());
+	}
+
+	/**
 	 * Returns reverse geocoding result from the HERE Search and Discovery Api.
 	 * @param location The location to lookup
 	 * @param language Optional. The language to be used for result rendering from a list of BCP 47 compliant language codes. Default: nl-NL.
@@ -82,8 +92,9 @@ public class HereSearchClient {
 		}
 		try (Response response = target.request(MediaType.APPLICATION_JSON).get()) {
 			if (response.getStatusInfo() != Response.Status.OK) {
-				ErrorResponse rsp = response.readEntity(ErrorResponse.class);
-				throw new WebApplicationException(rsp.toString(), rsp.status);
+				ErrorResponse ersp = response.readEntity(ErrorResponse.class);
+				String errmsg = ersp.getTitle() != null ? formatErrorResponse(ersp) : response.getStatusInfo().toString(); 
+				throw new WebApplicationException(errmsg, response.getStatus());
 			}
 	        result = response.readEntity(OpenSearchReverseGeocodeResponse.class);
 		}
@@ -98,12 +109,12 @@ public class HereSearchClient {
     public String getPostalCode6(GeoLocation location) {
     	OpenSearchReverseGeocodeResponse rsp = getReverseGeocode(location, null);
     	String pc = null;
-    	if (rsp.items.length > 0) {
-    		if (rsp.items.length > 1) {
+    	if (rsp.getItems().size() > 0) {
+    		if (rsp.getItems().size() > 1) {
     			log.warn("Multiple results on reverse geocoding of: " + location.toString());
     		}
-    		if (rsp.items[0].address != null) {
-    			pc = rsp.items[0].address.postalCode;
+    		if (rsp.getItems().get(0).getAddress() != null) {
+    			pc = rsp.getItems().get(0).getAddress().getPostalCode();
     			if (pc != null) {
     				pc = pc.replaceAll(" ", "");
     			}
@@ -112,4 +123,53 @@ public class HereSearchClient {
     	return pc;
     }
 
+    /* ===================================  AUTOSUGGEST  =================================== */
+    
+	/**
+	 * Returns autosuggestions from the HERE Search Api.
+	 * @param query the query string.
+	 * @param centre centre point of a circle as latitude and longitude. The circle limits the search area.
+	 * @param radius the radius around the centre point.
+	 * @param language Optional. The language to be used for result rendering from a list of BCP 47 compliant language codes. Default: nl-NL.
+	 * @param details If set to true then include address details in the result.
+	 * @param maxResults Optional. The maximum number of result items in the collection.
+	 * @return 
+	 * @see https://developer.here.com/documentation/places/dev_guide/topics_api/resource-autosuggest.html
+	 */
+    public OpenSearchAutosuggestResponse listAutosuggestions(String query, GeoLocation centre, Integer radius, String language, Boolean details, Integer maxResults) {
+    	if (query == null || query.trim().length() < 1) {
+    		throw new IllegalArgumentException("listAutoSuggestions: query is a mandatory parameter, size > 0");
+    	}
+    	if (centre == null || radius == null) {
+    		throw new IllegalArgumentException("listAutoSuggestions: centre and radius are mandatory parameters.");
+    	}
+    	if (language == null) {
+    		language = "nl-NL";
+    	}
+    	if (maxResults == null) {
+    		maxResults = 20;
+    	}
+		WebTarget target = client.target(hereSearchAutoSuggestUrl)
+			.queryParam("q", query)
+			.queryParam("in", String.format((Locale)null, "circle:%f,%f;r=%d", centre.getLatitude(), centre.getLongitude(), radius))
+			.queryParam("lang", language)
+			.queryParam("limit", maxResults)
+			.queryParam("apiKey", hereApiKey);
+		if (Boolean.TRUE.equals(details)) {
+			target = target.queryParam("show", "details");
+		}
+		OpenSearchAutosuggestResponse result = null;
+		if (log.isDebugEnabled()) {
+			log.debug("Autosuggest: " + target.getUri().toString());
+		}
+		try (Response response = target.request(MediaType.APPLICATION_JSON).get()) {
+			if (response.getStatusInfo() != Response.Status.OK) {
+				ErrorResponse ersp = response.readEntity(ErrorResponse.class);
+				String errmsg = ersp.getTitle() != null ? formatErrorResponse(ersp) : response.getStatusInfo().toString(); 
+				throw new WebApplicationException(errmsg, response.getStatus());
+			}
+	        result = response.readEntity(OpenSearchAutosuggestResponse.class);
+		}
+        return result;
+    }
 }

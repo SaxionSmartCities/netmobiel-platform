@@ -100,7 +100,9 @@ public class HerePlacesClient {
 		target = target.queryParam("apiKey", hereApiKey);
 		
 		AutosuggestMediaType result = null;
-		log.debug("URI: " + target.getUri().toString());
+		if (log.isDebugEnabled()) {
+			log.debug("URI: " + target.getUri().toString());
+		}
 		try (Response response = target.request(MediaType.APPLICATION_JSON).get()) {
 			if (response.getStatusInfo() != Response.Status.OK) {
 				ErrorResponse ersp = response.readEntity(ErrorResponse.class);

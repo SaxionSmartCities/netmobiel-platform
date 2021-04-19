@@ -24,9 +24,10 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.here.search.HereSearchClient;
 import eu.netmobiel.here.search.Jackson2ObjectMapperContextResolver;
-import eu.netmobiel.here.search.model.GeocodeResultItem;
-import eu.netmobiel.here.search.model.OpenSearchReverseGeocodeResponse;
-import eu.netmobiel.here.search.model.ResultType;
+import eu.netmobiel.here.search.api.model.AutosuggestEntityResultItem;
+import eu.netmobiel.here.search.api.model.GeocodeResultItem;
+import eu.netmobiel.here.search.api.model.OpenSearchAutosuggestResponse;
+import eu.netmobiel.here.search.api.model.OpenSearchReverseGeocodeResponse;
 
 @RunWith(Arquillian.class)
 public class HereSearchClientIT {
@@ -63,30 +64,30 @@ public class HereSearchClientIT {
     	GeoLocation myLocation = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	OpenSearchReverseGeocodeResponse result = client.getReverseGeocode(myLocation, null);
     	assertNotNull(result);
-    	assertNotNull(result.items);
-    	assertEquals(1, result.items.length);
-    	GeocodeResultItem item = result.items[0];
-    	assertEquals("Kennedystraat 8, 7136 LX Zieuwent, Nederland", item.title);
-    	assertNotNull(item.id);
-    	assertEquals(ResultType.houseNumber, item.resultType);
-    	assertEquals("Kennedystraat 8, 7136 LX Zieuwent, Nederland", item.address.label);
-    	assertEquals("NLD", item.address.countryCode);
-    	assertEquals("Nederland", item.address.countryName);
-    	assertEquals("GE", item.address.stateCode);
-    	assertEquals("Gelderland", item.address.state);
-    	assertEquals("Oost Gelre", item.address.county);
-    	assertEquals("Zieuwent", item.address.city);
-    	assertEquals("Kennedystraat", item.address.street);
-    	assertEquals("7136 LX", item.address.postalCode);
-    	assertEquals("8", item.address.houseNumber);
-    	assertEquals(52.00431, item.position.lat, 1E-6);
-    	assertEquals(6.51775, item.position.lng, 1E-6);
-    	assertEquals(17, item.distance.intValue());
-    	assertNotNull(item.mapView);
-    	assertEquals(6.51663, item.mapView.west, 1E-6);
-    	assertEquals(52.00408, item.mapView.south, 1E-6);
-    	assertEquals(6.51955, item.mapView.east, 1E-6);
-    	assertEquals(52.00423, item.mapView.north, 1E-6);
+    	assertNotNull(result.getItems());
+    	assertEquals(1, result.getItems().size());
+    	GeocodeResultItem item = result.getItems().get(0);
+    	assertEquals("Kennedystraat 8, 7136 LX Zieuwent, Nederland", item.getTitle());
+    	assertNotNull(item.getId());
+    	assertEquals(GeocodeResultItem.ResultTypeEnum.HOUSENUMBER, item.getResultType());
+    	assertEquals("Kennedystraat 8, 7136 LX Zieuwent, Nederland", item.getAddress().getLabel());
+    	assertEquals("NLD", item.getAddress().getCountryCode());
+    	assertEquals("Nederland", item.getAddress().getCountryName());
+    	assertEquals("GE", item.getAddress().getStateCode());
+    	assertEquals("Gelderland", item.getAddress().getState());
+    	assertEquals("Oost Gelre", item.getAddress().getCounty());
+    	assertEquals("Zieuwent", item.getAddress().getCity());
+    	assertEquals("Kennedystraat", item.getAddress().getStreet());
+    	assertEquals("7136 LX", item.getAddress().getPostalCode());
+    	assertEquals("8", item.getAddress().getHouseNumber());
+    	assertEquals(52.00431, item.getPosition().getLat(), 1E-6);
+    	assertEquals(6.51775, item.getPosition().getLng(), 1E-6);
+    	assertEquals(17, item.getDistance().intValue());
+    	assertNotNull(item.getMapView());
+    	assertEquals(6.51663, item.getMapView().getWest(), 1E-6);
+    	assertEquals(52.00408, item.getMapView().getSouth(), 1E-6);
+    	assertEquals(6.51955, item.getMapView().getEast(), 1E-6);
+    	assertEquals(52.00423, item.getMapView().getNorth(), 1E-6);
     }
 
     @Test
@@ -102,5 +103,81 @@ public class HereSearchClientIT {
     		assertEquals(Response.Status.BAD_REQUEST.getStatusCode(), wex.getResponse().getStatus());
     		assertEquals("HERE: Illegal input for parameter 'at' caused by Actual parameter value: '452.004166,1006.517835' - requirement failed: Latitude must be between -90 <= X <= 90, actual: 452.004166", wex.getMessage());
     	}
+    }
+    
+    @Test
+    public void testAutoSuggest() throws Exception {
+    	GeoLocation myLocation = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
+    	int radius = 150000;
+    	OpenSearchAutosuggestResponse result = client.listAutosuggestions("slingeland", myLocation, radius, null, null, null);
+/*    	
+        {
+            "title": "Slingeland Ziekenhuis",
+            "id": "here:pds:place:528u1hrx-fcf8abc218384ad990a9238eaa81babf",
+            "resultType": "place",
+            "address": {
+                "label": "Slingeland Ziekenhuis, Kruisbergseweg 25, 7009 Doetinchem, Nederland"
+            },
+            "position": {
+                "lat": 51.97641,
+                "lng": 6.28509
+            },
+            "access": [
+                {
+                    "lat": 51.97641,
+                    "lng": 6.28569
+                }
+            ],
+            "distance": 16233,
+            "categories": [
+                {
+                    "id": "800-8000-0159",
+                    "name": "Ziekenhuis",
+                    "primary": true
+                }
+            ],
+            "references": [
+                {
+                    "supplier": {
+                        "id": "core"
+                    },
+                    "id": "50865913"
+                }
+            ],
+            "highlights": {
+                "title": [
+                    {
+                        "start": 0,
+                        "end": 10
+                    }
+                ],
+                "address": {
+                    "label": [
+                        {
+                            "start": 0,
+                            "end": 10
+                        }
+                    ]
+                }
+            }
+        },
+*/
+    	assertNotNull(result);
+    	assertNotNull(result.getItems());
+    	assertTrue(result.getItems().size() > 0);
+    	AutosuggestEntityResultItem item = result.getItems().get(0);
+    	assertEquals("Slingeland Ziekenhuis", item.getTitle());
+    	assertEquals(AutosuggestEntityResultItem.ResultTypeEnum.PLACE, item.getResultType());
+    	assertNotNull(item.getAddress());
+    	assertEquals("Slingeland Ziekenhuis, Kruisbergseweg 25, 7009 Doetinchem, Nederland", item.getAddress().getLabel());
+    	assertNotNull(item.getPosition());
+    	assertEquals(51.97641, item.getPosition().getLat(), 1E-6);
+    	assertEquals(6.28509, item.getPosition().getLng(), 1E-6);
+    	assertNotNull(item.getAccess());
+    	assertTrue(item.getAccess().size() > 0);
+    	assertEquals(51.97641, item.getAccess().get(0).getLat(), 1E-6);
+    	assertEquals(6.28569, item.getAccess().get(0).getLng(), 1E-6);
+    	assertEquals(16233, item.getDistance().intValue());
+    	
     }
 }

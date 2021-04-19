@@ -66,6 +66,18 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-geo-api</artifactId>
+			<version>${project.version}</version>
+			<type>jar</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-geo-rest</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
 			<artifactId>netmobiel-here-client</artifactId>
 			<version>${project.version}</version>
 			<type>jar</type>
@@ -229,6 +241,12 @@
 				<artifactId>netmobiel-communicator-rest</artifactId>
               	<contextRoot>/communicator</contextRoot>
               	<bundleFileName>netmobiel-communicator-rest.war</bundleFileName>
+            </webModule>
+            <webModule>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-geo-rest</artifactId>
+              	<contextRoot>/geosvc</contextRoot>
+              	<bundleFileName>netmobiel-geo-rest.war</bundleFileName>
             </webModule>
             <webModule>
 				<groupId>${project.groupId}</groupId>

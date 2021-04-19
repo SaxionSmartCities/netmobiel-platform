@@ -77,6 +77,11 @@
             <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
         </exclusions>
     </sub-deployment>
+    <sub-deployment name="netmobiel-geo-rest.war">
+        <exclusions>
+            <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
+        </exclusions>
+    </sub-deployment>
     <sub-deployment name="netmobiel-planner-rest.war">
         <dependencies>
         	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-planner-ejb.jar"/>
