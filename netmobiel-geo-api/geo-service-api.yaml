@@ -197,11 +197,12 @@ components:
           items:
             $ref: '#/components/schemas/Location'
         category:
-          description: 'The primary category of the suggestion.  '
+          description: |-
+            The primary category of the suggestion. Only a limited number of categories are supported.
+            The category is defined only in case of a result type place.
           enum:
           - airport
           - bus-station
-          - city-town-village
           - hotel
           - railway-station
           - restaurant
@@ -211,7 +212,8 @@ components:
           - theatre-music-culture
           type: string
         resultType:
-          description: The actual result the of the suggestion.
+          description: The actual result the of the suggestion. A category may be
+            defined in case of a place.
           enum:
           - locality
           - street
