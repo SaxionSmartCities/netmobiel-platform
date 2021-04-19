@@ -27,7 +27,7 @@ paths:
     get:
       parameters:
       - name: query
-        description: The text to search for.
+        description: The text to search for. The query must contain at least one character.
         schema:
           type: string
         in: query
@@ -53,7 +53,7 @@ paths:
         required: false
       - name: maxResults
         description: 'Paging: The maximum number of results per page. Default is 10.
-          The maximum for HERE is 20.'
+          The maximum for HERE is 100.'
         schema:
           type: integer
         in: query
@@ -67,6 +67,12 @@ paths:
           code.
         schema:
           type: string
+        in: query
+      - name: detailed
+        description: 'If set to true then return the full address, if available, at
+          the cost of a small performance penalty. Default: false.'
+        schema:
+          type: boolean
         in: query
       responses:
         "200":
@@ -135,63 +141,157 @@ components:
         start: 32
         count: 16
         data: []
+    Address:
+      title: Root Type for Address
+      description: The address of a place.
+      type: object
+      properties:
+        street:
+          description: The name of the street.
+          type: string
+        houseNumber:
+          description: The house number.
+          type: string
+        postalCode:
+          description: The postal code for the address.
+          type: string
+        locality:
+          description: The city or village name.
+          type: string
+        location:
+          $ref: '#/components/schemas/Location'
+          description: The GPS location of this address.
+        label:
+          description: A short description of the place.
+          type: string
+        countryCode:
+          description: The country code according to ISO 3166-1 Alpha-3.
+          type: string
+      example:
+        street: Rembrandtstraat
+        houseNumber: "8"
+        postalCode: 7556WD
+        locality: Hengelo
+        countryCode: NLD
+        label: Rembrandtstraat 8, 7556 WD Hengelo
+        location:
+          latitude: 52.04157
+          longitude: 6.6047
+    Location:
+      title: Root Type for Location
+      description: A location on a map, comprising of a GPS coordinate and optional
+        a descriptional label for human display.
+      type: object
+      properties:
+        latitude:
+          format: double
+          description: The latitude of this place.
+          type: number
+        longitude:
+          format: double
+          description: The longitude of this place.
+          type: number
+      example:
+        latitude: 52.004166
+        longitude: 6.517835
+        label: Zieuwent,Kennedystraat
+    Range:
+      title: Root Type for Range
+      description: A range in a string.
+      type: object
+      properties:
+        start:
+          format: int32
+          description: First index of the matched range (0-based indexing, inclusive).
+          type: integer
+        end:
+          format: int32
+          description: One past the last index of the matched range (0-based indexing,
+            exclusive); The difference between end and start gives the length of the
+            term.
+          type: integer
+      example:
+        start: 4
+        end: 10
     Suggestion:
       title: Root Type for GeocodeSuggestion
       description: A suggestion from the geocode service.
+      required:
+      - position
+      - title
+      - resultType
+      - titleHighlights
       type: object
       properties:
         title:
           description: The title of the suggestion.
           type: string
-        highlightedTitle:
-          description: The title with the highlight text fragments inserted.
-          type: string
-        vicinity:
-          description: A text describing the vicinity of the place.
-          type: string
-        highlightedVicinity:
-          description: A text describing the vicinity of the matched suggestion, with
-            the highlight text fragments inserted.
-          type: string
         position:
+          $ref: '#/components/schemas/Location'
           description: The position of the place in WGS-84 latitude, longitude degrees.
+        access:
+          description: The access (could be multiple) to the place in WGS-84 latitude,
+            longitude degrees.
           type: array
           items:
-            format: double
-            type: number
+            $ref: '#/components/schemas/Location'
         category:
-          description: 'The formal category of the suggestion. Vendor specific. '
-          type: string
-        categoryTitle:
-          description: A human friendly category.
+          description: 'The primary category of the suggestion.  '
+          enum:
+          - airport
+          - city-town-village
+          - hotel
+          - railway-station
+          - restaurant
+          - sights-museums
+          - sports-facility-venue
+          - taxi-stand
+          - theatre-music-culture
           type: string
         resultType:
           description: The actual result the of the suggestion.
+          enum:
+          - locality
+          - street
+          - houseNumber
+          - place
           type: string
         id:
-          description: A unique identifier for this suggestion. Format is a GUID.
+          description: A unique identifier for this suggestion. Format is a vendor-specific
+            string (urn or guid).
           type: string
         distance:
           format: int32
           description: 'The distance in meter from the reference position specified
             in the query to the suggestion. '
           type: integer
-        completion:
-          description: ' The suggested query completion (in case of result type ''query'').'
-          type: string
+        titleHighlights:
+          description: A list of ranges where the search terms match the title.
+          type: array
+          items:
+            $ref: '#/components/schemas/Range'
+        address:
+          $ref: '#/components/schemas/Address'
+          description: The address of the location. When show=details is set, then
+            the address is as complete as possible, otherwiase only an address oneliner
+            is returned in the address label.
       example:
-        title: Enschede Airport Twente
-        highlightedTitle: <span class="search-hit">Ens</span>chede Airport Twente
-        vicinity: Vliegveldweg 333<br/>7524 PT Enschede
-        highlightedVicinity: Vliegveldweg 333<br/>7524 PT Enschede
+        title: Slingeland Ziekenhuis
+        titleHighlights:
+        - start: 0
+          end: 10
+        address:
+          label: Slingeland Ziekenhuis, Kruisbergseweg 25, 7009 BL Doetinchem, Nederland
         position:
-        - 52.26387
-        - 6.89483
-        category: airport
-        categoryTitle: Airport
+          lat: 51.97556
+          lng: 6.28735
+        access:
+        - lat: 51.97547
+          lng: 6.28752
+        category: other
         resultType: place
-        id: 528u1kck-c0a80b682f9643c8a75942f82d5c7ea8
-        distance: 108045
+        id: here:pds:place:528jx7ps-72fef8446ed3031aed91e95fb3f54453
+        distance: 16110
   responses:
     InternalServerError:
       content:
