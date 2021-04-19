@@ -205,6 +205,7 @@ components:
           description: 'The primary category of the suggestion.  '
           enum:
           - airport
+          - bus-station
           - city-town-village
           - hotel
           - railway-station
