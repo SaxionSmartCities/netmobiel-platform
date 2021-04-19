@@ -126,14 +126,14 @@ components:
         locality:
           description: The city or village name.
           type: string
-        location:
-          $ref: '#/components/schemas/Location'
-          description: The GPS location of this address.
         label:
           description: A short description of the place.
           type: string
         countryCode:
           description: The country code according to ISO 3166-1 Alpha-3.
+          type: string
+        stateCode:
+          description: The code of the state in a country.
           type: string
       example:
         street: Rembrandtstraat
@@ -141,10 +141,8 @@ components:
         postalCode: 7556WD
         locality: Hengelo
         countryCode: NLD
+        stateCode: OV
         label: Rembrandtstraat 8, 7556 WD Hengelo
-        location:
-          latitude: 52.04157
-          longitude: 6.6047
     Location:
       title: Root Type for Location
       description: A location on a map, comprising of a GPS coordinate and optional
