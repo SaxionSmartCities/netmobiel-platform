@@ -11,14 +11,14 @@ public interface SecurityIdentity {
 
 	/**
 	 * Fetches the user performing the call.
-	 * @return
+	 * @return the calling principal.
 	 */
 	Principal getPrincipal();
 	
 	/**
 	 * Fetches the effective user, that is the user on whose behalf the action is performed.
 	 * When no delegation is active the real and effective users are the same. 
-	 * @return
+	 * @return the principal on whose behalf the call is made.
 	 */
 	Principal getEffectivePrincipal();
 
@@ -35,7 +35,10 @@ public interface SecurityIdentity {
     boolean isDelegationActive();
     
 	/**
-	 * Creates a NetmobielUser record from the token.
+	 * Fetches the NetmobielUser record associated with calling principal (and token). 
+	 * If the object does not exist yet it is created from the token and cached.
+	 * The object is not yet related to the database user object. The managed indentity is
+	 * the key between this identity and the identity in the database.
 	 * @return A netmobiel user or null if the token is not available, e.g. anonymous call.
 	 */
 	NetMobielUser getRealUser();
