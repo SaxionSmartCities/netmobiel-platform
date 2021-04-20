@@ -1284,6 +1284,9 @@ components:
           description: A vendor-specific reference to the place or address. Use the
             ref to check whether the same spot is already in a list of places.
           type: string
+        stateCode:
+          description: The code of the state (provence) the locality is in.
+          type: string
       example:
         street: Rembrandtstraat
         houseNumber: "8"
