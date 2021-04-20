@@ -1252,6 +1252,8 @@ components:
     Place:
       title: Root Type for Address
       description: The address of a user.
+      required:
+      - ref
       type: object
       properties:
         street:
@@ -1278,6 +1280,10 @@ components:
         id:
           description: The unique identifier of the `Place`.
           type: integer
+        ref:
+          description: A vendor-specific reference to the place or address. Use the
+            ref to check whether the same spot is already in a list of places.
+          type: string
       example:
         street: Rembrandtstraat
         houseNumber: "8"
@@ -1286,6 +1292,7 @@ components:
         country: NL
         id: 1234567
         label: Thuis
+        ref: here:af:streetsection:mwcRU.bxFF9tLSvsSolDdA:CggIBCC2moKoAhABGgE4
         location:
           type: Point
           coordinates:
