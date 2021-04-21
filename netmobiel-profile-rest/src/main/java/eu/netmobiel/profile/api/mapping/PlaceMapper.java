@@ -25,7 +25,7 @@ public abstract class PlaceMapper {
 	@Mapping(target = "data", source = "data")
 	public abstract eu.netmobiel.profile.api.model.Page mapPlacesPage(PagedResult<Place> source);
 
-	@Mapping(target = "country", source ="address.countryCode")
+	@Mapping(target = "countryCode", source ="address.countryCode")
 	@Mapping(target = "stateCode", source ="address.stateCode")
 	@Mapping(target = "locality", source ="address.locality")
 	@Mapping(target = "street", source ="address.street")
