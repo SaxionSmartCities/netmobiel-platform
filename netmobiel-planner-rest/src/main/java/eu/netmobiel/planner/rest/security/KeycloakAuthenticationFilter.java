@@ -12,9 +12,7 @@ import javax.servlet.ServletResponse;
 import javax.servlet.annotation.WebFilter;
 import javax.servlet.http.HttpServletRequest;
 
-import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.adapters.OIDCAuthenticationError;
-import org.keycloak.representations.AccessToken;
 import org.slf4j.Logger;
 
 /**
