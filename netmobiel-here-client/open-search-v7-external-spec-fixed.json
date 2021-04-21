@@ -1613,9 +1613,11 @@
               "addressBlock",
               "houseNumber",
               "postalCodePoint",
-              "place"
+              "place",
+              "categoryQuery",
+              "chainQuery"
             ],
-            "description": "WARNING: The resultType values 'intersection' and 'postalCodePoint' are in BETA state"
+            "description": "WARNING: The resultType values 'intersection' and 'postalCodePoint' are in BETA state. JR: Added categoryQuery and chainQuery, those objects will be removed after parsing."
           },
           "houseNumberType": {
             "type": "string",

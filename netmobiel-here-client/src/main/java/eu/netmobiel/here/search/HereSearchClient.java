@@ -126,7 +126,8 @@ public class HereSearchClient {
     /* ===================================  AUTOSUGGEST  =================================== */
     
 	/**
-	 * Returns autosuggestions from the HERE Search Api.
+	 * Returns autosuggestions from the HERE Search Api. The AutoSuggest categoryQuery and chainQuery results are not supported due to issues with 
+	 * the mapping of the OpenAPI spec by openapi-generator.
 	 * @param query the query string.
 	 * @param centre centre point of a circle as latitude and longitude. The circle limits the search area.
 	 * @param radius the radius around the centre point.
