@@ -1289,7 +1289,7 @@ components:
             from the Suggestion categories of the geo-service. The profile service
             does not interpret the category.
           type: string
-        country:
+        countryCode:
           description: The country code according to ISO 3166-2.
           type: string
       example:
@@ -1297,9 +1297,9 @@ components:
         houseNumber: "8"
         postalCode: 7556WD
         locality: Hengelo
-        country: NL
+        countryCode: NL
         id: 1234567
-        label: Thuis
+        label: Jaap
         ref: here:af:streetsection:mwcRU.bxFF9tLSvsSolDdA:CggIBCC2moKoAhABGgE4
         location:
           type: Point
