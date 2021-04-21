@@ -38,7 +38,6 @@
         <module>netmobiel-profile-api</module>
         <module>netmobiel-profile-ejb</module>
         <module>netmobiel-profile-rest</module>
-        <module>netmobiel-profile-client</module>
         <module>netmobiel-rideshare-api</module>
         <module>netmobiel-rideshare-ejb</module>
         <module>netmobiel-rideshare-rest</module>
