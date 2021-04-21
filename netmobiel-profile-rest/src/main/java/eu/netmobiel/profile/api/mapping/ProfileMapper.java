@@ -37,7 +37,6 @@ public abstract class ProfileMapper {
 	@Mapping(target = "image", source = "imagePath")
 	@Mapping(target = "lastName", source = "familyName")
 	@Mapping(target = "address", source = "homeAddress")
-	@Mapping(target = "address.country", source ="homeAddress.countryCode")
 	@Mapping(target = "address.location", source = "homeLocation")
 //	@Mapping(target = "address.label", source = "homeLocation.label")
 //	Do not try to map the home location label here, does not work correctly

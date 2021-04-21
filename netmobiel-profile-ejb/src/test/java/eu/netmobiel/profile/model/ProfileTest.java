@@ -24,7 +24,8 @@ public class ProfileTest {
 //		assertNull(p.getHomeAddress());
 //		assertNull(p.getHomeLocation());
 		assertNotNull(p.getNotificationOptions());
-		assertNull(p.getSearchPreferences());
+		assertEquals(UserRole.PASSENGER, p.getUserRole());
+		assertNotNull(p.getSearchPreferences());
 		assertNull(p.getRidesharePreferences());
 	}
 

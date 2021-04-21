@@ -77,6 +77,7 @@ public abstract class ProfileMapper {
 	}
 	
 	@Mapping(target = "address.countryCode", source = "country")
+	@Mapping(target = "reference", source ="ref")
 	@Mapping(target = "location.label", source ="label")
 	@Mapping(target = "profile", ignore = true)
 	@Mapping(target = "id", ignore = true)

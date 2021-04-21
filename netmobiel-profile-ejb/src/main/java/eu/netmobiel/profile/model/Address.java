@@ -15,6 +15,7 @@ import javax.validation.constraints.Size;
 public class Address implements Serializable {
 	private static final long serialVersionUID = -1112263880340112338L;
 	public static final int MAX_COUNTRY_CODE_LENGTH = 3;
+	public static final int MAX_STATE_CODE_LENGTH = 3;
 	public static final int MAX_LOCALITY_LENGTH = 64;
 	public static final int MAX_STREET_LENGTH = 64;
 	public static final int MAX_HOUSE_NR_LENGTH = 8;
@@ -26,6 +27,10 @@ public class Address implements Serializable {
 	@Size(max = MAX_COUNTRY_CODE_LENGTH)
 	@Column(name = "country_code")
 	private String countryCode;
+
+	@Size(max = MAX_STATE_CODE_LENGTH)
+	@Column(name = "state_code")
+	private String stateCode;
 
 	/**
 	 * The city, village etc of this address
@@ -61,6 +66,14 @@ public class Address implements Serializable {
 
 	public String getCountryCode() {
 		return countryCode;
+	}
+
+	public String getStateCode() {
+		return stateCode;
+	}
+
+	public void setStateCode(String stateCode) {
+		this.stateCode = stateCode;
 	}
 
 	public void setCountryCode(String countryCode) {

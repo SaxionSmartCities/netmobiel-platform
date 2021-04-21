@@ -70,6 +70,7 @@ public class Profile extends User  {
 	@Embedded
     @AttributeOverrides({ 
     	@AttributeOverride(name = "countryCode", column = @Column(name = "home_country_code", length = Address.MAX_COUNTRY_CODE_LENGTH)), 
+    	@AttributeOverride(name = "stateCode", column = @Column(name = "home_state_code", length = Address.MAX_STATE_CODE_LENGTH)), 
     	@AttributeOverride(name = "locality", column = @Column(name = "home_locality", length = Address.MAX_LOCALITY_LENGTH)), 
     	@AttributeOverride(name = "street", column = @Column(name = "home_street", length = Address.MAX_STREET_LENGTH)), 
     	@AttributeOverride(name = "houseNumber", column = @Column(name = "home_house_nr", length = Address.MAX_HOUSE_NR_LENGTH)), 
@@ -324,6 +325,9 @@ public class Profile extends User  {
 		}
 		if (this.consent == null) {
 			this.consent = UserConsent.createDefault();
+		}
+		if (userRole == null) {
+			userRole = UserRole.PASSENGER;
 		}
 		if (userRole == UserRole.PASSENGER || userRole == UserRole.BOTH) {
 			if (searchPreferences == null) {

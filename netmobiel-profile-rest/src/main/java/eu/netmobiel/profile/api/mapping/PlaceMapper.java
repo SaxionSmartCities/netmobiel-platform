@@ -26,16 +26,19 @@ public abstract class PlaceMapper {
 	public abstract eu.netmobiel.profile.api.model.Page mapPlacesPage(PagedResult<Place> source);
 
 	@Mapping(target = "country", source ="address.countryCode")
+	@Mapping(target = "stateCode", source ="address.stateCode")
 	@Mapping(target = "locality", source ="address.locality")
 	@Mapping(target = "street", source ="address.street")
 	@Mapping(target = "postalCode", source ="address.postalCode")
 	@Mapping(target = "houseNumber", source ="address.houseNumber")
 	@Mapping(target = "location", source ="location")
 	@Mapping(target = "label", ignore = true)
+	@Mapping(target = "ref", source ="reference")
 	public abstract eu.netmobiel.profile.api.model.Place mapPlace(Place source);
 
 	@InheritInverseConfiguration
 	@Mapping(target = "profile", ignore = true)
+	// The id is set in the service call, to assure we use the right id, not somebody else's.
 	@Mapping(target = "id", ignore = true)
 	public abstract Place mapApiPlace(eu.netmobiel.profile.api.model.Place source);
 
