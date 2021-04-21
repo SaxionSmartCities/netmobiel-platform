@@ -72,17 +72,7 @@ public abstract class ProfileMapper {
 	@InheritInverseConfiguration(name = "commonMap")
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "places", ignore = true)
-//	@Mapping(target = "homeLocation", source = "address.location")
-//	@Mapping(target = "homeLocation.label", source = "address.label")
 	public abstract Profile map(eu.netmobiel.profile.api.model.Profile source);
-
-//	@Mapping(target = "countryCode", source ="country")
-//	public abstract Address mapAddress(eu.netmobiel.profile.api.model.Place source);
-//
-//	@InheritInverseConfiguration
-//	@Mapping(target = "label", ignore = true)
-//	@Mapping(target = "location", ignore = true)
-//	public abstract eu.netmobiel.profile.api.model.Place mapAddress(Address source);
 
 	// Use this construction for the label, otherwise the conversion cannot do both coordinates and label.
 	@AfterMapping
