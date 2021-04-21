@@ -1268,9 +1268,6 @@ components:
         locality:
           description: The city or village name.
           type: string
-        country:
-          description: The country code according to ISO 3166-2.
-          type: string
         location:
           $ref: '#/components/schemas/Location'
           description: The GPS location of this address.
@@ -1286,6 +1283,14 @@ components:
           type: string
         stateCode:
           description: The code of the state (provence) the locality is in.
+          type: string
+        countryCode:
+          description: The country code according to ISO 3166-2.
+          type: string
+        category:
+          description: A category of the place. The available categories are copied
+            from the Suggestion categories of the geo-service. The profile service
+            does not interpret the category.
           type: string
       example:
         street: Rembrandtstraat
