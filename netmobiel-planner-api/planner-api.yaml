@@ -844,50 +844,6 @@ paths:
         type: string
       in: path
       required: true
-  /trips/{tripId}/confirm/{value}:
-    summary: Path used to confirm a trip.
-    description: |
-      Endpoint used to confirm a trip, using a PUT.
-
-      This endpoint supports delegation.
-    put:
-      parameters:
-      - name: reason
-        description: |
-          The reason for the given (negative) )confirmation value.
-           -  `TRIP_NOT_NEEDED`: The trip was not needed anymore;
-           -  `FOUND_OTHER_TRANSPORT`: The traveller found a different means of transport;
-           -  `NO_SHOW`: The means of transport did not show up
-        schema:
-          enum:
-          - TRIP_NOT_NEEDED
-          - FOUND_OTHER_TRANSPORT
-          - NO_SHOW
-          type: string
-        in: query
-      responses:
-        "204":
-          description: Success response, the trip has been confirmed.
-      operationId: confirmTrip
-      summary: Confirms a trip.
-      description: Confirms that the traveller has actually made this trip. All legs
-        in the itinerary are confirmed. A rideshare fare is credited after confirmation
-        of the passenger or after an expiration of the review period of several days
-        in which the passenger has neither confirmed nor denied the trip. A confirmation,
-        positive or negative, cannot be undone and can be issued only once.
-    parameters:
-    - name: value
-      description: 'The value of the confirmation: true if affirmative, false if negative. '
-      schema:
-        type: boolean
-      in: path
-      required: true
-    - name: tripId
-      description: A unique identifier for a `Trip`.
-      schema:
-        type: string
-      in: path
-      required: true
   /plans/{planId}:
     summary: Path used to manage a single TripPlan.
     description: |-
@@ -920,6 +876,56 @@ paths:
     - name: planId
       description: A unique identifier for a `TripPlan`. This can be a database identifier
         or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /trips/{tripId}/confirm/{value}:
+    summary: Path used to confirm a trip.
+    description: |
+      Endpoint used to confirm a trip, using a PUT.
+
+      This endpoint supports delegation.
+    put:
+      parameters:
+      - name: reason
+        description: |
+          The reason for the given (negative) )confirmation value.
+           -  `TRIP_NOT_NEEDED`: The trip was not needed anymore;
+           -  `FOUND_OTHER_TRANSPORT`: The traveller found a different means of transport;
+           -  `NO_SHOW`: The means of transport did not show up
+        schema:
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the trip has been confirmed.
+      operationId: confirmTrip
+      summary: Confirms a trip.
+      description: Confirms that the traveller has actually made this trip. All legs
+        in the itinerary are confirmed. A rideshare fare is credited after confirmation
+        of the passenger or after an expiration of the review period of several days
+        in which the passenger has neither confirmed nor denied the trip. A confirmation,
+        positive or negative, cannot be undone and can be issued only once.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: value
+      description: 'The value of the confirmation: true if affirmative, false if negative. '
+      schema:
+        type: boolean
+      in: path
+      required: true
+    - name: tripId
+      description: A unique identifier for a `Trip`.
       schema:
         type: string
       in: path
