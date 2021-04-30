@@ -349,86 +349,6 @@ paths:
         type: string
       in: path
       required: true
-  /trips/{tripId}/confirm/{value}:
-    summary: Path used to confirm a trip.
-    description: |
-      Endpoint used to confirm a trip, using a PUT.
-
-      This endpoint supports delegation.
-    put:
-      parameters:
-      - name: reason
-        description: |
-          The reason for the given (negative) )confirmation value.
-           -  `TRIP_NOT_NEEDED`: The trip was not needed anymore;
-           -  `FOUND_OTHER_TRANSPORT`: The traveller found a different means of transport;
-           -  `NO_SHOW`: The means of transport did not show up
-        schema:
-          enum:
-          - TRIP_NOT_NEEDED
-          - FOUND_OTHER_TRANSPORT
-          - NO_SHOW
-          type: string
-        in: query
-      responses:
-        "204":
-          description: Success response, the trip has been confirmed.
-      operationId: confirmTrip
-      summary: Confirms a trip.
-      description: Confirms that the traveller has actually made this trip. All legs
-        in the itinerary are confirmed. A rideshare fare is credited after confirmation
-        of the passenger or after an expiration of the review period of several days
-        in which the passenger has neither confirmed nor denied the trip. A confirmation,
-        positive or negative, cannot be undone and can be issued only once.
-    parameters:
-    - name: tripId
-      description: A unique identifier for a `Trip`.
-      schema:
-        type: string
-      in: path
-      required: true
-    - name: value
-      description: 'The value of the confirmation: true if affirmative, false if negative. '
-      schema:
-        type: boolean
-      in: path
-      required: true
-  /plans/{planId}:
-    summary: Path used to manage a single TripPlan.
-    description: |-
-      The REST endpoint/path used to get, update, and delete single instances of an `TripPlan`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.
-
-      All tasks in this endpoint support delegation.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TripPlan'
-          description: Successful response - returns a single `TripPlan`. The trip
-            plan can be evolving in case of a shout-out. In that case the attribute
-            `requestDuration` is not set yet.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: getPlan
-      summary: Get a TripPlan
-      description: |
-        Gets the details of a single instance of a `TripPlan`. Only the traveller and the system administrator can see all itineraries.
-    parameters:
-    - name: planId
-      description: A unique identifier for a `TripPlan`. This can be a database identifier
-        or a urn.
-      schema:
-        type: string
-      in: path
-      required: true
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
   /search/plan:
     summary: Search for possible itineraries, combining various modalities..
     description: |-
@@ -912,18 +832,98 @@ paths:
       summary: Delete a Trip
       description: Deletes an existing `Trip`.
     parameters:
-    - name: tripId
-      description: A unique identifier for a `Trip`.
-      schema:
-        type: string
-      in: path
-      required: true
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
         the call is made. The real user must have the global `delegate` role.
       schema:
         type: string
       in: header
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /trips/{tripId}/confirm/{value}:
+    summary: Path used to confirm a trip.
+    description: |
+      Endpoint used to confirm a trip, using a PUT.
+
+      This endpoint supports delegation.
+    put:
+      parameters:
+      - name: reason
+        description: |
+          The reason for the given (negative) )confirmation value.
+           -  `TRIP_NOT_NEEDED`: The trip was not needed anymore;
+           -  `FOUND_OTHER_TRANSPORT`: The traveller found a different means of transport;
+           -  `NO_SHOW`: The means of transport did not show up
+        schema:
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the trip has been confirmed.
+      operationId: confirmTrip
+      summary: Confirms a trip.
+      description: Confirms that the traveller has actually made this trip. All legs
+        in the itinerary are confirmed. A rideshare fare is credited after confirmation
+        of the passenger or after an expiration of the review period of several days
+        in which the passenger has neither confirmed nor denied the trip. A confirmation,
+        positive or negative, cannot be undone and can be issued only once.
+    parameters:
+    - name: value
+      description: 'The value of the confirmation: true if affirmative, false if negative. '
+      schema:
+        type: boolean
+      in: path
+      required: true
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /plans/{planId}:
+    summary: Path used to manage a single TripPlan.
+    description: |-
+      The REST endpoint/path used to get, update, and delete single instances of an `TripPlan`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.
+
+      All tasks in this endpoint support delegation.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPlan'
+          description: Successful response - returns a single `TripPlan`. The trip
+            plan can be evolving in case of a shout-out. In that case the attribute
+            `requestDuration` is not set yet.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getPlan
+      summary: Get a TripPlan
+      description: |
+        Gets the details of a single instance of a `TripPlan`. Only the traveller and the system administrator can see all itineraries.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: planId
+      description: A unique identifier for a `TripPlan`. This can be a database identifier
+        or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
