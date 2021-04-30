@@ -3,7 +3,10 @@ openapi: 3.0.2
 info:
   title: planner
   version: 1.0.0
-  description: API for multi-modal planning in NetMobiel
+  description: |-
+    API for multi-modal planning in NetMobiel. This API supports the creation of complete trip plans, but also partial trip plans called shout-outs. A shout-out is a trip plan without (initially) itineraries. Car drivers can issue a search for open shout-outs to find out whether there are potential travellers wanting to travel in a similar direction. This is the opposite of a driver waiting for passengers.
+
+    The API supports delegation of calls. Check each individual endpoint to find out. Endpoint used by a driver do not support delegation, endpoints requiring privileges like an `admin` role do not support delegation either.
   contact:
     name: Jaap Reitsma
     email: j.reitsma@saxion.nl
@@ -50,74 +53,6 @@ paths:
         in th eplanner. Retrieves all stops, clusters and routes from the OpenTripPlanner
         and inserts the data in the local database. In additonal, calculate for each
         stop and each cluster the number of routes passing by and the modalities involved.
-  /shout-outs:
-    summary: Path used to manage the list of trip plans that are active and unfulfilled
-      yet.
-    description: The REST endpoint/path used to list and `TripPlan` entities that
-      are of type SHOUT_OUT. Those plans are eligible for reconciliation with a shared
-      ride. This path contains a `GET` operation to perform the list task.
-    get:
-      parameters:
-      - examples:
-          Station-Borne:
-            value: Station Borne::52.298417,6.749157
-        name: location
-        description: The center of the circle to search planning trips, comprising
-          of a latitude and longitude pair in degrees according WGS84. For logging
-          purposes you may prepend the coordinates with a place label followed by
-          two colons.
-        schema:
-          type: string
-        in: query
-        required: true
-      - name: startTime
-        description: The start time to search. Only trips departing after the `startTime`
-          are listed. If not set then `now` is used.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: depArrRadius
-        description: the radius (in meter) of the small circle containing at least
-          departure or arrival location of the traveller. If omitted a radius of 10
-          kilometer is used.
-        schema:
-          type: integer
-        in: query
-        required: false
-      - name: travelRadius
-        description: The radius (in meter) of the larger circle containing both departure
-          and arrival location of the traveller. If omitted the `depArrRadius` is
-          used.
-        schema:
-          type: integer
-        in: query
-        required: false
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a page with an array of `TripPlan`
-            entities.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      operationId: listShoutOuts
-      summary: List the shout-outs.
-      description: |-
-        List the trip plans that are unfulfilled and are eligible for a shared ride.
-        This endpoint is intended for drivers to find passengers.
   /geocode-suggestions:
     summary: Get suggestions for geographics places.
     description: The REST endpoint/path used to list `GeocodeSuggestion` entities.  This
@@ -205,114 +140,6 @@ paths:
       operationId: getGeocodeSuggestions
       summary: List All trips
       description: Gets a list of `GeocodeSuggestion` entities, given the parameters.
-  /trips:
-    summary: Path used to manage the list of trips.
-    description: The REST endpoint/path used to list and create zero or more `Trip`
-      entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
-    get:
-      parameters:
-      - name: user
-        description: |-
-          the user id owning the trips. This parameter needs admin powers. The format of the user id is the database id of planner user, or an urn reference. Two formats are allowed:
-          urn:nb:pl:user:{primary-key}
-          urn:nb:kc:user:{managed-identity}
-        schema:
-          type: string
-        in: query
-      - name: state
-        description: The specific trip state to filter. To find the shout-out trips
-          specify `PLANNING`.
-        schema:
-          enum:
-          - PLANNING
-          - BOOKING
-          - SCHEDULED
-          - IN_TRANSIT
-          - COMPLETED
-          - CANCELLED
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-11-30T12:00:00+01:00
-        name: since
-        description: The departure date at which to start the listing. Default is
-          now.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-12-15T14:00:00+01:00
-        name: until
-        description: The departure date and later not to include in the listing of
-          trips. The `until` date must be after the `since` parameter. Default is
-          not set, meaning all trips (after since).
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: deletedToo
-        description: Set this flag to 'true' if deleted trips should be returned as
-          well. Default is false.
-        schema:
-          type: boolean
-        in: query
-      - name: sortDir
-        description: "Direction of the sorting on departure time (or arrival time).\
-          \ Choose either \nascending (ASC, default) or descending (DESC)."
-        schema:
-          enum:
-          - ASC
-          - DESC
-          type: string
-        in: query
-        required: false
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a page with an array of `Trip`
-            entities.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      operationId: getTrips
-      summary: List All trips
-      description: "Gets a list of all `Trip` entities owned by the calling user.\
-        \ The trips are\nsorted by the departure time or arrival time. Default is\
-        \ in ascending order, \nbut that can be reversed through the `sortDir` parameter."
-    post:
-      requestBody:
-        description: A new `Trip` to be created.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Trip'
-        required: true
-      responses:
-        "201":
-          description: Successful response.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-        "402":
-          $ref: '#/components/responses/PaymentRequested'
-      operationId: createTrip
-      summary: Create a Trip
-      description: Creates a new instance of a `Trip`.
   /plans:
     summary: Path used to manage the list of trip plans.
     description: |-
@@ -420,6 +247,152 @@ paths:
       schema:
         type: string
       in: header
+  /shout-outs/{shoutOutPlanId}:
+    summary: Path used to access a specific shout-out plan.
+    description: The REST endpoint/path used to get a single instances of a shout-out
+      `TripPlan` and to post resolving itineraries. This path contains `GET` and `POST`
+      operations used to perform the get and post tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPlan'
+          description: 'Success reponse. A `TripPlan` object is returned without itineraries. '
+      operationId: getShoutOut
+      summary: Retrieves a shout-out.
+      description: Retrieves a shout-out trip plan. For privacy reasons, the plan
+        object omits the resolving itineraries. If you want to retrieve the complete
+        plan, then use the endpoint /plan. This endpoint is accessible for any user,
+        whereas /plan can only be used by the owner of the plan.
+    post:
+      requestBody:
+        description: The request body contains a travel offer, containing a a reference
+          to an earlier determined plan to resolve the shout-out of the traveller.
+          In addition, the offer contains a reference to the driver (default the caller)
+          and, if applicable, a referenc to the car that will be used.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TravelOffer'
+        required: true
+      responses:
+        "202":
+          description: 'The suggested plan is found and will be processed. '
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: addSolution
+      summary: Resolves a shout-out.
+      description: Offers a solution for a shout-out of a traveller by extracting
+        the itineraries relevant for the traveller from the suggested trip plan. The
+        suggested plan (potential  from any transport provider) must at least contain
+        the two stops close (100 meter) to the departure, resp. destination location
+        of the traveller.
+    delete:
+      responses:
+        "204":
+          description: Success response, the plan is cancelled.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: cancelPlan
+      summary: Cancels a plan
+      description: The traveller cancels a plan. All booking proposals are cancelled.
+        The shout-out is closed, no more proposals can be added.
+    parameters:
+    - name: shoutOutPlanId
+      description: A reference to the shout-out plan of the traveller. The reference
+        can be a database ID or a proper URN.
+      schema:
+        type: string
+      in: path
+      required: true
+  /trips/{tripId}/settle/favors-traveller:
+    summary: Settle a trip payment dispute in favor of the traveller.
+    description: End-point for settling a dispute on payments.
+    put:
+      responses:
+        "204":
+          description: Success response. The trip will be in state `completed`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: settleDisputeInFavorOfTraveller
+      summary: Settle a trip payment dispute in favor of the traveller.
+      description: |-
+        When a dispute arises around the payment for a trip (or a leg), mediation is required. Once the mediates resolves, this call or its sibling is used to pass the decision to the system.
+        This call requires admin privileges.
+    parameters:
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /trips/{tripId}/settle/favors-provider/:
+    summary: Settle a trip payment dispute in favor of the provider.
+    description: End-point for settling a dispute on payments.
+    put:
+      responses:
+        "204":
+          description: Success response. The trip will be in state `completed`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: settleDisputeInFavorOfProvider
+      summary: Settle a trip payment dispute in favor of the provider.
+      description: |-
+        When a dispute arises around the payment for a trip (or a leg), mediation is required. Once the mediates resolves, this call or its sibling is used to pass the decision to the system.
+        This call requires admin privileges.
+    parameters:
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /trips/{tripId}/confirm/{value}:
+    summary: Path used to confirm a trip.
+    description: |
+      Endpoint used to confirm a trip, using a PUT.
+
+      This endpoint supports delegation.
+    put:
+      parameters:
+      - name: reason
+        description: |
+          The reason for the given (negative) )confirmation value.
+           -  `TRIP_NOT_NEEDED`: The trip was not needed anymore;
+           -  `FOUND_OTHER_TRANSPORT`: The traveller found a different means of transport;
+           -  `NO_SHOW`: The means of transport did not show up
+        schema:
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the trip has been confirmed.
+      operationId: confirmTrip
+      summary: Confirms a trip.
+      description: Confirms that the traveller has actually made this trip. All legs
+        in the itinerary are confirmed. A rideshare fare is credited after confirmation
+        of the passenger or after an expiration of the review period of several days
+        in which the passenger has neither confirmed nor denied the trip. A confirmation,
+        positive or negative, cannot be undone and can be issued only once.
+    parameters:
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: value
+      description: 'The value of the confirmation: true if affirmative, false if negative. '
+      schema:
+        type: boolean
+      in: path
+      required: true
   /plans/{planId}:
     summary: Path used to manage a single TripPlan.
     description: |-
@@ -450,12 +423,18 @@ paths:
         type: string
       in: path
       required: true
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
   /search/plan:
     summary: Search for possible itineraries, combining various modalities..
     description: |-
       Search the Rideshare service and OpenTripPlanner for itineraries.
 
-      The tasks in this endpoint support delegation.
+      This endpoint supports delegation.
     get:
       parameters:
       - examples:
@@ -599,6 +578,13 @@ paths:
       operationId: searchPlan
       summary: Search for itineraries for a trip.
       description: Search and retrieve matching itineraries.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
   /shout-outs/{shoutOutPlanId}/plan:
     summary: Path used to find a plan to combine the shout-out with a driver's ride.
     description: "The REST endpoint/path used to get a single instance of a `TripPlan`,\
@@ -643,10 +629,10 @@ paths:
         in: query
         required: false
       - name: travelTime
-        description: "The desired time to depart or arrive. The meaning depends on\
-          \ the flag 'useAsArrivalTime'. \nIf omitted the travelTime is chosen as\
-          \ the estimated departure  time to arrive in time at\nthe pickup location\
-          \ of the passenger at the time as defined by the passenger'strip plan."
+        description: "The desired time (of the driver) to depart or arrive. The meaning\
+          \ depends on the flag 'useAsArrivalTime'. \nIf omitted the travelTime of\
+          \ the passenger's trip plan is chosen as the estimated departure time to\
+          \ arrive in time at\nthe pickup location of the passenger."
         schema:
           format: date-time
           type: string
@@ -694,113 +680,197 @@ paths:
         type: string
       in: path
       required: true
-  /shout-outs/{shoutOutPlanId}:
-    summary: Path used to access a specific shout-out plan.
-    description: The REST endpoint/path used to get a single instances of a shout-out
-      `TripPlan` and to post resolving itineraries. This path contains `GET` and `POST`
-      operations used to perform the get and post tasks, respectively.
+  /shout-outs:
+    summary: Path used to manage the list of trip plans that are active and unfulfilled
+      yet.
+    description: The REST endpoint/path used to list and `TripPlan` entities that
+      are of type SHOUT_OUT. Those plans are eligible for reconciliation with a shared
+      ride. This path contains a `GET` operation to perform the list task. This endpoint
+      is intended for use by drivers.
     get:
+      parameters:
+      - examples:
+          Station-Borne:
+            value: Station Borne::52.298417,6.749157
+        name: location
+        description: The center of the circle to search planning trips, comprising
+          of a latitude and longitude pair in degrees according WGS84. For logging
+          purposes you may prepend the coordinates with a place label followed by
+          two colons.
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: startTime
+        description: The start time to search. Only trips departing after the `startTime`
+          are listed. If not set then `now` is used.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: depArrRadius
+        description: the radius (in meter) of the small circle containing at least
+          departure or arrival location of the traveller. If omitted a radius of 10
+          kilometer is used.
+        schema:
+          type: integer
+        in: query
+        required: false
+      - name: travelRadius
+        description: The radius (in meter) of the larger circle containing both departure
+          and arrival location of the traveller. If omitted the `depArrRadius` is
+          used.
+        schema:
+          type: integer
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
       responses:
         "200":
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/TripPlan'
-          description: 'Success reponse. A `TripPlan` object is returned without itineraries. '
-      operationId: getShoutOut
-      summary: Retrieves a shout-out.
-      description: Retrieves a shout-out trip plan. For privacy reasons, the plan
-        object omits the resolving itineraries. If you want to retrieve the complete
-        plan, then use the endpoint /plan. This endpoint is accessible for any user,
-        whereas /plan can only be used by the owner of the plan.
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a page with an array of `TripPlan`
+            entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: listShoutOuts
+      summary: List the shout-outs.
+      description: |-
+        List the trip plans that are unfulfilled and are eligible for a shared ride.
+        This endpoint is intended for drivers to find passengers.
+  /trips:
+    summary: Path used to manage the list of trips.
+    description: |-
+      The REST endpoint/path used to list and create zero or more `Trip` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+
+      All tasks in this endpoint support delegation.
+    get:
+      parameters:
+      - name: user
+        description: |-
+          the user id owning the trips. This parameter needs admin powers. The format of the user id is the database id of planner user, or an urn reference. Two formats are allowed:
+          urn:nb:pl:user:{primary-key}
+          urn:nb:kc:user:{managed-identity}
+        schema:
+          type: string
+        in: query
+      - name: state
+        description: The specific trip state to filter. To find the shout-out trips
+          specify `PLANNING`.
+        schema:
+          enum:
+          - PLANNING
+          - BOOKING
+          - SCHEDULED
+          - IN_TRANSIT
+          - COMPLETED
+          - CANCELLED
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The departure date at which to start the listing. Default is
+          now.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The departure date and later not to include in the listing of
+          trips. The `until` date must be after the `since` parameter. Default is
+          not set, meaning all trips (after since).
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: deletedToo
+        description: Set this flag to 'true' if deleted trips should be returned as
+          well. Default is false.
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting on departure time (or arrival time).\
+          \ Choose either \nascending (ASC, default) or descending (DESC)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a page with an array of `Trip`
+            entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: getTrips
+      summary: List All trips
+      description: "Gets a list of all `Trip` entities owned by the calling user.\
+        \ The trips are\nsorted by the departure time or arrival time. Default is\
+        \ in ascending order, \nbut that can be reversed through the `sortDir` parameter."
     post:
       requestBody:
-        description: The request body contains a travel offer, containing a a reference
-          to an earlier determined plan to resolve the shout-out of the traveller.
-          In addition, the offer contains a reference to the driver (default the caller)
-          and, if applicable, a referenc to the car that will be used.
+        description: A new `Trip` to be created.
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/TravelOffer'
+              $ref: '#/components/schemas/Trip'
         required: true
       responses:
-        "202":
-          description: 'The suggested plan is found and will be processed. '
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: addSolution
-      summary: Resolves a shout-out.
-      description: Offers a solution for a shout-out of a traveller by extracting
-        the itineraries relevant for the traveller from the suggested trip plan. The
-        suggested plan (potential  from any transport provider) must at least contain
-        the two stops close (100 meter) to the departure, resp. destination location
-        of the traveller.
-    delete:
-      responses:
-        "204":
-          description: Success response, the plan is cancelled.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: cancelPlan
-      summary: Cancels a plan
-      description: The traveller cancels a plan. All booking proposals are cancelled.
-        The shout-out is closed, no more proposals can be added.
+        "201":
+          description: Successful response.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "402":
+          $ref: '#/components/responses/PaymentRequested'
+      operationId: createTrip
+      summary: Create a Trip
+      description: Creates a new instance of a `Trip`.
     parameters:
-    - name: shoutOutPlanId
-      description: A reference to the shout-out plan of the traveller. The reference
-        can be a database ID or a proper URN.
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
       schema:
         type: string
-      in: path
-      required: true
-  /trips/{tripId}/settle/favors-traveller:
-    summary: Settle a trip payment dispute in favor of the traveller.
-    description: End-point for settling a dispute on payments.
-    put:
-      responses:
-        "204":
-          description: Success response. The trip will be in state `completed`.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: settleDisputeInFavorOfTraveller
-      summary: Settle a trip payment dispute in favor of the traveller.
-      description: |-
-        When a dispute arises around the payment for a trip (or a leg), mediation is required. Once the mediates resolves, this call or its sibling is used to pass the decision to the system.
-        This call requires admin privileges.
-    parameters:
-    - name: tripId
-      description: A unique identifier for a `Trip`.
-      schema:
-        type: string
-      in: path
-      required: true
-  /trips/{tripId}/settle/favors-provider/:
-    summary: Settle a trip payment dispute in favor of the provider.
-    description: End-point for settling a dispute on payments.
-    put:
-      responses:
-        "204":
-          description: Success response. The trip will be in state `completed`.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: settleDisputeInFavorOfProvider
-      summary: Settle a trip payment dispute in favor of the provider.
-      description: |-
-        When a dispute arises around the payment for a trip (or a leg), mediation is required. Once the mediates resolves, this call or its sibling is used to pass the decision to the system.
-        This call requires admin privileges.
-    parameters:
-    - name: tripId
-      description: A unique identifier for a `Trip`.
-      schema:
-        type: string
-      in: path
-      required: true
+      in: header
   /trips/{tripId}:
     summary: Path used to manage a single Trip.
-    description: The REST endpoint/path used to get, update, and delete single instances
-      of an `Trip`.  This path contains `GET`, `PUT`, and `DELETE` operations used
-      to perform the get, update, and delete tasks, respectively.
+    description: |-
+      The REST endpoint/path used to get, update, and delete single instances of an `Trip`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.
+
+      All tasks in this endpoint support delegation.
     get:
       parameters:
       - name: tripId
@@ -848,47 +918,12 @@ paths:
         type: string
       in: path
       required: true
-  /trips/{tripId}/confirm/{value}:
-    summary: Path used to confirm a trip.
-    description: Endpoint used to confirm a trip, using a PUT.
-    put:
-      parameters:
-      - name: reason
-        description: |
-          The reason for the given (negative) )confirmation value.
-           -  `TRIP_NOT_NEEDED`: The trip was not needed anymore;
-           -  `FOUND_OTHER_TRANSPORT`: The traveller found a different means of transport;
-           -  `NO_SHOW`: The means of transport did not show up
-        schema:
-          enum:
-          - TRIP_NOT_NEEDED
-          - FOUND_OTHER_TRANSPORT
-          - NO_SHOW
-          type: string
-        in: query
-      responses:
-        "204":
-          description: Success response, the trip has been confirmed.
-      operationId: confirmTrip
-      summary: Confirms a trip.
-      description: Confirms that the traveller has actually made this trip. All legs
-        in the itinerary are confirmed. A rideshare fare is credited after confirmation
-        of the passenger or after an expiration of the review period of several days
-        in which the passenger has neither confirmed nor denied the trip. A confirmation,
-        positive or negative, cannot be undone and can be issued only once.
-    parameters:
-    - name: tripId
-      description: A unique identifier for a `Trip`.
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
       schema:
         type: string
-      in: path
-      required: true
-    - name: value
-      description: 'The value of the confirmation: true if affirmative, false if negative. '
-      schema:
-        type: boolean
-      in: path
-      required: true
+      in: header
 components:
   schemas:
     Error:
