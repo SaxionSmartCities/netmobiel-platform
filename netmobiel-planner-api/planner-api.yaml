@@ -240,6 +240,8 @@ paths:
       description: |-
         Creates a new instance of a `TripPlan`. Only plans with type `SHOUT_OUT` can be created through this call.
         A plan created through this call cannot have itineraries.
+
+        A shout-out is closed when a trip is created from the shout-out (i.e. an itinerary is selected) or when the plan is cancelled.
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
@@ -247,66 +249,6 @@ paths:
       schema:
         type: string
       in: header
-  /shout-outs/{shoutOutPlanId}:
-    summary: Path used to access a specific shout-out plan.
-    description: The REST endpoint/path used to get a single instances of a shout-out
-      `TripPlan` and to post resolving itineraries. This path contains `GET` and `POST`
-      operations used to perform the get and post tasks, respectively.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TripPlan'
-          description: 'Success reponse. A `TripPlan` object is returned without itineraries. '
-      operationId: getShoutOut
-      summary: Retrieves a shout-out.
-      description: Retrieves a shout-out trip plan. For privacy reasons, the plan
-        object omits the resolving itineraries. If you want to retrieve the complete
-        plan, then use the endpoint /plan. This endpoint is accessible for any user,
-        whereas /plan can only be used by the owner of the plan.
-    post:
-      requestBody:
-        description: The request body contains a travel offer, containing a a reference
-          to an earlier determined plan to resolve the shout-out of the traveller.
-          In addition, the offer contains a reference to the driver (default the caller)
-          and, if applicable, a referenc to the car that will be used.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/TravelOffer'
-        required: true
-      responses:
-        "202":
-          description: 'The suggested plan is found and will be processed. '
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: addSolution
-      summary: Resolves a shout-out.
-      description: Offers a solution for a shout-out of a traveller by extracting
-        the itineraries relevant for the traveller from the suggested trip plan. The
-        suggested plan (potential  from any transport provider) must at least contain
-        the two stops close (100 meter) to the departure, resp. destination location
-        of the traveller.
-    delete:
-      responses:
-        "204":
-          description: Success response, the plan is cancelled.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: cancelPlan
-      summary: Cancels a plan
-      description: The traveller cancels a plan. All booking proposals are cancelled.
-        The shout-out is closed, no more proposals can be added.
-    parameters:
-    - name: shoutOutPlanId
-      description: A reference to the shout-out plan of the traveller. The reference
-        can be a database ID or a proper URN.
-      schema:
-        type: string
-      in: path
-      required: true
   /trips/{tripId}/settle/favors-traveller:
     summary: Settle a trip payment dispute in favor of the traveller.
     description: End-point for settling a dispute on payments.
@@ -844,42 +786,6 @@ paths:
         type: string
       in: path
       required: true
-  /plans/{planId}:
-    summary: Path used to manage a single TripPlan.
-    description: |-
-      The REST endpoint/path used to get, update, and delete single instances of an `TripPlan`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.
-
-      All tasks in this endpoint support delegation.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/TripPlan'
-          description: Successful response - returns a single `TripPlan`. The trip
-            plan can be evolving in case of a shout-out. In that case the attribute
-            `requestDuration` is not set yet.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: getPlan
-      summary: Get a TripPlan
-      description: |
-        Gets the details of a single instance of a `TripPlan`. Only the traveller and the system administrator can see all itineraries.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - name: planId
-      description: A unique identifier for a `TripPlan`. This can be a database identifier
-        or a urn.
-      schema:
-        type: string
-      in: path
-      required: true
   /trips/{tripId}/confirm/{value}:
     summary: Path used to confirm a trip.
     description: |
@@ -928,6 +834,113 @@ paths:
       description: 'The value of the confirmation: true if affirmative, false if negative. '
       schema:
         type: boolean
+      in: path
+      required: true
+  /plans/{planId}:
+    summary: Path used to manage a single TripPlan.
+    description: |-
+      The REST endpoint/path used to get, update, and delete single instances of an `TripPlan`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.
+
+      All tasks in this endpoint support delegation.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPlan'
+          description: Successful response - returns a single `TripPlan`. The trip
+            plan can be evolving in case of a shout-out. In that case the attribute
+            `requestDuration` is not set yet.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getPlan
+      summary: Get a TripPlan
+      description: |
+        Gets the details of a single instance of a `TripPlan`. Only the traveller and the system administrator can see all itineraries.
+    delete:
+      responses:
+        "204":
+          description: Success response, the plan is cancelled.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: cancelPlan
+      summary: Cancels a shout-out plan
+      description: 'The traveller cancels a shout-out plan. All booking proposals
+        are cancelled. The shout-out is closed, no more proposals can be added. '
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: planId
+      description: A unique identifier for a `TripPlan`. This can be a database identifier
+        or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /shout-outs/{shoutOutPlanId}:
+    summary: Path used to access a specific shout-out plan.
+    description: The REST endpoint/path used to get a single instances of a shout-out
+      `TripPlan` and to post resolving itineraries. This path contains `GET` and `POST`
+      operations used to perform the get and post tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/TripPlan'
+          description: 'Success reponse. A `TripPlan` object is returned without itineraries. '
+      operationId: getShoutOut
+      summary: Retrieves a shout-out.
+      description: Retrieves a shout-out trip plan. For privacy reasons, the plan
+        object omits the resolving itineraries. If you want to retrieve the complete
+        plan, then use the endpoint /plan. This endpoint is accessible for any user,
+        whereas /plan can only be used by the owner of the plan.
+    post:
+      requestBody:
+        description: The request body contains a travel offer, containing a a reference
+          to an earlier determined plan to resolve the shout-out of the traveller.
+          In addition, the offer contains a reference to the driver (default the caller)
+          and, if applicable, a referenc to the car that will be used.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/TravelOffer'
+        required: true
+      responses:
+        "202":
+          description: 'The suggested plan is found and will be processed. '
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: addSolution
+      summary: Resolves a shout-out.
+      description: Offers a solution for a shout-out of a traveller by extracting
+        the itineraries relevant for the traveller from the suggested trip plan. The
+        suggested plan (potential  from any transport provider) must at least contain
+        the two stops close (100 meter) to the departure, resp. destination location
+        of the traveller.
+    delete:
+      responses:
+        "204":
+          description: Success response, the plan is cancelled.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: cancelShoutOutPlan
+      summary: Cancels a plan
+      description: "Deprecated. Use /plans. \n\nThe traveller cancels a plan. All\
+        \ booking proposals are cancelled. The shout-out is closed, no more proposals\
+        \ can be added."
+    parameters:
+    - name: shoutOutPlanId
+      description: A reference to the shout-out plan of the traveller. The reference
+        can be a database ID or a proper URN.
+      schema:
+        type: string
       in: path
       required: true
 components:
