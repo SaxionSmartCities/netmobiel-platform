@@ -22,10 +22,14 @@ servers:
 paths:
   /maintenance/otpdatabase:
     summary: Start and inspect a OTP database update.
-    description: "The OTP graph is updated every monday morning at around 4 o'clock.\
-      \ The database \nwith the stops and clusters need also an update then. In general\
-      \ the changes are\nminimal. The information is used for finding potential transfer\
-      \ stops between public\ntransport and shared rides."
+    description: "These calls are used for manual check and update. At the OTP production\
+      \ server the OTP graph is updated every monday morning at around 4 o'clock.\
+      \ The database \nwith the stops and clusters need also an update then, in production,\
+      \ acceptance and also development. In general the changes are\nminimal, but\
+      \ with the increase of the interval between OTP update and database update,\
+      \ the number of mismatches increases too.\n\nThe information in the database\
+      \ is used for finding potential transfer stops between public\ntransport and\
+      \ shared rides."
     get:
       responses:
         "200":
@@ -42,7 +46,8 @@ paths:
           description: The update is an asynchronous operation. The post will start
             an update if no update is running.
       operationId: startOtpMaintenance
-      description: Retrieves all stops, clusters and routes from the OpenTripPlanner
+      description: Manually starts the update process of the OTP data used internally
+        in th eplanner. Retrieves all stops, clusters and routes from the OpenTripPlanner
         and inserts the data in the local database. In additonal, calculate for each
         stop and each cluster the number of routes passing by and the modalities involved.
   /shout-outs:
@@ -310,9 +315,10 @@ paths:
       description: Creates a new instance of a `Trip`.
   /plans:
     summary: Path used to manage the list of trip plans.
-    description: The REST endpoint/path used to list and create zero or more `TripPlan`
-      entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
+    description: |-
+      The REST endpoint/path used to list and create zero or more `TripPlan` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+
+      All tasks in this endpoint support delegation.
     get:
       parameters:
       - name: user
@@ -407,11 +413,19 @@ paths:
       description: |-
         Creates a new instance of a `TripPlan`. Only plans with type `SHOUT_OUT` can be created through this call.
         A plan created through this call cannot have itineraries.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
   /plans/{planId}:
     summary: Path used to manage a single TripPlan.
-    description: The REST endpoint/path used to get, update, and delete single instances
-      of an `TripPlan`.  This path contains `GET`, `PUT`, and `DELETE` operations
-      used to perform the get, update, and delete tasks, respectively.
+    description: |-
+      The REST endpoint/path used to get, update, and delete single instances of an `TripPlan`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.
+
+      All tasks in this endpoint support delegation.
     get:
       responses:
         "200":
@@ -438,7 +452,10 @@ paths:
       required: true
   /search/plan:
     summary: Search for possible itineraries, combining various modalities..
-    description: Search the Rideshare service and OpenTripPlanner for itineraries.
+    description: |-
+      Search the Rideshare service and OpenTripPlanner for itineraries.
+
+      The tasks in this endpoint support delegation.
     get:
       parameters:
       - examples:
