@@ -918,16 +918,16 @@ paths:
       schema:
         type: string
       in: header
-    - name: value
-      description: 'The value of the confirmation: true if affirmative, false if negative. '
-      schema:
-        type: boolean
-      in: path
-      required: true
     - name: tripId
       description: A unique identifier for a `Trip`.
       schema:
         type: string
+      in: path
+      required: true
+    - name: value
+      description: 'The value of the confirmation: true if affirmative, false if negative. '
+      schema:
+        type: boolean
       in: path
       required: true
 components:
