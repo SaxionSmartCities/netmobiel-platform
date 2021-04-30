@@ -82,6 +82,7 @@ public class Fixture {
 		plan.setPlanType(PlanType.REGULAR);
 		plan.setRequestTime(OffsetDateTime.parse("2020-01-07T10:00:00+01:00").toInstant());
 		plan.setTraveller(traveller);
+		plan.setRequestor(traveller);
 		plan.setFrom(Fixture.placeZieuwent);
 		plan.setTo(Fixture.placeRaboZutphen);
 		plan.setTravelTime(OffsetDateTime.parse("2020-01-07T14:00:00+01:00").toInstant());
@@ -387,6 +388,7 @@ public class Fixture {
 		plan.setPlanType(PlanType.REGULAR);
 		plan.setRequestTime(Instant.parse(nowIso));
 		plan.setTraveller(traveller);
+		plan.setRequestor(traveller);
 		plan.setFrom(from);
 		plan.setTo(to);
 		plan.setTravelTime(Instant.parse(travelTimeIso));
@@ -463,11 +465,13 @@ public class Fixture {
 	public static Trip createTrip(PlannerUser traveller, TripPlan plan) {
 		Itinerary itinerary = plan.getItineraries().iterator().next();
         Trip trip = new Trip();
+        trip.setCreationTime(Instant.now());
         trip.setArrivalTimeIsPinned(plan.isUseAsArrivalTime());
         trip.setFrom(plan.getFrom());
         trip.setTo(plan.getTo());
 //    	TraverseMode[] modes = new TraverseMode[] { TraverseMode.CAR, TraverseMode.WALK }; 
     	trip.setTraveller(traveller);
+		trip.setOrganizer(traveller);
     	trip.setState(TripState.SCHEDULED);
     	trip.setItinerary(itinerary);
     	trip.setNrSeats(plan.getNrSeats());

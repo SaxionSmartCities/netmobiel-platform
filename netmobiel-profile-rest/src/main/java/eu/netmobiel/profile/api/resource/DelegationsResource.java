@@ -4,10 +4,8 @@ import java.time.OffsetDateTime;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
@@ -33,8 +31,8 @@ public class DelegationsResource implements DelegationsApi {
 	@Inject
 	private DelegationManager delegationManager;
 
-	@Context
-	private HttpServletRequest request;
+//	@Context
+//	private HttpServletRequest request;
 
 	private Long resolveDelegationRef(String delegationRef) {
     	Long id = null;

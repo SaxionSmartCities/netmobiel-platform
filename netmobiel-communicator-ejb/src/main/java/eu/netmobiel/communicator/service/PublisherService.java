@@ -5,9 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.stream.Collectors;
 
-import javax.annotation.Resource;
 import javax.ejb.Asynchronous;
-import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.persistence.NoResultException;
@@ -39,9 +37,6 @@ import eu.netmobiel.profile.service.ProfileManager;
 public class PublisherService {
 	public static final int NOTIFICATION_TTL = 60 * 60 * 1000; // [ms] Expiration time of a notification  
 	public static final Integer MAX_RESULTS = 10; 
-
-	@Resource
-    private SessionContext sessionContext;
 
     @Inject
     private Logger logger;
@@ -89,6 +84,7 @@ public class PublisherService {
     /**
      * Sends a message and/or a notification to the recipients in the message envelopes.
      * This is an asynchronous call. Because of the asynchronous nature, this call cannot throw exceptions. 
+     * @param sender the sender of the message 
      * @param msg the message to send to the recipients in the envelopes 
      */
     @Asynchronous
@@ -134,7 +130,7 @@ public class PublisherService {
 
     /**
      * Lists the messages matching the criteria.
-     * @param participant The sender or recipient of the message. Default is the calling user.
+     * @param participant The managed identity of the sender or recipient of the message. 
      * @param context the context of the message (a urn pointing to the database object triggering the message). Default is any context.
      * @param since only show messages sent after a specified time. Default is no time limit set.
      * @param until only show message sent before specified time. Default is no time limit set.
@@ -143,24 +139,28 @@ public class PublisherService {
      * @param maxResults for paging: maximum number of results per page. 
      * @param offset for paging: zero-based offset in the result.  
      * @return A page of messages.
+     * @throws BadRequestException Missing parameters.
      */
-	public @NotNull PagedResult<Message> listMessages(String participant, String context, Instant since, Instant until, DeliveryMode mode, Integer maxResults, Integer offset) {
+	public @NotNull PagedResult<Message> listMessages(String participant, String context, Instant since, Instant until, 
+			DeliveryMode mode, Integer maxResults, Integer offset) throws BadRequestException {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
     	// For now don't do conditional things. First always total count, then data if data is requested. 
     	// Get the total count
-    	String effectiveParticipant = participant != null ? participant : sessionContext.getCallerPrincipal().getName();
+		if (participant == null) {
+			throw new BadRequestException("participant is a mandatory parameter");
+		}
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
         if (offset == null) {
         	offset = 0;
         }
-    	PagedResult<Long> prs = messageDao.listMessages(effectiveParticipant, context, since, until, mode, 0, offset);
+    	PagedResult<Long> prs = messageDao.listMessages(participant, context, since, until, mode, 0, offset);
     	List<Message> results = null;
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
-    		PagedResult<Long> mids = messageDao.listMessages(effectiveParticipant, context, since, until, mode, maxResults, offset);
+    		PagedResult<Long> mids = messageDao.listMessages(participant, context, since, until, mode, maxResults, offset);
     		results = messageDao.loadGraphs(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
     	} else {
     		results = Collections.emptyList();
@@ -177,7 +177,6 @@ public class PublisherService {
      * @return A page of messages.
 	 */
     public @NotNull PagedResult<Message> listConversations(String participant, Integer maxResults, Integer offset) {
-    	String effectiveParticipant = participant != null ? participant : sessionContext.getCallerPrincipal().getName();
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
@@ -185,11 +184,11 @@ public class PublisherService {
         	offset = 0;
         }
     	// Get the total count
-    	PagedResult<Long> prs = messageDao.listConversations(effectiveParticipant, 0, offset);
+    	PagedResult<Long> prs = messageDao.listConversations(participant, 0, offset);
     	List<Message> results = null;
     	if (maxResults == null || maxResults > 0) {
     		// Get the actual data
-        	PagedResult<Long> mids = messageDao.listConversations(effectiveParticipant, maxResults, offset);
+        	PagedResult<Long> mids = messageDao.listConversations(participant, maxResults, offset);
         	results = messageDao.loadGraphs(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
     	} else {
     		results = Collections.emptyList();
@@ -198,24 +197,25 @@ public class PublisherService {
     }
 
     /**
-     * Updates the acknowledgement time of a message, meaning that the user has read the mesaage.
+     * Updates the acknowledgement time of a message, meaning that the user has read the message.
      * The front-end should call this method explicitly when the user has read the message. 'Unreading' is also 
      * possible by setting the acknowledgment time to <code>null</code>.
+     * @param recipient The recipient of the message.
      * @param messageId the message ID. The calling user must be the owner of the message. 
      * @param ackTime the timestamp, if <code>null</code> then the timestamp is removed.
-     * @throws NotFoundException if the message does not exist.
+     * @throws NotFoundException if the envelope does not exist for the combination of recipient and message.
+     * @throws BadRequestException If the recipient is null.
      */
-    public void updateAcknowledgment(CommunicatorUser initiator, Long messageId, Instant ackTime) throws NotFoundException {
-    	String caller = sessionContext.getCallerPrincipal().getName();
+    public void updateAcknowledgment(CommunicatorUser recipient, Long messageId, Instant ackTime) throws NotFoundException, BadRequestException {
     	try {
-	    	Envelope envdb = envelopeDao.findByMessageAndRecipient(messageId, caller);
-	    	if (initiator == null || ! envdb.getRecipient().getId().equals(initiator.getId())) {
-	    		throw new SecurityException(Envelope.class.getSimpleName() + " is not owned by calling user");
+	    	if (recipient == null) {
+	    		throw new BadRequestException("recipient is a mandatory parameter");
 	    	}
+	    	Envelope envdb = envelopeDao.findByMessageAndRecipient(messageId, recipient.getManagedIdentity());
 	    	envdb.setAckTime(ackTime);
 	    	envelopeDao.merge(envdb);
     	} catch (NoResultException ex) {
-    		throw new NotFoundException (String.format("No such recipient %s for message %d", caller, messageId));	
+    		throw new NotFoundException (String.format("No such recipient %s for message %d", recipient, messageId));	
     	}
     }
 

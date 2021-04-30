@@ -175,7 +175,8 @@ public class TripManager {
      * @throws BadRequestException In case of bad parameters.
      * @throws BusinessException In case of an exception coming through the event observers.
      */
-    public Long createTrip(PlannerUser traveller, Trip trip) throws NotFoundException, BadRequestException, BusinessException {
+    public Long createTrip(PlannerUser organizer, PlannerUser traveller, Trip trip) throws NotFoundException, BadRequestException, BusinessException {
+    	trip.setOrganizer(organizer);
     	trip.setTraveller(traveller);
     	if (trip.getItineraryRef() == null) {
     		throw new BadRequestException("Specify an itinerary reference");
@@ -290,6 +291,17 @@ public class TripManager {
 		return leg;
     }
 
+    /**
+     * Retrieves a trip. Anyone can read a trip, given the id. NO details are retrieved.
+     * @param id the trip id
+     * @return a trip object without details.
+     * @throws NotFoundException No matching trip found.
+     */
+    public Trip getTripBasics(Long id) throws NotFoundException {
+    	Trip tripdb = tripDao.find(id)
+    			.orElseThrow(() -> new NotFoundException("No such trip: " + id));
+    	return tripdb;
+    }
   
     /**
      * Retrieves a trip. Anyone can read a trip, given the id. All details are retrieved.

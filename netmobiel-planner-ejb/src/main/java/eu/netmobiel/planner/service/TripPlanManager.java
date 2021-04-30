@@ -70,6 +70,14 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.service.RideManager;
 
+/**
+ * The manager of the trip plans, including the shout-outs.
+ * 
+ * 
+ *  
+ * @author Jaap Reitsma
+ *
+ */
 @Stateless
 @Logging
 public class TripPlanManager {
@@ -101,7 +109,6 @@ public class TripPlanManager {
     @Inject
     private OtpClusterDao otpClusterDao;
 
-    
     @Inject
     private Event<TripPlan> shoutOutRequestedEvent;
     @Inject
@@ -740,7 +747,18 @@ public class TripPlanManager {
     	}
     }
 
-    public TripPlan createAndReturnTripPlan(PlannerUser traveller, TripPlan plan, Instant now) throws BusinessException {
+    /**
+     * Creates a trip plan on behalf of a user. If the type of the plan is a shout-out, then a shout-out event is sent. 
+     * Otherwise the planner is called and a list of possible itineraries is prepared. 
+     * @param requestor the user creating the plan.
+     * @param traveller the user for whom the plan is created
+     * @param plan the new plan
+     * @param now the timestamp of this very moment, used for testing
+     * @return The plan just created.
+     * @throws BusinessException 
+     */
+    public TripPlan createAndReturnTripPlan(PlannerUser requestor, PlannerUser traveller, TripPlan plan, Instant now) throws BusinessException {
+    	plan.setRequestor(requestor != null ? requestor : traveller);
     	plan.setTraveller(traveller);
     	plan.setRequestTime(now);
     	sanitizePlanInput(plan);
@@ -777,13 +795,15 @@ public class TripPlanManager {
     /**
      * Creates a trip plan on behalf of a user. If the type of the plan is a shout-out, then a shout-out event is sent. 
      * Otherwise the planner is called and a list of possible itineraries is prepared. 
-     * @param user the user for whom the plan is created
+     * @param requestor the user creating the plan.
+     * @param traveller the user for whom the plan is created
      * @param plan the new plan
+     * @param now the timestamp of this very moment, used for testing
      * @return The ID of the plan just created.
      * @throws BusinessException 
      */
-    public Long createTripPlan(PlannerUser traveller, TripPlan plan, Instant now) throws BusinessException {
-    	return createAndReturnTripPlan(traveller, plan, now).getId();
+    public Long createTripPlan(PlannerUser requestor, PlannerUser traveller, TripPlan plan, Instant now) throws BusinessException {
+    	return createAndReturnTripPlan(requestor, traveller, plan, now).getId();
     }
 
     /**
@@ -800,7 +820,7 @@ public class TripPlanManager {
     
     /**
      * List all trip plans owned by the specified user. 
-     * @return A list of trips matching tjhe criteria.
+     * @return A list of trips matching the criteria.
      */
     public PagedResult<TripPlan> listTripPlans(PlannerUser traveller, PlanType planType, Instant since, Instant until, Boolean inProgressOnly, 
     		SortDirection sortDirection, Integer maxResults, Integer offset) throws BadRequestException {
@@ -913,6 +933,7 @@ public class TripPlanManager {
     		throw new BadRequestException("Only RIDESHARE modality is supported");
     	}
     	boolean adjustDepartureTime = false;
+    	driverPlan.setRequestor(driver);
     	driverPlan.setTraveller(driver);
     	driverPlan.setRequestTime(now);
     	if (driverPlan.getFrom() == null) {

@@ -16,10 +16,13 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.NetMobielUser;
+import eu.netmobiel.commons.model.NetMobielUserImpl;
 import eu.netmobiel.commons.model.User;
 import eu.netmobiel.commons.repository.UserDao;
 import eu.netmobiel.commons.security.SecurityContextHelper;
+import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.UrnHelper;
 
 public abstract class UserManager<D extends UserDao<T>, T extends User> {
@@ -31,8 +34,22 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
 
 	protected T createContextUser() {
     	NetMobielUser nbuser = SecurityContextHelper.getUserContext(sessionContext.getCallerPrincipal());
+    	return createUser(nbuser);
+    }
+    
+	protected T createUser(String managedIdentity) {
+		NetMobielUserImpl nbuser = new NetMobielUserImpl();
+		nbuser.setManagedIdentity(managedIdentity);
+    	return createUser(nbuser);
+	}
+	
+	protected T createUser(SecurityIdentity securityIdentity) {
+    	return createUser(securityIdentity.getRealUser());
+    }
+    
+	protected T createUser(NetMobielUser nbuser) {
     	if (getLogger().isTraceEnabled()) {
-    		getLogger().trace("createCallingUser: " + (nbuser != null ? nbuser.toString() : "<null>"));
+    		getLogger().trace("createContextUser: " + (nbuser != null ? nbuser.toString() : "<null>"));
     	}
     	T user = null;
     	if (nbuser != null) {
@@ -45,18 +62,7 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     	}
     	return user;
     }
-    
-	protected T createContextUser(String managedIdentity) {
-    	T user = null;
-		try {
-			user = getUserDao().getPersistentClass().getDeclaredConstructor().newInstance();
-			user.setManagedIdentity(managedIdentity);
-		} catch (InstantiationException | IllegalAccessException | IllegalArgumentException | InvocationTargetException | NoSuchMethodException | SecurityException e) {
-			throw new EJBException(e);
-		}
-		return user;
-	}
-	
+
 	public void checkOwnership(T owner, String objectName) {
 		T caller = findCallingUser();
     	if (caller == null || ! owner.getId().equals(caller.getId())) {
@@ -75,6 +81,18 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
 	}
 
 	/**
+	 * Retrieves a user from an external source. Override this method in the subclass to enable a lookup elsewhere,
+	 * e.g. the profile service.
+	 *  
+	 * @param managedIdentity the keyclooak id to look for.
+	 * @return The user
+	 * @throws NotFoundException If not found.
+	 */
+	protected NetMobielUser findExternalUser(String managedIdentity) throws NotFoundException {
+		throw new NotFoundException("No such user: " + managedIdentity);
+	}
+
+	/**
      * Register the user, if not yet registered. This is a potential race condition if the client issues multiple requests in parallel.
      * Therefore this call is write protected. Because the user might already be created by a different thread while waiting for the lock,
      * another lookup is made before actually creating the user.
@@ -85,7 +103,7 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
      * @throws Exception
      */
 	@Lock(LockType.WRITE)
-    public T findCorCreate(T user) {
+	public T findCorCreate(T user) {
     	T dbuser = null;
     	dbuser = getUserDao().findByManagedIdentity(user.getManagedIdentity())
     			.orElse(null);
@@ -115,21 +133,70 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     	return caller;
     }
 
-    public boolean isCallingUser(String identity) {
-    	return identity.equals(sessionContext.getCallerPrincipal().getName());
+    public T findOrRegisterUser(NetMobielUser nbuser) {
+    	T caller = findUser(nbuser);
+		if (caller.getId() == null) {
+			// Register the user in the database
+    		caller = findCorCreateLoopback(caller);
+		}
+    	return caller;
+    }
+
+   	public T findUser(NetMobielUser nbuser) {
+    	return getUserDao().findByManagedIdentity(nbuser.getManagedIdentity())
+    			.orElseGet(() -> createUser(nbuser));
+    }
+
+   	public T findCallingUser(SecurityIdentity securityIdentity) {
+    	return getUserDao().findByManagedIdentity(securityIdentity.getPrincipal().getName())
+    			.orElseGet(() -> createUser(securityIdentity));
     }
 
    	public T findCallingUser() {
     	return getUserDao().findByManagedIdentity(sessionContext.getCallerPrincipal().getName())
     			.orElseGet(() -> createContextUser());
     }
-
    	public T find(T user) {
     	return getUserDao().findByManagedIdentity(user.getManagedIdentity())
     			.orElse(user);
     }
 
-    /**
+   	public Optional<T> findByManagedIdentity(String identity) {
+    	return getUserDao().findByManagedIdentity(identity);
+    }
+
+    public T findOrRegisterCallingUser(SecurityIdentity securityIdentity) {
+		return findByManagedIdentity(securityIdentity.getPrincipal().getName())
+				.orElseGet(() -> findCorCreateLoopback(createUser(securityIdentity.getRealUser())));
+    }
+
+    public CallingContext<T> findOrRegisterCallingContext(SecurityIdentity securityIdentity) throws NotFoundException {
+		T caller = findByManagedIdentity(securityIdentity.getPrincipal().getName())
+				.orElseGet(() -> findCorCreateLoopback(createUser(securityIdentity.getRealUser())));
+		T effectiveUser = caller;
+    	if (securityIdentity.isDelegationActive()) {
+        	String effUserId = securityIdentity.getEffectivePrincipal().getName();
+    		effectiveUser = findByManagedIdentity(effUserId).orElse(null);
+    		if (effectiveUser == null) {
+    			// Retrieve this user from the profile service
+    			NetMobielUser effnbuser = findExternalUser(effUserId);
+    			effectiveUser = findCorCreateLoopback(createUser(effnbuser));
+    		}
+    	}
+    	return new CallingContext<T>(caller, effectiveUser);
+    }   
+    
+    public CallingContext<T> findCallingContext(SecurityIdentity securityIdentity) throws NotFoundException {
+		T caller = findByManagedIdentity(securityIdentity.getPrincipal().getName()).orElse(null);
+		T effectiveUser = caller;
+    	if (securityIdentity.isDelegationActive()) {
+        	String effUserId = securityIdentity.getEffectivePrincipal().getName();
+    		effectiveUser = findByManagedIdentity(effUserId).orElse(null);
+    	}
+    	return new CallingContext<T>(caller, effectiveUser);
+    }   
+
+   	/**
      * Retrieves all users.
      * @return a list of User objects.
      */
@@ -166,7 +233,7 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
         	NetMobielModule module = NetMobielModule.getEnum(UrnHelper.getService(userRef));
     	    if (module == NetMobielModule.KEYCLOAK) {
     		    String managedIdentity = UrnHelper.getSuffix(userRef);
-    		    user = getUserDao().findByManagedIdentity(managedIdentity).orElseGet(() -> createContextUser(managedIdentity));
+    		    user = getUserDao().findByManagedIdentity(managedIdentity).orElseGet(() -> createUser(managedIdentity));
     	    } else {
     	    	String urnPrefix = resolveUrnPrefix(module)
     	    			.orElseThrow(() -> new IllegalArgumentException("Urn not supported: " + userRef));

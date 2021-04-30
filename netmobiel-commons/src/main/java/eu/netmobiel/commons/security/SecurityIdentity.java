@@ -35,9 +35,9 @@ public interface SecurityIdentity {
     boolean isDelegationActive();
     
 	/**
-	 * Fetches the NetmobielUser record associated with calling principal (and token). 
+	 * Fetches the NetmobielUser record associated with calling (i.e., real) principal (and token). 
 	 * If the object does not exist yet it is created from the token and cached.
-	 * The object is not yet related to the database user object. The managed indentity is
+	 * The object is not yet related to the database user object. The managed identity is
 	 * the key between this identity and the identity in the database.
 	 * @return A netmobiel user or null if the token is not available, e.g. anonymous call.
 	 */

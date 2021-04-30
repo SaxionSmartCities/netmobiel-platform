@@ -1,6 +1,5 @@
 package eu.netmobiel.planner.api.resource;
 
-import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.Arrays;
 import java.util.HashSet;
@@ -11,14 +10,14 @@ import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.SecurityContext;
 
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.planner.api.SearchApi;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
 import eu.netmobiel.planner.model.PlanType;
@@ -28,8 +27,17 @@ import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.PlannerUserManager;
 import eu.netmobiel.planner.service.TripPlanManager;
 
+/**
+ * Implementation for the /search/plan endpoint. 
+ * 
+ * The header parameter xDelegator is extracted by the generated Api, but remains unsued. The implementation uses a CDI method to 
+ * produce and inject the security identity. 
+ *  
+ * @author Jaap Reitsma
+ *
+ */
 @RequestScoped
-public class SearchResource implements SearchApi {
+public class SearchResource extends PlannerResource implements SearchApi {
 	private static final int DEFAULT_MAX_WALK_DISTANCE = 1000;
 	@Inject
     private Logger log;
@@ -43,14 +51,11 @@ public class SearchResource implements SearchApi {
     @Inject
     private TripPlanMapper tripPlanMapper;
 
-    @Context
-    private SecurityContext securityContext;
-    
-	private Instant toInstant(OffsetDateTime odt) {
-		return odt == null ? null : odt.toInstant();
-	}
+    @Inject
+	private SecurityIdentity securityIdentity;
 
     public Response searchPlan(
+    		String xDelegator,
     		String from, 
     		String to, 
     		OffsetDateTime travelTime,
@@ -90,7 +95,8 @@ public class SearchResource implements SearchApi {
     		nrSeats = 1;
     	}
 		try {
-			PlannerUser traveller = userManager.findOrRegisterCallingUser();
+			CallingContext<PlannerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+    		PlannerUser traveller = context.getEffectiveUser();
 			plan.setFrom(GeoLocation.fromString(from));
 			plan.setTo(GeoLocation.fromString(to));
 			plan.setTravelTime(toInstant(travelTime));
@@ -104,8 +110,7 @@ public class SearchResource implements SearchApi {
 			plan.setFirstLegRideshareAllowed(Boolean.TRUE.equals(firstLegRideshare));
 			plan.setLastLegRideshareAllowed(Boolean.TRUE.equals(lastLegRideshare));
     		plan.setPlanType(PlanType.REGULAR);
-
-    		plan = plannerManager.createAndReturnTripPlan(traveller, plan, toInstant(now));
+    		plan = plannerManager.createAndReturnTripPlan(context.getCallingUser(), traveller, plan, toInstant(now));
     		if (log.isDebugEnabled()) {
     			log.debug("Multimodal plan for " + traveller.getEmail() + ":\n" + plan.toString());
     		}

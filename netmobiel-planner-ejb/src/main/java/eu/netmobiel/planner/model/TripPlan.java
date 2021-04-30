@@ -302,7 +302,15 @@ public class TripPlan implements Serializable {
 	 */
 	@Column(name = "plan_type", length = 3)
 	private PlanType planType;
-	
+
+    /**
+     * The user requesting the plan. In most cases this is the traveller, but with delegation active the plan is requested by the delegate.
+     */
+    @NotNull
+    @ManyToOne (fetch = FetchType.LAZY)
+	@JoinColumn(name = "requestor", nullable = false, foreignKey = @ForeignKey(name = "trip_plan_requestor_fk"))
+    private PlannerUser requestor;
+    
 	public TripPlan() { 
     	this.creationTime = Instant.now();
        	this.requestTime = creationTime;
@@ -312,6 +320,7 @@ public class TripPlan implements Serializable {
     		Set<TraverseMode> traverseModes, Integer maxWalkDistance, int nrSeats) {
     	this();
     	this.traveller = traveller;
+    	this.requestor = traveller;
         this.from = from;
         this.to = to;
        	this.travelTime = travelTime;
@@ -502,6 +511,14 @@ public class TripPlan implements Serializable {
 		return isFirstLegRideshareAllowed() || isLastLegRideshareAllowed();
 	}
 	
+	public PlannerUser getRequestor() {
+		return requestor;
+	}
+
+	public void setRequestor(PlannerUser requestor) {
+		this.requestor = requestor;
+	}
+
 	private String formatTime(Instant instant) {
     	return instant != null ? DateTimeFormatter.ISO_INSTANT.format(instant) : "*";
     }

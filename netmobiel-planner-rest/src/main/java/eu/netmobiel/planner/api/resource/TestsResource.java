@@ -16,7 +16,7 @@ import eu.netmobiel.planner.service.TripPlanManager;
 
 @Path("/tests")
 @ApplicationScoped
-public class TestsResource {
+public class TestsResource extends PlannerResource {
     @Inject
     private TripPlanManager rideManager;
 

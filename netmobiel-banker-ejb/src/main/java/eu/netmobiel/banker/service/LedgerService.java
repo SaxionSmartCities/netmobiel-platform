@@ -6,11 +6,9 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
-import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
-import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
@@ -69,8 +67,6 @@ public class LedgerService {
     @SuppressWarnings("unused")
 	@Inject
     private Logger log;
-    @Resource
-	protected SessionContext sessionContext;
 
 	@Inject
     private LedgerDao ledgerDao;

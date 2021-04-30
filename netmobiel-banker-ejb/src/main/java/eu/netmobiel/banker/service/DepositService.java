@@ -6,11 +6,9 @@ import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
-import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
 import javax.annotation.security.PermitAll;
 import javax.ejb.Schedule;
-import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 
@@ -44,8 +42,6 @@ public class DepositService {
 
     @Inject
     private Logger log;
-    @Resource
-	protected SessionContext sessionContext;
 
     @Inject
     private DepositRequestDao depositRequestDao;

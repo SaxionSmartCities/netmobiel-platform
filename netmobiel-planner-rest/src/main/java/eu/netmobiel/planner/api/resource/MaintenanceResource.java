@@ -10,7 +10,7 @@ import eu.netmobiel.planner.api.model.OperationStatus;
 import eu.netmobiel.planner.service.OTPMaintenanceService;
 
 @ApplicationScoped
-public class MaintenanceResource implements MaintenanceApi {
+public class MaintenanceResource extends PlannerResource implements MaintenanceApi {
     @Inject
     private OTPMaintenanceService otpService;
 

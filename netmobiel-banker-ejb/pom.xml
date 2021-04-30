@@ -45,6 +45,11 @@
 		    <artifactId>netmobiel-payment-client</artifactId>
 		    <version>${project.version}</version>
 		</dependency>
+		<dependency>
+		    <groupId>${project.groupId}</groupId>
+		    <artifactId>netmobiel-profile-ejb</artifactId>
+		    <version>${project.version}</version>
+		</dependency>
         <dependency>
             <groupId>javax.enterprise</groupId>
             <artifactId>cdi-api</artifactId>

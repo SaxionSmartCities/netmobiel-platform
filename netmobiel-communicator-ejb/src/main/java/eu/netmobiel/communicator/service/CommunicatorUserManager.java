@@ -10,10 +10,13 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.NetMobielModule;
+import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.service.UserManager;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.repository.CommunicatorUserDao;
+import eu.netmobiel.profile.service.ProfileManager;
 
 @Singleton
 @ConcurrencyManagement(ConcurrencyManagementType.CONTAINER)
@@ -25,6 +28,9 @@ public class CommunicatorUserManager extends UserManager<CommunicatorUserDao, Co
 
 	@Inject
     protected Logger log;
+
+	@Inject
+    private ProfileManager profileManager;
 
 	@Override
 	protected Logger getLogger() {
@@ -46,4 +52,9 @@ public class CommunicatorUserManager extends UserManager<CommunicatorUserDao, Co
     	return Optional.ofNullable(module == NetMobielModule.COMMUNICATOR ? CommunicatorUser.URN_PREFIX : null);
 	}
     
+	@Override
+	protected NetMobielUser findExternalUser(String managedIdentity) throws NotFoundException {
+		return profileManager.getProfileByManagedIdentity(managedIdentity);
+	}
+	
 }

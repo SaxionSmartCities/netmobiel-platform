@@ -136,7 +136,7 @@ public class TripManagerTest {
 	public void testCreateTrip_NoItinerary() {
 		Trip input = new Trip();
 		try {
-			tested.createTrip(traveller, input);
+			tested.createTrip(traveller, traveller, input);
 			fail("Expected exception: BadRequest");
 		} catch (BadRequestException ex) {
 			log.debug("Anticipated exception: " + ex);
@@ -152,7 +152,7 @@ public class TripManagerTest {
 		}};
 		
 		try {
-			tested.createTrip(traveller, trip);
+			tested.createTrip(traveller, traveller, trip);
 			fail("Expected exception: NotFound");
 		} catch (NotFoundException ex) {
 			log.debug("Anticipated exception: " + ex);
@@ -175,7 +175,7 @@ public class TripManagerTest {
 			tripDao.save(trip);
 		}};
 		try {
-			Long id = tested.createTrip(traveller, trip);
+			Long id = tested.createTrip(traveller, traveller, trip);
 			assertEquals(tripId, id);
 			assertEquals(itineraryId, trip.getItinerary().getId());
 			assertEquals(TripState.SCHEDULED, trip.getState());
@@ -203,7 +203,7 @@ public class TripManagerTest {
 			tripDao.save(trip);
 		}};
 		try {
-			Long id = tested.createTrip(traveller, trip);
+			Long id = tested.createTrip(traveller, traveller, trip);
 			assertEquals(tripId, id);
 			assertEquals(itineraryId, trip.getItinerary().getId());
 			assertEquals(TripState.BOOKING, trip.getState());

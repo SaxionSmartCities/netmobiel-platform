@@ -21,8 +21,10 @@ import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.service.UserManager;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.profile.service.ProfileManager;
 
 @Singleton
 @ConcurrencyManagement(ConcurrencyManagementType.CONTAINER)
@@ -39,6 +41,9 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
     @Inject
     private BalanceDao balanceDao;
 
+	@Inject
+    private ProfileManager profileManager;
+
     @Inject @Created
     private Event<BankerUser> userCreatedEvent;
 
@@ -50,6 +55,11 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
 	@Override
 	protected Logger getLogger() {
 		return log;
+	}
+
+	@Override
+	protected NetMobielUser findExternalUser(String managedIdentity) throws NotFoundException {
+		return profileManager.getProfileByManagedIdentity(managedIdentity);
 	}
 
 	@Override

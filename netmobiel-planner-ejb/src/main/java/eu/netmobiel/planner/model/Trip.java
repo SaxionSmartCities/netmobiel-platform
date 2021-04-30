@@ -419,9 +419,23 @@ public class Trip implements Serializable {
     @Column(name = "cancelled_by_provider")
     private Boolean cancelledByProvider;
 
+    /**
+     * The user organizing the trip. In most cases this is the traveller, but with delegation active the trip is organized by the delegate.
+     */
+    @NotNull
+    @ManyToOne (fetch = FetchType.LAZY)
+	@JoinColumn(name = "organizer", nullable = false, foreignKey = @ForeignKey(name = "trip_organizer_fk"))
+    private PlannerUser organizer;
+
+	/**
+	 * The creation time of the trip.   
+	 */
+    @NotNull
+    @Column(name = "creation_time", nullable = false)
+    private Instant creationTime;
 
     public Trip() {
-    	
+    	this.creationTime = Instant.now();
     }
     
     public Trip(String itineraryRef) {
@@ -568,6 +582,22 @@ public class Trip implements Serializable {
 
 	public void setArrivalPostalCode(String arrivalPostalCode) {
 		this.arrivalPostalCode = arrivalPostalCode;
+	}
+
+	public PlannerUser getOrganizer() {
+		return organizer;
+	}
+
+	public void setOrganizer(PlannerUser organizer) {
+		this.organizer = organizer;
+	}
+
+	public Instant getCreationTime() {
+		return creationTime;
+	}
+
+	public void setCreationTime(Instant creationTime) {
+		this.creationTime = creationTime;
 	}
 
 	private String formatTime(Instant instant) {
