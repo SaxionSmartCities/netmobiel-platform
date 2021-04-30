@@ -234,7 +234,8 @@ paths:
         required: true
       responses:
         "201":
-          description: Successful response.
+          description: Successful response. The reference to the resource is mentioned
+            in the `Location` header.
       operationId: createPlan
       summary: Create a TripPlan
       description: |-
@@ -712,7 +713,8 @@ paths:
         required: true
       responses:
         "201":
-          description: Successful response.
+          description: Successful response. The reference to the resource is mentioned
+            in the `Location` header.
         "400":
           $ref: '#/components/responses/BadRequest'
         "402":
@@ -1813,3 +1815,6 @@ components:
       scheme: bearer
       type: http
       description: You need a valid access token.
+security:
+- apikey: []
+  Bearer-only: []
