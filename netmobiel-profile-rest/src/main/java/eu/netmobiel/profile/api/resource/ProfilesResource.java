@@ -47,7 +47,13 @@ public class ProfilesResource implements ProfilesApi {
 //	private final BooleanSupplier isAdmin = () -> request.isUserInRole("admin");
 //	private final Predicate<String> itIsMe = id -> request.getUserPrincipal().getName().equals(id);
 
-    private String resolveIdentity(String profileId) {
+	/**
+	 * Determines the effective user of the call.
+	 * @param xDelegator The header delegator user is. Not used as we take the effective user from the security identity object.
+	 * @param profileId the profile id. If 'me' is used then the effective user id is taken.
+	 * @return the resolved user id (a keycloak managed identity).
+	 */
+    private String resolveIdentity(String xDelegator, String profileId) {
 		String mid = null;
 		if ("me".equals(profileId)) {
 			mid = securityIdentity.getEffectivePrincipal().getName();
@@ -74,10 +80,10 @@ public class ProfilesResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response getProfile(String profileId) {
+	public Response getProfile(String xDelegator, String profileId) {
     	Response rsp = null;
 		try {
-			String mid = resolveIdentity(profileId);
+			String mid = resolveIdentity(xDelegator, profileId);
 			// The profile is always completely initialized, but may only be filled in part,
 			// depending on the privileges of the caller.
 			Profile profile = profileManager.getProfileByManagedIdentity(mid);
@@ -93,10 +99,10 @@ public class ProfilesResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response getFcmToken(String profileId) {
+	public Response getFcmToken(String xDelegator, String profileId) {
     	Response rsp = null;
 		try {
-			String mid = resolveIdentity(profileId);
+			String mid = resolveIdentity(xDelegator, profileId);
         	String token = profileManager.getFcmTokenByManagedIdentity(mid);
         	FirebaseTokenResponse ftr = new FirebaseTokenResponse();
         	ftr.setFcmToken(token);
@@ -108,10 +114,10 @@ public class ProfilesResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response getProfileImage(String profileId) {
+	public Response getProfileImage(String xDelegator, String profileId) {
     	Response rsp = null;
 		try {
-			String mid = resolveIdentity(profileId);
+			String mid = resolveIdentity(xDelegator, profileId);
         	String imagePath = profileManager.getImagePathByManagedIdentity(mid);
         	ImageResponse ir = new ImageResponse();
         	ir.setImage(imagePath);
@@ -141,10 +147,10 @@ public class ProfilesResource implements ProfilesApi {
 
 	
 	@Override
-	public Response updateProfile(String profileId, eu.netmobiel.profile.api.model.Profile apiProfile) {
+	public Response updateProfile(String xDelegator, String profileId, eu.netmobiel.profile.api.model.Profile apiProfile) {
     	Response rsp = null;
 		try {
-			String mid = resolveIdentity(profileId);
+			String mid = resolveIdentity(xDelegator, profileId);
 			Profile domainProfile = profileMapper.map(apiProfile);
 			profileManager.updateProfileByManagedIdentity(mid, domainProfile);
         	domainProfile = profileManager.getProfileByManagedIdentity(profileId);
@@ -160,10 +166,10 @@ public class ProfilesResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response uploadImage(String profileId, ImageUploadRequest imageUploadRequest) {
+	public Response uploadImage(String xDelegator, String profileId, ImageUploadRequest imageUploadRequest) {
 		Response rsp = null;
 		try {
-			String mid = resolveIdentity(profileId);
+			String mid = resolveIdentity(xDelegator, profileId);
 			// See https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsDataURL
 			// This is how the client passes the image
 			// Format: data:image/*;base64,
@@ -202,10 +208,10 @@ public class ProfilesResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response deleteProfile(String profileId) {
+	public Response deleteProfile(String xDelegator, String profileId) {
 		Response rsp = null;
 		try {
-			String mid = resolveIdentity(profileId);
+			String mid = resolveIdentity(xDelegator, profileId);
 	    	profileManager.removeProfile(mid);
 			rsp = Response.noContent().build();
 		} catch (BusinessException ex) {
@@ -217,10 +223,10 @@ public class ProfilesResource implements ProfilesApi {
 	// =========================   PLACE  =========================
 	
 	@Override
-	public Response createPlace(String profileId, eu.netmobiel.profile.api.model.Place place) {
+	public Response createPlace(String xDelegator, String profileId, eu.netmobiel.profile.api.model.Place place) {
 		Response rsp = null;
 		try {
-			String mid = resolveIdentity(profileId);
+			String mid = resolveIdentity(xDelegator, profileId);
 			Place p = placeMapper.mapApiPlace(place);
 	    	Long id = profileManager.createPlace(mid, p);
 			rsp = Response.created(UriBuilder.fromResource(ProfilesApi.class)
@@ -234,10 +240,10 @@ public class ProfilesResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response getPlace(String profileId, String placeId) {
+	public Response getPlace(String xDelegator, String profileId, String placeId) {
 		Response rsp = null;
 		try {
-			String mid = resolveIdentity(profileId);
+			String mid = resolveIdentity(xDelegator, profileId);
 	    	Place place = profileManager.getPlace(mid, UrnHelper.getId(placeId));
 			rsp = Response.ok(placeMapper.mapPlace(place)).build();
 		} catch (IllegalArgumentException e) {
@@ -249,10 +255,10 @@ public class ProfilesResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response getPlaces(String profileId, Integer maxResults, Integer offset) {
+	public Response getPlaces(String xDelegator, String profileId, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		try {
-			String mid = resolveIdentity(profileId);
+			String mid = resolveIdentity(xDelegator, profileId);
 			Cursor cursor = new Cursor(maxResults, offset);
 	    	PagedResult<Place> results = profileManager.listPlaces(mid, cursor);
 			rsp = Response.ok(placeMapper.mapPlacesPage(results)).build();
@@ -265,10 +271,10 @@ public class ProfilesResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response updatePlace(String profileId, String placeId, eu.netmobiel.profile.api.model.Place apiPlace) {
+	public Response updatePlace(String xDelegator, String profileId, String placeId, eu.netmobiel.profile.api.model.Place apiPlace) {
     	Response rsp = null;
 		try {
-			String mid = resolveIdentity(profileId);
+			String mid = resolveIdentity(xDelegator, profileId);
 			Place place= placeMapper.mapApiPlace(apiPlace);
 			profileManager.updatePlace(mid, UrnHelper.getId(placeId), place);
    			rsp = Response.noContent().build();
@@ -281,10 +287,10 @@ public class ProfilesResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response deletePlace(String profileId, String placeId) {
+	public Response deletePlace(String xDelegator, String profileId, String placeId) {
 		Response rsp = null;
 		try {
-			String mid = resolveIdentity(profileId);
+			String mid = resolveIdentity(xDelegator, profileId);
 	    	profileManager.removePlace(mid, UrnHelper.getId(placeId));
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
