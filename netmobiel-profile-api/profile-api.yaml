@@ -16,100 +16,6 @@ servers:
 - url: https://api.netmobiel.eu/gwapi/acc/profiles
   description: The profile service visible to the world (acceptance).
 paths:
-  /profiles/{profileId}:
-    summary: Path used to manage a single `Profile`.
-    description: The REST endpoint/path used to get, update, and delete a single instance
-      of a `Profile`. This path contains `GET`, `PUT`, and `DELETE` operations used
-      to perform the get, update, and delete tasks, respectively.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Profile'
-          description: On success the profile is reurned.
-        "401":
-          $ref: '#/components/responses/NotAuthorized'
-        "500":
-          description: The profile could not be found.
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: getProfile
-      summary: Retrieves a profile
-      description: Retrieves a profile from the database.
-    put:
-      requestBody:
-        description: Updated `Profile` information.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Profile'
-        required: true
-      responses:
-        "200":
-          description: Profile updated. The updated profile is returned.
-        "401":
-          $ref: '#/components/responses/NotAuthorized'
-        "500":
-          description: The profile could not be updated.
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: updateProfile
-      summary: Update a Profile
-      description: Updates an existing `Profile`.
-    delete:
-      responses:
-        "200":
-          description: Successful response.
-        "401":
-          $ref: '#/components/responses/NotAuthorized'
-        "500":
-          description: The profile could not be deleted.
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: deleteProfile
-      summary: Delete a Profile
-      description: Deletes an existing `Profile`. Profiles are hard deleted.
-    parameters:
-    - examples:
-        keycloakId:
-          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
-      name: profileId
-      description: The keycloak managed identity of the user owning the profile.
-      schema:
-        type: string
-      in: path
-      required: true
-  /profiles/{profileId}/fcmToken:
-    summary: Path used to manage a single `Firebase Messaging Token`.
-    description: The REST endpoint/path used to get a single instance of a `Firebase
-      Messaging Token`. This path contains a `GET` operation to perform the get operation.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FirebaseTokenResponse'
-          description: Returns a FCM token.
-      operationId: getFcmToken
-      summary: Retrieves a `Firebase Messaging Token`.
-      description: Retrieves a `Firebase Messaging Token` from the profile of a user,
-        given the managed identity of the user.
-    parameters:
-    - examples:
-        keycloakId:
-          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
-      name: profileId
-      description: The keycloak managed identity of the user owning the profile.
-      schema:
-        type: string
-      in: path
-      required: true
   /compliments:
     summary: Path used to manage the list of compliments.
     description: The REST endpoint/path used to list and create zero or more `Compliment`
@@ -300,46 +206,6 @@ paths:
       operationId: createReview
       summary: Create a Review
       description: Creates a new instance of a `Review`.
-  /profiles/{profileId}/image:
-    summary: Manages the profile image.
-    description: Manage the profile image of the user of this profile.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ImageResponse'
-          description: The relative path to the image or an empty string if none available.
-      operationId: getProfileImage
-      summary: Get the image path.
-      description: Gets the path to the profile image.
-    put:
-      requestBody:
-        description: The image to upload.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ImageUploadRequest'
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Profile'
-          description: The updated profile.
-      operationId: uploadImage
-      summary: Uploads an image
-      description: Uploads an image. The previous image is removed. The path to the
-        image is saved in the profile.
-    parameters:
-    - name: profileId
-      description: The unique profile id.
-      schema:
-        type: string
-      in: path
-      required: true
   /profiles:
     summary: Path used to manage profiles.
     description: The REST endpoint/path used to list and create zero or more `Profile`
@@ -570,11 +436,170 @@ paths:
       operationId: createDelegation
       summary: Create a Delegation
       description: Creates a new instance of a `Delegation`.
+  /profiles/{profileId}:
+    summary: Path used to manage a single `Profile`.
+    description: The REST endpoint/path used to get, update, and delete a single instance
+      of a `Profile`. This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively. When a call a made
+      by a someone with the delegate role, the effective user will be the user specified
+      in the X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: On success the profile is reurned.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "500":
+          description: The profile could not be found.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getProfile
+      summary: Retrieves a profile
+      description: Retrieves a profile from the database.
+    put:
+      requestBody:
+        description: Updated `Profile` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+        required: true
+      responses:
+        "200":
+          description: Profile updated. The updated profile is returned.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "500":
+          description: The profile could not be updated.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: updateProfile
+      summary: Update a Profile
+      description: Updates an existing `Profile`.
+    delete:
+      responses:
+        "200":
+          description: Successful response.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "500":
+          description: The profile could not be deleted.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: deleteProfile
+      summary: Delete a Profile
+      description: Deletes an existing `Profile`. Profiles are hard deleted.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - examples:
+        keycloakId:
+          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
+      name: profileId
+      description: The keycloak managed identity of the user owning the profile.
+      schema:
+        type: string
+      in: path
+      required: true
+  /profiles/{profileId}/fcmToken:
+    summary: Path used to manage a single `Firebase Messaging Token`.
+    description: The REST endpoint/path used to get a single instance of a `Firebase
+      Messaging Token`. This path contains a `GET` operation to perform the get operation.
+      When a call a made by a someone with the delegate role, the effective user will
+      be the user specified in the X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirebaseTokenResponse'
+          description: Returns a FCM token.
+      operationId: getFcmToken
+      summary: Retrieves a `Firebase Messaging Token`.
+      description: Retrieves a `Firebase Messaging Token` from the profile of a user,
+        given the managed identity of the user.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - examples:
+        keycloakId:
+          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
+      name: profileId
+      description: The keycloak managed identity of the user owning the profile.
+      schema:
+        type: string
+      in: path
+      required: true
+  /profiles/{profileId}/image:
+    summary: Manages the profile image.
+    description: Manage the profile image of the user of this profile. When a call
+      a made by a someone with the delegate role, the effective user will be the user
+      specified in the X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+          description: The relative path to the image or an empty string if none available.
+      operationId: getProfileImage
+      summary: Get the image path.
+      description: Gets the path to the profile image.
+    put:
+      requestBody:
+        description: The image to upload.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageUploadRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: The updated profile.
+      operationId: uploadImage
+      summary: Uploads an image
+      description: Uploads an image. The previous image is removed. The path to the
+        image is saved in the profile.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: profileId
+      description: The unique profile id.
+      schema:
+        type: string
+      in: path
+      required: true
   /profiles/{profileId}/places:
     summary: Path used to manage the list of places (favorite locations) for an profile.
     description: The REST endpoint/path used to list and create zero or more `Place`
       entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
+      and create tasks, respectively. When a call a made by a someone with the delegate
+      role, the effective user will be the user specified in the X-Delegator header.
     get:
       parameters:
       - name: maxResults
@@ -613,6 +638,12 @@ paths:
       summary: Create a Place
       description: Creates a new instance of a `Place`.
     parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
     - name: profileId
       description: The unique id of the profile.
       schema:
@@ -623,7 +654,9 @@ paths:
     summary: Path used to manage a single Place.
     description: The REST endpoint/path used to get, update, and delete single instances
       of an `Place`.  This path contains `GET`, `PUT`, and `DELETE` operations used
-      to perform the get, update, and delete tasks, respectively.
+      to perform the get, update, and delete tasks, respectively. When a call a made
+      by a someone with the delegate role, the effective user will be the user specified
+      in the X-Delegator header.
     get:
       responses:
         "200":
@@ -657,6 +690,12 @@ paths:
       summary: Delete a Place
       description: Deletes an existing `Place`.
     parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
     - name: profileId
       description: A unique identifier for a `Profile`.
       schema:
