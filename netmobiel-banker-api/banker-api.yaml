@@ -722,142 +722,6 @@ paths:
       operationId: createPaymentBatch
       summary: Create a PaymentBatch
       description: Creates a new instance of a `PaymentBatch`.
-  /withdrawal-requests/:
-    summary: Path used to manage the list of withdrawal requests.
-    description: "The REST endpoint/path used to list `WithdrawalRequest` entities.\
-      \  This path contains a `GET` operation to perform the list task. This endpoint\
-      \ cannot be used to create a withdrawal request. Instead, use the approriate\
-      \ user or charity endpoints.\n\nOnly users with the role `admin` or `treasurer`\
-      \ are allowed to use this endpoint. "
-    get:
-      parameters:
-      - name: accountName
-        description: 'The account name to search for. Use the wildcard character ''*''
-          to match any string. '
-        schema:
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-11-30T12:00:00+01:00
-        name: since
-        description: The creation date at which to start the listing. Default is not
-          set.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-12-15T14:00:00+01:00
-        name: until
-        description: The creation date and later not to include in the listing. The
-          `until` date must be after the `since` parameter. Default is not set.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: status
-        description: The status of the request to filter.
-        schema:
-          enum:
-          - ACTIVE
-          - EXPIRED
-          - COMPLETED
-          - REQUESTED
-          type: string
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a `Page` of `WithdrawalRequest`
-            entities.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: listWithdrawalRequests
-      summary: List withdrawal requests.
-      description: "Gets a list of `WithdrawalRequest` entities matching the criteria.\
-        \ The objects are sorted on creation time descending. \n"
-  /withdrawal-requests/{withdrawalRequestId}:
-    summary: Path used to manage a single WithdrawalRequest.
-    description: "The REST endpoint/path used to manage a single instance of a `WithdrawalRequest`.\
-      \  This path contains a `DELETE` operation used to perform the delete task.\
-      \ \n\nOnly users with the role `admin` or `treasurer` are allowed to use this\
-      \ endpoint."
-    delete:
-      parameters:
-      - name: reason
-        description: The reason to cancel the withdrawal request.
-        schema:
-          type: string
-        in: query
-      responses:
-        "204":
-          description: Success response, the withdrawal request is cancelled.
-        "400":
-          description: The request to cancel was not accepted because the withdrawal
-            was already no longer requested nor active.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-        "404":
-          $ref: '#/components/responses/NotFound'
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: cancelWithdrawalRequest
-      summary: Cancels a withdrawal request
-      description: |-
-        Cancels a withdrawal request. An optional reason specifies why the request was cancelled. Two scenarios are quite possible:
-        - The user gets seconds thoughts
-        - The penningmeester gets an error on the particular withdrawal while processing the payment batch.
-    parameters:
-    - name: withdrawalRequestId
-      description: The id of the withdrawal request. Use the database id or a urn.
-      schema:
-        type: string
-      in: path
-      required: true
-  /withdrawal-requests/{withdrawalRequestId}/settled:
-    summary: Settle the batch.
-    description: "Simple call the notify the settlement of the batch, i.e. the settlement\
-      \ of all individual withdrawal requests in the batch.\n\nOnly users with the\
-      \ role `admin` or `treasurer` are allowed to use this endpoint. "
-    put:
-      responses:
-        "204":
-          description: The batch is settled.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: settleWithdrawalRequest
-      summary: Settles a withdrawal request.
-      description: Settles an individual withdrawal request, i.e. confirm the withdrawal
-        request has been processed by the treasurer of NetMobiel.
-    parameters:
-    - name: withdrawalRequestId
-      description: The id of the withdrawal request. Use the database id or a urn.
-      schema:
-        type: string
-      in: path
-      required: true
   /payment-batches/{paymentBatchId}:
     summary: Path used to manage a single PaymentBatch.
     description: "The REST endpoint/path used to get, and delete single instances\
@@ -1548,6 +1412,235 @@ paths:
     parameters:
     - name: charityId
       description: The charity id to use. Specify a charity id or a charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/{charityId}/withdrawals/{withdrawalId}:
+    summary: Path used to manage a single WithdrawalRequest.
+    description: "The REST endpoint/path used to manage a single instance of a `WithdrawalRequest`.\
+      \  This path contains a `DELETE` operation used to perform the delete task.\
+      \ \n\nOnly users with a management role at the charity are allowed to use this\
+      \ endpoint."
+    delete:
+      parameters:
+      - name: reason
+        description: The reason to cancel the withdrawal request.
+        schema:
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the withdrawal request is cancelled.
+        "400":
+          description: The request to cancel was not accepted because the withdrawal
+            was already no longer requested nor active.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: cancelWithdrawalRequest
+      summary: Cancels a withdrawal request
+      description: |-
+        Cancels a withdrawal request. An optional reason specifies why the request was cancelled. Two scenarios are quite possible:
+        - The user gets seconds thoughts
+        - The penningmeester gets an error on the particular withdrawal while processing the payment batch.
+    parameters:
+    - name: charityId
+      description: The charity id to use. Specify a charity id or a charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: withdrawalId
+      description: The id of the withdrawal request. Use the database id or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/withdrawals/{withdrawalId}:
+    summary: Path used to manage a single WithdrawalRequest.
+    description: "The REST endpoint/path used to manage a single instance of a `WithdrawalRequest`.\
+      \  This path contains a `DELETE` operation used to perform the delete task.\
+      \ \n\nOnly the effective user and users with the role `admin` are allowed to\
+      \ use this endpoint."
+    delete:
+      parameters:
+      - name: reason
+        description: The reason to cancel the withdrawal request.
+        schema:
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the withdrawal request is cancelled.
+        "400":
+          description: The request to cancel was not accepted because the withdrawal
+            was already no longer requested nor active.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: cancelWithdrawalRequest
+      summary: Cancels a withdrawal request
+      description: |-
+        Cancels a withdrawal request. An optional reason specifies why the request was cancelled. Two scenarios are quite possible:
+        - The user gets seconds thoughts
+        - The penningmeester gets an error on the particular withdrawal while processing the payment batch.
+    parameters:
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: withdrawalId
+      description: The id of the withdrawal request. Use the database id or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /withdrawals:
+    summary: Path used to manage the list of withdrawal requests.
+    description: "The REST endpoint/path used to list `WithdrawalRequest` entities.\
+      \  This path contains a `GET` operation to perform the list task. This endpoint\
+      \ cannot be used to create a withdrawal request. Instead, use the approriate\
+      \ user or charity endpoints.\n\nOnly users with the role `admin` or `treasurer`\
+      \ are allowed to use this endpoint. "
+    get:
+      parameters:
+      - name: accountName
+        description: 'The account name to search for. Use the wildcard character ''*''
+          to match any string. '
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing. The
+          `until` date must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: status
+        description: The status of the request to filter.
+        schema:
+          enum:
+          - ACTIVE
+          - EXPIRED
+          - COMPLETED
+          - REQUESTED
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `WithdrawalRequest`
+            entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listWithdrawalRequests
+      summary: List withdrawal requests.
+      description: "Gets a list of `WithdrawalRequest` entities matching the criteria.\
+        \ The objects are sorted on creation time descending. \n"
+  /withdrawals/{withdrawalId}:
+    summary: Path used to manage a single WithdrawalRequest.
+    description: "The REST endpoint/path used to manage a single instance of a `WithdrawalRequest`.\
+      \  This path contains a `DELETE` operation used to perform the delete task.\
+      \ \n\nOnly users with the role `admin` or `treasurer` are allowed to use this\
+      \ endpoint."
+    delete:
+      parameters:
+      - name: reason
+        description: The reason to cancel the withdrawal request.
+        schema:
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the withdrawal request is cancelled.
+        "400":
+          description: The request to cancel was not accepted because the withdrawal
+            was already no longer requested nor active.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: cancelWithdrawalRequest
+      summary: Cancels a withdrawal request
+      description: |-
+        Cancels a withdrawal request. An optional reason specifies why the request was cancelled. Two scenarios are quite possible:
+        - The user gets seconds thoughts
+        - The penningmeester gets an error on the particular withdrawal while processing the payment batch.
+    parameters:
+    - name: withdrawalId
+      description: The id of the withdrawal request. Use the database id or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /withdrawals/{withdrawalId}/settled:
+    summary: Settle the batch.
+    description: "Simple call the notify the settlement of the batch, i.e. the settlement\
+      \ of all individual withdrawal requests in the batch.\n\nOnly users with the\
+      \ role `admin` or `treasurer` are allowed to use this endpoint. "
+    put:
+      responses:
+        "204":
+          description: The batch is settled.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: settleWithdrawalRequest
+      summary: Settles a withdrawal request.
+      description: Settles an individual withdrawal request, i.e. confirm the withdrawal
+        request has been processed by the treasurer of NetMobiel.
+    parameters:
+    - name: withdrawalId
+      description: The id of the withdrawal request. Use the database id or a urn.
       schema:
         type: string
       in: path
