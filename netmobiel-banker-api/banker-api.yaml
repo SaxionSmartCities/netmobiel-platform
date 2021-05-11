@@ -1442,7 +1442,7 @@ paths:
       security:
       - apikey: []
         Bearer-only: []
-      operationId: cancelWithdrawalRequest
+      operationId: cancelCharityWithdrawalRequest
       summary: Cancels a withdrawal request
       description: |-
         Cancels a withdrawal request. An optional reason specifies why the request was cancelled. Two scenarios are quite possible:
@@ -1451,54 +1451,6 @@ paths:
     parameters:
     - name: charityId
       description: The charity id to use. Specify a charity id or a charity urn.
-      schema:
-        type: string
-      in: path
-      required: true
-    - name: withdrawalId
-      description: The id of the withdrawal request. Use the database id or a urn.
-      schema:
-        type: string
-      in: path
-      required: true
-  /users/{userId}/withdrawals/{withdrawalId}:
-    summary: Path used to manage a single WithdrawalRequest.
-    description: "The REST endpoint/path used to manage a single instance of a `WithdrawalRequest`.\
-      \  This path contains a `DELETE` operation used to perform the delete task.\
-      \ \n\nOnly the effective user and users with the role `admin` are allowed to\
-      \ use this endpoint."
-    delete:
-      parameters:
-      - name: reason
-        description: The reason to cancel the withdrawal request.
-        schema:
-          type: string
-        in: query
-      responses:
-        "204":
-          description: Success response, the withdrawal request is cancelled.
-        "400":
-          description: The request to cancel was not accepted because the withdrawal
-            was already no longer requested nor active.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-        "404":
-          $ref: '#/components/responses/NotFound'
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: cancelWithdrawalRequest
-      summary: Cancels a withdrawal request
-      description: |-
-        Cancels a withdrawal request. An optional reason specifies why the request was cancelled. Two scenarios are quite possible:
-        - The user gets seconds thoughts
-        - The penningmeester gets an error on the particular withdrawal while processing the payment batch.
-    parameters:
-    - name: userId
-      description: |-
-        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
-
-        Using a userid other than your own (or me) requires admin privilege.
       schema:
         type: string
       in: path
@@ -1639,6 +1591,60 @@ paths:
       description: Settles an individual withdrawal request, i.e. confirm the withdrawal
         request has been processed by the treasurer of NetMobiel.
     parameters:
+    - name: withdrawalId
+      description: The id of the withdrawal request. Use the database id or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/withdrawals/{withdrawalId}:
+    summary: Path used to manage a single WithdrawalRequest.
+    description: "The REST endpoint/path used to manage a single instance of a `WithdrawalRequest`.\
+      \  This path contains a `DELETE` operation used to perform the delete task.\
+      \ \n\nOnly the effective user and users with the role `admin` are allowed to\
+      \ use this endpoint."
+    delete:
+      parameters:
+      - name: reason
+        description: The reason to cancel the withdrawal request.
+        schema:
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the withdrawal request is cancelled.
+        "400":
+          description: The request to cancel was not accepted because the withdrawal
+            was already no longer requested nor active.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: cancelUserWithdrawalRequest
+      summary: Cancels a withdrawal request
+      description: |-
+        Cancels a withdrawal request. An optional reason specifies why the request was cancelled. Two scenarios are quite possible:
+        - The user gets seconds thoughts
+        - The penningmeester gets an error on the particular withdrawal while processing the payment batch.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
     - name: withdrawalId
       description: The id of the withdrawal request. Use the database id or a urn.
       schema:
