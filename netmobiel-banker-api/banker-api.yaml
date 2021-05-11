@@ -38,144 +38,6 @@ paths:
     description: 'The REST endpoint/path used to list `User` entities and to manage
       derived entities such as deposits and statements. This path contains a `GET`
       operation to perform the list task. '
-  /users/{userId}:
-    summary: Path used to manage a single User.
-    description: The REST endpoint/path used to get and update a single instance of
-      a `User`. This path contains a `GET` and a `PUT` operation used to perform the
-      get and put tasks, respectively.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/User'
-          description: Return a single `User`.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: getUser
-      summary: Get a User.
-      description: Gets the details of a single instance of a `User`, including the
-        current amount of credits owned (i.e., the actual balance). The actual amount
-        is only visible to the owner and to the administrator. The iban number and
-        iban account holder are also only visible to the owner and the administrator.
-    parameters:
-    - name: userId
-      description: |-
-        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
-
-        Using a userid other than your own (or me) requires admin privilege.
-      schema:
-        type: string
-      in: path
-      required: true
-  /users/{userId}/deposits:
-    summary: Path used to manage deposits to user accounts.
-    description: The REST endpoint/path used to create zero or more `DepositRequest`
-      entities.  This path contains a `POST` operation to perform the create task.
-    post:
-      requestBody:
-        description: A new `Deposit` to be created.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DepositRequest'
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/PaymentLink'
-          description: Successful response.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: createDeposit
-      summary: Create a Deposit
-      description: Creates a new `DepositRequest`. The call returns a `PaymentLink`,
-        containing a url to a payment page. The client should redirect a browser to
-        the payment page url. The payment is converted into credits, the credits are
-        added to the personal account of the specified user.
-    parameters:
-    - name: userId
-      description: |-
-        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
-
-        Using a userid other than your own (or me) requires admin privilege.
-      schema:
-        type: string
-      in: path
-      required: true
-  /users/{userId}/statements:
-    summary: Path used to manage the list of statements for a user.
-    description: The REST endpoint/path used to list zero or more `Statement` entities.  This
-      path contains a `GET` operation to perform the list task. A Statement reports
-      on a credit transaction for this user.
-    get:
-      parameters:
-      - examples:
-          Format:
-            value: 2019-11-30T12:00:00+01:00
-        name: since
-        description: The maximum lookback date of the listing. Default is not set.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-12-15T14:00:00+01:00
-        name: until
-        description: 'The date of the latest entry to retrieve. The `until` date must
-          be after the `since` parameter. Default is not set, meaning all entries
-          from now and before. '
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a `Page` with `Statement` entities.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: listUserStatements
-      summary: List Statement entries.
-      description: "Gets a paged list of  `Statement` entities. The statements are\
-        \ sorted on accounting time descending.\n\nThe administrator can request statements\
-        \ owned by any user. \n"
-    parameters:
-    - name: userId
-      description: |-
-        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
-
-        Using a userid other than your own (or me) requires admin privilege.
-      schema:
-        type: string
-      in: path
-      required: true
   /deposit-events:
     summary: Path used to manage the list of deposit events.
     description: The REST endpoint/path used to create zero or more deposit events.
@@ -376,39 +238,6 @@ paths:
       operationId: createCharity
       summary: Create a Charity
       description: Creates a new instance of a `Charity`.
-  /users/{userId}/statements/{entryId}:
-    summary: Path used to manage a single Statement.
-    description: The REST endpoint/path used to get a single instances of a `Statement`.  This
-      path contains a `GET` operation used to perform the get task.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Statement'
-          description: A single `Statement` object.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: getStatement
-      summary: Retrieves a specific statement.
-      description: Gets the details of a single instance of a `Statement`.
-    parameters:
-    - name: userId
-      description: |-
-        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
-
-        Using a userid other than your own (or me) requires admin privilege.
-      schema:
-        type: string
-      in: path
-      required: true
-    - name: entryId
-      description: The statement id.
-      schema:
-        type: string
-      in: path
-      required: true
   /charities/{charityId}/donations/{donationId}:
     summary: Path used to manage a single Statement.
     description: The REST endpoint/path used to get a single instances of a `Statement`.  This
@@ -633,44 +462,6 @@ paths:
         donated. The total amount is summed after fitlering the indiviaduial donations
         according the filter parameters. Anonymous donations are never included in
         the report.
-  /users/{userId}/recent-donations:
-    summary: Reports on recent donations.
-    description: Endpoint used to create a report on recent donations to distinct
-      charities.
-    get:
-      parameters:
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Success response. The results contains a pages result of `Donation`
-            entities.  The charity is expanded, the user is omitted.
-      operationId: reportRecentDonations
-      summary: List the recent donations.
-      description: Reports on the most recent donation to each distinct charity. The
-        donation are sorted by `donationTime` descending.
-    parameters:
-    - name: userId
-      description: |-
-        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
-
-        Using a userid other than your own (or me) requires admin privilege.
-      schema:
-        type: string
-      in: path
-      required: true
   /users/{userId}/withdrawals:
     summary: Path used to manage withdrawals from the personal account of a user.
     description: The REST endpoint/path used to create zero or more `WithdrawalRequest`
@@ -1013,7 +804,9 @@ paths:
   /withdrawal-requests/:
     summary: Path used to manage the list of withdrawal requests.
     description: The REST endpoint/path used to list `WithdrawalRequest` entities.  This
-      path contains a `GET` operation to perform the list task.
+      path contains a `GET` operation to perform the list task. This endpoint cannot
+      be used to create a withdrawal request. Instead, use the approriate user or
+      charity endpoints.
     get:
       parameters:
       - name: accountName
@@ -1078,7 +871,7 @@ paths:
       operationId: listWithdrawalRequests
       summary: List withdrawal requests.
       description: "Gets a list of `WithdrawalRequest` entities matching the criteria.\
-        \ The objects are sorted on creation time descending. \nThis is a priviledged\
+        \ The objects are sorted on creation time descending. \nThis is a privileged\
         \ call. "
   /withdrawal-requests/{withdrawalRequestId}:
     summary: Path used to manage a single WithdrawalRequest.
@@ -1215,66 +1008,6 @@ paths:
         type: string
       in: path
       required: true
-  /users/{userId}/account:
-    summary: Manage the user's personal credit account.
-    description: 'The REST endpoint/path used to manage the personal  `Account` of
-      a user. This path contains a `GET` and a `PUT` operation to perform the get
-      resp. put task. '
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Account'
-          description: Return the personal `Account`.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: getPersonalAccount
-      summary: Get the personal user account.
-      description: Gets the details of a single instance of a `Account`, including
-        the current amount of credits owned (i.e., the actual balance). The actual
-        amount is only visible to the owner and to the administrator.
-    put:
-      requestBody:
-        description: Specify name, iban and ibanHolder. Other fields are ignored.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Account'
-        required: true
-      responses:
-        "204":
-          description: The account is updated.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: updatePersonalAccount
-      summary: Updates the account.
-      description: |-
-        Updates the personal account of the user. Only the following details can be updated:
-         - name
-         - iban
-         - ibanHolder
-
-        The update of the iban is considered sensitive. An additional restriction is placed on the bearer token used to update the iban: The token must have been issued less than 2 minutes ago.
-
-        Only the owning user and the administrator can modify the user details.
-    parameters:
-    - name: userId
-      description: |-
-        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
-
-        Using a userid other than your own (or me) requires admin privilege.
-      schema:
-        type: string
-      in: path
-      required: true
   /charities/{charityId}/account:
     summary: Manage the credit account of the charity.
     description: 'The REST endpoint/path used to manage the `Account` of the charity.
@@ -1331,7 +1064,7 @@ paths:
     summary: Manage an NetMobiel account.
     description: "The REST endpoint/path used to manage an `Account`. This path contains\
       \ a `GET` and a `PUT` operation to perform the get resp. put task. \nThis endpoint\
-      \ can be used by the administraotr only."
+      \ can be used by an administrator only."
     get:
       responses:
         "200":
@@ -1378,6 +1111,311 @@ paths:
     - name: accountId
       description: The account id to use. Specify a banker account id, or an account
         urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}:
+    summary: Path used to manage a single User.
+    description: The REST endpoint/path used to get and update a single instance of
+      a `User`. This path contains a `GET` and a `PUT` operation used to perform the
+      get and put tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: Return a single `User`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getUser
+      summary: Get a User.
+      description: Gets the details of a single instance of a `User`, including the
+        current amount of credits owned (i.e., the actual balance). The actual amount
+        is only visible to the owner and to the administrator. The iban number and
+        iban account holder are also only visible to the owner and the administrator.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/account:
+    summary: Manage the user's personal credit account.
+    description: 'The REST endpoint/path used to manage the personal  `Account` of
+      a user. This path contains a `GET` and a `PUT` operation to perform the get
+      resp. put task. '
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+          description: Return the personal `Account`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getPersonalAccount
+      summary: Get the personal user account.
+      description: Gets the details of a single instance of a `Account`, including
+        the current amount of credits owned (i.e., the actual balance). The actual
+        amount is only visible to the owner and to the administrator.
+    put:
+      requestBody:
+        description: Specify name, iban and ibanHolder. Other fields are ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+        required: true
+      responses:
+        "204":
+          description: The account is updated.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: updatePersonalAccount
+      summary: Updates the account.
+      description: |-
+        Updates the personal account of the user. Only the following details can be updated:
+         - name
+         - iban
+         - ibanHolder
+
+        The update of the iban is considered sensitive. An additional restriction is placed on the bearer token used to update the iban: The token must have been issued less than 2 minutes ago.
+
+        Only the owning user and the administrator can modify the user details.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/deposits:
+    summary: Path used to manage deposits to user accounts.
+    description: The REST endpoint/path used to create zero or more `DepositRequest`
+      entities.  This path contains a `POST` operation to perform the create task.
+    post:
+      requestBody:
+        description: A new `Deposit` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentLink'
+          description: Successful response.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: createDeposit
+      summary: Create a Deposit
+      description: Creates a new `DepositRequest`. The call returns a `PaymentLink`,
+        containing a url to a payment page. The client should redirect a browser to
+        the payment page url. The payment is converted into credits, the credits are
+        added to the personal account of the specified user.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/recent-donations:
+    summary: Reports on recent donations.
+    description: Endpoint used to create a report on recent donations to distinct
+      charities.
+    get:
+      parameters:
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Success response. The results contains a pages result of `Donation`
+            entities.  The charity is expanded, the user is omitted.
+      operationId: reportRecentDonations
+      summary: List the recent donations.
+      description: Reports on the most recent donation to each distinct charity. The
+        donation are sorted by `donationTime` descending.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/statements:
+    summary: Path used to manage the list of statements for a user.
+    description: The REST endpoint/path used to list zero or more `Statement` entities.  This
+      path contains a `GET` operation to perform the list task. A Statement reports
+      on a credit transaction for this user.
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The maximum lookback date of the listing. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: 'The date of the latest entry to retrieve. The `until` date must
+          be after the `since` parameter. Default is not set, meaning all entries
+          from now and before. '
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Statement` entities.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: listUserStatements
+      summary: List Statement entries.
+      description: "Gets a paged list of  `Statement` entities. The statements are\
+        \ sorted on accounting time descending.\n\nThe administrator can request statements\
+        \ owned by any user. \n"
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/statements/{entryId}:
+    summary: Path used to manage a single Statement.
+    description: The REST endpoint/path used to get a single instances of a `Statement`.  This
+      path contains a `GET` operation used to perform the get task.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statement'
+          description: A single `Statement` object.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getStatement
+      summary: Retrieves a specific statement.
+      description: Gets the details of a single instance of a `Statement`.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: entryId
+      description: The statement id.
       schema:
         type: string
       in: path
