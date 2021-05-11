@@ -622,50 +622,11 @@ paths:
         type: string
       in: path
       required: true
-  /charities/{charityId}/withdrawals:
-    summary: Path used to manage the withdrawals from the account coupled to a charity.
-    description: The REST endpoint/path used to make a withdrawal from a `Charity`
-      and to list withdrawals. This path contains `POST` and `GET` operations to perform
-      the withdrawal creation task, resp. the listing task.
-    post:
-      requestBody:
-        description: |-
-          The withdrawal request with the amount of credits to withdraw specified. Only the amount in credits and a description are mandatory.
-          All other values are calculated or derived.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/WithdrawalRequest'
-        required: true
-      responses:
-        "201":
-          description: The withdrawal request was created successfully.
-        "402":
-          description: The balance of the charity was insufficient for performing
-            the withdrawal.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: createCharityWithdrawal
-      summary: Create a withdrawal.
-      description: Creates a `WithdrawalRequest` for a `Charity`. The credits are
-        reserved from the balance of the charity. The actual withdrawal will be done
-        by the treasurer of NetMobiel. Only managers of the charity have the privilege
-        to request a withdrawal. The beneficiary account in the real world is known
-        by the treasurer.
-    parameters:
-    - name: charityId
-      description: The charity id to use. Specify a charity id or a charity urn.
-      schema:
-        type: string
-      in: path
-      required: true
   /payment-batches/{paymentBatchId}/settled:
     summary: Settle the batch.
-    description: Simple call the notify the settlement of the batch, i.e. the settlement
-      of all individual withdrawal requests in the batch.
+    description: "Simple call the notify the settlement of the batch, i.e. the settlement\
+      \ of all individual withdrawal requests in the batch.\n\nOnly users with the\
+      \ role `admin` or `treasurer` are allowed to use this endpoint. "
     put:
       responses:
         "204":
@@ -688,9 +649,10 @@ paths:
       required: true
   /payment-batches:
     summary: Path used to manage the list of paymentbatches.
-    description: The REST endpoint/path used to list and create zero or more `PaymentBatch`
-      entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
+    description: "The REST endpoint/path used to list and create zero or more `PaymentBatch`\
+      \ entities.  This path contains a `GET` and `POST` operation to perform the\
+      \ list and create tasks, respectively.\n\nOnly users with the role `admin` or\
+      \ `treasurer` are allowed to use this endpoint. "
     get:
       parameters:
       - examples:
@@ -762,10 +724,11 @@ paths:
       description: Creates a new instance of a `PaymentBatch`.
   /withdrawal-requests/:
     summary: Path used to manage the list of withdrawal requests.
-    description: The REST endpoint/path used to list `WithdrawalRequest` entities.  This
-      path contains a `GET` operation to perform the list task. This endpoint cannot
-      be used to create a withdrawal request. Instead, use the approriate user or
-      charity endpoints.
+    description: "The REST endpoint/path used to list `WithdrawalRequest` entities.\
+      \  This path contains a `GET` operation to perform the list task. This endpoint\
+      \ cannot be used to create a withdrawal request. Instead, use the approriate\
+      \ user or charity endpoints.\n\nOnly users with the role `admin` or `treasurer`\
+      \ are allowed to use this endpoint. "
     get:
       parameters:
       - name: accountName
@@ -830,12 +793,13 @@ paths:
       operationId: listWithdrawalRequests
       summary: List withdrawal requests.
       description: "Gets a list of `WithdrawalRequest` entities matching the criteria.\
-        \ The objects are sorted on creation time descending. \nThis is a privileged\
-        \ call. "
+        \ The objects are sorted on creation time descending. \n"
   /withdrawal-requests/{withdrawalRequestId}:
     summary: Path used to manage a single WithdrawalRequest.
-    description: The REST endpoint/path used to manage a single instance of a `WithdrawalRequest`.  This
-      path contains a `DELETE` operation used to perform the delete task.
+    description: "The REST endpoint/path used to manage a single instance of a `WithdrawalRequest`.\
+      \  This path contains a `DELETE` operation used to perform the delete task.\
+      \ \n\nOnly users with the role `admin` or `treasurer` are allowed to use this\
+      \ endpoint."
     delete:
       parameters:
       - name: reason
@@ -871,8 +835,9 @@ paths:
       required: true
   /withdrawal-requests/{withdrawalRequestId}/settled:
     summary: Settle the batch.
-    description: Simple call the notify the settlement of the batch, i.e. the settlement
-      of all individual withdrawal requests in the batch.
+    description: "Simple call the notify the settlement of the batch, i.e. the settlement\
+      \ of all individual withdrawal requests in the batch.\n\nOnly users with the\
+      \ role `admin` or `treasurer` are allowed to use this endpoint. "
     put:
       responses:
         "204":
@@ -895,9 +860,10 @@ paths:
       required: true
   /payment-batches/{paymentBatchId}:
     summary: Path used to manage a single PaymentBatch.
-    description: The REST endpoint/path used to get, and delete single instances of
-      an `PaymentBatch`.  This path contains `GET`  and `DELETE` operations used to
-      perform the get and delete tasks, respectively.
+    description: "The REST endpoint/path used to get, and delete single instances\
+      \ of an `PaymentBatch`.  This path contains `GET`  and `DELETE` operations used\
+      \ to perform the get and delete tasks, respectively.\n\nOnly users with the\
+      \ role `admin` or `treasurer` are allowed to use this endpoint. "
     get:
       parameters:
       - name: format
@@ -1022,8 +988,8 @@ paths:
   /accounts/{accountId}:
     summary: Manage an NetMobiel account.
     description: "The REST endpoint/path used to manage an `Account`. This path contains\
-      \ a `GET` and a `PUT` operation to perform the get resp. put task. \nThis endpoint\
-      \ can be used by an administrator only."
+      \ a `GET` and a `PUT` operation to perform the get resp. put task. \n\nOnly\
+      \ users with the role `admin` are allowed to use this endpoint. "
     get:
       responses:
         "200":
@@ -1381,8 +1347,69 @@ paths:
       required: true
   /users/{userId}/withdrawals:
     summary: Path used to manage withdrawals from the personal account of a user.
-    description: The REST endpoint/path used to create zero or more `WithdrawalRequest`
-      entities.  This path contains a `POST` operation to perform the create task.
+    description: The REST endpoint/path used to make a withdrawal from a `User` and
+      to list withdrawals from the personal account. This path contains `POST` and
+      `GET` operations to perform the withdrawal creation task, resp. the listing
+      task.
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing. The
+          `until` date must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: status
+        description: The status of the request to filter.
+        schema:
+          enum:
+          - ACTIVE
+          - EXPIRED
+          - COMPLETED
+          - REQUESTED
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `WithdrawalRequest`
+            entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listUserWithdrawalRequests
+      summary: List withdrawal requests.
+      description: 'Gets a list of `WithdrawalRequest` entities matching the criteria.
+        The objects are sorted on creation time descending. '
     post:
       requestBody:
         description: |-
@@ -1422,6 +1449,105 @@ paths:
         The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
 
         Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/{charityId}/withdrawals:
+    summary: Path used to manage the withdrawals from the account coupled to a charity.
+    description: The REST endpoint/path used to make a withdrawal from a `Charity`
+      and to list withdrawals. This path contains `POST` and `GET` operations to perform
+      the withdrawal creation task, resp. the listing task.
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing. The
+          `until` date must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: status
+        description: The status of the request to filter.
+        schema:
+          enum:
+          - ACTIVE
+          - EXPIRED
+          - COMPLETED
+          - REQUESTED
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `WithdrawalRequest`
+            entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listCharityWithdrawalRequests
+      summary: List withdrawal requests.
+      description: 'Gets a list of `WithdrawalRequest` entities matching the criteria.
+        The objects are sorted on creation time descending. '
+    post:
+      requestBody:
+        description: |-
+          The withdrawal request with the amount of credits to withdraw specified. Only the amount in credits and a description are mandatory.
+          All other values are calculated or derived.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawalRequest'
+        required: true
+      responses:
+        "201":
+          description: The withdrawal request was created successfully.
+        "402":
+          description: The balance of the charity was insufficient for performing
+            the withdrawal.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: createCharityWithdrawal
+      summary: Create a withdrawal.
+      description: Creates a `WithdrawalRequest` for a `Charity`. The credits are
+        reserved from the balance of the charity. The actual withdrawal will be done
+        by the treasurer of NetMobiel. Only managers of the charity have the privilege
+        to request a withdrawal. The beneficiary account in the real world is known
+        by the treasurer.
+    parameters:
+    - name: charityId
+      description: The charity id to use. Specify a charity id or a charity urn.
       schema:
         type: string
       in: path
