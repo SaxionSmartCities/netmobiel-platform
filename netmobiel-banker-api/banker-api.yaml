@@ -462,47 +462,6 @@ paths:
         donated. The total amount is summed after fitlering the indiviaduial donations
         according the filter parameters. Anonymous donations are never included in
         the report.
-  /users/{userId}/withdrawals:
-    summary: Path used to manage withdrawals from the personal account of a user.
-    description: The REST endpoint/path used to create zero or more `WithdrawalRequest`
-      entities.  This path contains a `POST` operation to perform the create task.
-    post:
-      requestBody:
-        description: |-
-          A new `WithdrawalRequest` to be created. Only the amount in credits and a description are mandatory.
-          All other values are calculated or derived.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/WithdrawalRequest'
-        required: true
-      responses:
-        "201":
-          description: Successful response. The request has been created.
-        "402":
-          description: The balance of the charity was insufficient for performing
-            the withdrawal.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: createPersonalWithdrawal
-      summary: Create a WithdrawalRequest.
-      description: Creates a new `WithdrawalRequest`. The withdrawal amount in credits
-        is converted into eurocents, the credits are reserved from the personal account
-        of the specified user. At regular moments the `WithdrawalRequest` objects
-        are collected in a payment batch and sent to the NetMobiel treasurer for processing.
-    parameters:
-    - name: userId
-      description: |-
-        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
-
-        Using a userid other than your own (or me) requires admin privilege.
-      schema:
-        type: string
-      in: path
-      required: true
   /charities/{charityId}:
     summary: Path used to manage a single Charity.
     description: The REST endpoint/path used to get, update, and delete single instances
@@ -1416,6 +1375,53 @@ paths:
       required: true
     - name: entryId
       description: The statement id.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/withdrawals:
+    summary: Path used to manage withdrawals from the personal account of a user.
+    description: The REST endpoint/path used to create zero or more `WithdrawalRequest`
+      entities.  This path contains a `POST` operation to perform the create task.
+    post:
+      requestBody:
+        description: |-
+          A new `WithdrawalRequest` to be created. Only the amount in credits and a description are mandatory.
+          All other values are calculated or derived.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawalRequest'
+        required: true
+      responses:
+        "201":
+          description: Successful response. The request has been created.
+        "402":
+          description: The balance of the charity was insufficient for performing
+            the withdrawal.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: createPersonalWithdrawal
+      summary: Create a WithdrawalRequest.
+      description: Creates a new `WithdrawalRequest`. The withdrawal amount in credits
+        is converted into eurocents, the credits are reserved from the personal account
+        of the specified user. At regular moments the `WithdrawalRequest` objects
+        are collected in a payment batch and sent to the NetMobiel treasurer for processing.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
       schema:
         type: string
       in: path
