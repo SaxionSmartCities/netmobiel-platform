@@ -188,5 +188,22 @@ public class ShoutOutProcessor {
 						)
 				);
 		publisherService.publish(null, msg);
+		// Inform the organizer
+		if (!sop.getRequestor().equals(sop.getTraveller())) {
+			Message msg2 = new Message();
+			msg2.setContext(b.getUrn());
+			msg2.setDeliveryMode(DeliveryMode.NOTIFICATION);
+			msg2.addRecipient(sop.getRequestor());
+			msg2.setSubject(MessageFormat.format("Organisator: {0} heeft een reisaanbieding!", sop.getTraveller().getName()));
+			msg2.setBody(
+					MessageFormat.format("Voor de reisaanvraag op {0} naar {1} kan {2} meerijden met {3}.", 
+							formatDate(soi.getDepartureTime()),
+							b.getDropOff().getLabel(), 
+							sop.getTraveller().getName(),
+							r.getDriver().getGivenName()
+							)
+					);
+			publisherService.publish(null, msg2);
+		}
     }
 }

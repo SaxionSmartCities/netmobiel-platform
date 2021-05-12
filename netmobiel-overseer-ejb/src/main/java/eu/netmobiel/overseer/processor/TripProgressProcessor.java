@@ -172,6 +172,24 @@ public class TripProgressProcessor {
 						)
 				);
 		publisherService.publish(null, msg);
+		
+		// Inform the organizer of the trip
+		if (!trip.getOrganizer().equals(trip.getTraveller())) {
+			Message msg2 = new Message();
+			msg2.setContext(trip.getTripRef());
+			msg2.setDeliveryMode(DeliveryMode.NOTIFICATION);
+			msg2.addRecipient(trip.getOrganizer());
+			msg2.setSubject(MessageFormat.format("Organisator: {0} gaat bijna op pad!", trip.getTraveller().getName()));
+			msg2.setBody(
+					MessageFormat.format("Vertrek om {0} uur naar {1}. {2} reist met {3}.", 
+							formatTime(trip.getItinerary().getDepartureTime()),
+							trip.getTo().getLabel(), 
+							trip.getTraveller().getName(),
+							travelsWith(trip.getAgencies())
+							)
+					);
+			publisherService.publish(null, msg2);
+		}
 	}
 
 	protected void informTravellerOnReview(Trip trip) throws CreateException, BadRequestException {
@@ -186,6 +204,22 @@ public class TripProgressProcessor {
 						)
 				);
 		publisherService.publish(null, msg);
+		
+		// Inform the organizer of the trip
+		if (!trip.getOrganizer().equals(trip.getTraveller())) {
+			Message msg2 = new Message();
+			msg2.setContext(trip.getTripRef());
+			msg2.setDeliveryMode(DeliveryMode.NOTIFICATION);
+			msg2.addRecipient(trip.getOrganizer());
+			msg2.setSubject(MessageFormat.format("Organisator: De reis van {0} zit erop!", trip.getTraveller().getName()));
+			msg2.setBody(
+					MessageFormat.format("Heeft {0} de reis naar {1} gemaakt? Vraag de waardering en beoordeel deze reis.", 
+							trip.getTraveller().getName(),
+							trip.getTo().getLabel()
+							)
+					);
+			publisherService.publish(null, msg2);
+		}
 	}
 
 	protected void remindTravellerOnReview(Trip trip) throws CreateException, BadRequestException {
@@ -195,13 +229,30 @@ public class TripProgressProcessor {
 		msg.addRecipient(trip.getTraveller());
 		msg.setSubject("Beoordeel jouw reis!");
 		msg.setBody(
-				MessageFormat.format("Jouw reis zit erop! Geef jouw waardering en beoordeel deze reis.", 
+				MessageFormat.format("Jouw reis op {0} naar {1} zit erop! Geef jouw waardering en beoordeel deze reis.", 
 						formatTime(trip.getItinerary().getDepartureTime()),
 						trip.getTo().getLabel()
 						)
 				);
 		publisherService.publish(null, msg);
-	}
+
+		// Inform the organizer of the trip
+		if (!trip.getOrganizer().equals(trip.getTraveller())) {
+			Message msg2 = new Message();
+			msg2.setContext(trip.getTripRef());
+			msg2.setDeliveryMode(DeliveryMode.NOTIFICATION);
+			msg2.addRecipient(trip.getOrganizer());
+			msg2.setSubject(MessageFormat.format("Organisator: Beoordeel de reis van {0}", trip.getTraveller().getName()));
+			msg2.setBody(
+					MessageFormat.format("De reis van {0} op{1} naar {2} zit erop! Vraag de waardering en beoordeel deze reis.", 
+							trip.getTraveller().getName(),
+							formatTime(trip.getItinerary().getDepartureTime()),
+							trip.getTo().getLabel()
+							)
+					);
+			publisherService.publish(null, msg2);
+		}
+}
 	
     protected void informDriverOnDeparture(Ride ride) throws CreateException, BadRequestException {
 		Booking b = ride.getActiveBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));

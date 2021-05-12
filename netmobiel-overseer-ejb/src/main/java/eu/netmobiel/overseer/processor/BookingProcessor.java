@@ -48,8 +48,10 @@ import eu.netmobiel.planner.event.TripConfirmedEvent;
 import eu.netmobiel.planner.event.TripValidationExpiredEvent;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PaymentState;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
+import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.service.TripManager;
 import eu.netmobiel.planner.service.TripPlanManager;
@@ -260,17 +262,21 @@ public class BookingProcessor {
     			event.getCancelReason() != null ? event.getCancelReason() : "---"));
 		// The booking is cancelled by transport provider
 		Booking b = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, event.getBookingRef()));
+		PlannerUser organizer = null;
 		if (b.getPassengerTripRef() != null) {
 			// The call in in the trip manager checks the state of the leg.
 			Leg leg = tripManager.cancelBooking(b.getPassengerTripRef(), event.getBookingRef(), event.getCancelReason(), event.isCancelledByDriver());
+			Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, b.getPassengerTripRef()));
+			organizer = trip.getOrganizer();
 			if (leg.hasFareInCredits()) {
 				// cancel the reservation
-    			Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, b.getPassengerTripRef()));
 				cancelFare(trip, leg);
 			}
 		} else if (b.getPassengerTripPlanRef() != null) { 
 			// The booking is only a proposal, no reservation done yet, only a proposal for a shout-out
 			tripPlanManager.cancelBooking(b.getPassengerTripPlanRef(), event.getBookingRef());
+			TripPlan plan = tripPlanManager.getTripPlan(UrnHelper.getId(TripPlan.URN_PREFIX, b.getPassengerTripPlanRef()));
+			organizer = plan.getRequestor();
 		} else {
 			logger.error(String.format("Booking %s has neither trip ref nor trip plan ref", event.getBookingRef()));
 		}
@@ -289,6 +295,24 @@ public class BookingProcessor {
 			msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
 			msg.addRecipient(event.getTraveller());
 			publisherService.publish(null, msg);
+			if (!organizer.equals(event.getTraveller())) {
+				// Notify the organizer
+				Message msg2 = new Message();
+				msg2.setContext(event.getBookingRef());
+				msg2.setSubject("Organisator: Chauffeur heeft geannuleerd.");
+				msg2.setBody(
+						MessageFormat.format("Voor de reis op {0} naar {1} kan {2} helaas niet meer met {3} meerijden.", 
+								formatDate(b.getDepartureTime()),
+								b.getDropOff().getLabel(), 
+								organizer.getName(),
+								b.getRide().getDriver().getGivenName()
+								)
+						);
+				msg2.setDeliveryMode(DeliveryMode.NOTIFICATION);
+				msg2.addRecipient(organizer);
+				publisherService.publish(null, msg2);
+				
+			}
 		} else {
 			// Notification of the driver is done by transport provider
 		}
