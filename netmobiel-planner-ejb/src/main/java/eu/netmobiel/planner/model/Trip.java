@@ -256,7 +256,8 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 			name = Trip.DETAILED_ENTITY_GRAPH, 
 			attributeNodes = { 
 					@NamedAttributeNode(value = "itinerary", subgraph = "subgraph.itinerary"),		
-					@NamedAttributeNode(value = "traveller")		
+					@NamedAttributeNode(value = "traveller"),		
+					@NamedAttributeNode(value = "organizer")		
 			}, subgraphs = {
 					@NamedSubgraph(
 							name = "subgraph.itinerary",
