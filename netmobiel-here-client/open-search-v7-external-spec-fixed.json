@@ -1284,7 +1284,8 @@
               "core",
               "yelp",
               "tripadvisor",
-              "parkopedia"
+              "parkopedia",
+              "venues"
             ],
             "description": "An identifier for the supplier."
           }
