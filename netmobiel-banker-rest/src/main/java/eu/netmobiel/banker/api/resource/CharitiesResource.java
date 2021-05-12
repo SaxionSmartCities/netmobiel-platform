@@ -29,6 +29,7 @@ import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.model.CharityUserRoleType;
 import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.model.DonationSortBy;
+import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
@@ -275,14 +276,15 @@ public class CharitiesResource implements CharitiesApi {
 	    	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
 			Charity charity = charityManager.getCharity(cid);
 			// Is this user allowed to do the withdrawal?
+			boolean privileged = request.isUserInRole("admin");
 			boolean canWithdraw = charity.getRoles() != null && charity.getRoles().stream()
 				.filter(r -> r.getUser().equals(user) && r.getRole() == CharityUserRoleType.MANAGER)
 				.findFirst()
 				.isPresent();
-			if (! canWithdraw) {
+			if (! canWithdraw && ! privileged) {
 				throw new ForbiddenException(String.format("User %d is not a manager of charity %d and not an admin", user.getId(), cid));
 			}
-			Long id = withdrawalService.createWithdrawalRequest(user, charity.getAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
+			Long id = withdrawalService.createWithdrawalRequest(charity.getAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
 			String wrid = UrnHelper.createUrn(WithdrawalRequest.URN_PREFIX, id);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(wrid)).build();
 		} catch (BusinessException e) {
@@ -310,6 +312,7 @@ public class CharitiesResource implements CharitiesApi {
 		try {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
         	Account accdom = accountMapper.map(acc);
+        	// Security check is done at service.
         	charityManager.updateCharityAccount(cid, accdom);
 			rsp = Response.noContent().build();
 		} catch (BusinessException ex) {
@@ -318,4 +321,36 @@ public class CharitiesResource implements CharitiesApi {
 		return rsp;
 	}
 
+	@Override
+	public Response listCharityWithdrawalRequests(String charityId, OffsetDateTime since, OffsetDateTime until,
+			String status, Integer maxResults, Integer offset) {
+		Instant si = since != null ? since.toInstant() : null;
+		Instant ui = until != null ? until.toInstant() : null;
+		Response rsp = null;
+		try {
+        	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
+        	Account acc = charityManager.getCharityAccount(cid);
+			PaymentStatus ps = status == null ? null : PaymentStatus.valueOf(status);
+	    	PagedResult<WithdrawalRequest> results = withdrawalService.listWithdrawalRequests(acc.getName(), si, ui, ps, maxResults, offset);
+			rsp = Response.ok(pageMapper.mapWithdrawalRequests(results)).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response cancelCharityWithdrawalRequest(String charityId, String withdrawalRequestId, String reason) {
+		try {
+        	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
+        	Account acc = charityManager.getCharityAccount(cid);
+	    	Long wrid = UrnHelper.getId(WithdrawalRequest.URN_PREFIX, withdrawalRequestId);
+			withdrawalService.cancelWithdrawalRequest(acc, wrid);
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return Response.noContent().build();
+	}
 }

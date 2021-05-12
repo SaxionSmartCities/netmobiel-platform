@@ -49,7 +49,7 @@ import eu.netmobiel.commons.util.Logging;
 		
 @Stateless
 @Logging
-@DeclareRoles({ "admin" })
+@DeclareRoles({ "admin", "treasurer" })
 @PermitAll
 public class WithdrawalService {
 	public static final Integer MAX_RESULTS = 10; 
@@ -79,7 +79,7 @@ public class WithdrawalService {
 
     /**
 	 * Lists the withdrawal requests as a paged result set according the filter parameters. Supply null as values when
-	 * a parameter is don't care.
+	 * a parameter is don't care. The security restriction are handled in a higher layer. 
 	 * @param accountName the account name, use '%' for any substring and '_' for any character match. Use '\' to 
 	 * 					escape the special characters.  
 	 * @param since the first date to take into account for creation time.
@@ -112,8 +112,7 @@ public class WithdrawalService {
 
     /**
      * Creates a withdrawal request.
-     * @param requestedBy user requesting the withdrawal.
-     * @param account account to deposit credits to.
+     * @param account account to deposit credits to, not necessarily owned by the caller. 
      * @param amountCredits the number of credits to deposit. 
      * @param description the description to use on the payment page
      * @return the id of the withdrawal object.
@@ -121,13 +120,16 @@ public class WithdrawalService {
      * @throws NotFoundException 
      * @throws BadRequestException 
      */
-    public Long createWithdrawalRequest(BankerUser requestedBy, Account acc, int amountCredits, String description) throws BalanceInsufficientException, NotFoundException, BadRequestException {
+    public Long createWithdrawalRequest(Account acc, int amountCredits, String description) throws BalanceInsufficientException, NotFoundException, BadRequestException {
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
     	OffsetDateTime now = OffsetDateTime.now();
     	WithdrawalRequest wr = new WithdrawalRequest();
     	wr.setCreationTime(now.toInstant());
-		wr.setCreatedBy(requestedBy);
+		wr.setCreatedBy(me);
 		wr.setModificationTime(now.toInstant());
-		wr.setModifiedBy(requestedBy);
+		wr.setModifiedBy(me);
     	wr.setAccount(acc);
     	wr.setAmountCredits(amountCredits);
     	wr.setAmountEurocents(amountCredits * LedgerService.CREDIT_EXCHANGE_RATE);
@@ -167,7 +169,7 @@ public class WithdrawalService {
      * @throws BadRequestException 
      */
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-    @RolesAllowed({ "admin" })
+    @RolesAllowed({ "admin", "treasurer" })
     public void settleWithdrawalRequest(Long withdrawalId) throws NotFoundException, BadRequestException {
     	String caller = sessionContext.getCallerPrincipal().getName();
 		BankerUser me = userDao.findByManagedIdentity(caller)
@@ -191,35 +193,66 @@ public class WithdrawalService {
     }
 
     /**
-     * Cancels a single withdrawal request. The withdrawal can only be cancelled by the original requestor or by an admin.
-     * Once a request is active, it is part of a paymaent batch. At that point the request cannot be cancelled anymore by 
-     * the requestor.
-     * @param withdrawalId the withdrawal request to cancel
-     * @throws BadRequestException 
+     * Cancels a withdrawal that should belong to the given account.
+     * @param acc the woning account. If there is a mismatch, the process is cancelled. 
+     * @param withdrawalId the if of the withdrawal.
+     * @throws NotFoundException
+     * @throws BadRequestException
      */
-    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-    public void cancelWithdrawalRequest(Long withdrawalId)  throws NotFoundException, BadRequestException {
+    public void cancelWithdrawalRequest(Account acc, Long withdrawalId)  throws NotFoundException, BadRequestException {
+    	WithdrawalRequest wrdb = withdrawalRequestDao.find(withdrawalId)
+    			.orElseThrow(() -> new IllegalStateException("No such withdrawal request: " + withdrawalId));
+    	if (! wrdb.getAccount().getId().equals(acc.getId())) {
+    		throw new EJBAccessException(String.format("Withdrawal request %d does not belong to account %d %s", withdrawalId, acc.getId(), acc.getNcan()));
+    	}
     	String caller = sessionContext.getCallerPrincipal().getName();
 		BankerUser me = userDao.findByManagedIdentity(caller)
 				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
+		cancelWithdrawalRequest(me, wrdb, false);
+    }
+
+    /**
+     * Cancels a withdrawal that should belong to the given account. Only accessible for admin and treasurer roles.
+     * @param withdrawalId the if of the withdrawal.
+     * @throws NotFoundException
+     * @throws BadRequestException
+     */
+    @RolesAllowed({ "admin", "treasurer" })
+    public void cancelWithdrawalRequest(Long withdrawalId)  throws NotFoundException, BadRequestException {
     	WithdrawalRequest wrdb = withdrawalRequestDao.find(withdrawalId)
     			.orElseThrow(() -> new IllegalStateException("No such withdrawal request: " + withdrawalId));
-		if (wrdb.getStatus().isFinal()) {
-			throw new BadRequestException(String.format("Withdrawal request has already reached final state: %d %s", withdrawalId, wrdb.getStatus()));
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
+		cancelWithdrawalRequest(me, wrdb, false);
+    }
+
+    protected void cancelWithdrawalRequest(BankerUser caller, WithdrawalRequest wr, boolean batchCancel)  throws NotFoundException, BadRequestException {
+		if (wr.getStatus().isFinal()) {
+			throw new BadRequestException(String.format("Withdrawal request has already reached final state: %d %s", wr.getId(), wr.getStatus()));
 		}
-		boolean admin = sessionContext.isCallerInRole("admin");
-		if (!admin && ! me.equals(wrdb.getCreatedBy())) {
-			throw new EJBAccessException("You are not allowed to cancel this withdrawal request: " + withdrawalId);
-		}
-		if (!admin && wrdb.getStatus() == PaymentStatus.ACTIVE) {
-			throw new EJBAccessException("Withdrawal request is already being processed: " + withdrawalId);
+		if (!batchCancel && wr.getStatus() == PaymentStatus.ACTIVE) {
+			throw new EJBAccessException("Withdrawal request is already being processed: " + wr.getId());
 		}
     	OffsetDateTime now = OffsetDateTime.now();
-		AccountingTransaction tr_r = ledgerService.release(wrdb.getTransaction(), now);
-		wrdb.setTransaction(tr_r);
-		wrdb.setStatus(PaymentStatus.CANCELLED);
-		wrdb.setModificationTime(now.toInstant());
-		wrdb.setModifiedBy(me);
+		AccountingTransaction tr_r = ledgerService.release(wr.getTransaction(), now);
+		wr.setTransaction(tr_r);
+		wr.setStatus(PaymentStatus.CANCELLED);
+		wr.setModificationTime(now.toInstant());
+		wr.setModifiedBy(caller);
+    }
+    
+    /**
+     * Cancels a single withdrawal request that is part of a batch. 
+     * Once a request is active, it is part of a payment batch. At that point the request cannot be cancelled anymore.
+     * @param withdrawalId the withdrawal request to cancel
+     * @param batchCancel if true then the cancel is part of the cancellation of the batch where it is part of
+     * @throws BadRequestException 
+     */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public void cancelBatchWithdrawalRequest(BankerUser caller, WithdrawalRequest wr)  throws NotFoundException, BadRequestException {
+    	withdrawalRequestDao.refresh(wr);
+		cancelWithdrawalRequest(caller, wr, true);
     }
     
     /*  ============================================================= */ 
@@ -236,7 +269,7 @@ public class WithdrawalService {
 	 * @param offset the zero-based offset in the result set.
 	 * @return A paged result with 0 or more results. The results are ordered by creation time descending and then by id descending.
 	 */
-    @RolesAllowed({ "admin" })
+    @RolesAllowed({ "admin", "treasurer" })
     public PagedResult<PaymentBatch> listPaymentBatches(Instant since, Instant until, PaymentStatus status, Integer maxResults, Integer offset) 
     		throws BadRequestException {
         if (maxResults == null) {
@@ -266,7 +299,7 @@ public class WithdrawalService {
      * @return The ID of the new payment batch.
      * @throws BusinessException a NotFoundException is thrown when there are no pending withdrawal requests.
      */
-    @RolesAllowed({ "admin" })
+    @RolesAllowed({ "admin", "treasurer" })
     public Long createPaymentBatch() throws BusinessException {
     	String caller = sessionContext.getCallerPrincipal().getName();
 		BankerUser me = userDao.findByManagedIdentity(caller)
@@ -307,7 +340,7 @@ public class WithdrawalService {
      * @return The object.
      * @throws NotFoundException If the object could not be found.
      */
-    @RolesAllowed({ "admin" })
+    @RolesAllowed({ "admin", "treasurer" })
     public PaymentBatch getPaymentBatch(Long id) throws NotFoundException {
 //		boolean adminView = sessionContext.isCallerInRole("admin");
 //		if (!adminView) {
@@ -325,7 +358,7 @@ public class WithdrawalService {
      * @throws BadRequestException 
      * @throws PaymentException 
      */
-    @RolesAllowed({ "admin" })
+    @RolesAllowed({ "admin", "treasurer" })
     public void settlePaymentBatch(Long paymentBatchId) throws NotFoundException, UpdateException, BadRequestException {
 //		boolean adminView = sessionContext.isCallerInRole("admin");
 //		if (!adminView) {
@@ -370,7 +403,7 @@ public class WithdrawalService {
      * @throws NotFoundException If the object could not be found.
      * @throws BadRequestException 
      */
-    @RolesAllowed({ "admin" })
+    @RolesAllowed({ "admin", "treasurer" })
     public void cancelPaymentBatch(Long paymentBatchId) throws NotFoundException, UpdateException, BadRequestException {
 //		boolean adminView = sessionContext.isCallerInRole("admin");
 //		if (!adminView) {
@@ -393,7 +426,7 @@ public class WithdrawalService {
     			continue;
     		}
     		try {
-				sessionContext.getBusinessObject(this.getClass()).cancelWithdrawalRequest(wr.getId());
+				sessionContext.getBusinessObject(this.getClass()).cancelBatchWithdrawalRequest(me, wr);
 			} catch (Exception e) {
 				errors.add(e);
 				log.error("Error cancellingwithdrawal request " + wr.getId(), e);

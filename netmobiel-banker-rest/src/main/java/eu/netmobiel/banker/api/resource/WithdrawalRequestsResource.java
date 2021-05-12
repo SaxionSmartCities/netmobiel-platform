@@ -56,6 +56,9 @@ public class WithdrawalRequestsResource implements WithdrawalRequestsApi {
 		return Response.noContent().build();
 	}
 
+	/**
+	 * Cancels a single withdrawal request. 
+	 */
 	@Override
 	public Response cancelWithdrawalRequest(String withdrawalRequestId, String reason) {
 		try {

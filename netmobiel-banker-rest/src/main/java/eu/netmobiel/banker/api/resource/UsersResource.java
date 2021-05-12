@@ -26,6 +26,7 @@ import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.model.DonationSortBy;
+import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
@@ -35,7 +36,9 @@ import eu.netmobiel.banker.service.WithdrawalService;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
+import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.UrnHelper;
 
 @RequestScoped
@@ -68,15 +71,18 @@ public class UsersResource implements UsersApi {
 	@Inject
     private CharityManager charityManager;
 
+    @Inject
+	private SecurityIdentity securityIdentity;
+
 	@Context
 	private HttpServletRequest request;
 
 	private static final Predicate<HttpServletRequest> isAdmin = rq -> rq.isUserInRole("admin");
 	
-    protected BankerUser resolveUserReference(String userId, boolean createIfNeeded) throws NotFoundException {
+    protected BankerUser resolveUserReference(String userId, CallingContext<BankerUser> callingContext) throws NotFoundException {
 		BankerUser user = null;
 		if ("me".equals(userId)) {
-			user = createIfNeeded ? userManager.findOrRegisterCallingUser() : userManager.findCallingUser();
+			user = callingContext.getEffectiveUser();
 		} else {
 			user = userManager
 					.resolveUrn(userId)
@@ -86,10 +92,11 @@ public class UsersResource implements UsersApi {
     }
 
     @Override
-	public Response createDeposit(String userId, eu.netmobiel.banker.api.model.DepositRequest deposit) {
+	public Response createDeposit(String xDelegator, String userId, eu.netmobiel.banker.api.model.DepositRequest deposit) {
 		Response rsp = null;
 		try {
-			BankerUser user = resolveUserReference(userId, true);
+			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			BankerUser user = resolveUserReference(userId, context);
 			user = userManager.getUserWithBalance(user.getId());
 			String paymentUrl = depositService.createDepositRequest(user.getPersonalAccount(), deposit.getAmountCredits(), deposit.getDescription(), deposit.getReturnUrl());
 			PaymentLink plink = new PaymentLink();
@@ -102,10 +109,11 @@ public class UsersResource implements UsersApi {
 	}
 
 	@Override
-	public Response getUser(String userId) {
+	public Response getUser(String xDelegator, String userId) {
 		Response rsp = null;
 		try {
-			BankerUser user = resolveUserReference(userId, true);
+			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			BankerUser user = resolveUserReference(userId, context);
 			user = userManager.getUserWithBalance(user.getId());
 			rsp = Response.ok(userMapper.map(user)).build();
 		} catch (BusinessException ex) {
@@ -115,12 +123,13 @@ public class UsersResource implements UsersApi {
 	}
 
 	@Override
-	public Response listUserStatements(String userId, OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
+	public Response listUserStatements(String xDelegator, String userId, OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
 		Instant si = since != null ? since.toInstant() : null;
 		Instant ui = until != null ? until.toInstant() : null;
 		Response rsp = null;
 		try {
-			BankerUser user = resolveUserReference(userId, true);
+			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			BankerUser user = resolveUserReference(userId, context);
 			user = userManager.getUserWithBalance(user.getId());
 			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getNcan(), si, ui, maxResults, offset); 
 			rsp = Response.ok(pageMapper.mapAccountingEntriesShallow(result)).build();
@@ -131,11 +140,12 @@ public class UsersResource implements UsersApi {
 	}
 
 	@Override
-	public Response getStatement(String userId, String entryId) {
+	public Response getStatement(String xDelegator, String userId, String entryId) {
 		Response rsp = null;
 		try {
         	Long eid = UrnHelper.getId(AccountingEntry.URN_PREFIX, entryId);
-    		BankerUser user = resolveUserReference(userId, true);
+			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			BankerUser user = resolveUserReference(userId, context);
 			user = userManager.getUserWithBalance(user.getId());
 			AccountingEntry entry = ledgerService.getAccountingEntry(eid);
 			if (!entry.getAccount().equals(user.getPersonalAccount()) && !isAdmin.test(request)) {
@@ -174,11 +184,12 @@ public class UsersResource implements UsersApi {
 	}
 
 	@Override
-	public Response reportRecentDonations(String userId, Integer maxResults, Integer offset) {
+	public Response reportRecentDonations(String xDelegator, String userId, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		try {
 			Cursor cursor = new Cursor(maxResults, offset);
-			BankerUser user = resolveUserReference(userId, true);
+			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			BankerUser user = resolveUserReference(userId, context);
 	    	PagedResult<Donation> results = charityManager.reportMostRecentDistinctDonations(user, cursor);
 			rsp = Response.ok(pageMapper.mapDonationWithCharity(results)).build();
 		} catch (IllegalArgumentException e) {
@@ -191,17 +202,18 @@ public class UsersResource implements UsersApi {
 	}
 
 	@Override
-	public Response createPersonalWithdrawal(String userId, eu.netmobiel.banker.api.model.WithdrawalRequest withdrawal) {
+	public Response createPersonalWithdrawal(String xDelegator, String userId, eu.netmobiel.banker.api.model.WithdrawalRequest withdrawal) {
 		Response rsp = null;
 		try {
-			BankerUser user = resolveUserReference(userId, true);
+			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			BankerUser user = resolveUserReference(userId, context);
 			user = userManager.getUserWithBalance(user.getId());
 	    	String caller = request.getUserPrincipal().getName();
 			boolean admin = request.isUserInRole("admin");
 			if (!admin && ! caller.equals(user.getManagedIdentity())) {
 				throw new ForbiddenException("You are not allowed to create a withdrawal request for this user: " + userId);
 			}
-			Long id = withdrawalService.createWithdrawalRequest(user, user.getPersonalAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
+			Long id = withdrawalService.createWithdrawalRequest(user.getPersonalAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
 			String wrid = UrnHelper.createUrn(WithdrawalRequest.URN_PREFIX, id);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(wrid)).build();
 		} catch (BusinessException e) {
@@ -211,10 +223,11 @@ public class UsersResource implements UsersApi {
 	}
 
 	@Override
-	public Response getPersonalAccount(String userId) {
+	public Response getPersonalAccount(String xDelegator, String userId) {
 		Response rsp = null;
 		try {
-			BankerUser user = resolveUserReference(userId, true);
+			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			BankerUser user = resolveUserReference(userId, context);
         	Account acc = userManager.getPersonalAccount(user.getId());
 			rsp = Response.ok(accountMapper.mapAll(acc)).build();
 		} catch (BusinessException ex) {
@@ -224,10 +237,11 @@ public class UsersResource implements UsersApi {
 	}
 
 	@Override
-	public Response updatePersonalAccount(String userId, eu.netmobiel.banker.api.model.Account acc) {
+	public Response updatePersonalAccount(String xDelegator, String userId, eu.netmobiel.banker.api.model.Account acc) {
 		Response rsp = null;
 		try {
-			BankerUser user = resolveUserReference(userId, true);
+			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			BankerUser user = resolveUserReference(userId, context);
 	    	Account accdom = accountMapper.map(acc);
         	userManager.updatePersonalUserAccount(user.getId(), accdom);
     		rsp = Response.noContent().build();
@@ -237,4 +251,42 @@ public class UsersResource implements UsersApi {
 		return rsp;
 	}
 
+	@Override
+	public Response listUserWithdrawalRequests(String xDelegator, String userId, OffsetDateTime since, OffsetDateTime until,
+			String status, Integer maxResults, Integer offset) {
+		Instant si = since != null ? since.toInstant() : null;
+		Instant ui = until != null ? until.toInstant() : null;
+		Response rsp = null;
+		try {
+			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			BankerUser user = resolveUserReference(userId, context);
+        	Account acc = userManager.getPersonalAccount(user.getId());
+			PaymentStatus ps = status == null ? null : PaymentStatus.valueOf(status);
+	    	PagedResult<WithdrawalRequest> results = withdrawalService.listWithdrawalRequests(acc.getName(), si, ui, ps, maxResults, offset);
+			rsp = Response.ok(pageMapper.mapWithdrawalRequests(results)).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+		return rsp;
+	}
+
+	/**
+	 * Cancels the withdrawal request. Only admin and the effective owner of the account can cancel the request. Cancellation is only possible 
+	 * if the withdrawal is not yet being processed.
+	 */
+	@Override
+	public Response cancelUserWithdrawalRequest(String xDelegator, String userId, String withdrawalRequestId, String reason) {
+		try {
+			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			BankerUser user = resolveUserReference(userId, context);
+        	Account acc = userManager.getPersonalAccount(user.getId());
+	    	Long wrid = UrnHelper.getId(WithdrawalRequest.URN_PREFIX, withdrawalRequestId);
+			withdrawalService.cancelWithdrawalRequest(acc, wrid);
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return Response.noContent().build();
+	}
 }
