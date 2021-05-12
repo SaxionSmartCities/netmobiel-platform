@@ -37,11 +37,13 @@ public interface TripMapper {
 	// Api Trip --> Domain trip. Ignore everything that should be set by the backend from the itinerary 
     @Mapping(target = "arrivalTimeIsPinned", ignore = true)
     @Mapping(target = "cancelReason", ignore = true)
+    @Mapping(target = "creationTime", ignore = true)
     @Mapping(target = "deleted", ignore = true)
     @Mapping(target = "from", ignore = true)
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "itinerary", ignore = true)
     @Mapping(target = "nrSeats", ignore = true)
+    @Mapping(target = "organizer", ignore = true)
     @Mapping(target = "state", ignore = true)
     @Mapping(target = "to", ignore = true)
     @Mapping(target = "traveller", ignore = true)

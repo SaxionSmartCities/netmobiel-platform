@@ -36,9 +36,10 @@ public interface TripPlanMapper {
     eu.netmobiel.planner.api.model.TripPlan mapShoutOuts(TripPlan source );
 
     @InheritInverseConfiguration(name = "map")
+    @Mapping(target = "id", ignore = true)
     @Mapping(target = "itineraries", ignore = true)
     @Mapping(target = "plannerReports", ignore = true)
-    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "requestor", ignore = true)
     @Mapping(target = "traveller", ignore = true)
     TripPlan map(eu.netmobiel.planner.api.model.TripPlan source );
 }
