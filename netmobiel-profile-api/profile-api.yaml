@@ -206,110 +206,6 @@ paths:
       operationId: createReview
       summary: Create a Review
       description: Creates a new instance of a `Review`.
-  /profiles:
-    summary: Path used to manage profiles.
-    description: The REST endpoint/path used to list and create zero or more `Profile`
-      entities. This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
-    get:
-      parameters:
-      - name: role
-        description: The role to search for. If omitted any role will do.
-        schema:
-          enum:
-          - PASSENGER
-          - DRIVER
-          type: string
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successfull call. The result contains a `Page` with `Profile`
-            entities.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-      operationId: listProfiles
-      summary: List profiles of users.
-      description: "List profiles matching the search criteria. \n\nRequires admin\
-        \ role."
-    post:
-      requestBody:
-        description: A profile.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Profile'
-        required: true
-      responses:
-        "201":
-          description: The profile is created.
-        "400":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-              examples:
-                "400response":
-                  value:
-                    succcess: false
-                    message: Invalid date of birth.
-          description: Invalid or missing date of birth.
-        "409":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-              examples:
-                "409example":
-                  value:
-                    success: false
-                    message: Profile already exists (in Keycloak).
-          description: Profile already exists (in Keycloak).
-        "422":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-              examples:
-                "422response":
-                  value:
-                    success: false
-                    message: Missing mandatory profile attributes (email, firstName
-                      or lastName).
-          description: 'One or more required parameters are missing: email, firstName,
-            lastName.'
-        "451":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-              examples:
-                "451example":
-                  value:
-                    success: false
-                    message: Terms have not been accepted.
-          description: Terms have not been accepted, i.e. one of the consent options
-            is not checked.
-        "500":
-          $ref: '#/components/responses/InternalServerError'
-      security:
-      - apikey: []
-      operationId: createProfile
-      summary: Create a profile.
-      description: Creates a new profile
   /delegations/{delegationId}:
     summary: Path used to manage a single Delegation.
     description: Admin only. The REST endpoint/path used to get, update, and delete
@@ -450,7 +346,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Profile'
-          description: On success the profile is reurned.
+          description: On success the profile is returned. The effective owner and
+            admin get the complete profile. The other users see the public profile.
         "401":
           $ref: '#/components/responses/NotAuthorized'
         "500":
@@ -460,7 +357,9 @@ paths:
         Bearer-only: []
       operationId: getProfile
       summary: Retrieves a profile
-      description: Retrieves a profile from the database.
+      description: |-
+        Retrieves a profile from the database. The amount of information depends on the caller, the profile requested and / or the role of the caller.
+        The admin always sees the complete profile. The (effective) owner also sees the whole profile. Other users see the public information.
     put:
       requestBody:
         description: Updated `Profile` information.
@@ -495,7 +394,8 @@ paths:
         Bearer-only: []
       operationId: deleteProfile
       summary: Delete a Profile
-      description: Deletes an existing `Profile`. Profiles are hard deleted.
+      description: Deletes an existing `Profile`. Profiles are hard deleted. Admin
+        only for now.
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
@@ -708,6 +608,119 @@ paths:
         type: string
       in: path
       required: true
+  /profiles:
+    summary: Path used to manage profiles.
+    description: The REST endpoint/path used to list and create zero or more `Profile`
+      entities. This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - name: text
+        description: 'Text for doing a simple text-based lookup. The following fields
+          are searched: first name, last name, email address, telephone number.'
+        schema:
+          type: string
+        in: query
+      - name: role
+        description: The role to search for. If omitted any role will do.
+        schema:
+          enum:
+          - PASSENGER
+          - DRIVER
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successfull call. The result contains a `Page` with `Profile`
+            entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listProfiles
+      summary: List profiles of users.
+      description: "List profiles matching the search criteria. \n\nRequires admin\
+        \ or delegate role. Only the public information is returned."
+    post:
+      requestBody:
+        description: A profile.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+        required: true
+      responses:
+        "201":
+          description: The profile is created.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+              examples:
+                "400response":
+                  value:
+                    succcess: false
+                    message: Invalid date of birth.
+          description: Invalid or missing date of birth.
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+              examples:
+                "409example":
+                  value:
+                    success: false
+                    message: Profile already exists (in Keycloak).
+          description: Profile already exists (in Keycloak).
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+              examples:
+                "422response":
+                  value:
+                    success: false
+                    message: Missing mandatory profile attributes (email, firstName
+                      or lastName).
+          description: 'One or more required parameters are missing: email, firstName,
+            lastName.'
+        "451":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+              examples:
+                "451example":
+                  value:
+                    success: false
+                    message: Terms have not been accepted.
+          description: Terms have not been accepted, i.e. one of the consent options
+            is not checked.
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - apikey: []
+      operationId: createProfile
+      summary: Create a profile.
+      description: Creates a new profile
 components:
   schemas:
     SearchPreferences:
