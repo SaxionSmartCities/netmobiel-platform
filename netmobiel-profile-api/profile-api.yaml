@@ -629,6 +629,12 @@ paths:
           - DRIVER
           type: string
         in: query
+      - name: details
+        description: 'Show details of each profile. Only effect for admin. Default:
+          false.'
+        schema:
+          type: boolean
+        in: query
       - name: maxResults
         description: 'Paging: The maximum number of results per page. Default is 10.'
         schema:
@@ -655,7 +661,7 @@ paths:
       operationId: listProfiles
       summary: List profiles of users.
       description: "List profiles matching the search criteria. \n\nRequires admin\
-        \ or delegate role. Only the public information is returned."
+        \ or delegate role. An admin can see (potential) more info than a delegate."
     post:
       requestBody:
         description: A profile.
