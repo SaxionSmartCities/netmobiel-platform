@@ -27,6 +27,7 @@ import eu.netmobiel.communicator.repository.CommunicatorUserDao;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
 import eu.netmobiel.communicator.repository.MessageDao;
 import eu.netmobiel.firebase.messaging.FirebaseMessagingClient;
+import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.service.ProfileManager;
 
 /**
@@ -113,8 +114,8 @@ public class PublisherService {
 			if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
 				for (Envelope env : msg.getEnvelopes()) {
 					try {
-						String fcmToken = profileManager.getFcmTokenByManagedIdentity(env.getRecipient().getManagedIdentity());
-						firebaseMessagingClient.send(fcmToken, msg);
+						Profile profile = profileManager.getFlatProfileByManagedIdentity(env.getRecipient().getManagedIdentity());
+						firebaseMessagingClient.send(profile.getFcmToken(), msg);
 						env.setPushTime(Instant.now());
 					} catch (Exception ex) {
 						logger.error(String.format("Cannot send push notification to %s: %s", 

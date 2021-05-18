@@ -59,7 +59,7 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
 
 	@Override
 	protected NetMobielUser findExternalUser(String managedIdentity) throws NotFoundException {
-		return profileManager.getProfileByManagedIdentity(managedIdentity);
+		return profileManager.getFlatProfileByManagedIdentity(managedIdentity);
 	}
 
 	@Override

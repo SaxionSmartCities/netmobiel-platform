@@ -54,7 +54,7 @@ public class CommunicatorUserManager extends UserManager<CommunicatorUserDao, Co
     
 	@Override
 	protected NetMobielUser findExternalUser(String managedIdentity) throws NotFoundException {
-		return profileManager.getProfileByManagedIdentity(managedIdentity);
+		return profileManager.getFlatProfileByManagedIdentity(managedIdentity);
 	}
 	
 }

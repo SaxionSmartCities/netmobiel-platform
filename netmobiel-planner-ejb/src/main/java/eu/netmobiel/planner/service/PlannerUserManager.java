@@ -54,7 +54,7 @@ public class PlannerUserManager extends UserManager<PlannerUserDao, PlannerUser>
 
 	@Override
 	protected NetMobielUser findExternalUser(String managedIdentity) throws NotFoundException {
-		return profileManager.getProfileByManagedIdentity(managedIdentity);
+		return profileManager.getFlatProfileByManagedIdentity(managedIdentity);
 	}
 	
 
