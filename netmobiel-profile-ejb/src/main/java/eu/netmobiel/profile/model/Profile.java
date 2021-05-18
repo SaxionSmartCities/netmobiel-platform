@@ -157,7 +157,11 @@ public class Profile extends User  {
 	public Profile() {
     }
     
-    public Profile(NetMobielUser nbuser, UserRole role) {
+	public Profile(String identity) {
+		super(identity);
+    }
+
+	public Profile(NetMobielUser nbuser, UserRole role) {
     	super(nbuser);
     	this.userRole = role;
     }

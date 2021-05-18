@@ -16,7 +16,6 @@ import javax.ws.rs.core.UriBuilder;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.ProfilesApi;
@@ -34,7 +33,7 @@ import eu.netmobiel.profile.service.ProfileManager;
 
 @RequestScoped
 @Logging
-public class ProfilesResource implements ProfilesApi {
+public class ProfilesResource extends BasicResource implements ProfilesApi {
 
 	@Inject
 	private ProfileMapper profileMapper;
@@ -47,30 +46,8 @@ public class ProfilesResource implements ProfilesApi {
 	@Inject
 	private PlaceManager placeManager;
 
-	@Inject
-	private SecurityIdentity securityIdentity;
-	
 	@Context
 	private HttpServletRequest request;
-
-	//	private final BooleanSupplier isAdmin = () -> request.isUserInRole("admin");
-//	private final Predicate<String> itIsMe = id -> request.getUserPrincipal().getName().equals(id);
-
-	/**
-	 * Determines the effective user of the call.
-	 * @param xDelegator The header delegator user is. Not used as we take the effective user from the security identity object.
-	 * @param profileId the profile id. If 'me' is used then the effective user id is taken.
-	 * @return the resolved user id (a keycloak managed identity).
-	 */
-    private String resolveIdentity(String xDelegator, String profileId) {
-		String mid = null;
-		if ("me".equals(profileId)) {
-			mid = securityIdentity.getEffectivePrincipal().getName();
-		} else {
-			mid = profileId;
-		}
-		return mid;
-    }
 
 	@Override
 	public Response createProfile(eu.netmobiel.profile.api.model.Profile profile) {

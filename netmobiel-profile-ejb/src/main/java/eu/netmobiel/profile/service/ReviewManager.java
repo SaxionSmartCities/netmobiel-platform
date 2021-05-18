@@ -1,11 +1,9 @@
 package eu.netmobiel.profile.service;
 
-import java.security.Principal;
 import java.util.List;
 
 import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
-import javax.annotation.security.RolesAllowed;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
@@ -51,24 +49,19 @@ public class ReviewManager {
     }
 
 	public Long createReview(Review review) throws BadRequestException, NotFoundException {
-		Principal me = sessionContext.getCallerPrincipal();
-		boolean privileged = sessionContext.isCallerInRole("admin");
 		if (review.getReceiver() == null) {
 			throw new BadRequestException("Review receiver is a mandatory parameter");
 		} else {
-	    	Profile yourProfile = profileDao.getReferenceByManagedIdentity(review.getReceiver().getManagedIdentity())
+	    	Profile rcvProfile = profileDao.getReferenceByManagedIdentity(review.getReceiver().getManagedIdentity())
 	    			.orElseThrow(() -> new NotFoundException("No such profile: " + review.getReceiver().getManagedIdentity()));
-	    	review.setReceiver(yourProfile);
-		}
-		if (me.getName().equals(review.getReceiver().getManagedIdentity())) {
-			throw new BadRequestException("You cannot review yourself");
+	    	review.setReceiver(rcvProfile);
 		}
 		if (review.getSender() == null) {
-	    	Profile myProfile = profileDao.getReferenceByManagedIdentity(me.getName())
-	    			.orElseThrow(() -> new NotFoundException("No such profile: " + me.getName()));
-	    	review.setSender(myProfile);
-		} else if (!me.getName().equals(review.getSender().getManagedIdentity()) && !privileged) {
-			new SecurityException("You have no privilege to review on behalf of someone else");
+			throw new BadRequestException("Review sender is a mandatory parameter");
+		} else {
+	    	Profile sndProfile = profileDao.getReferenceByManagedIdentity(review.getSender().getManagedIdentity())
+	    			.orElseThrow(() -> new NotFoundException("No such profile: " + review.getSender().getManagedIdentity()));
+	    	review.setSender(sndProfile);
 		}
 		if (review.getReview() == null) {
 			throw new BadRequestException("Review text is a mandatory parameter");
@@ -79,17 +72,6 @@ public class ReviewManager {
 
 	public @NotNull PagedResult<Review> listReviews(ReviewFilter filter, Cursor cursor) throws BadRequestException {
 		cursor.validate(MAX_RESULTS, 0);
-		Principal me = sessionContext.getCallerPrincipal();
-		boolean privileged = sessionContext.isCallerInRole("admin");
-		if (! privileged && filter.getReceiver() != null && !filter.getReceiver().equals(me.getName())) {
-			new SecurityException("You have no privilege to list reviews received by someone else");
-		}
-		if (! privileged && filter.getSender() != null && !filter.getSender().equals(me.getName())) {
-			new SecurityException("You have no privilege to list reviews sent by someone else");
-		}
-		if (! privileged && filter.getReceiver() == null) {
-			filter.setReceiver(me.getName());
-		}
 		filter.validate();
     	PagedResult<Long> prs = reviewDao.listReviews(filter, Cursor.COUNTING_CURSOR);
     	List<Review> results = null;
@@ -106,7 +88,6 @@ public class ReviewManager {
 				.orElseThrow(() -> new NotFoundException("No such review: " + reviewId));
 	}
 
-	@RolesAllowed({ "admin" })
 	public void removeReview(Long reviewId) throws NotFoundException {
 		Review c = reviewDao.find(reviewId)
 				.orElseThrow(() -> new NotFoundException("No such review: " + reviewId));
