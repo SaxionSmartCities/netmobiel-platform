@@ -4,6 +4,6 @@
   "auth-server-url": "https://keycloak.actmedialab.nl/auth",
   "ssl-required": "external",
   "resource": "communicator-service",
-  "use-resource-role-mappings": true,
+  "use-resource-role-mappings": false,
   "confidential-port": 0
 }
