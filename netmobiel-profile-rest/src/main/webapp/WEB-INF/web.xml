@@ -3,6 +3,7 @@
 	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
 	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee web-app_4_0.xsd"
 	version="4.0">
+	
 	<module-name>profilesvc</module-name>
 	<context-param>
 		<param-name>resteasy.preferJacksonOverJsonB</param-name>
@@ -30,8 +31,12 @@
 		<web-resource-collection>
 			<web-resource-name>Create profile</web-resource-name>
 			<url-pattern>/api/profiles</url-pattern>
-			<http-method>POST</http-method>
+			<!-- An unauthenticated user can create a profile, dodgy but true -->
+			<http-method-omission>POST</http-method-omission>
 		</web-resource-collection>
+		<auth-constraint>
+			<role-name>**</role-name>
+		</auth-constraint>
 	</security-constraint>
 	<security-constraint>
 		<web-resource-collection>
@@ -39,7 +44,7 @@
 			<url-pattern>/api/*</url-pattern>
 		</web-resource-collection>
 		<auth-constraint>
-			<role-name>*</role-name>
+			<role-name>**</role-name>
 		</auth-constraint>
 	</security-constraint>
 
