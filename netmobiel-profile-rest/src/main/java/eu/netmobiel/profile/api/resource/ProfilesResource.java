@@ -29,6 +29,7 @@ import eu.netmobiel.profile.api.model.ProfileResponse;
 import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Place;
 import eu.netmobiel.profile.model.Profile;
+import eu.netmobiel.profile.service.PlaceManager;
 import eu.netmobiel.profile.service.ProfileManager;
 
 @RequestScoped
@@ -42,6 +43,9 @@ public class ProfilesResource implements ProfilesApi {
 
 	@Inject
 	private ProfileManager profileManager;
+
+	@Inject
+	private PlaceManager placeManager;
 
 	@Inject
 	private SecurityIdentity securityIdentity;
@@ -261,7 +265,7 @@ public class ProfilesResource implements ProfilesApi {
 		try {
 			String mid = resolveIdentity(xDelegator, profileId);
 			Place p = placeMapper.mapApiPlace(place);
-	    	Long id = profileManager.createPlace(mid, p);
+	    	Long id = placeManager.createPlace(mid, p);
 			rsp = Response.created(UriBuilder.fromResource(ProfilesApi.class)
 					.path(ProfilesApi.class.getMethod("getPlace", String.class, String.class)).build(profileId, id)).build();
 		} catch (IllegalArgumentException e) {
@@ -277,7 +281,7 @@ public class ProfilesResource implements ProfilesApi {
 		Response rsp = null;
 		try {
 			String mid = resolveIdentity(xDelegator, profileId);
-	    	Place place = profileManager.getPlace(mid, UrnHelper.getId(placeId));
+	    	Place place = placeManager.getPlace(mid, UrnHelper.getId(placeId));
 			rsp = Response.ok(placeMapper.mapPlace(place)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -293,7 +297,7 @@ public class ProfilesResource implements ProfilesApi {
 		try {
 			String mid = resolveIdentity(xDelegator, profileId);
 			Cursor cursor = new Cursor(maxResults, offset);
-	    	PagedResult<Place> results = profileManager.listPlaces(mid, cursor);
+	    	PagedResult<Place> results = placeManager.listPlaces(mid, cursor);
 			rsp = Response.ok(placeMapper.mapPlacesPage(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -309,7 +313,7 @@ public class ProfilesResource implements ProfilesApi {
 		try {
 			String mid = resolveIdentity(xDelegator, profileId);
 			Place place= placeMapper.mapApiPlace(apiPlace);
-			profileManager.updatePlace(mid, UrnHelper.getId(placeId), place);
+			placeManager.updatePlace(mid, UrnHelper.getId(placeId), place);
    			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -324,7 +328,7 @@ public class ProfilesResource implements ProfilesApi {
 		Response rsp = null;
 		try {
 			String mid = resolveIdentity(xDelegator, profileId);
-	    	profileManager.removePlace(mid, UrnHelper.getId(placeId));
+	    	placeManager.removePlace(mid, UrnHelper.getId(placeId));
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);

@@ -8,7 +8,6 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
-import java.security.Principal;
 import java.util.List;
 import java.util.Optional;
 
@@ -34,25 +33,17 @@ import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.NetMobielUserImpl;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.profile.filter.ComplimentFilter;
 import eu.netmobiel.profile.filter.ProfileFilter;
-import eu.netmobiel.profile.filter.ReviewFilter;
-import eu.netmobiel.profile.model.Compliment;
-import eu.netmobiel.profile.model.Place;
 import eu.netmobiel.profile.model.Profile;
-import eu.netmobiel.profile.model.Review;
 import eu.netmobiel.profile.model.RidesharePreferences;
 import eu.netmobiel.profile.model.SearchPreferences;
-import eu.netmobiel.profile.repository.ComplimentDao;
 import eu.netmobiel.profile.repository.KeycloakDao;
-import eu.netmobiel.profile.repository.PlaceDao;
 import eu.netmobiel.profile.repository.ProfileDao;
-import eu.netmobiel.profile.repository.ReviewDao;
 import eu.netmobiel.profile.repository.RidesharePreferencesDao;
 import eu.netmobiel.profile.repository.SearchPreferencesDao;
 
 /**
- * Bean class for the Profile service. The security is handled only if specific roles are requried. All other security constraints are handled one level higher. 
+ * Bean class for the Profile service. The security is handled only if specific roles are required. All other security constraints are handled one level higher. 
  */
 @Stateless
 @Logging
@@ -66,7 +57,6 @@ public class ProfileManager {
 	@Resource(lookup = "java:global/profileService/imageFolder")
 	private String profileServiceImageFolder;
 	
-    @SuppressWarnings("unused")
 	@Inject
     private Logger logger;
 
@@ -77,15 +67,6 @@ public class ProfileManager {
     @Inject
     private SearchPreferencesDao searchPreferencesDao;
     
-    @Inject
-    private ReviewDao reviewDao;
-    
-    @Inject
-    private ComplimentDao complimentDao;
-    
-    @Inject
-    private PlaceDao placeDao;
-
     @Inject
     private KeycloakDao keycloakDao;
 
@@ -304,188 +285,4 @@ public class ProfileManager {
     	return profileDao.searchShoutOutProfiles(pickup, dropOff, driverMaxRadiusMeter, driverNeighbouringRadiusMeter);
     }
     
-	/* ===================  REVIEW  ==================== */
-
-	public Long createReview(Review review) throws BadRequestException, NotFoundException {
-		Principal me = sessionContext.getCallerPrincipal();
-		boolean privileged = sessionContext.isCallerInRole("admin");
-		if (review.getReceiver() == null) {
-			throw new BadRequestException("Review receiver is a mandatory parameter");
-		} else {
-	    	Profile yourProfile = profileDao.getReferenceByManagedIdentity(review.getReceiver().getManagedIdentity())
-	    			.orElseThrow(() -> new NotFoundException("No such profile: " + review.getReceiver().getManagedIdentity()));
-	    	review.setReceiver(yourProfile);
-		}
-		if (me.getName().equals(review.getReceiver().getManagedIdentity())) {
-			throw new BadRequestException("You cannot review yourself");
-		}
-		if (review.getSender() == null) {
-	    	Profile myProfile = profileDao.getReferenceByManagedIdentity(me.getName())
-	    			.orElseThrow(() -> new NotFoundException("No such profile: " + me.getName()));
-	    	review.setSender(myProfile);
-		} else if (!me.getName().equals(review.getSender().getManagedIdentity()) && !privileged) {
-			new SecurityException("You have no privilege to review on behalf of someone else");
-		}
-		if (review.getReview() == null) {
-			throw new BadRequestException("Review text is a mandatory parameter");
-		}
-		reviewDao.save(review);
-		return review.getId();
-	}
-
-	public @NotNull PagedResult<Review> listReviews(ReviewFilter filter, Cursor cursor) throws BadRequestException {
-		cursor.validate(MAX_RESULTS, 0);
-		Principal me = sessionContext.getCallerPrincipal();
-		boolean privileged = sessionContext.isCallerInRole("admin");
-		if (! privileged && filter.getReceiver() != null && !filter.getReceiver().equals(me.getName())) {
-			new SecurityException("You have no privilege to list reviews received by someone else");
-		}
-		if (! privileged && filter.getSender() != null && !filter.getSender().equals(me.getName())) {
-			new SecurityException("You have no privilege to list reviews sent by someone else");
-		}
-		if (! privileged && filter.getReceiver() == null) {
-			filter.setReceiver(me.getName());
-		}
-		filter.validate();
-    	PagedResult<Long> prs = reviewDao.listReviews(filter, Cursor.COUNTING_CURSOR);
-    	List<Review> results = null;
-    	if (prs.getTotalCount() > 0 && !cursor.isCountingQuery()) {
-    		// Get the actual data
-    		PagedResult<Long> pids = reviewDao.listReviews(filter, cursor);
-    		results = reviewDao.loadGraphs(pids.getData(), Review.LIST_REVIEWS_ENTITY_GRAPH, Review::getId);
-    	}
-    	return new PagedResult<Review>(results, cursor, prs.getTotalCount());
-	}
-
-	public Review getReview(Long reviewId) throws NotFoundException {
-		return reviewDao.find(reviewId)
-				.orElseThrow(() -> new NotFoundException("No such review: " + reviewId));
-	}
-
-	@RolesAllowed({ "admin" })
-	public void removeReview(Long reviewId) throws NotFoundException {
-		Review c = reviewDao.find(reviewId)
-				.orElseThrow(() -> new NotFoundException("No such review: " + reviewId));
-		reviewDao.remove(c);
-	}
-
-/* ===================  COMPLIMENT  ==================== */
-
-	public Long createCompliment(Compliment compliment) throws BadRequestException, NotFoundException {
-		Principal me = sessionContext.getCallerPrincipal();
-		boolean privileged = sessionContext.isCallerInRole("admin");
-		if (compliment.getReceiver() == null) {
-			throw new BadRequestException("Compliment receiver is a mandatory parameter");
-		} else {
-	    	Profile yourProfile = profileDao.getReferenceByManagedIdentity(compliment.getReceiver().getManagedIdentity())
-	    			.orElseThrow(() -> new NotFoundException("No such profile: " + compliment.getReceiver().getManagedIdentity()));
-	    	compliment.setReceiver(yourProfile);
-		}
-		if (me.getName().equals(compliment.getReceiver().getManagedIdentity())) {
-			throw new BadRequestException("You cannot compliment yourself");
-		}
-		if (compliment.getSender() == null) {
-	    	Profile myProfile = profileDao.getReferenceByManagedIdentity(me.getName())
-	    			.orElseThrow(() -> new NotFoundException("No such profile: " + me.getName()));
-	    	compliment.setSender(myProfile);
-		} else if (!me.getName().equals(compliment.getSender().getManagedIdentity()) && !privileged) {
-			new SecurityException("You have no privilege to assign a compliment on behalf of someone else");
-		}
-		if (compliment.getCompliment() == null) {
-			throw new BadRequestException("Compliment is a mandatory parameter");
-		}
-		complimentDao.save(compliment);
-		return compliment.getId();
-	}
-
-	public @NotNull PagedResult<Compliment> listCompliments(ComplimentFilter filter, Cursor cursor) throws BadRequestException {
-		cursor.validate(MAX_RESULTS, 0);
-		Principal me = sessionContext.getCallerPrincipal();
-		boolean privileged = sessionContext.isCallerInRole("admin");
-		if (! privileged && filter.getReceiver() != null && !filter.getReceiver().equals(me.getName())) {
-			new SecurityException("You have no privilege to list compliments received by someone else");
-		}
-		if (! privileged && filter.getSender() != null && !filter.getSender().equals(me.getName())) {
-			new SecurityException("You have no privilege to list compliments sent by someone else");
-		}
-		if (! privileged && filter.getReceiver() == null) {
-			filter.setReceiver(me.getName());
-		}
-		filter.validate();
-    	PagedResult<Long> prs = complimentDao.listCompliments(filter, Cursor.COUNTING_CURSOR);
-    	List<Compliment> results = null;
-    	if (prs.getTotalCount() > 0 && !cursor.isCountingQuery()) {
-    		// Get the actual data
-    		PagedResult<Long> pids = complimentDao.listCompliments(filter, cursor);
-    		results = complimentDao.loadGraphs(pids.getData(), Compliment.LIST_COMPLIMENTS_ENTITY_GRAPH, Compliment::getId);
-    	}
-    	return new PagedResult<Compliment>(results, cursor, prs.getTotalCount());
-	}
-
-	public Compliment getCompliment(Long complimentId) throws NotFoundException {
-		return complimentDao.find(complimentId)
-				.orElseThrow(() -> new NotFoundException("No such compliment: " + complimentId));
-	}
-
-    @RolesAllowed({ "admin" })
-	public void removeCompliment(Long complimentId) throws NotFoundException {
-		Compliment c = complimentDao.find(complimentId)
-				.orElseThrow(() -> new NotFoundException("No such compliment: " + complimentId));
-		complimentDao.remove(c);
-	}
-
-    /* ===================  PLACE  ==================== */
-
-	public Long createPlace(String managedId, Place place) throws BadRequestException, NotFoundException {
-    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-    	place.setProfile(profile);
-		placeDao.save(place);
-		return place.getId();
-	}
-
-	public @NotNull PagedResult<Place> listPlaces(String managedId, Cursor cursor) throws BadRequestException, NotFoundException {
-		cursor.validate(MAX_RESULTS, 0);
-    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-    	PagedResult<Long> prs = placeDao.listPlaces(profile, Cursor.COUNTING_CURSOR);
-    	List<Place> results = null;
-    	if (prs.getTotalCount() > 0 && !cursor.isCountingQuery()) {
-    		// Get the actual data
-    		PagedResult<Long> pids = placeDao.listPlaces(profile, cursor);
-    		results = placeDao.loadGraphs(pids.getData(), null, Place::getId);
-    	}
-    	return new PagedResult<Place>(results, cursor, prs.getTotalCount());
-	}
-
-	public Place getPlace(String managedId, Long placeId) throws NotFoundException {
-    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-		boolean privileged = sessionContext.isCallerInRole("admin");
-		Place place = placeDao.find(placeId)
-				.orElseThrow(() -> new NotFoundException("No such place: " + placeId));
-		if (! place.getProfile().getId().equals(profile.getId()) && ! privileged) {
-			new SecurityException("You have no privilege to remove this place: " + placeId);
-		}
-		return place;
-	}
-	
-	public void updatePlace(String managedId, Long placeId, Place place) throws BadRequestException, NotFoundException {
-    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-    	place.setProfile(profile);
-		boolean privileged = sessionContext.isCallerInRole("admin");
-		Place dbplace = placeDao.find(placeId)
-				.orElseThrow(() -> new NotFoundException("No such place: " + place.getId()));
-		if (! dbplace.getProfile().getId().equals(profile.getId()) && ! privileged) {
-			new SecurityException("You have no privilege to update this place: " + place.getId());
-		}
-		place.setId(placeId);
-		placeDao.merge(place);
-	}
-
-	public void removePlace(String managedId, Long placeId) throws NotFoundException {
-		Place place = getPlace(managedId, placeId);
-		placeDao.remove(place);
-	}
 }

@@ -21,13 +21,13 @@ import eu.netmobiel.profile.api.model.ComplimentTypesResponse;
 import eu.netmobiel.profile.filter.ComplimentFilter;
 import eu.netmobiel.profile.model.Compliment;
 import eu.netmobiel.profile.model.ComplimentType;
-import eu.netmobiel.profile.service.ProfileManager;
+import eu.netmobiel.profile.service.ComplimentManager;
 
 @ApplicationScoped
 public class ComplimentsResource implements ComplimentsApi {
 
 	@Inject
-	private ProfileManager profileManager;
+	private ComplimentManager complimentManager;
 
 	@Inject
 	private ComplimentMapper mapper;
@@ -37,7 +37,7 @@ public class ComplimentsResource implements ComplimentsApi {
 		Response rsp = null;
 		try {
 			Compliment c = mapper.map(compliment);
-	    	Long id = profileManager.createCompliment(c);
+	    	Long id = complimentManager.createCompliment(c);
 			rsp = Response.created(UriBuilder.fromResource(ComplimentsApi.class)
 					.path(ComplimentsApi.class.getMethod("getCompliment", String.class)).build(id)).build();
 		} catch (IllegalArgumentException e) {
@@ -52,7 +52,7 @@ public class ComplimentsResource implements ComplimentsApi {
 	public Response getCompliment(String complimentId) {
 		Response rsp = null;
 		try {
-	    	Compliment result = profileManager.getCompliment(Long.parseLong(complimentId));
+	    	Compliment result = complimentManager.getCompliment(Long.parseLong(complimentId));
 			rsp = Response.ok(mapper.map(result)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -68,7 +68,7 @@ public class ComplimentsResource implements ComplimentsApi {
 		try {
 			Cursor cursor = new Cursor();
 			ComplimentFilter filter = new ComplimentFilter(receiverId, senderId);
-	    	PagedResult<Compliment> results = profileManager.listCompliments(filter, cursor);
+	    	PagedResult<Compliment> results = complimentManager.listCompliments(filter, cursor);
 	    	ComplimentResponse cr = new ComplimentResponse();
 	    	cr.setCompliments((List<eu.netmobiel.profile.api.model.Compliment>)mapper.map(results.getData()));
 	    	cr.setMessage("Success");
@@ -91,7 +91,7 @@ public class ComplimentsResource implements ComplimentsApi {
 	public Response deleteCompliment(String complimentId) {
 		Response rsp = null;
 		try {
-	    	profileManager.removeCompliment(Long.parseLong(complimentId));
+	    	complimentManager.removeCompliment(Long.parseLong(complimentId));
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);

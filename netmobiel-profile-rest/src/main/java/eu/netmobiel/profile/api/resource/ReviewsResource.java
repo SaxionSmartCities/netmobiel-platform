@@ -16,13 +16,13 @@ import eu.netmobiel.profile.api.mapping.ReviewMapper;
 import eu.netmobiel.profile.api.model.ReviewResponse;
 import eu.netmobiel.profile.filter.ReviewFilter;
 import eu.netmobiel.profile.model.Review;
-import eu.netmobiel.profile.service.ProfileManager;
+import eu.netmobiel.profile.service.ReviewManager;
 
 @ApplicationScoped
 public class ReviewsResource implements ReviewsApi {
 
 	@Inject
-	private ProfileManager profileManager;
+	private ReviewManager reviewManager;
 
 	@Inject
 	private ReviewMapper mapper;
@@ -33,7 +33,7 @@ public class ReviewsResource implements ReviewsApi {
 		Response rsp = null;
 		try {
 			Review r = mapper.map(review);
-	    	Long id = profileManager.createReview(r);
+	    	Long id = reviewManager.createReview(r);
 			rsp = Response.created(UriBuilder.fromResource(ComplimentsApi.class)
 					.path(ReviewsApi.class.getMethod("getReview", String.class)).build(id)).build();
 		} catch (IllegalArgumentException e) {
@@ -48,7 +48,7 @@ public class ReviewsResource implements ReviewsApi {
 	public Response getReview(String reviewId) {
 		Response rsp = null;
 		try {
-	    	Review result = profileManager.getReview(Long.parseLong(reviewId));
+	    	Review result = reviewManager.getReview(Long.parseLong(reviewId));
 			rsp = Response.ok(mapper.map(result)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -64,7 +64,7 @@ public class ReviewsResource implements ReviewsApi {
 		try {
 			Cursor cursor = new Cursor();
 			ReviewFilter filter = new ReviewFilter(receiverId, senderId);
-	    	PagedResult<Review> results = profileManager.listReviews(filter, cursor);
+	    	PagedResult<Review> results = reviewManager.listReviews(filter, cursor);
 	    	ReviewResponse rr = new ReviewResponse();
 	    	rr.setReviews(mapper.map(results.getData()));
 	    	rr.setMessage("Success");
@@ -87,7 +87,7 @@ public class ReviewsResource implements ReviewsApi {
 	public Response deleteReview(String reviewId) {
 		Response rsp = null;
 		try {
-	    	profileManager.removeCompliment(Long.parseLong(reviewId));
+	    	reviewManager.removeReview(Long.parseLong(reviewId));
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
