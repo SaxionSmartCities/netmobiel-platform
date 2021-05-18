@@ -340,6 +340,15 @@ paths:
       by a someone with the delegate role, the effective user will be the user specified
       in the X-Delegator header.
     get:
+      parameters:
+      - name: public
+        description: Optional flag to indicate to retrieve only the public details.
+          For admin and the effective owner the flag defaults to false (and can be
+          overridden), for others the flag is fixed to true. Mainly intended for easier
+          testing.
+        schema:
+          type: boolean
+        in: query
       responses:
         "200":
           content:
