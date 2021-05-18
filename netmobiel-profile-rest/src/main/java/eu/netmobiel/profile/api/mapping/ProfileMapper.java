@@ -32,6 +32,9 @@ public abstract class ProfileMapper {
 	@Mapping(target = "data", source = "data", qualifiedBy = { Shallow.class } )
 	public abstract eu.netmobiel.profile.api.model.Page mapShallow(PagedResult<Profile> source);
 
+	@Mapping(target = "data", source = "data", qualifiedBy = { Secondary.class } )
+	public abstract eu.netmobiel.profile.api.model.Page mapSecondary(PagedResult<Profile> source);
+
 	// Domain --> API
 	@Mapping(target = "firstName", source = "givenName")
 	@Mapping(target = "image", source = "imagePath")

@@ -6,8 +6,10 @@ import java.util.Collections;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
@@ -44,7 +46,10 @@ public class ProfilesResource implements ProfilesApi {
 	@Inject
 	private SecurityIdentity securityIdentity;
 	
-//	private final BooleanSupplier isAdmin = () -> request.isUserInRole("admin");
+	@Context
+	private HttpServletRequest request;
+
+	//	private final BooleanSupplier isAdmin = () -> request.isUserInRole("admin");
 //	private final Predicate<String> itIsMe = id -> request.getUserPrincipal().getName().equals(id);
 
 	/**
@@ -80,15 +85,26 @@ public class ProfilesResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response getProfile(String xDelegator, String profileId) {
+	public Response getProfile(String xDelegator, String profileId, Boolean _public) {
     	Response rsp = null;
 		try {
 			String mid = resolveIdentity(xDelegator, profileId);
 			// The profile is always completely initialized, but may only be filled in part,
 			// depending on the privileges of the caller.
-			Profile profile = profileManager.getProfileByManagedIdentity(mid);
+			boolean complete = request.isUserInRole("admin") || mid.equals(securityIdentity.getEffectivePrincipal().getName());
+			if (Boolean.TRUE.equals(_public)) {
+				complete = false;
+			}
+			eu.netmobiel.profile.api.model.Profile apiProfile = null;
+			if (complete) {
+				Profile profile = profileManager.getCompleteProfileByManagedIdentity(mid);
+				apiProfile = profileMapper.mapComplete(profile);
+			} else {
+				Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
+				apiProfile = profileMapper.mapSecondary(profile);
+			}
         	ProfileResponse prsp = new ProfileResponse();
-        	prsp.setProfiles(Collections.singletonList(profileMapper.mapComplete(profile)));
+        	prsp.setProfiles(Collections.singletonList(apiProfile));
         	prsp.setMessage("Profile succesfully retrieved");
         	prsp.setSuccess(true);
    			rsp = Response.ok(prsp).build();
@@ -103,7 +119,8 @@ public class ProfilesResource implements ProfilesApi {
     	Response rsp = null;
 		try {
 			String mid = resolveIdentity(xDelegator, profileId);
-        	String token = profileManager.getFcmTokenByManagedIdentity(mid);
+			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
+        	String token = profile.getFcmToken();
         	FirebaseTokenResponse ftr = new FirebaseTokenResponse();
         	ftr.setFcmToken(token);
    			rsp = Response.ok(ftr).build();
@@ -118,7 +135,8 @@ public class ProfilesResource implements ProfilesApi {
     	Response rsp = null;
 		try {
 			String mid = resolveIdentity(xDelegator, profileId);
-        	String imagePath = profileManager.getImagePathByManagedIdentity(mid);
+			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
+        	String imagePath = profile.getImagePath();
         	ImageResponse ir = new ImageResponse();
         	ir.setImage(imagePath);
    			rsp = Response.ok(ir).build();
@@ -129,14 +147,19 @@ public class ProfilesResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response listProfiles(String role, Integer maxResults, Integer offset) {
+	public Response listProfiles(String text, String role, Boolean details, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		try {
 			Cursor cursor = new Cursor(maxResults, offset);
 			ProfileFilter filter = new ProfileFilter();
+			filter.setText(text);
 			filter.setUserRole(role);
 	    	PagedResult<Profile> results = profileManager.listProfiles(filter, cursor);
-			rsp = Response.ok(profileMapper.mapShallow(results)).build();
+	    	if (request.isUserInRole("admin") && Boolean.TRUE.equals(details)) {
+	    		rsp = Response.ok(profileMapper.mapShallow(results)).build();
+	    	} else {
+	    		rsp = Response.ok(profileMapper.mapSecondary(results)).build();
+	    	}
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
@@ -145,7 +168,6 @@ public class ProfilesResource implements ProfilesApi {
 		return rsp;
 	}
 
-	
 	@Override
 	public Response updateProfile(String xDelegator, String profileId, eu.netmobiel.profile.api.model.Profile apiProfile) {
     	Response rsp = null;
@@ -153,7 +175,7 @@ public class ProfilesResource implements ProfilesApi {
 			String mid = resolveIdentity(xDelegator, profileId);
 			Profile domainProfile = profileMapper.map(apiProfile);
 			profileManager.updateProfileByManagedIdentity(mid, domainProfile);
-        	domainProfile = profileManager.getProfileByManagedIdentity(profileId);
+        	domainProfile = profileManager.getFlatProfileByManagedIdentity(profileId);
         	ProfileResponse prsp = new ProfileResponse();
         	prsp.setProfiles(Collections.singletonList(profileMapper.mapComplete(domainProfile)));
         	prsp.setMessage("Profile succesfully retrieved");
@@ -195,7 +217,7 @@ public class ProfilesResource implements ProfilesApi {
 			byte[] decodedImage = Base64.getDecoder().decode(parts[1]);
 			String filename = Instant.now().toEpochMilli() + "." + filetype;
 	    	profileManager.uploadImage(mid, mimetype, filename, decodedImage);
-        	Profile profile = profileManager.getProfileByManagedIdentity(mid);
+        	Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
         	ProfileResponse prsp = new ProfileResponse();
         	prsp.setProfiles(Collections.singletonList(profileMapper.mapComplete(profile)));
         	prsp.setMessage("Profile succesfully retrieved");
@@ -207,11 +229,22 @@ public class ProfilesResource implements ProfilesApi {
 		return rsp;
 	}
 
+	/**
+	 * Delete a profile. For now only an admin can do that.
+	 * @param xDelegator the delegator, if any.
+	 * @param profileId the managed identity of the profile to delete.  
+	 */
 	@Override
 	public Response deleteProfile(String xDelegator, String profileId) {
 		Response rsp = null;
 		try {
 			String mid = resolveIdentity(xDelegator, profileId);
+//			Principal me = sessionContext.getCallerPrincipal();
+//			boolean privileged = sessionContext.isCallerInRole("admin");
+//	    	if (!privileged && !me.getName().equals(managedId)) {
+//				new SecurityException("You have no privilege to remove the profile of someone else");
+//	    	}
+
 	    	profileManager.removeProfile(mid);
 			rsp = Response.noContent().build();
 		} catch (BusinessException ex) {

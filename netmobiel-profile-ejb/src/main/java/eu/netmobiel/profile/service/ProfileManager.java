@@ -9,7 +9,6 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.security.Principal;
-import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
@@ -38,7 +37,6 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.filter.ComplimentFilter;
 import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.filter.ReviewFilter;
-import eu.netmobiel.profile.model.Address;
 import eu.netmobiel.profile.model.Compliment;
 import eu.netmobiel.profile.model.Place;
 import eu.netmobiel.profile.model.Profile;
@@ -54,11 +52,11 @@ import eu.netmobiel.profile.repository.RidesharePreferencesDao;
 import eu.netmobiel.profile.repository.SearchPreferencesDao;
 
 /**
- * Bean class for Publisher enterprise bean. 
+ * Bean class for the Profile service. The security is handled only if specific roles are requried. All other security constraints are handled one level higher. 
  */
 @Stateless
 @Logging
-@DeclareRoles({ "admin" })
+@DeclareRoles({ "admin", "delegate" })
 public class ProfileManager {
 	public static final Integer MAX_RESULTS = 10; 
 
@@ -94,20 +92,7 @@ public class ProfileManager {
     public ProfileManager() {
     }
 
-//	if (UrnHelper.isUrn(delegationRef)) {
-//    	NetMobielModule module = NetMobielModule.getEnum(UrnHelper.getService(delegationRef));
-//    	if (module == NetMobielModule.PROFILE) {
-//			id = UrnHelper.getId(Profile.URN_PREFIX, delegationRef);
-//    	} else if (module == NetMobielModule.KEYCLOAK) {
-//    		mid = UrnHelper.getSuffix(delegationRef);
-//    	}
-//	} else if (UrnHelper.isKeycloakManagedIdentity(delegationRef)) {
-//		mid = delegationRef;
-//	} else {
-//		id = UrnHelper.getId(delegationRef);
-//	}
-
-    @RolesAllowed({ "admin" })
+    @RolesAllowed({ "admin", "delegate" })
 	public @NotNull PagedResult<Profile> listProfiles(ProfileFilter filter, Cursor cursor) throws BadRequestException {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
@@ -166,7 +151,7 @@ public class ProfileManager {
 		return profile.getId();
     }
 
-    private Profile getCompleteProfileByManagedIdentity(String managedId) throws NotFoundException {
+    public Profile getCompleteProfileByManagedIdentity(String managedId) throws NotFoundException {
     	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	profile.setRidesharePreferences(ridesharePreferencesDao.loadGraph(profile.getId(), RidesharePreferences.FULL_RIDESHARE_PREFS_ENTITY_GRAPH).orElse(null));
@@ -183,58 +168,19 @@ public class ProfileManager {
     	return profile;
     }
 
-    private Profile getPublicProfileByManagedIdentity(String managedId) throws NotFoundException {
-    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-    	profileDao.detach(profile);
-    	// Initialize the uninitialized fields, remove non-public info
-    	profile.setPlaces(Collections.emptySet());
-    	if (profile.getHomeAddress() != null) {
-    		Address addr = profile.getHomeAddress();
-    		// Only country and locality are passed
-    		addr.setHouseNumber(null);
-    		addr.setPostalCode(null);
-    		addr.setStreet(null);
-    	}
-    	profile.setHomeLocation(null);
-    	profile.setFcmToken(null);
-    	profile.setConsent(null);
-    	profile.setNotificationOptions(null);
-    	profile.setPhoneNumber(null);
-    	profile.setRidesharePreferences(null);
-    	profile.setSearchPreferences(null);
-    	return profile;
-    }
-
     /**
-     * Retrieves the profile of a user. If the calling user fetches something else then his own profile 
-     * the the public profile it returned, unless the caller has admin rights.
-     * @param managedId The managed identity.
-     * @return The profile
-     * @throws NotFoundException
+     * Returns the profile without initialization of the search and rideshare preferences. 
+     * 
+     * @param managedId the mananaged id to look up.
+     * @return the plain profile.
+     * @throws NotFoundException if no such user exists in the profile database. 
      */
-    public Profile getProfileByManagedIdentity(String managedId) throws NotFoundException {
-    	Profile profile = null;
-    	if (sessionContext.isCallerInRole("admin") || sessionContext.getCallerPrincipal().getName().equals(managedId)) {
-    		profile = getCompleteProfileByManagedIdentity(managedId);
-    	} else {
-    		profile = getPublicProfileByManagedIdentity(managedId);
-    	}
+    public Profile getFlatProfileByManagedIdentity(String managedId) throws NotFoundException {
+    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	return profile;
     }
 
-    public String getFcmTokenByManagedIdentity(String managedId) throws NotFoundException {
-    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-    	return profile.getFcmToken();
-    }
-
-    public String getImagePathByManagedIdentity(String managedId) throws NotFoundException {
-    	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-    	return profile.getImagePath();
-    }
-    
     /**
      * Updates all fields of the profile execpt for: imagePath.
      * @param managedId
@@ -301,17 +247,12 @@ public class ProfileManager {
 		}
 	}
 	
-
+	@RolesAllowed({ "admin" })
     public void removeProfile(String managedId) throws NotFoundException {
-		Principal me = sessionContext.getCallerPrincipal();
-		boolean privileged = sessionContext.isCallerInRole("admin");
     	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
     	profile.setRidesharePreferences(ridesharePreferencesDao.find(profile.getId()).orElse(null));
     	profile.setSearchPreferences(searchPreferencesDao.find(profile.getId()).orElse(null));
-    	if (!privileged && !me.getName().equals(managedId)) {
-			new SecurityException("You have no privilege to remove the profile of someone else");
-    	}
     	if (profile.getRidesharePreferences() != null) {
     		ridesharePreferencesDao.remove(profile.getRidesharePreferences());
     	}

@@ -62,6 +62,21 @@ public class ProfileDao extends UserDao<Profile> {
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Profile> profile = cq.from(Profile.class);
         List<Predicate> predicates = new ArrayList<>();
+        if (filter.getText() != null) {
+        	String text = filter.getText().replace("%","%%").toLowerCase();
+        	if (!text.startsWith("%")) {
+        		text = "%" + text;
+        	}
+        	if (!text.endsWith("%")) {
+        		text = text + "%";
+        	}
+	        predicates.add(cb.or(
+	        		cb.like(cb.lower(profile.get(Profile_.email)), text), 
+	        		cb.like(cb.lower(profile.get(Profile_.phoneNumber)), text),
+	        		cb.like(cb.lower(profile.get(Profile_.familyName)), text),
+	        		cb.like(cb.lower(profile.get(Profile_.givenName)), text)
+	        		));
+        }
         if (filter.getUserRole() != null) {
         	Predicate rolePred = cb.equal(profile.get(Profile_.userRole), filter.getUserRole());  
         	// Search for the profile with the specified role, or role 'both'
