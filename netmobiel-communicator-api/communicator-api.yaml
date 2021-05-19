@@ -14,43 +14,12 @@ servers:
 - url: https://api.netmobiel.eu/gwapi/acc/communicator
   description: The communicator service visible to the world (acceptance).
 paths:
-  /messages/{messageId}/ack:
-    summary: Acknowledge the message.
-    description: Manages the acknowledgement state of a message for the implied recipient.
-      The field 'ackTime' represents this time.
-    put:
-      responses:
-        "204":
-          description: Succesfull response.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: acknowledgeMessage
-      summary: Acknowledge a message
-      description: Assigns a timestamp to the message for the implied recipient. The
-        field 'ackTime' represents this time.
-    delete:
-      responses:
-        "204":
-          description: Succesfull reponse.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-      operationId: removeAcknowledgement
-      summary: Removes the acknowledgement state.
-      description: Removes the acknowledgement time from the message.
-    parameters:
-    - name: messageId
-      description: The id of the message.
-      schema:
-        type: integer
-      in: path
-      required: true
   /messages:
     summary: Path used to manage the list of messages.
     description: The REST endpoint/path used to list and create zero or more `Message`
       entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
+      and create tasks, respectively. When a call a made by someone with the delegate
+      role, the effective user will be the user specified in the X-Delegator header.
     get:
       parameters:
       - name: groupByConversation
@@ -61,9 +30,10 @@ paths:
           type: boolean
         in: query
       - name: participant
-        description: |-
-          The participant in the messages, i.e. as a recipient or a sender. Only allowed with elevated privilege. The participant domain is the Keycloak managed identity.
-          Without this parameter the caller is considered to be the participant.
+        description: The participant in the messages, i.e. as a recipient or a sender.
+          Only allowed by an admin. The participant domain is the Keycloak managed
+          identity. Without this parameter the effective caller is considered to be
+          the participant.
         schema:
           type: string
         in: query
@@ -148,9 +118,58 @@ paths:
           description: Successful response.
       operationId: sendMessage
       summary: Create a Message
-      description: Creates asynchronously a new instance of a `Message`. If the delivery
+      description: 'Creates asynchronously a new instance of a `Message`. If the delivery
         mode includes `NOTIFICATION` then a notification (push) message is sent to
-        each recipient.
+        each recipient. The sender of the message is the effective user. '
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+  /messages/{messageId}/ack:
+    summary: Acknowledge the message.
+    description: Manages the acknowledgement state of a message for the implied recipient.
+      The field 'ackTime' represents this time. When a call a made by someone with
+      the delegate role, the effective user will be the user specified in the X-Delegator
+      header.
+    put:
+      responses:
+        "204":
+          description: Succesfull response.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: acknowledgeMessage
+      summary: Acknowledge a message
+      description: Assigns a timestamp to the message for the implied recipient. The
+        field 'ackTime' represents this time. The admin can acknowledge any message.
+        Non-admin (effective) users are only allowed to acknowledge their own messages.
+    delete:
+      responses:
+        "204":
+          description: Succesfull reponse.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      operationId: removeAcknowledgement
+      summary: Removes the acknowledgement state.
+      description: Removes the acknowledgement time from the message. Users must be
+        the recipient of the message. An admin has unlimited powers.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: messageId
+      description: The id of the message.
+      schema:
+        type: integer
+      in: path
+      required: true
 components:
   schemas:
     Error:
