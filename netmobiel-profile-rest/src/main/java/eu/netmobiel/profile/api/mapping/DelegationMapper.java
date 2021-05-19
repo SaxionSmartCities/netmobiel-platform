@@ -44,7 +44,7 @@ public abstract class DelegationMapper {
 	// API --> Domain
 	@Mapping(target = "delegate", source = "delegateRef")
 	@Mapping(target = "delegator", source = "delegatorRef")
-	public abstract Delegation map(eu.netmobiel.profile.api.model.Delegation source);
+	public abstract Delegation mapApi(eu.netmobiel.profile.api.model.Delegation source);
 
 	/**
 	 * Maps the delegateRef and delegatorRef to a profile instance. Supported are a plain profile id, keycloak managed identity urn and a profile urn.

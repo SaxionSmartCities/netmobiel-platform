@@ -3,10 +3,6 @@ package eu.netmobiel.profile.service;
 import java.time.Instant;
 import java.util.List;
 
-import javax.annotation.Resource;
-import javax.annotation.security.DeclareRoles;
-import javax.annotation.security.RolesAllowed;
-import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
@@ -32,13 +28,8 @@ import eu.netmobiel.profile.repository.ProfileDao;
  */
 @Stateless
 @Logging
-@DeclareRoles({ "admin" })
-@RolesAllowed({ "admin" })
 public class DelegationManager {
 	public static final Integer MAX_RESULTS = 10; 
-
-	@Resource
-    private SessionContext sessionContext;
 
     @SuppressWarnings("unused")
 	@Inject
@@ -56,7 +47,7 @@ public class DelegationManager {
     public DelegationManager() {
     }
 
-	private Profile resolveProfile(Profile p) throws NotFoundException, BadRequestException {
+	public Profile resolveProfile(Profile p) throws NotFoundException, BadRequestException {
 		if (p == null) {
 			return null;
 		}
