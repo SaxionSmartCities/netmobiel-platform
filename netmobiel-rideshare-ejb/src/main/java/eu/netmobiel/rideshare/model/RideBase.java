@@ -151,7 +151,7 @@ public abstract class RideBase extends ReferableObject implements Serializable {
     @Embedded
     @AttributeOverrides({ 
     	@AttributeOverride(name = "label", column = @Column(name = "from_label", length = 256)), 
-    	@AttributeOverride(name = "point", column = @Column(name = "from_point")), 
+    	@AttributeOverride(name = "point", column = @Column(name = "from_point", nullable = false)), 
    	} )
     private GeoLocation from;
     
@@ -163,7 +163,7 @@ public abstract class RideBase extends ReferableObject implements Serializable {
     @Embedded
     @AttributeOverrides({ 
     	@AttributeOverride(name = "label", column = @Column(name = "to_label", length = 256)), 
-    	@AttributeOverride(name = "point", column = @Column(name = "to_point")), 
+    	@AttributeOverride(name = "point", column = @Column(name = "to_point", nullable = false)), 
    	} )
     private GeoLocation to;
 

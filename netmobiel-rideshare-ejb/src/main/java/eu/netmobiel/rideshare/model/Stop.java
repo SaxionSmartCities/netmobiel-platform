@@ -6,6 +6,8 @@ import java.time.ZoneOffset;
 import java.time.format.DateTimeFormatter;
 
 import javax.enterprise.inject.Vetoed;
+import javax.persistence.AttributeOverride;
+import javax.persistence.AttributeOverrides;
 import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
@@ -18,6 +20,7 @@ import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.validation.constraints.NotNull;
 
 import eu.netmobiel.commons.model.GeoLocation;
 
@@ -36,7 +39,12 @@ public class Stop implements Serializable {
 	@JoinColumn(name = "ride", foreignKey = @ForeignKey(name = "stop_ride_fk"), nullable = false)
 	private Ride ride;
 
-    @Embedded
+	@NotNull
+	@Embedded
+    @AttributeOverrides({ 
+    	@AttributeOverride(name = "label", column = @Column(name = "label", length = 256)), 
+    	@AttributeOverride(name = "point", column = @Column(name = "point", nullable = false)), 
+   	} )
     private GeoLocation location;
 
     /**
