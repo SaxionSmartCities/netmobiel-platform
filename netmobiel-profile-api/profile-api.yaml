@@ -35,9 +35,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Delegation'
           description: Successful response - returns a single `Delegation`.
+        "403":
+          $ref: '#/components/responses/Forbidden'
       operationId: getDelegation
       summary: Get a Delegation
-      description: Gets the details of a single instance of a `Delegation`.
+      description: Gets the details of a single instance of a `Delegation`. You must
+        be the delegate or the delegator to see the delegation record.
     delete:
       responses:
         "204":
@@ -55,24 +58,33 @@ paths:
       required: true
   /delegations:
     summary: Path used to manage the list of delegations.
-    description: Admin only. The REST endpoint/path used to list and create zero or
-      more `Delegation` entities.  This path contains a `GET` and `POST` operation
-      to perform the list and create tasks, respectively.
+    description: |+
+      The REST endpoint/path used to list and create zero or more `Delegation` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+
     get:
       parameters:
       - name: delegate
-        description: |-
-          the user id acting as a representative for someone else. The format of the user id is the database id of a profile user, or an urn reference. Two formats are allowed:
+        description: |+
+          the user id acting as a representative for someone else. The format of the user id is the database id of a profile user, or an urn reference. Three formats are allowed:
+
           urn:nb:ps:user:{primary-key}
+
           urn:nb:kc:user:{managed-identity}
+
+          me
+
         schema:
           type: string
         in: query
       - name: delegator
         description: |-
-          the user id being represented. The format of the user id is the database id of a profile user, or an urn reference. Two formats are allowed:
+          the user id being represented. The format of the user id is the database id of a profile user, or an urn reference. Three formats are allowed:
+
           urn:nb:ps:user:{primary-key}
+
           urn:nb:kc:user:{managed-identity}
+
+          me
         schema:
           type: string
         in: query
@@ -131,9 +143,18 @@ paths:
                 items:
                   $ref: '#/components/schemas/Delegation'
           description: Successful response - returns an array of `Delegation` entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
       operationId: getDelegations
       summary: List all delegations
-      description: Gets a list of all `Delegation` entities.
+      description: "Gets a list of `Delegation` entities complying to the filter criteria.\
+        \ The admin can list any delegation. Delegates can list their delegators.\
+        \ A delegator can list their delegates. \n\nThe admin has no defaults set\
+        \ for delegate and delegator. If no value is set for delegate and delegator,\
+        \ then a user with the delegate role has as default delegate value `me`. Otherwise\
+        \ the delegator value is default set to `me`.\n\nIf you have a delegate role,\
+        \ you are not allowed to list delegations for a delegator, even if you the\
+        \ are or have been a delegate for that user."
     post:
       requestBody:
         description: A new `Delegation` to be created.
@@ -145,9 +166,13 @@ paths:
       responses:
         "201":
           description: Successful response.
+        "400":
+          $ref: '#/components/responses/BadRequest'
       operationId: createDelegation
       summary: Create a Delegation
-      description: Creates a new instance of a `Delegation`.
+      description: Creates a new instance of a `Delegation`. The caller must be an
+        admin aor a delegate. If the caller is an admin, the delegate must be set
+        explicitly. Otherwise, the delegate is set to `me`.
   /profiles:
     summary: Path used to manage profiles.
     description: The REST endpoint/path used to list and create zero or more `Profile`
