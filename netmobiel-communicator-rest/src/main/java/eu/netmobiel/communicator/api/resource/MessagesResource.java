@@ -6,8 +6,10 @@ import java.util.stream.Stream;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
@@ -38,8 +40,11 @@ public class MessagesResource implements MessagesApi {
     @Inject
 	private SecurityIdentity securityIdentity;
 
+	@Context
+	private HttpServletRequest request;
+
     @Override
-	public Response sendMessage(eu.netmobiel.communicator.api.model.Message msg) {
+	public Response sendMessage(String xDelegator, eu.netmobiel.communicator.api.model.Message msg) {
     	Response rsp = null;
 		try {
 			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
@@ -54,12 +59,14 @@ public class MessagesResource implements MessagesApi {
 	}
 
 	@Override
-	public Response listMessages(Boolean groupByConversation, String participant, String context, 
+	public Response listMessages(String xDelegator, Boolean groupByConversation, String participant, String context, 
 			OffsetDateTime since, OffsetDateTime until, String deliveryMode, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		PagedResult<Message> result = null;
 		try {
-			if (participant == null) {
+			if (participant == null && !request.isUserInRole("admin")) {
+				participant = securityIdentity.getEffectivePrincipal().getName();
+			} else if ("me".equals(participant)) {
 				participant = securityIdentity.getEffectivePrincipal().getName();
 			}
 			if (groupByConversation != null && groupByConversation) {
@@ -88,7 +95,7 @@ public class MessagesResource implements MessagesApi {
 	}
 
 	@Override
-	public Response acknowledgeMessage(Integer messageId) {
+	public Response acknowledgeMessage(String xDelegator, Integer messageId) {
     	Response rsp = null;
     	try {
 			CallingContext<CommunicatorUser> context = userManager.findCallingContext(securityIdentity);
@@ -102,7 +109,7 @@ public class MessagesResource implements MessagesApi {
 	}
 
 	@Override
-	public Response removeAcknowledgement(Integer messageId) {
+	public Response removeAcknowledgement(String xDelegator, Integer messageId) {
     	Response rsp = null;
     	try {
 			CallingContext<CommunicatorUser> context = userManager.findCallingContext(securityIdentity);

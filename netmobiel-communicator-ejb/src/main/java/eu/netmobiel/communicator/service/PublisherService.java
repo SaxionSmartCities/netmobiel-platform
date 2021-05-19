@@ -148,9 +148,6 @@ public class PublisherService {
     	// the additional call to determine the totalCount.
     	// For now don't do conditional things. First always total count, then data if data is requested. 
     	// Get the total count
-		if (participant == null) {
-			throw new BadRequestException("participant is a mandatory parameter");
-		}
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
