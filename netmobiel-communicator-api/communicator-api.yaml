@@ -31,9 +31,9 @@ paths:
         in: query
       - name: participant
         description: The participant in the messages, i.e. as a recipient or a sender.
-          Only allowed by an admin. The participant domain is the Keycloak managed
-          identity. Without this parameter the effective caller is considered to be
-          the participant.
+          Use `me` as indicator to retrieve the own messages. Defaults to the effective
+          user when not set, unless the caller is an admin. An admin can list any
+          message. The participant domain is the Keycloak managed identity.
         schema:
           type: string
         in: query
@@ -144,9 +144,8 @@ paths:
           $ref: '#/components/responses/NotFound'
       operationId: acknowledgeMessage
       summary: Acknowledge a message
-      description: Assigns a timestamp to the message for the implied recipient. The
-        field 'ackTime' represents this time. The admin can acknowledge any message.
-        Non-admin (effective) users are only allowed to acknowledge their own messages.
+      description: Assigns a timestamp to the message for the caller (the effective
+        user) as implied recipient. The field 'ackTime' represents this time.
     delete:
       responses:
         "204":
@@ -155,8 +154,8 @@ paths:
           $ref: '#/components/responses/Forbidden'
       operationId: removeAcknowledgement
       summary: Removes the acknowledgement state.
-      description: Removes the acknowledgement time from the message. Users must be
-        the recipient of the message. An admin has unlimited powers.
+      description: Removes the acknowledgement time from the message. The effective
+        users must be a recipient of the message, otherwise the enevlope is not found.
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
