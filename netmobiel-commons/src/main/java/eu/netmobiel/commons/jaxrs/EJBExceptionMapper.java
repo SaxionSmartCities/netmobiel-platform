@@ -36,7 +36,7 @@ public class EJBExceptionMapper implements ExceptionMapper<EJBException> {
 		 * EJB Exceptions are logged by the application server, don't log them again.
 		 */
 		Response.Status status = null;
-		if (dspExc instanceof EJBAccessException) {
+		if (dspExc instanceof EJBAccessException || dspExc instanceof SecurityException) {
 			status = Response.Status.FORBIDDEN;
 		} else {
 			List<Throwable> causes = ExceptionUtil.listCauses(e);
