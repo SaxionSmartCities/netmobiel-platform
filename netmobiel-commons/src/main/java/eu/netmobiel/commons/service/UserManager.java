@@ -21,7 +21,6 @@ import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.NetMobielUserImpl;
 import eu.netmobiel.commons.model.User;
 import eu.netmobiel.commons.repository.UserDao;
-import eu.netmobiel.commons.security.SecurityContextHelper;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.UrnHelper;
 
@@ -33,8 +32,8 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     protected abstract Logger getLogger();
 
 	protected T createContextUser() {
-    	NetMobielUser nbuser = SecurityContextHelper.getUserContext(sessionContext.getCallerPrincipal());
-    	return createUser(nbuser);
+    	Optional<NetMobielUser> nbuser = SecurityIdentity.getKeycloakContext(sessionContext.getCallerPrincipal());
+    	return createUser(nbuser.isPresent() ? nbuser.get() : null);
     }
     
 	protected T createUser(String managedIdentity) {
