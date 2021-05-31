@@ -61,7 +61,7 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 			}
 	    	Long id = complimentManager.createCompliment(c);
 			rsp = Response.created(UriBuilder.fromResource(ComplimentsApi.class)
-					.path(ComplimentsApi.class.getMethod("getCompliment", String.class)).build(id)).build();
+					.path(ComplimentsApi.class.getMethod("getCompliment", String.class, String.class)).build(id)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException | NoSuchMethodException e) {

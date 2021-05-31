@@ -24,6 +24,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.exception.DuplicateEntryException;
 import eu.netmobiel.commons.exception.LegalReasonsException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
@@ -32,6 +33,7 @@ import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.NetMobielUserImpl;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Profile;
@@ -90,8 +92,50 @@ public class ProfileManager {
     	}
     	return new PagedResult<Profile>(results, cursor, prs.getTotalCount());
 	}
-    
-    public Long createProfile(Profile profile) throws BusinessException {
+
+    /**
+     * Creates a new Keycloak account or attaches an existing Keycloak account (lookup by email) to the given profile.
+     * In case of an existing account the attributes are copied into the profile.
+     * In case of a new account a verification mail will be sent by Keycloak.
+     * In both cases the managed identity is copied into the profile.
+     * @param newProfile the new profile to attche to the Keyclolak account.
+     * @throws BusinessException
+     */
+    private void createOrAttachKeycloakAccount(Profile newProfile) throws BusinessException {
+		if (newProfile.getEmail() == null) {
+			throw new BadRequestException("Email address is mandatory");
+		}
+		String managedIdentity = null;
+		Optional<NetMobielUser> existingUser = keycloakDao.findUserByEmail(newProfile.getEmail());
+		if (existingUser.isPresent()) {
+			// No security incident, the user still has to logon. 
+			// It is however possible to create a profile using someone else's email.
+			// To use it you have to know the credentials or have access to the email box of the account.
+			managedIdentity = existingUser.get().getManagedIdentity();
+			newProfile.setFamilyName(existingUser.get().getFamilyName());
+			newProfile.setGivenName(existingUser.get().getGivenName());
+		} else {
+			// Need a new keycloak account
+			managedIdentity = keycloakDao.addUser(newProfile);
+			// Update password is configured in Keycloak.
+			// Only for new accounts, not for delegated accounts
+			// Although we have set 'verify_email'in the authentication flow, the email is not sent. Try manual override...
+			keycloakDao.verifyUserByEmail(managedIdentity);
+			// In the authentication flow is also specified to update the password. That works. We ask it anyway. 
+		}
+		newProfile.setManagedIdentity(managedIdentity);
+    }
+
+    /**
+     * Creates a new profile, either for the caller or for someone else (by someone with a privilege, not verified here).
+     * If a profile is created by an authenticated user, this user will be registered as the creator if it
+     * is not his/her personal profile.
+     * The profile is connected to a new or existing Keycloak account, with the email address as key. 
+     * @param profile the profile to create.
+     * @return A fresh new profile.
+     * @throws BusinessException
+     */
+    public String createProfile(Profile profile) throws BusinessException {
     	  // Validate required parameters.
 		if (StringUtils.isAllBlank(profile.getEmail()) || 
 				StringUtils.isAllBlank(profile.getGivenName()) || 
@@ -101,26 +145,41 @@ public class ProfileManager {
 		if (!profile.getConsent().isAcceptedTerms() || !profile.getConsent().isOlderThanSixteen()) {
 			throw new LegalReasonsException("Terms have not been accepted.");
 		}
-		Optional<NetMobielUser> existingUser = Optional.empty();
-		if (profile.getEmail() != null) {
-			existingUser = keycloakDao.findUserByEmail(profile.getEmail());
-		}
-		String managedIdentity = null; 
-		if (!existingUser.isPresent()) {
-			managedIdentity = keycloakDao.addUser(profile);
-			// Update password is configured in Keycloak.
-		} else {
-			// No security incident, the user still has to logon. 
-			// It is however possible to create a profile using someone else's email.
-			// To use it you have to know the credentials.
-			managedIdentity = existingUser.get().getManagedIdentity();
-		}
-		// Although we have set 'verify_email'in the authentication flow, the email is not sent. Try manual override...
-		keycloakDao.verifyUserByEmail(managedIdentity);
-		// In the authentication flow is also specified to update the password. That works. We ask it anyway. 
-		
-		// If the profile already exists, then a constraint violation will occur.
-		profile.setManagedIdentity(managedIdentity);
+		// In the current implementation the caller can be anonymous (old registration) of authenticated (new registration)
+		// If the keycloak id differs then the caller is registering a delegator profile.
+		// We want to verify the constraints before the potential account creation in Keycloak
+		Optional<NetMobielUser> caller = SecurityIdentity.getKeycloakContext(sessionContext.getCallerPrincipal());
+		/**
+		 * Scenarios:
+		 * 1. Unauthenticated user: Create or attach Keycloak account (key: email address), create (own) profile for that email address, 
+		 * 2. Authenticated user: 
+		 * 2.1 Caller profile exists
+		 * 2.1.1 Email address matches caller's email: Bad Request: Profile exists
+		 * 2.1.2 Email different: Create or attach Keycloak account (key: email address), create delegator account. Privilege required.
+		 * 2.2 Caller profile does not exist
+		 * 2.2.1 Email address mismatch: Bad Request - Caller email mismatch
+		 * 2.2.2 Email address matches caller's email: Attach Keycloak account, create caller profile
+		 */
+		if (caller.isPresent()) {
+			// I am a keycloak user
+			Optional<Profile> myProfile = profileDao.getReferenceByManagedIdentity(caller.get().getManagedIdentity());
+			// Does the new profile have the same email address as me?
+			if (!profile.getEmail().equals(caller.get().getEmail())) {
+				// It is not me creating my own profile
+				if (!myProfile.isPresent()) {
+					throw new SecurityException("You cannot create a profile for someone else without having a profile of yourself");
+				}
+				boolean privileged = sessionContext.isCallerInRole("admin") || sessionContext.isCallerInRole("delegate");
+				if (!privileged) {
+					throw new SecurityException("You don't have the privilege to create a profile on behalf of someone else");
+				}
+			    profile.setCreatedBy(myProfile.get());
+			} else if (myProfile.isPresent()) {
+				throw new DuplicateEntryException("You already have a profile with that email address");
+			}
+		} 
+		createOrAttachKeycloakAccount(profile);
+		// Note: If the profile already exists (i.e. same email address), then a constraint violation will occur.
 		profile.linkOneToOneChildren();
 		profileDao.save(profile);
 		if (profile.getSearchPreferences() != null) {
@@ -129,7 +188,7 @@ public class ProfileManager {
 		if (profile.getRidesharePreferences() != null) {
 			ridesharePreferencesDao.save(profile.getRidesharePreferences());				
 		}
-		return profile.getId();
+		return profile.getManagedIdentity();
     }
 
     public Profile getCompleteProfileByManagedIdentity(String managedId) throws NotFoundException {
@@ -228,6 +287,11 @@ public class ProfileManager {
 		}
 	}
 	
+	/**
+	 * Removes the profile. The Keycloak account is retained.
+	 * @param managedId
+	 * @throws NotFoundException
+	 */
 	@RolesAllowed({ "admin" })
     public void removeProfile(String managedId) throws NotFoundException {
     	Profile profile = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)

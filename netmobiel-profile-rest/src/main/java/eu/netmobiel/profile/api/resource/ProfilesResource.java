@@ -49,14 +49,20 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	@Context
 	private HttpServletRequest request;
 
+	/**
+	 * Creates a new profile. If the user is not authenticated, it must be a fresh new user.
+	 * If the user is authenticated, then it must be the user's own profile or it is a delegate that wants to 
+	 * create a new user as part of a delegation.
+	 */
 	@Override
 	public Response createProfile(eu.netmobiel.profile.api.model.Profile profile) {
     	Response rsp = null;
 		try {
 			Profile domprof = profileMapper.map(profile);
-	    	Long id = profileManager.createProfile(domprof);
+			// Role is verified in EJB method
+			String mid = profileManager.createProfile(domprof);
 			rsp = Response.created(UriBuilder.fromResource(ProfilesApi.class)
-					.path(ProfilesApi.class.getMethod("getProfile", String.class)).build(id)).build();
+					.path(ProfilesApi.class.getMethod("getProfile", String.class, String.class, Boolean.class)).build(mid)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException | NoSuchMethodException e) {

@@ -1,5 +1,6 @@
 package eu.netmobiel.profile.model;
 
+import java.time.Instant;
 import java.time.LocalDate;
 import java.util.HashSet;
 import java.util.Set;
@@ -13,9 +14,12 @@ import javax.persistence.Column;
 import javax.persistence.Embedded;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
+import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.JoinColumn;
+import javax.persistence.ManyToOne;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
 import javax.persistence.OneToMany;
@@ -154,7 +158,19 @@ public class Profile extends User  {
 	@Column(name = "user_role", length = 2)
 	private UserRole userRole;
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "created_by", foreignKey = @ForeignKey(name = "profile_created_by_fk"), updatable = false)
+    private Profile createdBy;
+
+	/**
+	 * The creation time of the profile.
+	 */
+    @NotNull
+    @Column(name = "creation_time", updatable = false)
+    private Instant creationTime;
+
 	public Profile() {
+		creationTime = Instant.now();
     }
     
 	public Profile(String identity) {
@@ -281,6 +297,22 @@ public class Profile extends User  {
 
 	public void setUserRole(UserRole userRole) {
 		this.userRole = userRole;
+	}
+
+	public Profile getCreatedBy() {
+		return createdBy;
+	}
+
+	public void setCreatedBy(Profile createdBy) {
+		this.createdBy = createdBy;
+	}
+
+	public Instant getCreationTime() {
+		return creationTime;
+	}
+
+	public void setCreationTime(Instant creationTime) {
+		this.creationTime = creationTime;
 	}
 
 	public Set<Place> getPlaces() {

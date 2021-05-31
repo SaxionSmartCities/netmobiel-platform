@@ -55,10 +55,29 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 			}
 	    	Long id = reviewManager.createReview(r);
 			rsp = Response.created(UriBuilder.fromResource(ReviewsApi.class)
-					.path(ReviewsApi.class.getMethod("getReview", String.class)).build(id)).build();
+					.path(ReviewsApi.class.getMethod("getReview", String.class, String.class)).build(id)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException | NoSuchMethodException e) {
+			throw new WebApplicationException(e);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response getReview(String xDelegator, String reviewId) {
+		Response rsp = null;
+		try {
+	    	Review r = reviewManager.getReview(Long.parseLong(reviewId));
+			String me = securityIdentity.getEffectivePrincipal().getName();
+			final boolean privileged = request.isUserInRole("admin"); 
+			if (! privileged && !r.getReceiver().getManagedIdentity().equals(me) && !r.getSender().getManagedIdentity().equals(me)) {
+				new SecurityException("You have no privilege to inspect a review that is not written by you or attributed to you");
+			}
+			rsp = Response.ok(mapper.map(r)).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rsp;
@@ -87,25 +106,6 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 	    	rr.setMessage("Success");
 	    	rr.setSuccess(true);
 			rsp = Response.ok(rr).build();
-		} catch (IllegalArgumentException e) {
-			throw new BadRequestException(e);
-		} catch (BusinessException e) {
-			throw new WebApplicationException(e);
-		}
-		return rsp;
-	}
-
-	@Override
-	public Response getReview(String xDelegator, String reviewId) {
-		Response rsp = null;
-		try {
-	    	Review r = reviewManager.getReview(Long.parseLong(reviewId));
-			String me = securityIdentity.getEffectivePrincipal().getName();
-			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && !r.getReceiver().getManagedIdentity().equals(me) && !r.getSender().getManagedIdentity().equals(me)) {
-				new SecurityException("You have no privilege to inspect a review that is not written by you or attributed to you");
-			}
-			rsp = Response.ok(mapper.map(r)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
