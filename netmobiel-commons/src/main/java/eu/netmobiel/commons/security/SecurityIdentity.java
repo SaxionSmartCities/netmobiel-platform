@@ -1,7 +1,10 @@
 package eu.netmobiel.commons.security;
 
 import java.security.Principal;
+import java.util.Optional;
 
+import org.keycloak.KeycloakPrincipal;
+import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.representations.AccessToken;
 
 import eu.netmobiel.commons.model.NetMobielUser;
@@ -66,5 +69,23 @@ public interface SecurityIdentity {
             user.setEmail(token.getEmail());
         }
     	return user;
+    }
+
+	/**
+	 * Creates a NetMobielUser object from a Keycloak principal, if any. 
+	 * @param p the principal from the http request or the EJB session context. 
+	 * @return An Optional with the user, if any.
+	 */
+	public static Optional<NetMobielUser> getKeycloakContext(Principal p) {
+        NetMobielUser user = null;
+        // In an EJB the non-authenticated user is represented by a AnonymousPrincipal with name 'anonymous'.
+    	if (p != null && p instanceof KeycloakPrincipal) {
+    		@SuppressWarnings("unchecked")
+			KeycloakPrincipal<KeycloakSecurityContext> kp = (KeycloakPrincipal<KeycloakSecurityContext>) p;
+            KeycloakSecurityContext ksc = kp.getKeycloakSecurityContext(); 
+            AccessToken token = ksc.getToken();
+            user = createUserFromToken(token);
+    	}
+    	return Optional.ofNullable(user);
     }
 }
