@@ -46,6 +46,7 @@
 		<version.jts>1.14.0</version.jts>
 		<version.keycloak>10.0.1</version.keycloak>
 		<version.log4j>1.2.17</version.log4j>
+		<version.messagebird>3.0.12</version.messagebird>
 		<version.opencsv>5.3</version.opencsv>
 		<version.org.mapstruct>1.3.1.Final</version.org.mapstruct>
 		<!--  Use exactly the same SLF4J as defined by JBOSS  -->
@@ -153,6 +154,12 @@
 				<groupId>org.mapstruct</groupId>
 				<artifactId>mapstruct</artifactId>
 				<version>${version.org.mapstruct}</version>
+			</dependency>
+
+			<dependency>
+				<groupId>com.messagebird</groupId>
+				<artifactId>messagebird-api</artifactId>
+				<version>${version.messagebird}</version>
 			</dependency>
 
 			<dependency>
