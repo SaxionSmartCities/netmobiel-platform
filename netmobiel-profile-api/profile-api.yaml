@@ -789,10 +789,17 @@ paths:
       responses:
         "201":
           description: Successful response.
+        "422":
+          description: The delegation was already activated or cancelled.
+        "403":
+          description: The activation code did not match, or the activation request
+            was issued more than 24 hours ago. Or you just lack the permission to
+            perform this operation.
       operationId: activateDelegation
       summary: Activate a Delegation
       description: Tries to match the activation code. On a match the delegation is
-        activated.
+        activated. Only the participants in the delegation and the admin can activate
+        a delegation.
     parameters:
     - name: delegationId
       description: A unique identifier for a `Delegation`.
@@ -818,28 +825,27 @@ paths:
       operationId: getDelegation
       summary: Get a Delegation
       description: Gets the details of a single instance of a `Delegation`. You must
-        be the delegate or the delegator to see the delegation record or an admin.
+        be the delegate or the delegator to see the delegation record or be an admin.
     put:
       responses:
         "204":
           description: The delegation has a new activation code and an SMS with the
             code has been sent to the prospected delegator.
         "422":
-          description: 'The request could not be executed, because the delegation
-            was already activated. '
-        "410":
-          description: The delegation was already cancelled.
+          description: The request could not be executed, because the delegation was
+            already activated or was already cancelled.
       operationId: updateDelegation
       summary: Update the delegation
-      description: "Updates the delegation, sort of. There are no modifiable attributes\
-        \ in the delegartion, except for the activation code. The effect of an update\
-        \ is the generation of a new activation code and the retransmission to the\
-        \ delegator. \n\nYou don't have to supply a request body, there no attributes\
-        \ to change by your hand."
+      description: |-
+        Updates the delegation, sort of. There are no modifiable attributes in the delegation, except for the activation code. The effect of an update is the generation of a new activation code and the retransmission to the delegator. Only the participants in the delegation and the admin can update a delegation.
+
+        You don't have to supply a request body, there are no attributes to change by your hand.
     delete:
       responses:
         "204":
           description: Successful response.
+        "422":
+          description: The delegation was already cancelled.
       operationId: deleteDelegation
       summary: Delete a Delegation
       description: Deletes an existing `Delegation` by setting the revocation time.
