@@ -775,7 +775,7 @@ paths:
         type: string
       in: header
   /delegations/{delegationId}/activations:
-    summary: Path used to manage the list of delegationactivations.
+    summary: Path used to manage the list of delegation activations.
     description: The REST endpoint/path used to activate a delegation. This path contains
       a `POST` operation to perform the activation task.
     post:
@@ -789,10 +789,17 @@ paths:
       responses:
         "201":
           description: Successful response.
+        "422":
+          description: The delegation was already activated or cancelled.
+        "403":
+          description: The activation code did not match, or the activation request
+            was issued more than 24 hours ago. Or you just lack the permission to
+            perform this operation.
       operationId: activateDelegation
       summary: Activate a Delegation
       description: Tries to match the activation code. On a match the delegation is
-        activated.
+        activated. Only the participants in the delegation and the admin can activate
+        a delegation.
     parameters:
     - name: delegationId
       description: A unique identifier for a `Delegation`.
@@ -818,34 +825,68 @@ paths:
       operationId: getDelegation
       summary: Get a Delegation
       description: Gets the details of a single instance of a `Delegation`. You must
-        be the delegate or the delegator to see the delegation record or an admin.
+        be the delegate or the delegator to see the delegation record or be an admin.
     put:
       responses:
         "204":
           description: The delegation has a new activation code and an SMS with the
             code has been sent to the prospected delegator.
         "422":
-          description: 'The request could not be executed, because the delegation
-            was already activated. '
-        "410":
-          description: The delegation was already cancelled.
+          description: The request could not be executed, because the delegation was
+            already activated or was already cancelled.
       operationId: updateDelegation
       summary: Update the delegation
-      description: "Updates the delegation, sort of. There are no modifiable attributes\
-        \ in the delegartion, except for the activation code. The effect of an update\
-        \ is the generation of a new activation code and the retransmission to the\
-        \ delegator. \n\nYou don't have to supply a request body, there no attributes\
-        \ to change by your hand."
+      description: |-
+        Updates the delegation, sort of. There are no modifiable attributes in the delegation, except for the activation code. The effect of an update is the generation of a new activation code and the retransmission to the delegator. Only the participants in the delegation and the admin can update a delegation.
+
+        You don't have to supply a request body, there are no attributes to change by your hand.
     delete:
       responses:
         "204":
           description: Successful response.
+        "422":
+          description: The delegation was already cancelled.
       operationId: deleteDelegation
       summary: Delete a Delegation
       description: Deletes an existing `Delegation` by setting the revocation time.
         The actual record is retained, but the delegation is no longer active. Only
         the participants in the delegation and the admin can revoke a delegation.
         A pending delegation is cancelled by setting  the revocation time.
+    parameters:
+    - name: delegationId
+      description: A unique identifier for a `Delegation`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /delegations/{delegationId}/transfers:
+    summary: Path used to manage the transfer of a delegation to a delegate.
+    description: The REST endpoint/path used to transfer a delegation to a different
+      delegate. This path contains a `POST` operation to perform the transfer task.
+    post:
+      requestBody:
+        description: A `Delegation` with the delegate attribute specified.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Delegation'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "403":
+          description: The caller lacked the permission to perform this operation.
+        "422":
+          description: The delegation was already cancelled.
+      operationId: transferDelegation
+      summary: Transfer a Delegation
+      description: "Creates a new `Delegation` with the specified delegate. The delegator\
+        \ remains the same. \nOnly the delegate of the current delegation and the\
+        \ admin can transfer a delegation.\nThe process is similar to creating a fresh\
+        \ new Delegation: The delegator receives an activation code by SMS. The new\
+        \ delegate requestrs the code from the propected delegator and activates the\
+        \ delegation. The old delegation will be revoked on activation of the new\
+        \ one."
     parameters:
     - name: delegationId
       description: A unique identifier for a `Delegation`.
