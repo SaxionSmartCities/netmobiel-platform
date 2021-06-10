@@ -71,7 +71,7 @@ public class DelegationDaoIT extends ProfileIntegrationTestBase {
     	assertNotNull(deldb);
     	assertEquals(del.getActivationTime(), deldb.getActivationTime());
     	assertEquals(del.getSubmissionTime(), deldb.getSubmissionTime());
-    	assertEquals(del.getTransferCode(), deldb.getTransferCode());
+    	assertEquals(del.getActivationCode(), deldb.getActivationCode());
     	assertEquals(careTaker1.getId(), deldb.getDelegate().getId());
     	assertEquals(passenger1.getId(), deldb.getDelegator().getId());
     }

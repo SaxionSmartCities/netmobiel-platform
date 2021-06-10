@@ -30,6 +30,8 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import org.apache.commons.lang3.StringUtils;
+
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.User;
@@ -394,5 +396,30 @@ public class Profile extends User  {
 
 	public boolean isDriver() {
 		return userRole == UserRole.DRIVER || userRole == UserRole.BOTH;
+	}
+
+	public String getNameEmailPhone() {
+		StringBuilder sb = new StringBuilder();
+		if (getGivenName() != null) {
+			sb.append(getGivenName()).append(" ");
+		}
+		if (getFamilyName() != null) {
+			sb.append(getFamilyName()).append(" ");
+		}
+		if (getFamilyName() != null) {
+			sb.append(getPhoneNumber()).append(" ");
+		}
+		if (getEmail() != null) {
+			sb.append("(").append(getEmail()).append(")");
+		}
+		return sb.toString().trim();
+	}
+
+	public String getDefaultCountry() {
+		String defaultCountryCode = Address.DEFAULT_COUNTRY_CODE;
+	    if (getHomeAddress() != null && !StringUtils.isAllBlank(getHomeAddress().getCountryCode())) {
+	    	defaultCountryCode = getHomeAddress().getCountryCode();
+	    }
+	    return defaultCountryCode;
 	}
 }

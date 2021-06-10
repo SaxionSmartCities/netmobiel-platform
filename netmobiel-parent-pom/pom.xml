@@ -45,6 +45,7 @@
 		<!-- JTS is included in hibernate-spatial -->
 		<version.jts>1.14.0</version.jts>
 		<version.keycloak>10.0.1</version.keycloak>
+		<version.libphonenumber>8.12.24</version.libphonenumber>
 		<version.log4j>1.2.17</version.log4j>
 		<version.messagebird>3.0.12</version.messagebird>
 		<version.opencsv>5.3</version.opencsv>
@@ -254,6 +255,12 @@
 			    <artifactId>postgresql</artifactId>
 			    <version>${version.postgres}</version>
 			</dependency>
+			<dependency>
+				<groupId>com.googlecode.libphonenumber</groupId>
+				<artifactId>libphonenumber</artifactId>
+				<version>${version.libphonenumber}</version>
+			</dependency>
+
    		</dependencies>
 	</dependencyManagement>
 

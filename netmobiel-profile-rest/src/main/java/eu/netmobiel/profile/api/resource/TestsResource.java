@@ -76,4 +76,5 @@ public class TestsResource {
     	log.debug("User: " + securityIdentity);
     	return Response.ok().build();
     }
+
 }

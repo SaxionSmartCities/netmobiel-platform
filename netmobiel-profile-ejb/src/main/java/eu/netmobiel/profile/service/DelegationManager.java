@@ -4,6 +4,7 @@ import java.time.Instant;
 import java.util.List;
 
 import javax.ejb.Stateless;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
@@ -12,10 +13,16 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.TokenGenerator;
+import eu.netmobiel.profile.event.DelegationActivationConfirmedEvent;
+import eu.netmobiel.profile.event.DelegationActivationRequestedEvent;
+import eu.netmobiel.profile.event.DelegationTransferCompletedEvent;
+import eu.netmobiel.profile.event.DelegationTransferRequestedEvent;
 import eu.netmobiel.profile.filter.DelegationFilter;
 import eu.netmobiel.profile.model.Delegation;
 import eu.netmobiel.profile.model.Profile;
@@ -24,14 +31,16 @@ import eu.netmobiel.profile.repository.KeycloakDao;
 import eu.netmobiel.profile.repository.ProfileDao;
 
 /**
- * Stateless EJB for handling of delegations. 
+ * Stateless EJB for handling of delegations.  
+ * The security is handled in the web layer.
  */
 @Stateless
 @Logging
 public class DelegationManager {
 	public static final Integer MAX_RESULTS = 10; 
-
-    @SuppressWarnings("unused")
+	public static final Integer DELEGATION_ACTIVATION_TIMEOUT_SECS = 60 * 60 + 24;
+	
+	@SuppressWarnings("unused")
 	@Inject
     private Logger logger;
 
@@ -43,6 +52,15 @@ public class DelegationManager {
     
     @Inject
     private KeycloakDao keycloakDao;
+
+    @Inject
+    private Event<DelegationTransferRequestedEvent> delegationTransferRequestedEvent;
+    @Inject
+    private Event<DelegationTransferCompletedEvent> delegationTransferCompletedEvent;
+    @Inject
+    private Event<DelegationActivationRequestedEvent> delegationActivationRequestedEvent;
+    @Inject
+    private Event<DelegationActivationConfirmedEvent> delegationActivationConfirmedEvent;
 
     public DelegationManager() {
     }
@@ -62,6 +80,17 @@ public class DelegationManager {
 		return pdb;
 	}
 
+	private void sendActivationCode(Delegation delegation) throws BusinessException {
+		// Send the activation code to the delegator
+		delegation.setActivationCode(TokenGenerator.createRandomNumber(6));
+    	EventFireWrapper.fire(delegationActivationRequestedEvent, new DelegationActivationRequestedEvent(delegation));
+    	// NOTE: the delegation object is (potentially) modified by the handler!  
+	}
+
+	private void confirmActivation(Delegation delegation) throws BusinessException {
+    	EventFireWrapper.fire(delegationActivationConfirmedEvent, new DelegationActivationConfirmedEvent(delegation));
+	}
+	
 	public @NotNull PagedResult<Delegation> listDelegations(DelegationFilter filter, Cursor cursor, String graphName) throws BadRequestException, NotFoundException {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
@@ -89,17 +118,17 @@ public class DelegationManager {
 		delegation.setDelegate(resolveProfile(delegation.getDelegate()));
 		delegation.setDelegator(resolveProfile(delegation.getDelegator()));
 		delegation.setSubmissionTime(Instant.now());
-		delegation.setTransferCode(TokenGenerator.createRandomNumber(6));
-		if (acceptNow) {
-			delegation.setActivationTime(delegation.getSubmissionTime());
-		}
 		// Constraint: Delegation cannot overlap in time
 		// --> Currently no active delegation (between two parties)
 		if (delegationDao.isDelegationActive(delegation.getDelegate(), delegation.getDelegator(), null)) {
 			throw new BadRequestException("Delegation relation already present");
 		}
 		delegationDao.save(delegation);
-		keycloakDao.addDelegator(delegation.getDelegate(), delegation.getDelegator());
+		if (acceptNow) {
+	    	activateDelegation(delegation, true);
+		} else {
+			sendActivationCode(delegation);
+		}
 		return delegation.getId();
     }
 
@@ -115,6 +144,82 @@ public class DelegationManager {
     			.orElseThrow(() -> new NotFoundException("No such delegation: " + id));
     }
 
+    /**
+     * Processes a transfer of a delegation from one delegate to another. The process is almost equals to the createDelegation,
+     * except that now the current delegate creates a delegation for someone else.  
+     * @param fromDelegationId
+     * @param toDelegation
+     * @param acceptNow if true then do not send an activation cod, but switch immediately.
+     * @return the id of the new delegate
+     * @throws BusinessException
+     */
+	public Long transferDelegation(Long fromDelegationId, Delegation toDelegation, boolean acceptNow) throws BusinessException {
+		Delegation fromDelegation = delegationDao.find(fromDelegationId)
+    			.orElseThrow(() -> new NotFoundException("No such delegation: " + fromDelegationId));
+		toDelegation.setDelegator(fromDelegation.getDelegator());
+		Long toDelegationId = createDelegation(toDelegation, acceptNow);
+		toDelegation.setTransferFrom(fromDelegation);
+		delegationTransferRequestedEvent.fire(new DelegationTransferRequestedEvent(fromDelegation, toDelegation, acceptNow));
+		return toDelegationId;
+	}
+
+	/**
+     * Attempts to match the activation code ands activates a delegation if a match is found.
+     * @param id the delegation
+     * @param code the input activation code.
+     * @throws BusinessException
+     */
+    public void activateDelegation(Long id, String code) throws BusinessException {
+    	Delegation delegation = delegationDao.find(id)
+    			.orElseThrow(() -> new NotFoundException("No such delegation: " + id));
+    	if (delegation.getRevocationTime() != null) {
+    		throw new UpdateException("The delegation has already been revoked");
+    	}
+    	if (delegation.getActivationTime() != null) {
+    		throw new UpdateException("The delegation has already been activated");
+    	}
+    	if (delegation.getActivationCodeSentTime().plusSeconds(DELEGATION_ACTIVATION_TIMEOUT_SECS).isBefore(Instant.now())) {
+    		throw new SecurityException("The activation code has expired");
+    	}
+    	if (code == null || !code.equals(delegation.getActivationCode())) {
+    		throw new SecurityException("The activation code is invalid");
+    	}
+    	activateDelegation(delegation, false);
+    }
+
+    protected void activateDelegation(Delegation delegation, boolean immediate) throws BusinessException {
+		keycloakDao.addDelegator(delegation.getDelegate(), delegation.getDelegator());
+		delegation.setActivationTime(delegation.getSubmissionTime());
+		confirmActivation(delegation);
+		if (delegation.getTransferFrom() != null) {
+	    	EventFireWrapper.fire(delegationTransferCompletedEvent, 
+	    			new DelegationTransferCompletedEvent(delegation.getTransferFrom(), delegation, immediate));
+			removeDelegation(delegation.getTransferFrom().getId());
+		}
+    }
+
+    /**
+     * Regenerates and transmits the activation code for a delegation to the delegator.
+     * It is expected that the prospected delegate might execute an update when this person did not respond in time 
+     * for the invitation to take over a delegator. 
+     * @param id the delegation id
+     * @throws NotFoundException When the delegation is not found or when required attributes
+     * 			are not present. 
+     * @throws BadRequestException 
+     * @throws UpdateException 
+     */
+    public void updateDelegation(Long id) throws BusinessException, UpdateException {
+    	Delegation delegation = delegationDao.find(id)
+    			.orElseThrow(() -> new NotFoundException("No such delegation: " + id));
+    	if (delegation.getRevocationTime() != null) {
+    		throw new UpdateException("The delegation has already been revoked");
+    	}
+    	if (delegation.getActivationTime() != null) {
+    		throw new UpdateException("The delegation has already been activated");
+    	}
+		sendActivationCode(delegation);
+    }
+    
 	/**
 	 * Removes (sort of) a delegation by setting the revocation time to 'now'.  
 	 * @param id The id of the delegation object.

@@ -36,6 +36,7 @@
 		    <artifactId>netmobiel-commons</artifactId>
 		    <version>${project.version}</version>
 		</dependency>
+
 		<dependency>
 		    <groupId>${project.groupId}</groupId>
 		    <artifactId>netmobiel-banker-ejb</artifactId>

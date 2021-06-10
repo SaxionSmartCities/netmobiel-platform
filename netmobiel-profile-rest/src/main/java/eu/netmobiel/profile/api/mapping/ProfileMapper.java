@@ -1,5 +1,7 @@
 package eu.netmobiel.profile.api.mapping;
 
+import javax.inject.Inject;
+
 import org.mapstruct.AfterMapping;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.InheritInverseConfiguration;
@@ -10,6 +12,7 @@ import org.mapstruct.ReportingPolicy;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.messagebird.MessageBird;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileComplete;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileMapperQualifier;
 import eu.netmobiel.profile.api.mapping.annotation.Secondary;
@@ -28,6 +31,8 @@ import eu.netmobiel.profile.model.SearchPreferences;
 	uses = { GeometryMapper.class })
 @ProfileMapperQualifier
 public abstract class ProfileMapper {
+    @Inject
+    private MessageBird	messageBirdClient;
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { Shallow.class } )
 	public abstract eu.netmobiel.profile.api.model.Page mapShallow(PagedResult<Profile> source);
@@ -74,12 +79,14 @@ public abstract class ProfileMapper {
 
 	@InheritInverseConfiguration(name = "commonMap")
 	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "createdBy", ignore = true)
+	@Mapping(target = "creationTime", ignore = true)
 	@Mapping(target = "places", ignore = true)
 	public abstract Profile map(eu.netmobiel.profile.api.model.Profile source);
 
 	// Use this construction for the label, otherwise the conversion cannot do both coordinates and label.
 	@AfterMapping
-    protected void addLabel(Profile source, @MappingTarget eu.netmobiel.profile.api.model.Profile target) {
+    protected void postProcessApiProfile(Profile source, @MappingTarget eu.netmobiel.profile.api.model.Profile target) {
 		if (source.getHomeLocation() != null && source.getHomeLocation().getLabel() != null) {
 			if (target.getAddress() == null) {
 				target.setAddress(new eu.netmobiel.profile.api.model.Place());
@@ -89,13 +96,15 @@ public abstract class ProfileMapper {
     }
 
 	@AfterMapping
-	protected void addLabel(eu.netmobiel.profile.api.model.Profile source, @MappingTarget Profile target) {
+	protected void postProcessDomainProfile(eu.netmobiel.profile.api.model.Profile source, @MappingTarget Profile target) {
 		if (source.getAddress() != null &&  source.getAddress().getLabel() != null) {
 			if (target.getHomeLocation() == null) {
 				target.setHomeLocation(new GeoLocation());
 			}
 			target.getHomeLocation().setLabel(source.getAddress().getLabel());
 		}
+		target.addAddressIfNotExists();
+		target.setPhoneNumber(messageBirdClient.formatPhoneNumberNational(target.getPhoneNumber(), target.getHomeAddress().getCountryCode()));
 	}
 
 	@Mapping(target = "numPassengers", source = "maxPassengers")

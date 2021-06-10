@@ -80,7 +80,7 @@ public class Fixture {
     	del.setDelegator(delegator);
     	del.setSubmissionTime(theTime);
     	del.setActivationTime(theTime);
-    	del.setTransferCode(code);
+    	del.setActivationCode(code);
 		return del;
 	}
 }

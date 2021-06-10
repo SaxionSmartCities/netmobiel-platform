@@ -37,6 +37,7 @@ import eu.netmobiel.commons.jaxrs.ProcessingExceptionMapper;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
 import eu.netmobiel.communicator.api.resource.MessagesResource;
+import eu.netmobiel.communicator.api.resource.TestsResource;
 
 
 /**
@@ -76,6 +77,7 @@ public class CommunicatorApplication extends Application {
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new HashSet<>();
         resources.add(MessagesResource.class);
+        resources.add(TestsResource.class);
         resources.add(Jackson2ObjectMapperContextResolver.class);
         resources.add(OffsetDateTimeParamConverterProvider.class);
         resources.add(WebApplicationExceptionMapper.class);

@@ -11,6 +11,7 @@ import javax.inject.Inject;
 import javax.persistence.NoResultException;
 import javax.validation.constraints.NotNull;
 
+import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
@@ -27,6 +28,7 @@ import eu.netmobiel.communicator.repository.CommunicatorUserDao;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
 import eu.netmobiel.communicator.repository.MessageDao;
 import eu.netmobiel.firebase.messaging.FirebaseMessagingClient;
+import eu.netmobiel.messagebird.MessageBird;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.service.ProfileManager;
 
@@ -56,7 +58,9 @@ public class PublisherService {
     
     @Inject
     private FirebaseMessagingClient firebaseMessagingClient;
-    
+    @Inject
+    private MessageBird	messageBirdClient;
+
     public static final CommunicatorUser SYSTEM_USER = new CommunicatorUser("SYSTEM", "Netmobiel", "", null);
 
     public PublisherService() {
@@ -215,6 +219,42 @@ public class PublisherService {
     	} catch (NoResultException ex) {
     		throw new NotFoundException (String.format("No such recipient %s for message %d", recipient, messageId));	
     	}
+    }
+
+    public boolean isValidForMobileMessaging(Profile profile) {
+    	boolean isValid = false;
+	    // The delegator needs to have a number that can receive an SMS. We require a mobile number.
+	    if (! StringUtils.isAllBlank(profile.getPhoneNumber())) {
+		    String defaultCountryCode = profile.getDefaultCountry();
+		    if (messageBirdClient.isMobileNumber(profile.getPhoneNumber(), defaultCountryCode)) {
+		    	isValid = true;
+		    }
+	    }
+	    return isValid;
+    }
+
+    public String sendTextMessage(String text, Profile recipient) throws BadRequestException {
+		String rcpPhoneNr = messageBirdClient.formatPhoneNumberTechnical(recipient.getPhoneNumber(), recipient.getDefaultCountry());
+		return messageBirdClient.sendSMS(null, text, new String[] { rcpPhoneNr });
+	}
+	
+    public String sendTextMessage(String managedIdentity, String text) throws NotFoundException, BadRequestException {
+		Profile profile = profileManager.getFlatProfileByManagedIdentity(managedIdentity);
+		return sendTextMessage(text, profile);
+    }
+
+	public String sendVoiceMessage(String text, Profile recipient) throws BadRequestException {
+		String rcpPhoneNr = messageBirdClient.formatPhoneNumberTechnical(recipient.getPhoneNumber(), recipient.getDefaultCountry());
+		return messageBirdClient.sendVoiceMessage(null, text, new String[] { rcpPhoneNr }, "nl-nl");
+	}
+
+	public String sendVoiceMessage(String managedIdentity, String text) throws NotFoundException, BadRequestException {
+		Profile profile = profileManager.getFlatProfileByManagedIdentity(managedIdentity);
+		return sendVoiceMessage(text, profile);
+    }
+    
+    public Object getMessageBirdMessage(String messageId) throws NotFoundException {
+		return messageBirdClient.getMessage(messageId);
     }
 
 }

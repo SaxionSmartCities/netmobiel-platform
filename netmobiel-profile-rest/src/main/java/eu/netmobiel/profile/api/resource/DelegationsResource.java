@@ -18,6 +18,7 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.DelegationsApi;
 import eu.netmobiel.profile.api.mapping.DelegationMapper;
+import eu.netmobiel.profile.api.model.DelegationActivation;
 import eu.netmobiel.profile.filter.DelegationFilter;
 import eu.netmobiel.profile.model.Delegation;
 import eu.netmobiel.profile.model.Profile;
@@ -120,7 +121,7 @@ public class DelegationsResource implements DelegationsApi {
 					}
 				}
 			}
-	    	Long id = delegationManager.createDelegation(delegation, true);
+	    	Long id = delegationManager.createDelegation(delegation, request.isUserInRole("admin"));
 			rsp = Response.created(UriBuilder.fromResource(DelegationsApi.class)
 					.path(DelegationsApi.class.getMethod("getDelegation", String.class)).build(id)).build();
 		} catch (IllegalArgumentException e) {
@@ -130,6 +131,52 @@ public class DelegationsResource implements DelegationsApi {
 		}
 		return rsp;
 	}
+
+	/**
+	 * Transfer a delegation from one delegate (me) to another.
+	 * @returns A response with the location header set to the new delegation. This new delegation cannot be read by the caller,
+	 * unless it is an admin.
+	 */
+	@Override
+	public Response transferDelegation(String fromDelegationRef, eu.netmobiel.profile.api.model.Delegation apiToDelegation) {
+    	Response rsp = null;
+		try {
+			// Check the security rules for the current delegation
+			Long fromDelId = resolveDelegationRef(fromDelegationRef);
+			Delegation fromDelegation = delegationManager.getDelegation(fromDelId, Delegation.PROFILES_ENTITY_GRAPH);
+			if (!request.isUserInRole("admin")) {
+				String me = request.getUserPrincipal().getName();
+				if (! me.equals(fromDelegation.getDelegate().getManagedIdentity()) && !me.equals(fromDelegation.getDelegator().getManagedIdentity())) {
+					throw new SecurityException("You have no privilege to transfer this delegation: " + fromDelegationRef);
+				}
+			}
+			if (!request.isUserInRole("admin")) {
+				if (!request.isUserInRole("delegate")) {
+					throw new SecurityException("You have no privilege to transfer a delegation");
+				}
+				// For now no check if new delegate holds role delegate. If not, the prospected delegate cannot activate.
+			}
+			Delegation toDelegation = mapper.mapApi(apiToDelegation);
+			if (toDelegation.getDelegator() != null) {
+				new BadRequestException("The specification of a delegator in a transfer delegation is not allowed");
+			}
+			if (toDelegation.getDelegate() == null) {
+				new BadRequestException("The specification of a delegate is mandatory");
+			}
+			if (toDelegation.getDelegate().equals(fromDelegation.getDelegate())) {
+				new BadRequestException("A transfer to the same delegate is not allowed");
+			}
+	    	Long id = delegationManager.transferDelegation(fromDelegation.getId(), toDelegation, request.isUserInRole("admin"));
+			rsp = Response.created(UriBuilder.fromResource(DelegationsApi.class)
+					.path(DelegationsApi.class.getMethod("getDelegation", String.class)).build(id)).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException | NoSuchMethodException e) {
+			throw new WebApplicationException(e);
+		}
+		return rsp;
+	}
+
 
 	@Override
 	public Response getDelegation(String delegationRef) {
@@ -144,6 +191,53 @@ public class DelegationsResource implements DelegationsApi {
 				}
 			}
    			rsp = Response.ok(mapper.mapWithShallowProfiles(delegation)).build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response updateDelegation(String delegationRef) {
+		Response rsp = null;
+		try {
+			Long id = resolveDelegationRef(delegationRef);
+			Delegation delegation = delegationManager.getDelegation(id, Delegation.PROFILES_ENTITY_GRAPH);
+			if (!request.isUserInRole("admin")) {
+				String me = request.getUserPrincipal().getName();
+				if (! me.equals(delegation.getDelegate().getManagedIdentity()) && !me.equals(delegation.getDelegator().getManagedIdentity())) {
+					throw new SecurityException("You have no privilege to update this delegation: " + delegationRef);
+				}
+			}
+			delegationManager.updateDelegation(id);
+			rsp = Response.noContent().build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
+	/**
+	 * Compares the given activation code with the required code. The delegation is activated in case a match is found.
+	 * You cannot activate if you are not the delegate (or the delegator), unless you are an admin.
+	 * @param delegationRef the delegation id.
+	 * @param delegationActivation the object containing the activation code.
+	 */
+	@Override
+	public Response activateDelegation(String delegationRef, DelegationActivation delegationActivation) {
+		String activationCode = delegationActivation.getActivationCode();
+		Response rsp = null;
+		try {
+			Long id = resolveDelegationRef(delegationRef);
+			Delegation delegation = delegationManager.getDelegation(id, Delegation.PROFILES_ENTITY_GRAPH);
+			if (!request.isUserInRole("admin")) {
+				String me = request.getUserPrincipal().getName();
+				if (! me.equals(delegation.getDelegate().getManagedIdentity()) && !me.equals(delegation.getDelegator().getManagedIdentity())) {
+					throw new SecurityException("You have no privilege to activate this delegation: " + delegationRef);
+				}
+			}
+			delegationManager.activateDelegation(id, activationCode);
+			rsp = Response.noContent().build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

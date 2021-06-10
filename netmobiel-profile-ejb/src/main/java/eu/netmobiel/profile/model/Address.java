@@ -20,6 +20,7 @@ public class Address implements Serializable {
 	public static final int MAX_STREET_LENGTH = 64;
 	public static final int MAX_HOUSE_NR_LENGTH = 8;
 	public static final int MAX_POSTAL_CODE_LENGTH = 8;
+	public static final String DEFAULT_COUNTRY_CODE = "NL";
 
 	/**
 	 * The country code according to ISO 3166-2.
@@ -61,7 +62,9 @@ public class Address implements Serializable {
 	private String postalCode;
 	
 	public static Address createDefault() {
-		return new Address();
+		Address addr = new Address();
+		addr.setCountryCode(DEFAULT_COUNTRY_CODE);
+		return addr;
 	}
 
 	public String getCountryCode() {

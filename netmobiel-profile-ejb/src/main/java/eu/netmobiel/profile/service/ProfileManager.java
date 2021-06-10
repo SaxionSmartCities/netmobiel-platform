@@ -16,6 +16,7 @@ import javax.annotation.security.DeclareRoles;
 import javax.annotation.security.RolesAllowed;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
 
@@ -34,7 +35,9 @@ import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.NetMobielUserImpl;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.security.SecurityIdentity;
+import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.profile.event.DelegatorAccountCreatedEvent;
 import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
@@ -71,6 +74,9 @@ public class ProfileManager {
     
     @Inject
     private KeycloakDao keycloakDao;
+
+    @Inject
+    private Event<DelegatorAccountCreatedEvent> delegatorAccountCreatedEvent;
 
     public ProfileManager() {
     }
@@ -160,6 +166,7 @@ public class ProfileManager {
 		 * 2.2.1 Email address mismatch: Bad Request - Caller email mismatch
 		 * 2.2.2 Email address matches caller's email: Attach Keycloak account, create caller profile
 		 */
+		DelegatorAccountCreatedEvent delegatorAccountCreated = null;
 		if (caller.isPresent()) {
 			// I am a keycloak user
 			Optional<Profile> myProfile = profileDao.getReferenceByManagedIdentity(caller.get().getManagedIdentity());
@@ -174,6 +181,11 @@ public class ProfileManager {
 					throw new SecurityException("You don't have the privilege to create a profile on behalf of someone else");
 				}
 			    profile.setCreatedBy(myProfile.get());
+			    // Inform participant about the account, also check the communication means (phone number etc.)
+			    // Will throw BadRequestException is something is wrong
+			    //Initialize myProfile
+			    myProfile.get().getManagedIdentity();
+			    delegatorAccountCreated = new DelegatorAccountCreatedEvent(myProfile.get(), profile);
 			} else if (myProfile.isPresent()) {
 				throw new DuplicateEntryException("You already have a profile with that email address");
 			}
@@ -187,6 +199,10 @@ public class ProfileManager {
 		}
 		if (profile.getRidesharePreferences() != null) {
 			ridesharePreferencesDao.save(profile.getRidesharePreferences());				
+		}
+		// Most potential problems should have happened now, inform participants, if necessary.
+		if (delegatorAccountCreated != null) {
+	    	EventFireWrapper.fire(delegatorAccountCreatedEvent, delegatorAccountCreated);
 		}
 		return profile.getManagedIdentity();
     }

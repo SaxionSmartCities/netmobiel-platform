@@ -100,6 +100,7 @@ public class Delegation extends ReferableObject implements Serializable {
     @JoinColumn(name = "delegate", foreignKey = @ForeignKey(name = "delegation_delegate_fk"))
     private Profile delegate;
 
+    
     /**
      * The person being represented.
      */
@@ -112,9 +113,29 @@ public class Delegation extends ReferableObject implements Serializable {
      * The code sent to the delegator in order for the acceptance process to settle the relation between delegate and delegator.  
      */
     @Size(max = 32)
-    @Column(name = "transfer_code")
-    private String transferCode;
+    @Column(name = "activation_code")
+    private String activationCode;
     
+	/**
+	 * The time of the transmission of the activation code. If null then no code is sent (for example, when admin has activated the delegation).
+	 */
+    @Column(name = "activation_code_sent_time")
+    private Instant activationCodeSentTime;
+
+    /**
+     * The id of the SMS sent by the SMS provider.
+     */
+    @Size(max = 32)
+    @Column(name = "sms_id")
+    private String smsId;
+
+    /**
+     * In case of a transfer of delegation: The previous delegation from which to transfer.
+     */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "transfer_from", foreignKey = @ForeignKey(name = "delegation_transfer_from_fk"))
+    private Delegation transferFrom;
+
     public Delegation() {
     }
     
@@ -171,12 +192,36 @@ public class Delegation extends ReferableObject implements Serializable {
 		this.delegator = delegator;
 	}
 
-	public String getTransferCode() {
-		return transferCode;
+	public String getActivationCode() {
+		return activationCode;
 	}
 
-	public void setTransferCode(String transferCode) {
-		this.transferCode = transferCode;
+	public void setActivationCode(String activationCode) {
+		this.activationCode = activationCode;
+	}
+
+	public Instant getActivationCodeSentTime() {
+		return activationCodeSentTime;
+	}
+
+	public void setActivationCodeSentTime(Instant activationCodeSentTime) {
+		this.activationCodeSentTime = activationCodeSentTime;
+	}
+
+	public String getSmsId() {
+		return smsId;
+	}
+
+	public void setSmsId(String smsId) {
+		this.smsId = smsId;
+	}
+
+	public Delegation getTransferFrom() {
+		return transferFrom;
+	}
+
+	public void setTransferFrom(Delegation transferFrom) {
+		this.transferFrom = transferFrom;
 	}
 
 	public String getDelegateRef() {

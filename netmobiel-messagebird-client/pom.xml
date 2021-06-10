@@ -51,10 +51,12 @@
 			<groupId>com.messagebird</groupId>
 			<artifactId>messagebird-api</artifactId>
 			<exclusions>
+				<!--  Use our own version -->
 				<exclusion>
 					<groupId>com.fasterxml.jackson.core</groupId>
 					<artifactId>jackson-core</artifactId>
 				</exclusion>
+				<!--  Apparently obsoleted -->
 				<exclusion>
 					<groupId>com.fasterxml.jackson.dataformat</groupId>
 					<artifactId>jackson-dataformat-csv</artifactId>
@@ -70,16 +72,12 @@
             <artifactId>javax.persistence-api</artifactId>
             <scope>provided</scope>
         </dependency>
-		<!--
+		<!-- Phone number handling -->
 		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-text</artifactId>
+			<groupId>com.googlecode.libphonenumber</groupId>
+			<artifactId>libphonenumber</artifactId>
+            <scope>compile</scope>
 		</dependency>
-		<dependency>
-			<groupId>org.apache.commons</groupId>
-			<artifactId>commons-lang3</artifactId>
-		</dependency>
-		-->
 		<!-- TEST Dependencies -->
 		
     </dependencies>
