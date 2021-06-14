@@ -119,8 +119,13 @@ public class PublisherService {
 				for (Envelope env : msg.getEnvelopes()) {
 					try {
 						Profile profile = profileManager.getFlatProfileByManagedIdentity(env.getRecipient().getManagedIdentity());
-						firebaseMessagingClient.send(profile.getFcmToken(), msg);
-						env.setPushTime(Instant.now());
+						if (profile.getFcmToken() == null || profile.getFcmToken().isBlank()) {
+							logger.error(String.format("Cannot send push notification to %s (%s): No FCM token set", 
+									profile.getManagedIdentity(), profile.getName()));  
+						} else {
+							firebaseMessagingClient.send(profile.getFcmToken(), msg);
+							env.setPushTime(Instant.now());
+						}
 					} catch (Exception ex) {
 						logger.error(String.format("Cannot send push notification to %s: %s", 
 								env.getRecipient().getManagedIdentity(), String.join("\n\t", ExceptionUtil.unwindException(ex))));

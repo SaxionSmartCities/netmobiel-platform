@@ -121,6 +121,9 @@ public class FirebaseMessagingClient {
      */
     public void send(String firebaseToken, NetMobielMessage msg, boolean dryRun) {
     	sanityCheck();
+    	if (firebaseToken == null || firebaseToken.isBlank()) {
+    		throw new IllegalArgumentException("No FCM token set");
+    	}
     	// This registration token comes from the client FCM SDKs.
 	    // See documentation on defining a message payload.
 	    Notification notification = Notification.builder()
@@ -198,6 +201,9 @@ public class FirebaseMessagingClient {
      */
     public void publish(String fcmTopic, NetMobielMessage msg, boolean dryRun) {
     	sanityCheck();
+    	if (fcmTopic == null || fcmTopic.isBlank()) {
+    		throw new IllegalArgumentException("No FCM topic set");
+    	}
     	// The topic name can be optionally prefixed with "/topics/".
 	    Notification notification = Notification.builder()
 	    		.setTitle(msg.getSubject())

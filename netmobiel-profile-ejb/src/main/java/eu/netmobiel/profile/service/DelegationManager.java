@@ -3,6 +3,7 @@ package eu.netmobiel.profile.service;
 import java.time.Instant;
 import java.util.List;
 
+import javax.annotation.Resource;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
@@ -38,8 +39,11 @@ import eu.netmobiel.profile.repository.ProfileDao;
 @Logging
 public class DelegationManager {
 	public static final Integer MAX_RESULTS = 10; 
-	public static final Integer DELEGATION_ACTIVATION_TIMEOUT_SECS = 60 * 60 + 24;
 	
+	
+	@Resource(lookup = "java:global/profileService/delegateActivationCodeTTL")
+	private Integer delegationActivationCodeTTL;
+
 	@SuppressWarnings("unused")
 	@Inject
     private Logger logger;
@@ -178,7 +182,7 @@ public class DelegationManager {
     	if (delegation.getActivationTime() != null) {
     		throw new UpdateException("The delegation has already been activated");
     	}
-    	if (delegation.getActivationCodeSentTime().plusSeconds(DELEGATION_ACTIVATION_TIMEOUT_SECS).isBefore(Instant.now())) {
+    	if (delegation.getActivationCodeSentTime().plusSeconds(delegationActivationCodeTTL).isBefore(Instant.now())) {
     		throw new SecurityException("The activation code has expired");
     	}
     	if (code == null || !code.equals(delegation.getActivationCode())) {

@@ -79,8 +79,7 @@ public class DelegationProcessor {
     	Delegation delegation = event.getDelegation();
 		String text = String.format(
 				"%s biedt aan om uw reizen met NetMobiel voor u te beheren. "
-						+ "Uw instemming geeft u door deze persoon desgevraagd de volgende code te geven: %s" 
-						+ "De code is maximaal 24 uur geldig.", 
+						+ "Uw instemming geeft u door deze persoon desgevraagd de volgende verificatiecode te geven: %s. ", 
 						delegation.getDelegate().getName(), delegation.getActivationCode());
 		String smsId = publisherService.sendTextMessage(text, delegation.getDelegator());
 		// Update the information in the delegation object (!) 
@@ -126,8 +125,7 @@ public class DelegationProcessor {
 		msg.setSubject("Aanvraag overdracht Netmobiel cliënt");
 		msg.setBody(
 				MessageFormat.format("{0} vraagt u om het beheer van de reizen in Netmobiel namens {1} over te nemen. " 
-						+ "Vraag {2} om de via SMS ontvangen activeringscode en vul deze in op het overdrachtsformulier in de app." 
-						+ "U dient de activatie binnen 24 uur uit te voeren.", 
+						+ "Vraag {2} om de via SMS ontvangen activeringscode en vul deze in op het overdrachtsformulier in de app. ", 
 						fromDelegation.getDelegate().getName(), 
 						fromDelegation.getDelegator().getName(),
 						fromDelegation.getDelegator().getGivenName())
