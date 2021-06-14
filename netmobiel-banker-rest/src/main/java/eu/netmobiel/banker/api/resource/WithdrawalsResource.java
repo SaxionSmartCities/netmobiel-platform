@@ -9,7 +9,7 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
-import eu.netmobiel.banker.api.WithdrawalRequestsApi;
+import eu.netmobiel.banker.api.WithdrawalsApi;
 import eu.netmobiel.banker.api.mapping.PageMapper;
 import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.WithdrawalRequest;
@@ -19,7 +19,7 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
 
 @ApplicationScoped
-public class WithdrawalRequestsResource implements WithdrawalRequestsApi {
+public class WithdrawalsResource implements WithdrawalsApi {
 
 	@Inject
     private WithdrawalService withdrawalService;
