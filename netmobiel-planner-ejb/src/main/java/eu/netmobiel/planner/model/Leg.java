@@ -146,7 +146,7 @@ public class Leg implements Serializable {
     /**
      * For transit legs, the headsign of the bus or train being used. For non-transit legs, null.
      */
-    @Column(name = "headsign", length = 32)
+    @Column(name = "headsign", length = 48)
     private String headsign;
     
     /**
