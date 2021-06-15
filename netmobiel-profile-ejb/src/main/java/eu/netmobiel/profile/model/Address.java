@@ -20,10 +20,10 @@ public class Address implements Serializable {
 	public static final int MAX_STREET_LENGTH = 64;
 	public static final int MAX_HOUSE_NR_LENGTH = 8;
 	public static final int MAX_POSTAL_CODE_LENGTH = 8;
-	public static final String DEFAULT_COUNTRY_CODE = "NL";
+	public static final String DEFAULT_COUNTRY_CODE = "NLD";
 
 	/**
-	 * The country code according to ISO 3166-2.
+	 * The country code according to ISO 3166-3.
 	 */
 	@Size(max = MAX_COUNTRY_CODE_LENGTH)
 	@Column(name = "country_code")

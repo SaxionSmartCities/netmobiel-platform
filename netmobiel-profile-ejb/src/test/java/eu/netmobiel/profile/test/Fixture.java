@@ -49,7 +49,7 @@ public class Fixture {
 
 	public static Address createAddressLichtenvoorde() {
 		Address ad = new Address();
-		ad.setCountryCode("NL");
+		ad.setCountryCode(Address.DEFAULT_COUNTRY_CODE);
 		ad.setLocality("Lichtenvoorde");
 		ad.setStreet("Rapenburgsestraat");
 		ad.setHouseNumber("33");
@@ -59,7 +59,7 @@ public class Fixture {
 
 	public static Address createAddressHengelo() {
 		Address ad = new Address();
-		ad.setCountryCode("NL");
+		ad.setCountryCode(Address.DEFAULT_COUNTRY_CODE);
 		ad.setLocality("Hengelo");
 		ad.setStreet("Meester P.J. Troelstrastraat");
 		ad.setHouseNumber("1");

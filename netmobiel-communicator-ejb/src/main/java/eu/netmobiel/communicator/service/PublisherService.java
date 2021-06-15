@@ -19,6 +19,7 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.ExceptionUtil;
+import eu.netmobiel.commons.util.IsoCountryCodeHelper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.DeliveryMode;
@@ -230,7 +231,7 @@ public class PublisherService {
     	boolean isValid = false;
 	    // The delegator needs to have a number that can receive an SMS. We require a mobile number.
 	    if (! StringUtils.isAllBlank(profile.getPhoneNumber())) {
-		    String defaultCountryCode = profile.getDefaultCountry();
+		    String defaultCountryCode = IsoCountryCodeHelper.getIso2CountryCode(profile.getDefaultCountry());
 		    if (messageBirdClient.isMobileNumber(profile.getPhoneNumber(), defaultCountryCode)) {
 		    	isValid = true;
 		    }
@@ -239,7 +240,7 @@ public class PublisherService {
     }
 
     public String sendTextMessage(String text, Profile recipient) throws BadRequestException {
-		String rcpPhoneNr = messageBirdClient.formatPhoneNumberTechnical(recipient.getPhoneNumber(), recipient.getDefaultCountry());
+		String rcpPhoneNr = messageBirdClient.formatPhoneNumberTechnical(recipient.getPhoneNumber(), IsoCountryCodeHelper.getIso2CountryCode(recipient.getDefaultCountry()));
 		return messageBirdClient.sendSMS(null, text, new String[] { rcpPhoneNr });
 	}
 	
@@ -249,7 +250,7 @@ public class PublisherService {
     }
 
 	public String sendVoiceMessage(String text, Profile recipient) throws BadRequestException {
-		String rcpPhoneNr = messageBirdClient.formatPhoneNumberTechnical(recipient.getPhoneNumber(), recipient.getDefaultCountry());
+		String rcpPhoneNr = messageBirdClient.formatPhoneNumberTechnical(recipient.getPhoneNumber(), IsoCountryCodeHelper.getIso2CountryCode(recipient.getDefaultCountry()));
 		return messageBirdClient.sendVoiceMessage(null, text, new String[] { rcpPhoneNr }, "nl-nl");
 	}
 
