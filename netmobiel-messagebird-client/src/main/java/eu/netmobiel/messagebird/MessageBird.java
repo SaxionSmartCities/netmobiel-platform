@@ -32,6 +32,7 @@ import com.messagebird.objects.VoiceType;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.util.ExceptionUtil;
+import eu.netmobiel.commons.util.IsoCountryCodeHelper;
 import eu.netmobiel.commons.util.Logging;
 
 /**
@@ -84,10 +85,11 @@ public class MessageBird {
 		return ExceptionUtil.unwindException(ex) + " - " + sb.toString();
 	}
 
-    public boolean isMobileNumber(String inputPhoneNumber,  String defaultCountry) {
+	public boolean isMobileNumber(String inputPhoneNumber,  String defaultCountry) {
 	    boolean isMobile = false;
+		String countryCode2 = IsoCountryCodeHelper.getIso2CountryCode(defaultCountry);
 		try {
-			PhoneNumber number = phoneUtil.parse(inputPhoneNumber, defaultCountry);
+			PhoneNumber number = phoneUtil.parse(inputPhoneNumber, countryCode2);
 		    if (!phoneUtil.isValidNumber(number)) {
 		    	throw new IllegalArgumentException("Not a valid phone number: " + inputPhoneNumber);
 		    }
@@ -100,8 +102,9 @@ public class MessageBird {
 
 	public String formatPhoneNumberNational(String inputPhoneNumber, String defaultCountry) {
 	    String output = null;
+		String countryCode2 = IsoCountryCodeHelper.getIso2CountryCode(defaultCountry);
 		try {
-			PhoneNumber number = phoneUtil.parse(inputPhoneNumber, defaultCountry);
+			PhoneNumber number = phoneUtil.parse(inputPhoneNumber, countryCode2);
 		    if (!phoneUtil.isValidNumber(number)) {
 		    	throw new IllegalArgumentException("Not a valid phone number: " + inputPhoneNumber);
 		    }
@@ -115,8 +118,9 @@ public class MessageBird {
 
 	public String formatPhoneNumberTechnical(String inputPhoneNumber, String defaultCountry) {
 	    String output = null;
+		String countryCode2 = IsoCountryCodeHelper.getIso2CountryCode(defaultCountry);
 		try {
-			PhoneNumber number = phoneUtil.parse(inputPhoneNumber, defaultCountry);
+			PhoneNumber number = phoneUtil.parse(inputPhoneNumber, countryCode2);
 		    if (!phoneUtil.isValidNumber(number)) {
 		    	throw new IllegalArgumentException("Not a valid phone number: " + inputPhoneNumber);
 		    }
