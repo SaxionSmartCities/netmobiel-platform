@@ -104,7 +104,9 @@ public abstract class ProfileMapper {
 			target.getHomeLocation().setLabel(source.getAddress().getLabel());
 		}
 		target.addAddressIfNotExists();
-		target.setPhoneNumber(messageBirdClient.formatPhoneNumberNational(target.getPhoneNumber(), target.getHomeAddress().getCountryCode()));
+		if (target.getPhoneNumber() != null) {
+			target.setPhoneNumber(messageBirdClient.formatPhoneNumberNational(target.getPhoneNumber(), target.getHomeAddress().getCountryCode()));
+		}
 	}
 
 	@Mapping(target = "numPassengers", source = "maxPassengers")
