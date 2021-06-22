@@ -61,13 +61,13 @@ public abstract class ProfileMapper {
 	public abstract eu.netmobiel.profile.api.model.Profile mapShallow(Profile source);
 
 	@InheritConfiguration(name = "commonMap")
-	// Timothy wil ook de profiel foto en het adres (minimaal woonplaats)
+	// Dit is het publieke profile. Timothy wil ook de profiel foto en het adres (minimaal woonplaats)
 	@Mapping(target = "ridePlanOptions", ignore = true)
 	@Mapping(target = "searchPreferences", ignore = true)
 	@Mapping(target = "consent", ignore = true)
 	@Mapping(target = "fcmToken", ignore = true)
 	@Mapping(target = "phoneNumber", ignore = true)
-	@Mapping(target = "dateOfBirth", ignore = true)
+//	@Mapping(target = "dateOfBirth", ignore = true)
 	@Mapping(target = "userRole", ignore = true)
 	@Secondary
 	@Mapping(target = "notificationOptions", ignore = true)
