@@ -160,7 +160,7 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
 		try {
         	Long tid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
 			plan = tripPlanManager.getShoutOutPlan(tid);
-			rsp = Response.ok(tripPlanMapper.map(plan)).build();
+			rsp = Response.ok(tripPlanMapper.mapShoutOut(plan)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}

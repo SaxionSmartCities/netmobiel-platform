@@ -33,7 +33,7 @@ public interface TripPlanMapper {
     @Mapping(target = "lastLegRideshare", ignore = true)
     @Mapping(target = "itineraries", ignore = true)
     @TripPlanShallow
-    eu.netmobiel.planner.api.model.TripPlan mapShoutOuts(TripPlan source );
+    eu.netmobiel.planner.api.model.TripPlan mapShoutOut(TripPlan source );
 
     @InheritInverseConfiguration(name = "map")
     @Mapping(target = "id", ignore = true)
