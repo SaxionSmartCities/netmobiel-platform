@@ -28,7 +28,7 @@ import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.rideshare.event.BookingSettledEvent;
+import eu.netmobiel.rideshare.event.BookingFareSettledEvent;
 import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
@@ -66,7 +66,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
         WebArchive archive = createDeploymentBase()
 //	            .addAsResource("logging.properties")
                 .addPackages(true, RideDao.class.getPackage())
-                .addPackage(BookingSettledEvent.class.getPackage())
+                .addPackage(BookingFareSettledEvent.class.getPackage())
 	            .addClass(RideItineraryHelper.class)
 	            .addClass(IdentityHelper.class)
 	            .addClass(EventListenerHelper.class)

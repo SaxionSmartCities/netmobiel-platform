@@ -147,7 +147,7 @@ public class BookingProcessor {
 			String releaseId = ledgerService.release(leg.getPaymentId());
 			tripManager.updateLegPaymentState(trip, leg, PaymentState.CANCELLED, releaseId);
 			// Settled without payment
-			bookingManager.informBookingSettled(leg.getTripId(), leg.getBookingId());
+			bookingManager.informBookingFareSettled(leg.getTripId(), leg.getBookingId());
 		}
     }
 
@@ -160,7 +160,7 @@ public class BookingProcessor {
 			String chargeId = ledgerService.charge(resolveDriverId(leg), leg.getPaymentId(), leg.getFareInCredits());
 			tripManager.updateLegPaymentState(trip, leg, PaymentState.PAID, chargeId);
 			// Settled with payment
-			bookingManager.informBookingSettled(leg.getTripId(), leg.getBookingId());
+			bookingManager.informBookingFareSettled(leg.getTripId(), leg.getBookingId());
 		}
     }
 

@@ -26,7 +26,7 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
-import eu.netmobiel.rideshare.event.BookingSettledEvent;
+import eu.netmobiel.rideshare.event.BookingFareSettledEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Ride;
@@ -55,7 +55,7 @@ public class BookingManager {
     private Event<BookingCancelledFromProviderEvent> bookingCancelledEvent;
 
     @Inject
-    private Event<BookingSettledEvent> bookingSettledEvent;
+    private Event<BookingFareSettledEvent> bookingFareSettledEvent;
 
     @Inject @Updated
     private Event<Ride> staleItineraryEvent;
@@ -244,14 +244,20 @@ public class BookingManager {
 		EventFireWrapper.fire(bookingCreatedEvent, b);
     }
 
-    public void informBookingSettled(String rideRef, String bookingRef) throws BusinessException {
+    /**
+     * Signals the settlement of the booking fare.
+     * @param rideRef the ride involved
+     * @param bookingRef the booking involved.
+     * @throws BusinessException
+     */
+    public void informBookingFareSettled(String rideRef, String bookingRef) throws BusinessException {
     	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
     	Booking bookingdb = bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
     	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideRef);
 		Ride ride = rideDao.find(rid)
     			.orElseThrow(() -> new NotFoundException("Ride not found: " + rideRef));
-		EventFireWrapper.fire(bookingSettledEvent, new BookingSettledEvent(ride, bookingdb));
+		EventFireWrapper.fire(bookingFareSettledEvent, new BookingFareSettledEvent(ride, bookingdb));
     }
 
 }

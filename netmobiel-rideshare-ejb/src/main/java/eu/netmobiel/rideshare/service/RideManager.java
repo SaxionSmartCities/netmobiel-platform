@@ -53,7 +53,7 @@ import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.here.search.HereSearchClient;
-import eu.netmobiel.rideshare.event.BookingSettledEvent;
+import eu.netmobiel.rideshare.event.BookingFareSettledEvent;
 import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
 import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
@@ -750,13 +750,19 @@ public class RideManager {
 
     /**
      * Flags the ride as complete when in validating state.
+     * FIXME This state machine is too sensitive to small changes in the process.
      * @param event the event from the booking manager.
      * @throws BusinessException
      */
-    public void onBookingSettled(@Observes(during = TransactionPhase.IN_PROGRESS) BookingSettledEvent event) throws BusinessException {
+    public void onBookingFareSettled(@Observes(during = TransactionPhase.IN_PROGRESS) BookingFareSettledEvent event) throws BusinessException {
     	Ride ride = event.getRide();
-		cancelRideTimers(ride);
-		updateRideState(ride, RideState.COMPLETED);
+    	// Only handle when the ride is being validated, this is the moment where confirmation is requested.
+    	// When the event is received in a different ride state, it is probably because the booking was cancelled and the fare released. 
+    	if (ride.getState() == RideState.VALIDATING) {
+    		// The fare was settled or cancelled, any way, the ride is done
+			cancelRideTimers(ride);
+			updateRideState(ride, RideState.COMPLETED);
+    	}
     }
 
     public static class RideInfo implements Serializable {

@@ -14,7 +14,7 @@ import eu.netmobiel.rideshare.model.Ride;
  * @author Jaap Reitsma
  *
  */
-public class BookingSettledEvent implements Serializable {
+public class BookingFareSettledEvent implements Serializable {
 
 	private static final long serialVersionUID = 8837457274309434137L;
 	/**
@@ -28,7 +28,7 @@ public class BookingSettledEvent implements Serializable {
      */
     private Booking booking;
 
-    public BookingSettledEvent(Ride aRide, Booking aBooking) {
+    public BookingFareSettledEvent(Ride aRide, Booking aBooking) {
     	this.ride = aRide;
     	this.booking = aBooking;
     }
