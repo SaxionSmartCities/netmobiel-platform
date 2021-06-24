@@ -75,6 +75,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	public Response getProfile(String xDelegator, String profileId, Boolean _public) {
     	Response rsp = null;
 		try {
+			// Only admin and effective owner can view the full profile, other see the public profile.
 			String mid = resolveIdentity(xDelegator, profileId);
 			// The profile is always completely initialized, but may only be filled in part,
 			// depending on the privileges of the caller.
@@ -105,6 +106,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	public Response getFcmToken(String xDelegator, String profileId) {
     	Response rsp = null;
 		try {
+			// Any authenticated user can retrieve the token to send a message  
 			String mid = resolveIdentity(xDelegator, profileId);
 			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
         	String token = profile.getFcmToken();
@@ -121,6 +123,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	public Response getProfileImage(String xDelegator, String profileId) {
     	Response rsp = null;
 		try {
+			// Any authenticated user can retrieve the profuile image  
 			String mid = resolveIdentity(xDelegator, profileId);
 			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
         	String imagePath = profile.getImagePath();
@@ -137,6 +140,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	public Response listProfiles(String text, String role, Boolean details, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		try {
+			// Only delegates and admins can list profiles. Handled in the ProfileManager.
 			Cursor cursor = new Cursor(maxResults, offset);
 			ProfileFilter filter = new ProfileFilter();
 			filter.setText(text);
@@ -159,10 +163,16 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	public Response updateProfile(String xDelegator, String profileId, eu.netmobiel.profile.api.model.Profile apiProfile) {
     	Response rsp = null;
 		try {
+			// Only admin and effective owner can update the profile
 			String mid = resolveIdentity(xDelegator, profileId);
+			String me = securityIdentity.getEffectivePrincipal().getName();
+			final boolean privileged = request.isUserInRole("admin"); 
+			if (! privileged && ! me.equals(profileId)) {
+				throw new SecurityException("You have no privilege to update the profile owned by someone else");
+			}
 			Profile domainProfile = profileMapper.map(apiProfile);
 			profileManager.updateProfileByManagedIdentity(mid, domainProfile);
-        	domainProfile = profileManager.getFlatProfileByManagedIdentity(profileId);
+        	domainProfile = profileManager.getCompleteProfileByManagedIdentity(profileId);
         	ProfileResponse prsp = new ProfileResponse();
         	prsp.setProfiles(Collections.singletonList(profileMapper.mapComplete(domainProfile)));
         	prsp.setMessage("Profile succesfully retrieved");
@@ -179,6 +189,11 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 		Response rsp = null;
 		try {
 			String mid = resolveIdentity(xDelegator, profileId);
+			String me = securityIdentity.getEffectivePrincipal().getName();
+			final boolean privileged = request.isUserInRole("admin"); 
+			if (! privileged && ! me.equals(profileId)) {
+				throw new SecurityException("You have no privilege to update the image of a profile owned by someone else");
+			}
 			// See https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsDataURL
 			// This is how the client passes the image
 			// Format: data:image/*;base64,
