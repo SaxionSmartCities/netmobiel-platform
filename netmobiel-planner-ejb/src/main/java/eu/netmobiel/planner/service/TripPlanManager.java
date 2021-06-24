@@ -900,7 +900,7 @@ public class TripPlanManager {
      * @throws NotFoundException In case of an invalid trip plan ID or when the actual type is not shout-out.
      */
     public TripPlan getShoutOutPlan(Long id) throws NotFoundException {
-    	TripPlan plandb = tripPlanDao.find(id)
+    	TripPlan plandb = tripPlanDao.loadGraph(id, TripPlan.SHOUT_OUT_ENTITY_GRAPH)
     			.orElse(null);
     	if (plandb == null || plandb.getPlanType() != PlanType.SHOUT_OUT) {
     		throw new NotFoundException("No such shout-out: " + id);
