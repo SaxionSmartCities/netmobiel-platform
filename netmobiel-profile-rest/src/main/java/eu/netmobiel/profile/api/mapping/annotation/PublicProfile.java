@@ -11,6 +11,6 @@ import org.mapstruct.Qualifier;
 @Qualifier
 @Retention(CLASS)
 @Target(METHOD)
-public @interface Secondary {
+public @interface PublicProfile {
 
 }

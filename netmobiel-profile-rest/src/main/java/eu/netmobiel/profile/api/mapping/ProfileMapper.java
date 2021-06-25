@@ -3,6 +3,7 @@ package eu.netmobiel.profile.api.mapping;
 import javax.inject.Inject;
 
 import org.mapstruct.AfterMapping;
+import org.mapstruct.BeanMapping;
 import org.mapstruct.InheritConfiguration;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
@@ -15,7 +16,7 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.messagebird.MessageBird;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileComplete;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileMapperQualifier;
-import eu.netmobiel.profile.api.mapping.annotation.Secondary;
+import eu.netmobiel.profile.api.mapping.annotation.PublicProfile;
 import eu.netmobiel.profile.api.mapping.annotation.Shallow;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
@@ -37,7 +38,7 @@ public abstract class ProfileMapper {
 	@Mapping(target = "data", source = "data", qualifiedBy = { Shallow.class } )
 	public abstract eu.netmobiel.profile.api.model.Page mapShallow(PagedResult<Profile> source);
 
-	@Mapping(target = "data", source = "data", qualifiedBy = { Secondary.class } )
+	@Mapping(target = "data", source = "data", qualifiedBy = { PublicProfile.class } )
 	public abstract eu.netmobiel.profile.api.model.Page mapSecondary(PagedResult<Profile> source);
 
 	// Domain --> API
@@ -54,29 +55,40 @@ public abstract class ProfileMapper {
 	@Mapping(target = "interests", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Profile commonMap(Profile source);
 
+	@PublicProfile
+	// Just to be sure that only the specified attributes are exported
+	@BeanMapping(ignoreByDefault = true)
+	// The id is defined as the keycloak identity.
+	@Mapping(target = "id", source = "managedIdentity")
+	@Mapping(target = "firstName", source = "givenName")
+	@Mapping(target = "image", source = "imagePath")
+	@Mapping(target = "lastName", source = "familyName")
+	@Mapping(target = "age", source = "age")
+	@Mapping(target = "address.street", ignore = true)
+	@Mapping(target = "address.houseNumber", ignore = true)
+	@Mapping(target = "address.postalCode", ignore = true)
+	@Mapping(target = "address.locality", source = "homeAddress.locality")
+	@Mapping(target = "address.countryCode", source = "homeAddress.countryCode")
+	@Mapping(target = "address.label", ignore = true)
+	@Mapping(target = "address.location", ignore = true)
+	@Mapping(target = "address.id", ignore = true)
+	@Mapping(target = "address.category", ignore = true)
+	@Mapping(target = "address.ref", ignore = true)
+	public abstract eu.netmobiel.profile.api.model.Profile mapPublicProfile(Profile source);
+
+	@Shallow
 	@InheritConfiguration(name = "commonMap")
 	@Mapping(target = "ridePlanOptions", ignore = true)
 	@Mapping(target = "searchPreferences", ignore = true)
-	@Shallow
+	@BeanMapping(qualifiedBy = Shallow.class)
 	public abstract eu.netmobiel.profile.api.model.Profile mapShallow(Profile source);
 
 	@InheritConfiguration(name = "commonMap")
-	// Dit is het publieke profile. Timothy wil ook de profiel foto en het adres (minimaal woonplaats)
-	@Mapping(target = "ridePlanOptions", ignore = true)
-	@Mapping(target = "searchPreferences", ignore = true)
-	@Mapping(target = "consent", ignore = true)
-	@Mapping(target = "fcmToken", ignore = true)
-	@Mapping(target = "phoneNumber", ignore = true)
-//	@Mapping(target = "dateOfBirth", ignore = true)
-	@Mapping(target = "userRole", ignore = true)
-	@Secondary
-	@Mapping(target = "notificationOptions", ignore = true)
-	public abstract eu.netmobiel.profile.api.model.Profile mapSecondary(Profile source);
-
-	@InheritConfiguration(name = "commonMap")
 	@ProfileComplete
+	@BeanMapping(qualifiedBy = ProfileComplete.class)
 	public abstract eu.netmobiel.profile.api.model.Profile mapComplete(Profile source);
 
+	// API --> Domain 
 	@InheritInverseConfiguration(name = "commonMap")
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "createdBy", ignore = true)
@@ -86,6 +98,8 @@ public abstract class ProfileMapper {
 
 	// Use this construction for the label, otherwise the conversion cannot do both coordinates and label.
 	@AfterMapping
+	@ProfileComplete
+	@Shallow
     protected void postProcessApiProfile(Profile source, @MappingTarget eu.netmobiel.profile.api.model.Profile target) {
 		if (source.getHomeLocation() != null && source.getHomeLocation().getLabel() != null) {
 			if (target.getAddress() == null) {

@@ -2,6 +2,7 @@ package eu.netmobiel.profile.model;
 
 import java.time.Instant;
 import java.time.LocalDate;
+import java.time.Period;
 import java.util.HashSet;
 import java.util.Set;
 
@@ -259,6 +260,13 @@ public class Profile extends User  {
 
 	public void setDateOfBirth(LocalDate dateOfBirth) {
 		this.dateOfBirth = dateOfBirth;
+	}
+
+	public Integer getAge() {
+		if (this.dateOfBirth == null) {
+			return null;
+		}
+		return Period.between(this.dateOfBirth, LocalDate.now()).getYears();
 	}
 
 	public String getFcmToken() {

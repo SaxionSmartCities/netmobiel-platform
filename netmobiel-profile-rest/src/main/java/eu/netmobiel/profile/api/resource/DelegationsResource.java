@@ -90,7 +90,7 @@ public class DelegationsResource implements DelegationsApi {
 			DelegationFilter filter = new DelegationFilter(mapper.mapProfileRef(delegate), mapper.mapProfileRef(delegator), since, until, Boolean.TRUE.equals(inactiveToo));
 			filter.setSortDir(sortDir);
 	    	PagedResult<Delegation> results = delegationManager.listDelegations(filter, cursor, Delegation.PROFILES_ENTITY_GRAPH);
-			rsp = Response.ok(mapper.mapWithShallowProfiles(results)).build();
+			rsp = Response.ok(mapper.mapWithPublicProfiles(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
@@ -190,7 +190,7 @@ public class DelegationsResource implements DelegationsApi {
 					throw new SecurityException("You have no privilege to inspect this delegation: " + delegationRef);
 				}
 			}
-   			rsp = Response.ok(mapper.mapWithShallowProfiles(delegation)).build();
+   			rsp = Response.ok(mapper.mapWithPublicProfiles(delegation)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

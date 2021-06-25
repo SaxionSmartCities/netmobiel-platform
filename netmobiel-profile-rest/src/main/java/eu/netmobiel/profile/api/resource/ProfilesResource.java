@@ -89,7 +89,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 				apiProfile = profileMapper.mapComplete(profile);
 			} else {
 				Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
-				apiProfile = profileMapper.mapSecondary(profile);
+				apiProfile = profileMapper.mapPublicProfile(profile);
 			}
         	ProfileResponse prsp = new ProfileResponse();
         	prsp.setProfiles(Collections.singletonList(apiProfile));

@@ -8,7 +8,7 @@ import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.mapping.annotation.DelegationMapperQualifier;
-import eu.netmobiel.profile.api.mapping.annotation.Secondary;
+import eu.netmobiel.profile.api.mapping.annotation.PublicProfile;
 import eu.netmobiel.profile.api.mapping.annotation.Shallow;
 import eu.netmobiel.profile.model.Delegation;
 import eu.netmobiel.profile.model.Profile;
@@ -25,25 +25,27 @@ import eu.netmobiel.profile.model.Profile;
 public abstract class DelegationMapper {
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { Shallow.class } )
-	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Delegation> source);
-
-	@Mapping(target = "data", source = "data", qualifiedBy = { Secondary.class } )
 	public abstract eu.netmobiel.profile.api.model.Page mapWithShallowProfiles(PagedResult<Delegation> source);
+
+	@Mapping(target = "data", source = "data", qualifiedBy = { PublicProfile.class } )
+	public abstract eu.netmobiel.profile.api.model.Page mapWithPublicProfiles(PagedResult<Delegation> source);
 
 	// Domain --> API
 	@Mapping(target = "delegate", ignore = true)
 	@Mapping(target = "delegator", ignore = true)
 	@Shallow
-	public abstract eu.netmobiel.profile.api.model.Delegation map(Delegation source);
-
-	@Mapping(target = "delegate", source = "delegate", qualifiedBy = { Secondary.class })
-	@Mapping(target = "delegator", source = "delegator", qualifiedBy = { Secondary.class })
-	@Secondary
 	public abstract eu.netmobiel.profile.api.model.Delegation mapWithShallowProfiles(Delegation source);
+
+	@Mapping(target = "delegate", source = "delegate", qualifiedBy = { PublicProfile.class })
+	@Mapping(target = "delegator", source = "delegator", qualifiedBy = { PublicProfile.class })
+	@PublicProfile
+	public abstract eu.netmobiel.profile.api.model.Delegation mapWithPublicProfiles(Delegation source);
 
 	// API --> Domain
 	@Mapping(target = "delegate", source = "delegateRef")
 	@Mapping(target = "delegator", source = "delegatorRef")
+	@Mapping(target = "smsId", ignore = true)
+	@Mapping(target = "transferFrom", ignore = true)
 	public abstract Delegation mapApi(eu.netmobiel.profile.api.model.Delegation source);
 
 	/**
