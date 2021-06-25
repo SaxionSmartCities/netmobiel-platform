@@ -140,7 +140,7 @@ paths:
       description: |-
         Creates a new instance of a `Delegation`. The caller must be an admin or a delegate. If the caller is an admin, the delegate must be set explicitly. Otherwise, the delegate is set to `me`.
 
-        When you create a delegation as a delegate, the propected delegator will receive a text message with a code. This code must be passed back to the delegate and entered as activation code within 12 hours. Only after succesful activation the delegation become active. If the telephone number of the prospected delegator is missing or is not a mobile number, the delegation is refused. An admin can always create a delegation. The delegation is in that case immediately activated.
+        When you create a delegation as a delegate, the propected delegator will receive a text message with a code. This code must be passed back to the delegate and entered as activation code within 24 hours. Only after succesful activation the delegation become active. If the telephone number of the prospected delegator is missing or is not a mobile number, the delegation is refused. An admin can always create a delegation. The delegation is in that case immediately activated.
   /profiles:
     summary: Path used to manage profiles.
     description: The REST endpoint/path used to list and create zero or more `Profile`
@@ -878,13 +878,16 @@ paths:
           description: The caller lacked the permission to perform this operation.
         "422":
           description: The delegation was already cancelled.
+      security:
+      - apikey: []
+        Bearer-only: []
       operationId: transferDelegation
       summary: Transfer a Delegation
       description: "Creates a new `Delegation` with the specified delegate. The delegator\
         \ remains the same. \nOnly the delegate of the current delegation and the\
         \ admin can transfer a delegation.\nThe process is similar to creating a fresh\
         \ new Delegation: The delegator receives an activation code by SMS. The new\
-        \ delegate requestrs the code from the propected delegator and activates the\
+        \ delegate requests the code from the propected delegator and activates the\
         \ delegation. The old delegation will be revoked on activation of the new\
         \ one."
     parameters:
@@ -934,7 +937,11 @@ components:
             leg. Default is false. '
           type: boolean
     Profile:
-      description: The profile attributes of a user in NetMobiel.
+      description: "The profile attributes of a user in NetMobiel. The public profile\
+        \ of a user is visible for other users in case of messaging, being a would-be\
+        \ passenger or a would-be driver. The following attributes are public:\n*\
+        \ Id (managed identity)\n* GivenName\n* FamilyName\n* Age\n* Profile Image\n\
+        * Home Locality\n \n\n"
       required:
       - email
       - firstName
@@ -944,6 +951,7 @@ components:
       - id
       - userRole
       - notificationOptions
+      - age
       type: object
       properties:
         email:
@@ -1001,6 +1009,10 @@ components:
         notificationOptions:
           $ref: '#/components/schemas/NotificationOptions'
           description: The notification preferences
+        age:
+          description: Read-only. The age of the user at the (local) date of profile
+            retrieval.
+          type: integer
     UserConsent:
       title: Root Type for UserConsent
       description: Type user to flag consent with the terms of use of NetMobiel.
