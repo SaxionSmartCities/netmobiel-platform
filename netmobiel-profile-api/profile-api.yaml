@@ -941,7 +941,7 @@ components:
         \ of a user is visible for other users in case of messaging, being a would-be\
         \ passenger or a would-be driver. The following attributes are public:\n*\
         \ Id (managed identity)\n* GivenName\n* FamilyName\n* Age\n* Profile Image\n\
-        * Home Locality\n \n\n"
+        * Home Locality\n* Home Country Code \n\n"
       required:
       - email
       - firstName
