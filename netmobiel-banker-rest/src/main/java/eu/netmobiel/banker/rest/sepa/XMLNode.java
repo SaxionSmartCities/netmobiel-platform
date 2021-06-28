@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.io.StringWriter;
 import java.io.Writer;
 
+import javax.xml.XMLConstants;
 import javax.xml.parsers.DocumentBuilder;
 import javax.xml.parsers.DocumentBuilderFactory;
 import javax.xml.parsers.ParserConfigurationException;
@@ -17,6 +18,8 @@ import javax.xml.transform.stream.StreamResult;
 import org.w3c.dom.Attr;
 import org.w3c.dom.Document;
 import org.w3c.dom.Element;
+
+import eu.netmobiel.commons.exception.SystemException;
 
 public class XMLNode {
 
@@ -82,6 +85,8 @@ public class XMLNode {
 
 	public void write(Writer writer, boolean pretty, int indent) throws TransformerException {
 		TransformerFactory transformerFactory = TransformerFactory.newInstance();
+		transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_DTD, "");
+		transformerFactory.setAttribute(XMLConstants.ACCESS_EXTERNAL_STYLESHEET, "");
 		Transformer transformer = transformerFactory.newTransformer();
 		if (pretty) {
 			transformer.setOutputProperty(OutputKeys.INDENT, "yes");
@@ -98,7 +103,7 @@ public class XMLNode {
 			write(sw, true, 2);
 			s = sw.toString();
 		} catch (IOException | TransformerException e) {
-			e.printStackTrace();
+			throw new SystemException("Unable to serialize XML Node", e);
 		}
 		return s;
 	}
