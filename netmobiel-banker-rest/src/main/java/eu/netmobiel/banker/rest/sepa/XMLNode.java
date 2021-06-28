@@ -32,7 +32,7 @@ public class XMLNode {
 			DocumentBuilder dBuilder = dbFactory.newDocumentBuilder();
 			this.document = dBuilder.newDocument();
 		} catch (ParserConfigurationException e) {
-			e.printStackTrace();
+			throw new SystemException("Unable to create a XML DocumentBuilder", e);
 		}
 	}
 
