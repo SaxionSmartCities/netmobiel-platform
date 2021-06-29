@@ -74,10 +74,10 @@ public class DelegationsResource implements DelegationsApi {
 			delegator = resolveIdentity(delegator);
 			if (!request.isUserInRole("admin")) {
 				if (delegator != null && !delegator.equals(me)) {
-					new SecurityException("You have no privilege to list delegations for this delegator: " + delegator);
+					throw new SecurityException("You have no privilege to list delegations for this delegator: " + delegator);
 				}
 				if (delegate != null && !delegate.equals(me)) {
-					new SecurityException("You have no privilege to list delegations for this delegate: " + delegate);
+					throw new SecurityException("You have no privilege to list delegations for this delegate: " + delegate);
 				}
 				if (delegate == null && delegator == null) {
 					if (request.isUserInRole("delegate")) {
@@ -108,16 +108,15 @@ public class DelegationsResource implements DelegationsApi {
 			if (!request.isUserInRole("admin")) {
 				if (!request.isUserInRole("delegate")) {
 					throw new SecurityException("You have no privilege to create a delegation");
+				} 
+				// Delegate role may set the delegate parameter, but only to refer to themselves
+				String me = request.getUserPrincipal().getName();
+				if (delegation.getDelegate() == null) {
+					delegation.setDelegate(new Profile(me));
 				} else {
-					// Delegate role may set the delegate parameter, but only to refer to themselves
-					String me = request.getUserPrincipal().getName();
-					if (delegation.getDelegate() == null) {
-						delegation.setDelegate(new Profile(me));
-					} else {
-						Profile delegateProf = delegationManager.resolveProfile(delegation.getDelegate());
-						if (!me.equals(delegateProf.getManagedIdentity())) {
-							throw new SecurityException("You have no privilege to create a delegation for: " + delegateProf.getManagedIdentity());
-						}
+					Profile delegateProf = delegationManager.resolveProfile(delegation.getDelegate());
+					if (!me.equals(delegateProf.getManagedIdentity())) {
+						throw new SecurityException("You have no privilege to create a delegation for: " + delegateProf.getManagedIdentity());
 					}
 				}
 			}
@@ -158,13 +157,13 @@ public class DelegationsResource implements DelegationsApi {
 			}
 			Delegation toDelegation = mapper.mapApi(apiToDelegation);
 			if (toDelegation.getDelegator() != null) {
-				new BadRequestException("The specification of a delegator in a transfer delegation is not allowed");
+				throw new BadRequestException("The specification of a delegator in a transfer delegation is not allowed");
 			}
 			if (toDelegation.getDelegate() == null) {
-				new BadRequestException("The specification of a delegate is mandatory");
+				throw new BadRequestException("The specification of a delegate is mandatory");
 			}
 			if (toDelegation.getDelegate().equals(fromDelegation.getDelegate())) {
-				new BadRequestException("A transfer to the same delegate is not allowed");
+				throw new BadRequestException("A transfer to the same delegate is not allowed");
 			}
 	    	Long id = delegationManager.transferDelegation(fromDelegation.getId(), toDelegation, request.isUserInRole("admin"));
 			rsp = Response.created(UriBuilder.fromResource(DelegationsApi.class)

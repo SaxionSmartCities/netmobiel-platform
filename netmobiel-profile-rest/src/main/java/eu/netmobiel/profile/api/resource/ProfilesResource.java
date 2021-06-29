@@ -24,6 +24,7 @@ import eu.netmobiel.profile.api.mapping.ProfileMapper;
 import eu.netmobiel.profile.api.model.FirebaseTokenResponse;
 import eu.netmobiel.profile.api.model.ImageResponse;
 import eu.netmobiel.profile.api.model.ImageUploadRequest;
+import eu.netmobiel.profile.api.model.Page;
 import eu.netmobiel.profile.api.model.ProfileResponse;
 import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Place;
@@ -146,11 +147,13 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 			filter.setText(text);
 			filter.setUserRole(role);
 	    	PagedResult<Profile> results = profileManager.listProfiles(filter, cursor);
+	    	Page page;
 	    	if (request.isUserInRole("admin") && Boolean.TRUE.equals(details)) {
-	    		rsp = Response.ok(profileMapper.mapShallow(results)).build();
+	    		page = profileMapper.mapShallow(results);
 	    	} else {
-	    		rsp = Response.ok(profileMapper.mapSecondary(results)).build();
+	    		page = profileMapper.mapSecondary(results);
 	    	}
+    		rsp = Response.ok(page).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
@@ -213,7 +216,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 				throw new BadRequestException("Uploaded image must be png or jpg; not supported " + mimetype);
 			}
 			String encoding = spec.length > 1 ? spec[1] : null;
-			if (!encoding.equals("base64")) {
+			if (encoding == null || !encoding.equals("base64")) {
 				throw new BadRequestException("Uploaded image encoding not supported: " + encoding);
 			}
 			byte[] decodedImage = Base64.getDecoder().decode(parts[1]);

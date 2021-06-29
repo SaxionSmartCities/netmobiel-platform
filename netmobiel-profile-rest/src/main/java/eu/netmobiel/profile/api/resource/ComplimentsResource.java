@@ -53,7 +53,7 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 			if (c.getSender() != null ) {
 				if (! privileged) {
 					if (!me.equals(c.getSender().getManagedIdentity())) {
-						new SecurityException("You have no privilege to assign a compliment on behalf of this user: " + c.getSender().getManagedIdentity());
+						throw new SecurityException("You have no privilege to assign a compliment on behalf of this user: " + c.getSender().getManagedIdentity());
 					}
 				}
 			} else {
@@ -79,10 +79,10 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 			String me = securityIdentity.getEffectivePrincipal().getName();
 			final boolean privileged = request.isUserInRole("admin"); 
 			if (! privileged && filter.getReceiver() != null && !filter.getReceiver().equals(me)) {
-				new SecurityException("You have no privilege to list compliments received by someone else");
+				throw new SecurityException("You have no privilege to list compliments received by someone else");
 			}
 			if (! privileged && filter.getSender() != null && !filter.getSender().equals(me)) {
-				new SecurityException("You have no privilege to list compliments sent by someone else");
+				throw new SecurityException("You have no privilege to list compliments sent by someone else");
 			}
 			if (! privileged && filter.getReceiver() == null) {
 				filter.setReceiver(me);
@@ -109,7 +109,7 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 			String me = securityIdentity.getEffectivePrincipal().getName();
 			final boolean privileged = request.isUserInRole("admin"); 
 			if (! privileged && !c.getReceiver().getManagedIdentity().equals(me) && !c.getSender().getManagedIdentity().equals(me)) {
-				new SecurityException("You have no privilege to inspect a compliment that is not made by you or paid to you");
+				throw new SecurityException("You have no privilege to inspect a compliment that is not made by you or paid to you");
 			}
 	    	rsp = Response.ok(mapper.map(c)).build();
 		} catch (IllegalArgumentException e) {
@@ -133,7 +133,7 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 			String me = securityIdentity.getEffectivePrincipal().getName();
 			final boolean privileged = request.isUserInRole("admin"); 
 			if (! privileged && !c.getSender().getManagedIdentity().equals(me)) {
-				new SecurityException("You have no privilege to remove a compliment that is not made by you");
+				throw new SecurityException("You have no privilege to remove a compliment that is not made by you");
 			}
 	    	complimentManager.removeCompliment(Long.parseLong(complimentId));
 			rsp = Response.noContent().build();

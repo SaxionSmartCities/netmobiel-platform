@@ -65,7 +65,7 @@ public class PlaceManager {
     		PagedResult<Long> pids = placeDao.listPlaces(profile, cursor);
     		results = placeDao.loadGraphs(pids.getData(), null, Place::getId);
     	}
-    	return new PagedResult<Place>(results, cursor, prs.getTotalCount());
+    	return new PagedResult<>(results, cursor, prs.getTotalCount());
 	}
 
 	public Place getPlace(String managedId, Long placeId) throws NotFoundException {
@@ -75,7 +75,7 @@ public class PlaceManager {
 		Place place = placeDao.find(placeId)
 				.orElseThrow(() -> new NotFoundException("No such place: " + placeId));
 		if (! place.getProfile().getId().equals(profile.getId()) && ! privileged) {
-			new SecurityException("You have no privilege to remove this place: " + placeId);
+			throw new SecurityException("You have no privilege to remove this place: " + placeId);
 		}
 		return place;
 	}
@@ -88,7 +88,7 @@ public class PlaceManager {
 		Place dbplace = placeDao.find(placeId)
 				.orElseThrow(() -> new NotFoundException("No such place: " + place.getId()));
 		if (! dbplace.getProfile().getId().equals(profile.getId()) && ! privileged) {
-			new SecurityException("You have no privilege to update this place: " + place.getId());
+			throw new SecurityException("You have no privilege to update this place: " + place.getId());
 		}
 		place.setId(placeId);
 		placeDao.merge(place);

@@ -47,7 +47,7 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 			if (r.getSender() != null ) {
 				if (! privileged) {
 					if (!me.equals(r.getSender().getManagedIdentity())) {
-						new SecurityException("You have no privilege to review on behalf of this user: " + r.getSender().getManagedIdentity());
+						throw new SecurityException("You have no privilege to review on behalf of this user: " + r.getSender().getManagedIdentity());
 					}
 				}
 			} else {
@@ -72,7 +72,7 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 			String me = securityIdentity.getEffectivePrincipal().getName();
 			final boolean privileged = request.isUserInRole("admin"); 
 			if (! privileged && !r.getReceiver().getManagedIdentity().equals(me) && !r.getSender().getManagedIdentity().equals(me)) {
-				new SecurityException("You have no privilege to inspect a review that is not written by you or attributed to you");
+				throw new SecurityException("You have no privilege to inspect a review that is not written by you or attributed to you");
 			}
 			rsp = Response.ok(mapper.map(r)).build();
 		} catch (IllegalArgumentException e) {
@@ -92,10 +92,10 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 			String me = securityIdentity.getEffectivePrincipal().getName();
 			final boolean privileged = request.isUserInRole("admin"); 
 			if (! privileged && filter.getReceiver() != null && !filter.getReceiver().equals(me)) {
-				new SecurityException("You have no privilege to list reviews received by someone else");
+				throw new SecurityException("You have no privilege to list reviews received by someone else");
 			}
 			if (! privileged && filter.getSender() != null && !filter.getSender().equals(me)) {
-				new SecurityException("You have no privilege to list reviews sent by someone else");
+				throw new SecurityException("You have no privilege to list reviews sent by someone else");
 			}
 			if (! privileged && filter.getReceiver() == null) {
 				filter.setReceiver(me);
@@ -127,7 +127,7 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 			String me = securityIdentity.getEffectivePrincipal().getName();
 			final boolean privileged = request.isUserInRole("admin"); 
 			if (! privileged && !r.getSender().getManagedIdentity().equals(me)) {
-				new SecurityException("You have no privilege to remove a review that is not written by you");
+				throw new SecurityException("You have no privilege to remove a review that is not written by you");
 			}
 	    	reviewManager.removeReview(Long.parseLong(reviewId));
 			rsp = Response.noContent().build();
