@@ -1,9 +1,9 @@
-package eu.netmobiel.communicator.rest;
+package eu.netmobiel.commons.servlet;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import javax.servlet.ServletException;
-import javax.servlet.annotation.WebServlet;
 import javax.servlet.http.HttpServlet;
 import javax.servlet.http.HttpServletRequest;
 import javax.servlet.http.HttpServletResponse;
@@ -19,12 +19,10 @@ import eu.netmobiel.commons.api.ErrorResponse;
  * @author Jaap Reitsma
  *
  */
-@WebServlet(urlPatterns = "/error-handler-servlet")
 public class ErrorHandlerServlet extends HttpServlet {
 
 	private static final long serialVersionUID = -5098663689536882162L;
 
-	@SuppressWarnings("resource")
 	@Override
 	protected void service(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {
@@ -35,7 +33,9 @@ public class ErrorHandlerServlet extends HttpServlet {
 		} else {
 			response.setContentType(MediaType.APPLICATION_JSON);
 			ErrorResponse rsp = new ErrorResponse(Response.Status.fromStatusCode(statusCode));
-			response.getWriter().write(rsp.stringify());
+			@SuppressWarnings("resource")
+			PrintWriter writer = response.getWriter();
+			writer.write(rsp.stringify());
 		}
 	}
 }
