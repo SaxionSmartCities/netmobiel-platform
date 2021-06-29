@@ -514,7 +514,7 @@ public class Booking extends ReferableObject implements Serializable {
 
 	@Override
 	public String toString() {
-		return String.format("Booking %d on Ride %d %s %s D %s A %s from %s to %s #%d seat(s)",
+		return String.format("Booking %s on Ride %s %s %s D %s A %s from %s to %s #%d seat(s)",
 				getId(),
 				getRide() != null ? getRide().getId() : "<null>",
 				getPassenger().getManagedIdentity(), 
