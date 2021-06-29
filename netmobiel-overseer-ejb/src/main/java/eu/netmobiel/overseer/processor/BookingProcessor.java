@@ -295,7 +295,7 @@ public class BookingProcessor {
 			msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
 			msg.addRecipient(event.getTraveller());
 			publisherService.publish(null, msg);
-			if (!organizer.equals(event.getTraveller())) {
+			if (organizer != null && !organizer.equals(event.getTraveller())) {
 				// Notify the organizer
 				Message msg2 = new Message();
 				msg2.setContext(event.getBookingRef());
