@@ -124,7 +124,7 @@ public class BookingManager {
      * @throws BusinessException 
      */
     public String createBooking(String rideRef, NetMobielUser traveller, Booking booking) throws BusinessException {
-    	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideRef);
+    	Long rid = UrnHelper.getId(Ride.URN_PREFIX, rideRef);
 		Ride ride = rideDao.fetchGraph(rid, Ride.LIST_RIDES_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("Ride not found: " + rideRef));
 		if (traveller.getManagedIdentity() == null) {
@@ -146,7 +146,7 @@ public class BookingManager {
 		}
     	bookingDao.save(booking);
     	bookingDao.flush();
-    	String bookingRef = RideshareUrnHelper.createUrn(Booking.URN_PREFIX, booking.getId());
+    	String bookingRef = UrnHelper.createUrn(Booking.URN_PREFIX, booking.getId());
 		if (booking.getState() == BookingState.REQUESTED) {
 			if (AUTO_CONFIRM_BOOKING) {
 				booking.setState(BookingState.CONFIRMED);
@@ -254,7 +254,7 @@ public class BookingManager {
     	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
     	Booking bookingdb = bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
-    	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideRef);
+    	Long rid = UrnHelper.getId(Ride.URN_PREFIX, rideRef);
 		Ride ride = rideDao.find(rid)
     			.orElseThrow(() -> new NotFoundException("Ride not found: " + rideRef));
 		EventFireWrapper.fire(bookingFareSettledEvent, new BookingFareSettledEvent(ride, bookingdb));

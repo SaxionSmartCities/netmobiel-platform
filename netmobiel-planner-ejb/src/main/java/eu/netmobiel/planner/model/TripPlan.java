@@ -341,7 +341,7 @@ public class TripPlan implements Serializable {
 
 	public String getPlanRef() {
     	if (planRef == null) {
-    		planRef = PlannerUrnHelper.createUrn(TripPlan.URN_PREFIX, getId());
+    		planRef = UrnHelper.createUrn(TripPlan.URN_PREFIX, getId());
     	}
 		return planRef;
 	}

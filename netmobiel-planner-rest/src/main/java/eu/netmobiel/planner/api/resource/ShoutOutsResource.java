@@ -15,6 +15,7 @@ import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.security.SecurityIdentity;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.api.ShoutOutsApi;
 import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
@@ -130,11 +131,11 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
 	public Response addSolution(String shoutOutPlanId, eu.netmobiel.planner.api.model.TravelOffer travelOffer) {
     	Response rsp = null;
 		try {
-        	Long shoutOutId = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
+        	Long shoutOutId = UrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
         	if (travelOffer == null || travelOffer.getPlanRef() == null) {
         		throw new eu.netmobiel.commons.exception.BadRequestException("planRef is a mandatory attribute");
         	}
-        	Long providedSolutionPlanId = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, travelOffer.getPlanRef());
+        	Long providedSolutionPlanId = UrnHelper.getId(TripPlan.URN_PREFIX, travelOffer.getPlanRef());
 			PlannerUser driver = userManager.findOrRegisterCallingUser(securityIdentity);
 			if (travelOffer.getDriverRef() != null) {
 				if (!driver.getUrn().equals(travelOffer.getDriverRef()) && !driver.getKeyCloakUrn().equals(travelOffer.getDriverRef())) {
@@ -158,7 +159,7 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
     	Response rsp = null;
 		TripPlan plan;
 		try {
-        	Long tid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
+        	Long tid = UrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
 			plan = tripPlanManager.getShoutOutPlan(tid);
 			rsp = Response.ok(tripPlanMapper.mapShoutOut(plan)).build();
 		} catch (BusinessException e) {
@@ -176,7 +177,7 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
 	public Response cancelShoutOutPlan(String shoutOutPlanId) {
     	Response rsp = null;
 		try {
-        	Long tid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
+        	Long tid = UrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
 			tripPlanManager.cancelShoutOut(tid);
 			rsp = Response.noContent().build();
 		} catch (BusinessException e) {

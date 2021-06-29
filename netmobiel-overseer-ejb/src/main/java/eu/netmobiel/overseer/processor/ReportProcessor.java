@@ -35,7 +35,6 @@ import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.MimeBodyPart;
 import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMessage.RecipientType;
 import javax.mail.internet.MimeMultipart;
 import javax.mail.util.ByteArrayDataSource;
 
@@ -52,6 +51,7 @@ import com.opencsv.exceptions.CsvRequiredFieldEmptyException;
 import eu.netmobiel.banker.service.BankerReportService;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.report.ActivityReport;
+import eu.netmobiel.commons.report.DriverBehaviourReport;
 import eu.netmobiel.commons.report.IncentiveModelDriverReport;
 import eu.netmobiel.commons.report.IncentiveModelPassengerReport;
 import eu.netmobiel.commons.report.PassengerBehaviourReport;
@@ -61,7 +61,6 @@ import eu.netmobiel.commons.report.ReportKey;
 import eu.netmobiel.commons.report.ReportKeyWithModality;
 import eu.netmobiel.commons.report.ReportPeriodKey;
 import eu.netmobiel.commons.report.RideReport;
-import eu.netmobiel.commons.report.DriverBehaviourReport;
 import eu.netmobiel.commons.report.ShoutOutRecipientReport;
 import eu.netmobiel.commons.report.SpssReportBase;
 import eu.netmobiel.commons.report.SpssReportWithModality;
@@ -206,16 +205,16 @@ public class ReportProcessor {
     		List<ProfileReport> report = profileReportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
-			Writer ridesWriter = convertToCsv(report, ProfileReport.class);
-			Map<String, Writer> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "profiles", reportDate), ridesWriter);
-	
+			String ridesReport = convertToCsv(report, ProfileReport.class);
+			Map<String, String> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "profiles", reportDate), ridesReport);
 			sendReports("Profielen", reportDate, reports);
     	} catch (Exception e) {
 			log.error("Error creating and sending profiles report", e);
     	}
 	}
 
+	@SuppressWarnings("static-method")
 	protected void copyProfileInfo(Collection<? extends ReportKey> target, Map<String, ProfileReport> sourceMap) {
 		for (ReportKey r : target) {
 			ProfileReport pr = sourceMap.get(r.getManagedIdentity());
@@ -232,14 +231,14 @@ public class ReportProcessor {
 	    			.sorted()
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(activityReport, profileReportMap);
-			Writer writer = convertToCsv(activityReport, ActivityReport.class);
+			String report = convertToCsv(activityReport, ActivityReport.class);
 			
-			Collection<ActivitySpssReport> spssReport = createSpssReport(activityReport, ActivitySpssReport.class); 
-			Writer spssWriter = convertToCsvforSpss(spssReport, ActivitySpssReport.class, since, until);
+			Collection<ActivitySpssReport> spssReports = createSpssReport(activityReport, ActivitySpssReport.class); 
+			String spssReport = convertToCsvforSpss(spssReports, ActivitySpssReport.class, since, until);
 			
-			Map<String, Writer> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "activity", reportDate), writer);
-			reports.put(String.format("%s-report-spss-%s.csv", "activity", reportDate), spssWriter);
+			Map<String, String> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "activity", reportDate), report);
+			reports.put(String.format("%s-report-spss-%s.csv", "activity", reportDate), spssReport);
 	
 			sendReports("Activiteitsniveau", reportDate, reports);
     	} catch (Exception e) {
@@ -254,26 +253,26 @@ public class ReportProcessor {
 	    			.sorted()
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(passengerReport, profileReportMap);
-			Writer passengerBehaviourWriter = convertToCsv(passengerReport, PassengerBehaviourReport.class);
+			String passengerBehaviour = convertToCsv(passengerReport, PassengerBehaviourReport.class);
 
 			Collection<PassengerBehaviourSpssReport> spssReport = createSpssReport(passengerReport, PassengerBehaviourSpssReport.class); 
-			Writer passengerBehaviourSpssWriter = convertToCsvforSpss(spssReport, PassengerBehaviourSpssReport.class, since, until);
+			String passengerBehaviourSpss = convertToCsvforSpss(spssReport, PassengerBehaviourSpssReport.class, since, until);
 
 			Map<String, PassengerModalityBehaviourReport> passengerModalityReportMap = plannerReportService.reportPassengerModalityBehaviour(since.toInstant(), until.toInstant());
 			List<PassengerModalityBehaviourReport> passengerModalityReport = passengerModalityReportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(passengerModalityReport, profileReportMap);
-			Writer passengerModalityBehaviourWriter = convertToCsv(passengerModalityReport, PassengerModalityBehaviourReport.class);
+			String passengerModalityBehaviour = convertToCsv(passengerModalityReport, PassengerModalityBehaviourReport.class);
 
 			Collection<PassengerModalityBehaviourSpssReport> spssModalityReport = createSpssModalityReport(passengerModalityReport, PassengerModalityBehaviourSpssReport.class); 
-			Writer passengerModalityBehaviourSpssWriter = convertToCsvforSpss(spssModalityReport, PassengerModalityBehaviourSpssReport.class, since, until);
+			String passengerModalityBehaviourSpss = convertToCsvforSpss(spssModalityReport, PassengerModalityBehaviourSpssReport.class, since, until);
 
-			Map<String, Writer> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "passenger-behaviour", reportDate), passengerBehaviourWriter);
-			reports.put(String.format("%s-report-spss-%s.csv", "passenger-behaviour", reportDate), passengerBehaviourSpssWriter);
-			reports.put(String.format("%s-report-%s.csv", "passenger-modality-behaviour", reportDate), passengerModalityBehaviourWriter);
-			reports.put(String.format("%s-report-spss-%s.csv", "passenger-modality-behaviour", reportDate), passengerModalityBehaviourSpssWriter);
+			Map<String, String> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "passenger-behaviour", reportDate), passengerBehaviour);
+			reports.put(String.format("%s-report-spss-%s.csv", "passenger-behaviour", reportDate), passengerBehaviourSpss);
+			reports.put(String.format("%s-report-%s.csv", "passenger-modality-behaviour", reportDate), passengerModalityBehaviour);
+			reports.put(String.format("%s-report-spss-%s.csv", "passenger-modality-behaviour", reportDate), passengerModalityBehaviourSpss);
 	
 			sendReports("Reisgedrag Passagier", reportDate, reports);
     	} catch (Exception e) {
@@ -298,14 +297,14 @@ public class ReportProcessor {
 	    			.sorted()
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(driverReport, profileReportMap);
-			Writer driverBehaviourWriter = convertToCsv(driverReport, DriverBehaviourReport.class);
+			String driverBehaviour = convertToCsv(driverReport, DriverBehaviourReport.class);
 			
 			Collection<DriverBehaviourSpssReport> spssReport = createSpssReport(driverReport, DriverBehaviourSpssReport.class); 
-			Writer driverBehaviourSpssWriter = convertToCsvforSpss(spssReport, DriverBehaviourSpssReport.class, since, until);
+			String driverBehaviourSpss = convertToCsvforSpss(spssReport, DriverBehaviourSpssReport.class, since, until);
 
-			Map<String, Writer> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "driver-behaviour", reportDate), driverBehaviourWriter);
-			reports.put(String.format("%s-report-spss-%s.csv", "driver-behaviour", reportDate), driverBehaviourSpssWriter);
+			Map<String, String> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "driver-behaviour", reportDate), driverBehaviour);
+			reports.put(String.format("%s-report-spss-%s.csv", "driver-behaviour", reportDate), driverBehaviourSpss);
 	
 			sendReports("Reisgedrag Chauffeur", reportDate, reports);
     	} catch (Exception e) {
@@ -326,14 +325,14 @@ public class ReportProcessor {
 	    			.sorted()
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(report, profileReportMap);
-			Writer incentiveModelWriter = convertToCsv(report, IncentiveModelPassengerReport.class);
+			String incentiveModel = convertToCsv(report, IncentiveModelPassengerReport.class);
 
 			Collection<IncentiveModelPassengerSpssReport> spssReport = createSpssReport(report, IncentiveModelPassengerSpssReport.class); 
-			Writer incentiveModelSpssWriter = convertToCsvforSpss(spssReport, IncentiveModelPassengerSpssReport.class, since, until);
+			String incentiveModelSpss = convertToCsvforSpss(spssReport, IncentiveModelPassengerSpssReport.class, since, until);
 
-			Map<String, Writer> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "incentives-passenger", reportDate), incentiveModelWriter);
-			reports.put(String.format("%s-report-spss-%s.csv", "incentives-passenger", reportDate), incentiveModelSpssWriter);
+			Map<String, String> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "incentives-passenger", reportDate), incentiveModel);
+			reports.put(String.format("%s-report-spss-%s.csv", "incentives-passenger", reportDate), incentiveModelSpss);
 	
 			sendReports("Incentives Passagier", reportDate, reports);
     	} catch (Exception e) {
@@ -354,14 +353,14 @@ public class ReportProcessor {
 	    			.sorted()
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(report, profileReportMap);
-			Writer incentiveModelWriter = convertToCsv(report, IncentiveModelDriverReport.class);
+   		  	String incentiveModel = convertToCsv(report, IncentiveModelDriverReport.class);
 			
 			Collection<IncentiveModelDriverSpssReport> spssReport = createSpssReport(report, IncentiveModelDriverSpssReport.class); 
-			Writer incentiveModelSpssWriter = convertToCsvforSpss(spssReport, IncentiveModelDriverSpssReport.class, since, until);
+			String incentiveModelSpss = convertToCsvforSpss(spssReport, IncentiveModelDriverSpssReport.class, since, until);
 
-			Map<String, Writer> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "incentives-driver", reportDate), incentiveModelWriter);
-			reports.put(String.format("%s-report-spss-%s.csv", "incentives-driver", reportDate), incentiveModelSpssWriter);
+			Map<String, String> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "incentives-driver", reportDate), incentiveModel);
+			reports.put(String.format("%s-report-spss-%s.csv", "incentives-driver", reportDate), incentiveModelSpss);
 	
 			sendReports("Incentives Chauffeur", reportDate, reports);
     	} catch (Exception e) {
@@ -373,9 +372,9 @@ public class ReportProcessor {
     	try {
     		List<RideReport> report = rideshareReportService.reportRides(since.toInstant(), until.toInstant());
    		  	copyProfileInfo(report, profileReportMap);
-			Writer ridesWriter = convertToCsv(report, RideReport.class);
-			Map<String, Writer> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "rides", reportDate), ridesWriter);
+   		  	String ridesReport = convertToCsv(report, RideReport.class);
+			Map<String, String> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "rides", reportDate), ridesReport);
 	
 			sendReports("Reis Chauffeur", reportDate, reports);
     	} catch (Exception e) {
@@ -387,9 +386,9 @@ public class ReportProcessor {
     	try {
     		List<TripReport> report = plannerReportService.reportTrips(since.toInstant(), until.toInstant());
    		  	copyProfileInfo(report, profileReportMap);
-			Writer ridesWriter = convertToCsv(report, TripReport.class);
-			Map<String, Writer> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "trips", reportDate), ridesWriter);
+   		  	String tripsReport= convertToCsv(report, TripReport.class);
+			Map<String, String> reports = new LinkedHashMap<>();
+			reports.put(String.format("%s-report-%s.csv", "trips", reportDate), tripsReport);
 	
 			sendReports("Reis Passagier", reportDate, reports);
     	} catch (Exception e) {
@@ -436,22 +435,23 @@ public class ReportProcessor {
 	}
 
 	/**
-	 * Creates a Writer with CSV records from a list of report records. 
+	 * Creates a String with CSV records from a list of report records. 
 	 * @param <T> The type of the report record.
 	 * @param report The list of records.
 	 * @param beanClazz the type of the report record. 
-	 * @return A Writer with a CSV records.
+	 * @return A String  with a CSV records.
 	 * @throws Exception In case of trouble.
 	 */
-	protected <T> Writer convertToCsv(List<T> report, Class<T> beanClazz) throws Exception {
+	@SuppressWarnings("static-method")
+	protected <T> String convertToCsv(List<T> report, Class<T> beanClazz) throws Exception {
 		try (Writer writer = new StringWriter()) {
-			FixedOrderColumnNameMappingStrategy<T> strategy = new FixedOrderColumnNameMappingStrategy<T>();
+			FixedOrderColumnNameMappingStrategy<T> strategy = new FixedOrderColumnNameMappingStrategy<>();
 		    strategy.setType(beanClazz);
 		    StatefulBeanToCsv<T> beanToCsv = new StatefulBeanToCsvBuilder<T>(writer)
 		         .withMappingStrategy(strategy)
 		         .build();
 		    beanToCsv.write(report);
-		    return writer;
+		    return writer.toString();
 		}
 	}
 
@@ -497,25 +497,26 @@ public class ReportProcessor {
 	}
 
 	/**
-	 * Creates a Writer with CSV records for SPSS. 
+	 * Creates a String with CSV records for SPSS. 
 	 * @param <T> The SPSS record type.
 	 * @param spssReport the collection with SPSS records.
 	 * @param beanClazz the class of the SPSS record
 	 * @param since The start of the report period. Used to calculate the column expansion. 
 	 * @param until The end (exclusive) of the report period.
-	 * @return a Writer with the CSV records for SPSS.
+	 * @return a String with the CSV records for SPSS.
 	 * @throws Exception
 	 */
-	protected <T> Writer convertToCsvforSpss(Collection<T> spssReport, Class<T> beanClazz, ZonedDateTime since, ZonedDateTime until) throws Exception {
+	@SuppressWarnings("static-method")
+	protected <T> String convertToCsvforSpss(Collection<T> spssReport, Class<T> beanClazz, ZonedDateTime since, ZonedDateTime until) throws Exception {
 		try (Writer writer = new StringWriter()) {
-			SpssHeaderColumnNameMappingStrategy<T> strategy = new SpssHeaderColumnNameMappingStrategy<T>(since, until);
+			SpssHeaderColumnNameMappingStrategy<T> strategy = new SpssHeaderColumnNameMappingStrategy<>(since, until);
 		    strategy.setType(beanClazz);
 		    StatefulBeanToCsv<T> beanToCsv = new StatefulBeanToCsvBuilder<T>(writer)
 		         .withMappingStrategy(strategy)
 		         .withApplyQuotesToAll(true)
 		         .build();
 		    beanToCsv.write(spssReport.stream());
-		    return writer;
+		    return writer.toString();
 		}
 	}
 
@@ -529,6 +530,7 @@ public class ReportProcessor {
 	 * @param spssClazz The class of the SPSS report record to convert to.
 	 * @return A collection of SPSS records, one record for each managed identity.
 	 */
+	@SuppressWarnings("static-method")
 	protected <S extends SpssReportBase<R>, R extends ReportPeriodKey> Collection<S> createSpssReport(List<R> report, Class<S> spssClazz) {
 		Map<String, S> spssReportMap = new LinkedHashMap<>();
 		for (R r : report) {
@@ -556,6 +558,7 @@ public class ReportProcessor {
 	 * @param spssClazz The class of the SPSS report record to convert to.
 	 * @return A collection of SPSS records, one record for each managed identity.
 	 */
+	@SuppressWarnings("static-method")
 	protected <S extends SpssReportWithModality<R>, R extends ReportKeyWithModality> Collection<S> createSpssModalityReport(List<R> report, Class<S> spssClazz) {
 		Map<String, S> spssReportMap = new LinkedHashMap<>();
 		for (R r : report) {
@@ -574,7 +577,7 @@ public class ReportProcessor {
 		return spssReportMap.values();
 	}
 	
-	protected void sendReports(String name, String reportDate, Map<String, Writer> reports) {
+	protected void sendReports(String name, String reportDate, Map<String, String> reports) {
 		log.info(String.format("Sending report '%s' to %s", name, reportRecipient));
 		Map<String, String> valuesMap = new HashMap<>();
 		valuesMap.put("subjectPrefix", subjectPrefix);
@@ -586,10 +589,10 @@ public class ReportProcessor {
 	    sendEmail(subject, body, reportRecipient, reports);
 	}
 
-	protected void sendEmail(String subject, String body, String recipient, Map<String, Writer> attachments) {
+	protected void sendEmail(String subject, String body, String recipient, Map<String, String> attachments) {
 		try {
             MimeMessage msg = new MimeMessage(mailSession);
-            msg.setRecipients(RecipientType.TO, recipient);
+            msg.setRecipients(javax.mail.Message.RecipientType.TO, recipient);
 //        	m.setFrom(reportRecipient);
             msg.setSentDate(new Date());
             msg.setSubject(subject);
@@ -601,8 +604,8 @@ public class ReportProcessor {
             messageBodyPart.setContent(body, "text/plain");
             multipart.addBodyPart(messageBodyPart);
     
-            for (Map.Entry<String, Writer> entry : attachments.entrySet()) {
-                byte[] poiBytes = entry.getValue().toString().getBytes();
+            for (Map.Entry<String, String> entry : attachments.entrySet()) {
+                byte[] poiBytes = entry.getValue().getBytes();
                 DataSource dataSource = new ByteArrayDataSource(poiBytes, "text/csv");
                 BodyPart attachmentBodyPart = new MimeBodyPart();
                 attachmentBodyPart.setDataHandler(new DataHandler(dataSource));

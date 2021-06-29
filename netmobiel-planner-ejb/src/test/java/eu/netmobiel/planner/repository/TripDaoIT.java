@@ -23,6 +23,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Itinerary_;
 import eu.netmobiel.planner.model.Leg;
@@ -104,7 +105,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
 	public void testLoadTrip_Default() throws Exception {
 		Trip trip = em.find(Trip.class, trip1.getId());
 		assertNotNull(trip);
-		assertEquals(trip.getId(), PlannerUrnHelper.getId(Trip.URN_PREFIX, trip.getTripRef()));
+		assertEquals(trip.getId(), UrnHelper.getId(Trip.URN_PREFIX, trip.getTripRef()));
 		flush();
 		
     	trip = tripDao.find(trip.getId()).orElseThrow(() -> new IllegalStateException("Should have an ID by now"));

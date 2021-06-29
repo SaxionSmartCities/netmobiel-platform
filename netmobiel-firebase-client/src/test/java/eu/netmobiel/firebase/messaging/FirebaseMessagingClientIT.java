@@ -126,22 +126,27 @@ public class FirebaseMessagingClientIT {
         	this.sender = sender;
         }
 
+		@Override
 		public String getBody() {
 			return body;
 		}
 
+		@Override
 		public String getContext() {
 			return context;
 		}
 
+		@Override
 		public String getSubject() {
 			return subject;
 		}
 
+		@Override
 		public Instant getCreationTime() {
 			return creationTime;
 		}
 
+		@Override
 		public NetMobielUser getSender() {
 			return sender;
 		}

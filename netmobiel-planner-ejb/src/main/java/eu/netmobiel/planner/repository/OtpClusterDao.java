@@ -29,6 +29,7 @@ import eu.netmobiel.opentripplanner.api.model.TransportationType;
 import eu.netmobiel.planner.annotation.PlannerDatabase;
 import eu.netmobiel.planner.model.OtpCluster;
 import eu.netmobiel.planner.model.OtpCluster_;
+import eu.netmobiel.planner.model.OtpLocatedEntity_;
 import eu.netmobiel.planner.model.TraverseMode;
 
 @ApplicationScoped
@@ -115,7 +116,7 @@ public class OtpClusterDao extends AbstractDao<OtpCluster, String> {
 		CriteriaBuilder cb = em.getCriteriaBuilder();
 	    CriteriaQuery<OtpCluster> cq = cb.createQuery(OtpCluster.class);
 	    Root<OtpCluster> clusters = cq.from(OtpCluster.class);
-        Predicate spatialAreaPred = cb.isTrue(cb.function("st_within", Boolean.class, clusters.get(OtpCluster_.location).get(GeoLocation_.point), cb.literal(area))); 
+        Predicate spatialAreaPred = cb.isTrue(cb.function("st_within", Boolean.class, clusters.get(OtpLocatedEntity_.location).get(GeoLocation_.point), cb.literal(area))); 
         Predicate manyRoutesPred = cb.greaterThanOrEqualTo(clusters.get(OtpCluster_.nrRoutes), minNrRoutes);
 	    List<Predicate> modesPredicates = new ArrayList<>();
 	    if (!Arrays.stream(modes).anyMatch(m -> m == TraverseMode.TRANSIT)) {

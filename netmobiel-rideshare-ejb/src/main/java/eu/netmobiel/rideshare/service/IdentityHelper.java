@@ -31,7 +31,7 @@ public class IdentityHelper {
     	if (UrnHelper.isUrn(userRef)) {
         	NetMobielModule module = NetMobielModule.getEnum(UrnHelper.getService(userRef));
         	if (module == NetMobielModule.RIDESHARE) {
-    			Long did = RideshareUrnHelper.getId(RideshareUser.URN_PREFIX, userRef);
+    			Long did = UrnHelper.getId(RideshareUser.URN_PREFIX, userRef);
         		user = userDao.find(did).orElse(null);
         	} else if (module == NetMobielModule.KEYCLOAK) {
         		String managedIdentity = UrnHelper.getSuffix(userRef);

@@ -45,7 +45,8 @@ public class DelegationDaoIT extends ProfileIntegrationTestBase {
     private Profile driver1;
 
 
-    protected void insertData() throws Exception {
+    @Override
+	protected void insertData() throws Exception {
 		passenger1 = Fixture.createPassenger1();
 		em.persist(passenger1);
 

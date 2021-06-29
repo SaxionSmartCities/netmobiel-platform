@@ -26,6 +26,7 @@ import javax.validation.constraints.Size;
 
 import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.util.BankerUrnHelper;
+import eu.netmobiel.commons.util.UrnHelper;
 
 /**
  * An AccountingTransaction captures an atomic transfer of an amount between two or more accounts. A transaction is always balanced, 
@@ -126,7 +127,7 @@ public class AccountingTransaction  implements Serializable {
 
 	public String getTransactionRef() {
     	if (transactionRef == null) {
-    		transactionRef = BankerUrnHelper.createUrn(AccountingTransaction.URN_PREFIX, getId());
+    		transactionRef = UrnHelper.createUrn(AccountingTransaction.URN_PREFIX, getId());
     	}
 		return transactionRef;
 	}

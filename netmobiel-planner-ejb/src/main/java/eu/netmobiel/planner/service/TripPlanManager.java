@@ -46,6 +46,7 @@ import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.event.BookingProposalRejectedEvent;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
@@ -924,7 +925,7 @@ public class TripPlanManager {
      * @throws NotFoundException In case the shout-out could not be found.
      */
     public TripPlan planShoutOutSolution(Instant now, PlannerUser driver, String shoutOutPlanRef, TripPlan driverPlan, TraverseMode traverseMode) throws NotFoundException, BusinessException {
-    	Long pid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanRef);
+    	Long pid = UrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanRef);
     	TripPlan travPlan = tripPlanDao.find(pid).orElseThrow(() -> new NotFoundException("No such TripPlan: " + shoutOutPlanRef));
     	if (!travPlan.isInProgress()) {
     		throw new CreateException("Shout-out has already been closed");
@@ -1089,7 +1090,7 @@ public class TripPlanManager {
      * @throws NotFoundException
      */
     public void cancelBooking(String tripPlanRef, String bookingRef) throws NotFoundException {
-    	TripPlan plan = getTripPlan(PlannerUrnHelper.getId(TripPlan.URN_PREFIX, tripPlanRef));
+    	TripPlan plan = getTripPlan(UrnHelper.getId(TripPlan.URN_PREFIX, tripPlanRef));
     	plan.getItineraries().stream()
     		.flatMap(it -> it.getLegs().stream())
     		.filter(leg -> bookingRef.equals(leg.getBookingId()))

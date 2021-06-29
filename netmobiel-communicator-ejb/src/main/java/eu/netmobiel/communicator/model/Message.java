@@ -111,6 +111,7 @@ public class Message implements NetMobielMessage, Serializable {
 	}
 
 
+	@Override
 	public String getBody() {
 		return body;
 	}
@@ -119,6 +120,7 @@ public class Message implements NetMobielMessage, Serializable {
 		this.body = body;
 	}
 
+	@Override
 	public String getContext() {
 		return context;
 	}
@@ -127,6 +129,7 @@ public class Message implements NetMobielMessage, Serializable {
 		this.context = context;
 	}
 
+	@Override
 	public String getSubject() {
 		return subject;
 	}
@@ -135,6 +138,7 @@ public class Message implements NetMobielMessage, Serializable {
 		this.subject = subject;
 	}
 
+	@Override
 	public Instant getCreationTime() {
 		return creationTime;
 	}
@@ -151,6 +155,7 @@ public class Message implements NetMobielMessage, Serializable {
 		this.deliveryMode = deliveryMode;
 	}
 
+	@Override
 	public CommunicatorUser getSender() {
 		return sender;
 	}

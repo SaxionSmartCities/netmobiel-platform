@@ -54,7 +54,8 @@ public class SearchResource extends PlannerResource implements SearchApi {
     @Inject
 	private SecurityIdentity securityIdentity;
 
-    public Response searchPlan(
+    @Override
+	public Response searchPlan(
     		String xDelegator,
     		String from, 
     		String to, 

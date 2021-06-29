@@ -26,6 +26,7 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 
 import eu.netmobiel.commons.report.NumericReportValue;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @NamedNativeQueries({
@@ -195,7 +196,7 @@ public class Envelope implements Serializable {
 
 	public String getEnvelopeRef() {
 		if (envelopeRef == null) {
-			envelopeRef = CommunicatorUrnHelper.createUrn(Envelope.URN_PREFIX, getId());
+			envelopeRef = UrnHelper.createUrn(Envelope.URN_PREFIX, getId());
 		}
 		return envelopeRef;
 	}

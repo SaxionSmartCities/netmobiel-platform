@@ -19,14 +19,14 @@ public class QuoteProcessor {
 	public static final int MINIMUM_FARE = 1;
 	public static final int CREDITS_PER_KILOMETER = 1;
 	
-    public void onQuoteRequested(@Observes(during = TransactionPhase.IN_PROGRESS) Leg leg) {
+    @SuppressWarnings("static-method")
+	public void onQuoteRequested(@Observes(during = TransactionPhase.IN_PROGRESS) Leg leg) {
     	if (RideManager.AGENCY_ID.equals(leg.getAgencyId())) {
     		if (leg.getDistance() == null) {
     			throw new IllegalStateException(String.format("Cannot calculate fare for %s, no distance defined!",leg.toString()));
-    		} else {
-        		leg.setFareInCredits(Math.toIntExact(Math.round((leg.getDistance() / 1000.0) * CREDITS_PER_KILOMETER)));
-        		leg.setFareInCredits(Math.max(leg.getFareInCredits(), MINIMUM_FARE));
     		}
+    		leg.setFareInCredits(Math.toIntExact(Math.round((leg.getDistance() / 1000.0) * CREDITS_PER_KILOMETER)));
+    		leg.setFareInCredits(Math.max(leg.getFareInCredits(), MINIMUM_FARE));
     	} else {
     		throw new IllegalStateException(String.format("Cannot calculate fare, agency does not support credits: %s (%s)", leg.getAgencyId(), leg.getAgencyName()));
     	}

@@ -47,10 +47,12 @@ public class CommunicatorUser extends User  {
     	super(identity, null, null, null);
     }
     
+	@Override
 	public Long getId() {
 		return id;
 	}
 
+	@Override
 	public void setId(Long id) {
 		this.id = id;
 	}

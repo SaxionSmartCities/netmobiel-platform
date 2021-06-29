@@ -39,6 +39,7 @@ import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.report.NumericReportValue;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 /**
@@ -251,7 +252,7 @@ public class Ride extends RideBase implements Serializable {
 	 * @return A URN.
 	 */
 	public String getTemplateRef() {
-		return rideTemplate == null ? null : RideshareUrnHelper.createUrn(RideTemplate.URN_PREFIX, rideTemplate.getId()); 
+		return rideTemplate == null ? null : UrnHelper.createUrn(RideTemplate.URN_PREFIX, rideTemplate.getId()); 
 	}
 
 	public RideTemplate getRideTemplate() {

@@ -22,6 +22,7 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
+import eu.netmobiel.commons.util.UrnHelper;
 
 /**
  * Class to capture a request to deposit credits into the NetMobiel banker system. The DepositRequest is connected to 
@@ -243,7 +244,7 @@ public class DepositRequest  implements Serializable {
 
 	public String getDepositRequestRef() {
 		if (depositRequestRef == null) {
-			depositRequestRef = BankerUrnHelper.createUrn(DepositRequest.URN_PREFIX, getId());
+			depositRequestRef = UrnHelper.createUrn(DepositRequest.URN_PREFIX, getId());
 		}
 		return depositRequestRef;
 	}

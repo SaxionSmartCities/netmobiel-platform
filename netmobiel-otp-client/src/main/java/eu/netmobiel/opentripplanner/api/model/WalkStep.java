@@ -84,7 +84,8 @@ public class WalkStep {
 
     public List<LocalizedAlert> alerts;
 
-    public String toString() {
+    @Override
+	public String toString() {
         String direction = absoluteDirection.toString();
         if (relativeDirection != null) {
             direction = relativeDirection.toString();

@@ -12,6 +12,7 @@ import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.api.CarsApi;
 import eu.netmobiel.rideshare.api.mapping.CarMapper;
 import eu.netmobiel.rideshare.model.Car;
@@ -44,7 +45,7 @@ public class CarsResource implements CarsApi {
     	Response rsp = null;
 		try {
 			Car car = mapper.map(cardt);
-			String newCarId = RideshareUrnHelper.createUrn(Car.URN_PREFIX, userManager.createCar(car));
+			String newCarId = UrnHelper.createUrn(Car.URN_PREFIX, userManager.createCar(car));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newCarId)).build();
 		} catch (CreateException e) {
 			rsp = Response.status(Status.CONFLICT).build();
@@ -56,7 +57,7 @@ public class CarsResource implements CarsApi {
     public Response getCar(@PathParam("carId") String carId) {
     	Car car = null;
     	try {
-        	Long cid = RideshareUrnHelper.getId(Car.URN_PREFIX, carId);
+        	Long cid = UrnHelper.getId(Car.URN_PREFIX, carId);
 			car = userManager.getCar(cid);
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new NotFoundException();
@@ -68,7 +69,7 @@ public class CarsResource implements CarsApi {
 	public Response updateCar(@PathParam("carId") String carId, eu.netmobiel.rideshare.api.model.Car cardt) {
     	Response rsp = null;
     	try {
-        	Long cid = RideshareUrnHelper.getId(Car.URN_PREFIX, carId);
+        	Long cid = UrnHelper.getId(Car.URN_PREFIX, carId);
         	Car car = mapper.map(cardt);
 			userManager.updateCar(cid, car);
 			rsp = Response.noContent().build();
@@ -82,7 +83,7 @@ public class CarsResource implements CarsApi {
     public Response deleteCar(@PathParam("carId") String carId) {
     	Response rsp = null;
     	try {
-        	Long cid = RideshareUrnHelper.getId(Car.URN_PREFIX, carId);
+        	Long cid = UrnHelper.getId(Car.URN_PREFIX, carId);
 			userManager.removeCar(cid);
 			rsp = Response.noContent().build();
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {

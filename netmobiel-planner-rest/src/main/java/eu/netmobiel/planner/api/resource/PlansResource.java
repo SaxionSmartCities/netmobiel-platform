@@ -19,6 +19,7 @@ import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.security.SecurityIdentity;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.api.PlansApi;
 import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
@@ -85,7 +86,7 @@ public class PlansResource extends PlannerResource implements PlansApi {
 	public Response getPlan(String xDelegator, String planId) {
     	Response rsp = null;
 		try {
-        	Long tid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, planId);
+        	Long tid = UrnHelper.getId(TripPlan.URN_PREFIX, planId);
 			CallingContext<PlannerUser> context = userManager.findCallingContext(securityIdentity);
         	TripPlan plan = tripPlanManager.getTripPlan(tid);
         	allowAdminOrEffectiveUser(request, context, plan.getTraveller());
@@ -137,7 +138,7 @@ public class PlansResource extends PlannerResource implements PlansApi {
 	public Response cancelPlan(String xDelegator, String shoutOutPlanId) {
     	Response rsp = null;
 		try {
-        	Long tid = PlannerUrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
+        	Long tid = UrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
         	// Check whether this caller is allowed to cancel the shout-out.
         	TripPlan plan = tripPlanManager.getShoutOutPlan(tid);
 			CallingContext<PlannerUser> context = userManager.findCallingContext(securityIdentity);

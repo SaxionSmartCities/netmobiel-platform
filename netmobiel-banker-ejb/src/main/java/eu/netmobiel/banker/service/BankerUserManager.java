@@ -78,7 +78,8 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
      * @return a banker user object
      * @throws NotFoundException No matching user found.
      */
-    public BankerUser getUser(Long id) throws NotFoundException {
+    @Override
+	public BankerUser getUser(Long id) throws NotFoundException {
     	BankerUser userdb = userDao.loadGraph(id, BankerUser.GRAPH_WITH_ACCOUNT)
     			.orElseThrow(() -> new NotFoundException("No such user: " + id));
     	if (userdb.getPersonalAccount() == null) {

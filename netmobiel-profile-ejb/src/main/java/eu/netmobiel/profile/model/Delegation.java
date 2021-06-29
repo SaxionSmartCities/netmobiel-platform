@@ -139,6 +139,7 @@ public class Delegation extends ReferableObject implements Serializable {
     public Delegation() {
     }
     
+	@Override
 	public Long getId() {
 		return id;
 	}

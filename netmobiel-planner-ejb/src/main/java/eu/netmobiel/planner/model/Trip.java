@@ -453,7 +453,7 @@ public class Trip implements Serializable {
 
 	public String getTripRef() {
     	if (tripRef == null) {
-    		tripRef = PlannerUrnHelper.createUrn(Trip.URN_PREFIX, getId());
+    		tripRef = UrnHelper.createUrn(Trip.URN_PREFIX, getId());
     	}
 		return tripRef;
 	}

@@ -53,7 +53,8 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     private Profile passenger1;
 
 
-    protected void insertData() throws Exception {
+    @Override
+	protected void insertData() throws Exception {
         driver1 = Fixture.createDriver1();
 		em.persist(driver1);
 		em.persist(driver1.getRidesharePreferences());

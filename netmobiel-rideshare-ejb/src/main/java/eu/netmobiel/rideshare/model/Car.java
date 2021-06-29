@@ -25,6 +25,7 @@ import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.ReferableObject;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @NamedEntityGraph()
@@ -245,7 +246,7 @@ public class Car extends ReferableObject implements Serializable {
 	public String getDriverRef() {
 		if (driverRef == null) {
 	    	if (driver != null) {
-	    		driverRef = RideshareUrnHelper.createUrn(RideshareUser.URN_PREFIX, driver.getId());
+	    		driverRef = UrnHelper.createUrn(RideshareUser.URN_PREFIX, driver.getId());
 	    	}
 		}
 		return driverRef;

@@ -42,6 +42,7 @@ import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.TokenGenerator;
+import eu.netmobiel.commons.util.UrnHelper;
 
 /**
  * Stateless bean for the management of the ledger.
@@ -201,7 +202,7 @@ public class LedgerService {
      * @return the transaction  
      */
     public AccountingTransaction release(String transactionRef, OffsetDateTime when) {
-    	Long tid = BankerUrnHelper.getId(AccountingTransaction.URN_PREFIX, transactionRef);
+    	Long tid = UrnHelper.getId(AccountingTransaction.URN_PREFIX, transactionRef);
     	AccountingTransaction reservation = accountingTransactionDao.find(tid).orElseThrow(() -> new IllegalArgumentException("No such transaction: " + transactionRef));
     	return release(reservation, when);
     }

@@ -46,7 +46,8 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     private CommunicatorUser user2;
     private CommunicatorUser user3;
     
-    protected void insertData() throws Exception {
+    @Override
+	protected void insertData() throws Exception {
         user1 = Fixture.createUser("A1", "user", "FN A1", null);
         em.persist(user1);
         user2 = Fixture.createUser("A2", "user", "FN A2", null);

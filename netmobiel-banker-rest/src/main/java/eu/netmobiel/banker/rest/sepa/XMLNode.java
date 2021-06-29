@@ -97,6 +97,7 @@ public class XMLNode {
 		transformer.transform(source, result);
 	}
 
+	@Override
 	public String toString() {
 		String s = null;
 		try (StringWriter sw = new StringWriter()) {

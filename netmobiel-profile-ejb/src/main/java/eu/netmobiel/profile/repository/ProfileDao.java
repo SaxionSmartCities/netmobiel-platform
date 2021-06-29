@@ -21,6 +21,7 @@ import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.User_;
 import eu.netmobiel.commons.repository.UserDao;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.profile.annotation.ProfileDatabase;
@@ -71,10 +72,10 @@ public class ProfileDao extends UserDao<Profile> {
         		text = text + "%";
         	}
 	        predicates.add(cb.or(
-	        		cb.like(cb.lower(profile.get(Profile_.email)), text), 
+	        		cb.like(cb.lower(profile.get(User_.email)), text), 
 	        		cb.like(cb.lower(profile.get(Profile_.phoneNumber)), text),
-	        		cb.like(cb.lower(profile.get(Profile_.familyName)), text),
-	        		cb.like(cb.lower(profile.get(Profile_.givenName)), text)
+	        		cb.like(cb.lower(profile.get(User_.familyName)), text),
+	        		cb.like(cb.lower(profile.get(User_.givenName)), text)
 	        		));
         }
         if (filter.getUserRole() != null) {

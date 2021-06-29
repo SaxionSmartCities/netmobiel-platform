@@ -39,11 +39,13 @@ public class WrappedCurrency {
         return value.getSymbol(l);
     }
 
-    public String toString() {
+    @Override
+	public String toString() {
         return value.toString();
     }
     
-    public boolean equals(Object o) {
+    @Override
+	public boolean equals(Object o) {
         if (o instanceof WrappedCurrency) {
             WrappedCurrency c = (WrappedCurrency) o;
             return value.equals(c.value);

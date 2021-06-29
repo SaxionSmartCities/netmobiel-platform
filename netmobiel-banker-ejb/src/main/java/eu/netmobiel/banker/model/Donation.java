@@ -123,7 +123,8 @@ public class Donation extends ReferableObject {
     	this.amount = totalAmount.intValue();
     }
 
-    public Long getId() {
+    @Override
+	public Long getId() {
 		return id;
 	}
 

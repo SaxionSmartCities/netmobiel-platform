@@ -52,7 +52,8 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
     private RideshareUser passenger1;
 
 
-    protected void insertData() throws Exception {
+    @Override
+	protected void insertData() throws Exception {
         driver1 = Fixture.createDriver1();
 		em.persist(driver1);
 

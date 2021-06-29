@@ -12,6 +12,7 @@ import javax.ws.rs.core.Response;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.api.BookingsApi;
 import eu.netmobiel.rideshare.api.mapping.BookingMapper;
 import eu.netmobiel.rideshare.api.mapping.PageMapper;
@@ -43,7 +44,8 @@ public class BookingsResource implements BookingsApi {
      * Lists the bookings driven by the calling user.
      * @return an array of bookings.
      */
-    public Response getBookings(OffsetDateTime sinceDate, OffsetDateTime untilDate, Integer maxResults, Integer offset) {
+    @Override
+	public Response getBookings(OffsetDateTime sinceDate, OffsetDateTime untilDate, Integer maxResults, Integer offset) {
     	if (sinceDate == null) {
     		sinceDate = OffsetDateTime.now();
     	}
@@ -61,10 +63,11 @@ public class BookingsResource implements BookingsApi {
     	return Response.ok(pageMapper.mapMyBookings(bookings)).build();
     }
 
-    public Response getBooking(String bookingId) {
+    @Override
+	public Response getBooking(String bookingId) {
     	Booking booking = null;
     	try {
-        	Long cid = RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingId);
+        	Long cid = UrnHelper.getId(Booking.URN_PREFIX, bookingId);
 			booking = bookingManager.getBooking(cid);
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new NotFoundException();
@@ -72,7 +75,8 @@ public class BookingsResource implements BookingsApi {
     	return Response.ok(mapper.mapInDetail(booking)).build();
     }
 
-    public Response deleteBooking(String bookingId, String reason) {
+    @Override
+	public Response deleteBooking(String bookingId, String reason) {
     	Response rsp = null;
     	try {
 //        	Long cid = RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingId);

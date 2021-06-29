@@ -20,6 +20,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.model.User_;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.profile.annotation.ProfileDatabase;
 import eu.netmobiel.profile.filter.ComplimentFilter;
@@ -62,10 +63,10 @@ public class ComplimentDao extends AbstractDao<Compliment, Long> {
         Root<Compliment> compliment = cq.from(Compliment.class);
         List<Predicate> predicates = new ArrayList<>();
         if (filter.getSender() != null) {
-        	predicates.add(cb.equal(compliment.get(Compliment_.sender).get(Profile_.managedIdentity), filter.getSender()));
+        	predicates.add(cb.equal(compliment.get(Compliment_.sender).get(User_.managedIdentity), filter.getSender()));
         }
         if (filter.getReceiver() != null) {
-        	predicates.add(cb.equal(compliment.get(Compliment_.receiver).get(Profile_.managedIdentity), filter.getReceiver()));
+        	predicates.add(cb.equal(compliment.get(Compliment_.receiver).get(User_.managedIdentity), filter.getReceiver()));
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;

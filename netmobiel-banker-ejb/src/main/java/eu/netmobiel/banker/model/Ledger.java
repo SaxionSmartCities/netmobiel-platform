@@ -154,12 +154,11 @@ public class Ledger  implements Serializable {
     	expect(Ledger.notClosed, "Ledger is already closed: " + this);
 	}
 
-	private String formatDateTime(Instant instant) {
+	private static String formatDateTime(Instant instant) {
 		if (instant == null) {
 			return "---";
-		} else {
-			return DateTimeFormatter.ISO_INSTANT.format(instant);
 		}
+		return DateTimeFormatter.ISO_INSTANT.format(instant);
 	}
 
 	@Override

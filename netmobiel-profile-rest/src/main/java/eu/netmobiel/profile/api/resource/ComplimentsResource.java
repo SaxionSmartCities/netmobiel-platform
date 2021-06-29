@@ -89,7 +89,7 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 			}
 	    	PagedResult<Compliment> results = complimentManager.listCompliments(filter, cursor);
 	    	ComplimentResponse cr = new ComplimentResponse();
-	    	cr.setCompliments((List<eu.netmobiel.profile.api.model.Compliment>)mapper.map(results.getData()));
+	    	cr.setCompliments(mapper.map(results.getData()));
 	    	cr.setMessage("Success");
 	    	cr.setSuccess(true);
 			rsp = Response.ok(cr).build();

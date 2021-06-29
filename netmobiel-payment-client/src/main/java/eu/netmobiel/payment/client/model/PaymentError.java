@@ -9,6 +9,7 @@ public class PaymentError {
 		public String value;
 	}
 	
+	@Override
 	public String toString() {
 		return String.format("%d (%s) %s", error.status, error.type, error.value);
 	}

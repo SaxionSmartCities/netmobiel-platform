@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.User_;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.event.BookingFareSettledEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
@@ -25,6 +26,7 @@ import eu.netmobiel.rideshare.model.Booking_;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.Leg_;
 import eu.netmobiel.rideshare.model.Ride;
+import eu.netmobiel.rideshare.model.RideBase_;
 import eu.netmobiel.rideshare.model.Ride_;
 import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.model.RideshareUser_;
@@ -105,7 +107,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(bookingRef);
 		flush();
 		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
-				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
+				.setParameter("id", UrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
 		assertNotNull(b.getRide());
@@ -157,7 +159,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 				.getSingleResult();
 		rideItineraryHelper.updateRideItinerary(rdb);
     	flush();
-    	Booking but = bookingManager.getBooking(RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef));
+    	Booking but = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, bookingRef));
     	flush();
 
     	// Now test the presence of the required fields
@@ -182,7 +184,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     	assertTrue(puu.isLoaded(but, Booking_.RIDE));
     	Ride ride = but.getRide();
     	assertTrue(puu.isLoaded(ride, Ride_.ID));
-    	assertTrue(puu.isLoaded(ride, Ride_.DRIVER));
+    	assertTrue(puu.isLoaded(ride, RideBase_.DRIVER));
     	assertTrue(puu.isLoaded(ride.getDriver(), RideshareUser_.ID));
     	assertTrue(puu.isLoaded(ride.getDriver(), User_.GIVEN_NAME));
     	assertTrue(puu.isLoaded(ride.getDriver(), User_.FAMILY_NAME));
@@ -210,7 +212,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(bookingRef);
 		flush();
 		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
-				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
+				.setParameter("id", UrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
 		assertFalse(b.isDeleted());
@@ -228,7 +230,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		bookingManager.removeBooking(bookingRef, reason, false, true);
 		flush();
 		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
-				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
+				.setParameter("id", UrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
 		assertTrue(b.isDeleted());
@@ -248,7 +250,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		bookingManager.removeBooking(bookingRef, reason, false, false);
 		flush();
 		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
-				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
+				.setParameter("id", UrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
 		assertTrue(b.isDeleted());
@@ -268,7 +270,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		bookingManager.removeBooking(bookingRef, reason, true, true);
 		flush();
 		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
-				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
+				.setParameter("id", UrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
 		assertTrue(b.isDeleted());
@@ -294,7 +296,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 		flush();
 		flush();
 		Booking b = em.createQuery("from Booking where id = :id", Booking.class)
-				.setParameter("id", RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingRef))
+				.setParameter("id", UrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
 		assertNotNull(b.getRide());

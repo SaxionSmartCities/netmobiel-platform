@@ -52,6 +52,7 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.here.search.HereSearchClient;
 import eu.netmobiel.rideshare.event.BookingFareSettledEvent;
 import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
@@ -348,7 +349,7 @@ public class RideManager {
      * @throws BusinessException 
      */
     public Long createRide(Ride ride) throws BusinessException {
-    	Car car = carDao.find(RideshareUrnHelper.getId(Car.URN_PREFIX, ride.getCarRef()))
+    	Car car = carDao.find(UrnHelper.getId(Car.URN_PREFIX, ride.getCarRef()))
     			.orElseThrow(() -> new CreateException("Cannot find car: " + ride.getCarRef()));
     	RideshareUser driverdb = ride.getDriver();
     	if (driverdb == null) {
@@ -560,7 +561,7 @@ public class RideManager {
     	}
     	
     	validateCreateUpdateRide(ride);
-    	Long carId = RideshareUrnHelper.getId(Car.URN_PREFIX, ride.getCarRef());
+    	Long carId = UrnHelper.getId(Car.URN_PREFIX, ride.getCarRef());
     	if (carId == null) { 
     		throw new NotFoundException("No Car ID found for Ride " + ride.getId());
     	}

@@ -39,6 +39,7 @@ import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.here.search.HereSearchClient;
 import eu.netmobiel.planner.event.BookingCancelledEvent;
 import eu.netmobiel.planner.event.BookingConfirmedEvent;
@@ -182,7 +183,7 @@ public class TripManager {
     		throw new BadRequestException("Specify an itinerary reference");
     	}
 		// Create a trip for this itinerary
-    	Itinerary it = itineraryDao.find(PlannerUrnHelper.getId(Itinerary.URN_PREFIX, trip.getItineraryRef()))
+    	Itinerary it = itineraryDao.find(UrnHelper.getId(Itinerary.URN_PREFIX, trip.getItineraryRef()))
     			.orElseThrow(() -> new NotFoundException("No such itinerary: " + trip.getItineraryRef()));
     	trip.setState(TripState.PLANNING);
     	trip.setItinerary(it);
@@ -246,7 +247,7 @@ public class TripManager {
      * @throws BusinessException 
      */
     public void assignBookingReference(String tripRef, String transportProviderTripRef, String bookingRef, boolean bookingConfirmed) throws BusinessException {
-    	Trip trip = tripDao.find(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef))
+    	Trip trip = tripDao.find(UrnHelper.getId(Trip.URN_PREFIX, tripRef))
     			.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripRef));
     	Leg leg = trip.getItinerary().findLegByTripId(transportProviderTripRef)
     			.orElseThrow(() -> new IllegalArgumentException("No such leg with tripId " + transportProviderTripRef));
@@ -276,7 +277,7 @@ public class TripManager {
      * @throws BusinessException 
      */
     public Leg cancelBooking(String tripRef, String bookingRef, String reason, boolean cancelledByTransportProvider) throws BusinessException {
-    	Trip trip = tripDao.find(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef))
+    	Trip trip = tripDao.find(UrnHelper.getId(Trip.URN_PREFIX, tripRef))
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
     	trip.setCancelledByProvider(cancelledByTransportProvider);
     	trip.setCancelReason(reason);
@@ -432,7 +433,7 @@ public class TripManager {
      */
     public void confirmTripByTransportProvider(String tripRef, String bookingRef, 
     		Boolean confirmationValue, ConfirmationReasonType reason, boolean overrideResponse) throws BusinessException {
-    	Trip tripdb = tripDao.fetchGraph(PlannerUrnHelper.getId(Trip.URN_PREFIX, tripRef), Trip.MY_LEGS_ENTITY_GRAPH)
+    	Trip tripdb = tripDao.fetchGraph(UrnHelper.getId(Trip.URN_PREFIX, tripRef), Trip.MY_LEGS_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
     	if (confirmationValue == null) {
     		throw new BadRequestException("An empty confirmation value is not allowed");

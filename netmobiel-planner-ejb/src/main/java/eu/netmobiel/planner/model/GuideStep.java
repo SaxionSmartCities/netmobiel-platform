@@ -212,6 +212,7 @@ public class GuideStep implements Serializable {
 		this.bogusName = bogusName;
 	}
 
+	@Override
 	public String toString() {
         String direction = absoluteDirection.toString();
         if (relativeDirection != null) {

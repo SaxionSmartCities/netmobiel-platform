@@ -94,7 +94,7 @@ public class GeometryHelper {
 
 	public static double getDistanceInSRID(int distance_in_meters) {
 		// Great circle distance 
-		return distance_in_meters / (double)LATITUDE_DISTANCE;
+		return distance_in_meters / LATITUDE_DISTANCE;
 	}
 	
 	public static LineString createLine(Coordinate a, Coordinate b) {
@@ -127,7 +127,7 @@ public class GeometryHelper {
 	        double angle = ((double) i / (double) SIDES) * Math.PI * 2.0;
 	        double dx = Math.cos( angle ) * d_gc;
 	        double dy = Math.sin( angle ) * d_gc / lon_corr;
-	        coords[i] = new Coordinate( (double) x + dx, (double) y + dy );
+	        coords[i] = new Coordinate( x + dx, y + dy );
 	    }
 	    coords[SIDES] = coords[0];
 

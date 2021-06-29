@@ -26,6 +26,7 @@ import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.ReferableObject;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 /**
@@ -190,7 +191,7 @@ public abstract class RideBase extends ReferableObject implements Serializable {
 
 	public String getDriverRef() {
 		if (driverRef == null) {
-    		driverRef = RideshareUrnHelper.createUrn(RideshareUser.URN_PREFIX, driver.getId());
+    		driverRef = UrnHelper.createUrn(RideshareUser.URN_PREFIX, driver.getId());
 		}
 		return driverRef;
 	}
@@ -211,7 +212,7 @@ public abstract class RideBase extends ReferableObject implements Serializable {
 
 	public String getCarRef() {
 		if (carRef == null) {
-    		carRef = RideshareUrnHelper.createUrn(Car.URN_PREFIX, car.getId());
+    		carRef = UrnHelper.createUrn(Car.URN_PREFIX, car.getId());
 		}
 		return carRef;
 	}

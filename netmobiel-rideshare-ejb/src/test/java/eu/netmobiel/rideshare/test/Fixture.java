@@ -11,6 +11,7 @@ import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.representations.AccessToken;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.CarType;
@@ -140,7 +141,7 @@ public class Fixture {
 
 	public static Ride createRide(Car car, GeoLocation from, Instant departureTime, GeoLocation to, Instant arrivalTime) {
 		Ride r = new Ride();
-		r.setCarRef(RideshareUrnHelper.createUrn(Car.URN_PREFIX, car.getId()));
+		r.setCarRef(UrnHelper.createUrn(Car.URN_PREFIX, car.getId()));
 		r.setCar(car);
 		r.setDriver(car.getDriver());
 		r.setDepartureTime(departureTime);

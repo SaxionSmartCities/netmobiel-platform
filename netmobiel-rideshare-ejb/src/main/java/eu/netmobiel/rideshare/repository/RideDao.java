@@ -31,6 +31,7 @@ import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Booking_;
 import eu.netmobiel.rideshare.model.Ride;
+import eu.netmobiel.rideshare.model.RideBase_;
 import eu.netmobiel.rideshare.model.RideState;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.RideTemplate_;
@@ -62,13 +63,13 @@ public class RideDao extends AbstractDao<Ride, Long> {
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Ride> root = cq.from(Ride.class);
         List<Predicate> predicates = new ArrayList<>();
-        Predicate predDriver = cb.equal(root.get(RideTemplate_.driver), filter.getDriver());
+        Predicate predDriver = cb.equal(root.get(RideBase_.driver), filter.getDriver());
         predicates.add(predDriver);
         if (filter.getSince() != null) {
-	        predicates.add(cb.greaterThanOrEqualTo(root.get(Ride_.departureTime), filter.getSince()));
+	        predicates.add(cb.greaterThanOrEqualTo(root.get(RideBase_.departureTime), filter.getSince()));
         }        
         if (filter.getUntil() != null) {
-	        predicates.add(cb.lessThanOrEqualTo(root.get(Ride_.departureTime), filter.getUntil()));
+	        predicates.add(cb.lessThanOrEqualTo(root.get(RideBase_.departureTime), filter.getUntil()));
         }        
         if (filter.getRideState() != null) {
 	        predicates.add(cb.equal(root.get(Ride_.state), filter.getRideState()));
@@ -96,9 +97,9 @@ public class RideDao extends AbstractDao<Ride, Long> {
         } else {
             cq.select(root.get(Ride_.id));
             if (filter.getSortDir() == SortDirection.DESC) {
-            	cq.orderBy(cb.desc(root.get(Ride_.departureTime)));
+            	cq.orderBy(cb.desc(root.get(RideBase_.departureTime)));
             } else {
-            	cq.orderBy(cb.asc(root.get(Ride_.departureTime)));
+            	cq.orderBy(cb.asc(root.get(RideBase_.departureTime)));
             }
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(cursor.getOffset());

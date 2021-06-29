@@ -180,7 +180,8 @@ public class WithdrawalRequest extends ReferableObject {
 	public WithdrawalRequest() {
     }
 
-    public Long getId() {
+    @Override
+	public Long getId() {
 		return id;
 	}
 

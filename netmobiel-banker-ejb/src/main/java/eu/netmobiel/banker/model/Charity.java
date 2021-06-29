@@ -204,7 +204,8 @@ public class Charity extends ReferableObject {
     	this.donatedAmount = 0;
     }
 
-    public Long getId() {
+    @Override
+	public Long getId() {
 		return id;
 	}
 

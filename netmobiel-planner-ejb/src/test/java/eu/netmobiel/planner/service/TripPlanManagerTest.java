@@ -26,6 +26,7 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.event.BookingProposalRejectedEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
@@ -315,7 +316,7 @@ public class TripPlanManagerTest {
 	@Test
 	public void testResolveShoutOut() {
 		Long pid = 54L;
-		String shoutOutRef = PlannerUrnHelper.createUrn(TripPlan.URN_PREFIX, pid);
+		String shoutOutRef = UrnHelper.createUrn(TripPlan.URN_PREFIX, pid);
 		Instant now = Instant.parse("2020-07-05T14:00:00Z"); 
 		TripPlan shoutOutPlan = Fixture.createShoutOutTripPlan(traveller, "2020-07-04T18:00:00Z", 
 				Fixture.placeZieuwent, Fixture.placeRaboZutphen, "2020-07-06T10:00:00Z", false, null);

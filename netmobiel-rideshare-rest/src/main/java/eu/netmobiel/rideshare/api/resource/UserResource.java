@@ -8,6 +8,7 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.core.Response;
 
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.api.UsersApi;
 import eu.netmobiel.rideshare.api.mapping.UserMapper;
 import eu.netmobiel.rideshare.model.RideshareUser;
@@ -39,7 +40,7 @@ public class UserResource implements UsersApi {
 	public Response getUser(String userId) {
     	RideshareUser user = null;
     	try {
-        	Long uid = RideshareUrnHelper.getId(RideshareUser.URN_PREFIX, userId);
+        	Long uid = UrnHelper.getId(RideshareUser.URN_PREFIX, userId);
 			user = userManager.getUser(uid);
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new NotFoundException();

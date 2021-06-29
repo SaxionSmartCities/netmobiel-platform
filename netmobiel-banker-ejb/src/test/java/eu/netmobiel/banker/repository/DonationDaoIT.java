@@ -58,7 +58,8 @@ public class DonationDaoIT  extends BankerIntegrationTestBase {
     private Charity charity3;
     private Charity charity4;
     
-    public boolean isSecurityRequired() {
+    @Override
+	public boolean isSecurityRequired() {
     	return true;
     }
 

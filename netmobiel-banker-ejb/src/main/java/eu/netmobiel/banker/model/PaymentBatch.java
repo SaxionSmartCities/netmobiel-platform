@@ -170,7 +170,8 @@ public class PaymentBatch extends ReferableObject {
 	public PaymentBatch() {
     }
 
-    public Long getId() {
+    @Override
+	public Long getId() {
 		return id;
 	}
 

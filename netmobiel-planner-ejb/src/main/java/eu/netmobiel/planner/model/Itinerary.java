@@ -41,6 +41,7 @@ import org.slf4j.LoggerFactory;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.ClosenessFilter;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.opentripplanner.client.OpenTripPlannerClient;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
@@ -253,7 +254,7 @@ public class Itinerary implements Serializable {
 
 	public String getItineraryRef() {
     	if (itineraryRef == null) {
-    		itineraryRef = PlannerUrnHelper.createUrn(Itinerary.URN_PREFIX, getId());
+    		itineraryRef = UrnHelper.createUrn(Itinerary.URN_PREFIX, getId());
     	}
 		return itineraryRef;
 	}

@@ -1,5 +1,7 @@
 package eu.netmobiel.commons.model;
 
+import java.io.Serializable;
+
 import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.util.UrnHelper;
 
@@ -8,7 +10,7 @@ import eu.netmobiel.commons.util.UrnHelper;
  * @author Jaap Reitsma
  *
  */
-public interface NetMobielUser {
+public interface NetMobielUser extends Serializable {
 	/**
 	 * The unique identity of the user as determined by Keycloak. 
 	 * @return the managed identity. 

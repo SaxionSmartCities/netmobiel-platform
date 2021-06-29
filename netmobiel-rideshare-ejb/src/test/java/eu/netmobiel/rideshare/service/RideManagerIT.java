@@ -39,6 +39,7 @@ import eu.netmobiel.rideshare.model.Leg_;
 import eu.netmobiel.rideshare.model.Recurrence;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideBase;
+import eu.netmobiel.rideshare.model.RideBase_;
 import eu.netmobiel.rideshare.model.RideScope;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.Ride_;
@@ -593,7 +594,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	assertNotNull(rut.getRideTemplate());
     	assertNotNull(rut.getRideTemplate().getRecurrence().getInterval());
     	assertNotNull(rut.getCar());
-    	assertTrue(puu.isLoaded(rut, Ride_.CAR));
+    	assertTrue(puu.isLoaded(rut, RideBase_.CAR));
     	assertNotNull(rut.getCar().getLicensePlate());
     	assertNotNull(rut.getCarRef());
     	assertNotNull(rut.getDriver());
@@ -653,8 +654,8 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	assertFalse(em.contains(rut));
     	assertNotNull(rut);
     	assertTrue(puu.isLoaded(rut, Ride_.BOOKINGS));
-    	assertTrue(puu.isLoaded(rut, Ride_.CAR));
-    	assertTrue(puu.isLoaded(rut, Ride_.DRIVER));
+    	assertTrue(puu.isLoaded(rut, RideBase_.CAR));
+    	assertTrue(puu.isLoaded(rut, RideBase_.DRIVER));
     	assertFalse(puu.isLoaded(rut, Ride_.LEGS));
     	assertTrue(puu.isLoaded(rut, Ride_.RIDE_TEMPLATE));
 
@@ -697,8 +698,8 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
     	assertFalse(em.contains(rut));
     	assertNotNull(rut);
     	assertFalse(puu.isLoaded(rut, Ride_.BOOKINGS));
-    	assertTrue(puu.isLoaded(rut, Ride_.CAR));
-    	assertTrue(puu.isLoaded(rut, Ride_.DRIVER));
+    	assertTrue(puu.isLoaded(rut, RideBase_.CAR));
+    	assertTrue(puu.isLoaded(rut, RideBase_.DRIVER));
     	assertFalse(puu.isLoaded(rut, Ride_.LEGS));
     	assertFalse(puu.isLoaded(rut, Ride_.RIDE_TEMPLATE));
 

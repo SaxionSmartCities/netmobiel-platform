@@ -22,7 +22,6 @@ import javax.mail.MessagingException;
 import javax.mail.Session;
 import javax.mail.Transport;
 import javax.mail.internet.MimeMessage;
-import javax.mail.internet.MimeMessage.RecipientType;
 
 import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
@@ -398,7 +397,7 @@ public class BookingProcessor {
 	protected void sendEmail(String subject, String body, String recipient) {
 		try {
             MimeMessage m = new MimeMessage(mailSession);
-            m.setRecipients(RecipientType.TO, recipient);
+            m.setRecipients(javax.mail.Message.RecipientType.TO, recipient);
         	m.setFrom(senderEmailAddress);
             m.setSentDate(new Date());
             m.setSubject(subject);

@@ -2,7 +2,6 @@ package eu.netmobiel.overseer.processor;
 
 import static org.junit.Assert.*;
 
-import java.io.Writer;
 import java.time.ZonedDateTime;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -45,8 +44,8 @@ public class ReportProcessorTest {
 	@Test
 	public void testPlainReport() {
 		try {
-			Writer w = processor.convertToCsv(report, ActivityReport.class);
-			System.out.println(w.toString());
+			String s = processor.convertToCsv(report, ActivityReport.class);
+			System.out.println(s);
 
 		} catch (Exception e) {
 			e.printStackTrace();
@@ -59,8 +58,8 @@ public class ReportProcessorTest {
 	public void testSpssReport() {
 		try {
 			Collection<ActivitySpssReport> spssReport = processor.createSpssReport(report, ActivitySpssReport.class); 
-			Writer w = processor.convertToCsvforSpss(spssReport, ActivitySpssReport.class, since, until);
-			System.out.println(w.toString());
+			String s = processor.convertToCsvforSpss(spssReport, ActivitySpssReport.class, since, until);
+			System.out.println(s);
 		} catch (Exception e) {
 			e.printStackTrace();
 			fail("Unexpected exception: " + e.toString());

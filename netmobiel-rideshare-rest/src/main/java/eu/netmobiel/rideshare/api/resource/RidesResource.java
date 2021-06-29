@@ -16,6 +16,7 @@ import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.api.RidesApi;
 import eu.netmobiel.rideshare.api.mapping.BookingMapper;
 import eu.netmobiel.rideshare.api.mapping.PageMapper;
@@ -56,7 +57,8 @@ public class RidesResource implements RidesApi {
      * List all rides owned by the calling user. Soft deleted rides are omitted.
      * @return A list of rides owned by the calling user.
      */
-    public Response listRides(String driverId, OffsetDateTime since, OffsetDateTime until, String state, String bookingState,
+    @Override
+	public Response listRides(String driverId, OffsetDateTime since, OffsetDateTime until, String state, String bookingState,
     		String siblingRideId, Boolean deletedToo, String sortDir, Integer maxResults, Integer offset) {
     	Response rsp = null;
     	if (since == null) {
@@ -74,7 +76,7 @@ public class RidesResource implements RidesApi {
 			}
 			if (driver.getId() != null) {
 				RideFilter filter = new RideFilter(driver.getId(), since, until, state, bookingState, 
-						RideshareUrnHelper.getId(Ride.URN_PREFIX, siblingRideId), sortDir, Boolean.TRUE.equals(deletedToo));
+						UrnHelper.getId(Ride.URN_PREFIX, siblingRideId), sortDir, Boolean.TRUE.equals(deletedToo));
 				Cursor cursor = new Cursor(maxResults, offset);
 				rides = rideManager.listRides(filter, cursor);
 			} else {
@@ -104,7 +106,7 @@ public class RidesResource implements RidesApi {
 			RideshareUser driver = userManager.findOrRegisterCallingUser();
 			ride.setDriver(driver);
 			// The owner of the ride will be the caller
-			String newRideId = RideshareUrnHelper.createUrn(Ride.URN_PREFIX, rideManager.createRide(ride));
+			String newRideId = UrnHelper.createUrn(Ride.URN_PREFIX, rideManager.createRide(ride));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newRideId)).build();
 		} catch (BusinessException e) {
 			throw new BadRequestException("Error creating ride", e);
@@ -121,7 +123,7 @@ public class RidesResource implements RidesApi {
 	public Response getRide(String rideId) {
     	Ride ride = null;
     	try {
-        	Long cid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideId);
+        	Long cid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
 			ride = rideManager.getRide(cid);
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 			throw new NotFoundException();
@@ -138,10 +140,11 @@ public class RidesResource implements RidesApi {
      * @param ridedt The new value of the ride. 
      * @return
      */
-    public Response updateRide(String rideId, String scope, eu.netmobiel.rideshare.api.model.Ride ridedt) {
+    @Override
+	public Response updateRide(String rideId, String scope, eu.netmobiel.rideshare.api.model.Ride ridedt) {
     	Response rsp = null;
     	try {
-        	Long cid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideId);
+        	Long cid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
 			Ride ride = mapper.map(ridedt);
 			ride.setId(cid);
     		RideScope rs = scope == null ? RideScope.THIS: RideScope.lookup(scope);
@@ -167,7 +170,7 @@ public class RidesResource implements RidesApi {
     	Response rsp = null;
     	try {
     		RideScope rs = scope == null ? RideScope.THIS: RideScope.lookup(scope);
-        	Long cid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideId);
+        	Long cid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
 			rideManager.removeRide(cid, reason, rs);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
@@ -204,7 +207,7 @@ public class RidesResource implements RidesApi {
 	public Response confirmRide(String rideId, Boolean confirmationValue, String reason) {
     	Response rsp = null;
     	try {
-        	Long rid = RideshareUrnHelper.getId(Ride.URN_PREFIX, rideId);
+        	Long rid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
         	ConfirmationReasonEnum reasonEnum = reason == null ? null : 
         		ConfirmationReasonEnum.valueOf(reason);
         	ConfirmationReasonType reasonType = mapper.map(reasonEnum); 

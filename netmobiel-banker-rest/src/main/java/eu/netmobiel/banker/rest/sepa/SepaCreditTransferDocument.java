@@ -65,10 +65,12 @@ public class SepaCreditTransferDocument extends SepaDocument {
 	}
 
 	
+	@Override
 	public String getDocumentChildTag() {
 		return "CstmrCdtTrfInitn";
 	}
 
+	@Override
 	public XMLNode toXml() {
 		XMLNode mainnode = super.toXml();
 		XMLNode payNode = paymentInfo.toXml(mainnode);

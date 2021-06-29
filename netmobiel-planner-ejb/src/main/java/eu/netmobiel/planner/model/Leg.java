@@ -33,6 +33,7 @@ import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.commons.util.PolylineEncoder;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 /**
@@ -364,7 +365,7 @@ public class Leg implements Serializable {
 
 	public String getLegRef() {
     	if (legRef == null) {
-    		legRef = PlannerUrnHelper.createUrn(Leg.URN_PREFIX, getId());
+    		legRef = UrnHelper.createUrn(Leg.URN_PREFIX, getId());
     	}
 		return legRef;
 	}
