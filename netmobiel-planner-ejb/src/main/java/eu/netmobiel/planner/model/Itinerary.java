@@ -573,9 +573,12 @@ public class Itinerary implements Serializable {
 		for (Leg leg: getLegs()) {
 			deviations.add(leg.getFrom().getLocation().getDistanceFlat(from) + leg.getTo().getLocation().getDistanceFlat(to));
 		}
-		int ix = IntStream.range(0, deviations.size()).boxed()
-	            .min(Comparator.comparingDouble(deviations::get))
-	            .get();
+		Optional<Integer> optIx = IntStream.range(0, deviations.size()).boxed()
+	            .min(Comparator.comparingDouble(deviations::get));
+	    if (optIx.isEmpty()) {
+			throw new IllegalStateException("Did not expect to find no deviations");
+	    }
+	    int ix = optIx.get();
 		Leg leg = getLegs().get(ix);
 		if (deviations.get(ix) > 0.1) {
 			log.warn(String.format("Trouble finding correct leg, deviation is %dm", Math.round(deviations.get(ix) * 1000)));
