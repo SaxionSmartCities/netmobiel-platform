@@ -52,13 +52,12 @@ public class OTPDataManager {
 
     public void bulkUpdateStops(List<OtpStop> stops) {
     	for (OtpStop otpStop : stops) {
-			otpStopDao.find(otpStop.getId()).map(s -> {
+			otpStopDao.find(otpStop.getId()).ifPresentOrElse(s -> {
 				otpStop.setCluster(s.getCluster());
 				otpStop.getTransportationTypes().clear();
-				return otpStopDao.merge(otpStop);
-			}).orElseGet(() -> {
-				return otpStopDao.save(otpStop);
-			});
+				otpStopDao.merge(otpStop);
+			}, () -> otpStopDao.save(otpStop)
+			);
 		}
     }
 
@@ -81,10 +80,9 @@ public class OTPDataManager {
 				return otpClusterDao.save(otpCluster);
 			});
 			for (OtpStop otpStop : otpCluster.getStops()) {
-				otpStopDao.find(otpStop.getId()).map(s -> {
-					s.setCluster(cluster);
-					return s;
-				});
+				otpStopDao.find(otpStop.getId())
+					.ifPresent(s -> s.setCluster(cluster)
+				);
 			}
 		}
     }
@@ -119,12 +117,12 @@ public class OTPDataManager {
     public void bulkUpdateTransfers(List<OtpTransfer> transfers) {
     	for (OtpTransfer otpTransfer : transfers) {
     		OtpTransferId tpk = new OtpTransferId(otpTransfer.getFromStop().getId(), otpTransfer.getToStop().getId()); 
-			otpTransferDao.find(tpk).map(t -> {
-				return otpTransferDao.merge(otpTransfer);
-			}).orElseGet(() -> {
-				otpTransfer.setFromStop(otpStopDao.find(otpTransfer.getFromStop().getId()).orElse(null));
-				otpTransfer.setToStop(otpStopDao.find(otpTransfer.getToStop().getId()).orElse(null));
-				return otpTransferDao.save(otpTransfer);
+			otpTransferDao.find(tpk)
+				.ifPresentOrElse(t -> otpTransferDao.merge(otpTransfer),
+					() -> {
+						otpTransfer.setFromStop(otpStopDao.find(otpTransfer.getFromStop().getId()).orElse(null));
+						otpTransfer.setToStop(otpStopDao.find(otpTransfer.getToStop().getId()).orElse(null));
+						otpTransferDao.save(otpTransfer);
 			});
 		}
     }
