@@ -189,7 +189,8 @@ public class PlannerReport implements Serializable {
     /**
      * Execution time of the request in milliseconds
      */
-    @Column(name = "execution_time")
+    @Positive
+    @Column(name = "execution_time", nullable = false)
     private long executionTime;
 
     /**
