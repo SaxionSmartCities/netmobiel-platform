@@ -232,19 +232,12 @@ public class Leg {
       */
     public String flexFlagStopDropOffMessage;
 
-    public Leg() {
-    }
-
 	/**
      * Whether this leg is a transit leg or not.
      * @return Boolean true if the leg is a transit leg
      */
     public Boolean isTransitLeg() {
-        if (mode == null) return null;
-        else if (mode == TraverseMode.WALK) return false;
-        else if (mode == TraverseMode.CAR) return false;
-        else if (mode == TraverseMode.BICYCLE) return false;
-        else return true;
+    	return mode != null && mode.isTransit();
     }
     
     /** 

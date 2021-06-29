@@ -32,6 +32,7 @@ public class ProfileMaintenance {
     
 	@PostConstruct
 	public void initialize() {
+		// Add maintenance code below
 	}
 
 }

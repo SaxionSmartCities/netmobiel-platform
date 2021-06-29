@@ -104,9 +104,6 @@ public class RidesharePreferences implements Serializable {
     @Column(name = "default_car_ref", length = 2)
     private String defaultCarRef;
     
-    public RidesharePreferences() {
-    }
-    
     public static RidesharePreferences createDefault(Profile profile) {
     	RidesharePreferences prefs = new RidesharePreferences();
     	prefs.luggageOptions = new HashSet<>(Set.of(LuggageOption.GROCERIES, LuggageOption.HANDLUGGAGE));

@@ -44,9 +44,6 @@ public class ComplimentManager {
     @Inject
     private ComplimentDao complimentDao;
     
-    public ComplimentManager() {
-    }
-
 	public Long createCompliment(Compliment compliment) throws BadRequestException, NotFoundException {
 		if (compliment.getReceiver() == null) {
 			throw new BadRequestException("Compliment receiver is a mandatory parameter");

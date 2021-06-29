@@ -86,10 +86,6 @@ public class Itinerary {
      */
     public Boolean tooSloped = false;
 
-    public Itinerary() {
-    	
-    }
-
     private static String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_TIME.format(instant.atOffset(ZoneOffset.UTC));
     }

@@ -242,6 +242,10 @@ public class OpenTripPlannerClient {
 //			}
 //			throw new WebApplicationException(msg, result.error.message.getStatus());
 //		}
+		return postProcess(result, forcedDepartureTime);
+    }
+
+    private PlanResponse postProcess(PlanResponse result, boolean forcedDepartureTime) {
 		if (result.plan != null) {
 			if (forcedDepartureTime) {
 				if (log.isDebugEnabled()) {
@@ -278,5 +282,4 @@ public class OpenTripPlannerClient {
 		}
 		return result;
     }
-
 }

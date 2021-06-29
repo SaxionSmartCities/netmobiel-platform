@@ -39,9 +39,6 @@ public class ProfileReportService {
     @Inject
     private ReviewDao reviewDao;
 
-    public ProfileReportService() {
-    }
-
     public Map<String, ProfileReport> reportUsers() throws BadRequestException {
     	Map<String, ProfileReport> reportMap = new HashMap<>();
 		PagedResult<Long> prs = profileDao.findAll(0, 0);

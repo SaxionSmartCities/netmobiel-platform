@@ -74,10 +74,6 @@ public class AutosuggestPlace {
 	 */
 	public String completion;
 	
-	public AutosuggestPlace() {
-		
-	}
-
 	@Override
 	public String toString() {
 		return String.format("AutoSuggestion ['%s' %s %s distance %s]", title, Arrays.toString(position), resultType, 

@@ -86,11 +86,4 @@ public class KeycloakAuthenticationFilter implements Filter {
 //        return KeycloakSecurityContext.class.cast(request.getAttribute(KeycloakSecurityContext.class.getName()));
 //    }
 
-    /**
-     * @see javax.servlet.Filter#destroy()
-     */
-    @Override
-    public void destroy() {
-    }
-    
 }

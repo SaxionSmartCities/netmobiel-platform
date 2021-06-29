@@ -190,6 +190,14 @@ public class ReportProcessor {
     	}
     }
 
+	private static String createReportFilename(String type, String reportDate) {
+		return String.format("%s-report-%s.csv", type, reportDate);
+	}
+	
+	private static String createSpssReportFilename(String type, String reportDate) {
+		return String.format("%s-report-spss-%s.csv", type, reportDate);
+	}
+
 	protected void createAndSendProfilesReport(String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		// Get the rideshare users for driver-specific attributes
@@ -207,7 +215,7 @@ public class ReportProcessor {
 	    			.collect(Collectors.toList());
 			String ridesReport = convertToCsv(report, ProfileReport.class);
 			Map<String, String> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "profiles", reportDate), ridesReport);
+			reports.put(createReportFilename("profiles", reportDate), ridesReport);
 			sendReports("Profielen", reportDate, reports);
     	} catch (Exception e) {
 			log.error("Error creating and sending profiles report", e);
@@ -236,8 +244,9 @@ public class ReportProcessor {
 			String spssReport = convertToCsvforSpss(spssReports, ActivitySpssReport.class, since, until);
 			
 			Map<String, String> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "activity", reportDate), report);
-			reports.put(String.format("%s-report-spss-%s.csv", "activity", reportDate), spssReport);
+			final var type = "activity";
+			reports.put(createReportFilename(type, reportDate), report);
+			reports.put(createSpssReportFilename(type, reportDate), spssReport);
 	
 			sendReports("Activiteitsniveau", reportDate, reports);
     	} catch (Exception e) {
@@ -268,10 +277,12 @@ public class ReportProcessor {
 			String passengerModalityBehaviourSpss = convertToCsvforSpss(spssModalityReport, PassengerModalityBehaviourSpssReport.class, since, until);
 
 			Map<String, String> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "passenger-behaviour", reportDate), passengerBehaviour);
-			reports.put(String.format("%s-report-spss-%s.csv", "passenger-behaviour", reportDate), passengerBehaviourSpss);
-			reports.put(String.format("%s-report-%s.csv", "passenger-modality-behaviour", reportDate), passengerModalityBehaviour);
-			reports.put(String.format("%s-report-spss-%s.csv", "passenger-modality-behaviour", reportDate), passengerModalityBehaviourSpss);
+			final var type = "passenger-behaviour";
+			reports.put(createReportFilename(type, reportDate), passengerBehaviour);
+			reports.put(createSpssReportFilename(type, reportDate), passengerBehaviourSpss);
+			final var typeModality = "passenger-modality-behaviour";
+			reports.put(createReportFilename(typeModality, reportDate), passengerModalityBehaviour);
+			reports.put(createSpssReportFilename(typeModality, reportDate), passengerModalityBehaviourSpss);
 	
 			sendReports("Reisgedrag Passagier", reportDate, reports);
     	} catch (Exception e) {
@@ -302,8 +313,9 @@ public class ReportProcessor {
 			String driverBehaviourSpss = convertToCsvforSpss(spssReport, DriverBehaviourSpssReport.class, since, until);
 
 			Map<String, String> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "driver-behaviour", reportDate), driverBehaviour);
-			reports.put(String.format("%s-report-spss-%s.csv", "driver-behaviour", reportDate), driverBehaviourSpss);
+			final var type = "driver-behaviour";
+			reports.put(createReportFilename(type, reportDate), driverBehaviour);
+			reports.put(createSpssReportFilename(type, reportDate), driverBehaviourSpss);
 	
 			sendReports("Reisgedrag Chauffeur", reportDate, reports);
     	} catch (Exception e) {
@@ -330,8 +342,9 @@ public class ReportProcessor {
 			String incentiveModelSpss = convertToCsvforSpss(spssReport, IncentiveModelPassengerSpssReport.class, since, until);
 
 			Map<String, String> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "incentives-passenger", reportDate), incentiveModel);
-			reports.put(String.format("%s-report-spss-%s.csv", "incentives-passenger", reportDate), incentiveModelSpss);
+			final var type = "incentives-passenger";
+			reports.put(createReportFilename(type, reportDate), incentiveModel);
+			reports.put(createSpssReportFilename(type, reportDate), incentiveModelSpss);
 	
 			sendReports("Incentives Passagier", reportDate, reports);
     	} catch (Exception e) {
@@ -358,8 +371,9 @@ public class ReportProcessor {
 			String incentiveModelSpss = convertToCsvforSpss(spssReport, IncentiveModelDriverSpssReport.class, since, until);
 
 			Map<String, String> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "incentives-driver", reportDate), incentiveModel);
-			reports.put(String.format("%s-report-spss-%s.csv", "incentives-driver", reportDate), incentiveModelSpss);
+			final var type = "incentives-driver";
+			reports.put(createReportFilename(type, reportDate), incentiveModel);
+			reports.put(createSpssReportFilename(type, reportDate), incentiveModelSpss);
 	
 			sendReports("Incentives Chauffeur", reportDate, reports);
     	} catch (Exception e) {
@@ -373,7 +387,7 @@ public class ReportProcessor {
    		  	copyProfileInfo(report, profileReportMap);
    		  	String ridesReport = convertToCsv(report, RideReport.class);
 			Map<String, String> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "rides", reportDate), ridesReport);
+			reports.put(createReportFilename("rides", reportDate), ridesReport);
 	
 			sendReports("Reis Chauffeur", reportDate, reports);
     	} catch (Exception e) {
@@ -387,7 +401,7 @@ public class ReportProcessor {
    		  	copyProfileInfo(report, profileReportMap);
    		  	String tripsReport= convertToCsv(report, TripReport.class);
 			Map<String, String> reports = new LinkedHashMap<>();
-			reports.put(String.format("%s-report-%s.csv", "trips", reportDate), tripsReport);
+			reports.put(createReportFilename("trips", reportDate), tripsReport);
 	
 			sendReports("Reis Passagier", reportDate, reports);
     	} catch (Exception e) {

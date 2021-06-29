@@ -55,10 +55,6 @@ public class GeocodeResultItem {
     public Integer distance;
     public MapViewType mapView;
 	
-	public GeocodeResultItem() {
-		
-	}
-
 	@Override
 	public String toString() {
 		return String.format("GeocodeResult[%s' %s %s distance %s]", title, position, resultType, 

@@ -14,8 +14,4 @@ public class MapViewType {
 	public Double east;
 	public Double north;
 	
-	public MapViewType() {
-		
-	}
-
 }

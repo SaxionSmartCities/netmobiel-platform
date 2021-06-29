@@ -136,9 +136,6 @@ public class Delegation extends ReferableObject implements Serializable {
     @JoinColumn(name = "transfer_from", foreignKey = @ForeignKey(name = "delegation_transfer_from_fk"))
     private Delegation transferFrom;
 
-    public Delegation() {
-    }
-    
 	@Override
 	public Long getId() {
 		return id;

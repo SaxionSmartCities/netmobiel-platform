@@ -66,9 +66,6 @@ public class DelegationManager {
     @Inject
     private Event<DelegationActivationConfirmedEvent> delegationActivationConfirmedEvent;
 
-    public DelegationManager() {
-    }
-
 	public Profile resolveProfile(Profile p) throws NotFoundException, BadRequestException {
 		if (p == null) {
 			return null;

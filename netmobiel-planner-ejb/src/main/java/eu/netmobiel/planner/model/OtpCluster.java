@@ -46,9 +46,6 @@ public class OtpCluster extends OtpLocatedEntity {
 	@Transient
 	private BitSet transportationTypes = new BitSet(8);
 
-	public OtpCluster() {
-	}
-
 	public List<OtpStop> getStops() {
 		return stops;
 	}

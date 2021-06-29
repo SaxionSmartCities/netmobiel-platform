@@ -44,10 +44,6 @@ public class ReviewManager {
     @Inject
     private ReviewDao reviewDao;
     
-
-    public ReviewManager() {
-    }
-
 	public Long createReview(Review review) throws BadRequestException, NotFoundException {
 		if (review.getReceiver() == null) {
 			throw new BadRequestException("Review receiver is a mandatory parameter");

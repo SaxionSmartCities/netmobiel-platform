@@ -17,9 +17,6 @@ public class OtpLocatedEntity extends OtpBase {
 	@Embedded
     private GeoLocation location;
 
-	public OtpLocatedEntity() {
-	}
-	
 	public GeoLocation getLocation() {
 		return location;
 	}

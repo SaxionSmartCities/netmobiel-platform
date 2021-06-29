@@ -38,9 +38,6 @@ public class OtpTransfer implements Serializable {
 	@JoinColumn(name = "to_stop", nullable = false, foreignKey = @ForeignKey(name = "otp_transfer_to_stop_fk"))
     private OtpStop toStop; 
 
-    public OtpTransfer() {
-	}
-
 	public int getDistance() {
 		return distance;
 	}

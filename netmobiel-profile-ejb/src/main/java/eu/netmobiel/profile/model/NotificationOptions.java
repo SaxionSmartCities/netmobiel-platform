@@ -30,9 +30,6 @@ public class NotificationOptions implements Serializable {
 	@Column(name = "opt_trip_updates", nullable = false)
 	private boolean tripUpdates = true;
 
-	public NotificationOptions() {
-	}
-
 	public static NotificationOptions createDefault() {
 		return new NotificationOptions();
 	}

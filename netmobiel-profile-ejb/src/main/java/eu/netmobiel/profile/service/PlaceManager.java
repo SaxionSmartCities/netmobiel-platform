@@ -43,9 +43,6 @@ public class PlaceManager {
     @Inject
     private PlaceDao placeDao;
 
-    public PlaceManager() {
-    }
-
 	public Long createPlace(String managedId, Place place) throws BadRequestException, NotFoundException {
     	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));

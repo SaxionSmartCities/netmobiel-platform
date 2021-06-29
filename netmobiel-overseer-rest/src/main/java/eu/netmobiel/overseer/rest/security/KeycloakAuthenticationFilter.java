@@ -73,12 +73,5 @@ public class KeycloakAuthenticationFilter implements Filter {
 //        }
         chain.doFilter(request, response);
     }
-
-    /**
-     * @see javax.servlet.Filter#destroy()
-     */
-    @Override
-    public void destroy() {
-    }
     
 }

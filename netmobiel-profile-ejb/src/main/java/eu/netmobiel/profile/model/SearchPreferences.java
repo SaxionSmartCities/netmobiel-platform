@@ -128,9 +128,6 @@ public class SearchPreferences implements Serializable {
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Set<TraverseMode> allowedTraverseModes;
 
-    public SearchPreferences() {
-    }
-    
     public static SearchPreferences createDefault(Profile profile) {
     	SearchPreferences prefs = new SearchPreferences();
     	prefs.luggageOptions = new HashSet<>(Set.of(LuggageOption.values()));

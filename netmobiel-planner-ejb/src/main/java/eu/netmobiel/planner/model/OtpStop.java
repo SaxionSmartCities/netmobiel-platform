@@ -58,9 +58,6 @@ public class OtpStop extends OtpLocatedEntity {
 	@Transient
 	private BitSet transportationTypes = new BitSet(8);
 	
-	public OtpStop() {
-	}
-
 	public String getPlatformCode() {
 		return platformCode;
 	}

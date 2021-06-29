@@ -23,10 +23,6 @@ public class AddressType {
 	public String postalCode;
 	public String houseNumber;
 	
-	public AddressType() {
-		
-	}
-
 	@Override
 	public String toString() {
 		return String.format("Address [%s]", label);

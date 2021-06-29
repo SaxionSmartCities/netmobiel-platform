@@ -23,9 +23,6 @@ public class OtpBase implements Serializable {
     @Column(name = "stale", nullable = false)
     private boolean stale;
 
-	public OtpBase() {
-	}
-	
 	public String getId() {
 		return id;
 	}

@@ -3,7 +3,6 @@ package eu.netmobiel.overseer.processor;
 import java.text.MessageFormat;
 import java.time.Instant;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
 import javax.ejb.SessionContext;
@@ -50,10 +49,6 @@ public class DelegationProcessor {
     @Inject
     private Logger logger;
     
-    @PostConstruct
-    public void initialize() {
-    }
-
     public void onDelegatorAccountPrepared(@Observes(during = TransactionPhase.IN_PROGRESS) DelegatorAccountPreparedEvent event) throws BusinessException {
 	    // The delegator needs to have a number that can receive an SMS. We require a mobile number.
     	if (! publisherService.isValidForMobileMessaging(event.getDelegator())) {
