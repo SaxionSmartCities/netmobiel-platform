@@ -34,9 +34,6 @@ public class SepaCreditTransferDocument extends SepaDocument {
 		private SepaPaymentInformation paymentInfo;
 		private SepaGroupHeader groupHeader;
 		
-		public Builder() {
-		}
-
 		public Builder with(List<SepaTransaction> theTransactions) {
 			this.transactions = theTransactions;
 			return this;
