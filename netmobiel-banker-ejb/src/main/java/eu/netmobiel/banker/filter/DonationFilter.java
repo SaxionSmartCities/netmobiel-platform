@@ -159,7 +159,7 @@ public class DonationFilter extends PeriodFilter {
 		} else {
 			setSortBy(sortBy);
 		}
-		if (!Arrays.stream(supportedSortBy).anyMatch(p -> p == this.sortBy)) {
+		if (Arrays.stream(supportedSortBy).noneMatch(p -> p == this.sortBy)) {
 			throw new IllegalArgumentException("SortyBy is not supported: " + this.sortBy);
 		}
 	}
@@ -172,6 +172,7 @@ public class DonationFilter extends PeriodFilter {
 		this.anonymousToo = anonymousToo;
 	}
 
+	@Override
 	public void validate() throws BadRequestException {
 		super.validate();
     	if (this.sortBy == null) {
