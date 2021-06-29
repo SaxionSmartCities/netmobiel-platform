@@ -46,8 +46,8 @@ public class EllipseHelper extends GeometryHelper {
     	
     	// Calculate centroid of the ellipse
     	EligibleArea ea = new EligibleArea();
-    	UTM f1_utm = polar2Utm(f1.getCoordinate());
-    	UTM f2_utm = polar2Utm(f2.getCoordinate());
+    	UTM f1_utm = polar2utm(f1.getCoordinate());
+    	UTM f2_utm = polar2utm(f2.getCoordinate());
     	Coordinate c1_utm = utm2Coordinate(f1_utm);
     	Coordinate c2_utm = utm2Coordinate(f2_utm);
     	LineString line = createLine(c1_utm, c2_utm);
@@ -99,7 +99,7 @@ public class EllipseHelper extends GeometryHelper {
     	// https://en.wikipedia.org/wiki/Universal_Transverse_Mercator_coordinate_system
     	// In UTM we can work in meters and is the earth flat, at least is a small area.
     	
-    	UTM center_utm = polar2Utm(center.getCoordinate());
+    	UTM center_utm = polar2utm(center.getCoordinate());
     	Coordinate center_utm_coord = utm2Coordinate(center_utm);
 		GeometricShapeFactory shapeFactory = new GeometricShapeFactory(geometryFactory);
 		shapeFactory.setNumPoints(16); // adjustable
@@ -123,7 +123,7 @@ public class EllipseHelper extends GeometryHelper {
 		return new Coordinate(utm.getCoordinates()[0], utm.getCoordinates()[1]);
 	}
 	
-	public static UTM polar2Utm(Coordinate c) {
+	public static UTM polar2utm(Coordinate c) {
 		LatLong latlong = LatLong.valueOf(c.y, c.x, NonSI.DEGREE_ANGLE);
 		UTM utm = UTM.latLongToUtm(latlong, ReferenceEllipsoid.WGS84);
 		return utm;
@@ -144,8 +144,8 @@ public class EllipseHelper extends GeometryHelper {
 	}
 
 	public static double getBearing(Point polar1, Point polar2) {
-    	UTM utm1 = polar2Utm(polar1.getCoordinate());
-    	UTM utm2 = polar2Utm(polar2.getCoordinate());
+    	UTM utm1 = polar2utm(polar1.getCoordinate());
+    	UTM utm2 = polar2utm(polar2.getCoordinate());
 		return getBearing(utm2Coordinate(utm1), utm2Coordinate(utm2));
 	}
 
