@@ -116,7 +116,7 @@ public class HereSearchClient {
     		if (rsp.getItems().get(0).getAddress() != null) {
     			pc = rsp.getItems().get(0).getAddress().getPostalCode();
     			if (pc != null) {
-    				pc = pc.replaceAll(" ", "");
+    				pc = pc.replace(" ", "");
     			}
     		}
     	}

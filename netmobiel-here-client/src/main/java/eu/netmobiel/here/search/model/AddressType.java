@@ -29,6 +29,6 @@ public class AddressType {
 	}
 	
 	public String getPostalCodeNoSpace() {
-		return postalCode == null ? null : postalCode.replaceAll(" ", ""); 
+		return postalCode == null ? null : postalCode.replace(" ", ""); 
 	}
 }
