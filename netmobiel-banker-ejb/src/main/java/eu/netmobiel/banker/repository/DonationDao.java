@@ -124,8 +124,8 @@ public class DonationDao extends AbstractDao<Donation, Long> {
     };
 
     public static class CharityPopularity {
-    	public long charityId;
-    	public long donorCount;
+    	public Long charityId;
+    	public Long donorCount;
     	
     	public CharityPopularity(long aCharityId, long aDonorCount) {
     		this.charityId = aCharityId;
