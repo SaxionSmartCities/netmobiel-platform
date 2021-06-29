@@ -15,7 +15,7 @@ public abstract class SpssReportBase<R> {
 	@CsvBindByName
 	private String home;
 
-	public SpssReportBase(String managedIdentity, String home) {
+	protected SpssReportBase(String managedIdentity, String home) {
 		this.managedIdentity = managedIdentity;
 		this.home = home;
 	}

@@ -101,12 +101,4 @@ public class RideshareApplication extends Application {
         return resources;
     }
 
-//	@Override
-//	public Set<Object> getSingletons() {
-//        Set<Object> singletons = new HashSet<>();
-//        singletons.add(new LocalDataParamConverterProvider());
-//		return singletons;
-//	}
-    
-    
 }

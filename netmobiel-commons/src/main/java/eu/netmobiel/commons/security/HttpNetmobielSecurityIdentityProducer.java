@@ -65,7 +65,7 @@ public class HttpNetmobielSecurityIdentityProducer {
 			}
     	}
 		SecurityIdentity si = new NetmobielSecurityIdentity(realUser, effectiveUser, token);
-		if (si.isDelegationActive()) {
+		if (si.isDelegationActive() && logger.isInfoEnabled()) {
 			logger.info(String.format("Delegation active: %s", si.toString()));
 		}
     	return si;

@@ -14,7 +14,7 @@ import eu.netmobiel.commons.model.User;
 
 public abstract class UserDao<T extends User> extends AbstractDao<T, Long> {
 
-    public UserDao(Class<T> entityClass) {
+	protected UserDao(Class<T> entityClass) {
 		super(entityClass);
 	}
 

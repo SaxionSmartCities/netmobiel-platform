@@ -5,7 +5,7 @@ import javax.enterprise.event.ObserverException;
 
 import eu.netmobiel.commons.exception.BusinessException;
 
-public class EventFireWrapper<T> {
+public class EventFireWrapper {
 	
 	public static <T> void fire(Event<T> event, T eventObject) throws BusinessException {
 		try {

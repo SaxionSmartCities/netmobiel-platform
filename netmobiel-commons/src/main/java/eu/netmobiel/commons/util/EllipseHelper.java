@@ -19,6 +19,9 @@ import com.vividsolutions.jts.util.GeometricShapeFactory;
 
 public class EllipseHelper extends GeometryHelper {
 
+	protected EllipseHelper() {
+		// Do not instantiate
+	}
     public static class EligibleArea {
     	public Polygon eligibleAreaGeometry;
     	public double carthesianDistance;

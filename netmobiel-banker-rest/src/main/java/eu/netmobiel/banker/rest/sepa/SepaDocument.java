@@ -7,7 +7,7 @@ public abstract class SepaDocument {
 	@Valid
 	private SepaGroupHeader groupHeader;
 	
-	public SepaDocument(SepaGroupHeader header) {
+	protected SepaDocument(SepaGroupHeader header) {
 		this.groupHeader = header;
 	}
 

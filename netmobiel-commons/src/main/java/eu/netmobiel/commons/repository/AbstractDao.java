@@ -35,11 +35,11 @@ public abstract class AbstractDao<T, ID> {
     private Class<ID> primaryKeyClass;
 
     @SuppressWarnings("unchecked")
-	public AbstractDao(Class<T> entityClass) {
+	protected AbstractDao(Class<T> entityClass) {
         this((Class<ID>) Long.class, entityClass);
     }
 
-    public AbstractDao(Class<ID> pkClass, Class<T> entityClass) {
+    protected AbstractDao(Class<ID> pkClass, Class<T> entityClass) {
         this.primaryKeyClass = pkClass;
         this.persistentClass = entityClass;
     }

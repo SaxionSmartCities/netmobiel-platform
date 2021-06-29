@@ -45,7 +45,6 @@ public class WebApplicationExceptionMapper implements
 			t = e.getCause();
 			BusinessException ae = (BusinessException) t;
 			errorCode = ae.getVendorCode();
-			status = Response.Status.INTERNAL_SERVER_ERROR;
 			if (ae instanceof BadRequestException) {
 				status = Response.Status.BAD_REQUEST;
 			} else if (ae instanceof NotFoundException) {

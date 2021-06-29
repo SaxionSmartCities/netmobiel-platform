@@ -21,7 +21,7 @@ public class ErrorResponse {
 	}
 
 	public ErrorResponse(Response.StatusType status, String anErrorCode, String aMessage) {
-		this(status.getStatusCode(), status.getReasonPhrase(), null, aMessage);
+		this(status.getStatusCode(), status.getReasonPhrase(), anErrorCode, aMessage);
 	}
 
 	public ErrorResponse(int aCode, String aReason, String aMessage) {

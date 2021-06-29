@@ -13,7 +13,8 @@ import eu.netmobiel.commons.util.UrnHelper;
 public abstract class ReferableObject implements Serializable {
 	private static final long serialVersionUID = 6280262978437984020L;
 
-    public ReferableObject() {
+    protected ReferableObject() {
+    	// Constructor
     }
     
     /**

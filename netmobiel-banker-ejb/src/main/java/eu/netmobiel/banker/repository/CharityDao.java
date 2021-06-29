@@ -51,7 +51,7 @@ public class CharityDao extends AbstractDao<Charity, Long> {
 		return em;
 	}
 
-	private Expression<?> createOrderExpression(CriteriaBuilder cb, Root<Charity> root, CharitySortBy sortBy, GeoLocation location) throws BadRequestException {
+	private static Expression<?> createOrderExpression(CriteriaBuilder cb, Root<Charity> root, CharitySortBy sortBy, GeoLocation location) throws BadRequestException {
         Expression<?> orderExpr = null;
         if (sortBy == CharitySortBy.SCORE) {
         	// Convert to promille first, quot acts as an integer division

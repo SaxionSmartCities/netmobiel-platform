@@ -14,6 +14,10 @@ import eu.netmobiel.commons.api.EncodedPolylineBean;
 
 public class PolylineEncoder {
 
+	private PolylineEncoder() {
+		// Only static methods.
+	}
+	
     public static EncodedPolylineBean createEncodings(double[] lat, double[] lon) {
         return createEncodings(new PointAdapterList(lat, lon));
     }
@@ -146,7 +150,7 @@ public class PolylineEncoder {
 
     public static String encodeNumber(int num) {
 
-        StringBuffer encodeString = new StringBuffer();
+        StringBuilder encodeString = new StringBuilder();
 
         while (num >= 0x20) {
             int nextValue = (0x20 | (num & 0x1f)) + 63;

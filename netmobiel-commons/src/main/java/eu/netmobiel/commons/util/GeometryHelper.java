@@ -55,6 +55,10 @@ public class GeometryHelper {
 
 	protected static GeometryFactory geometryFactory = new GeometryFactory(new PrecisionModel(), WGS84SRID);
 
+	protected GeometryHelper() {
+		// Only static methods.
+	}
+	
 	/**
 	 * Creates a point from a latitude/longitude pair. Note that in the GeoJSON/WKT standards the X stands for
 	 * longitude and Y for latitude.

@@ -9,7 +9,7 @@ public abstract class SpssReportWithModality<R extends ReportKeyWithModality> ex
 	@CsvBindByName
 	private String modality;
 
-	public SpssReportWithModality(String managedIdentity, String home, String modality) {
+	protected SpssReportWithModality(String managedIdentity, String home, String modality) {
 		super(managedIdentity, home);
 		this.modality = modality;
 	}

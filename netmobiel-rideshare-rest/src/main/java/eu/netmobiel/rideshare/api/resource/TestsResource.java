@@ -55,6 +55,13 @@ public class TestsResource {
     }
 
     @GET
+    @Path("/403")
+    @Produces(MediaType.APPLICATION_JSON)
+    public Response forbidden() {
+    	return Response.status(Status.FORBIDDEN).build();
+    }
+
+    @GET
     @Path("/404")
     @Produces(MediaType.APPLICATION_JSON)
     public Response notFound() {
