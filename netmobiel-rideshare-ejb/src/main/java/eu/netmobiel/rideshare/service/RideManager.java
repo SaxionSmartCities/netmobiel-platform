@@ -244,8 +244,9 @@ public class RideManager {
     	completeTheFilter(filter);
     	cursor.validate(MAX_RESULTS, 0);
     	// Assure user is in persistence context
-    	userDao.find(filter.getDriver().getId())
-    				.orElseThrow(() -> new NotFoundException("No such user: " + filter.getDriver().getId()));
+    	if (userDao.find(filter.getDriver().getId()).isEmpty()) {
+			throw new NotFoundException("No such user: " + filter.getDriver().getId());
+    	}
     	List<Ride> results = Collections.emptyList();
         Long totalCount = 0L;
 		PagedResult<Long> prs = rideDao.findByDriver(filter, Cursor.COUNTING_CURSOR);
@@ -257,7 +258,7 @@ public class RideManager {
     			results = rideDao.loadGraphs(rideIds.getData(), Ride.LIST_RIDES_ENTITY_GRAPH, Ride::getId);
     		}
     	}
-    	return new PagedResult<Ride>(results, cursor, totalCount);
+    	return new PagedResult<>(results, cursor, totalCount);
     }
 
     /**
@@ -306,7 +307,7 @@ public class RideManager {
         		results = rideDao.loadGraphs(rideIds.getData(), Ride.SEARCH_RIDES_ENTITY_GRAPH, Ride::getId);
         	}
     	}
-    	return new PagedResult<Ride>(results, maxResults, offset, totalCount);
+    	return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
     /**
@@ -432,20 +433,19 @@ public class RideManager {
 		if (rides.size() == 0) {
 			// This is unexpected, no rides at all. The horizon must be too short. Error.
 			throw new CreateException("No rides could be created from template setting. Is horizon too close?");
+		}
+		if (rides.get(0).hasTemporalOverlap(ride)) {
+			// The ride that was calculated should have overlap with the first template-generated ride. 
+			// That is ok, we snapped it already to the pattern. Skip the first, we have it already in the database.
+			rides.remove(0);
 		} else {
-			if (rides.get(0).hasTemporalOverlap(ride)) {
-				// The ride that was calculated should have overlap with the first template-generated ride. 
-				// That is ok, we snapped it already to the pattern. Skip the first, we have it already in the database.
-				rides.remove(0);
-			} else {
-				// The one we calculated must have (initial) that does not match the recurrence pattern.
-				throw new IllegalStateException("First recurrent ride does not match!");
-			}
-			// None of the rides in the list are in the persistence context
-			for (Ride r : rides) {
-				rideItineraryHelper.saveNewRide(r);
-				checkRideMonitoring(r);
-			}
+			// The one we calculated must have (initial) that does not match the recurrence pattern.
+			throw new IllegalStateException("First recurrent ride does not match!");
+		}
+		// None of the rides in the list are in the persistence context
+		for (Ride r : rides) {
+			rideItineraryHelper.saveNewRide(r);
+			checkRideMonitoring(r);
 		}
     }
     
@@ -562,7 +562,7 @@ public class RideManager {
     	validateCreateUpdateRide(ride);
     	Long carId = RideshareUrnHelper.getId(Car.URN_PREFIX, ride.getCarRef());
     	if (carId == null) { 
-    		new NotFoundException("No Car ID found for Ride " + ride.getId());
+    		throw new NotFoundException("No Car ID found for Ride " + ride.getId());
     	}
     	Car car = carDao.find(carId)
     			.orElseThrow(() -> new NotFoundException("Cannot find car: " + carId));
@@ -740,10 +740,11 @@ public class RideManager {
     	}
     	ridedb.setConfirmed(confirmationValue);
     	ridedb.setConfirmationReason(reason);
-    	if (ridedb.getActiveBooking().isPresent()) {
-    		Booking b = ridedb.getActiveBooking().get();
+    	Optional<Booking> optBooking = ridedb.getActiveBooking();
+    	if (optBooking.isPresent()) {
     		EventFireWrapper.fire(transportProviderConfirmedEvent, 
-    				new TripConfirmedByProviderEvent(b.getUrn(),  b.getPassengerTripRef(), 
+    				new TripConfirmedByProviderEvent(optBooking.get().getUrn(), 
+    						optBooking.get().getPassengerTripRef(), 
     						confirmationValue, reason));
     	}
     }
