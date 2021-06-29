@@ -296,17 +296,11 @@ public class LedgerService {
         	offset = 0;
         }
     	List<Ledger> results = null;
-		Long totalCount = 0L;
+		Long totalCount = ledgerDao.listLedgers(0, offset).getTotalCount();
     	if (maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> lids = ledgerDao.listLedgers(maxResults, offset);
     		results = ledgerDao.loadGraphs(lids.getData(), null, Ledger::getId);
-    		totalCount = Long.valueOf(results.size());
-    	}
-    	if (maxResults == 0 || results.size() >= maxResults) {
-    		// We only want to know the total count, or we have potential more data available then we can guess now
-    		// Determine the total count
-        	totalCount = ledgerDao.listLedgers(0, offset).getTotalCount();
     	}
     	return new PagedResult<Ledger>(results, maxResults, offset, totalCount);
     }
@@ -320,7 +314,7 @@ public class LedgerService {
         }
     	PagedResult<Long> prs = accountDao.listAccounts(null, 0, offset);
     	List<Account> results = null;
-    	if (maxResults == null || maxResults > 0) {
+    	if (maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> mids = accountDao.listAccounts(null, maxResults, offset);
     		results = accountDao.loadGraphs(mids.getData(), null, Account::getId);
@@ -341,7 +335,7 @@ public class LedgerService {
 		Ledger ledger = ledgerDao.findByDate(period.toInstant());
     	PagedResult<Long> prs = balanceDao.listBalances(acc, ledger, 0, offset);
     	List<Balance> results = null;
-    	if (maxResults == null || maxResults > 0) {
+    	if (maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> ids = balanceDao.listBalances(acc, ledger, maxResults, offset);
     		results = balanceDao.loadGraphs(ids.getData(), null, Balance::getId);
@@ -362,7 +356,7 @@ public class LedgerService {
         }
     	PagedResult<Long> prs = accountingEntryDao.listAccountingEntries(accountReference, since, until, 0, offset);
     	List<AccountingEntry> results = null;
-    	if (maxResults == null || maxResults > 0) {
+    	if (maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> ids = accountingEntryDao.listAccountingEntries(accountReference, since, until, maxResults, offset);
     		results = accountingEntryDao.loadGraphs(ids.getData(), null, AccountingEntry::getId);
@@ -434,8 +428,9 @@ public class LedgerService {
      * @return the account  
      */
     public void prepareAccount(String ncan, String name, AccountType type) {
-    	accountDao.findByAccountNumber(ncan)
-    		.orElseGet(() -> createAccount(ncan, name, type));
+    	if (accountDao.findByAccountNumber(ncan).isEmpty()) {
+    		createAccount(ncan, name, type);
+    	}
     }
 
     private Optional<BankerUser> lookupUser(NetMobielUser user) {
