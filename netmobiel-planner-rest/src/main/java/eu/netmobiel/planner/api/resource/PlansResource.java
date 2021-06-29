@@ -28,7 +28,6 @@ import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.PlannerUserManager;
 import eu.netmobiel.planner.service.TripPlanManager;
-import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 /**
  * Implementation for the /plans endpoint. The security has been placed in this handler. The service

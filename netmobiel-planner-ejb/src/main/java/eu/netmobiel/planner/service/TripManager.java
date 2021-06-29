@@ -59,7 +59,6 @@ import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.TripDao;
-import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @Stateless
 @Logging

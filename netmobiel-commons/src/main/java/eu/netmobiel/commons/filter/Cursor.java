@@ -14,7 +14,7 @@ public class Cursor {
 	public static final Cursor COUNTING_CURSOR = new Cursor(0, 0);
 	
 	public Cursor() {
-		
+		// Constructor
 	}
 	
 	public Cursor(Integer aMaxResult, Integer anOffset) {

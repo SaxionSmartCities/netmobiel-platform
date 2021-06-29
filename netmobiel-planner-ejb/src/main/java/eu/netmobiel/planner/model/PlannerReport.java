@@ -471,7 +471,7 @@ public class PlannerReport implements Serializable {
 		this.rejectionReason = rejectionReason;
 	}
 
-	private String formatDateTime(Instant instant) {
+	private static String formatDateTime(Instant instant) {
     	return DateTimeFormatter.ISO_INSTANT.format(instant);
     }
 

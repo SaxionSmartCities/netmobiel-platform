@@ -123,7 +123,7 @@ public class SearchResource extends PlannerResource implements SearchApi {
     	return Response.ok(tripPlanMapper.map(plan)).build();
     }
     
-    private Set<TraverseMode> parseModalities(String modalities) {
+    private static Set<TraverseMode> parseModalities(String modalities) {
     	Set<TraverseMode> traverseModes = new HashSet<>();
     	if (modalities != null && modalities.trim().length() > 0) {
         	try {

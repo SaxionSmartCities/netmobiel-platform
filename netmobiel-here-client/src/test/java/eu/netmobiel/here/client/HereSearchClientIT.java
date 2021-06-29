@@ -90,7 +90,8 @@ public class HereSearchClientIT {
     	assertEquals(52.00423, item.getMapView().getNorth(), 1E-6);
     }
 
-    @Test
+    @SuppressWarnings("resource")
+	@Test
     public void testReverseGeocode_BadFormat() throws Exception {
     	GeoLocation myLocation = GeoLocation.fromString("Zieuwent, Kennedystraat::452.004166,1006.517835");
     	try {

@@ -90,7 +90,7 @@ public class TripDao extends AbstractDao<Trip, Long> {
 			tq.setMaxResults(maxResults);
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
     public List<Trip> findMonitorableTrips(Instant departureBefore) {
@@ -192,7 +192,7 @@ public class TripDao extends AbstractDao<Trip, Long> {
 			tq.setMaxResults(maxResults);
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
 }

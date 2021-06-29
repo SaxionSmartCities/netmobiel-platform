@@ -34,7 +34,6 @@ import eu.netmobiel.banker.repository.AccountingTransactionDao;
 import eu.netmobiel.banker.repository.BalanceDao;
 import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.repository.LedgerDao;
-import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -82,7 +81,7 @@ public class LedgerService {
     @Inject
     private BankerUserDao userDao;
 
-    private void expect(Account account, AccountType type) {
+    private static void expect(Account account, AccountType type) {
     	if (! Account.isOpen.test(account)) {
     		throw new IllegalArgumentException(String.format("Account is not open: %s", account.toString()));
     	}
@@ -303,7 +302,7 @@ public class LedgerService {
     		PagedResult<Long> lids = ledgerDao.listLedgers(maxResults, offset);
     		results = ledgerDao.loadGraphs(lids.getData(), null, Ledger::getId);
     	}
-    	return new PagedResult<Ledger>(results, maxResults, offset, totalCount);
+    	return new PagedResult<>(results, maxResults, offset, totalCount);
     }
     
     public PagedResult<Account> listAccounts(Integer maxResults, Integer offset) {
@@ -320,7 +319,7 @@ public class LedgerService {
     		PagedResult<Long> mids = accountDao.listAccounts(null, maxResults, offset);
     		results = accountDao.loadGraphs(mids.getData(), null, Account::getId);
     	}
-    	return new PagedResult<Account>(results, maxResults, offset, prs.getTotalCount());
+    	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());
     }
 
     public PagedResult<Balance> listBalances(Account acc, OffsetDateTime period, Integer maxResults, Integer offset) {
@@ -341,7 +340,7 @@ public class LedgerService {
     		PagedResult<Long> ids = balanceDao.listBalances(acc, ledger, maxResults, offset);
     		results = balanceDao.loadGraphs(ids.getData(), null, Balance::getId);
     	}
-    	return new PagedResult<Balance>(results, maxResults, offset, prs.getTotalCount());
+    	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());
     }
 
     public PagedResult<AccountingEntry> listAccountingEntries(String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) 
@@ -362,7 +361,7 @@ public class LedgerService {
     		PagedResult<Long> ids = accountingEntryDao.listAccountingEntries(accountReference, since, until, maxResults, offset);
     		results = accountingEntryDao.loadGraphs(ids.getData(), null, AccountingEntry::getId);
     	}
-    	return new PagedResult<AccountingEntry>(results, maxResults, offset, prs.getTotalCount());
+    	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());
     }
 
     public Ledger createLedger(Instant when) {

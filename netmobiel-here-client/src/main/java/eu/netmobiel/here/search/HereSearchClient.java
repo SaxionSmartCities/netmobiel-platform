@@ -63,7 +63,7 @@ public class HereSearchClient {
 	 * @param err the error response
 	 * @return A string containing the title, cause and action fields.
 	 */
-	private String formatErrorResponse(ErrorResponse err) {
+	private static String formatErrorResponse(ErrorResponse err) {
 		return String.format("HERE: %s caused by %s - %s", err.getTitle(), err.getCause(), err.getAction());
 	}
 

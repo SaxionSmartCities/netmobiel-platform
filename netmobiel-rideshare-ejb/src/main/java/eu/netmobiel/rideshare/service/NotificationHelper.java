@@ -78,7 +78,6 @@ public class NotificationHelper {
 		Message msg = null;
 		if (booking.getState() == BookingState.PROPOSED) {
 			// No message is needed, because is is the drive who created the proposal
-			msg = null;
 		} else if (booking.getState() == BookingState.REQUESTED) {
 			msg = createMessage(booking, "Je hebt een passagier!", "Voor jouw rit op {0} naar {1} wil {2} graag met je mee.");
 		} else if (booking.getState() == BookingState.CONFIRMED) {

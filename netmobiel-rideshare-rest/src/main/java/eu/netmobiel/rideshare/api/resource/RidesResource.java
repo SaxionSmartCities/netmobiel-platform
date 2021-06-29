@@ -30,7 +30,6 @@ import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.service.RideManager;
 import eu.netmobiel.rideshare.service.RideshareUserManager;
-import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @RequestScoped
 public class RidesResource implements RidesApi {
@@ -165,7 +164,8 @@ public class RidesResource implements RidesApi {
      * @param reason The (optional) reason why the ride was cancelled.
      * @return
      */
-    @Override
+    @SuppressWarnings("resource")
+	@Override
 	public Response deleteRide(String rideId, String scope, String reason) {
     	Response rsp = null;
     	try {

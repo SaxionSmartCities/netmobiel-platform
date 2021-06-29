@@ -217,12 +217,12 @@ public class Itinerary implements Serializable {
     public Itinerary deepCopy() {
     	// shallow copy
     	Itinerary copy = new Itinerary(this);
-    	List<Leg> legs = copy.getLegs();
+    	List<Leg> newLegs = copy.getLegs();
     	// now convert to deep copy
     	copy.setLegs(new ArrayList<>());
     	copy.getStops().clear();
     	Stop lastStop = null;
-    	for (Leg oldLeg : legs) {
+    	for (Leg oldLeg : newLegs) {
     		// Deep copy, convert to graph
 			Leg newLeg = new Leg(oldLeg);
 			if (lastStop != null) {
@@ -403,7 +403,7 @@ public class Itinerary implements Serializable {
 	    		.filter(leg -> leg.getFareInCredits() != null)
 	    		.mapToInt(leg -> leg.getFareInCredits())
 	    		.sum();
-    	if (fare != null && fare > 0) {
+    	if (fare > 0) {
     		setFareInCredits(fare);
     	}
 	}
@@ -436,7 +436,7 @@ public class Itinerary implements Serializable {
 		return Optional.ofNullable(leg);
 	}
 
-    private String formatTime(Instant instant) {
+    private static String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_INSTANT.format(instant);
     }
 

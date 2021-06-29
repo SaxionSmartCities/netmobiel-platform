@@ -28,14 +28,13 @@ import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Itinerary_;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Leg_;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.model.Trip_;
-import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.test.Fixture;
 import eu.netmobiel.planner.test.PlannerIntegrationTestBase;
-import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 @RunWith(Arquillian.class)
 public class TripDaoIT  extends PlannerIntegrationTestBase {

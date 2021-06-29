@@ -34,7 +34,6 @@ import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.BookingDao;
 import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.repository.RideshareUserDao;
-import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @Stateless
 @Logging
@@ -110,7 +109,7 @@ public class BookingManager {
     			results = bookingDao.loadGraphs(bookingIds.getData(), Booking.DEEP_ENTITY_GRAPH, Booking::getId);
     		}
     	}
-    	return new PagedResult<Booking>(results, maxResults, offset, totalCount);
+    	return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
     /**

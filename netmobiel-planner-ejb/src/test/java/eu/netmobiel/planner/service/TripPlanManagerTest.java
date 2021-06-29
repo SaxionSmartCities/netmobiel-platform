@@ -21,8 +21,8 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import eu.netmobiel.commons.event.BookingCancelledFromProviderEvent;
-import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
@@ -32,21 +32,21 @@ import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlanType;
+import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
-import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.OpenTripPlannerDao;
 import eu.netmobiel.planner.repository.OtpClusterDao;
 import eu.netmobiel.planner.repository.TripPlanDao;
 import eu.netmobiel.planner.test.Fixture;
-import eu.netmobiel.planner.util.PlannerUrnHelper;
 import eu.netmobiel.rideshare.service.RideManager;
 import mockit.Expectations;
 import mockit.Injectable;
 import mockit.Tested;
 import mockit.Verifications;
 
+@SuppressWarnings("unused")
 public class TripPlanManagerTest {
 
 	private Logger log = LoggerFactory.getLogger(TripPlanManagerTest.class);
@@ -147,7 +147,7 @@ public class TripPlanManagerTest {
 		}};
 	}
 	
-	private String printAsLocalDateTime(Instant instant) {
+	private static String printAsLocalDateTime(Instant instant) {
 		return DateTimeFormatter.ISO_LOCAL_DATE_TIME.format(instant.atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toLocalDateTime());
 	}
 

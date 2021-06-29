@@ -66,8 +66,8 @@ public class SepaTransaction {
 			return this;
 		}
 
-		public Builder withAmount(BigDecimal amount) {
-			this.amount = amount;
+		public Builder withAmount(BigDecimal someAmount) {
+			this.amount = someAmount;
 			return this;
 		}
 

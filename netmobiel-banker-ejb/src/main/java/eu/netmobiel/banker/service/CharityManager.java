@@ -116,7 +116,7 @@ public class CharityManager {
     			results = charityDao.loadGraphs(charityIds.getData(), graph, Charity::getId);
     		}
     	}
-    	return new PagedResult<Charity>(results, maxResults, offset, totalCount);
+    	return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
     protected boolean userHasRoleOnCharity(BankerUser user, Charity ch, CharityUserRoleType role) {
@@ -347,7 +347,7 @@ public class CharityManager {
     				});
     		}
     	}
-    	return new PagedResult<Donation>(results, cursor, totalCount);
+    	return new PagedResult<>(results, cursor, totalCount);
     }
     
     /**
@@ -371,7 +371,7 @@ public class CharityManager {
     	for (int ix = 0; ix < charities.size(); ix++) {
     		charities.get(ix).setDonorCount(Math.toIntExact(prs.getData().get(ix).donorCount));
 		}
-        return new PagedResult<Charity>(charities, cursor, prs.getTotalCount());
+        return new PagedResult<>(charities, cursor, prs.getTotalCount());
     }
     
     /**
@@ -393,7 +393,7 @@ public class CharityManager {
     		// Get the actual data
 			results = donationDao.loadGraphs(prs.getData(), Donation.CHARITY_GRAPH, Donation::getId);
     	}
-    	return new PagedResult<Donation>(results, cursor, totalCount);
+    	return new PagedResult<>(results, cursor, totalCount);
     }
 
     /**
@@ -415,7 +415,7 @@ public class CharityManager {
     	for (int ix = 0; ix < users.size(); ix++) {
     		users.get(ix).setDonatedCredits(Math.toIntExact(prs.getData().get(ix).amount));
 		}
-        return new PagedResult<BankerUser>(users, cursor, prs.getTotalCount());
+        return new PagedResult<>(users, cursor, prs.getTotalCount());
     }
 
     	

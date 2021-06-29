@@ -70,7 +70,7 @@ public abstract class UserDao<T extends User> extends AbstractDao<T, Long> {
         			.setMaxResults(cursor.getMaxResults())
         			.getResultList();
     	}
-    	return new PagedResult<T>(ids, cursor, totalCount); 
+    	return new PagedResult<>(ids, cursor, totalCount); 
     }
 
     public List<String> listManagedIdentities() {

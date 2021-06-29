@@ -27,9 +27,7 @@ public class LoginContextFactory {
     private File keycloakConfigFile;
 
     public LoginContextFactory(String name) {
-    	try {
-//	    	InputStream resource = MethodHandles.lookup().lookupClass().getResourceAsStream(name);
-	    	InputStream resource  = Thread.currentThread().getContextClassLoader().getResourceAsStream(name);
+    	try (InputStream resource  = Thread.currentThread().getContextClassLoader().getResourceAsStream(name)) {
 	    	keycloakConfigFile = File.createTempFile("keycloak", null);
 	    	keycloakConfigFile.deleteOnExit();
 	    	copyContent(resource, keycloakConfigFile);
@@ -62,7 +60,7 @@ public class LoginContextFactory {
                 createJaasConfigurationForBearer());
     }
     
-    private CallbackHandler createJaasCallbackHandler(final String principal, final String password) {
+    private static CallbackHandler createJaasCallbackHandler(final String principal, final String password) {
         return new CallbackHandler() {
             @Override
             public void handle(Callback[] callbacks) throws IOException, UnsupportedCallbackException {

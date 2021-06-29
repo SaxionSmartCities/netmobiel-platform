@@ -39,12 +39,12 @@ import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.TripDao;
 import eu.netmobiel.planner.repository.TripPlanDao;
 import eu.netmobiel.planner.test.Fixture;
-import eu.netmobiel.planner.util.PlannerUrnHelper;
 import mockit.Expectations;
 import mockit.Injectable;
 import mockit.Tested;
 import mockit.Verifications;
 
+@SuppressWarnings("unused")
 public class TripManagerTest {
 	
 	private Logger log = LoggerFactory.getLogger(TripManagerTest.class);

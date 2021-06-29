@@ -72,7 +72,6 @@ import eu.netmobiel.rideshare.repository.CarDao;
 import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.repository.RideTemplateDao;
 import eu.netmobiel.rideshare.repository.RideshareUserDao;
-import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 /**
  * The manager for the rides. 
  * 
@@ -316,7 +315,7 @@ public class RideManager {
      * @param ride
      * @throws CreateException
      */
-    private void validateCreateUpdateRide(Ride ride)  throws BadRequestException {
+    private static void validateCreateUpdateRide(Ride ride)  throws BadRequestException {
 //    	if (ride.getRideTemplate() == null) {
 //    		throw new CreateException("Constraint violation: A ride must have a template");
 //    	}

@@ -33,7 +33,7 @@ public class SearchResource implements SearchApi {
 	@Inject
     private RideManager rideManager;
 
-	private Instant toInstant(OffsetDateTime odt) {
+	private static Instant toInstant(OffsetDateTime odt) {
 		return odt == null ? null : odt.toInstant();
 	}
 

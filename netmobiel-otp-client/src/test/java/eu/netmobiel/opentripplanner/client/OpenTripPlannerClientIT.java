@@ -58,7 +58,7 @@ public class OpenTripPlannerClientIT {
     @Inject
     private Logger log;
 
-    private void assertPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, TripPlan plan) {
+    private static void assertPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, TripPlan plan) {
         assertEquals(travelTime, plan.date);
         assertEquals(fromPlace.getLabel(), plan.from.name);
         assertEquals(fromPlace.getLatitude(), plan.from.lat);

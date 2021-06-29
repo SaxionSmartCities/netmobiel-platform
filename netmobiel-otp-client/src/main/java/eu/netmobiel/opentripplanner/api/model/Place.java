@@ -132,7 +132,7 @@ public class Place {
     	return new Place(this);
     }
     
-    private String formatTime(Instant instant) {
+    private static String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_TIME.format(instant.atOffset(ZoneOffset.UTC));
     }
     

@@ -157,7 +157,7 @@ public abstract class AbstractDao<T, ID> {
 			tq.setMaxResults(maxResults);
 			results = tq.getResultList();
 	    }
-	    return new PagedResult<ID>(results, maxResults, offset, totalCount);
+	    return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
     /**

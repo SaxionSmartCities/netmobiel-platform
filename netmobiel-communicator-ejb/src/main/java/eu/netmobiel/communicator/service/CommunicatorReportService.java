@@ -33,9 +33,6 @@ public class CommunicatorReportService {
     @Inject
     private EnvelopeDao envelopeDao;
     
-    public CommunicatorReportService() {
-    }
-
     /**
 	 * Report on indicators of the communicator service, group by identity, year, month.
 	 * Indicators are: # received messages, # read messages, # received notifications, # read notifications.

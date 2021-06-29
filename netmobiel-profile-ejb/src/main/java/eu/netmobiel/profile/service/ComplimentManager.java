@@ -50,18 +50,18 @@ public class ComplimentManager {
 	public Long createCompliment(Compliment compliment) throws BadRequestException, NotFoundException {
 		if (compliment.getReceiver() == null) {
 			throw new BadRequestException("Compliment receiver is a mandatory parameter");
-		} else {
-	    	Profile rcvProfile = profileDao.getReferenceByManagedIdentity(compliment.getReceiver().getManagedIdentity())
-	    			.orElseThrow(() -> new NotFoundException("No such profile: " + compliment.getReceiver().getManagedIdentity()));
-	    	compliment.setReceiver(rcvProfile);
-		}
-		if (compliment.getSender() == null) {
+		} 
+    	Profile rcvProfile = profileDao.getReferenceByManagedIdentity(compliment.getReceiver().getManagedIdentity())
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + compliment.getReceiver().getManagedIdentity()));
+    	compliment.setReceiver(rcvProfile);
+
+    	if (compliment.getSender() == null) {
 			throw new BadRequestException("Compliment sender is a mandatory parameter");
-		} else {
-	    	Profile sndProfile = profileDao.getReferenceByManagedIdentity(compliment.getSender().getManagedIdentity())
-	    			.orElseThrow(() -> new NotFoundException("No such profile: " + compliment.getSender().getManagedIdentity()));
-	    	compliment.setSender(sndProfile);
 		}
+    	Profile sndProfile = profileDao.getReferenceByManagedIdentity(compliment.getSender().getManagedIdentity())
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + compliment.getSender().getManagedIdentity()));
+    	compliment.setSender(sndProfile);
+    	
 		if (compliment.getCompliment() == null) {
 			throw new BadRequestException("Compliment type is a mandatory parameter");
 		}
@@ -79,7 +79,7 @@ public class ComplimentManager {
     		PagedResult<Long> pids = complimentDao.listCompliments(filter, cursor);
     		results = complimentDao.loadGraphs(pids.getData(), Compliment.LIST_COMPLIMENTS_ENTITY_GRAPH, Compliment::getId);
     	}
-    	return new PagedResult<Compliment>(results, cursor, prs.getTotalCount());
+    	return new PagedResult<>(results, cursor, prs.getTotalCount());
 	}
 
 	public Compliment getCompliment(Long complimentId) throws NotFoundException {

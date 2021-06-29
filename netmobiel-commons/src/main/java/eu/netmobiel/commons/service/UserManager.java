@@ -182,7 +182,7 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     			effectiveUser = findCorCreateLoopback(createUser(effnbuser));
     		}
     	}
-    	return new CallingContext<T>(caller, effectiveUser);
+    	return new CallingContext<>(caller, effectiveUser);
     }   
     
     public CallingContext<T> findCallingContext(SecurityIdentity securityIdentity) throws NotFoundException {
@@ -192,7 +192,7 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
         	String effUserId = securityIdentity.getEffectivePrincipal().getName();
     		effectiveUser = findByManagedIdentity(effUserId).orElse(null);
     	}
-    	return new CallingContext<T>(caller, effectiveUser);
+    	return new CallingContext<>(caller, effectiveUser);
     }   
 
    	/**
@@ -246,10 +246,10 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     	return Optional.ofNullable(user);
     }
 
-    public void throwRuntimeException() {
+	public void throwRuntimeException() {
     	throw new RuntimeException("A bug in a EJB!");
     }
-    public void throwAccessException() {
+	public void throwAccessException() {
     	throw new EJBAccessException("Can't access this!");
     }
 }

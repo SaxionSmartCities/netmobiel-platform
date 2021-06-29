@@ -601,7 +601,7 @@ public class Trip implements Serializable {
 		this.creationTime = creationTime;
 	}
 
-	private String formatTime(Instant instant) {
+	private static String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
     }
 

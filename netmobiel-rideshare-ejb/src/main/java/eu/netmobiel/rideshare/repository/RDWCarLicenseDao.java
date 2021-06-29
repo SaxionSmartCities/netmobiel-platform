@@ -117,7 +117,7 @@ public class RDWCarLicenseDao {
         return car;
     }
     
-    private Integer getStringAsInt(JsonObject node, String field) {
+    private static Integer getStringAsInt(JsonObject node, String field) {
     	String s = node.getString(field, null);
     	return StringUtils.isNumeric(s) ? Integer.parseInt(s) : null;
     }

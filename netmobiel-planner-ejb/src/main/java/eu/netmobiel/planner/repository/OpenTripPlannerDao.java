@@ -124,7 +124,8 @@ public class OpenTripPlannerDao {
      * @throws NotFoundException When no itinerary could be found. 
      * @throws BadRequestException When the planner cannot plan due to the combination of parameters.
      */
-    public PlannerResult createPlan(Instant now, GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean isArrivalPinned, 
+    @SuppressWarnings("resource")
+	public PlannerResult createPlan(Instant now, GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean isArrivalPinned, 
     		Set<TraverseMode> modes, boolean showIntermediateStops, Integer maxWalkDistance, Integer maxTransfers, List<GeoLocation> via, Integer maxItineraries) {
     	PlannerReport report = new PlannerReport();
     	report.setRequestTime(now);

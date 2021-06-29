@@ -82,7 +82,7 @@ public class AccountingEntryDao extends AbstractDao<AccountingEntry, Long> {
 			tq.setMaxResults(maxResults);
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
 //    select distinct t.id, t.transaction_time, t.context, t.transaction_type from accounting_transaction t 

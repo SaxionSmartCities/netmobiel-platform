@@ -431,8 +431,8 @@ public class TripPlan implements Serializable {
 		getItineraries().add(itinerary);
 	}
 
-	public void addItineraries(Collection<Itinerary> itineraries) {
-		itineraries.forEach(it -> addItinerary(it));
+	public void addItineraries(Collection<Itinerary> theItineraries) {
+		theItineraries.forEach(it -> addItinerary(it));
 	}
 
 	public Instant getTravelTime() {
@@ -520,7 +520,7 @@ public class TripPlan implements Serializable {
 		this.requestor = requestor;
 	}
 
-	private String formatTime(Instant instant) {
+	private static String formatTime(Instant instant) {
     	return instant != null ? DateTimeFormatter.ISO_INSTANT.format(instant) : "*";
     }
     

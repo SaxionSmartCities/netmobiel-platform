@@ -111,7 +111,7 @@ public class DelegationManager {
     		PagedResult<Long> pids = delegationDao.listDelegations(filter, cursor);
     		results = delegationDao.loadGraphs(pids.getData(), graphName, Delegation::getId);
     	}
-    	return new PagedResult<Delegation>(results, cursor, prs.getTotalCount());
+    	return new PagedResult<>(results, cursor, prs.getTotalCount());
 	}
 
 	public Long createDelegation(Delegation delegation, boolean acceptNow) throws BusinessException {

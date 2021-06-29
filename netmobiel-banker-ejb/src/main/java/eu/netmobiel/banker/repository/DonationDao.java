@@ -79,7 +79,7 @@ public class DonationDao extends AbstractDao<Donation, Long> {
 			results = tq.getResultList();
         }
         totalCount = count(cb, cq, root);
-        return new PagedResult<Long>(results, cursor, totalCount);
+        return new PagedResult<>(results, cursor, totalCount);
     }
 
     /**
@@ -90,7 +90,7 @@ public class DonationDao extends AbstractDao<Donation, Long> {
      * @param filter the donation selection criteria.
      * @return A predicate comprising all other predicates. Default true.
      */
-    private Predicate createPredicate(CriteriaBuilder cb, Root<Donation> root, DonationFilter filter) {
+    private static Predicate createPredicate(CriteriaBuilder cb, Root<Donation> root, DonationFilter filter) {
         List<Predicate> predicates = new ArrayList<>();
         if (filter.getCharity() != null) {
 	        predicates.add(cb.equal(root.get(Donation_.charity), filter.getCharity()));
@@ -167,7 +167,7 @@ public class DonationDao extends AbstractDao<Donation, Long> {
     		results = tq.getResultList();
     	}
     	Long totalCount = countDistinct(cb,  cq, root, root.get(Donation_.charity));
-        return new PagedResult<CharityPopularity>(results, cursor, totalCount);
+        return new PagedResult<>(results, cursor, totalCount);
     }
     
     /**
@@ -202,7 +202,7 @@ public class DonationDao extends AbstractDao<Donation, Long> {
 		TypedQuery<Long> tq = em.createQuery("select count(d) " + basicQuery, Long.class);
 		tq.setParameter("user", user);
         totalCount = tq.getSingleResult();
-        return new PagedResult<Long>(results, cursor, totalCount);
+        return new PagedResult<>(results, cursor, totalCount);
     }
 
     public static class DonorGenerosity {
@@ -250,7 +250,7 @@ public class DonationDao extends AbstractDao<Donation, Long> {
     		results = tq.getResultList();
     	}
     	Long totalCount = countDistinct(cb, cq, root, root.get(Donation_.user));
-        return new PagedResult<DonorGenerosity>(results, cursor, totalCount);
+        return new PagedResult<>(results, cursor, totalCount);
     }
 
 }

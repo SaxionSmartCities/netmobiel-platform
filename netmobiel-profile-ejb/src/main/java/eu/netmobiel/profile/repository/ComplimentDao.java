@@ -26,7 +26,6 @@ import eu.netmobiel.profile.annotation.ProfileDatabase;
 import eu.netmobiel.profile.filter.ComplimentFilter;
 import eu.netmobiel.profile.model.Compliment;
 import eu.netmobiel.profile.model.Compliment_;
-import eu.netmobiel.profile.model.Profile_;
 
 
 @ApplicationScoped
@@ -83,7 +82,7 @@ public class ComplimentDao extends AbstractDao<Compliment, Long> {
 			tq.setMaxResults(cursor.getMaxResults());
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, cursor, totalCount);
+        return new PagedResult<>(results, cursor, totalCount);
 	}
 
 	public Optional<Compliment> findComplimentByAttributes(Compliment r) {

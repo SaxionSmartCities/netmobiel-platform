@@ -63,15 +63,13 @@ public class PublisherService {
 
     public static final CommunicatorUser SYSTEM_USER = new CommunicatorUser("SYSTEM", "Netmobiel", "", null);
 
-    public PublisherService() {
-    }
-
     public CommunicatorUser findSystemUser() {
     	return userDao.findByManagedIdentity(SYSTEM_USER.getManagedIdentity())
     			.orElseGet(() -> userDao.save(SYSTEM_USER));
     }
 
-    public void validateMessage(CommunicatorUser sender, Message msg) throws CreateException, BadRequestException {
+    @SuppressWarnings("static-method")
+	public void validateMessage(CommunicatorUser sender, Message msg) throws CreateException, BadRequestException {
     	if (msg.getContext() == null) {
     		throw new BadRequestException("Constraint violation: 'context' must be set.");
     	}
@@ -165,14 +163,14 @@ public class PublisherService {
         }
     	PagedResult<Long> prs = messageDao.listMessages(participant, context, since, until, mode, 0, offset);
     	List<Message> results = null;
-    	if (maxResults == null || maxResults > 0) {
+    	if (maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> mids = messageDao.listMessages(participant, context, since, until, mode, maxResults, offset);
     		results = messageDao.loadGraphs(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
     	} else {
     		results = Collections.emptyList();
     	}
-    	return new PagedResult<Message>(results, maxResults, offset, prs.getTotalCount());
+    	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());
 	}
 
 	/**
@@ -193,14 +191,14 @@ public class PublisherService {
     	// Get the total count
     	PagedResult<Long> prs = messageDao.listConversations(participant, 0, offset);
     	List<Message> results = null;
-    	if (maxResults == null || maxResults > 0) {
+    	if (maxResults > 0) {
     		// Get the actual data
         	PagedResult<Long> mids = messageDao.listConversations(participant, maxResults, offset);
         	results = messageDao.loadGraphs(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
     	} else {
     		results = Collections.emptyList();
     	}
-    	return new PagedResult<Message>(results, maxResults, offset, prs.getTotalCount());
+    	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());
     }
 
     /**

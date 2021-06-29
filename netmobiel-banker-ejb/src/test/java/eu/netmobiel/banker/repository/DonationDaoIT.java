@@ -51,7 +51,6 @@ public class DonationDaoIT  extends BankerIntegrationTestBase {
 
     private BankerUser driver1;
     private BankerUser passenger1;
-    private Account account1;
     private Instant now = Instant.parse("2020-09-25T12:00:00Z");
     private Charity charity1;
     private Charity charity2;
@@ -72,11 +71,11 @@ public class DonationDaoIT  extends BankerIntegrationTestBase {
 		
 		account1 = Account.newInstant("PAL-1", "Account 1", AccountType.LIABILITY, Instant.parse("2020-07-01T00:00:00Z"));
 		em.persist(account1);
-    	Account account2 = Account.newInstant("PLA-2", "Account 2", AccountType.LIABILITY, Instant.parse("2020-09-01T00:00:00Z"));
+    	account2 = Account.newInstant("PLA-2", "Account 2", AccountType.LIABILITY, Instant.parse("2020-09-01T00:00:00Z"));
     	em.persist(account2);
-    	Account account3 = Account.newInstant("PLA-3", "Account 3", AccountType.LIABILITY, Instant.parse("2020-09-15T00:00:00Z"));
+    	account3 = Account.newInstant("PLA-3", "Account 3", AccountType.LIABILITY, Instant.parse("2020-09-15T00:00:00Z"));
     	em.persist(account3);
-    	Account account4 = Account.newInstant("PLA-4", "Account 4 closed", AccountType.LIABILITY, Instant.parse("2020-07-01T00:00:00Z"));
+    	account4 = Account.newInstant("PLA-4", "Account 4 closed", AccountType.LIABILITY, Instant.parse("2020-07-01T00:00:00Z"));
     	account4.setClosedTime(Instant.parse("2020-07-31T00:00:00Z"));
     	em.persist(account4);
     	

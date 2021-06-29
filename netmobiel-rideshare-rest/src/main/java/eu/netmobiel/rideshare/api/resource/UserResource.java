@@ -13,7 +13,6 @@ import eu.netmobiel.rideshare.api.UsersApi;
 import eu.netmobiel.rideshare.api.mapping.UserMapper;
 import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.service.RideshareUserManager;
-import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @RequestScoped
 @Path("/users")

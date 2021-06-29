@@ -214,7 +214,6 @@ public class ReportProcessor {
     	}
 	}
 
-	@SuppressWarnings("static-method")
 	protected void copyProfileInfo(Collection<? extends ReportKey> target, Map<String, ProfileReport> sourceMap) {
 		for (ReportKey r : target) {
 			ProfileReport pr = sourceMap.get(r.getManagedIdentity());
@@ -442,7 +441,6 @@ public class ReportProcessor {
 	 * @return A String  with a CSV records.
 	 * @throws Exception In case of trouble.
 	 */
-	@SuppressWarnings("static-method")
 	protected <T> String convertToCsv(List<T> report, Class<T> beanClazz) throws Exception {
 		try (Writer writer = new StringWriter()) {
 			FixedOrderColumnNameMappingStrategy<T> strategy = new FixedOrderColumnNameMappingStrategy<>();
@@ -506,7 +504,6 @@ public class ReportProcessor {
 	 * @return a String with the CSV records for SPSS.
 	 * @throws Exception
 	 */
-	@SuppressWarnings("static-method")
 	protected <T> String convertToCsvforSpss(Collection<T> spssReport, Class<T> beanClazz, ZonedDateTime since, ZonedDateTime until) throws Exception {
 		try (Writer writer = new StringWriter()) {
 			SpssHeaderColumnNameMappingStrategy<T> strategy = new SpssHeaderColumnNameMappingStrategy<>(since, until);
@@ -530,7 +527,6 @@ public class ReportProcessor {
 	 * @param spssClazz The class of the SPSS report record to convert to.
 	 * @return A collection of SPSS records, one record for each managed identity.
 	 */
-	@SuppressWarnings("static-method")
 	protected <S extends SpssReportBase<R>, R extends ReportPeriodKey> Collection<S> createSpssReport(List<R> report, Class<S> spssClazz) {
 		Map<String, S> spssReportMap = new LinkedHashMap<>();
 		for (R r : report) {
@@ -558,7 +554,6 @@ public class ReportProcessor {
 	 * @param spssClazz The class of the SPSS report record to convert to.
 	 * @return A collection of SPSS records, one record for each managed identity.
 	 */
-	@SuppressWarnings("static-method")
 	protected <S extends SpssReportWithModality<R>, R extends ReportKeyWithModality> Collection<S> createSpssModalityReport(List<R> report, Class<S> spssClazz) {
 		Map<String, S> spssReportMap = new LinkedHashMap<>();
 		for (R r : report) {

@@ -132,12 +132,13 @@ public class KeycloakDao {
 	public void removeUser(String managedIdentity) throws BusinessException {
 		try (Keycloak kc = createKeycloakClient()) {
 			RealmResource realm = kc.realm(profileServiceAccount.getRealm());
-			Response response = realm.users().delete(managedIdentity);
-//			if (log.isDebugEnabled()) {
-//				log.debug(String.format("RemoveUser: Response is %s %s", response.getStatus(), response.getStatusInfo()));
-//			}
-			if (response.getStatusInfo() != Response.Status.NO_CONTENT) {
-				ExceptionUtil.throwExceptionFromResponse("Error removing user from Keycloak", response);
+			try (Response response = realm.users().delete(managedIdentity)) {
+	//			if (log.isDebugEnabled()) {
+	//				log.debug(String.format("RemoveUser: Response is %s %s", response.getStatus(), response.getStatusInfo()));
+	//			}
+				if (response.getStatusInfo() != Response.Status.NO_CONTENT) {
+					ExceptionUtil.throwExceptionFromResponse("Error removing user from Keycloak", response);
+				}
 			}
 		}
 	}
@@ -203,7 +204,7 @@ public class KeycloakDao {
 						.collect(Collectors.toList());
 			}
 		}
-		return new PagedResult<NetMobielUser>(users, cursor, totalcount);
+		return new PagedResult<>(users, cursor, totalcount);
 	}
 
 	/**

@@ -6,9 +6,6 @@ import eu.netmobiel.commons.model.SortDirection;
 public class BaseFilter {
 	private SortDirection sortDir;
 	
-	public BaseFilter() {
-	}
-
 	public SortDirection getSortDir() {
 		return sortDir;
 	}

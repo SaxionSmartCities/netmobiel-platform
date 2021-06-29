@@ -35,7 +35,6 @@ import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.banker.service.WithdrawalService;
-import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;

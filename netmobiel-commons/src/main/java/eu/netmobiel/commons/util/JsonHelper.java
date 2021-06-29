@@ -40,7 +40,7 @@ public class JsonHelper {
     }
 
     private static Map<String, Boolean> buildConfig(String... options) {
-        Map<String, Boolean> config = new HashMap<String, Boolean>();
+        Map<String, Boolean> config = new HashMap<>();
 
         if (options != null) {
             for (String option : options) {

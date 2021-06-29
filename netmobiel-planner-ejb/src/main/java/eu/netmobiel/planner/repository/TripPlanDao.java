@@ -90,7 +90,7 @@ public class TripPlanDao extends AbstractDao<TripPlan, Long> {
 			tq.setMaxResults(maxResults);
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
     /**
@@ -145,7 +145,7 @@ public class TripPlanDao extends AbstractDao<TripPlan, Long> {
 			tq.setMaxResults(maxResults);
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
 }

@@ -365,7 +365,7 @@ public class Ride extends RideBase implements Serializable {
 		return r.getDepartureTime().isBefore(getArrivalTime()) && r.getArrivalTime().isAfter(getDepartureTime());
 	}
 
-    private String formatTime(Instant instant) {
+    private static String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_INSTANT.format(instant);
     }
 

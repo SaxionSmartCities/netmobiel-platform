@@ -139,7 +139,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		assertNotNull(rdb.getShareEligibility());
     }
 
-    private void checkRideConsistency(Ride rdb) {
+    private static void checkRideConsistency(Ride rdb) {
 		assertNotNull(rdb.getBookings());
 		assertEquals(0, rdb.getBookings().size());
 

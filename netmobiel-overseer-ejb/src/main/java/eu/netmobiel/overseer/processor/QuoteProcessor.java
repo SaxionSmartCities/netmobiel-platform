@@ -19,7 +19,6 @@ public class QuoteProcessor {
 	public static final int MINIMUM_FARE = 1;
 	public static final int CREDITS_PER_KILOMETER = 1;
 	
-    @SuppressWarnings("static-method")
 	public void onQuoteRequested(@Observes(during = TransactionPhase.IN_PROGRESS) Leg leg) {
     	if (RideManager.AGENCY_ID.equals(leg.getAgencyId())) {
     		if (leg.getDistance() == null) {

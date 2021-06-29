@@ -96,7 +96,7 @@ public class ProfileManager {
     		PagedResult<Long> pids = profileDao.listProfiles(filter, cursor);
     		results = profileDao.loadGraphs(pids.getData(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH, Profile::getId);
     	}
-    	return new PagedResult<Profile>(results, cursor, prs.getTotalCount());
+    	return new PagedResult<>(results, cursor, prs.getTotalCount());
 	}
 
     /**

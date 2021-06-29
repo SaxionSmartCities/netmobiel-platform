@@ -13,9 +13,8 @@ public class EventFireWrapper<T> {
 		} catch (ObserverException ex) {
 			if (ex.getCause() instanceof BusinessException) {
 				throw (BusinessException) ex.getCause();
-			} else {
-				throw ex;
 			}
+			throw ex;
     	}
 	}
 }

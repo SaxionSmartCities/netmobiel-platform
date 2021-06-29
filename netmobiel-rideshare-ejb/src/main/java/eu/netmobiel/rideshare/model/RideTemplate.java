@@ -160,7 +160,7 @@ public class RideTemplate extends RideBase implements Serializable {
 				.toInstant();
     }
     
-    private String formatTime(Instant instant) {
+    private static String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_INSTANT.format(instant);
     }
     

@@ -22,9 +22,9 @@ public class PlannerResult {
 		return itineraries;
 	}
 
-	public void addItineraries(Collection<Itinerary> itineraries) {
-		itineraries.forEach(it -> it.getLegs().forEach(leg -> leg.setPlannerReport(report)));
-		this.itineraries.addAll(itineraries);
+	public void addItineraries(Collection<Itinerary> theItineraries) {
+		theItineraries.forEach(it -> it.getLegs().forEach(leg -> leg.setPlannerReport(report)));
+		this.itineraries.addAll(theItineraries);
 	}
 
 	public PlannerReport getReport() {

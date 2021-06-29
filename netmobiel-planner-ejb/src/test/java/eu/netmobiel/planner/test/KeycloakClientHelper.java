@@ -28,17 +28,18 @@ public class KeycloakClientHelper {
 		try (InputStream inputStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("test-setup.properties")){
 			testSetupProperties.load(inputStream);
 		}
-        InputStream configStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("keycloak-issuer.json");
-    	AuthzClient authzClient = AuthzClient.create(configStream);
-    	AccessTokenResponse rsp = authzClient.obtainAccessToken(testSetupProperties.getProperty("driverUsername"), testSetupProperties.getProperty("driverPassword"));
-    	driverAccessToken = parseToken(rsp.getToken(), AccessToken.class);
-//    	driverIDToken = parseToken(rsp.getIdToken(), IDToken.class);
-    	KeycloakSecurityContext ksc = new KeycloakSecurityContext(rsp.getToken(), driverAccessToken, null, null);
-    	KeycloakPrincipal<KeycloakSecurityContext> kp = new KeycloakPrincipal<>(driverAccessToken.getSubject(), ksc);
-    	Set<Principal> principals = new HashSet<>();
-    	principals.add(kp);
-    	// FIXME Should also add roles.
-    	driverSubject = new Subject(true, principals, Collections.emptySet(), Collections.emptySet());
+        try (InputStream configStream = Thread.currentThread().getContextClassLoader().getResourceAsStream("keycloak-issuer.json")) {
+	    	AuthzClient authzClient = AuthzClient.create(configStream);
+	    	AccessTokenResponse rsp = authzClient.obtainAccessToken(testSetupProperties.getProperty("driverUsername"), testSetupProperties.getProperty("driverPassword"));
+	    	driverAccessToken = parseToken(rsp.getToken(), AccessToken.class);
+	//    	driverIDToken = parseToken(rsp.getIdToken(), IDToken.class);
+	    	KeycloakSecurityContext ksc = new KeycloakSecurityContext(rsp.getToken(), driverAccessToken, null, null);
+	    	KeycloakPrincipal<KeycloakSecurityContext> kp = new KeycloakPrincipal<>(driverAccessToken.getSubject(), ksc);
+	    	Set<Principal> principals = new HashSet<>();
+	    	principals.add(kp);
+	    	// FIXME Should also add roles.
+	    	driverSubject = new Subject(true, principals, Collections.emptySet(), Collections.emptySet());
+        }
     }
 
     public AccessToken getDriverAccessToken() {
@@ -50,7 +51,7 @@ public class KeycloakClientHelper {
 	}
 
 	// Just decode token without any verifications
-    private <T> T parseToken(String encoded, Class<T> clazz) throws IOException {
+    private static <T> T parseToken(String encoded, Class<T> clazz) throws IOException {
         if (encoded == null)
             return null;
 

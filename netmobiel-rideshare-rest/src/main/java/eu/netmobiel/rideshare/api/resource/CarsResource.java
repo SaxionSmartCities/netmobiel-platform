@@ -17,7 +17,6 @@ import eu.netmobiel.rideshare.api.CarsApi;
 import eu.netmobiel.rideshare.api.mapping.CarMapper;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.service.RideshareUserManager;
-import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @RequestScoped
 public class CarsResource implements CarsApi {
@@ -40,7 +39,8 @@ public class CarsResource implements CarsApi {
     	return Response.ok(cars).build();
     }
 
-    @Override
+    @SuppressWarnings("resource")
+	@Override
 	public Response createCar(eu.netmobiel.rideshare.api.model.Car cardt) {
     	Response rsp = null;
 		try {
@@ -65,7 +65,8 @@ public class CarsResource implements CarsApi {
     	return Response.ok(mapper.map(car)).build();
     }
 
-    @Override
+    @SuppressWarnings("resource")
+	@Override
 	public Response updateCar(@PathParam("carId") String carId, eu.netmobiel.rideshare.api.model.Car cardt) {
     	Response rsp = null;
     	try {
@@ -79,7 +80,8 @@ public class CarsResource implements CarsApi {
     	return rsp;
     }
 
-    @Override
+    @SuppressWarnings("resource")
+	@Override
     public Response deleteCar(@PathParam("carId") String carId) {
     	Response rsp = null;
     	try {

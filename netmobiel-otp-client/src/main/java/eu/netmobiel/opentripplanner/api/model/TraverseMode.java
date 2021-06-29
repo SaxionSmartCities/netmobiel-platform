@@ -4,6 +4,7 @@ import java.util.Arrays;
 import java.util.Collections;
 import java.util.EnumSet;
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Set;
 
 public enum TraverseMode {
@@ -13,8 +14,7 @@ public enum TraverseMode {
     TRANSIT, LEG_SWITCH,
     AIRPLANE;
 
-    private static HashMap <Set<TraverseMode>, Set<TraverseMode>> setMap = 
-            new HashMap <Set<TraverseMode>, Set<TraverseMode>>();
+    private static Map<Set<TraverseMode>, Set<TraverseMode>> setMap = new HashMap<>();
 
     public static Set<TraverseMode> internSet (Set<TraverseMode> modeSet) {
         if (modeSet == null)

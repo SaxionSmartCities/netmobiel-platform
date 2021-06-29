@@ -37,13 +37,13 @@ public class SepaCreditTransferDocument extends SepaDocument {
 		public Builder() {
 		}
 
-		public Builder with(List<SepaTransaction> transactions) {
-			this.transactions = transactions;
+		public Builder with(List<SepaTransaction> theTransactions) {
+			this.transactions = theTransactions;
 			return this;
 		}
 		
-		public Builder with(SepaPaymentInformation paymentInfo) {
-			this.paymentInfo = paymentInfo;
+		public Builder with(SepaPaymentInformation somePaymentInfo) {
+			this.paymentInfo = somePaymentInfo;
 			return this;
 		}
 

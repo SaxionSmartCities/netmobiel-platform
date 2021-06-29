@@ -27,9 +27,8 @@ public class LicensePlateService {
     	}
     	if (car == null) {
     		throw new NotFoundException(String.format("No car found with license %s %s", country.toUpperCase(), plate.toUpperCase()));
-    	} else {
-    		car.setRegistrationCountry(country.toUpperCase());
     	}
+    	car.setRegistrationCountry(country.toUpperCase());
         return car;
     }
 

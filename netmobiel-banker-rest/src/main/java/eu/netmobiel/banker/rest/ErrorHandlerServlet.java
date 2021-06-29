@@ -1,6 +1,7 @@
 package eu.netmobiel.banker.rest;
 
 import java.io.IOException;
+import java.io.PrintWriter;
 
 import javax.servlet.ServletException;
 import javax.servlet.annotation.WebServlet;
@@ -34,7 +35,9 @@ public class ErrorHandlerServlet extends HttpServlet {
 		} else {
 			response.setContentType(MediaType.APPLICATION_JSON);
 			ErrorResponse rsp = new ErrorResponse(Response.Status.fromStatusCode(statusCode));
-			response.getWriter().write(rsp.stringify());
+			@SuppressWarnings("resource")
+			PrintWriter writer = response.getWriter();
+			writer.write(rsp.stringify());
 		}
 	}
 }

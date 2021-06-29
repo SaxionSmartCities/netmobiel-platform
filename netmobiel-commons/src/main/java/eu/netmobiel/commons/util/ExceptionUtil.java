@@ -36,7 +36,7 @@ public class ExceptionUtil {
 	}
 
 	static String[] unwindException(String msg, Throwable exc, Function<Throwable, String> extractor) {
-		List<String> messages = new ArrayList<String>();
+		List<String> messages = new ArrayList<>();
 		if (msg != null) {
 			messages.add(msg);
 		}

@@ -67,7 +67,6 @@ import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.OpenTripPlannerDao;
 import eu.netmobiel.planner.repository.OtpClusterDao;
 import eu.netmobiel.planner.repository.TripPlanDao;
-import eu.netmobiel.planner.util.PlannerUrnHelper;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.service.RideManager;
 
@@ -136,7 +135,7 @@ public class TripPlanManager {
     	return null;
     }
     
-    private String formatDateTime(Instant instant) {
+    private static String formatDateTime(Instant instant) {
     	return DateTimeFormatter.ISO_INSTANT.format(instant);
     }
     

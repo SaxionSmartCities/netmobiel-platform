@@ -8,9 +8,12 @@ public class ProfileFilter extends BaseFilter {
 	private UserRole userRole;
 	
 	public ProfileFilter() {
+		// Constructor
 	}
 
 	public ProfileFilter(String text, UserRole userRole) {
+		this.text = text;
+		this.userRole = userRole;
 	}
 	
 	public UserRole getUserRole() {
@@ -30,8 +33,8 @@ public class ProfileFilter extends BaseFilter {
 	}
 
 	public void setUserRole(String role) {
-		UserRole userRole = role == null ? null : UserRole.valueOf(role);
-		this.userRole = userRole;
+		UserRole ur = role == null ? null : UserRole.valueOf(role);
+		this.userRole = ur;
 	}
 
 	@Override

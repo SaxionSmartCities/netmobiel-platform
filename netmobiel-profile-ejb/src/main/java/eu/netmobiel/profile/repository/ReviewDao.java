@@ -24,7 +24,6 @@ import eu.netmobiel.commons.model.User_;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.profile.annotation.ProfileDatabase;
 import eu.netmobiel.profile.filter.ReviewFilter;
-import eu.netmobiel.profile.model.Profile_;
 import eu.netmobiel.profile.model.Review;
 import eu.netmobiel.profile.model.Review_;
 
@@ -83,7 +82,7 @@ public class ReviewDao extends AbstractDao<Review, Long> {
 			tq.setMaxResults(cursor.getMaxResults());
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, cursor, totalCount);
+        return new PagedResult<>(results, cursor, totalCount);
 	}
 
 	public Optional<Review> findReviewByAttributes(Review r) {

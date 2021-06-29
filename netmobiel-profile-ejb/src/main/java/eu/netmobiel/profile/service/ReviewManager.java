@@ -51,19 +51,19 @@ public class ReviewManager {
 	public Long createReview(Review review) throws BadRequestException, NotFoundException {
 		if (review.getReceiver() == null) {
 			throw new BadRequestException("Review receiver is a mandatory parameter");
-		} else {
-	    	Profile rcvProfile = profileDao.getReferenceByManagedIdentity(review.getReceiver().getManagedIdentity())
-	    			.orElseThrow(() -> new NotFoundException("No such profile: " + review.getReceiver().getManagedIdentity()));
-	    	review.setReceiver(rcvProfile);
 		}
-		if (review.getSender() == null) {
+    	Profile rcvProfile = profileDao.getReferenceByManagedIdentity(review.getReceiver().getManagedIdentity())
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + review.getReceiver().getManagedIdentity()));
+    	review.setReceiver(rcvProfile);
+
+    	if (review.getSender() == null) {
 			throw new BadRequestException("Review sender is a mandatory parameter");
-		} else {
-	    	Profile sndProfile = profileDao.getReferenceByManagedIdentity(review.getSender().getManagedIdentity())
-	    			.orElseThrow(() -> new NotFoundException("No such profile: " + review.getSender().getManagedIdentity()));
-	    	review.setSender(sndProfile);
 		}
-		if (review.getReview() == null) {
+    	Profile sndProfile = profileDao.getReferenceByManagedIdentity(review.getSender().getManagedIdentity())
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + review.getSender().getManagedIdentity()));
+    	review.setSender(sndProfile);
+
+    	if (review.getReview() == null) {
 			throw new BadRequestException("Review text is a mandatory parameter");
 		}
 		reviewDao.save(review);
@@ -80,7 +80,7 @@ public class ReviewManager {
     		PagedResult<Long> pids = reviewDao.listReviews(filter, cursor);
     		results = reviewDao.loadGraphs(pids.getData(), Review.LIST_REVIEWS_ENTITY_GRAPH, Review::getId);
     	}
-    	return new PagedResult<Review>(results, cursor, prs.getTotalCount());
+    	return new PagedResult<>(results, cursor, prs.getTotalCount());
 	}
 
 	public Review getReview(Long reviewId) throws NotFoundException {

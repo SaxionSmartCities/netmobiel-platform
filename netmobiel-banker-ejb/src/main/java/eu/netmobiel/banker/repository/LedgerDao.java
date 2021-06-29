@@ -53,7 +53,7 @@ public class LedgerDao extends AbstractDao<Ledger, Long> {
     		selectQuery.setMaxResults(maxResults);
     		results = selectQuery.getResultList();
         }
-        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, maxResults, offset, totalCount);
 	}
 
 }

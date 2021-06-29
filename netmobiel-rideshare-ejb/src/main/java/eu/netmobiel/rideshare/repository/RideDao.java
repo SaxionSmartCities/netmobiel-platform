@@ -34,7 +34,6 @@ import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideBase_;
 import eu.netmobiel.rideshare.model.RideState;
 import eu.netmobiel.rideshare.model.RideTemplate;
-import eu.netmobiel.rideshare.model.RideTemplate_;
 import eu.netmobiel.rideshare.model.Ride_;
 
 @ApplicationScoped

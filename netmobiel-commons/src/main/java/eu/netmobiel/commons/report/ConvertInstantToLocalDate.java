@@ -23,9 +23,6 @@ import com.opencsv.exceptions.CsvDataTypeMismatchException;
  */
 public class ConvertInstantToLocalDate<T, I> extends AbstractBeanField<T, I> {
     
-    public ConvertInstantToLocalDate() {
-    }
-
     /**
      * Converts text into an Instant. Not implemented.
      *

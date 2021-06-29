@@ -10,18 +10,16 @@ public class IBANValidator implements ConstraintValidator<IBANBankAccount, Strin
 
 	@Override
 	public boolean isValid(String value, ConstraintValidatorContext context) {
-		if (value == null) {
-			return true;
-		}
 		IBAN iban = null; 
-		 // You can use the Modulo97 class directly to compute or verify the check digits on an input.
-		boolean valid = Modulo97.verifyCheckDigits(value);
-		if (valid) {
-			iban = IBAN.valueOf(value);
+		if (value != null) {
+			 // You can use the Modulo97 class directly to compute or verify the check digits on an input.
+			if (Modulo97.verifyCheckDigits(value)) {
+				iban = IBAN.valueOf(value);
+			}
+		    // You can query whether an IBAN is of a SEPA-participating country
+		    // You can query whether an IBAN is in the SWIFT Registry
 		}
-	    // You can query whether an IBAN is of a SEPA-participating country
-	    // You can query whether an IBAN is in the SWIFT Registry
-		return valid && iban.isSEPA() && iban.isInSwiftRegistry();
+		return iban == null || (iban.isSEPA() && iban.isInSwiftRegistry());
 	}
 
 }

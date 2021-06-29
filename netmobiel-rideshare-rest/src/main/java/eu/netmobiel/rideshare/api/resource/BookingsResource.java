@@ -19,7 +19,6 @@ import eu.netmobiel.rideshare.api.mapping.PageMapper;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.service.RideshareUserManager;
-import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @RequestScoped
 public class BookingsResource implements BookingsApi {
@@ -36,7 +35,7 @@ public class BookingsResource implements BookingsApi {
     @Inject
     private RideshareUserManager userManager;
 
-    private Instant toInstant(OffsetDateTime odt) {
+    private static Instant toInstant(OffsetDateTime odt) {
 		return odt == null ? null : odt.toInstant();
 	}
 

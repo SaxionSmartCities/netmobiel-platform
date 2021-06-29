@@ -135,9 +135,6 @@ public class DepositRequest  implements Serializable {
     @JoinColumn(name = "transaction", nullable = true, foreignKey = @ForeignKey(name = "deposit_request_transaction_fk"))
     private AccountingTransaction transaction = null;
     
-	public DepositRequest() {
-    }
-
     public Long getId() {
 		return id;
 	}

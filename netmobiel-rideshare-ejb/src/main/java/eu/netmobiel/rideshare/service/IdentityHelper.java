@@ -12,7 +12,6 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.RideshareUserDao;
-import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @ApplicationScoped
 @Logging

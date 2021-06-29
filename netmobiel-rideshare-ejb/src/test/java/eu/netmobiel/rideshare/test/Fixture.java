@@ -20,7 +20,6 @@ import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideState;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.RideshareUser;
-import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 public class Fixture {
 	public static final GeoLocation placeZieuwent = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");

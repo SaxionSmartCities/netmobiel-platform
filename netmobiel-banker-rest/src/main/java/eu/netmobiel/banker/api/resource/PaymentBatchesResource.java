@@ -27,7 +27,6 @@ import eu.netmobiel.banker.rest.sepa.SepaPaymentInformation;
 import eu.netmobiel.banker.rest.sepa.SepaTransaction;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.WithdrawalService;
-import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -69,14 +68,16 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 		try {
         	Long pbid = UrnHelper.getId(PaymentBatch.URN_PREFIX, paymentBatchId);
         	PaymentBatch pb = withdrawalService.getPaymentBatch(pbid);
+        	Response.ResponseBuilder rspb;
         	if ("PAIN.001".equals(format)) {
-    			rsp = Response.ok(createCreditTransferDocument(pb, true, Boolean.TRUE.equals(forceUniqueId)).toXml().toString(), MediaType.TEXT_XML).build();
+    			rspb = Response.ok(createCreditTransferDocument(pb, true, Boolean.TRUE.equals(forceUniqueId)).toXml().toString(), MediaType.TEXT_XML);
         	} else if ("JSON".equals(format)) {
         		// JSON
-    			rsp = Response.ok(paymentBatchMapper.mapWithWithdrawals(pb), MediaType.APPLICATION_JSON).build();
+    			rspb = Response.ok(paymentBatchMapper.mapWithWithdrawals(pb), MediaType.APPLICATION_JSON);
         	} else {
         		throw new BadRequestException("Format not known: " + format);
         	}
+        	rsp = rspb.build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

@@ -167,9 +167,6 @@ public class PaymentBatch extends ReferableObject {
     @Column(name = "originator_iban_holder")
     private String originatorIbanHolder;
 
-	public PaymentBatch() {
-    }
-
     @Override
 	public Long getId() {
 		return id;

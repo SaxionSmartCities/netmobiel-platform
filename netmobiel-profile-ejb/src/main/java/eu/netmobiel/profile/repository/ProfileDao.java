@@ -101,7 +101,7 @@ public class ProfileDao extends UserDao<Profile> {
 			tq.setMaxResults(cursor.getMaxResults());
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, cursor, totalCount);
+        return new PagedResult<>(results, cursor, totalCount);
 	}
 
 	/**

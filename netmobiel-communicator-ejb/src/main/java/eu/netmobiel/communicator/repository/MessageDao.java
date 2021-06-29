@@ -102,7 +102,7 @@ public class MessageDao extends AbstractDao<Message, Long> {
 			tq.setMaxResults(maxResults);
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, maxResults, offset, totalCount);
 	}
 
 	
@@ -131,7 +131,7 @@ public class MessageDao extends AbstractDao<Message, Long> {
     		selectQuery.setMaxResults(maxResults);
     		results = selectQuery.getResultList();
         }
-        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, maxResults, offset, totalCount);
 	}
 	
 /*

@@ -258,7 +258,7 @@ public class Leg {
         agencyTimeZoneOffset = timeZone.getOffset(startTime.getEpochSecond() * 1000);
     }
 
-    private String formatTime(Instant instant) {
+    private static String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_TIME.format(instant.atOffset(ZoneOffset.UTC));
     }
     

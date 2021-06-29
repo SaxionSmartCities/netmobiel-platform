@@ -102,12 +102,12 @@ public class WithdrawalService {
         }
     	PagedResult<Long> prs = withdrawalRequestDao.list(accountName, since, until, status, 0, offset);
     	List<WithdrawalRequest> results = null;
-    	if (maxResults == null || maxResults > 0) {
+    	if (maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> ids = withdrawalRequestDao.list(accountName, since, until, status, maxResults, offset);
     		results = withdrawalRequestDao.fetchGraphs(ids.getData(), WithdrawalRequest.LIST_GRAPH, WithdrawalRequest::getId);
     	}
-    	return new PagedResult<WithdrawalRequest>(results, maxResults, offset, prs.getTotalCount());
+    	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());
     }
 
     /**
@@ -283,14 +283,14 @@ public class WithdrawalService {
         }
     	PagedResult<Long> prs = paymentBatchDao.list(since, until, status, 0, offset);
     	List<PaymentBatch> results = null;
-    	if (maxResults == null || maxResults > 0) {
+    	if (maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> ids = paymentBatchDao.list(since, until, status, maxResults, offset);
     		results = paymentBatchDao.loadGraphs(ids.getData(), PaymentBatch.LIST_GRAPH, PaymentBatch::getId);
     		Map<Long, Integer> counts = paymentBatchDao.fetchCount(ids.getData());
     		results.forEach(pb -> pb.setCount(counts.get(pb.getId())));
     	}
-    	return new PagedResult<PaymentBatch>(results, maxResults, offset, prs.getTotalCount());
+    	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());
     }
 
     /**

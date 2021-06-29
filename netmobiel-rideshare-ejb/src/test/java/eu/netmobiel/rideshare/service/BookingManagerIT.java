@@ -39,7 +39,6 @@ import eu.netmobiel.rideshare.repository.StopDao;
 import eu.netmobiel.rideshare.repository.mapping.LegMapper;
 import eu.netmobiel.rideshare.test.Fixture;
 import eu.netmobiel.rideshare.test.RideshareIntegrationTestBase;
-import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @RunWith(Arquillian.class)
 public class BookingManagerIT extends RideshareIntegrationTestBase {

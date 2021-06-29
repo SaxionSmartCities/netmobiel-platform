@@ -177,9 +177,6 @@ public class WithdrawalRequest extends ReferableObject {
     @Column(name = "iban_holder")
     private String ibanHolder;
 
-	public WithdrawalRequest() {
-    }
-
     @Override
 	public Long getId() {
 		return id;

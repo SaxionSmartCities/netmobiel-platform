@@ -178,7 +178,7 @@ public class Stop implements Serializable {
 		return 31;
 	}
 
-    private String formatTime(Instant instant) {
+    private static String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_TIME.format(instant.atOffset(ZoneOffset.UTC));
     }
     

@@ -55,7 +55,7 @@ public class LedgerDaoIT extends BankerIntegrationTestBase {
     	String startTime = "2019-01-01T01:00:00Z";
     	String endTime = "2020-01-01T01:00:00Z";
     	String name = "ledger-1";
-		Ledger ledger = Fixture.createLedger(name, startTime, endTime);
+		ledger = Fixture.createLedger(name, startTime, endTime);
     	ledgerDao.save(ledger);
     	List<Ledger> actual = ledgerDao.findAll();
     	assertNotNull(actual);
@@ -72,7 +72,7 @@ public class LedgerDaoIT extends BankerIntegrationTestBase {
     	String startTime = "2019-01-01T01:00:00Z";
     	String endTime = "2020-01-01T01:00:00Z";
     	String name = "ledger-1";
-		Ledger ledger = Fixture.createLedger(name, startTime, endTime);
+		ledger = Fixture.createLedger(name, startTime, endTime);
     	ledgerDao.save(ledger);
 
     	String startTime2 = endTime;
@@ -105,7 +105,7 @@ public class LedgerDaoIT extends BankerIntegrationTestBase {
     	String startTime = "2019-01-01T01:00:00Z";
     	String endTime = "2020-01-01T01:00:00Z";
     	String name = "ledger-1";
-		Ledger ledger = Fixture.createLedger(name, startTime, endTime);
+		ledger = Fixture.createLedger(name, startTime, endTime);
     	ledgerDao.save(ledger);
 
     	String startTime2 = endTime;

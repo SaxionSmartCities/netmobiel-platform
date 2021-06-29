@@ -65,9 +65,8 @@ public class Version {
         try {
             if (vds == null) {
                 return LocalDateTime.now();
-            } else {
-                return LocalDateTime.parse(vds);
             }
+            return LocalDateTime.parse(vds);
         } catch (Exception e) {
             return LocalDateTime.now();
         }

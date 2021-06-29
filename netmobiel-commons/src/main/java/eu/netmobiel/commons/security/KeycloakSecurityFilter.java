@@ -84,15 +84,8 @@ public class KeycloakSecurityFilter implements Filter {
         chain.doFilter(request, response);
     }
 
-    private KeycloakSecurityContext getKeycloakSecurityContext(ServletRequest request) {
+    private static KeycloakSecurityContext getKeycloakSecurityContext(ServletRequest request) {
         return KeycloakSecurityContext.class.cast(request.getAttribute(KeycloakSecurityContext.class.getName()));
     }
 
-    /**
-     * @see javax.servlet.Filter#destroy()
-     */
-    @Override
-    public void destroy() {
-    }
-    
 }

@@ -91,7 +91,7 @@ public class DelegationDao extends AbstractDao<Delegation, Long> {
 			tq.setMaxResults(cursor.getMaxResults());
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, cursor, totalCount);
+        return new PagedResult<>(results, cursor, totalCount);
 	}
 
 	/**

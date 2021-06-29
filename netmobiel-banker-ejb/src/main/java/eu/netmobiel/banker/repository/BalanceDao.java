@@ -89,7 +89,7 @@ public class BalanceDao extends AbstractDao<Balance, Long> {
 			tq.setMaxResults(maxResults);
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
 }

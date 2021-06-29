@@ -233,9 +233,8 @@ public class GuideStep implements Serializable {
             // roundabout: the direction we turn onto it implies the circling direction
             if (angleDiff > ccwAngleDiff) {
                 return RelativeDirection.CIRCLE_CLOCKWISE;
-            } else {
-                return RelativeDirection.CIRCLE_COUNTERCLOCKWISE;
             }
+            return RelativeDirection.CIRCLE_COUNTERCLOCKWISE;
         }
 
         // less than 0.3 rad counts as straight, to simplify walking instructions

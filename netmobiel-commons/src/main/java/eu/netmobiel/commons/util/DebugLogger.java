@@ -43,38 +43,44 @@ public class DebugLogger implements Serializable {
 				if (count > 0) {
 					sb.append(", ");
 				}
-				if (o == null) {
-					sb.append("<null>");
-				} else {
-					// Should we print the class name? Often not really necessary
-					if (PRINT_CLASS_NAME) {
-						if (o.getClass() != null) {
-							sb.append(o.getClass().getSimpleName());
-						} else {
-							sb.append("<Unknown>");
-						}
-						sb.append(" ");
-					}
-					try {
-						String value;
-						if (o.getClass().isArray()) {
-							value = "{ "+ IntStream.range(0, Array.getLength(o))
-									.mapToObj(i -> Array.get(o, i).toString())
-									.collect(Collectors.joining(", ")) + " }";
-						} else {
-							value = o.toString();
-						}
-						sb.append(StringUtils.abbreviate(value, 80));
-					} catch (Exception ex) {
-						// Probably not initialized, ignore
-						sb.append("<proxy>");
-					}
-				}
+				sb.append(printValue(o));
 				count++;
 			}
 			sb.append(")");
 			logger.debug(sb.toString());
 		}
 		return ic.proceed();
+	}
+	
+	private static String printValue(Object parm) {
+		String prefix = "";
+		String value;
+		if (parm == null) {
+			value = "<null>";
+		} else {
+			// Should we print the class name? Often not really necessary
+			if (PRINT_CLASS_NAME) {
+				if (parm.getClass() != null) {
+					prefix = parm.getClass().getSimpleName();
+				} else {
+					prefix = "<Unknown>";
+				}
+				prefix += " ";
+			}
+			try {
+				if (parm.getClass().isArray()) {
+					value = "{ "+ IntStream.range(0, Array.getLength(parm))
+							.mapToObj(i -> Array.get(parm, i).toString())
+							.collect(Collectors.joining(", ")) + " }";
+				} else {
+					value = parm.toString();
+				}
+				value = StringUtils.abbreviate(value, 80);
+			} catch (Exception ex) {
+				// Probably not initialized, ignore
+				value = "<proxy>";
+			}
+		}
+		return prefix + value;
 	}
 }

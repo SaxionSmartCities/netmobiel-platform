@@ -27,7 +27,6 @@ import eu.netmobiel.commons.model.ReferableObject;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.commons.util.EllipseHelper.EligibleArea;
 import eu.netmobiel.commons.util.UrnHelper;
-import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 /**
  * This class captures the common attributes of a Ride and a Ride Template. The template parameter are constant, with the exception of the 

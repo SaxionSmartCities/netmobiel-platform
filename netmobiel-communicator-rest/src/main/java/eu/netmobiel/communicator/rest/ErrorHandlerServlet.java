@@ -24,6 +24,7 @@ public class ErrorHandlerServlet extends HttpServlet {
 
 	private static final long serialVersionUID = -5098663689536882162L;
 
+	@SuppressWarnings("resource")
 	@Override
 	protected void service(HttpServletRequest request, HttpServletResponse response)
 			throws ServletException, IOException {

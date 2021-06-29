@@ -24,7 +24,6 @@ import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.PlannerUserManager;
 import eu.netmobiel.planner.service.TripPlanManager;
-import eu.netmobiel.planner.util.PlannerUrnHelper;
 
 /**
  * Implementation for the /shout-outs endpoint. The security has been placed in this handler. The service

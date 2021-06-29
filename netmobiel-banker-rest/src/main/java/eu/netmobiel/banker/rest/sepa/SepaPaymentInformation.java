@@ -90,8 +90,8 @@ public class SepaPaymentInformation {
 			return this;
 		}
 
-		public Builder withAccountHolder(String name) {
-			this.name = SepaFormat.text(name);
+		public Builder withAccountHolder(String aName) {
+			this.name = SepaFormat.text(aName);
 			return this;
 		}
 

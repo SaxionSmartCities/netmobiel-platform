@@ -18,9 +18,6 @@ public class PeriodFilter extends BaseFilter {
 	private Instant since;
 	private Instant until;
 
-	public PeriodFilter() {
-	}
-
 	public Instant getNow() {
 		return now;
 	}
