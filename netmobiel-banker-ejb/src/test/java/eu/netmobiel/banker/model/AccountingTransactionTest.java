@@ -70,6 +70,7 @@ public class AccountingTransactionTest {
 					.build();
 			fail("Expected IllegalStateException");
 		} catch (IllegalStateException ex) {
+			// Anticipated
 		}
 	}
 	
@@ -86,6 +87,7 @@ public class AccountingTransactionTest {
 					.build();
 			fail("Expected IllegalStateException");
 		} catch (IllegalStateException ex) {
+			// Anticipated
 		}
 	}
 
@@ -95,12 +97,18 @@ public class AccountingTransactionTest {
 		String reference = "reference-1";
 		Instant acctime = Instant.parse("2020-01-01T01:00:00Z");
 		Instant trtime = Instant.now();
+		int oldAmount1 = balance1.getEndAmount();
+		int oldAmount2 = balance2.getEndAmount();
+		int oldAmount3 = balance3.getEndAmount();
 		// Counterparty does not match well with multi-leg transactions.
 		ledger.createTransaction(TransactionType.PAYMENT, description, reference, acctime, trtime)
 					.debit(balance1, 10, balance3.getAccount())
 					.debit(balance2, 10, balance3.getAccount())
 					.credit(balance3, 20, balance1.getAccount())
 					.build();
+		assertEquals(oldAmount1 - 10, balance1.getEndAmount());
+		assertEquals(oldAmount2 - 10, balance2.getEndAmount());
+		assertEquals(oldAmount3 + 20, balance3.getEndAmount());
 	}
 	
 	@Test
