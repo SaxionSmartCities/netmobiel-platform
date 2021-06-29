@@ -121,6 +121,7 @@ public class Account implements Serializable {
     private String ibanHolder;
 
 	public Account() {
+		// Constructor
     }
 
     public static Account newInstant(String aReference, String aName, AccountType aType) {
