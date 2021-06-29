@@ -105,7 +105,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
 			tq.setMaxResults(cursor.getMaxResults());
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, cursor, totalCount);
+        return new PagedResult<>(results, cursor, totalCount);
     }
 
 
@@ -174,7 +174,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
 			tq.setMaxResults(maxResults);
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
     public List<Long> findFollowingRideIds(RideTemplate template, Instant departureTime) {
@@ -368,7 +368,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
 			tq.setMaxResults(maxResults);
 			results = tq.getResultList();
         }
-        return new PagedResult<Long>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
 }

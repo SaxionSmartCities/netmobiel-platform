@@ -39,7 +39,7 @@ public class PagedResult<T> {
 	}
 
 	public static <T> PagedResult<T> empty() {
-		return new PagedResult<T>(null, 0, 0, 0L);
+		return new PagedResult<>(null, 0, 0, 0L);
 	}
 	
 	public List<T> getData() {

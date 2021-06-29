@@ -104,8 +104,8 @@ public class EllipseHelper extends GeometryHelper {
 		GeometricShapeFactory shapeFactory = new GeometricShapeFactory(geometryFactory);
 		shapeFactory.setNumPoints(16); // adjustable
 		shapeFactory.setCentre(center_utm_coord);
-		shapeFactory.setWidth(radius * 2);
-		shapeFactory.setHeight(radius * 2);
+		shapeFactory.setWidth(radius * 2.0);
+		shapeFactory.setHeight(radius * 2.0);
 		Polygon p = shapeFactory.createCircle();
 		Coordinate[] ucs = p.getCoordinates();
 		Coordinate[] pcs = Arrays.asList(ucs).stream()

@@ -115,6 +115,7 @@ public class Car extends ReferableObject implements Serializable {
 
     private Boolean deleted;
     
+	@Override
     public Long getId() {
 		return id;
 	}
@@ -250,8 +251,8 @@ public class Car extends ReferableObject implements Serializable {
 		return driverRef;
 	}
 
-	public boolean isOwnedBy(RideshareUser driver) {
-		return getDriver().getId().equals(driver.getId());
+	public boolean isOwnedBy(RideshareUser aDriver) {
+		return getDriver().getId().equals(aDriver.getId());
 	}
 
 	public String getName() {

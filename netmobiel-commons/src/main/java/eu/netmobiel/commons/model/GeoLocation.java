@@ -81,7 +81,7 @@ public class GeoLocation implements Serializable {
 	
 	private void updatePoint() {
 		if (latitude != null && longitude != null) {
-			this.point = GeometryHelper.createPoint(latitude, longitude);
+			this.point = GeometryHelper.createPoint(latitude.doubleValue(), longitude.doubleValue());
 		} else {
 			this.point = null;
 		}
@@ -179,11 +179,10 @@ public class GeoLocation implements Serializable {
 	 * @return longitude normalized in ]-180;+180]
 	 */
 	public static double normalizeLongitude(double longitude) {
-		if(longitude ==  ( -GeometryHelper.LONGITUDE_DEGREE_RANGE / 2 ) ) {
-			return GeometryHelper.LONGITUDE_DEGREE_RANGE / 2 ;
-		} else {
-			return normalizeLongitudeInclusive( longitude );
+		if(longitude ==  ( -GeometryHelper.LONGITUDE_DEGREE_RANGE / 2.0 ) ) {
+			return GeometryHelper.LONGITUDE_DEGREE_RANGE / 2.0 ;
 		}
+		return normalizeLongitudeInclusive( longitude );
 	}
 
 	/**
@@ -192,41 +191,39 @@ public class GeoLocation implements Serializable {
 	 */
 	public static double normalizeLongitudeInclusive(double longitude) {
 
-		if( (longitude < -( GeometryHelper.LONGITUDE_DEGREE_RANGE / 2 ) ) || (longitude > ( GeometryHelper.LONGITUDE_DEGREE_RANGE / 2 ) ) ) {
+		if( (longitude < -( GeometryHelper.LONGITUDE_DEGREE_RANGE / 2.0 ) ) || (longitude > ( GeometryHelper.LONGITUDE_DEGREE_RANGE / 2.0 ) ) ) {
 			double _longitude;
 			// shift 180 and normalize full circle turn
-			_longitude = ( ( longitude + ( GeometryHelper.LONGITUDE_DEGREE_RANGE / 2 ) ) % GeometryHelper.WHOLE_CIRCLE_DEGREE_RANGE );
+			_longitude = ( ( longitude + ( GeometryHelper.LONGITUDE_DEGREE_RANGE / 2.0 ) ) % GeometryHelper.WHOLE_CIRCLE_DEGREE_RANGE );
 			// as Java % is not a math modulus we may have negative numbers so the unshift is sign dependant
 			if( _longitude < 0) {
-				_longitude = _longitude + ( GeometryHelper.LONGITUDE_DEGREE_RANGE / 2 );
+				_longitude = _longitude + ( GeometryHelper.LONGITUDE_DEGREE_RANGE / 2.0 );
 			} else {
-				_longitude = _longitude - ( GeometryHelper.LONGITUDE_DEGREE_RANGE / 2 );
+				_longitude = _longitude - ( GeometryHelper.LONGITUDE_DEGREE_RANGE / 2.0 );
 			}
 			return _longitude;
-		} else {
-			return longitude;
 		}
+		return longitude;
 	}
 
 	/**
-	 * @param latitude in degrees
+	 * @param lat in degrees
 	 * @return latitude normalized in [-90;+90]
 	 */
-	public static double normalizeLatitude(double latitude) {
-		if ( latitude > GeometryHelper.LATITUDE_DEGREE_MAX || latitude < GeometryHelper.LATITUDE_DEGREE_MIN ) {
+	public static double normalizeLatitude(double lat) {
+		if ( lat > GeometryHelper.LATITUDE_DEGREE_MAX || lat < GeometryHelper.LATITUDE_DEGREE_MIN ) {
 			// shift 90, normalize full circle turn and 'symmetry' on the lat axis with abs
-			double _latitude = Math.abs( ( latitude + ( GeometryHelper.LATITUDE_DEGREE_RANGE / 2 ) ) % ( GeometryHelper.WHOLE_CIRCLE_DEGREE_RANGE ) );
+			double _latitude = Math.abs( ( lat + ( GeometryHelper.LATITUDE_DEGREE_RANGE / 2.0 ) ) % ( GeometryHelper.WHOLE_CIRCLE_DEGREE_RANGE ) );
 			// Push 2nd and 3rd quadran in 1st and 4th by 'symmetry'
 			if( _latitude > GeometryHelper.LATITUDE_DEGREE_RANGE ) {
 				_latitude= GeometryHelper.WHOLE_CIRCLE_DEGREE_RANGE- _latitude;
 			}
 			// unshift
-			_latitude= _latitude - ( GeometryHelper.LATITUDE_DEGREE_RANGE / 2 );
+			_latitude= _latitude - ( GeometryHelper.LATITUDE_DEGREE_RANGE / 2.0 );
 
 			return _latitude;
-		} else {
-			return latitude;
 		}
+		return lat;
 	}
 
 	/**
@@ -283,14 +280,14 @@ public class GeoLocation implements Serializable {
 	/**
 	 * Compute distance point and other location given by its latitude and longitude in decimal degrees
 	 *
-	 * @param latitude in decimal degrees
-	 * @param longitude in decimal degrees
+	 * @param lat in decimal degrees
+	 * @param lon in decimal degrees
 	 * @return the distance in kilometers
 	 * @see <a href="http://www.movable-type.co.uk/scripts/latlong.html">Distance haversine formula</a>
 	 */
-	public final double getDistanceTo(final double latitude, final double longitude) {
-		double destLatRad = normalizeLatitude(latitude) * GeometryHelper.TO_RADIANS_RATIO;
-		double destLonRad = normalizeLongitude(longitude) * GeometryHelper.TO_RADIANS_RATIO;
+	public final double getDistanceTo(final double lat, final double lon) {
+		double destLatRad = normalizeLatitude(lat) * GeometryHelper.TO_RADIANS_RATIO;
+		double destLonRad = normalizeLongitude(lon) * GeometryHelper.TO_RADIANS_RATIO;
 		final double dLat= (destLatRad - getLatitudeRad()) / 2.0d;
 		final double dLon= (destLonRad - getLongitudeRad()) / 2.0d;
 		final double a = Math.pow( Math.sin(dLat), 2) +

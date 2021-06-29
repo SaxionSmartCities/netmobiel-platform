@@ -39,6 +39,7 @@ public class WebApplicationExceptionMapper implements
 		Response rsp = null;
 		Throwable t = e;
 		String errorCode = null;
+		@SuppressWarnings("resource")
 		Response.StatusType status = e.getResponse().getStatusInfo();
 		if (e.getCause() instanceof BusinessException) {
 			t = e.getCause();

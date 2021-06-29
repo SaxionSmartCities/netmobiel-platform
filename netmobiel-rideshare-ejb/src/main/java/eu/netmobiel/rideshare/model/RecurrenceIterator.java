@@ -89,9 +89,8 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 			if (! hasNext()) {
 				if (exhausted) {
 					throw new NoSuchElementException("No more dates");
-				} else {
-					exhausted = true;
 				}
+				exhausted = true;
 			}
 			LocalDate element = cursor;
 			findNext();
@@ -124,7 +123,7 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 		private void findNext() {
 			while (dowCursor <= 7) {
 				if ((dowMask & (1 << (dowCursor - 1))) != 0) {
-					dayCursor = weekCursor.plusDays(dowCursor - dowStart);
+					dayCursor = weekCursor.plusDays((long)dowCursor - dowStart);
 					if (dayCursor.isEqual(start) || dayCursor.isAfter(start)) {
 						break;
 					}
@@ -143,9 +142,8 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 			if (! hasNext()) {
 				if (exhausted) {
 					throw new NoSuchElementException("No more days in this week!");
-				} else {
-					exhausted = true;
 				}
+				exhausted = true;
 			}
 			LocalDate element = dayCursor;
 			dowCursor++;
@@ -174,7 +172,7 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 		}
 		
 		private LocalDate startOfWeek(LocalDate date) {
-			return date.minusDays(date.getDayOfWeek().getValue() - 1);
+			return date.minusDays(date.getDayOfWeek().getValue() - 1L);
 		}
 		
 		private void advanceWeekCursor() {
@@ -203,9 +201,8 @@ public class RecurrenceIterator implements Iterator<LocalDate> {
 			if (! hasNext()) {
 				if (exhausted) {
 					throw new NoSuchElementException("No more dates");
-				} else {
-					exhausted = true;
 				}
+				exhausted = true;
 			}
 			LocalDate element = dowCursor.next();
 			findNext();

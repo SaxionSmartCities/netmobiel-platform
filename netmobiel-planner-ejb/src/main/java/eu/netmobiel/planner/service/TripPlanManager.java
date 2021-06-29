@@ -616,7 +616,7 @@ public class TripPlanManager {
 				stops.add(new Stop(c.getLocation()));
 			}
 		}
-		return new LinkedHashSet<Stop>(stops);
+		return new LinkedHashSet<>(stops);
 	}
 
     public void throwRuntimeException() {
@@ -642,16 +642,16 @@ public class TripPlanManager {
     	LocalTime localTravelTime = LocalTime.from(travelTime.atZone(ZoneId.of(DEFAULT_TIME_ZONE)));
     	Instant earliestTime;
     	if (localTravelTime.isBefore(DAY_START)) {
-    		earliestTime = travelTime.minusSeconds(REST_TIME_SLACK * 60 * 60); 
+    		earliestTime = travelTime.minusSeconds(REST_TIME_SLACK * 60 * 60L); 
     	} else if (localTravelTime.isAfter(DAY_END)) {
-    		earliestTime = travelTime.minusSeconds(REST_TIME_SLACK * 60 * 60); 
+    		earliestTime = travelTime.minusSeconds(REST_TIME_SLACK * 60 * 60L); 
     	} else {
     		int slack = DAY_TIME_SLACK * 60 * 60;
-    		if (localTravelTime.minusSeconds(slack).isAfter(DAY_START.minusSeconds(REST_TIME_SLACK * 60 * 60))) {
+    		if (localTravelTime.minusSeconds(slack).isAfter(DAY_START.minusSeconds(REST_TIME_SLACK * 60 * 60L))) {
         		earliestTime = travelTime.minusSeconds(slack);
     		} else {
     			LocalDate date = LocalDate.from(travelTime.atZone(ZoneId.of(DEFAULT_TIME_ZONE))); 
-        		earliestTime = LocalDateTime.of(date, DAY_START.minusSeconds(REST_TIME_SLACK * 60 * 60)).atZone(ZoneId.of(DEFAULT_TIME_ZONE)).toInstant();
+        		earliestTime = LocalDateTime.of(date, DAY_START.minusSeconds(REST_TIME_SLACK * 60 * 60L)).atZone(ZoneId.of(DEFAULT_TIME_ZONE)).toInstant();
     		}
     	}
     	return earliestTime;
@@ -673,16 +673,16 @@ public class TripPlanManager {
     	LocalTime localTravelTime = LocalTime.from(travelTime.atZone(ZoneId.of(DEFAULT_TIME_ZONE)));
     	Instant latestTime;
     	if (localTravelTime.isAfter(DAY_END)) {
-    		latestTime = travelTime.plusSeconds(REST_TIME_SLACK * 60 * 60); 
+    		latestTime = travelTime.plusSeconds(REST_TIME_SLACK * 60 * 60L); 
     	} else if (localTravelTime.isBefore(DAY_START)) {
-    		latestTime = travelTime.plusSeconds(REST_TIME_SLACK * 60 * 60); 
+    		latestTime = travelTime.plusSeconds(REST_TIME_SLACK * 60 * 60L); 
     	} else {
     		int slack = DAY_TIME_SLACK * 60 * 60;
-    		if (localTravelTime.plusSeconds(slack).isBefore(DAY_END.plusSeconds(REST_TIME_SLACK * 60 * 60))) {
+    		if (localTravelTime.plusSeconds(slack).isBefore(DAY_END.plusSeconds(REST_TIME_SLACK * 60 * 60L))) {
         		latestTime = travelTime.plusSeconds(slack);
     		} else {
     			LocalDate date = LocalDate.from(travelTime.atZone(ZoneId.of(DEFAULT_TIME_ZONE))); 
-        		latestTime = LocalDateTime.of(date, DAY_END.plusSeconds(REST_TIME_SLACK * 60 * 60)).atZone(ZoneId.of(DEFAULT_TIME_ZONE)).toInstant();
+        		latestTime = LocalDateTime.of(date, DAY_END.plusSeconds(REST_TIME_SLACK * 60 * 60L)).atZone(ZoneId.of(DEFAULT_TIME_ZONE)).toInstant();
     		}
     	}
     	return latestTime;
@@ -853,7 +853,7 @@ public class TripPlanManager {
     			results = tripPlanDao.loadGraphs(tripIds.getData(), TripPlan.DETAILED_ENTITY_GRAPH, TripPlan::getId);
     		}
     	}
-    	return new PagedResult<TripPlan>(results, maxResults, offset, totalCount);
+    	return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
     /**
@@ -890,7 +890,7 @@ public class TripPlanManager {
     			results = tripPlanDao.loadGraphs(tripIds.getData(), TripPlan.SHOUT_OUT_ENTITY_GRAPH, TripPlan::getId);
     		}
     	}
-    	return new PagedResult<TripPlan>(results, maxResults, offset, totalCount);
+    	return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
     /**

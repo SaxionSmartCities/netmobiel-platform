@@ -129,6 +129,7 @@ public class Leg extends ReferableObject implements Serializable {
     	return new Leg(this);
     }
     
+	@Override
 	public Long getId() {
 		return id;
 	}

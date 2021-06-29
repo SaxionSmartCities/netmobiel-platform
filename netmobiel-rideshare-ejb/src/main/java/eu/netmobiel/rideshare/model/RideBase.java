@@ -39,10 +39,9 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 public abstract class RideBase extends ReferableObject implements Serializable {
 	private static final long serialVersionUID = 7659815346376185257L;
 	public static final float DEFAULT_RELATIVE_MAX_DETOUR = 0.30f;
-	public static final float DEFAULT_NOMINAL_SPEED = 25 * 1000 / 3600; 	/* km/h --> m/s */
+	public static final float DEFAULT_NOMINAL_SPEED = 25 * 1000 / 3600f; 	/* km/h --> m/s */
 
 
-	@NotNull
     @ManyToOne (fetch = FetchType.LAZY)
 	@JoinColumn(name = "driver", nullable = false, foreignKey = @ForeignKey(name = "ride_base_driver_fk"))
     private RideshareUser driver;
@@ -50,7 +49,6 @@ public abstract class RideBase extends ReferableObject implements Serializable {
     @Transient
     private String driverRef;
 
-    @NotNull
     @ManyToOne (fetch = FetchType.LAZY)
 	@JoinColumn(name = "car", nullable = false, foreignKey = @ForeignKey(name = "ride_base_car_fk"))
     private Car car;

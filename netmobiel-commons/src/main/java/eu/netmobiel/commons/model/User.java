@@ -32,24 +32,25 @@ public abstract class User extends ReferableObject implements NetMobielUser {
     @Column(name = "email")
 	private String email;
 
-    public User() {
+    protected User() {
     }
     
-    public User(String identity) {
+    protected User(String identity) {
     	this(identity, null, null, null);
     }
     
-    public User(NetMobielUser nbuser) {
+    protected User(NetMobielUser nbuser) {
     	this(nbuser.getManagedIdentity(), nbuser.getGivenName(), nbuser.getFamilyName(), nbuser.getEmail());
     }
     
-    public User(String identity, String givenName, String familyName, String email) {
+    protected User(String identity, String givenName, String familyName, String email) {
     	this.managedIdentity = identity;
     	this.givenName = givenName;
     	this.familyName = familyName;
     	this.email = email;
     }
     
+	@Override
 	public abstract Long getId();
 
 	public abstract void setId(Long id);
@@ -61,6 +62,7 @@ public abstract class User extends ReferableObject implements NetMobielUser {
 		setManagedIdentity(nmuser.getManagedIdentity());
 	}
 
+	@Override
 	public String getManagedIdentity() {
 		return managedIdentity;
 	}
@@ -69,6 +71,7 @@ public abstract class User extends ReferableObject implements NetMobielUser {
 		this.managedIdentity = managedIdentity;
 	}
 
+	@Override
 	public String getGivenName() {
 		return givenName;
 	}
@@ -77,6 +80,7 @@ public abstract class User extends ReferableObject implements NetMobielUser {
 		this.givenName = givenName;
 	}
 
+	@Override
 	public String getFamilyName() {
 		return familyName;
 	}
@@ -111,6 +115,7 @@ public abstract class User extends ReferableObject implements NetMobielUser {
 		return sb.toString().trim();
 	}
 	
+	@Override
 	public String getEmail() {
 		return email;
 	}
@@ -129,6 +134,7 @@ public abstract class User extends ReferableObject implements NetMobielUser {
 		return Objects.hash(managedIdentity);
 	}
 
+	@Override
 	public boolean isSame(NetMobielUser other) {
 		return equals(other) && 
 				Objects.equals(getEmail(), other.getEmail()) && 

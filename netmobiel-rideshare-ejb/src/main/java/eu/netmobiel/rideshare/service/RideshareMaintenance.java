@@ -76,7 +76,7 @@ public class RideshareMaintenance {
 	 */
 	private void schedulePostalCodeGeocoding() {
 		TimerConfig tc = new TimerConfig(new GeocodingTimerInfo("Ride Geocoding Timer"), false); 
-		geocodingTimer = timerService.createIntervalTimer(15 * 1000, 15 * 1000, tc);
+		geocodingTimer = timerService.createIntervalTimer(15 * 1000L, 15 * 1000L, tc);
 		log.info("Started " + ((GeocodingTimerInfo) tc.getInfo()).getTitle());
 	}
 

@@ -50,7 +50,8 @@ public class RideTemplate extends RideBase implements Serializable {
     @Column(name = "leg_geometry", nullable = true)
     private MultiPoint legGeometry; 
 
-    public Long getId() {
+    @Override
+	public Long getId() {
 		return id;
 	}
 	public void setId(Long id) {

@@ -350,6 +350,7 @@ public class Booking extends ReferableObject implements Serializable {
     	this.state = BookingState.NEW;
     }
     
+	@Override
     public Long getId() {
 		return id;
 	}

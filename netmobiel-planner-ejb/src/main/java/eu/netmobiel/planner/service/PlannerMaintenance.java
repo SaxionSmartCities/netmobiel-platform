@@ -72,7 +72,7 @@ public class PlannerMaintenance {
 	 */
 	private void schedulePostalCodeGeocoding() {
 		TimerConfig tc = new TimerConfig(new GeocodingTimerInfo("Trip Geocoding Timer"), false); 
-		geocodingTimer = timerService.createIntervalTimer(20 * 1000, 15 * 1000, tc);
+		geocodingTimer = timerService.createIntervalTimer(20 * 1000L, 15 * 1000L, tc);
 		log.info("Started " + ((GeocodingTimerInfo) tc.getInfo()).getTitle());
 	}
 

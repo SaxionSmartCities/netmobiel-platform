@@ -232,6 +232,7 @@ public class Ride extends RideBase implements Serializable {
     @Column(name = "conf_reason")
     private ConfirmationReasonType confirmationReason;
     
+	@Override
     public Long getId() {
 		return id;
 	}

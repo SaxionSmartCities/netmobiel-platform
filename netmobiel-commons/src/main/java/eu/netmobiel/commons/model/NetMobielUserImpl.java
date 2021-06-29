@@ -1,8 +1,10 @@
 package eu.netmobiel.commons.model;
 
+import java.io.Serializable;
 import java.util.Objects;
 
-public class NetMobielUserImpl implements NetMobielUser {
+public class NetMobielUserImpl implements NetMobielUser, Serializable {
+	private static final long serialVersionUID = -635795360808038387L;
 	private String managedIdentity;
 	private String givenName;
 	private String familyName;
@@ -59,6 +61,7 @@ public class NetMobielUserImpl implements NetMobielUser {
 		return Objects.hash(managedIdentity);
 	}
 	
+	@Override
 	public boolean isSame(NetMobielUser other) {
 		return equals(other) && 
 				Objects.equals(getEmail(), other.getEmail()) && 
