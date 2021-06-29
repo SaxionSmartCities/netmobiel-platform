@@ -518,6 +518,68 @@ public class RideManager {
     	return ridedb;
     }
 
+    private void prepareMergeOfRide(Ride ridedb, Ride ride, RideTemplate newTemplate) throws BusinessException {
+    	if (!ridedb.getState().isPreTravelState()) {
+    		throw new UpdateException("Ride can not be updated, travelling has already started!");
+    	}
+    	ride.setDriver(ridedb.getDriver());	// It is not allowed to change driver
+    	if (ridedb.hasActiveBooking()) {
+    		// What if there is already a booking
+    		throw new UpdateException("The ride has already a booking, an update is not allowed");
+    	}
+    	if (ridedb.hasActiveBookingProcess()) {
+    		throw new UpdateException("The ride is involved in a shout-out or a booking is requested, an update is not allowed now");
+    	}
+    	
+    	validateCreateUpdateRide(ride);
+    	Long carId = UrnHelper.getId(Car.URN_PREFIX, ride.getCarRef());
+    	if (carId == null) { 
+    		throw new NotFoundException("No Car ID found for Ride " + ride.getId());
+    	}
+    	Car car = carDao.find(carId)
+    			.orElseThrow(() -> new NotFoundException("Cannot find car: " + carId));
+    	if (! carDao.isDrivenBy(car, ridedb.getDriver())) {
+    		throw new BadRequestException("Constraint violation: The car is not owned by the owner of the ride.");
+    	}
+    	ride.setCar(car);
+
+    	// Copy non-modifiable attributes to the input object
+    	ride.setArrivalPostalCode(ridedb.getArrivalPostalCode());
+    	ride.setCancelReason(ridedb.getCancelReason());
+    	ride.setConfirmed(ridedb.getConfirmed());
+    	ride.setConfirmationReason(ridedb.getConfirmationReason());
+    	ride.setDeleted(ridedb.getDeleted());
+    	ride.setDeparturePostalCode(ridedb.getDeparturePostalCode());
+    	ride.setMonitored(ridedb.isMonitored());
+    	ride.setState(ridedb.getState());
+    	ride.setVersion(ridedb.getVersion());
+    	// If the ride contains no departure then, then the arrival time is important
+    	Instant travelTime = null; 
+    	if (ride.getDepartureTime() == null || ride.isArrivalTimePinned()) {
+    		travelTime = ride.getArrivalTime();
+			ride.setArrivalTimePinned(true);
+    	} else {
+    		travelTime = ride.getDepartureTime();
+    	}
+		if (newTemplate != null) {
+			// Snap the specified time to first possible time matching the recurrence pattern
+			travelTime = newTemplate.snapTravelTimeToPattern(travelTime);
+		}
+    	// Assure both departure and arrival time are set, to avoid database constraint failure.
+    	// Temporarily make departure and arrival time the same, this will be adapted once the itinerary is known. 
+		ride.setDepartureTime(travelTime);
+		ride.setArrivalTime(travelTime);
+		// Calculate the ellipse
+    	// Recalculate the ellipse for determining the rideshare eligibility
+    	ride.updateShareEligibility();
+    	if (!ride.getFrom().equals(ridedb.getFrom())) {
+    		ride.setDeparturePostalCode(hereSearchClient.getPostalCode6(ride.getFrom()));
+    	}
+    	if (!ride.getTo().equals(ridedb.getTo())) {
+    		ride.setArrivalPostalCode(hereSearchClient.getPostalCode6(ride.getTo()));
+    	}
+    	
+    }
     /**
      * Updates an existing ride. It is not possible to change the driver.
      * A ride (recurrent or not) cannot be update with this call when it has a booking in REQUESTED or CONFIRMED state.
@@ -547,71 +609,13 @@ public class RideManager {
     	// Get the ride with booking info
     	Ride ridedb = rideDao.loadGraph(ride.getId(), Ride.UPDATE_DETAILS_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such ride: " + ride.getId()));
-    	if (!ridedb.getState().isPreTravelState()) {
-    		throw new UpdateException("Ride can not be updated, travelling has already started!");
-    	}
-    	ride.setDriver(ridedb.getDriver());	// It is not allowed to change driver
-    	if (ridedb.hasActiveBooking()) {
-    		// What if there is already a booking
-    		throw new UpdateException("The ride has already a booking, an update is not allowed");
-    	}
-    	if (ridedb.hasActiveBookingProcess()) {
-    		throw new UpdateException("The ride is involved in a shout-out or a booking is requested, an update is not allowed now");
-    	}
-    	
-    	validateCreateUpdateRide(ride);
-    	Long carId = UrnHelper.getId(Car.URN_PREFIX, ride.getCarRef());
-    	if (carId == null) { 
-    		throw new NotFoundException("No Car ID found for Ride " + ride.getId());
-    	}
-    	Car car = carDao.find(carId)
-    			.orElseThrow(() -> new NotFoundException("Cannot find car: " + carId));
-    	if (! carDao.isDrivenBy(car, ridedb.getDriver())) {
-    		throw new BadRequestException("Constraint violation: The car is not owned by the owner of the ride.");
-    	}
-    	ride.setCar(car);
-
     	// Note: the input ride template consists of the recurrence only. 
     	// The input template is by definition not persistent. Use the template from the database.
     	RideTemplate newTemplate = ride.getRideTemplate();
     	RideTemplate oldTemplate = ridedb.getRideTemplate();
     	ride.setRideTemplate(oldTemplate);
-    	// Copy non-modifiable attributes to the input object
-    	ride.setArrivalPostalCode(ridedb.getArrivalPostalCode());
-    	ride.setCancelReason(ridedb.getCancelReason());
-    	ride.setConfirmed(ridedb.getConfirmed());
-    	ride.setConfirmationReason(ridedb.getConfirmationReason());
-    	ride.setDeleted(ridedb.getDeleted());
-    	ride.setDeparturePostalCode(ridedb.getDeparturePostalCode());
-    	ride.setMonitored(ridedb.isMonitored());
-    	ride.setState(ridedb.getState());
-    	ride.setVersion(ridedb.getVersion());
-    	// If the ride contains no departure then, then the arrival time is important
-    	Instant travelTime = null; 
-    	if (ride.getDepartureTime() == null || ride.isArrivalTimePinned()) {
-    		travelTime = ride.getArrivalTime();
-			ride.setArrivalTimePinned(true);
-    	} else {
-    		travelTime = ride.getDepartureTime();
-    	}
-		if (newTemplate != null) {
-			// Snap the specified time to first possible time matching the recurrence pattern
-			travelTime = newTemplate.snapTravelTimeToPattern(travelTime);
-		}
-    	// Assure both departure and arrival time are set, to avoid database constraint failure.
-    	// Temporarily make departure and arrival time the same, this will be adapted once the itinerary is known. 
-		ride.setDepartureTime(travelTime);
-		ride.setArrivalTime(travelTime);
-		// Calculate the ellipse
-    	// Recalculate the ellipe for determining the rideshare eligibility
-    	ride.updateShareEligibility();
     	Instant originalDepartureTime = ridedb.getDepartureTime();
-    	if (!ride.getFrom().equals(ridedb.getFrom())) {
-    		ride.setDeparturePostalCode(hereSearchClient.getPostalCode6(ride.getFrom()));
-    	}
-    	if (!ride.getTo().equals(ridedb.getTo())) {
-    		ride.setArrivalPostalCode(hereSearchClient.getPostalCode6(ride.getTo()));
-    	}
+    	prepareMergeOfRide(ridedb, ride, newTemplate);
     	ridedb = rideDao.merge(ride);
     	// ride and ridedb refer to the same object now, 
     	// ridebd bookings, legs and stops appear to be empty now! In the database the object are still there.

@@ -359,37 +359,41 @@ public class TripManager {
     	//FIXME State handling is not robust enough
        	if (! tripdb.getState().isFinalState() && tripdb.getItinerary().getLegs() != null) {
        		for (Leg leg : tripdb.getItinerary().getLegs()) {
-				if (leg.getState().isPreTravelState()) {
-			    	if (leg.getBookingId() != null) {
-			    		// There is a booking being requested or already confirmed. Cancel it.
-						if (log.isDebugEnabled()) {
-							log.debug("Cancelling a booking. State = " + leg.getState());
-						}
-						BookingCancelledEvent bce = new BookingCancelledEvent(tripdb, leg, reason);
-						// For now use a synchronous removal
-			        	EventFireWrapper.fire(bookingCancelledEvent, bce);
-			    	} else {
-			    		// There is a small opening between setting Booking and the setting of a booking ID.
-			    		if (leg.getState() == TripState.BOOKING) {
-			    			throw new IllegalStateException("Leg is in BOOKING state, but no booking reference has been set: " + leg.getId());
-			    		}
-			    	}
-					leg.setState(TripState.CANCELLED);
-					if (! Boolean.TRUE.equals(leg.getCancelledByProvider())) {
-						leg.setCancelledByProvider(false);
-					}
-				} else if (leg.getState().isFinalState()) {
-		    		// Already cancelled or completed, no action required
-		    	} else {
-		    		// travelling, validating
-					throw new RemoveException(String.format("Cannot cancel trip %s; leg %s state %s forbids", tripdb.getId(), leg.getId(), leg.getState()));
-		    	}
+       			removeTripLeg(tripdb, leg, reason);
 			}
        	}
    		tripdb.setDeleted(true);
    		updateTripState(tripdb);
     }
- 
+
+    private void removeTripLeg(Trip tripdb, Leg leg, String reason) throws BusinessException {
+		if (leg.getState().isPreTravelState()) {
+	    	if (leg.getBookingId() != null) {
+	    		// There is a booking being requested or already confirmed. Cancel it.
+				if (log.isDebugEnabled()) {
+					log.debug("Cancelling a booking. State = " + leg.getState());
+				}
+				BookingCancelledEvent bce = new BookingCancelledEvent(tripdb, leg, reason);
+				// For now use a synchronous removal
+	        	EventFireWrapper.fire(bookingCancelledEvent, bce);
+	    	} else {
+	    		// There is a small opening between setting Booking and the setting of a booking ID.
+	    		if (leg.getState() == TripState.BOOKING) {
+	    			throw new IllegalStateException("Leg is in BOOKING state, but no booking reference has been set: " + leg.getId());
+	    		}
+	    	}
+			leg.setState(TripState.CANCELLED);
+			if (! Boolean.TRUE.equals(leg.getCancelledByProvider())) {
+				leg.setCancelledByProvider(false);
+			}
+		} else if (leg.getState().isFinalState()) {
+    		// Already cancelled or completed, no action required
+    	} else {
+    		// travelling, validating
+			throw new RemoveException(String.format("Cannot cancel trip %s; leg %s state %s forbids", tripdb.getId(), leg.getId(), leg.getState()));
+    	}
+    }
+    
     /**
      * Sets the confirmation flag on each leg in the trip.
      * @param tripId the trip to update.
@@ -446,19 +450,24 @@ public class TripManager {
         	if (bookingRef != null && tripdb.getItinerary().findLegByBookingId(bookingRef).isEmpty()) {
         		throw new IllegalArgumentException("No such booking on trip: " + tripRef + " " + bookingRef);
         	}
-        	for (Leg leg : tripdb.getItinerary().getLegs()) {
-        		if (leg.isConfirmationByProviderRequested() && (bookingRef == null || bookingRef.equals(leg.getBookingId()))) {
-	            	if (!overrideResponse && leg.getConfirmedByProvider() != null) {
-	            		throw new BadRequestException("Leg has already a confirmation value by provider: " + leg.getId());
-	            	}
-	            	leg.setConfirmedByProvider(confirmationValue);
-	            	leg.setConfirmationReasonByProvider(reason);
-        		}
-        	}
+        	confirmTripLegsByTransportProvider(tripdb.getItinerary().getLegs(), bookingRef, confirmationValue, reason, overrideResponse);
         	EventFireWrapper.fire(tripConfirmedEvent, new TripConfirmedEvent(tripdb));
     	}
     }
 
+    private static void confirmTripLegsByTransportProvider(List<Leg> legs, String bookingRef, 
+    		Boolean confirmationValue, ConfirmationReasonType reason, boolean overrideResponse) throws BadRequestException {
+    	for (Leg leg : legs) {
+    		if (leg.isConfirmationByProviderRequested() && (bookingRef == null || bookingRef.equals(leg.getBookingId()))) {
+            	if (!overrideResponse && leg.getConfirmedByProvider() != null) {
+            		throw new BadRequestException("Leg has already a confirmation value by provider: " + leg.getId());
+            	}
+            	leg.setConfirmedByProvider(confirmationValue);
+            	leg.setConfirmationReasonByProvider(reason);
+    		}
+    	}
+    }
+    
     protected void updateTripState(Trip trip) throws BusinessException {
     	TripState previousState = trip.getState();
 		trip.updateTripState();

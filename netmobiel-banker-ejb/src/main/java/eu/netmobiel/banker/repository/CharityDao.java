@@ -51,6 +51,27 @@ public class CharityDao extends AbstractDao<Charity, Long> {
 		return em;
 	}
 
+	private Expression<?> createOrderExpression(CriteriaBuilder cb, Root<Charity> root, CharitySortBy sortBy, GeoLocation location) throws BadRequestException {
+        Expression<?> orderExpr = null;
+        if (sortBy == CharitySortBy.SCORE) {
+        	// Convert to promille first, quot acts as an integer division
+        	orderExpr = cb.quot(cb.prod(1000, root.get(Charity_.donatedAmount)), root.get(Charity_.goalAmount));
+        } else if (sortBy == CharitySortBy.DATE) {
+        	orderExpr = root.get(Charity_.campaignStartTime);
+        } else if (sortBy == CharitySortBy.DISTANCE) {
+        	if (location == null) {
+        		throw new BadRequestException("Cannot sort by distance without a location");
+        	}
+        	orderExpr = cb.function("st_distance", Double.class, 
+        			root.get(Charity_.location).get(GeoLocation_.point), cb.literal(location.getPoint()));
+        } else if (sortBy == CharitySortBy.NAME) {
+        	orderExpr = root.get(Charity_.name);
+        } else {
+        	throw new IllegalStateException("Sort by not supported: " + sortBy);
+        }
+		return orderExpr;
+	}
+	
     /**
      * Lists charities within a specified radius around a location. 
      * @param now the reference time. Especially needed for testing.
@@ -105,23 +126,7 @@ public class CharityDao extends AbstractDao<Charity, Long> {
         } else {
         	// Select the objects, order is relevant
             cq.select(root.get(Charity_.id));
-            Expression<?> orderExpr = null;
-            if (sortBy == CharitySortBy.SCORE) {
-            	// Convert to promille first, quot acts as an integer division
-            	orderExpr = cb.quot(cb.prod(1000, root.get(Charity_.donatedAmount)), root.get(Charity_.goalAmount));
-            } else if (sortBy == CharitySortBy.DATE) {
-            	orderExpr = root.get(Charity_.campaignStartTime);
-            } else if (sortBy == CharitySortBy.DISTANCE) {
-            	if (location == null) {
-            		throw new BadRequestException("Cannot sort by distance without a location");
-            	}
-            	orderExpr = cb.function("st_distance", Double.class, 
-            			root.get(Charity_.location).get(GeoLocation_.point), cb.literal(location.getPoint()));
-            } else if (sortBy == CharitySortBy.NAME) {
-            	orderExpr = root.get(Charity_.name);
-            } else {
-            	throw new IllegalStateException("Sort by not supported: " + sortBy);
-            }
+            Expression<?> orderExpr = createOrderExpression(cb, root, sortBy, location);
             cq.orderBy((sortDir == SortDirection.ASC) ? cb.asc(orderExpr) : cb.desc(orderExpr)); 
             TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);

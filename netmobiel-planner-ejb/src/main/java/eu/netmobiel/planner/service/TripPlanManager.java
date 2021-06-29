@@ -503,43 +503,48 @@ public class TripPlanManager {
 		}
 
 		if (rideshareEligable) {
-	    	// Add the RIDESHARE only itineraries
-			List<PlannerResult> rideResults = searchRideshareOnly(plan.getRequestTime(), plan.getFrom(), plan.getTo(), plan.getTravelTime(), plan.isUseAsArrivalTime(),
-					plan.getEarliestDepartureTime(), plan.getLatestArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
-        	rideResults.stream().forEach(pr -> plan.addPlannerReport(pr.getReport()));
-        	List<Itinerary> passengerItineraries = rideResults.stream()
-        			.flatMap(pr -> pr.getItineraries().stream())
-        			.collect(Collectors.toList());
-	    	plan.addItineraries(passengerItineraries);
-
-			// If transit is an option too then collect possible pickup and drop-off places near transit stops
-			if (!transitModalities.isEmpty() && plan.isRideshareLegAllowed() && 
-					(plan.getMaxTransfers() == null || plan.getMaxTransfers() >= 1)) {
-				Set<Stop> transitBoardingStops = null;
-				// Calculate a transit reference plan to find potential boarding or alighting places. 
-				PlannerResult transitRefResult = createTransitPlan(plan.getRequestTime(), plan.getFrom(), plan.getTo(), plan.getTravelTime(), plan.isUseAsArrivalTime(),
-						transitModalities, 50000, plan.getMaxTransfers() == null ? null : plan.getMaxTransfers() - 1, 2);
-	    		if (transitRefResult.hasError()) {
-	        		log.warn("Skip itineraries (transit reference) due to OTP error: " + transitRefResult.getReport().shortReport());
-	    		} else {
-					List<OtpCluster> nearbyClusters = new ArrayList<>();
-					// Collect the stops. If there are no stops or too few, collect potential clusters
-					//FIXME The ordering of the clusters depends probably on first or last leg. Check.
-			    	transitBoardingStops = collectStops(plan, findTransitBoardingStops(transitRefResult.getItineraries()), nearbyClusters);
-		    		if (plan.isFirstLegRideshareAllowed()) {
-		        		addRideshareAsFirstLeg(plan, transitBoardingStops, transitModalities);
-		    		}
-		    		if (plan.isLastLegRideshareAllowed()) {
-		        		addRideshareAsLastLeg(plan, transitBoardingStops, transitModalities);
-		    		}
-	    		}
-			}
+			addRidesharePlans(plan, transitModalities);
 		}
+		
 		// Calculate totals
 		plan.getItineraries().forEach(it -> it.updateFare());
     	rankItineraries(plan);
     	// The itineraries are listed by the plan ordered by score descending
     	return plan;
+    }
+
+    private void addRidesharePlans(TripPlan plan, Set<TraverseMode> transitModalities) {
+    	// Add the RIDESHARE only itineraries
+		List<PlannerResult> rideResults = searchRideshareOnly(plan.getRequestTime(), plan.getFrom(), plan.getTo(), plan.getTravelTime(), plan.isUseAsArrivalTime(),
+				plan.getEarliestDepartureTime(), plan.getLatestArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
+    	rideResults.stream().forEach(pr -> plan.addPlannerReport(pr.getReport()));
+    	List<Itinerary> passengerItineraries = rideResults.stream()
+    			.flatMap(pr -> pr.getItineraries().stream())
+    			.collect(Collectors.toList());
+    	plan.addItineraries(passengerItineraries);
+
+		// If transit is an option too then collect possible pickup and drop-off places near transit stops
+		if (!transitModalities.isEmpty() && plan.isRideshareLegAllowed() && 
+				(plan.getMaxTransfers() == null || plan.getMaxTransfers() >= 1)) {
+			Set<Stop> transitBoardingStops = null;
+			// Calculate a transit reference plan to find potential boarding or alighting places. 
+			PlannerResult transitRefResult = createTransitPlan(plan.getRequestTime(), plan.getFrom(), plan.getTo(), plan.getTravelTime(), plan.isUseAsArrivalTime(),
+					transitModalities, 50000, plan.getMaxTransfers() == null ? null : plan.getMaxTransfers() - 1, 2);
+    		if (transitRefResult.hasError()) {
+        		log.warn("Skip itineraries (transit reference) due to OTP error: " + transitRefResult.getReport().shortReport());
+    		} else {
+				List<OtpCluster> nearbyClusters = new ArrayList<>();
+				// Collect the stops. If there are no stops or too few, collect potential clusters
+				//FIXME The ordering of the clusters depends probably on first or last leg. Check.
+		    	transitBoardingStops = collectStops(plan, findTransitBoardingStops(transitRefResult.getItineraries()), nearbyClusters);
+	    		if (plan.isFirstLegRideshareAllowed()) {
+	        		addRideshareAsFirstLeg(plan, transitBoardingStops, transitModalities);
+	    		}
+	    		if (plan.isLastLegRideshareAllowed()) {
+	        		addRideshareAsLastLeg(plan, transitBoardingStops, transitModalities);
+	    		}
+    		}
+		}
     }
 
     protected void rankItineraries(TripPlan plan) {

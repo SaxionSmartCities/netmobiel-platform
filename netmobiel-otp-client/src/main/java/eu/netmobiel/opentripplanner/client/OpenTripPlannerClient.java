@@ -248,30 +248,14 @@ public class OpenTripPlannerClient {
     private PlanResponse postProcess(PlanResponse result, boolean forcedDepartureTime) {
 		if (result.plan != null) {
 			if (forcedDepartureTime) {
-				if (log.isDebugEnabled()) {
-					log.debug("OTP plan before shift: " + result.plan.toString());
-				}
+//				if (log.isDebugEnabled()) {
+//					log.debug("OTP plan before shift: " + result.plan.toString());
+//				}
 				// Shift the plan in time (earlier) so that arrivalTime equals departureTime
 				// The plan header is ok. Just modify itinerary and legs.
 				// NOTE: The deserialization from JSON does not create a graph, the stops at each leg are duplicate objects! 
 				for (Itinerary it : result.plan.itineraries) {
-					it.startTime = it.startTime.minusSeconds(it.duration);  
-					it.endTime = it.endTime.minusSeconds(it.duration);
-					for (Leg leg : it.legs) {
-						if (leg.mode.isTransit()) {
-							throw new RuntimeException("Leg should not be shifted, it is time-dependent - " + leg.toString());
-						}
-						leg.startTime = leg.startTime.minusSeconds(it.duration);
-						leg.from.departure = leg.from.departure.minusSeconds(it.duration);
-						if (leg.from.arrival != null) {
-							leg.from.arrival = leg.from.arrival.minusSeconds(it.duration);
-						}
-						leg.endTime = leg.endTime.minusSeconds(it.duration);
-						leg.to.arrival = leg.endTime;
-						if (leg.to.departure != null) {
-							leg.to.departure = leg.to.departure.minusSeconds(it.duration);
-						}
-					}
+					shiftBackItinerary(it, it.duration);
 				}
 			}
 			// Repair some invalid numbers
@@ -281,5 +265,25 @@ public class OpenTripPlannerClient {
 			}
 		}
 		return result;
+    }
+    
+    private static void shiftBackItinerary(Itinerary it, Long duration) {
+		it.startTime = it.startTime.minusSeconds(duration);  
+		it.endTime = it.endTime.minusSeconds(duration);
+		for (Leg leg : it.legs) {
+			if (leg.mode.isTransit()) {
+				throw new RuntimeException("Leg should not be shifted, it is time-dependent - " + leg.toString());
+			}
+			leg.startTime = leg.startTime.minusSeconds(it.duration);
+			leg.from.departure = leg.from.departure.minusSeconds(it.duration);
+			if (leg.from.arrival != null) {
+				leg.from.arrival = leg.from.arrival.minusSeconds(it.duration);
+			}
+			leg.endTime = leg.endTime.minusSeconds(it.duration);
+			leg.to.arrival = leg.endTime;
+			if (leg.to.departure != null) {
+				leg.to.departure = leg.to.departure.minusSeconds(it.duration);
+			}
+		}
     }
 }
