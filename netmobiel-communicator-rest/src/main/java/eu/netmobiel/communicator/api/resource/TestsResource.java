@@ -3,13 +3,10 @@ package eu.netmobiel.communicator.api.resource;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
-import javax.ws.rs.Consumes;
 import javax.ws.rs.GET;
 import javax.ws.rs.InternalServerErrorException;
 import javax.ws.rs.NotFoundException;
-import javax.ws.rs.POST;
 import javax.ws.rs.Path;
-import javax.ws.rs.PathParam;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
@@ -17,10 +14,8 @@ import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.communicator.service.PublisherService;
 
 @Path("/tests")
 @RequestScoped
@@ -32,8 +27,8 @@ public class TestsResource {
 	@Inject
 	private SecurityIdentity securityIdentity;
 
-    @Inject
-    private PublisherService publisherService;
+//    @Inject
+//    private PublisherService publisherService;
 
     @GET
     @Path("/rte")
@@ -85,70 +80,70 @@ public class TestsResource {
     	return Response.ok().build();
     }
 
-    public static class MessageRequest {
-		private String managedIdentity; 
-    	private String text; 
-    	public String getManagedIdentity() {
-			return managedIdentity;
-		}
-		public void setManagedIdentity(String managedIdentity) {
-			this.managedIdentity = managedIdentity;
-		}
-		public String getText() {
-			return text;
-		}
-		public void setText(String text) {
-			this.text = text;
-		}
-    }
-    
-    @POST
-    @Path("/sms-message")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response smsMessage(MessageRequest mrq) {
-    	Response rsp = null;
-		try {
-			publisherService.sendTextMessage(mrq.managedIdentity, mrq.text);
-			rsp = Response.ok().build();
-		} catch (IllegalArgumentException e) {
-			throw new BadRequestException(e);
-		} catch (BusinessException e) {
-			throw new WebApplicationException(e);
-		}
-    	return rsp;
-    }
-
-    @GET
-    @Path("/sms-message/{id}")
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response getSmsMessage(@PathParam("id") String messageId) {
-    	Response rsp = null;
-		try {
-			Object obj = publisherService.getMessageBirdMessage(messageId);
-			rsp = Response.ok(obj).build();
-		} catch (IllegalArgumentException e) {
-			throw new BadRequestException(e);
-		} catch (BusinessException e) {
-			throw new WebApplicationException(e);
-		}
-    	return rsp;
-    }
-
-    @POST
-    @Path("/voice-message")
-    @Consumes(MediaType.APPLICATION_JSON)
-    @Produces(MediaType.APPLICATION_JSON)
-    public Response voiceMessage(MessageRequest mrq) {
-    	Response rsp = null;
-		try {
-			publisherService.sendVoiceMessage(mrq.managedIdentity, mrq.text);
-			rsp = Response.ok().build();
-		} catch (IllegalArgumentException e) {
-			throw new BadRequestException(e);
-		} catch (BusinessException e) {
-			throw new WebApplicationException(e);
-		}
-    	return rsp;
-    }
+//    public static class MessageRequest {
+//		private String managedIdentity; 
+//    	private String text; 
+//    	public String getManagedIdentity() {
+//			return managedIdentity;
+//		}
+//		public void setManagedIdentity(String managedIdentity) {
+//			this.managedIdentity = managedIdentity;
+//		}
+//		public String getText() {
+//			return text;
+//		}
+//		public void setText(String text) {
+//			this.text = text;
+//		}
+//    }
+//    
+//    @POST
+//    @Path("/sms-message")
+//    @Consumes(MediaType.APPLICATION_JSON)
+//    @Produces(MediaType.APPLICATION_JSON)
+//    public Response smsMessage(MessageRequest mrq) {
+//    	Response rsp = null;
+//		try {
+//			publisherService.sendTextMessage(mrq.managedIdentity, mrq.text);
+//			rsp = Response.ok().build();
+//		} catch (IllegalArgumentException e) {
+//			throw new BadRequestException(e);
+//		} catch (BusinessException e) {
+//			throw new WebApplicationException(e);
+//		}
+//    	return rsp;
+//    }
+//
+//    @GET
+//    @Path("/sms-message/{id}")
+//    @Produces(MediaType.APPLICATION_JSON)
+//    public Response getSmsMessage(@PathParam("id") String messageId) {
+//    	Response rsp = null;
+//		try {
+//			Object obj = publisherService.getMessageBirdMessage(messageId);
+//			rsp = Response.ok(obj).build();
+//		} catch (IllegalArgumentException e) {
+//			throw new BadRequestException(e);
+//		} catch (BusinessException e) {
+//			throw new WebApplicationException(e);
+//		}
+//    	return rsp;
+//    }
+//
+//    @POST
+//    @Path("/voice-message")
+//    @Consumes(MediaType.APPLICATION_JSON)
+//    @Produces(MediaType.APPLICATION_JSON)
+//    public Response voiceMessage(MessageRequest mrq) {
+//    	Response rsp = null;
+//		try {
+//			publisherService.sendVoiceMessage(mrq.managedIdentity, mrq.text);
+//			rsp = Response.ok().build();
+//		} catch (IllegalArgumentException e) {
+//			throw new BadRequestException(e);
+//		} catch (BusinessException e) {
+//			throw new WebApplicationException(e);
+//		}
+//    	return rsp;
+//    }
 }
