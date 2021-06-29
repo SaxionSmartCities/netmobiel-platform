@@ -46,7 +46,7 @@ public class HttpNetmobielSecurityIdentityProducer {
     	Principal realUser = request.getUserPrincipal();
     	Principal effectiveUser = realUser;
 		String delegator = request.getHeader(DELEGATOR_HEADER);
-		if (delegator != null) {
+		if (token != null && delegator != null) {
 			if (!request.isUserInRole(DELEGATE_ROLE_NAME)) {
 				throw new SecurityException(String.format("Header %s is set, but caller %s lacks role '%s'", DELEGATOR_HEADER, realNetmobielUser, DELEGATE_ROLE_NAME));
 			}

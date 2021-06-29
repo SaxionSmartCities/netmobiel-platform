@@ -37,7 +37,7 @@ public class NetmobielSecurityIdentity implements SecurityIdentity {
     
     @Override
     public boolean isDelegationActive() {
-        return ! Objects.equals(principal, effectivePrincipal);
+        return principal != null && ! Objects.equals(principal, effectivePrincipal);
     }
     @Override
 	public NetMobielUser getRealUser() {
