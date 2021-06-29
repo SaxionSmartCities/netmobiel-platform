@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.ejb.Stateless;
 import javax.inject.Inject;
@@ -104,8 +105,9 @@ public class RideshareReportService {
     				rr.setRideDuration(ride.getDuration() / 60);
     			}
     			// RSC-5
-    			if (ride.hasActiveBooking()) {
-        			rr.setNrOfPassengers(ride.getActiveBooking().get().getNrSeats());
+    			Optional<Booking> optBooking = ride.getActiveBooking();  
+    			if (optBooking.isPresent()) {
+        			rr.setNrOfPassengers(optBooking.get().getNrSeats());
     			}
     			// RSC-6
     			rr.setRideConfirmedByDriver(ride.getConfirmed());
