@@ -170,7 +170,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
     	assertNull(but.getCancelReason());
     	assertNotNull(but.getDepartureTime());
     	assertNotNull(but.getDropOff());
-    	assertNotNull(but.getNrSeats());
+    	assertTrue(but.getNrSeats() >= 1);
     	assertNotNull(but.getPickup());
     	assertNotNull(but.getState());
     	assertTrue(puu.isLoaded(but, Booking_.LEGS));
