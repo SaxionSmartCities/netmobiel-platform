@@ -8,6 +8,8 @@ import java.util.Map;
 import javax.json.*;
 import javax.json.stream.JsonGenerator;
 
+import eu.netmobiel.commons.exception.SystemException;
+
 public class JsonHelper {
 	private JsonHelper() {
 		// Do not instantiate
@@ -21,22 +23,18 @@ public class JsonHelper {
         StringWriter stringWriter = new StringWriter();
         Map<String, Boolean> config = buildConfig(options);
         JsonWriterFactory writerFactory = Json.createWriterFactory(config);
-        JsonWriter jsonWriter = writerFactory.createWriter(stringWriter);
-
-        jsonWriter.write(json);
-        jsonWriter.close();
-
+        try (JsonWriter jsonWriter = writerFactory.createWriter(stringWriter)) {
+            jsonWriter.write(json);
+        }
         return stringWriter.toString();
     }
 
     public static JsonObject parseJson(String jsonText) {
         JsonObject json = null;
-        try {
-            JsonReader jsonReader = Json.createReader(new StringReader(jsonText));
+        try (JsonReader jsonReader = Json.createReader(new StringReader(jsonText))) {
             json = jsonReader.readObject();
         } catch (Exception e) {
-            throw new RuntimeException(e);
-//            json = Json.createObjectBuilder().build();
+            throw new SystemException(e);
         }
         return json;
     }

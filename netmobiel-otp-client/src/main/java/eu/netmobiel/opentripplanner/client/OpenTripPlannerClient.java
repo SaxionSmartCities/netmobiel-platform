@@ -10,6 +10,7 @@ import java.time.format.DateTimeFormatter;
 import java.time.temporal.ChronoUnit;
 import java.util.ArrayList;
 import java.util.Arrays;
+import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.function.BiPredicate;
@@ -96,52 +97,62 @@ public class OpenTripPlannerClient {
     }
 
     public List<JsonObject> fetchStopsByRadius(double lat, double lon, int radius) {
+    	List<JsonObject> stops = Collections.emptyList();
 		String graph = String.format("{ stopsByRadius(lat: %f, lon: %f, radius: %d) { " + 
 					"    edges { node { stop { id name lat lon gtfsId platformCode } } } } }", lat, lon, radius);
 		String result = grapqlQuery(graph);
-        JsonReader jsonReader = Json.createReader(new StringReader(result));
-        JsonObject jobj = jsonReader.readObject();
-        JsonArray edges = jobj.getJsonObject("data").getJsonObject("stopsByRadius").getJsonArray("edges");
-        List<JsonObject> stops = edges.getValuesAs(JsonObject.class).stream()
-        		.map(node ->  node.getJsonObject("node").getJsonObject("stop"))
-        		.collect(Collectors.toList());
+        try (JsonReader jsonReader = Json.createReader(new StringReader(result))) {
+            JsonObject jobj = jsonReader.readObject();
+            JsonArray edges = jobj.getJsonObject("data").getJsonObject("stopsByRadius").getJsonArray("edges");
+            stops = edges.getValuesAs(JsonObject.class).stream()
+            		.map(node ->  node.getJsonObject("node").getJsonObject("stop"))
+            		.collect(Collectors.toList());
+        }
         return stops;
     }
 
     public List<JsonObject> fetchAllStops() {
-        String result = grapqlQuery("{ stops { id gtfsId name lat lon platformCode } }"); 
-        JsonReader jsonReader = Json.createReader(new StringReader(result));
-        JsonObject jobj = jsonReader.readObject();
-        JsonArray jstops = jobj.getJsonObject("data").getJsonArray("stops");
-        List<JsonObject> stops = jstops.getValuesAs(JsonObject.class);
+    	List<JsonObject> stops = Collections.emptyList();
+        String result = grapqlQuery("{ stops { id gtfsId name lat lon platformCode } }");
+        try (JsonReader jsonReader = Json.createReader(new StringReader(result))) {
+            JsonObject jobj = jsonReader.readObject();
+            JsonArray jstops = jobj.getJsonObject("data").getJsonArray("stops");
+            stops = jstops.getValuesAs(JsonObject.class);
+        }
         return stops;
     }
 
     public List<JsonObject> fetchAllClusters() {
+    	List<JsonObject> clusters = Collections.emptyList();
         String result = grapqlQuery("{ clusters { id gtfsId name lat lon stops { id } } }"); 
-        JsonReader jsonReader = Json.createReader(new StringReader(result));
-        JsonObject jobj = jsonReader.readObject();
-        JsonArray jclusters = jobj.getJsonObject("data").getJsonArray("clusters");
-        List<JsonObject> clusters = jclusters.getValuesAs(JsonObject.class);
+        try (JsonReader jsonReader = Json.createReader(new StringReader(result))) {
+            JsonObject jobj = jsonReader.readObject();
+            JsonArray jclusters = jobj.getJsonObject("data").getJsonArray("clusters");
+            clusters = jclusters.getValuesAs(JsonObject.class);
+        }
         return clusters;
     }
 
     public List<JsonObject> fetchAllRoutes() {
+    	List<JsonObject> routes = Collections.emptyList();
         String result = grapqlQuery("{ routes { id gtfsId shortName longName type stops { id } } }"); 
-        JsonReader jsonReader = Json.createReader(new StringReader(result));
-        JsonObject jobj = jsonReader.readObject();
-        JsonArray jroutes = jobj.getJsonObject("data").getJsonArray("routes");
-        List<JsonObject> routes = jroutes.getValuesAs(JsonObject.class);
+        try (JsonReader jsonReader = Json.createReader(new StringReader(result))) {
+            JsonObject jobj = jsonReader.readObject();
+            JsonArray jroutes = jobj.getJsonObject("data").getJsonArray("routes");
+            routes = jroutes.getValuesAs(JsonObject.class);
+        }
         return routes;
     }
 
     public List<JsonObject> fetchAllTransfers() {
+    	List<JsonObject> transfers = Collections.emptyList();
         String result = grapqlQuery("{ stops { id transfers { stop { id } distance } } }"); 
-        JsonReader jsonReader = Json.createReader(new StringReader(result));
-        JsonObject jobj = jsonReader.readObject();
-        JsonArray jstops = jobj.getJsonObject("data").getJsonArray("stops");
-        log.info("fetchAllTransfers: #" + jstops.size() + " stops");
-        List<JsonObject> transfers = jstops.getValuesAs(JsonObject.class);
+        try (JsonReader jsonReader = Json.createReader(new StringReader(result))) {
+            JsonObject jobj = jsonReader.readObject();
+            JsonArray jstops = jobj.getJsonObject("data").getJsonArray("stops");
+            log.info("fetchAllTransfers: #" + jstops.size() + " stops");
+            transfers = jstops.getValuesAs(JsonObject.class);
+        }
         return transfers;
     }
 

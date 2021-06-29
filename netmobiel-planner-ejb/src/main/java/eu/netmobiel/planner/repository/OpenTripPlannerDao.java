@@ -19,6 +19,7 @@ import com.vividsolutions.jts.geom.Coordinate;
 
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.GeometryHelper;
@@ -47,47 +48,63 @@ public class OpenTripPlannerDao {
     private TripPlanMapper tripPlanMapper;
 
     public List<OtpStop> fetchAllStops() {
+    	List<OtpStop> stops = null;
     	List<JsonObject> jstops = otpClient.fetchAllStops(); 
         log.info("fetchAllStops: #" + jstops.size() + " stops");
-        Jsonb jsonb = JsonbBuilder.create();
-        List<OtpStop> stops = jstops.stream()
-        		.map(stop -> jsonb.fromJson(stop.toString(), OtpStop.class))
-        		.collect(Collectors.toList());
+        try (Jsonb jsonb = JsonbBuilder.create()) {
+            stops = jstops.stream()
+            		.map(stop -> jsonb.fromJson(stop.toString(), OtpStop.class))
+            		.collect(Collectors.toList());
+        } catch (Exception e) {
+        	throw new SystemException("Error closing Jsonb", e);
+		}
         return stops;
     }
 
     public List<OtpCluster> fetchAllClusters() {
     	List<JsonObject> jclusters = otpClient.fetchAllClusters();
         log.info("fetchAllClusters: #" + jclusters.size() + " clusters");
-        Jsonb jsonb = JsonbBuilder.create();
-        List<OtpCluster> clusters = jclusters.stream()
-        		.map(stop -> jsonb.fromJson(stop.toString(), OtpCluster.class))
-        		.collect(Collectors.toList());
+        List<OtpCluster> clusters = null;
+        try (Jsonb jsonb = JsonbBuilder.create()) {
+            clusters = jclusters.stream()
+            		.map(stop -> jsonb.fromJson(stop.toString(), OtpCluster.class))
+            		.collect(Collectors.toList());
+        } catch (Exception e) {
+        	throw new SystemException("Error closing Jsonb", e);
+        }
         return clusters;
     }
 
     public List<OtpRoute> fetchAllRoutes() {
     	List<JsonObject> jroutes = otpClient.fetchAllRoutes();
-        Jsonb jsonb = JsonbBuilder.create();
-        log.info("fetchAllRoutes: #" + jroutes.size() + " routes");
-        List<OtpRoute> routes = jroutes.stream()
-        		.map(stop -> jsonb.fromJson(stop.toString(), OtpRoute.class))
-        		.collect(Collectors.toList());
+    	List<OtpRoute> routes = null;
+        try (Jsonb jsonb = JsonbBuilder.create()) {
+	        log.info("fetchAllRoutes: #" + jroutes.size() + " routes");
+	        routes = jroutes.stream()
+	        		.map(stop -> jsonb.fromJson(stop.toString(), OtpRoute.class))
+	        		.collect(Collectors.toList());
+        } catch (Exception e) {
+        	throw new SystemException("Error closing Jsonb", e);
+        }
         return routes;
     }
 
     public List<OtpTransfer> fetchAllTransfers() {
     	List<JsonObject> jstops = otpClient.fetchAllTransfers();
-        Jsonb jsonb = JsonbBuilder.create();
-        log.info("fetchAllTransfers: #" + jstops.size() + " stops");
-        List<OtpTransfer> transfers = jstops.stream()
-        		.map(jstop -> {
-        			OtpStop stop = jsonb.fromJson(jstop.toString(), OtpStop.class);
-        			stop.getTransfers().forEach(t -> t.setFromStop(stop));
-        			return stop;
-        		})
-        		.flatMap(stop -> stop.getTransfers().stream())
-        		.collect(Collectors.toList());
+    	List<OtpTransfer> transfers = null;
+        try (Jsonb jsonb = JsonbBuilder.create()) {
+            log.info("fetchAllTransfers: #" + jstops.size() + " stops");
+            transfers = jstops.stream()
+            		.map(jstop -> {
+            			OtpStop stop = jsonb.fromJson(jstop.toString(), OtpStop.class);
+            			stop.getTransfers().forEach(t -> t.setFromStop(stop));
+            			return stop;
+            		})
+            		.flatMap(stop -> stop.getTransfers().stream())
+            		.collect(Collectors.toList());
+        } catch (Exception e) {
+        	throw new SystemException("Error closing Jsonb", e);
+        }
         return transfers;
     }
 

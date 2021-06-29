@@ -96,17 +96,18 @@ public class KeycloakDao {
 			urep.setFirstName(user.getGivenName());
 			urep.setLastName(user.getFamilyName());
 			urep.setEnabled(true);
-			Response response = realm.users().create(urep);
-//			if (log.isDebugEnabled()) {
-//				log.debug(String.format("AddUser: Response is %s %s", response.getStatus(), response.getStatusInfo()));
-//			}
-			if (response.getStatusInfo() == Response.Status.CREATED) {
-				managedIdentity = CreatedResponseUtil.getCreatedId(response);
-			} else if (response.getStatusInfo() == Response.Status.CONFLICT) {
-				ErrorRepresentation error = response.readEntity(ErrorRepresentation.class);
-				throw new DuplicateEntryException(error.getErrorMessage());
-			} else {
-				ExceptionUtil.throwExceptionFromResponse("Error adding user to Keycloak", response);
+			try (Response response = realm.users().create(urep)) {
+//				if (log.isDebugEnabled()) {
+//					log.debug(String.format("AddUser: Response is %s %s", response.getStatus(), response.getStatusInfo()));
+//				}
+				if (response.getStatusInfo() == Response.Status.CREATED) {
+					managedIdentity = CreatedResponseUtil.getCreatedId(response);
+				} else if (response.getStatusInfo() == Response.Status.CONFLICT) {
+					ErrorRepresentation error = response.readEntity(ErrorRepresentation.class);
+					throw new DuplicateEntryException(error.getErrorMessage());
+				} else {
+					ExceptionUtil.throwExceptionFromResponse("Error adding user to Keycloak", response);
+				}
 			}
 		}
 		return managedIdentity;

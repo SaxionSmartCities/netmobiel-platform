@@ -4,6 +4,8 @@ import javax.json.bind.Jsonb;
 import javax.json.bind.JsonbBuilder;
 import javax.ws.rs.core.Response;
 
+import eu.netmobiel.commons.exception.SystemException;
+
 public class ErrorResponse {
 	private int status;
 	private String reasonPhrase;
@@ -55,7 +57,12 @@ public class ErrorResponse {
 	}
 
 	public String stringify() {
-		Jsonb jsonb = JsonbBuilder.create();
-		return jsonb.toJson(this);
+		String result = null;
+		try (Jsonb jsonb = JsonbBuilder.create()) {
+			result = jsonb.toJson(this);
+		} catch (Exception e) {
+			throw new SystemException("Unable to close jsonb writer", e);
+		}
+		return result;
 	}
 }

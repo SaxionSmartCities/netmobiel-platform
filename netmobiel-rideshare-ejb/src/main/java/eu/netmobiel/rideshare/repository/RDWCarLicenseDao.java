@@ -12,6 +12,7 @@ import javax.inject.Inject;
 import javax.json.Json;
 import javax.json.JsonArray;
 import javax.json.JsonObject;
+import javax.json.JsonReader;
 import javax.ws.rs.client.Client;
 import javax.ws.rs.client.ClientBuilder;
 import javax.ws.rs.client.WebTarget;
@@ -76,40 +77,43 @@ public class RDWCarLicenseDao {
     }
 
     private Car convertRDW2Car(String plate, String json) throws IOException {
-    	JsonArray licenseList = Json.createReader(new StringReader(json)).readArray();
-    	if (licenseList.size() == 0) { 
-            return null;
-        } else if (licenseList.size() > 1) {
-        	log.warn(String.format("Multiple results for plate %s", plate));
-        }
-        JsonObject node = licenseList.get(0).asJsonObject();
-        Car car = new Car();
-		car.setLicensePlate(plate);
-        car.setBrand(node.getString("merk", null));
-        car.setModel(node.getString("handelsbenaming", null));
-        car.setColor(node.getString("eerste_kleur", null));
-        String color2 = node.getString("tweede_kleur", null);
-        if (!color2.equalsIgnoreCase("Niet geregistreerd")) {
-        	car.setColor2(color2);
-        }
-        String toelating = node.getString("datum_eerste_toelating", null);
-        if (toelating != null && toelating.length() >= 4) {
-        	String year = node.getString("datum_eerste_toelating").substring(0, 4);
-	        if (StringUtils.isNumeric(year)) {
-	            car.setRegistrationYear(Integer.parseInt(year));
-	        }
-        }
-        car.setNrSeats(getStringAsInt(node, "aantal_zitplaatsen"));
-        car.setNrDoors(getStringAsInt(node, "aantal_deuren"));
-        String ctype = node.getString("inrichting", null);
-        if (!ctype.equalsIgnoreCase("Niet geregistreerd")) {
-	        car.setType(carTypeMapping.get(ctype));
-	        if (car.getType() == null) {
-	        	car.setType(CarType.OTHER);
-	        }
-        }
-//      String soort = node.get("voertuigsoort").asText();
-        car.setTypeRegistrationId(node.getString("typegoedkeuringsnummer", null));
+    	Car car = null;
+    	try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
+    		JsonArray licenseList = jsonReader.readArray();
+        	if (licenseList.size() == 0) { 
+                return null;
+            } else if (licenseList.size() > 1) {
+            	log.warn(String.format("Multiple results for plate %s", plate));
+            }
+            JsonObject node = licenseList.get(0).asJsonObject();
+            car = new Car();
+    		car.setLicensePlate(plate);
+            car.setBrand(node.getString("merk", null));
+            car.setModel(node.getString("handelsbenaming", null));
+            car.setColor(node.getString("eerste_kleur", null));
+            String color2 = node.getString("tweede_kleur", null);
+            if (!color2.equalsIgnoreCase("Niet geregistreerd")) {
+            	car.setColor2(color2);
+            }
+            String toelating = node.getString("datum_eerste_toelating", null);
+            if (toelating != null && toelating.length() >= 4) {
+            	String year = node.getString("datum_eerste_toelating").substring(0, 4);
+    	        if (StringUtils.isNumeric(year)) {
+    	            car.setRegistrationYear(Integer.parseInt(year));
+    	        }
+            }
+            car.setNrSeats(getStringAsInt(node, "aantal_zitplaatsen"));
+            car.setNrDoors(getStringAsInt(node, "aantal_deuren"));
+            String ctype = node.getString("inrichting", null);
+            if (!ctype.equalsIgnoreCase("Niet geregistreerd")) {
+    	        car.setType(carTypeMapping.get(ctype));
+    	        if (car.getType() == null) {
+    	        	car.setType(CarType.OTHER);
+    	        }
+            }
+//          String soort = node.get("voertuigsoort").asText();
+            car.setTypeRegistrationId(node.getString("typegoedkeuringsnummer", null));
+    	}
         return car;
     }
     
@@ -119,14 +123,16 @@ public class RDWCarLicenseDao {
     }
     
     private void convertRDWFuel2Car(Car car, String plate, String json) throws IOException {
-    	JsonArray cars = Json.createReader(new StringReader(json)).readArray();
-    	if (cars.size() == 0) { 
-            return;
-        } else if (cars.size() > 1) {
-        	log.warn(String.format("Multiple fuel results for plate %s", plate));
-        }
-        JsonObject node = cars.get(0).asJsonObject();
-        car.setCo2Emission(getStringAsInt(node, "co2_uitstoot_gecombineerd"));
+    	try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
+        	JsonArray cars = jsonReader.readArray();
+        	if (cars.size() == 0) { 
+                return;
+            } else if (cars.size() > 1) {
+            	log.warn(String.format("Multiple fuel results for plate %s", plate));
+            }
+            JsonObject node = cars.get(0).asJsonObject();
+            car.setCo2Emission(getStringAsInt(node, "co2_uitstoot_gecombineerd"));
+    	}
     }
 
     private static final Map<String, CarType> carTypeMapping = new LinkedHashMap<>();
