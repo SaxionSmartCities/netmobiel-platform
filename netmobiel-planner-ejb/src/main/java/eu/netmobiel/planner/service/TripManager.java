@@ -163,7 +163,7 @@ public class TripManager {
     			results = tripDao.loadGraphs(tripIds.getData(), Trip.DETAILED_ENTITY_GRAPH, Trip::getId);
     		}
     	}
-    	return new PagedResult<Trip>(results, maxResults, offset, totalCount);
+    	return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
     /**
@@ -443,9 +443,8 @@ public class TripManager {
         	if (tripdb.getState() != TripState.IN_TRANSIT && tripdb.getState() != TripState.ARRIVING && tripdb.getState() != TripState.VALIDATING) {
         		throw new BadRequestException("Unexpected state for a confirmation: " + tripRef + " " + tripdb.getState());
         	}
-        	if (bookingRef != null) {
-            	tripdb.getItinerary().findLegByBookingId(bookingRef)
-            			.orElseThrow(() -> new IllegalArgumentException("No such booking on trip: " + tripRef + " " + bookingRef));
+        	if (bookingRef != null && tripdb.getItinerary().findLegByBookingId(bookingRef).isEmpty()) {
+        		throw new IllegalArgumentException("No such booking on trip: " + tripRef + " " + bookingRef);
         	}
         	for (Leg leg : tripdb.getItinerary().getLegs()) {
         		if (leg.isConfirmationByProviderRequested() && (bookingRef == null || bookingRef.equals(leg.getBookingId()))) {
