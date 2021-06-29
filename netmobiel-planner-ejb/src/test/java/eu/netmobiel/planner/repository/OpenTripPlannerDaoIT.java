@@ -81,7 +81,7 @@ public class OpenTripPlannerDaoIT {
 		assertNotNull(result.getItineraries());
 		assertNotNull(result.getReport());
 		PlannerReport report = result.getReport();
-		assertNotNull(report.getExecutionTime());
+		assertTrue(report.getExecutionTime() > 0L);
 		assertEquals(1, result.getItineraries().size());
 		Itinerary it = result.getItineraries().get(0);
 		assertEquals(1, it.getLegs().size());
