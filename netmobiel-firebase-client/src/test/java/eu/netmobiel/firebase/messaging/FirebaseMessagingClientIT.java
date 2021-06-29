@@ -102,9 +102,13 @@ public class FirebaseMessagingClientIT {
     }
     
     @Test
-    public void testPublishMessage() throws Exception {
-    	NetMobielMessage msg = new TestMessage("a body", "urn:nb:ts:Test:1234", "Test 1234", Instant.now(), aSender);
-    	client.publish("systemTopic", msg, true);
+    public void testPublishMessage() {
+    	try {
+	    	NetMobielMessage msg = new TestMessage("a body", "urn:nb:ts:Test:1234", "Test 1234", Instant.now(), aSender);
+	    	client.publish("systemTopic", msg, true);
+    	} catch (Exception ex) {
+    		fail("Got exception");
+    	}
     }
 
     private static class TestMessage implements NetMobielMessage {

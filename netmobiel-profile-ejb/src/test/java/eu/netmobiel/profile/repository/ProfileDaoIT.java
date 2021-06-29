@@ -276,6 +276,9 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	}
     	log.debug("Remove profile");
     	profileDao.remove(p);
+    	flush();
+    	Optional<Profile> opt_p = profileDao.find(p.getId());
+    	assertFalse(opt_p.isPresent());
     	log.debug("End of test: removeProfile");
     }
 
