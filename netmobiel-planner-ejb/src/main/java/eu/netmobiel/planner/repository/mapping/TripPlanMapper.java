@@ -28,20 +28,21 @@ public abstract class TripPlanMapper {
 	private Logger log;
 
 	@Mapping(target = "earliestDepartureTime", ignore = true)
+    @Mapping(target = "firstLegRideshareAllowed", ignore = true)
+    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "lastLegRideshareAllowed", ignore = true)
     @Mapping(target = "latestArrivalTime", ignore = true)
+    @Mapping(target = "maxTransfers", ignore = true)
     @Mapping(target = "maxWalkDistance", ignore = true)
     @Mapping(target = "nrSeats", ignore = true)
-    @Mapping(target = "traverseModes", ignore = true)
-    @Mapping(target = "maxTransfers", ignore = true)
-    @Mapping(target = "firstLegRideshareAllowed", ignore = true)
-    @Mapping(target = "lastLegRideshareAllowed", ignore = true)
-    @Mapping(target = "id", ignore = true)
+    @Mapping(target = "plannerReports", ignore = true)
     @Mapping(target = "planType", ignore = true)
     @Mapping(target = "requestTime", ignore = true)
     @Mapping(target = "requestDuration", ignore = true)
+    @Mapping(target = "requestor", ignore = true)
     @Mapping(target = "travelTime", source = "date")
     @Mapping(target = "traveller", ignore = true)
-    @Mapping(target = "plannerReports", ignore = true)
+    @Mapping(target = "traverseModes", ignore = true)
     @Mapping(target = "useAsArrivalTime", ignore = true)
     public abstract eu.netmobiel.planner.model.TripPlan map(TripPlan source );
 
