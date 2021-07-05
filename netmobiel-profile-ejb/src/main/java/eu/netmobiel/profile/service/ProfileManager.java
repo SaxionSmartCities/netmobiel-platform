@@ -25,7 +25,6 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
-import eu.netmobiel.commons.exception.DuplicateEntryException;
 import eu.netmobiel.commons.exception.LegalReasonsException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
@@ -156,23 +155,18 @@ public class ProfileManager {
 		 * Scenarios:
 		 * 1. Unauthenticated user: Create or attach Keycloak account (key: email address), create (own) profile for that email address, 
 		 * 2. Authenticated user: 
-		 * 2.1 Caller profile exists
-		 * 2.1.1 Email address matches caller's email: Bad Request: Profile exists
-		 * 2.1.2 Email different: Create or attach Keycloak account (key: email address), create delegator account. Privilege required.
-		 * 2.2 Caller profile does not exist
-		 * 2.2.1 Email address mismatch: Bad Request - Caller email mismatch
-		 * 2.2.2 Email address matches caller's email: Attach Keycloak account, create caller profile
+		 * 2.1 Caller profile exists and privileged: Create or attach Keycloak account (key: email address), create delegator account. Privilege required. 
+		 * 2.2 Caller profile does not exist: Create caller profile
 		 */
 		DelegatorAccountCreatedEvent delegatorAccountCreated = null;
-		if (caller.isPresent()) {
+		if (! caller.isPresent()) {
+			// No Keycloak user
+			createOrAttachKeycloakAccount(profile);
+		} else {
 			// I am a keycloak user
 			Optional<Profile> myProfile = profileDao.getReferenceByManagedIdentity(caller.get().getManagedIdentity());
-			// Does the new profile have the same email address as me?
-			if (!profile.getEmail().equals(caller.get().getEmail())) {
-				// It is not me creating my own profile
-				if (!myProfile.isPresent()) {
-					throw new SecurityException("You cannot create a profile for someone else without having a profile of yourself");
-				}
+		    if (myProfile.isPresent()) {
+		    	// Create a profile for someone else. Email is the key to lookup the profile
 				boolean privileged = sessionContext.isCallerInRole("admin") || sessionContext.isCallerInRole("delegate");
 				if (!privileged) {
 					throw new SecurityException("You don't have the privilege to create a profile on behalf of someone else");
@@ -180,14 +174,15 @@ public class ProfileManager {
 			    profile.setCreatedBy(myProfile.get());
 			    // Inform participant about the account, also check the communication means (phone number etc.)
 			    // Will throw BadRequestException is something is wrong
-			    //Initialize myProfile
+			    // Let Hibernate initialize myProfile
 			    myProfile.get().getManagedIdentity();
 			    delegatorAccountCreated = new DelegatorAccountCreatedEvent(myProfile.get(), profile);
-			} else if (myProfile.isPresent()) {
-				throw new DuplicateEntryException("You already have a profile with that email address");
+				createOrAttachKeycloakAccount(profile);
+		    } else {
+		    	// Create a profile for me, I have already a Keycloak account
+				profile.setManagedIdentity(caller.get().getManagedIdentity());
 			}
-		} 
-		createOrAttachKeycloakAccount(profile);
+		}
 		// Note: If the profile already exists (i.e. same email address), then a constraint violation will occur.
 		profile.linkOneToOneChildren();
 		profileDao.save(profile);
