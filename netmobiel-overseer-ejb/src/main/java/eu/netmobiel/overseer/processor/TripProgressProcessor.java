@@ -147,13 +147,14 @@ public class TripProgressProcessor {
 //		}
     }
     protected String travelsWith(Set<String> agencies) {
-    	String desc = "?";
+    	// FIXME Als er geen agency is, dan moet het per voet zijn
+    	String desc = "te voet";
     	List<String> ags = new ArrayList<>(agencies);
     	if (ags.size() == 1) {
-    		desc = ags.get(0);
-    	} else {
+    		desc = "met " + ags.get(0);
+    	} else if (ags.size() > 1) {
     		String last = ags.remove(ags.size() - 1);
-    		desc = String.join( " en ", String.join(", ", ags), last);
+    		desc = "met " + String.join( " en ", String.join(", ", ags), last);
     	}
     	return desc;
     }
@@ -165,7 +166,7 @@ public class TripProgressProcessor {
 		msg.addRecipient(trip.getTraveller());
 		msg.setSubject("Je gaat bijna op pad!");
 		msg.setBody(
-				MessageFormat.format("Vertrek om {0} uur naar {1}. Je reist met {2}.", 
+				MessageFormat.format("Vertrek om {0} uur naar {1}. Je reist {2}.", 
 						formatTime(trip.getItinerary().getDepartureTime()),
 						trip.getTo().getLabel(), 
 						travelsWith(trip.getAgencies())
@@ -181,7 +182,7 @@ public class TripProgressProcessor {
 			msg2.addRecipient(trip.getOrganizer());
 			msg2.setSubject(MessageFormat.format("Organisator: {0} gaat bijna op pad!", trip.getTraveller().getName()));
 			msg2.setBody(
-					MessageFormat.format("Vertrek om {0} uur naar {1}. {2} reist met {3}.", 
+					MessageFormat.format("Vertrek om {0} uur naar {1}. {2} reist {3}.", 
 							formatTime(trip.getItinerary().getDepartureTime()),
 							trip.getTo().getLabel(), 
 							trip.getTraveller().getName(),
