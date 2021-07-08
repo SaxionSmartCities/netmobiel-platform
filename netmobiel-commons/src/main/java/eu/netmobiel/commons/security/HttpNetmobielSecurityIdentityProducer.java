@@ -54,8 +54,8 @@ public class HttpNetmobielSecurityIdentityProducer {
 			String key = SecurityIdentity.getDelegatorsClaimName(applicationStage); 
 			@SuppressWarnings("unchecked")
 			List<String> assignedDelegators = (List<String>) token.getOtherClaims().get(key);
-			if (logger.isDebugEnabled()) {
-				logger.debug(String.format("User %s: %s = %s", realUser.getName(), key, 
+			if (logger.isTraceEnabled()) {
+				logger.trace(String.format("User %s: %s = %s", realUser.getName(), key, 
 						assignedDelegators != null ? String.join(", ", assignedDelegators) : ""));
 			}
 			if (assignedDelegators != null && assignedDelegators.contains(delegator)) {
@@ -65,8 +65,8 @@ public class HttpNetmobielSecurityIdentityProducer {
 			}
     	}
 		SecurityIdentity si = new NetmobielSecurityIdentity(realUser, effectiveUser, token);
-		if (si.isDelegationActive() && logger.isInfoEnabled()) {
-			logger.info(String.format("Delegation active: %s", si.toString()));
+		if (logger.isTraceEnabled() && si.isDelegationActive()) {
+			logger.trace(String.format("Delegation active: %s", si.toString()));
 		}
     	return si;
     }

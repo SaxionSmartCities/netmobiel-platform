@@ -32,13 +32,15 @@ public class KeycloakSecurityFilter implements Filter {
 	        if (error != null) {
 	        	log.debug(String.format("Keycloak authentication error: %s - %s", error.getReason(), error.getDescription()));
 	        }
-			KeycloakSecurityContext ksc = getKeycloakSecurityContext(request);
-			if (ksc != null) {
-				AccessToken token = ksc.getToken();
-				if (token != null) {
-		        	log.debug(String.format("%s: %s %s %s", token.getSubject(), token.getEmail(), token.getFamilyName(), token.getGivenName()));
+	        if (log.isTraceEnabled()) {
+				KeycloakSecurityContext ksc = getKeycloakSecurityContext(request);
+				if (ksc != null) {
+					AccessToken token = ksc.getToken();
+					if (token != null) {
+			        	log.trace(String.format("%s: %s %s %s", token.getSubject(), token.getEmail(), token.getFamilyName(), token.getGivenName()));
+					}
 				}
-			}        
+	        }
         }
         chain.doFilter(request, response);
     }
