@@ -68,7 +68,6 @@ public class PublisherService {
     			.orElseGet(() -> userDao.save(SYSTEM_USER));
     }
 
-    @SuppressWarnings("static-method")
 	public void validateMessage(CommunicatorUser sender, Message msg) throws CreateException, BadRequestException {
     	if (msg.getContext() == null) {
     		throw new BadRequestException("Constraint violation: 'context' must be set.");
