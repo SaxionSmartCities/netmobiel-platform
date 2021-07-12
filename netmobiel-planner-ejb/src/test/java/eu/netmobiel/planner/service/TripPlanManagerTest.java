@@ -164,35 +164,35 @@ public class TripPlanManagerTest {
 		// Case 1: Into the day
     	LocalDateTime localTravelTime = LocalDateTime.of(today, TripPlanManager.DAY_START.plusSeconds(TripPlanManager.DAY_TIME_SLACK * 60 * 60 + 60));
     	Instant travelTime = localTravelTime.atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toInstant();
-		Instant edt = tested.calculateEarliestDepartureTime(travelTime, false);
+		Instant edt = TripPlanManager.calculateEarliestDepartureTime(travelTime, false);
 		dumpTravelTime(travelTime, "earliest departure", edt);
 		assertEquals(travelTime.minusSeconds(TripPlanManager.DAY_TIME_SLACK * 60 * 60), edt);
 		
 		// Case 2: Just after DAY_START
     	localTravelTime = LocalDateTime.of(today, TripPlanManager.DAY_START.plusSeconds(60));
     	travelTime = localTravelTime.atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toInstant();
-		edt = tested.calculateEarliestDepartureTime(travelTime, false);
+		edt = TripPlanManager.calculateEarliestDepartureTime(travelTime, false);
 		dumpTravelTime(travelTime, "earliest departure", edt);
 		assertEquals(dayStart.minusSeconds(TripPlanManager.REST_TIME_SLACK * 60 * 60), edt);
 		
 		// Case 3: Before DAY_START
     	localTravelTime = LocalDateTime.of(today, TripPlanManager.DAY_START.minusSeconds(30 * 60));
     	travelTime = localTravelTime.atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toInstant();
-		edt = tested.calculateEarliestDepartureTime(travelTime, false);
+		edt = TripPlanManager.calculateEarliestDepartureTime(travelTime, false);
 		dumpTravelTime(travelTime, "earliest departure", edt);
 		assertEquals(travelTime.minusSeconds(TripPlanManager.REST_TIME_SLACK * 60 * 60), edt);
 
 		// Case 4: After DAY_END
 		localTravelTime = LocalDateTime.of(today, TripPlanManager.DAY_END.plusSeconds(30 * 60));
     	travelTime = localTravelTime.atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toInstant();
-		edt = tested.calculateEarliestDepartureTime(travelTime, false);
+		edt = TripPlanManager.calculateEarliestDepartureTime(travelTime, false);
 		dumpTravelTime(travelTime, "earliest departure", edt);
 		assertEquals(travelTime.minusSeconds(TripPlanManager.REST_TIME_SLACK * 60 * 60), edt);
 
 		// Case 5: Around midnight
 		localTravelTime = LocalDateTime.of(today, LocalTime.parse("00:30"));
     	travelTime = localTravelTime.atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toInstant();
-		edt = tested.calculateEarliestDepartureTime(travelTime, false);
+		edt = TripPlanManager.calculateEarliestDepartureTime(travelTime, false);
 		dumpTravelTime(travelTime, "earliest departure", edt);
 		assertEquals(travelTime.minusSeconds(TripPlanManager.REST_TIME_SLACK * 60 * 60), edt);
 	}
@@ -205,35 +205,35 @@ public class TripPlanManagerTest {
 		// Case 1: Into the day
     	LocalDateTime localTravelTime = LocalDateTime.of(today, TripPlanManager.DAY_END.minusSeconds(TripPlanManager.DAY_TIME_SLACK * 60 * 60 + 30 * 60));
     	Instant travelTime = localTravelTime.atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toInstant();
-		Instant lat = tested.calculateLatestArrivalTime(travelTime, true);
+		Instant lat = TripPlanManager.calculateLatestArrivalTime(travelTime, true);
 		dumpTravelTime(travelTime, "latest arrival", lat);
 		assertEquals(travelTime.plusSeconds(TripPlanManager.DAY_TIME_SLACK * 60 * 60), lat);
 
 		// Case 2: Just before DAY_END
     	localTravelTime = LocalDateTime.of(today, TripPlanManager.DAY_END.minusSeconds(30 * 60));
     	travelTime = localTravelTime.atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toInstant();
-		lat = tested.calculateLatestArrivalTime(travelTime, true);
+		lat = TripPlanManager.calculateLatestArrivalTime(travelTime, true);
 		dumpTravelTime(travelTime, "latest arrival", lat);
 		assertEquals(dayEnd.plusSeconds(TripPlanManager.REST_TIME_SLACK * 60 * 60), lat);
 
 		// Case 3: After DAY_END
     	localTravelTime = LocalDateTime.of(today, TripPlanManager.DAY_END.plusSeconds(30 * 60));
     	travelTime = localTravelTime.atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toInstant();
-		lat = tested.calculateLatestArrivalTime(travelTime, true);
+		lat = TripPlanManager.calculateLatestArrivalTime(travelTime, true);
 		dumpTravelTime(travelTime, "latest arrival", lat);
 		assertEquals(travelTime.plusSeconds(TripPlanManager.REST_TIME_SLACK * 60 * 60), lat);
 
 		// Case 4: Before DAY_START
 		localTravelTime = LocalDateTime.of(today, TripPlanManager.DAY_START.minusSeconds(30 * 60));
     	travelTime = localTravelTime.atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toInstant();
-		lat = tested.calculateLatestArrivalTime(travelTime, true);
+		lat = TripPlanManager.calculateLatestArrivalTime(travelTime, true);
 		dumpTravelTime(travelTime, "latest arrival", lat);
 		assertEquals(travelTime.plusSeconds(TripPlanManager.REST_TIME_SLACK * 60 * 60), lat);
 
 		// Case 5: Around midnight
 		localTravelTime = LocalDateTime.of(today, LocalTime.parse("00:30"));
     	travelTime = localTravelTime.atZone(ZoneId.of(TripPlanManager.DEFAULT_TIME_ZONE)).toInstant();
-		lat = tested.calculateLatestArrivalTime(travelTime, true);
+		lat = TripPlanManager.calculateLatestArrivalTime(travelTime, true);
 		dumpTravelTime(travelTime, "latest arrival", lat);
 		assertEquals(travelTime.plusSeconds(TripPlanManager.REST_TIME_SLACK * 60 * 60), lat);
 
@@ -245,7 +245,7 @@ public class TripPlanManagerTest {
 		plan.setRequestTime(Instant.parse("2020-07-02T18:00:00Z"));
 		plan.setTravelTime(plan.getRequestTime());
 		try {
-			tested.sanitizePlanInput(plan);
+			TripPlanManager.sanitizePlanInput(plan);
 		} catch (BadRequestException ex) {
 			fail("Unexpected exception: " + ex);
 		}
@@ -253,7 +253,7 @@ public class TripPlanManagerTest {
 		plan.setRequestTime(Instant.parse("2020-07-02T18:00:00Z"));
 		plan.setTravelTime(plan.getRequestTime().minusSeconds(1));
 		try {
-			tested.sanitizePlanInput(plan);
+			TripPlanManager.sanitizePlanInput(plan);
 			fail("Expected BadRequestException because travel time is before now");
 		} catch (BadRequestException ex) {
 			log.debug("Anticipated exception: " + ex);
@@ -263,7 +263,7 @@ public class TripPlanManagerTest {
 		plan.setTravelTime(null);
 		plan.setEarliestDepartureTime(plan.getRequestTime());
 		try {
-			tested.sanitizePlanInput(plan);
+			TripPlanManager.sanitizePlanInput(plan);
 		} catch (BadRequestException ex) {
 			fail("Unexpected exception: " + ex);
 		}
@@ -272,7 +272,7 @@ public class TripPlanManagerTest {
 		plan.setTravelTime(null);
 		plan.setEarliestDepartureTime(plan.getRequestTime().minusSeconds(1));
 		try {
-			tested.sanitizePlanInput(plan);
+			TripPlanManager.sanitizePlanInput(plan);
 			fail("Expected BadRequestException because earliest departure time is before now");
 		} catch (BadRequestException ex) {
 			log.debug("Anticipated exception: " + ex);
@@ -282,7 +282,7 @@ public class TripPlanManagerTest {
 		plan.setTravelTime(Instant.parse("2020-07-03T12:00:00Z"));
 		plan.setEarliestDepartureTime(plan.getTravelTime().plusSeconds(3600));
 		try {
-			tested.sanitizePlanInput(plan);
+			TripPlanManager.sanitizePlanInput(plan);
 			fail("Expected BadRequestException because earliest departure is after travel time");
 		} catch (BadRequestException ex) {
 			log.debug("Anticipated exception: " + ex);
@@ -293,7 +293,7 @@ public class TripPlanManagerTest {
 		plan.setEarliestDepartureTime(null);
 		plan.setLatestArrivalTime(plan.getTravelTime().minusSeconds(3600));
 		try {
-			tested.sanitizePlanInput(plan);
+			TripPlanManager.sanitizePlanInput(plan);
 			fail("Expected BadRequestException because latest arrival is before travel time");
 		} catch (BadRequestException ex) {
 			log.debug("Anticipated exception: " + ex);
@@ -305,7 +305,7 @@ public class TripPlanManagerTest {
 		plan.setEarliestDepartureTime(Instant.parse("2020-07-03T09:00:00Z"));
 		plan.setLatestArrivalTime(Instant.parse("2020-07-03T18:00:00Z"));
 		try {
-			tested.sanitizePlanInput(plan);
+			TripPlanManager.sanitizePlanInput(plan);
 		} catch (BadRequestException ex) {
 			fail("Unexpected exception: " + ex);
 		}
