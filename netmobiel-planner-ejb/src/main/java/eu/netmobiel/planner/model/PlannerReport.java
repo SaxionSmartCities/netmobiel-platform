@@ -31,6 +31,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 
 import com.vividsolutions.jts.geom.LineString;
@@ -189,7 +190,7 @@ public class PlannerReport implements Serializable {
     /**
      * Execution time of the request in milliseconds
      */
-    @Positive
+    @PositiveOrZero
     @Column(name = "execution_time", nullable = false)
     private long executionTime;
 
