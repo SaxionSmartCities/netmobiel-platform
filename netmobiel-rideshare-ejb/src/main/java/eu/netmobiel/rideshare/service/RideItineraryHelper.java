@@ -162,8 +162,8 @@ public class RideItineraryHelper {
     	ClosenessFilter closenessFilter = new ClosenessFilter(MAX_BOOKING_LOCATION_SHIFT);
     	List<Booking> bookings = bookingDao.findByRide(ride);
     	for (Booking booking : bookings) {
-    		// Only a confirmed booking can be part
-    		if (booking.getState() != BookingState.CONFIRMED) {
+    		// Only a confirmed booking can be part, and a proposed too
+    		if (booking.getState() != BookingState.CONFIRMED && booking.getState() != BookingState.PROPOSED) {
     			continue;
     		}
     		Leg start = ride.getLegs().stream()

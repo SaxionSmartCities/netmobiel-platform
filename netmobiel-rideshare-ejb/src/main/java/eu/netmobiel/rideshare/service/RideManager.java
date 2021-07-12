@@ -464,11 +464,11 @@ public class RideManager {
     	
     	List<Ride> rides = rideDao.loadGraphs(rideIds, Ride.LIST_RIDES_ENTITY_GRAPH, Ride::getId);
     	for (Ride r : rides) {
-			if (! r.getActiveBooking().isPresent()) {
+			if (! r.hasActiveBooking()) {
 				removeRide(r, "Template has changed");
 			}
 		}
-    	if (! ride.getActiveBooking().isPresent()) {
+    	if (! ride.hasActiveBooking()) {
     		ride.setRideTemplate(null);
     	}
 		// At this point all future non-booked rides are removed
@@ -518,15 +518,16 @@ public class RideManager {
     	return ridedb;
     }
 
-    private void prepareMergeOfRide(Ride ridedb, Ride ride, RideTemplate newTemplate) throws BusinessException {
+    private void prepareUpdateOfRide(Ride ridedb, Ride ride, RideTemplate newTemplate) throws BusinessException {
     	if (!ridedb.getState().isPreTravelState()) {
     		throw new UpdateException("Ride can not be updated, travelling has already started!");
     	}
     	ride.setDriver(ridedb.getDriver());	// It is not allowed to change driver
-    	if (ridedb.hasActiveBooking()) {
-    		// What if there is already a booking
+		// What if there is already a booking
+    	if (ridedb.hasConfirmedBooking()) {
     		throw new UpdateException("The ride has already a booking, an update is not allowed");
     	}
+		// What if the booking process is active
     	if (ridedb.hasActiveBookingProcess()) {
     		throw new UpdateException("The ride is involved in a shout-out or a booking is requested, an update is not allowed now");
     	}
@@ -615,7 +616,7 @@ public class RideManager {
     	RideTemplate oldTemplate = ridedb.getRideTemplate();
     	ride.setRideTemplate(oldTemplate);
     	Instant originalDepartureTime = ridedb.getDepartureTime();
-    	prepareMergeOfRide(ridedb, ride, newTemplate);
+    	prepareUpdateOfRide(ridedb, ride, newTemplate);
     	ridedb = rideDao.merge(ride);
     	// ride and ridedb refer to the same object now, 
     	// ridebd bookings, legs and stops appear to be empty now! In the database the object are still there.
@@ -729,7 +730,7 @@ public class RideManager {
     }
 
     /**
-     * Sets the confirmation flag on the ride and sends a event to inform the provider has confirmed the ride.
+     * Sets the confirmation flag on the ride and sends a event to inform that the provider has confirmed the ride.
      * @param rideId the ride to update.
      * @throws BusinessException 
      */
@@ -744,7 +745,7 @@ public class RideManager {
     	}
     	ridedb.setConfirmed(confirmationValue);
     	ridedb.setConfirmationReason(reason);
-    	Optional<Booking> optBooking = ridedb.getActiveBooking();
+    	Optional<Booking> optBooking = ridedb.getConfirmedBooking();
     	if (optBooking.isPresent()) {
     		EventFireWrapper.fire(transportProviderConfirmedEvent, 
     				new TripConfirmedByProviderEvent(optBooking.get().getUrn(), 
@@ -822,7 +823,7 @@ public class RideManager {
 			break;
 		case TIME_TO_ARRIVE:
 			updateRideState(ride, RideState.ARRIVING);
-			if (ride.hasActiveBooking() && ride.getArrivalTime().plus(CONFIRMATION_PERIOD).isAfter(now)) {
+			if (ride.hasConfirmedBooking() && ride.getArrivalTime().plus(CONFIRMATION_PERIOD).isAfter(now)) {
 				timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRMATION_DELAY)), 
 						new RideInfo(RideMonitorEvent.TIME_TO_VALIDATE, ride.getId()));
 			} else {

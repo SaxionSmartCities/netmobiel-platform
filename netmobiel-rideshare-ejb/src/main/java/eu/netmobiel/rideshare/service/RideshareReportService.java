@@ -105,7 +105,7 @@ public class RideshareReportService {
     				rr.setRideDuration(ride.getDuration() / 60);
     			}
     			// RSC-5
-    			Optional<Booking> optBooking = ride.getActiveBooking();  
+    			Optional<Booking> optBooking = ride.getConfirmedBooking();  
     			if (optBooking.isPresent()) {
         			rr.setNrOfPassengers(optBooking.get().getNrSeats());
     			}

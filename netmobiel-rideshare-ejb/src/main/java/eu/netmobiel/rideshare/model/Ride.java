@@ -405,13 +405,21 @@ public class Ride extends RideBase implements Serializable {
     			.findAny().isPresent();
     }
 
-    public boolean hasActiveBooking() {
+    public boolean hasConfirmedBooking() {
     	return getBookings().stream()
     			.filter(b -> b.getState() == BookingState.CONFIRMED)
     			.findAny().isPresent();
     }
 
-    public Optional<Booking> getActiveBooking() {
+    public boolean hasActiveBooking() {
+    	return getBookings().stream()
+    			.filter(b -> b.getState() == BookingState.PROPOSED || 
+    						 b.getState() == BookingState.REQUESTED || 
+    						 b.getState() == BookingState.CONFIRMED)
+    			.findAny().isPresent();
+    }
+
+    public Optional<Booking> getConfirmedBooking() {
     	return getBookings().stream()
     			.filter(b -> b.getState() == BookingState.CONFIRMED)
     			.findFirst();

@@ -49,7 +49,7 @@ public class OpenTripPlannerDao {
      */
     public Leg[] createItinerary(Ride ride) throws NotFoundException, BadRequestException {
     	List<Booking> bookings = ride.getBookings().stream()
-    			.filter(b -> b.getState() == BookingState.CONFIRMED)
+    			.filter(b -> b.getState() == BookingState.CONFIRMED || b.getState() == BookingState.PROPOSED)
     			.collect(Collectors.toList());
     	if (bookings.size() > 1) {
     		throw new IllegalStateException("Only 1 active booking is allowed per ride");

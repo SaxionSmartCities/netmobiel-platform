@@ -116,7 +116,7 @@ public class TripProgressProcessor {
     	case SCHEDULED:
     		break;
     	case DEPARTING:
-    		if (event.getPreviousState() == RideState.SCHEDULED && ride.hasActiveBooking()) {
+    		if (event.getPreviousState() == RideState.SCHEDULED && ride.hasConfirmedBooking()) {
     			informDriverOnDeparture(event.getRide());
     		}
     		break;
@@ -125,7 +125,7 @@ public class TripProgressProcessor {
     	case ARRIVING:
     		break;
     	case VALIDATING:
-    		if (ride.hasActiveBooking()) {
+    		if (ride.hasConfirmedBooking()) {
 	    		if (event.getPreviousState() == RideState.ARRIVING) {
 	    			informDriverOnReview(ride);
 	    		} else if (event.getPreviousState() == RideState.VALIDATING) {
@@ -256,7 +256,7 @@ public class TripProgressProcessor {
 }
 	
     protected void informDriverOnDeparture(Ride ride) throws CreateException, BadRequestException {
-		Booking b = ride.getActiveBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
+		Booking b = ride.getConfirmedBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
 		Message msg = new Message();
 		msg.setContext(ride.getUrn());
 		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
@@ -273,7 +273,7 @@ public class TripProgressProcessor {
 	}
 
 	protected void informDriverOnReview(Ride ride) throws CreateException, BadRequestException {
-		Booking b = ride.getActiveBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
+		Booking b = ride.getConfirmedBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
 		Message msg = new Message();
 		msg.setContext(ride.getUrn());
 		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);

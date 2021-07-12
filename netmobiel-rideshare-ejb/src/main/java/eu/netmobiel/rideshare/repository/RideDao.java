@@ -259,11 +259,12 @@ public class RideDao extends AbstractDao<Ride, Long> {
     	Long count = em.createQuery(
     			"select count(r) from Ride r where r != :myRide and r.driver = :driver " + 
     			"and not (r.departureTime > :arrivalTime or r.arrivalTime < :departureTime) " +
-    			"and (r.deleted is null or r.deleted = false)", Long.class)
+    			"and not (r.deleted = true or state = :state)", Long.class)
     			.setParameter("myRide", ride)
     			.setParameter("driver", ride.getDriver())
     			.setParameter("departureTime", ride.getDepartureTime())
     			.setParameter("arrivalTime", ride.getArrivalTime())
+    			.setParameter("state", RideState.CANCELLED)
     			.getSingleResult();
     	return count > 0;
     }

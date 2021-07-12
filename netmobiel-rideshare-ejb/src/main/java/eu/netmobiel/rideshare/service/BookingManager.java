@@ -130,11 +130,7 @@ public class BookingManager {
 			throw new CreateException("Traveller identity is mandatory");
 		}
     	RideshareUser passenger = userDao.findByManagedIdentity(traveller.getManagedIdentity())
-				.orElse(null);
-    	if (passenger == null) {
-    		passenger = new RideshareUser(traveller);
-    		userDao.save(passenger);
-    	}
+				.orElseGet(() -> userDao.save(new RideshareUser(traveller)));
     	if (ride.getBookings().stream().filter(b -> !b.isDeleted()).collect(Collectors.counting()) > 0) {
     		throw new CreateException(String.format("Ride %s has already a booking", ride.getId()));
     	}
@@ -149,13 +145,13 @@ public class BookingManager {
 		if (booking.getState() == BookingState.REQUESTED) {
 			if (AUTO_CONFIRM_BOOKING) {
 				booking.setState(BookingState.CONFIRMED);
-				// Update itinerary of the driver
-		    	EventFireWrapper.fire(staleItineraryEvent, booking.getRide());
 			} else {
 				throw new IllegalStateException("Unexpected booking state transition, support auto confirm only!");
 			}
 		}
-		// Inform driver about requested booking or confirmed booking
+		// Update itinerary of the driver
+    	EventFireWrapper.fire(staleItineraryEvent, booking.getRide());
+		// Inform driver about the new booking booking. The handler decides what to do, given the booking state
 		EventFireWrapper.fire(bookingCreatedEvent, booking);
     	return bookingRef;
     }
