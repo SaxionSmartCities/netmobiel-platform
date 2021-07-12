@@ -140,8 +140,8 @@ public class TripManager {
     	if (maxResults != null && maxResults > 100) {
     		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
     	}
-    	if (maxResults != null && maxResults <= 0) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' > 0.");
+    	if (maxResults != null && maxResults < 0) {
+    		throw new BadRequestException("Constraint violation: 'maxResults' >= 0.");
     	}
     	if (offset != null && offset < 0) {
     		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
