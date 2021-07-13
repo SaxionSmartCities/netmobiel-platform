@@ -43,7 +43,7 @@ public class SearchResource extends PlannerResource implements SearchApi {
     private Logger log;
  
 	@Inject
-    private TripPlanManager plannerManager;
+    private TripPlanManager tripPlanManager;
 
 	@Inject
     private PlannerUserManager userManager;
@@ -111,7 +111,9 @@ public class SearchResource extends PlannerResource implements SearchApi {
 			plan.setFirstLegRideshareAllowed(Boolean.TRUE.equals(firstLegRideshare));
 			plan.setLastLegRideshareAllowed(Boolean.TRUE.equals(lastLegRideshare));
     		plan.setPlanType(PlanType.REGULAR);
-    		plan = plannerManager.createAndReturnTripPlan(context.getCallingUser(), traveller, plan, toInstant(now));
+    		Long planId = tripPlanManager.createTripPlan(context.getCallingUser(), traveller, plan, toInstant(now));
+    		// Retrieve from database to obtain correct sorting, just to be sure.
+    		plan = tripPlanManager.getTripPlan(planId);
     		if (log.isDebugEnabled()) {
     			log.debug("Multimodal plan for " + traveller.getEmail() + ":\n" + plan.toString());
     		}
