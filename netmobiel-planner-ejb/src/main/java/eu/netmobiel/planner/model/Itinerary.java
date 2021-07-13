@@ -398,6 +398,12 @@ public class Itinerary implements Serializable {
 				.isPresent();
 	}
 
+	public boolean isWalkOnly() {
+		// Walk only if no legs with other traverse modes are found
+		return !getLegs().stream()
+				.anyMatch(leg -> leg.getTraverseMode() != TraverseMode.WALK);
+	}
+
 	public void updateFare() {
 		Integer fare = getLegs().stream()
 	    		.filter(leg -> leg.getFareInCredits() != null)
@@ -494,11 +500,10 @@ public class Itinerary implements Serializable {
 	}
 
 	/**
-	 * Waiting is the time spent waiting for transit to arrive, in seconds. 
+	 * Waiting is the time spent waiting after arriving somewhere and before departing again, in seconds. 
 	 */
 	void updateWaitingTime() {
 		waitingTime = getLegs().stream()
-				.filter(leg -> leg.getTraverseMode().isTransit())
 				.map(leg -> leg.getFrom().getWaitingTime())
 				.collect(Collectors.summingInt(Integer::intValue));
 	}
@@ -705,6 +710,28 @@ public class Itinerary implements Serializable {
     @Override
     public int hashCode() {
         return 31;
+    }
+
+    /**
+     * Validate an itinerary by checking a number of invariants.
+     * @throws IllegalStateException in case a constraint is violated
+     */
+    public void validate() {
+    	Instant depTime = getDepartureTime();
+    	Instant arrTime = getArrivalTime();
+    	for (Leg leg: getLegs()) {
+    		if (leg.getStartTime().isBefore(depTime)) {
+    			throw new IllegalStateException("Leg starts too early");
+    		}
+    		if (!leg.getEndTime().isAfter(leg.getStartTime())) {
+    			throw new IllegalStateException("Leg has zero or negative duration");
+    		}
+			depTime = leg.getStartTime();
+    		arrTime = leg.getEndTime();
+		}
+		if (getArrivalTime().isBefore(arrTime)) {
+			throw new IllegalStateException("Itinerary arrives before last leg");
+		}
     }
 
 }

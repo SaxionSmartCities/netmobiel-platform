@@ -1,5 +1,6 @@
 package eu.netmobiel.planner.service;
 
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Arrays;
@@ -56,6 +57,7 @@ public class Planner {
 	public static final Integer MAX_RESULTS = 10; 
 	private static final float PASSENGER_RELATIVE_MAX_DETOUR = 1.0f;
 	private static final Integer CAR_TO_TRANSIT_SLACK = 10 * 60; // [seconds]
+	private static final Integer TRANSIT_TO_CAR_SLACK = 10 * 60; // [seconds]
 	private static final int MAX_RIDESHARES = 5;	
 	private static final boolean RIDESHARE_LENIENT_SEARCH = true;	
 	
@@ -190,14 +192,15 @@ public class Planner {
     }
     
     /**
-     * Calculates an itinerary for a rideshare ride from the driver's departure location to his his destination, in between picking up a 
+     * Calculates an itinerary for a rideshare ride from the driver's departure location to the driver's destination, in between picking up a 
      * passenger and dropping-off the passenger at a different location.
      * Where should this calculation be done? Is it core NetMobiel, or should the transport provider give the estimation? Probably the latter.
      * For shout-out the planning question should be asked at the rideshare service. Their planner will provide an answer.
      * @param now The time perspective of the call (in regular use always the current time)
-     * @param fromPlace The deaprture location of the driver
+     * @param fromPlace The departure location of the driver
      * @param toPlace the destination of the driver
-     * @param travelTime the travel time of the driver, to be interpreted as departure time.
+     * @param travelTime the travel time of the driver
+     * @param useAsArrivalTime Whether to interpret the travel time as arrival time
      * @param maxWalkDistance The maximum distance to walk, if necessary.
      * @param via The pickup and drop-off locations of the passenger.
      * @return A planner result object.
@@ -249,13 +252,13 @@ public class Planner {
     		if (log.isDebugEnabled()) {
     			log.debug("searchRides option: " + ride.toStringCompact());
     		}
-    		// Use always the riders departure time. The itineraries will be scored later on.
+    		// For each ride, calculate an itinerary for the shared ride
         	GeoLocation from = ride.getFrom();
         	GeoLocation to = ride.getTo();
         	// Calculate for each ride found the itinerary when the passenger would ride along, i.e., add the pickup and drop-off location
         	// as intermediate places to the OTP planner and calculate the itinerary.
-    		Instant rideDepTime = ride.getDepartureTime();
-        	PlannerResult driverSharedRidePlanResult = planRideshareItinerary(now, from, to, rideDepTime, false, maxWalkDistance, intermediatePlaces);
+    		Instant driverTravelTime = ride.isArrivalTimePinned() ? ride.getArrivalTime() : ride.getDepartureTime();
+        	PlannerResult driverSharedRidePlanResult = planRideshareItinerary(now, from, to, driverTravelTime, ride.isArrivalTimePinned(), maxWalkDistance, intermediatePlaces);
         	PlannerResult passengerSharedRidePlanResult = new PlannerResult(driverSharedRidePlanResult.getReport());
         	results.add(passengerSharedRidePlanResult);
     		if (driverSharedRidePlanResult.hasError()) {
@@ -266,13 +269,17 @@ public class Planner {
         				.reduce(x -> true, Predicate::and)
         				.test(driverItinerary);
             	if (accepted) {
-    	        	// We have the plan for the driver now. Add the itineraries but keep only the intermediate leg(s). This is a deep copy!
+    	        	// We have the plan for the driver now. extract the passenger itineraries (intermediate leg(s)). This is a deep copy!
             		Itinerary passengerItinerary = driverItinerary.createSingleLeggedItinerary(fromPlace, toPlace);
             		if (passengerItinerary.getLegs().size() != 1) {
             			throw new IllegalStateException("Expected to find a single leg, instead of " + passengerItinerary.getLegs().size());
             		}
+            		// Add the rideshare details to the passengers leg(s)
             		passengerItinerary.getLegs().forEach(leg -> tripPlanHelper.assignRideToPassengerLeg(leg, ride));
-            		passengerSharedRidePlanResult.addItineraries(Collections.singletonList(passengerItinerary));
+            		if (isValid(passengerItinerary)) {
+            			// OK, it looks a sane itinerary, add it to the results
+            			passengerSharedRidePlanResult.addItineraries(Collections.singletonList(passengerItinerary));
+            		}
             	}
     		}
 		}
@@ -280,6 +287,17 @@ public class Planner {
     	return results;
     }
 
+    boolean isValid(Itinerary it) {
+    	boolean valid = false;
+    	try {
+	    	it.validate();
+			valid = true;
+    	} catch (IllegalStateException ex) {
+    		log.error(ex.toString());
+    		log.error("Bad "+ it.toString());
+    	}
+		return valid;
+    }
     
     private void addRideshareAsFirstLeg(TripPlan plan, Set<Stop> transitBoardingStops, Set<TraverseMode> transitModalities) {
     	log.debug("Search for first leg by Car");
@@ -303,14 +321,21 @@ public class Planner {
         	for (Itinerary dit : passengerCarItineraries) {
             	Instant transitStart  = dit.getLegs().get(0).getEndTime().plusSeconds(CAR_TO_TRANSIT_SLACK);
         		PlannerResult transitResult = otpDao.createPlan(plan.getRequestTime(), place.getLocation(), plan.getTo(), transitStart,  false, transitModalities, 
-	        			false, plan.getMaxWalkDistance(), maxPublicTransportTransfers, null, 2 /* To see repeating */);
+	        			false, plan.getMaxWalkDistance(), maxPublicTransportTransfers, null, 1);
         		plan.addPlannerReport(transitResult.getReport());
         		if (transitResult.hasError()) {
             		log.warn("Skip itinerary (RS first) due to OTP error: " + transitResult.getReport().shortReport());
         		} else {
+        			// if the OTP passenger itinerary is walk only, no slack is needed, move the itinerary backward
+        			// the itinerary characteristics are recalculated in the prepend()
+        			transitResult.getItineraries().stream()
+        			.filter(Itinerary::isWalkOnly)
+        			.forEach(it -> it.shiftLinear(Duration.ofSeconds(-CAR_TO_TRANSIT_SLACK)));
         			plan.addItineraries(transitResult.getItineraries()
         					.stream()
+        					.filter(it -> isValid(it))
         					.map(it -> dit.append(it))
+        					.filter(it -> isValid(it))
         					.collect(Collectors.toList()));
         		}
 			}
@@ -336,19 +361,25 @@ public class Planner {
         			.flatMap(pr -> pr.getItineraries().stream())
         			.collect(Collectors.toList());
     		// Create a transit plan from passenger departure to shared ride pickup
-    		// Add x minutes waiting time at pick off
+    		// Add x minutes waiting time at pick up
         	// Extract the leg for the passenger and create a complete itinerary for the passenger
         	for (Itinerary dit : passengerCarItineraries) {
-        		Instant transitEnd  = dit.getLegs().get(0).getEndTime().plusSeconds(CAR_TO_TRANSIT_SLACK);
+        		Instant transitEnd  = dit.getLegs().get(0).getStartTime().minusSeconds(TRANSIT_TO_CAR_SLACK);
         		PlannerResult transitResult = otpDao.createPlan(plan.getRequestTime(), plan.getFrom(), place.getLocation(), transitEnd, true, transitModalities,  
-            			false, plan.getMaxWalkDistance(), maxPublicTransportTransfers, null, 2 /* To see repeating */);
+            			false, plan.getMaxWalkDistance(), maxPublicTransportTransfers, null, 1);
         		plan.addPlannerReport(transitResult.getReport());
         		if (transitResult.hasError()) {
             		log.warn("Skip itinerary (RS last) due to OTP error: " + transitResult.getReport().shortReport());
         		} else {
+        			// if the OTP passenger itinerary is walk only, no slack is needed, move the itinerary forward
+        			// the itinerary characteristics are recalculated in the prepend()
+        			transitResult.getItineraries().stream()
+        			.filter(Itinerary::isWalkOnly)
+        			.forEach(it -> it.shiftLinear(Duration.ofSeconds(TRANSIT_TO_CAR_SLACK)));
         			plan.addItineraries(transitResult.getItineraries()
         					.stream()
         					.map(it -> dit.prepend(it))
+        					.filter(it -> isValid(it))
         					.collect(Collectors.toList()));
         		}
 			}
@@ -508,7 +539,6 @@ public class Planner {
      * @return
      */
     public TripPlan searchMultiModal(TripPlan plan) throws BadRequestException {
-		// 
 		Set<TraverseMode> transitModalities = plan.getTraverseModes().stream().filter(m -> m.isTransit()).collect(Collectors.toSet());
 		boolean rideshareEligable = plan.getTraverseModes().contains(TraverseMode.RIDESHARE);
 		if (!transitModalities.isEmpty()) {
@@ -530,7 +560,14 @@ public class Planner {
 		// Calculate totals
 		plan.getItineraries().forEach(it -> it.updateFare());
     	rankItineraries(plan);
-    	// The itineraries are listed by the plan ordered by score descending
+    	// The itineraries are listed by the plan ordered by score descending (when listed from the database), see model.
+    	// FIXME Sort this somehow
+//    	plan.getItineraries().sort(new Comparator<Itinerary>() {
+//			@Override
+//			public int compare(Itinerary it1, Itinerary it2) {
+//				return -Double.compare(it1.getScore(), it2.getScore());
+//			}
+//		});
     	return plan;
     }
 
