@@ -670,20 +670,20 @@ public class RideManager {
 
     private void removeRide(Ride ridedb, final String reason) throws BusinessException {
     	if (ridedb.getState().isFinalState()) {
-    		// Already completed or cancelled. No action required.
+    		// Already completed or cancelled. 
+    		ridedb.setDeleted(true);
     	} else if (! ridedb.getState().isPreTravelState()) {
     		// travelling, validating
     		throw new RemoveException(String.format("Cannot cancel ride %s; state %s forbids", ridedb.getId(), ridedb.getState()));
     	} else {
         	cancelRideTimers(ridedb);
 	    	if (ridedb.getBookings().size() > 0) {
-	    		// FIXME Perform a soft delete this should be changed into a patch to hide the listing of a ride
-	    		// That should be possible only for ride in a final state.
-//	    		ridedb.setDeleted(true);
 	    		updateRideState(ridedb, RideState.CANCELLED);
 	    		ridedb.setCancelReason(reason);
 	    		// Allow other parties such as the booking manager to do their job too
 	    		EventFireWrapper.fire(rideRemovedEvent, ridedb);
+	    		// Remove the ride from the listing too (for now)
+	    		ridedb.setDeleted(true);
 			} else {
 				rideDao.remove(ridedb);
 			}
