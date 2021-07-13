@@ -58,6 +58,12 @@ public class TripPlanManagerTest {
 	private Logger logger;
 	
 	@Injectable
+    private Planner planner;
+
+	@Injectable
+    private TripPlanHelper tripPlanHelper;
+
+	@Injectable
     private TripPlanDao tripPlanDao;
 
 	@Injectable
