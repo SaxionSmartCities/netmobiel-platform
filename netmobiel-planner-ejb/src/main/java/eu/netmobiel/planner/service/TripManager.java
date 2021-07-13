@@ -383,6 +383,7 @@ public class TripManager {
 	    		}
 	    	}
 			leg.setState(TripState.CANCELLED);
+			// FIXME This is probably not intended, it looks silly 
 			if (! Boolean.TRUE.equals(leg.getCancelledByProvider())) {
 				leg.setCancelledByProvider(false);
 			}
