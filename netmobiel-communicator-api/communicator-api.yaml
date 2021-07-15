@@ -197,7 +197,6 @@ components:
     Message:
       description: A text message exchanged between one party and one or more others.
       required:
-      - envelopes
       - deliveryMode
       - context
       type: object
@@ -247,9 +246,20 @@ components:
             The list of envelopes, each containing one recipient that should receive the message or have received the message.
 
             The recipient's domain is the Keycloak managed identity.
+
+            Omit the array if the message is directed to all users (flag `toAllUsers`).
           type: array
           items:
             $ref: '#/components/schemas/Envelope'
+        toAllUsers:
+          description: |-
+            If set to true then send the message to all users known to the system. Admin privilege required.
+            The sender will be set to the system user.
+          type: boolean
+        important:
+          description: 'Flags a message as important, bypassing any user switch to
+            ignore the message otherwise. Default: false.'
+          type: boolean
       example:
         body: Kunnen we iets later vertrekken?
         context: urn:nb:pl:leg:23
@@ -331,7 +341,7 @@ components:
         recipient:
           managedIndentity: 1234-5678
           givenName: Jaap
-          familiyName: Reitsma
+          familyName: Reitsma
     User:
       description: 'A user in the message service. '
       required:
