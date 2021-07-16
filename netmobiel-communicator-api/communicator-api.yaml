@@ -260,6 +260,10 @@ components:
           description: 'Flags a message as important, bypassing any user switch to
             ignore the message otherwise. Default: false.'
           type: boolean
+        archived:
+          description: If set the message is archived, i.e., the subject is no longer
+            relevant.
+          type: boolean
       example:
         body: Kunnen we iets later vertrekken?
         context: urn:nb:pl:leg:23
