@@ -77,7 +77,6 @@ public class ProfileManager {
     @Inject
     private Event<DelegatorAccountCreatedEvent> delegatorAccountCreatedEvent;
 
-    @RolesAllowed({ "admin", "delegate" })
 	public @NotNull PagedResult<Profile> listProfiles(ProfileFilter filter, Cursor cursor) throws BadRequestException {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.

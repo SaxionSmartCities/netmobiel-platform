@@ -141,7 +141,10 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	public Response listProfiles(String text, String role, Boolean details, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		try {
-			// Only delegates and admins can list profiles. Handled in the ProfileManager.
+			final boolean privileged = request.isUserInRole("admin") || request.isUserInRole("delegate"); 
+			if (! privileged) {
+				throw new SecurityException("You have no privilege to list the profiles owned by someone else");
+			}
 			Cursor cursor = new Cursor(maxResults, offset);
 			ProfileFilter filter = new ProfileFilter();
 			filter.setText(text);
