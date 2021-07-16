@@ -12,6 +12,7 @@ public class Cursor {
 	private Integer maxResults;
 	private Integer offset;
 	public static final Cursor COUNTING_CURSOR = new Cursor(0, 0);
+	public static final int MAX_RESULTS = 100;
 	
 	public Cursor() {
 		// Constructor
