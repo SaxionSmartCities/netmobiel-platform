@@ -16,6 +16,7 @@ import javax.ws.rs.core.Response.Status;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.security.NetmobielSecurityRole;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.communicator.api.MessagesApi;
 import eu.netmobiel.communicator.api.mapping.MessageMapper;
@@ -44,13 +45,22 @@ public class MessagesResource implements MessagesApi {
 	private HttpServletRequest request;
 
     @Override
-	public Response sendMessage(String xDelegator, eu.netmobiel.communicator.api.model.Message msg) {
+	public Response sendMessage(String xDelegator, eu.netmobiel.communicator.api.model.Message apiMsg) {
     	Response rsp = null;
 		try {
 			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
-			CommunicatorUser sender = context.getEffectiveUser();
-			publisherService.validateMessage(sender, mapper.map(msg));
-			publisherService.publish(sender, mapper.map(msg));
+			Message msg = mapper.map(apiMsg);
+			CommunicatorUser sender = null;
+			if (msg.isToAllUsers()) {
+				if (!request.isUserInRole(NetmobielSecurityRole.ADMIN.getRoleName())) {
+					throw new SecurityException("You have no privilege to send a message to all users");
+				}
+			} else {
+				sender = context.getEffectiveUser();
+			}
+			// Validate for the API users.
+			publisherService.validateMessage(sender, msg);
+			publisherService.publish(sender, msg);
 			rsp = Response.status(Status.ACCEPTED).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
