@@ -636,7 +636,10 @@ paths:
           - PLANNING
           - BOOKING
           - SCHEDULED
+          - DEPARTING
           - IN_TRANSIT
+          - ARRIVING
+          - VALIDATING
           - COMPLETED
           - CANCELLED
           type: string
@@ -859,7 +862,7 @@ paths:
       operationId: getPlan
       summary: Get a TripPlan
       description: |
-        Gets the details of a single instance of a `TripPlan`. Only the traveller and the system administrator can see all itineraries.
+        Gets the details of a single instance of a `TripPlan`. Only the traveller, a delegate and the system administrator can see all itineraries.
     delete:
       responses:
         "204":
@@ -1381,6 +1384,24 @@ components:
           $ref: '#/components/schemas/User'
           description: The user owning this plan. The traveller is determined when
             the plan is saved.
+        referenceType:
+          description: Read-only. Travel reference type. Only for shout-outs.
+          enum:
+          - GEODESIC
+          - CAR
+          - TRANSIT
+          type: string
+        referenceDistance:
+          description: 'Read-only. The reference travel distance in meter. Only for
+            shout-outs. '
+          type: integer
+        referenceDuration:
+          description: 'Read-only. The reference travel duration. Only for shout-outs. '
+          type: integer
+        referenceFareInCredits:
+          description: Read-only. Reference travel fare (in credits) in case of Rideshare.
+            Only for shout-outs.
+          type: integer
       example:
         from:
           label: Zieuwent,Kennedystraat
