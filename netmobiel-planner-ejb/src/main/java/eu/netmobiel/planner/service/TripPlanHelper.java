@@ -34,16 +34,24 @@ public class TripPlanHelper {
 		leg.setVehicleLicensePlate(ride.getCar().getLicensePlate());
 		leg.setVehicleName(ride.getCar().getName());
 		leg.setTripId(ride.getUrn());
-		leg.setTraverseMode(TraverseMode.RIDESHARE);
+
+		assignFareToRideshareLeg(leg);
+		
 		// For Rideshare booking is always required.
 		leg.setBookingRequired(true);
 		// For Rideshare confirmation is requested from traveller and provider
 		leg.setConfirmationByProviderRequested(true);
 		leg.setConfirmationRequested(true);
+    }
+
+    /**
+     * Assign rideshare attributes to the car/rideshare legs. This functionality should probably be put closer to the rideshare service itself.
+     * @param leg The rideshare leg for the passenger 
+     */
+    public void assignFareToRideshareLeg(Leg leg) {
+		leg.setTraverseMode(TraverseMode.RIDESHARE);
 		// Request synchronously a quote
 		quoteRequestedEvent.fire(leg);
 		// Quote received now
     }
-
-
 }

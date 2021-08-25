@@ -571,4 +571,22 @@ public class Planner {
     	return plan;
     }
 
+    /**
+     * Calculates an itinerary for a ride by car from the passenger's departure location to the passenger's destination.
+     * This itinerary is intended as a reference for the passenger to compare offers from drivers.
+     * @param now The time perspective of the call (in regular use always the current time)
+     * @param fromPlace The departure location of the passenger
+     * @param toPlace the destination of the passenger
+     * @param travelTime the travel time of the passenger
+     * @param useAsArrivalTime Whether to interpret the travel time as arrival time
+     * @param maxWalkDistance The maximum distance to walk, if necessary.
+     * @return A planner result object.
+     */
+    public PlannerResult planItineraryByCar(Instant now, GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean useAsArrivalTime, Integer maxWalkDistance) {
+    	PlannerResult planResult = planRideshareItinerary(now, fromPlace, toPlace, travelTime, useAsArrivalTime, maxWalkDistance, null);
+		// Add the rideshare details to the passengers leg(s)
+		planResult.getItineraries().forEach(it -> it.getLegs().forEach(leg -> tripPlanHelper.assignFareToRideshareLeg(leg)));
+   	
+    	return planResult;
+    }
 }

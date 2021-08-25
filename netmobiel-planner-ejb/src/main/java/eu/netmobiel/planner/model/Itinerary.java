@@ -414,6 +414,13 @@ public class Itinerary implements Serializable {
     	}
 	}
 
+	public int getTotalCarDistance() {
+		return getLegs().stream()
+	    		.filter(leg -> leg.getTraverseMode() == TraverseMode.CAR || leg.getTraverseMode() == TraverseMode.RIDESHARE)
+	    		.mapToInt(leg -> leg.getDistance())
+	    		.sum();
+	}
+	
 	/**
 	 * Searches through the legs of this trip for a leg with a specific tripId. The trip id is a reference from the transport provider
 	 * and refers to a specific ride of a vehicle, both in rideshare and in public transport. In public transport the tripId refers 

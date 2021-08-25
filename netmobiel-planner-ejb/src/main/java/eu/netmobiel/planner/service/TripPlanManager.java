@@ -44,6 +44,7 @@ import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.PlannerResult;
 import eu.netmobiel.planner.model.PlannerUser;
+import eu.netmobiel.planner.model.TravelReferenceType;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
@@ -286,6 +287,21 @@ public class TripPlanManager {
        		// Start a search
        		plan = planner.searchMultiModal(plan);
         	plan.close();
+       	} else {
+       		// Determine a few reference parameters
+       		PlannerResult planResult = planner.planItineraryByCar(plan.getRequestTime(), plan.getFrom(), plan.getTo(), plan.getTravelTime(), plan.isUseAsArrivalTime(), plan.getMaxWalkDistance());
+       		plan.addPlannerReport(planResult.getReport());
+       		if (! planResult.hasError()) {
+       			// Ok, car is the reference modality
+       			plan.setReferenceType(TravelReferenceType.CAR);
+       			plan.setReferenceDistance(planResult.getItineraries().get(0).getTotalCarDistance());
+       			plan.setReferenceDuration(planResult.getItineraries().get(0).getDuration());
+       			plan.setReferenceFareInCredits(planResult.getItineraries().get(0).getFareInCredits());
+       		} else {
+       			// Use a geodesic estimation
+       			plan.setReferenceType(TravelReferenceType.GEODESIC);
+       			plan.setReferenceDistance(Math.toIntExact(Math.round(plan.getFrom().getDistanceTo(plan.getTo()) * 1000)));
+       		}
        	}
        	tripPlanDao.save(plan);
        	if (plan.getPlanType() == PlanType.SHOUT_OUT) {

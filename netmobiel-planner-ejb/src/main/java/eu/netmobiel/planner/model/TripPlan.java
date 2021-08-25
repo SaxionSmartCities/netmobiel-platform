@@ -312,6 +312,30 @@ public class TripPlan implements Serializable {
 	@JoinColumn(name = "requestor", nullable = false, foreignKey = @ForeignKey(name = "trip_plan_requestor_fk"))
     private PlannerUser requestor;
     
+    /**
+     * Travel reference type. Only for shout-outs. 
+     */
+    @Column(name = "reference_type", length = 2)
+    private TravelReferenceType referenceType;
+
+    /**
+     * Reference travel distance. Only for shout-outs.   
+     */
+    @Column(name = "reference_distance")
+    private Integer referenceDistance;
+    
+    /**
+     * Reference travel duration. Only for shout-outs. 
+     */
+    @Column(name = "reference_duration")
+    private Integer referenceDuration;
+    
+    /**
+     * Reference travel fare (in credits). Only for Rideshare legs. Only for shout-outs.  
+     */
+    @Column(name = "reference_fare_credits")
+    private Integer referenceFareInCredits;
+    
 	public TripPlan() { 
     	this.creationTime = Instant.now();
        	this.requestTime = creationTime;
@@ -518,6 +542,38 @@ public class TripPlan implements Serializable {
 
 	public void setRequestor(PlannerUser requestor) {
 		this.requestor = requestor;
+	}
+
+	public TravelReferenceType getReferenceType() {
+		return referenceType;
+	}
+
+	public void setReferenceType(TravelReferenceType referenceType) {
+		this.referenceType = referenceType;
+	}
+
+	public Integer getReferenceDistance() {
+		return referenceDistance;
+	}
+
+	public void setReferenceDistance(Integer referenceDistance) {
+		this.referenceDistance = referenceDistance;
+	}
+
+	public Integer getReferenceDuration() {
+		return referenceDuration;
+	}
+
+	public void setReferenceDuration(Integer referenceDuration) {
+		this.referenceDuration = referenceDuration;
+	}
+
+	public Integer getReferenceFareInCredits() {
+		return referenceFareInCredits;
+	}
+
+	public void setReferenceFareInCredits(Integer referenceFareInCredits) {
+		this.referenceFareInCredits = referenceFareInCredits;
 	}
 
 	private static String formatTime(Instant instant) {
