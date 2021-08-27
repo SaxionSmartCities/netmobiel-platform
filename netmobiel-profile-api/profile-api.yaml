@@ -328,8 +328,8 @@ paths:
       - name: public
         description: Optional flag to indicate to retrieve only the public details.
           For admin and the effective owner the flag defaults to false (and can be
-          overridden), for others the flag is fixed to true. Mainly intended for easier
-          testing.
+          overridden), for others the flag is fixed to true. Used to force the intended
+          behaviour also for privileged users.
         schema:
           type: boolean
         in: query
@@ -352,7 +352,7 @@ paths:
       summary: Retrieves a profile
       description: |-
         Retrieves a profile from the database. The amount of information depends on the caller, the profile requested and / or the role of the caller.
-        The admin always sees the complete profile. The (effective) owner also sees the whole profile. Other users see the public information.
+        The admin is always able to see the complete profile. The (effective) owner also sees the whole profile. Other users see the public information.
     put:
       requestBody:
         description: Updated `Profile` information.
@@ -1016,6 +1016,11 @@ components:
     UserConsent:
       title: Root Type for UserConsent
       description: Type user to flag consent with the terms of use of NetMobiel.
+      required:
+      - safetyGuidelines
+      - acceptedTerms
+      - olderThanSixteen
+      - constentTimestamp
       type: object
       properties:
         olderThanSixteen:
@@ -1025,9 +1030,18 @@ components:
         acceptedTerms:
           description: If true the user has agreed with the terms of use for NetMobiel.
           type: boolean
+        safetyGuidelines:
+          description: If true the user agrees with the safety guidelines.
+          type: boolean
+        constentTimestamp:
+          format: date-time
+          description: The timestamp of the consent.
+          type: string
       example:
         olderThanSixteen: true
         acceptedTerms: true
+        safetyGuidelines: true
+        consentTimestamp: 2021-07-05T13:00:35.000Z
     RidePlanOptions:
       type: object
       properties:
