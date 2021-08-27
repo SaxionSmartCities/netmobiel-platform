@@ -1020,7 +1020,6 @@ components:
       - safetyGuidelines
       - acceptedTerms
       - olderThanSixteen
-      - constentTimestamp
       type: object
       properties:
         olderThanSixteen:
@@ -1033,10 +1032,6 @@ components:
         safetyGuidelines:
           description: If true the user agrees with the safety guidelines.
           type: boolean
-        constentTimestamp:
-          format: date-time
-          description: The timestamp of the consent.
-          type: string
       example:
         olderThanSixteen: true
         acceptedTerms: true
