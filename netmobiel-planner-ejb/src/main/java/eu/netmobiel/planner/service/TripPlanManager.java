@@ -474,24 +474,33 @@ public class TripPlanManager {
 
     	driverPlan.setNrSeats(travPlan.getNrSeats());
     	driverPlan.setMaxWalkDistance(travPlan.getMaxWalkDistance());
-    	driverPlan.setTraverseModes(Collections.singleton(TraverseMode.RIDESHARE));
+    	driverPlan.setTraverseModes(new HashSet<>(Arrays.asList(new TraverseMode[] { TraverseMode.CAR, TraverseMode.RIDESHARE })));
     	List<GeoLocation> intermediatePlaces = new ArrayList<>();
     	intermediatePlaces.add(travPlan.getFrom());
     	intermediatePlaces.add(travPlan.getTo());
     	PlannerResult result = planRideshareItinerary(now, driverPlan.getFrom(), driverPlan.getTo(), 
     			driverPlan.getTravelTime(),  driverPlan.isUseAsArrivalTime(), driverPlan.getMaxWalkDistance(), intermediatePlaces);
-    	if (adjustDepartureTime && result.getItineraries().size() > 0) {
+    	if (result.getItineraries().size() > 0) {
     		// Shift all the timestamps in the plan in such a way that the pickup or drop-off time matches the travel time of the proposed passenger
     		Itinerary it = result.getItineraries().get(0);
-//    		log.debug("Before: " + it.toString());
-    		GeoLocation refLoc = travPlan.isUseAsArrivalTime() ? travPlan.getTo() : travPlan.getFrom();
-    		it.shiftItineraryTiming(refLoc, travPlan.getTravelTime(), travPlan.isUseAsArrivalTime());
-    		// Fix the travel time of the driver and set it to the departure time of the first leg
-			driverPlan.setTravelTime(it.getDepartureTime());
-			driverPlan.setUseAsArrivalTime(false);
-			result.getReport().setTravelTime(driverPlan.getTravelTime());
-			result.getReport().setUseAsArrivalTime(driverPlan.isUseAsArrivalTime());
-//    		log.debug("After: " + it.toString());
+    		if (adjustDepartureTime) {
+//	    		log.debug("Before: " + it.toString());
+				GeoLocation refLoc = travPlan.isUseAsArrivalTime() ? travPlan.getTo() : travPlan.getFrom();
+				it.shiftItineraryTiming(refLoc, travPlan.getTravelTime(), travPlan.isUseAsArrivalTime());
+				// Fix the travel time of the driver and set it to the departure time of the first leg
+				driverPlan.setTravelTime(it.getDepartureTime());
+				driverPlan.setUseAsArrivalTime(false);
+				result.getReport().setTravelTime(driverPlan.getTravelTime());
+				result.getReport().setUseAsArrivalTime(driverPlan.isUseAsArrivalTime());
+//	    		log.debug("After: " + it.toString());
+    		}
+    		// Find the passenger legs (should be single one) and mark them as rideshare and add a fare.
+    		List<Leg> passengerLegs = it.findConnectingLegs(travPlan.getFrom(), travPlan.getTo());
+    		passengerLegs.forEach(leg -> tripPlanHelper.assignFareToRideshareLeg(leg));
+        	// Normalize the shoutout reference
+        	String shoutOutPlanRefNormalized = UrnHelper.createUrn(TripPlan.URN_PREFIX, pid);
+        	// Mark the leg as a solution for the shout-out
+        	passengerLegs.forEach(leg -> leg.setShoutOutRef(shoutOutPlanRefNormalized));
     	}
     	driverPlan.setPlanType(PlanType.SHOUT_OUT_SOLUTION);
     	driverPlan.addPlannerResult(result);

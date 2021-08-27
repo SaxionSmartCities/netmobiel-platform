@@ -5,6 +5,7 @@ import java.time.Duration;
 import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Optional;
@@ -637,6 +638,43 @@ public class Itinerary implements Serializable {
 		return it;
 	}
 
+	/**
+	 * Find the successive legs in an itinerary connecting two locations.
+	 * @param from If set the departure location.
+	 * @param to If set the arrival location.
+	 * @param epsilonInMeter the maximum distance to acccept.
+	 * @return
+	 */
+	public List<Leg> findConnectingLegs(GeoLocation from, GeoLocation to) {
+		List<Leg> connectingLegs = Collections.emptyList();
+		if (from == null && to == null) {
+			throw new IllegalArgumentException("Specify and/or to location to find leg");
+		}
+		Optional<Stop> departingStop = getStops().stream()
+				.filter(s -> connectingStopCheck.test(from, s.getLocation()))
+				.findFirst();
+		Optional<Stop> arrivingStop = getStops().stream()
+				.filter(s -> connectingStopCheck.test(to, s.getLocation()))
+				.findFirst();
+		if (departingStop.isPresent() && arrivingStop.isPresent()) {
+			Leg firstLeg = getLegs().stream()
+					.filter(leg -> leg.getFrom() == departingStop.get())
+					.findFirst()
+					.orElseThrow(() -> new IllegalStateException("Cannot find departure stop in legs"));
+			Leg lastLeg = getLegs().stream()
+					.filter(leg -> leg.getTo() == arrivingStop.get())
+					.findFirst()
+					.orElseThrow(() -> new IllegalStateException("Cannot find arrival in legs"));
+			int firstLegIx = getLegs().indexOf(firstLeg);
+			int lastLegIx = getLegs().indexOf(lastLeg);
+			if (firstLegIx == -1 || lastLegIx == -1) {
+				throw new IllegalStateException("Unable to lookup my own legs!");
+			}
+			connectingLegs = getLegs().subList(firstLegIx, lastLegIx + 1);
+		}
+		return connectingLegs;
+	}
+	
 	/**
 	 * Create new itinerary by prepending the specified itinerary to this one.
 	 * This itinerary is unchanged, a deep copy is made. The prepended itinerary is altered slightly.

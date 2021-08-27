@@ -302,6 +302,13 @@ public class Leg implements Serializable {
     @Column(name = "cancelled_by_provider")
     private Boolean cancelledByProvider;
 
+    /**
+     * If set the leg is intended to resolves a shout-out of a passenger.
+     * A shout-out reference refers to a trip plan (shout-out) created by a traveller. 
+     */
+    @Column(name = "shout_out_ref")
+    private String shoutOutRef;
+    
     public Leg() {
     }
 
@@ -342,6 +349,7 @@ public class Leg implements Serializable {
 		this.routeLongName = other.routeLongName;
 		this.routeShortName = other.routeShortName;
 		this.routeType = other.routeType;
+		this.shoutOutRef = other.shoutOutRef;
 		this.state = other.state;
 		this.to = other.to.copy();
 		this.traverseMode = other.traverseMode;
@@ -710,6 +718,14 @@ public class Leg implements Serializable {
 
 	public void setCancelledByProvider(Boolean cancelledByProvider) {
 		this.cancelledByProvider = cancelledByProvider;
+	}
+
+	public String getShoutOutRef() {
+		return shoutOutRef;
+	}
+
+	public void setShoutOutRef(String shoutOutRef) {
+		this.shoutOutRef = shoutOutRef;
 	}
 
 	/**
