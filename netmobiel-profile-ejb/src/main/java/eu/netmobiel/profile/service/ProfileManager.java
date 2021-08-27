@@ -229,7 +229,7 @@ public class ProfileManager {
     }
 
     /**
-     * Updates all fields of the profile execpt for: imagePath.
+     * Updates all fields of the profile.
      * @param managedId
      * @param newProfile
      * @throws NotFoundException

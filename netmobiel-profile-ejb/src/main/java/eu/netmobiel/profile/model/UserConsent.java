@@ -27,6 +27,13 @@ public class UserConsent implements Serializable {
 	@Column(name = "consent_older_than_sixteen")
 	private boolean olderThanSixteen = false;
 	
+	/**
+	 * If set the user agrees to follow the safety guidelines.
+	 */
+	@NotNull
+	@Column(name = "consent_safety_guidelines")
+	private boolean safetyGuidelines = false;
+
 	public static UserConsent createDefault() {
 		return new UserConsent();
 	}
@@ -34,14 +41,26 @@ public class UserConsent implements Serializable {
 	public boolean isAcceptedTerms() {
 		return acceptedTerms;
 	}
+	
 	public void setAcceptedTerms(boolean acceptedTerms) {
 		this.acceptedTerms = acceptedTerms;
 	}
+	
 	public boolean isOlderThanSixteen() {
 		return olderThanSixteen;
 	}
+	
 	public void setOlderThanSixteen(boolean olderThanSixteen) {
 		this.olderThanSixteen = olderThanSixteen;
 	}
+
+	public boolean isSafetyGuidelines() {
+		return safetyGuidelines;
+	}
+
+	public void setSafetyGuidelines(boolean safetyGuidelines) {
+		this.safetyGuidelines = safetyGuidelines;
+	}
+	
 	
 }
