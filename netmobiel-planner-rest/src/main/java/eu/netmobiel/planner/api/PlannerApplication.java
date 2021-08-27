@@ -37,7 +37,6 @@ import eu.netmobiel.commons.jaxrs.OffsetDateTimeParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.ProcessingExceptionMapper;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
-import eu.netmobiel.planner.api.resource.GeocodeSuggestionsResource;
 import eu.netmobiel.planner.api.resource.MaintenanceResource;
 import eu.netmobiel.planner.api.resource.PlansResource;
 import eu.netmobiel.planner.api.resource.SearchResource;
@@ -82,7 +81,6 @@ public class PlannerApplication extends Application {
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new HashSet<>();
-        resources.add(GeocodeSuggestionsResource.class);
         resources.add(MaintenanceResource.class);
         resources.add(PlansResource.class);
         resources.add(SearchResource.class);
