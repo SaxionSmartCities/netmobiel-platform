@@ -441,7 +441,11 @@ paths:
               schema:
                 $ref: '#/components/schemas/TripPlan'
           description: Succes response. A `TripPlan` is returned that resolves the
-            shout-out of the passenger.
+            shout-out of the passenger. The plan includes (optionally) the legs of
+            the driver to get to the pickup point and to get to the driver's final
+            arrival location. The passenger legs (should be a single one) is marked
+            as RIDESHARE, whereas the driver's own legs are just CAR mode. The passenger
+            legs also contain a reference to the shout-out plan of the passenger.
         "404":
           $ref: '#/components/responses/NotFound'
       operationId: planShoutOutSolution
@@ -1605,6 +1609,10 @@ components:
           description: If set this flag indicates the mobility provider has cancelled
             (the booking of) a leg.
           type: boolean
+        shoutOutRef:
+          description: If set marks the leg as an solution for the traveller's shout-out
+            (trip plan).
+          type: string
       example:
         distance: 152
         duration: 123
