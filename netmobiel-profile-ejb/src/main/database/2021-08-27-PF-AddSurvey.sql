@@ -3,16 +3,13 @@
 CREATE TABLE public.survey
 (
     survey_id character varying(8) COLLATE pg_catalog."default" NOT NULL,
-    delay_hours integer,
     display_name character varying(64) COLLATE pg_catalog."default" NOT NULL,
-    end_time timestamp without time zone,
-    group_ref character varying(32) COLLATE pg_catalog."default",
-    provider_survey_ref character varying(32) COLLATE pg_catalog."default" NOT NULL,
     remarks character varying(256) COLLATE pg_catalog."default",
-    sequencenr integer,
+    provider_survey_ref character varying(32) COLLATE pg_catalog."default" NOT NULL,
+    take_delay_hours integer,
+    take_interval_hours integer,
     start_time timestamp without time zone,
-    survey_provider character varying(16) COLLATE pg_catalog."default" NOT NULL,
-    survey_trigger character varying(16) COLLATE pg_catalog."default" NOT NULL,
+    end_time timestamp without time zone,
     CONSTRAINT survey_pkey PRIMARY KEY (survey_id)
 );
 

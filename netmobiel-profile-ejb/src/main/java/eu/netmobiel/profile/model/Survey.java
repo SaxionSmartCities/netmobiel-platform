@@ -8,14 +8,20 @@ import javax.persistence.Access;
 import javax.persistence.AccessType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
-import javax.persistence.EnumType;
-import javax.persistence.Enumerated;
 import javax.persistence.Id;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
-
+/**
+ * Definition of a survey. A survey has (optionally) a limited period of time is which it can be taken. 
+ * A survey is ready to be taken after some trigger, currently supported is some trigger date. A survey has a condition 
+ * that defines whether it is eligable to be taken. Currently supported are a duration after the trigger date (a delay) 
+ * followed by period during which the survay can be taken.  
+ * 
+ * @author Jaap Reitsma
+ *
+ */
 @Entity
 @Table(name = "survey", uniqueConstraints = @UniqueConstraint(columnNames = { "survey_id" }, name = "uc_survey_id"))
 @Vetoed
@@ -52,39 +58,12 @@ public class Survey implements Serializable {
 	private String remarks;
 
 	/**
-	 * The provider of the survey.
-	 */
-	@Enumerated(EnumType.STRING)
-	@Column(name = "survey_provider", length = 16, nullable = false)
-	private SurveyProvider surveyProvider;
-
-	/**
-	 * The trigger of the survey to present to the user. 
-	 */
-	@Enumerated(EnumType.STRING)
-	@Column(name = "survey_trigger", length = 16, nullable = false)
-	private SurveyTrigger surveyTrigger;
-	
-	/**
 	 * The external reference to the survey, this is the reference used by the survey provider.
 	 */
 	@Size(max = 32)
 	@NotNull
 	@Column(name = "provider_survey_ref")
 	private String providerSurveyRef;
-
-	/**
-	 * Our survey group reference. Used to group consecutive surveys.
-	 */
-	@Size(max = 32)
-	@Column(name = "group_ref")
-	private String groupRef;
-
-	/**
-	 * Our survey group reference. Used to group consecutive surveys.
-	 */
-	@Column(name = "sequenceNr")
-	private Integer sequenceNr;
 
 	/**
 	 * The eligable start time of the survey (optional).
@@ -99,10 +78,19 @@ public class Survey implements Serializable {
 	private Instant endTime;
 
 	/**
-	 * The optional (minimum) delay of the survey after the trigger.
+	 * The optional delay of the survey after the trigger before it is made available to a (specific) user.
+	 * The absolute start time is the trigger time + takeDelayHours. 
+	 * 
 	 */
-	@Column(name = "delay_hours")
-	private Integer delayHours;
+	@Column(name = "take_delay_hours")
+	private Integer takeDelayHours;
+
+	/**
+	 * The optional length if the interval during which the survey can be taken.
+	 * The absolute end time is the trigger time + takeDelayHours + takeintervalHours. 
+	 */
+	@Column(name = "take_interval_hours")
+	private Integer takeIntervalHours;
 
 	public String getSurveyId() {
 		return surveyId;
@@ -120,20 +108,12 @@ public class Survey implements Serializable {
 		this.displayName = displayName;
 	}
 
-	public SurveyProvider getSurveyProvider() {
-		return surveyProvider;
+	public String getRemarks() {
+		return remarks;
 	}
 
-	public void setSurveyProvider(SurveyProvider surveyProvider) {
-		this.surveyProvider = surveyProvider;
-	}
-
-	public SurveyTrigger getSurveyTrigger() {
-		return surveyTrigger;
-	}
-
-	public void setSurveyTrigger(SurveyTrigger surveyTrigger) {
-		this.surveyTrigger = surveyTrigger;
+	public void setRemarks(String remarks) {
+		this.remarks = remarks;
 	}
 
 	public String getProviderSurveyRef() {
@@ -142,22 +122,6 @@ public class Survey implements Serializable {
 
 	public void setProviderSurveyRef(String providerSurveyRef) {
 		this.providerSurveyRef = providerSurveyRef;
-	}
-
-	public String getGroupRef() {
-		return groupRef;
-	}
-
-	public void setGroupRef(String groupRef) {
-		this.groupRef = groupRef;
-	}
-
-	public Integer getSequenceNr() {
-		return sequenceNr;
-	}
-
-	public void setSequenceNr(Integer sequenceNr) {
-		this.sequenceNr = sequenceNr;
 	}
 
 	public Instant getStartTime() {
@@ -176,20 +140,21 @@ public class Survey implements Serializable {
 		this.endTime = endTime;
 	}
 
-	public String getRemarks() {
-		return remarks;
+	public Integer getTakeDelayHours() {
+		return takeDelayHours;
 	}
 
-	public void setRemarks(String remarks) {
-		this.remarks = remarks;
+	public void setTakeDelayHours(Integer takeDelayHours) {
+		this.takeDelayHours = takeDelayHours;
 	}
 
-	public Integer getDelayHours() {
-		return delayHours;
+	public Integer getTakeIntervalHours() {
+		return takeIntervalHours;
 	}
 
-	public void setDelayHours(Integer delayHours) {
-		this.delayHours = delayHours;
+	public void setTakeIntervalHours(Integer takeIntervalHours) {
+		this.takeIntervalHours = takeIntervalHours;
 	}
-
+	
+	
 }
