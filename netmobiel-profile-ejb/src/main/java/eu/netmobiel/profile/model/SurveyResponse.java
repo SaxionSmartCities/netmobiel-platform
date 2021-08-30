@@ -89,6 +89,14 @@ public class SurveyResponse implements Serializable {
 		this.profile = profile;
 	}
 
+	public Instant getRequestTime() {
+		return requestTime;
+	}
+
+	public void setRequestTime(Instant requestTime) {
+		this.requestTime = requestTime;
+	}
+
 	public Instant getSubmitTime() {
 		return submitTime;
 	}
