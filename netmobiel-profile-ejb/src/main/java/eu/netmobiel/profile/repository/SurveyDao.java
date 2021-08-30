@@ -1,6 +1,9 @@
 package eu.netmobiel.profile.repository;
 
+import java.time.Duration;
+import java.time.Instant;
 import java.util.List;
+import java.util.Optional;
 
 import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
@@ -63,5 +66,26 @@ public class SurveyDao extends AbstractDao<Survey, String> {
 			results = tq.getResultList();
         }
         return new PagedResult<>(results, cursor, totalCount);
+	}
+
+	public Optional<Survey> findSurveyToTake(Instant now, Instant triggerTime) {
+		if (now == null || triggerTime ==  null) {
+			throw new IllegalArgumentException("Supply 'now' and 'triggerTime' parameters");
+		}
+		if (now.isBefore(triggerTime)) {
+			return Optional.empty();
+		}
+        int actualDelay = Math.toIntExact(Duration.between(triggerTime, now).getSeconds() / 3600); 
+    	List<Survey> results = em.createQuery("from Survey where " 
+				+"(startTime is null or startTime < :now) "
+				+ "and (endTime is null or endTime > :now) " 
+				+ "and (takeDelayHours is null or takeDelayHours <= :actualDelay) " 
+				+ "and (takeIntervalHours is null or (takeIntervalHours + takeDelayHours) >= :actualDelay) " 
+				+ "order by startTime asc, endTime asc",
+				Survey.class)
+			.setParameter("now", now)
+			.setParameter("actualDelay", actualDelay)
+			.getResultList();
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0)); 
 	}
 }
