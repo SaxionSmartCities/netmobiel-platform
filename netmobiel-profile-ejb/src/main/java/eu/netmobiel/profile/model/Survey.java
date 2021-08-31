@@ -10,6 +10,7 @@ import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.Id;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -23,7 +24,10 @@ import javax.validation.constraints.Size;
  *
  */
 @Entity
-@Table(name = "survey", uniqueConstraints = @UniqueConstraint(columnNames = { "survey_id" }, name = "uc_survey_id"))
+@Table(name = "survey", uniqueConstraints = 
+	{   @UniqueConstraint(columnNames = { "survey_id" }, name = "uc_survey_id"),
+		@UniqueConstraint(columnNames = { "provider_survey_ref" }, name = "uc_provider_survey_ref")
+	})
 @Vetoed
 @Access(AccessType.FIELD)
 
@@ -92,6 +96,19 @@ public class Survey implements Serializable {
 	@Column(name = "take_interval_hours")
 	private Integer takeIntervalHours;
 
+	/**
+	 * The url of the provider to take the survey. 
+	 * Only present on request.
+	 */
+	@Transient
+	private String providerUrl;
+
+	/**
+	 * The amount of credits to receive on completing the survey.
+	 */
+	@Column(name = "reward_credits")
+	private Integer rewardCredits;
+
 	public String getSurveyId() {
 		return surveyId;
 	}
@@ -154,6 +171,14 @@ public class Survey implements Serializable {
 
 	public void setTakeIntervalHours(Integer takeIntervalHours) {
 		this.takeIntervalHours = takeIntervalHours;
+	}
+
+	public String getProviderUrl() {
+		return providerUrl;
+	}
+
+	public void setProviderUrl(String providerUrl) {
+		this.providerUrl = providerUrl;
 	}
 	
 	

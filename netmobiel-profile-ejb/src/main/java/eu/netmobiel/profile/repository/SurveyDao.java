@@ -15,6 +15,8 @@ import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Expression;
 import javax.persistence.criteria.Root;
 
+import org.slf4j.Logger;
+
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
@@ -30,7 +32,10 @@ public class SurveyDao extends AbstractDao<Survey, String> {
 	@Inject @ProfileDatabase
     private EntityManager em;
 
-    public SurveyDao() {
+	@Inject
+    private Logger logger;
+
+	public SurveyDao() {
 		super(String.class, Survey.class);
 	}
 
@@ -81,11 +86,27 @@ public class SurveyDao extends AbstractDao<Survey, String> {
 				+ "and (endTime is null or endTime > :now) " 
 				+ "and (takeDelayHours is null or takeDelayHours <= :actualDelay) " 
 				+ "and (takeIntervalHours is null or (takeIntervalHours + takeDelayHours) >= :actualDelay) " 
-				+ "order by startTime asc, endTime asc",
+				+ "order by startTime asc, endTime asc, id asc",
 				Survey.class)
 			.setParameter("now", now)
 			.setParameter("actualDelay", actualDelay)
 			.getResultList();
+    	if (results.size() > 1) {
+    		logger.warn("No support for multiple active surveys!");
+    	}
+        return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0)); 
+	}
+
+	public Optional<Survey> findSurveyByProviderReference(String reference) {
+		if (reference == null) {
+			throw new IllegalArgumentException("provider survey identifier");
+		}
+    	List<Survey> results = em.createQuery("from Survey where providerSurveyRef = :reference", Survey.class)
+			.setParameter("reference", reference)
+			.getResultList();
+    	if (results.size() > 1) {
+    		throw new IllegalStateException("Duplicate provider survey identifier: " + reference);
+    	}
         return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0)); 
 	}
 }

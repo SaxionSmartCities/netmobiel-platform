@@ -39,7 +39,7 @@ public class SurveyDaoIT extends ProfileIntegrationTestBase {
 	protected void insertData() throws Exception {
     }
 
-    protected void createSurvey(String id, String start, String end, Integer delay, Integer interval) {
+    protected Survey createSurvey(String id, String start, String end, Integer delay, Integer interval) {
     	Survey s = new Survey();
     	s.setSurveyId(id);
     	s.setDisplayName("Dit is " + id);
@@ -50,6 +50,7 @@ public class SurveyDaoIT extends ProfileIntegrationTestBase {
     	s.setTakeDelayHours(delay);
     	s.setTakeIntervalHours(interval);
     	em.persist(s);
+    	return s;
     }
     
     @Test
@@ -113,4 +114,13 @@ public class SurveyDaoIT extends ProfileIntegrationTestBase {
     	assertTrue(result.isEmpty());
     }
     
+    @Test
+    public void findSurveyByProviderRef() throws Exception {
+    	Survey s = createSurvey("ENQ-3", "2021-09-01T00:00:00Z", "2021-10-01T00:00:00Z", 24, 7 * 24);
+    	Optional<Survey> result = surveyDao.findSurveyByProviderReference(s.getProviderSurveyRef());
+    	assertTrue(result.isPresent());
+
+    	result = surveyDao.findSurveyByProviderReference(s.getProviderSurveyRef() + "XXX");
+    	assertFalse(result.isPresent());
+}
 }

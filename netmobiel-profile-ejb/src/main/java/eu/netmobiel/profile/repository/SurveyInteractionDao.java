@@ -21,19 +21,19 @@ import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.profile.annotation.ProfileDatabase;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Survey;
-import eu.netmobiel.profile.model.SurveyResponse;
+import eu.netmobiel.profile.model.SurveyInteraction;
 import eu.netmobiel.profile.model.SurveyResponse_;
 
 
 @ApplicationScoped
-@Typed(SurveyResponseDao.class)
-public class SurveyResponseDao extends AbstractDao<SurveyResponse, Long> {
+@Typed(SurveyInteractionDao.class)
+public class SurveyInteractionDao extends AbstractDao<SurveyInteraction, Long> {
 
 	@Inject @ProfileDatabase
     private EntityManager em;
 
-    public SurveyResponseDao() {
-		super(SurveyResponse.class);
+    public SurveyInteractionDao() {
+		super(SurveyInteraction.class);
 	}
 
 	@Override
@@ -42,15 +42,15 @@ public class SurveyResponseDao extends AbstractDao<SurveyResponse, Long> {
 	}
 
 	/**
-	 * Retrieves the Places according the search criteria.
+	 * Retrieves the survey interactions according the search criteria.
 	 * @param filter the filter criteria. 
 	 * @param cursor The cursor to use.
 	 * @return A pages result. Total count is determined only when maxResults is set to 0.
 	 */
-	public PagedResult<Long> listResponses(Survey survey, Profile profile, Cursor cursor) {
+	public PagedResult<Long> listInteractions(Survey survey, Profile profile, Cursor cursor) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
-        Root<SurveyResponse> root = cq.from(SurveyResponse.class);
+        Root<SurveyInteraction> root = cq.from(SurveyInteraction.class);
         Long totalCount = null;
         List<Long> results = null;
         List<Predicate> predicates = new ArrayList<>();
@@ -77,17 +77,17 @@ public class SurveyResponseDao extends AbstractDao<SurveyResponse, Long> {
 	}
 
 	/**
-	 * Finds optionally a response for a given survey and profile.
+	 * Finds optionally an interaction for a given survey and profile.
 	 * @param survey the survey to look for.
 	 * @param profile the profile to look for.
-	 * @return An optional with the record found, if any.
+	 * @return An optional with the record found, if any. If none is found, then the user has never seen the invitation. 
 	 */
-	public Optional<SurveyResponse> findResponse(Survey survey, Profile profile) {
+	public Optional<SurveyInteraction> findInteraction(Survey survey, Profile profile) {
         if (survey == null || profile == null) {
         	throw new IllegalArgumentException("Survey and profile are mandatory parameters");
         }
-    	List<SurveyResponse> results = em.createQuery("from SurveyResponse where " 
-				+ "survey = :survey and profile = :profile", SurveyResponse.class)
+    	List<SurveyInteraction> results = em.createQuery("from SurveyInteraction where " 
+				+ "survey = :survey and profile = :profile", SurveyInteraction.class)
 			.setParameter("survey", survey)
 			.setParameter("profile", profile)
 			.getResultList();
