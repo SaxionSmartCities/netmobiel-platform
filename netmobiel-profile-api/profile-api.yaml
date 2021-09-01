@@ -927,6 +927,41 @@ paths:
       description: "Gets a list of all `SurveyInteraction` entities for the calling\
         \ user. Expected is at most one entry.\nWhen no query parameters are supplied,\
         \ the call looks for pending invitations to take\na survey. "
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+  /survey-interactions/{surveyInteractionId}/submitted:
+    summary: Path used to note the completion of a survey by a user.
+    description: Call used to note the completion of a survey as reported by the survey
+      provider.
+    put:
+      responses:
+        "204":
+          description: The record has been updated and the reward has been transferred.
+        "410":
+          description: Issued when the survey was completed beyond the window of opportunity.
+      operationId: recordSubmission
+      summary: Record the submission of an SurveyInteraction
+      description: Records the submission of a `Survey`attached to an existing `SurveyInteraction`.
+        Once set the survey interaction will not be found anymore for this user, as
+        it has been completed.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: surveyInteractionId
+      description: A unique identifier for a `SurveyInteraction`.
+      schema:
+        type: string
+      in: path
+      required: true
   /survey-interactions/{surveyInteractionId}/redirection:
     summary: Note an upcoming redirection of a user to the survey provider.
     description: Just before the actual redirection this call is made to log the redirection
@@ -948,30 +983,14 @@ paths:
       summary: Take notice of a redirection.
       description: Signals an upcoming redirection.
     parameters:
-    - name: surveyInteractionId
-      description: the unique identifier of the interaction.
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
       schema:
         type: string
-      in: path
-      required: true
-  /survey-interactions/{surveyInteractionId}/submitted:
-    summary: Path used to note the completion of a survey by a user.
-    description: Call used to note the completion of a survey as reported by the survey
-      provider.
-    put:
-      responses:
-        "204":
-          description: The record has been updated and the reward has been transferred.
-        "410":
-          description: Issued when the survey was completed beyond the window of opportunity.
-      operationId: recordSubmission
-      summary: Record the submission of an SurveyInteraction
-      description: Records the submission of a `Survey`attached to an existing `SurveyInteraction`.
-        Once set the survey interaction will not be found anymore for this user, as
-        it has been completed.
-    parameters:
+      in: header
     - name: surveyInteractionId
-      description: A unique identifier for a `SurveyInteraction`.
+      description: the unique identifier of the interaction.
       schema:
         type: string
       in: path
