@@ -898,10 +898,9 @@ paths:
       in: path
       required: true
   /survey-interactions:
-    summary: Path used to manage the list of surveyinteractions.
+    summary: Path used to manage the list of survey interactions.
     description: The REST endpoint/path used to list and create zero or more `SurveyInteraction`
-      entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively.
+      entities.  This path contains a `GET` operation to perform the list task.
     get:
       parameters:
       - name: providerRef
@@ -937,7 +936,11 @@ paths:
     put:
       responses:
         "204":
-          description: The interaction has been updated.
+          description: The interaction has been updated. The front-end can execute
+            the actual redirection.
+        "410":
+          description: Issued when the interaction is no longer allowed because the
+            survey is no longer available, i.e., the window of opportunity has closed.
       security:
       - apikey: []
         Bearer-only: []
@@ -947,6 +950,8 @@ paths:
     parameters:
     - name: surveyInteractionId
       description: the unique identifier of the interaction.
+      schema:
+        type: string
       in: path
       required: true
   /survey-interactions/{surveyInteractionId}/submitted:
@@ -956,7 +961,9 @@ paths:
     put:
       responses:
         "204":
-          description: 'The record has been updated. '
+          description: The record has been updated and the reward has been transferred.
+        "410":
+          description: Issued when the survey was completed beyond the window of opportunity.
       operationId: updateSubmitTime
       summary: Update the submit time of an SurveyInteraction
       description: Updates the submit time of an existing `SurveyInteraction`. Once
