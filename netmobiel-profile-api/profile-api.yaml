@@ -977,7 +977,7 @@ paths:
       security:
       - apikey: []
         Bearer-only: []
-      operationId: updateRedirection
+      operationId: onRedirect
       summary: Take notice of a redirection.
       description: Signals an upcoming redirection.
     parameters:
