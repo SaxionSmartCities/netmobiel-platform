@@ -902,13 +902,6 @@ paths:
     description: The REST endpoint/path used to list and create zero or more `SurveyInteraction`
       entities.  This path contains a `GET` operation to perform the list task.
     get:
-      parameters:
-      - name: providerRef
-        description: The ID of the survey used by the survey provider. Used in the
-          callb ack to note the completion of a survey.
-        schema:
-          type: string
-        in: query
       responses:
         "200":
           content:
@@ -934,34 +927,6 @@ paths:
       schema:
         type: string
       in: header
-  /survey-interactions/{surveyInteractionId}/submitted:
-    summary: Path used to note the completion of a survey by a user.
-    description: Call used to note the completion of a survey as reported by the survey
-      provider.
-    put:
-      responses:
-        "204":
-          description: The record has been updated and the reward has been transferred.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: recordSubmission
-      summary: Record the submission of an SurveyInteraction
-      description: Records the submission of a `Survey`attached to an existing `SurveyInteraction`.
-        Once set the survey interaction will not be found anymore for this user, as
-        it has been completed.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - name: surveyInteractionId
-      description: A unique identifier for a `SurveyInteraction`.
-      schema:
-        type: string
-      in: path
-      required: true
   /survey-interactions/{surveyInteractionId}/redirection:
     summary: Note an upcoming redirection of a user to the survey provider.
     description: Just before the actual redirection this call is made to log the redirection
@@ -975,6 +940,8 @@ paths:
             the actual redirection.
         "404":
           $ref: '#/components/responses/NotFound'
+        "410":
+          $ref: '#/components/responses/Gone'
       security:
       - apikey: []
         Bearer-only: []
@@ -994,6 +961,38 @@ paths:
         type: string
       in: path
       required: true
+  /survey-interactions/on-submit:
+    summary: Path used to note the completion of a survey by a user.
+    description: Call used to note the completion of a survey as reported by the survey
+      provider.
+    put:
+      parameters:
+      - name: providerSurveyId
+        description: The ID of the survey used by the survey provider. Used in the
+          callb ack to note the completion of a survey.
+        schema:
+          type: string
+        in: query
+        required: true
+      responses:
+        "204":
+          description: The record has been updated and the reward has been transferred.
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "410":
+          $ref: '#/components/responses/Gone'
+      operationId: onSubmit
+      summary: Record the submission of an SurveyInteraction
+      description: Records the submission of a `Survey`attached to an existing `SurveyInteraction`.
+        Once set the survey interaction will not be found anymore for this user, as
+        it has been completed.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
 components:
   schemas:
     SearchPreferences:
