@@ -964,11 +964,11 @@ paths:
           description: The record has been updated and the reward has been transferred.
         "410":
           description: Issued when the survey was completed beyond the window of opportunity.
-      operationId: updateSubmitTime
-      summary: Update the submit time of an SurveyInteraction
-      description: Updates the submit time of an existing `SurveyInteraction`. Once
-        set the survey inetraction will not be found anymore for this user, as it
-        has been completed.
+      operationId: recordSubmission
+      summary: Record the submission of an SurveyInteraction
+      description: Records the submission of a `Survey`attached to an existing `SurveyInteraction`.
+        Once set the survey interaction will not be found anymore for this user, as
+        it has been completed.
     parameters:
     - name: surveyInteractionId
       description: A unique identifier for a `SurveyInteraction`.
