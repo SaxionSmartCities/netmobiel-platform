@@ -942,8 +942,8 @@ paths:
       responses:
         "204":
           description: The record has been updated and the reward has been transferred.
-        "410":
-          description: Issued when the survey was completed beyond the window of opportunity.
+        "404":
+          $ref: '#/components/responses/NotFound'
       operationId: recordSubmission
       summary: Record the submission of an SurveyInteraction
       description: Records the submission of a `Survey`attached to an existing `SurveyInteraction`.
@@ -973,9 +973,8 @@ paths:
         "204":
           description: The interaction has been updated. The front-end can execute
             the actual redirection.
-        "410":
-          description: Issued when the interaction is no longer allowed because the
-            survey is no longer available, i.e., the window of opportunity has closed.
+        "404":
+          $ref: '#/components/responses/NotFound'
       security:
       - apikey: []
         Bearer-only: []
