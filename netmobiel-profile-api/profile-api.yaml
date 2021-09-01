@@ -899,8 +899,10 @@ paths:
       required: true
   /survey-interactions:
     summary: Path used to manage the list of survey interactions.
-    description: The REST endpoint/path used to list and create zero or more `SurveyInteraction`
-      entities.  This path contains a `GET` operation to perform the list task.
+    description: The REST endpoint/path used to list (and indirect to create) zero
+      or more `SurveyInteraction` entities.  This path contains a `GET` operation
+      to perform the list task. There is at most a single combination of survey and
+      profile possible.
     get:
       responses:
         "200":
@@ -927,7 +929,37 @@ paths:
       schema:
         type: string
       in: header
-  /survey-interactions/{surveyInteractionId}/redirection:
+  /survey-interactions/{surveyId}/on-submit:
+    summary: Path used to note the completion of a survey by a user.
+    description: Call used to note the completion of a survey as reported by the survey
+      provider.
+    put:
+      responses:
+        "204":
+          description: The record has been updated and the reward has been transferred.
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "410":
+          $ref: '#/components/responses/Gone'
+      operationId: onSubmit
+      summary: Record the submission of an SurveyInteraction
+      description: Records the submission of a `Survey`attached to an existing `SurveyInteraction`.
+        Once set the survey interaction will not be found anymore for this user, as
+        it has been completed.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: surveyId
+      description: The survey id used by the survey provider.
+      schema:
+        type: string
+      in: path
+      required: true
+  /survey-interactions/{surveyId}/on-redirect:
     summary: Note an upcoming redirection of a user to the survey provider.
     description: Just before the actual redirection this call is made to log the redirection
       of the user to the survey provider. The intention is to see whether a user encounters
@@ -955,44 +987,12 @@ paths:
       schema:
         type: string
       in: header
-    - name: surveyInteractionId
-      description: the unique identifier of the interaction.
+    - name: surveyId
+      description: the survey id used by the survey provider.
       schema:
         type: string
       in: path
       required: true
-  /survey-interactions/on-submit:
-    summary: Path used to note the completion of a survey by a user.
-    description: Call used to note the completion of a survey as reported by the survey
-      provider.
-    put:
-      parameters:
-      - name: providerSurveyId
-        description: The ID of the survey used by the survey provider. Used in the
-          callb ack to note the completion of a survey.
-        schema:
-          type: string
-        in: query
-        required: true
-      responses:
-        "204":
-          description: The record has been updated and the reward has been transferred.
-        "404":
-          $ref: '#/components/responses/NotFound'
-        "410":
-          $ref: '#/components/responses/Gone'
-      operationId: onSubmit
-      summary: Record the submission of an SurveyInteraction
-      description: Records the submission of a `Survey`attached to an existing `SurveyInteraction`.
-        Once set the survey interaction will not be found anymore for this user, as
-        it has been completed.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
 components:
   schemas:
     SearchPreferences:
@@ -1674,7 +1674,7 @@ components:
       type: object
       properties:
         surveyId:
-          description: The Netmobiel identifier of the survey.
+          description: The identifier of the survey used by the survey provider.
           type: string
         displayName:
           description: The name of the survey to present to the end-user.
@@ -1685,13 +1685,14 @@ components:
         takeTimeLeftHours:
           format: int32
           description: The time left to complete the survey and receive the reward.
+            This amount of time is dependent on the trigger event.
           type: integer
         rewardCredits:
           format: int32
           description: The reward the user will receive on completing the survey.
           type: integer
       example:
-        surveyId: ENQ-1
+        surveyId: SV_38g7VCfcJFDB75X
         displayName: Nulmeting Netmobiel
         providerUrl: https://saxion.eu.qualtrics.com/jfe/form/SV_38g7VCfcJFDB75X?NetmobielID=5fd8defe-848e-4b66-8e6f-8a7d3b7ee485
         takeTimeLeftHours: 53
@@ -1704,15 +1705,11 @@ components:
       - survey
       - invitationCount
       - invitationTime
-      - id
       type: object
       properties:
-        id:
-          format: int32
-          description: The unique identifier.
-          type: integer
         survey:
           $ref: '#/components/schemas/Survey'
+          description: Details of the survey.
           properties:
             id:
               type: string
@@ -1739,9 +1736,8 @@ components:
             by this user.
           type: string
       example:
-        id: 54
         survey:
-          id: ENQ-1
+          surveyId: ENQ-1
         invitationTime: 2021-08-31T13:24:00Z
         invitationCount: 3
         redirectionTime: 2021-09-01T11:58:00Z
