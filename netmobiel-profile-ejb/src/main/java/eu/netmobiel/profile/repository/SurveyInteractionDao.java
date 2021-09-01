@@ -1,6 +1,5 @@
 package eu.netmobiel.profile.repository;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -8,21 +7,12 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
-import javax.persistence.TypedQuery;
-import javax.persistence.criteria.CriteriaBuilder;
-import javax.persistence.criteria.CriteriaQuery;
-import javax.persistence.criteria.Expression;
-import javax.persistence.criteria.Predicate;
-import javax.persistence.criteria.Root;
 
-import eu.netmobiel.commons.filter.Cursor;
-import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.profile.annotation.ProfileDatabase;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Survey;
 import eu.netmobiel.profile.model.SurveyInteraction;
-import eu.netmobiel.profile.model.SurveyResponse_;
 
 
 @ApplicationScoped
@@ -42,41 +32,6 @@ public class SurveyInteractionDao extends AbstractDao<SurveyInteraction, Long> {
 	}
 
 	/**
-	 * Retrieves the survey interactions according the search criteria.
-	 * @param filter the filter criteria. 
-	 * @param cursor The cursor to use.
-	 * @return A pages result. Total count is determined only when maxResults is set to 0.
-	 */
-	public PagedResult<Long> listInteractions(Survey survey, Profile profile, Cursor cursor) {
-    	CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
-        Root<SurveyInteraction> root = cq.from(SurveyInteraction.class);
-        Long totalCount = null;
-        List<Long> results = null;
-        List<Predicate> predicates = new ArrayList<>();
-        if (survey != null) {
-	        predicates.add(cb.equal(root.get(SurveyResponse_.survey), survey));
-        }        
-        if (profile != null) {
-	        predicates.add(cb.equal(root.get(SurveyResponse_.profile), profile));
-        }        
-        cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
-        if (cursor.isCountingQuery()) {
-          cq.select(cb.count(root.get(SurveyResponse_.id)));
-          totalCount = em.createQuery(cq).getSingleResult();
-        } else {
-	        cq.select(root.get(SurveyResponse_.id));
-	        Expression<?> sortBy = root.get(SurveyResponse_.id);
-	        cq.orderBy(cb.asc(sortBy));
-	        TypedQuery<Long> tq = em.createQuery(cq);
-			tq.setFirstResult(cursor.getOffset());
-			tq.setMaxResults(cursor.getMaxResults());
-			results = tq.getResultList();
-        }
-        return new PagedResult<>(results, cursor, totalCount);
-	}
-
-	/**
 	 * Finds optionally an interaction for a given survey and profile.
 	 * @param survey the survey to look for.
 	 * @param profile the profile to look for.
@@ -87,7 +42,7 @@ public class SurveyInteractionDao extends AbstractDao<SurveyInteraction, Long> {
         	throw new IllegalArgumentException("Survey and profile are mandatory parameters");
         }
     	List<SurveyInteraction> results = em.createQuery("from SurveyInteraction where " 
-				+ "survey = :survey and profile = :profile", SurveyInteraction.class)
+				+ "id.survey = :survey and id.profile = :profile", SurveyInteraction.class)
 			.setParameter("survey", survey)
 			.setParameter("profile", profile)
 			.getResultList();

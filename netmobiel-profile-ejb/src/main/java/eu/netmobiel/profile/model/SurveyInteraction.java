@@ -7,20 +7,12 @@ import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
 import javax.persistence.AccessType;
 import javax.persistence.Column;
+import javax.persistence.EmbeddedId;
 import javax.persistence.Entity;
-import javax.persistence.FetchType;
-import javax.persistence.ForeignKey;
-import javax.persistence.GeneratedValue;
-import javax.persistence.GenerationType;
-import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
 import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
-import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 
 /**
@@ -30,14 +22,13 @@ import javax.validation.constraints.NotNull;
  */
 @NamedEntityGraphs({
 	@NamedEntityGraph(name = SurveyInteraction.SURVEY_ENTITY_GRAPH, 
-			attributeNodes = { @NamedAttributeNode(value = "survey") } 
+			attributeNodes = { @NamedAttributeNode(value = "id") } 
 	),
 })
 @Entity
-@Table(name = "survey_interaction", uniqueConstraints = @UniqueConstraint(name = "uc_survey_interaction", columnNames = { "survey", "profile" }))
+@Table(name = "survey_interaction")
 @Vetoed
 @Access(AccessType.FIELD)
-@SequenceGenerator(name = "survey_interaction_sg", sequenceName = "survey_interaction_id_seq", allocationSize = 1, initialValue = 50)
 public class SurveyInteraction implements Serializable {
 
 	private static final long serialVersionUID = 4640816402401486372L;
@@ -46,25 +37,8 @@ public class SurveyInteraction implements Serializable {
 	/**
 	 * Primary key.
 	 */
-	@Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "survey_interaction_sg")
-    private Long id;
-
-	/**
-	 * Association with the survey.
-	 */
-	@NotNull
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name= "survey", foreignKey = @ForeignKey(name = "survey_interaction_survey_fk"), updatable = false)
-	private Survey survey;
-
-	/**
-	 * Association with the main profile.
-	 */
-	@NotNull
-	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name= "profile", foreignKey = @ForeignKey(name = "survey_interaction_profile_fk"), updatable = false)
-	private Profile profile;
+	@EmbeddedId
+    private SurveyInteractionId id;
 
 	/**
 	 * The first time the user was invited to take part in the survey.
@@ -100,37 +74,23 @@ public class SurveyInteraction implements Serializable {
 	private Instant submitTime;
 
 	public SurveyInteraction() {
-		
+		this.invitationTime = Instant.now();
+		this.invitationCount = 1;
+		this.redirectCount = 0;
 	}
 	
 	public SurveyInteraction(Survey survey, Profile profile) {
-		this.survey = survey;
-		this.profile = profile;
+		this();
+		this.id = new SurveyInteractionId(survey, profile);
 		this.invitationTime = Instant.now();
 	}
 
-	public Long getId() {
+	public SurveyInteractionId getId() {
 		return id;
 	}
 
-	public void setId(Long id) {
+	public void setId(SurveyInteractionId id) {
 		this.id = id;
-	}
-
-	public Survey getSurvey() {
-		return survey;
-	}
-
-	public void setSurvey(Survey survey) {
-		this.survey = survey;
-	}
-
-	public Profile getProfile() {
-		return profile;
-	}
-
-	public void setProfile(Profile profile) {
-		this.profile = profile;
 	}
 
 	public Instant getInvitationTime() {

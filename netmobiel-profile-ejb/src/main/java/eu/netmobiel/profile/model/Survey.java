@@ -1,18 +1,24 @@
 package eu.netmobiel.profile.model;
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.time.Instant;
+import java.util.Objects;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
 import javax.persistence.AccessType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.GeneratedValue;
+import javax.persistence.GenerationType;
 import javax.persistence.Id;
+import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 /**
  * Definition of a survey. A survey has (optionally) a limited period of time is which it can be taken. 
@@ -25,26 +31,20 @@ import javax.validation.constraints.Size;
  */
 @Entity
 @Table(name = "survey", uniqueConstraints = 
-	{   @UniqueConstraint(columnNames = { "survey_id" }, name = "uc_survey_id"),
-		@UniqueConstraint(columnNames = { "provider_survey_ref" }, name = "uc_provider_survey_ref")
+	{   @UniqueConstraint(columnNames = { "survey_id" }, name = "uc_survey_id")
 	})
 @Vetoed
 @Access(AccessType.FIELD)
-
+@SequenceGenerator(name = "survey_sg", sequenceName = "survey_id_seq", allocationSize = 1, initialValue = 50)
 public class Survey implements Serializable {
 	private static final long serialVersionUID = -9153483037541781268L;
 
 	/**
 	 * Primary key.
-	 * Our reference to the survey.
-	 * Not generated, because the survey id is known in advance.
 	 */
 	@Id
-	@NotNull
-	@Size(max = 8)
-	@Column(name = "survey_id")
-	private String surveyId;
-
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "survey_sg")
+    private Long id;
 
 	/**
 	 * The display name of the survey, intended for the end user.
@@ -66,8 +66,8 @@ public class Survey implements Serializable {
 	 */
 	@Size(max = 32)
 	@NotNull
-	@Column(name = "provider_survey_ref")
-	private String providerSurveyRef;
+	@Column(name = "survey_id")
+	private String surveyId;
 
 	/**
 	 * The eligable start time of the survey (optional).
@@ -106,8 +106,17 @@ public class Survey implements Serializable {
 	/**
 	 * The amount of credits to receive on completing the survey.
 	 */
+	@PositiveOrZero
 	@Column(name = "reward_credits")
 	private Integer rewardCredits;
+
+	public Long getId() {
+		return id;
+	}
+
+	public void setId(Long id) {
+		this.id = id;
+	}
 
 	public String getSurveyId() {
 		return surveyId;
@@ -131,14 +140,6 @@ public class Survey implements Serializable {
 
 	public void setRemarks(String remarks) {
 		this.remarks = remarks;
-	}
-
-	public String getProviderSurveyRef() {
-		return providerSurveyRef;
-	}
-
-	public void setProviderSurveyRef(String providerSurveyRef) {
-		this.providerSurveyRef = providerSurveyRef;
 	}
 
 	public Instant getStartTime() {
@@ -179,6 +180,54 @@ public class Survey implements Serializable {
 
 	public void setProviderUrl(String providerUrl) {
 		this.providerUrl = providerUrl;
+	}
+
+	public Integer getRewardCredits() {
+		return rewardCredits;
+	}
+
+	public void setRewardCredits(Integer rewardCredits) {
+		this.rewardCredits = rewardCredits;
+	}
+
+	public boolean canBeTaken(Instant triggerTime, Instant now) {
+		if (now.isBefore(triggerTime)) {
+			return false;
+		}
+
+        int actualDelay = Math.toIntExact(Duration.between(triggerTime, now).getSeconds() / 3600); 
+    	return (startTime == null || startTime.isBefore(now)) &&
+				(endTime == null || endTime.isAfter(now)) && 
+				(takeDelayHours == null || takeDelayHours <= actualDelay) && 
+				(takeIntervalHours == null || (takeIntervalHours + takeDelayHours) >= actualDelay);
+	}
+
+	public int timeLeftToTake(Instant triggerTime, Instant now) {
+        int regularHoursLeft = Math.toIntExact(Duration.between(now, 
+        		triggerTime.plusSeconds((getTakeDelayHours() + getTakeIntervalHours()) * 3600)).getSeconds() / 3600);
+        int closingLeft = Math.toIntExact(Duration.between(now, getEndTime()).getSeconds() / 3600);
+        return Math.min(regularHoursLeft, closingLeft);
+	}
+
+	public boolean canBeTaken(Instant triggerTime) {
+		return canBeTaken(triggerTime, Instant.now());
+	}
+	
+	@Override
+	public int hashCode() {
+		return Objects.hash(surveyId);
+	}
+
+	@Override
+	public boolean equals(Object obj) {
+		if (this == obj) {
+			return true;
+		}
+		if (!(obj instanceof Survey)) {
+			return false;
+		}
+		Survey other = (Survey) obj;
+		return Objects.equals(surveyId, other.surveyId);
 	}
 	
 	

@@ -149,7 +149,7 @@ public abstract class ProfileIntegrationTestBase {
 		utx.begin();
 		em.joinTransaction();
 		log.debug("Dumping old records...");
-		em.createQuery("delete from SurveyResponse").executeUpdate();
+		em.createQuery("delete from SurveyInteraction").executeUpdate();
 		em.createQuery("delete from Survey").executeUpdate();
 		em.createQuery("delete from Place").executeUpdate();
 		em.createQuery("delete from Compliment").executeUpdate();

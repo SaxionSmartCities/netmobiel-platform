@@ -10,6 +10,7 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.util.Logging;
@@ -73,20 +74,11 @@ public class SurveyManager {
 			} else {
 				si.get().incrementInvitationCount();
 				survey.get().setProviderUrl(String.format("https://saxion.eu.qualtrics.com/jfe/form/%s?NetmobielID=%s", 
-						survey.get().getProviderSurveyRef(), managedId));
+						survey.get().getSurveyId(), managedId));
 			}
 		}
 		// Because the survey was also fetched, the survey attached to the interaction is available to the REST layer
 		return si;
-	}
-
-	/**
-	 * fetches an survey by the survey provider reference.
-	 * @param reference the survey reference used by the survey provider.
-	 * @return An Optional record with the survey, if any.
-	 */
-	public Optional<Survey> getSurveyByProviderReference(String reference) {
-		return surveyDao.findSurveyByProviderReference(reference);
 	}
 
 	/**
@@ -95,19 +87,15 @@ public class SurveyManager {
 	 * @param surveyId the survey.
 	 * @throws NotFoundException if profile or survey cannot be found.
 	 * @throws UpdateException if the interaction was already completed or when there is no preceding invitation.
+	 * @throws BadRequestException when the user has not been invited yet (can this ever happen?).
 	 */
-	public void markSurveyRedirect(String managedId, String surveyId) throws NotFoundException, UpdateException {
-    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-		Survey survey = surveyDao.find(surveyId)
-				.orElseThrow(() -> new NotFoundException("No such survey: " + surveyId));
-			// Check whether the survey has already been taken
-		Optional<SurveyInteraction> si = surveyInteractionDao.findInteraction(survey, profile);
+	public void markSurveyRedirect(Long surveyInteractionId) throws NotFoundException, UpdateException, BadRequestException {
+		Optional<SurveyInteraction> si = surveyInteractionDao.find(surveyInteractionId);
 		if (! si.isPresent()) {
-			throw new UpdateException(String.format("Cannot set redirect time of %s, first invite user %s", surveyId, managedId));
+			throw new NotFoundException("No such survey interaction: " + surveyInteractionId);
 		}
 		if (si.get().getSubmitTime() != null) {
-			throw new UpdateException(String.format("Survey %s has already been submitted by %s", surveyId, managedId));
+			throw new UpdateException(String.format("Survey has already been submitted on %s", si.get().getSubmitTime()));
 		}
 		if (si.get().getRedirectTime() == null) {
 			si.get().setRedirectTime(Instant.now());
@@ -118,22 +106,23 @@ public class SurveyManager {
 	/**
 	 * Marks the survey interaction of the specified profile and survey as completed.
 	 * @param managedId the calling profile.
-	 * @param surveyId the survey.
+	 * @param providerSurveyId the survey as known at the provider.
 	 * @throws NotFoundException if profile or survey cannot be found.
 	 * @throws UpdateException if the interaction was already completed or when there is no preceding invitation.
+	 * @throws BadRequestException if called without prior invitation.
 	 */
-	public void markSurveySubmitted(String managedId, String surveyId) throws NotFoundException, UpdateException {
+	public void onSurveySubmitted(String managedId, String providerSurveyId) throws NotFoundException, UpdateException, BadRequestException {
     	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-		Survey survey = surveyDao.find(surveyId)
-				.orElseThrow(() -> new NotFoundException("No such survey: " + surveyId));
+		Survey survey = surveyDao.findSurveyByProviderReference(providerSurveyId)
+				.orElseThrow(() -> new NotFoundException("No such survey: " + providerSurveyId));
 			// Check whether the survey has already been taken
 		Optional<SurveyInteraction> si = surveyInteractionDao.findInteraction(survey, profile);
 		if (! si.isPresent()) {
-			throw new UpdateException(String.format("Cannot set submit time of %s, first invite user %s", surveyId, managedId));
+			throw new BadRequestException(String.format("Cannot set submit time of %s, first invite user %s", providerSurveyId, managedId));
 		}
 		if (si.get().getSubmitTime() != null) {
-			throw new UpdateException(String.format("Survey %s has already been submitted by %s", surveyId, managedId));
+			throw new UpdateException(String.format("Survey %s has already been submitted by %s", providerSurveyId, managedId));
 		}
 		si.get().setSubmitTime(Instant.now());
 	}

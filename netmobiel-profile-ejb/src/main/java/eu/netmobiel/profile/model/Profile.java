@@ -173,20 +173,22 @@ public class Profile extends User  {
     private Instant creationTime;
 
 	public Profile() {
-		creationTime = Instant.now();
+		this(null);
     }
     
 	public Profile(String identity) {
-		super(identity);
+		this(identity, null, null, null, null);
     }
 
 	public Profile(NetMobielUser nbuser, UserRole role) {
     	super(nbuser);
+		creationTime = Instant.now();
     	this.userRole = role;
     }
     
     public Profile(String identity, String givenName, String familyName, String email, UserRole role) {
     	super(identity, givenName, familyName, email);
+		creationTime = Instant.now();
     	this.userRole = role;
     }
     

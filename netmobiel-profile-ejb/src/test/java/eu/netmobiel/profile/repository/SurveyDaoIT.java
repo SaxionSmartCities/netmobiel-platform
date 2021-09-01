@@ -45,7 +45,6 @@ public class SurveyDaoIT extends ProfileIntegrationTestBase {
     	s.setDisplayName("Dit is " + id);
     	s.setStartTime(start == null ? null :Instant.parse(start));
     	s.setEndTime(end == null ? null : Instant.parse(end));
-    	s.setProviderSurveyRef("QC-" + id);
     	s.setRemarks("Opmerkingen over " + id);
     	s.setTakeDelayHours(delay);
     	s.setTakeIntervalHours(interval);
@@ -58,20 +57,20 @@ public class SurveyDaoIT extends ProfileIntegrationTestBase {
     	Survey s = new Survey();
     	s.setDisplayName("De eerste enquete");
     	s.setEndTime(Instant.parse("2022-08-31T12:00:00Z"));
-    	s.setProviderSurveyRef("QC1234");
     	s.setRemarks("Test survey");
     	s.setStartTime(Instant.parse("2021-08-31T12:00:00Z"));
-    	s.setSurveyId("ENQ-1");
+    	s.setSurveyId("QC-1");
     	s.setTakeDelayHours(24);
     	s.setTakeIntervalHours(7 * 24);
     	surveyDao.save(s);
     	flush();
     	
-    	Survey sdb = em.find(Survey.class, "ENQ-1");
+    	Survey sdb = em.createQuery("from Survey where surveyId = :id", Survey.class)
+    			.setParameter("id", "QC-1")
+    			.getSingleResult();
     	assertNotNull(sdb);
     	assertEquals(s.getDisplayName(), sdb.getDisplayName());
     	assertEquals(s.getEndTime(), sdb.getEndTime());
-    	assertEquals(s.getProviderSurveyRef(), sdb.getProviderSurveyRef());
     	assertEquals(s.getRemarks(), sdb.getRemarks());
     	assertEquals(s.getStartTime(), sdb.getStartTime());
     	assertEquals(s.getSurveyId(), sdb.getSurveyId());
@@ -81,7 +80,7 @@ public class SurveyDaoIT extends ProfileIntegrationTestBase {
 
     @Test
     public void findSurveyToTake_Simple() throws Exception {
-    	createSurvey("ENQ-99", null, null, null, null);
+    	createSurvey("QC-99", null, null, null, null);
 
     	Optional<Survey> result = surveyDao.findSurveyToTake(Instant.parse("2021-08-31T12:00:00Z"), Instant.parse("2021-08-31T18:00:00Z"));
     	assertTrue(result.isEmpty());
@@ -92,7 +91,7 @@ public class SurveyDaoIT extends ProfileIntegrationTestBase {
     
     @Test
     public void findSurveyToTake() throws Exception {
-    	createSurvey("ENQ-2", "2021-09-01T00:00:00Z", "2021-10-01T00:00:00Z", 24, 7 * 24);
+    	createSurvey("QC-2", "2021-09-01T00:00:00Z", "2021-10-01T00:00:00Z", 24, 7 * 24);
     	Optional<Survey> result = surveyDao.findSurveyToTake(Instant.parse("2021-08-31T12:00:00Z"), Instant.parse("2021-08-31T18:00:00Z"));
     	assertTrue(result.isEmpty());
 
@@ -116,11 +115,11 @@ public class SurveyDaoIT extends ProfileIntegrationTestBase {
     
     @Test
     public void findSurveyByProviderRef() throws Exception {
-    	Survey s = createSurvey("ENQ-3", "2021-09-01T00:00:00Z", "2021-10-01T00:00:00Z", 24, 7 * 24);
-    	Optional<Survey> result = surveyDao.findSurveyByProviderReference(s.getProviderSurveyRef());
+    	Survey s = createSurvey("QC-3", "2021-09-01T00:00:00Z", "2021-10-01T00:00:00Z", 24, 7 * 24);
+    	Optional<Survey> result = surveyDao.findSurveyByProviderReference(s.getSurveyId());
     	assertTrue(result.isPresent());
 
-    	result = surveyDao.findSurveyByProviderReference(s.getProviderSurveyRef() + "XXX");
+    	result = surveyDao.findSurveyByProviderReference(s.getSurveyId() + "XXX");
     	assertFalse(result.isPresent());
 }
 }
