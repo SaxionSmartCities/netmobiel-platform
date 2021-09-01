@@ -1682,11 +1682,6 @@ components:
         providerUrl:
           description: The url to redirect the end-user to for taking the survey.
           type: string
-        takeTimeLeftHours:
-          format: int32
-          description: The time left to complete the survey and receive the reward.
-            This amount of time is dependent on the trigger event.
-          type: integer
         rewardCredits:
           format: int32
           description: The reward the user will receive on completing the survey.
@@ -1705,6 +1700,7 @@ components:
       - survey
       - invitationCount
       - invitationTime
+      - redirectionCount
       type: object
       properties:
         survey:
@@ -1735,6 +1731,12 @@ components:
           description: The time the survey provider reported the submitting of a survey
             by this user.
           type: string
+        expirationTime:
+          format: int32
+          description: |-
+            The expiration time after which the survey can no longer be taken by this user. The expiration time is relative to the trigger time.
+            If not set, there is no expiration.
+          type: integer
       example:
         survey:
           surveyId: ENQ-1
@@ -1743,6 +1745,7 @@ components:
         redirectionTime: 2021-09-01T11:58:00Z
         redirectionCount: 1
         submitTime: 2021-09-01T12:14:00Z
+        expirationTime: 2021-09-06T13:24:00Z
   responses:
     InternalServerError:
       content:
