@@ -1700,7 +1700,7 @@ components:
       - survey
       - invitationCount
       - invitationTime
-      - redirectionCount
+      - redirectCount
       type: object
       properties:
         survey:
@@ -1718,32 +1718,32 @@ components:
           description: 'The (estimated) number of times the invitation is displayed
             to the user. '
           type: integer
-        redirectionTime:
-          format: date-time
-          description: The first time the user was redirected to the survey.
-          type: string
-        redirectionCount:
-          format: int32
-          description: The number of times the user has been redirected to the survey.
-          type: integer
         submitTime:
           format: date-time
           description: The time the survey provider reported the submitting of a survey
             by this user.
           type: string
         expirationTime:
-          format: int32
+          format: date-time
           description: |-
             The expiration time after which the survey can no longer be taken by this user. The expiration time is relative to the trigger time.
             If not set, there is no expiration.
+          type: string
+        redirectCount:
+          format: int32
+          description: The number of times the user has been redirected to the survey.
           type: integer
+        redirectTime:
+          format: date-time
+          description: The first time the user was redirected to the survey.
+          type: string
       example:
         survey:
           surveyId: ENQ-1
         invitationTime: 2021-08-31T13:24:00Z
         invitationCount: 3
-        redirectionTime: 2021-09-01T11:58:00Z
-        redirectionCount: 1
+        redirectTime: 2021-09-01T11:58:00Z
+        redirectCount: 1
         submitTime: 2021-09-01T12:14:00Z
         expirationTime: 2021-09-06T13:24:00Z
   responses:
