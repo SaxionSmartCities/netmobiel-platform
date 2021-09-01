@@ -954,9 +954,6 @@ paths:
     description: Call used to note the completion of a survey as reported by the survey
       provider.
     put:
-      requestBody:
-        description: Updated `SurveyInteraction` information.
-        required: false
       responses:
         "204":
           description: 'The record has been updated. '
