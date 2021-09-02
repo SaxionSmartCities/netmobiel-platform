@@ -1690,7 +1690,6 @@ components:
         surveyId: SV_38g7VCfcJFDB75X
         displayName: Nulmeting Netmobiel
         providerUrl: https://saxion.eu.qualtrics.com/jfe/form/SV_38g7VCfcJFDB75X?NetmobielID=5fd8defe-848e-4b66-8e6f-8a7d3b7ee485
-        takeTimeLeftHours: 53
         rewardCredits: 40
     SurveyInteraction:
       title: Root Type for SurveyInteraction
