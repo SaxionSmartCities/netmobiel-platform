@@ -80,7 +80,7 @@ public class SurveyDaoIT extends ProfileIntegrationTestBase {
 
     @Test
     public void findSurveyToTake_Simple() throws Exception {
-    	createSurvey("QC-99", null, null, null, null);
+    	createSurvey("QC-99", null, null, 0, null);
 
     	Optional<Survey> result = surveyDao.findSurveyToTake(Instant.parse("2021-08-31T12:00:00Z"), Instant.parse("2021-08-31T18:00:00Z"));
     	assertTrue(result.isEmpty());

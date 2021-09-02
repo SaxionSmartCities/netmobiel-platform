@@ -41,6 +41,15 @@ public class SurveyInteraction implements Serializable {
     private SurveyInteractionId id;
 
 	/**
+	 * The trigger time, causing the interaction to occur (after an optional delay). This value is needed to calculate 
+	 * the time left. The trigger time is stored, rather then the expiration time. When the survey interval or end date are extended, 
+	 * current survey interactions are extended as well. The trigger time is never changing.
+	 */
+	@NotNull
+	@Column(name = "trigger_time", updatable = false)
+	private Instant triggerTime;
+
+	/**
 	 * The first time the user was invited to take part in the survey.
 	 */
 	@NotNull
@@ -74,15 +83,19 @@ public class SurveyInteraction implements Serializable {
 	private Instant submitTime;
 
 	public SurveyInteraction() {
-		this.invitationTime = Instant.now();
-		this.invitationCount = 1;
-		this.redirectCount = 0;
+		this(null, null, null, Instant.now());
 	}
 	
-	public SurveyInteraction(Survey survey, Profile profile) {
-		this();
+	public SurveyInteraction(Survey survey, Profile profile, Instant triggerTime) {
+		this(survey, profile, triggerTime, Instant.now());
+	}
+
+	public SurveyInteraction(Survey survey, Profile profile, Instant triggerTime, Instant invitationTime) {
 		this.id = new SurveyInteractionId(survey, profile);
-		this.invitationTime = Instant.now();
+		this.triggerTime = triggerTime;
+		this.invitationTime = invitationTime;
+		this.invitationCount = 1;
+		this.redirectCount = 0;
 	}
 
 	public SurveyInteractionId getId() {
@@ -91,6 +104,14 @@ public class SurveyInteraction implements Serializable {
 
 	public void setId(SurveyInteractionId id) {
 		this.id = id;
+	}
+
+	public Instant getTriggerTime() {
+		return triggerTime;
+	}
+
+	public void setTriggerTime(Instant triggerTime) {
+		this.triggerTime = triggerTime;
 	}
 
 	public Instant getInvitationTime() {
@@ -141,4 +162,24 @@ public class SurveyInteraction implements Serializable {
 		this.submitTime = submitTime;
 	}
 
+	public Instant getExpirationTime() {
+		Survey s = id.getSurvey();
+		Instant expTime = s.getEndTime();
+		if (s.getTakeIntervalHours() != null) {
+			expTime = triggerTime.plusSeconds((s.getTakeDelayHours() + s.getTakeIntervalHours()) * 3600);
+			if (s.getEndTime() != null && expTime.isAfter(s.getEndTime())) {
+				expTime = s.getEndTime(); 
+			}
+		}
+        return expTime;
+	}
+
+	public boolean isExpired(Instant reference) {
+		Instant expTime = getExpirationTime();
+		return expTime != null && expTime.isBefore(reference);
+	}
+
+	public boolean isExpired() {
+		return isExpired(Instant.now());
+	}
 }

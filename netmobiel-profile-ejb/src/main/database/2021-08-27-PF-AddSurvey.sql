@@ -6,13 +6,13 @@ CREATE TABLE public.survey
     survey_id character varying(32) COLLATE pg_catalog."default" NOT NULL,
     display_name character varying(64) COLLATE pg_catalog."default" NOT NULL,
     remarks character varying(256) COLLATE pg_catalog."default",
-    take_delay_hours integer,
+    take_delay_hours integer DEFAULT 0 NOT NULL,
     take_interval_hours integer,
     start_time timestamp without time zone,
     end_time timestamp without time zone,
     reward_credits integer,
     CONSTRAINT survey_pkey PRIMARY KEY (id),
-    CONSTRAINT uc_survey_id UNIQUE (survey_id),
+    CONSTRAINT uc_survey_id UNIQUE (survey_id)
 );
 
 GRANT DELETE, UPDATE, INSERT, SELECT ON TABLE public.survey TO profilesvc;
@@ -31,6 +31,7 @@ CREATE TABLE public.survey_interaction
 (
     survey bigint NOT NULL,
     profile bigint NOT NULL,
+    trigger_time timestamp without time zone NOT NULL,
     invitation_time timestamp without time zone NOT NULL,
     invitation_count integer DEFAULT 0 NOT NULL,
     redirect_time timestamp without time zone,

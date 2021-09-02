@@ -45,7 +45,7 @@ public class SurveyInteractionDaoIT extends ProfileIntegrationTestBase {
 	protected void insertData() throws Exception {
 		profile = Fixture.createPassenger1();
 		em.persist(profile);
-    	survey = createSurvey("QC-99", null, null, null, null);
+    	survey = createSurvey("QC-99", null, null, 0, null);
     	em.persist(survey);
     }
 
@@ -64,7 +64,8 @@ public class SurveyInteractionDaoIT extends ProfileIntegrationTestBase {
     
     @Test
     public void createSurveyInteraction() throws Exception {
-		SurveyInteraction si = new SurveyInteraction(survey, profile);
+    	Instant triggerTime = Instant.now().minusSeconds(36 * 3600);
+		SurveyInteraction si = new SurveyInteraction(survey, profile, triggerTime);
     	surveyInteractionDao.save(si);
     	flush();
     	
@@ -85,7 +86,8 @@ public class SurveyInteractionDaoIT extends ProfileIntegrationTestBase {
     	Optional<SurveyInteraction> result = surveyInteractionDao.findInteraction(survey, profile);
     	assertFalse(result.isPresent());
 
-    	SurveyInteraction si = new SurveyInteraction(survey, profile);
+    	Instant triggerTime = Instant.now().minusSeconds(36 * 3600);
+    	SurveyInteraction si = new SurveyInteraction(survey, profile, triggerTime);
     	surveyInteractionDao.save(si);
     	flush();
 

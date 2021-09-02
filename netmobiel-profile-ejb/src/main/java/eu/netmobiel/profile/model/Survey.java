@@ -1,7 +1,6 @@
 package eu.netmobiel.profile.model;
 
 import java.io.Serializable;
-import java.time.Duration;
 import java.time.Instant;
 import java.util.Objects;
 
@@ -86,6 +85,7 @@ public class Survey implements Serializable {
 	 * The absolute start time is the trigger time + takeDelayHours. 
 	 * 
 	 */
+	@NotNull
 	@Column(name = "take_delay_hours")
 	private Integer takeDelayHours;
 
@@ -190,29 +190,6 @@ public class Survey implements Serializable {
 		this.rewardCredits = rewardCredits;
 	}
 
-	public boolean canBeTaken(Instant triggerTime, Instant now) {
-		if (now.isBefore(triggerTime)) {
-			return false;
-		}
-
-        int actualDelay = Math.toIntExact(Duration.between(triggerTime, now).getSeconds() / 3600); 
-    	return (startTime == null || startTime.isBefore(now)) &&
-				(endTime == null || endTime.isAfter(now)) && 
-				(takeDelayHours == null || takeDelayHours <= actualDelay) && 
-				(takeIntervalHours == null || (takeIntervalHours + takeDelayHours) >= actualDelay);
-	}
-
-	public int timeLeftToTake(Instant triggerTime, Instant now) {
-        int regularHoursLeft = Math.toIntExact(Duration.between(now, 
-        		triggerTime.plusSeconds((getTakeDelayHours() + getTakeIntervalHours()) * 3600)).getSeconds() / 3600);
-        int closingLeft = Math.toIntExact(Duration.between(now, getEndTime()).getSeconds() / 3600);
-        return Math.min(regularHoursLeft, closingLeft);
-	}
-
-	public boolean canBeTaken(Instant triggerTime) {
-		return canBeTaken(triggerTime, Instant.now());
-	}
-	
 	@Override
 	public int hashCode() {
 		return Objects.hash(surveyId);
