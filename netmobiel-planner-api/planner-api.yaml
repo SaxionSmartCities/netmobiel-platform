@@ -1246,13 +1246,6 @@ components:
           $ref: '#/components/schemas/User'
           description: The user owning this plan. The traveller is determined when
             the plan is saved.
-        referenceType:
-          description: Read-only. Travel reference type. Only for shout-outs.
-          enum:
-          - GEODESIC
-          - CAR
-          - TRANSIT
-          type: string
         geodesicDistance:
           description: Read-only. The distance as the crow flies in meter.
           type: integer
