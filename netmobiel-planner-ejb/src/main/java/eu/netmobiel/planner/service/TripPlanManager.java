@@ -456,7 +456,7 @@ public class TripPlanManager {
     	driverPlan.setTraveller(driver);
     	driverPlan.setRequestTime(now);
     	if (driverPlan.getFrom() == null) {
-    		throw new IllegalArgumentException("Driver needs to specify a departure location");
+    		driverPlan.setFrom(travPlan.getFrom());
     	}
     	if (driverPlan.getTo() == null) {
     		driverPlan.setTo(travPlan.getTo());
