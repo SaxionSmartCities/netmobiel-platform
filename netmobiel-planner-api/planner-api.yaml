@@ -391,7 +391,7 @@ paths:
         schema:
           type: string
         in: query
-        required: true
+        required: false
       - examples:
           Station-Borne:
             value: Station Borne::52.298417,6.749157
@@ -445,13 +445,15 @@ paths:
             the driver to get to the pickup point and to get to the driver's final
             arrival location. The passenger legs (should be a single one) is marked
             as RIDESHARE, whereas the driver's own legs are just CAR mode. The passenger
-            legs also contain a reference to the shout-out plan of the passenger.
+            legs also contain the reference to the original shout-out plan (that's
+            the `shoutOutPlanId`).
         "404":
           $ref: '#/components/responses/NotFound'
       operationId: planShoutOutSolution
       summary: Creates a matching plan.
       description: Creates a plan that can resolve the shout-out of the traveller.
-        It is still a proposal.
+        It is still a proposal. When no additional parameters are set, the driver
+        plan uses the time and locations from the shout-out plan.
     parameters:
     - name: shoutOutPlanId
       description: A reference to the shout-out plan of the traveller. The reference
