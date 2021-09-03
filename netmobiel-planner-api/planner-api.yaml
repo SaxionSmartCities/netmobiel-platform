@@ -1253,17 +1253,12 @@ components:
           - CAR
           - TRANSIT
           type: string
-        referenceDistance:
-          description: 'Read-only. The reference travel distance in meter. Only for
-            shout-outs. '
+        geodesicDistance:
+          description: Read-only. The distance as the crow flies in meter.
           type: integer
-        referenceDuration:
-          description: 'Read-only. The reference travel duration. Only for shout-outs. '
-          type: integer
-        referenceFareInCredits:
-          description: Read-only. Reference travel fare (in credits) in case of Rideshare.
-            Only for shout-outs.
-          type: integer
+        shoutOutItinerary:
+          $ref: '#/components/schemas/Itinerary'
+          description: 'The reference itinerary for a shout-out. '
       example:
         from:
           label: Zieuwent,Kennedystraat
