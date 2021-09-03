@@ -84,10 +84,10 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
      * Any driver (in fact anyone) can call this method. 
 	 */
 	@Override
-	public Response planShoutOutSolution(String planId, OffsetDateTime now, String from, String to, OffsetDateTime travelTime, 
+	public Response planShoutOutSolution(String shoutOutPlanId, OffsetDateTime now, String from, String to, OffsetDateTime travelTime, 
 			Boolean useAsArrivalTime, String modality, String agencyId) {
     	Response rsp = null;
-    	if (planId == null) {
+    	if (shoutOutPlanId == null) {
     		throw new BadRequestException("Missing mandatory path parameter: planId");
     	}
     	if (from == null) {
@@ -114,7 +114,7 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
 			}
 			driverPlan.setTravelTime(travelTime != null ? travelTime.toInstant() : null);
 			driverPlan.setUseAsArrivalTime(Boolean.TRUE.equals(useAsArrivalTime));
-			driverPlan = tripPlanManager.planShoutOutSolution(now.toInstant(), driver, planId, driverPlan, mode);
+			driverPlan = tripPlanManager.planShoutOutSolution(now.toInstant(), driver, shoutOutPlanId, driverPlan, mode);
 			rsp = Response.ok(tripPlanMapper.map(driverPlan)).build();
 		} catch (Exception e) {
 			throw new WebApplicationException(e);
