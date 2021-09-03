@@ -1249,9 +1249,10 @@ components:
         geodesicDistance:
           description: Read-only. The distance as the crow flies in meter.
           type: integer
-        shoutOutItinerary:
+        referenceItinerary:
           $ref: '#/components/schemas/Itinerary'
-          description: 'The reference itinerary for a shout-out. '
+          description: The reference itinerary for a shout-out. Only if plan type
+            is `SHOUT_OUT`.
       example:
         from:
           label: Zieuwent,Kennedystraat
