@@ -37,6 +37,7 @@ import javax.persistence.NamedNativeQueries;
 import javax.persistence.NamedNativeQuery;
 import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
+import javax.persistence.OneToOne;
 import javax.persistence.OrderBy;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.SqlResultSetMapping;
@@ -140,7 +141,22 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 			name = TripPlan.SHOUT_OUT_ENTITY_GRAPH, 
 			attributeNodes = { 
 					@NamedAttributeNode(value = "traveller"),		
-					@NamedAttributeNode(value = "traverseModes")
+					@NamedAttributeNode(value = "traverseModes"),
+					@NamedAttributeNode(value = "referenceItinerary", subgraph = "subgraph.itinerary"),		
+			}, subgraphs = {
+					@NamedSubgraph(
+							name = "subgraph.itinerary",
+							attributeNodes = {
+									@NamedAttributeNode(value = "legs", subgraph = "subgraph.leg")
+							}
+					),
+					@NamedSubgraph(
+							name = "subgraph.leg",
+							attributeNodes = {
+									@NamedAttributeNode(value = "from"),
+									@NamedAttributeNode(value = "to"),
+							}
+					)
 			}
 	)
 })
@@ -313,29 +329,20 @@ public class TripPlan implements Serializable {
     private PlannerUser requestor;
     
     /**
-     * Travel reference type. Only for shout-outs. 
+     * Geodesic distance. Just for fun.   
      */
-    @Column(name = "reference_type", length = 2)
-    private TravelReferenceType referenceType;
+    @Column(name = "geodesic_distance")
+    private Integer geodesicDistance;
+    
+    /**
+     * ShoutOut only. The reference itinerary used to calculate distance, duration, fare and also the leg geometry.
+     * The from and to are the pickup and drop-off locations of the traveller.
+     *   
+     */
+    @OneToOne(cascade = CascadeType.PERSIST, fetch = FetchType.LAZY)
+	@JoinColumn(name = "reference_itinerary", nullable = true, foreignKey = @ForeignKey(name = "trip_plan_reference_itinerary_fk"))
+    private Itinerary referenceItinerary;
 
-    /**
-     * Reference travel distance. Only for shout-outs.   
-     */
-    @Column(name = "reference_distance")
-    private Integer referenceDistance;
-    
-    /**
-     * Reference travel duration. Only for shout-outs. 
-     */
-    @Column(name = "reference_duration")
-    private Integer referenceDuration;
-    
-    /**
-     * Reference travel fare (in credits). Only for Rideshare legs. Only for shout-outs.  
-     */
-    @Column(name = "reference_fare_credits")
-    private Integer referenceFareInCredits;
-    
 	public TripPlan() { 
     	this.creationTime = Instant.now();
        	this.requestTime = creationTime;
@@ -544,36 +551,20 @@ public class TripPlan implements Serializable {
 		this.requestor = requestor;
 	}
 
-	public TravelReferenceType getReferenceType() {
-		return referenceType;
+	public Integer getGeodesicDistance() {
+		return geodesicDistance;
 	}
 
-	public void setReferenceType(TravelReferenceType referenceType) {
-		this.referenceType = referenceType;
+	public void setGeodesicDistance(Integer geodesicDistance) {
+		this.geodesicDistance = geodesicDistance;
 	}
 
-	public Integer getReferenceDistance() {
-		return referenceDistance;
+	public Itinerary getReferenceItinerary() {
+		return referenceItinerary;
 	}
 
-	public void setReferenceDistance(Integer referenceDistance) {
-		this.referenceDistance = referenceDistance;
-	}
-
-	public Integer getReferenceDuration() {
-		return referenceDuration;
-	}
-
-	public void setReferenceDuration(Integer referenceDuration) {
-		this.referenceDuration = referenceDuration;
-	}
-
-	public Integer getReferenceFareInCredits() {
-		return referenceFareInCredits;
-	}
-
-	public void setReferenceFareInCredits(Integer referenceFareInCredits) {
-		this.referenceFareInCredits = referenceFareInCredits;
+	public void setReferenceItinerary(Itinerary referenceItinerary) {
+		this.referenceItinerary = referenceItinerary;
 	}
 
 	private static String formatTime(Instant instant) {

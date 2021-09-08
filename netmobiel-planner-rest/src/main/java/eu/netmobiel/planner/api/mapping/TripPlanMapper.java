@@ -25,6 +25,7 @@ public interface TripPlanMapper {
     @Mapping(target = "firstLegRideshare", source = "firstLegRideshareAllowed")
     @Mapping(target = "lastLegRideshare", source = "lastLegRideshareAllowed")
     @Mapping(target = "itineraries", source = "itineraries", qualifiedBy = { ItineraryMapperQualifier.class })
+    @Mapping(target = "referenceItinerary", ignore = true)
     @TripPlanDetails
     eu.netmobiel.planner.api.model.TripPlan map(TripPlan source );
 
@@ -32,12 +33,14 @@ public interface TripPlanMapper {
     @Mapping(target = "firstLegRideshare", ignore = true)
     @Mapping(target = "lastLegRideshare", ignore = true)
     @Mapping(target = "itineraries", ignore = true)
+    @Mapping(target = "referenceItinerary", source = "referenceItinerary", qualifiedBy = { ItineraryMapperQualifier.class })
     @TripPlanShallow
     eu.netmobiel.planner.api.model.TripPlan mapShoutOut(TripPlan source );
 
     @InheritInverseConfiguration(name = "map")
     @Mapping(target = "id", ignore = true)
     @Mapping(target = "itineraries", ignore = true)
+    @Mapping(target = "referenceItinerary", ignore = true)
     @Mapping(target = "plannerReports", ignore = true)
     @Mapping(target = "requestor", ignore = true)
     @Mapping(target = "traveller", ignore = true)

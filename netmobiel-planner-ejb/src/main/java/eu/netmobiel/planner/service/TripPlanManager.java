@@ -44,7 +44,6 @@ import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.PlannerResult;
 import eu.netmobiel.planner.model.PlannerUser;
-import eu.netmobiel.planner.model.TravelReferenceType;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
@@ -200,6 +199,12 @@ public class TripPlanManager {
     	if (now == null) {
     		throw new BadRequestException("Parameter 'now' is mandatory");
     	}
+    	if (plan.getFrom() == null) {
+    		throw new BadRequestException("Parameter 'from' is mandatory");
+    	}
+    	if (plan.getTo() == null) {
+    		throw new BadRequestException("Parameter 'to' is mandatory");
+    	}
     	if (plan.getTravelTime() == null) {
     		plan.setTravelTime(now);
     		plan.setUseAsArrivalTime(false);
@@ -283,24 +288,19 @@ public class TripPlanManager {
    						)
     		);
     	}
+		// Add a geodesic estimation (as the crow flies)
+		plan.setGeodesicDistance(Math.toIntExact(Math.round(plan.getFrom().getDistanceTo(plan.getTo()) * 1000)));
        	if (plan.getPlanType() != PlanType.SHOUT_OUT) {
        		// Start a search
        		plan = planner.searchMultiModal(plan);
         	plan.close();
        	} else {
-       		// Determine a few reference parameters
+       		// Determine a reference itinerary for a shoutout
        		PlannerResult planResult = planner.planItineraryByCar(plan.getRequestTime(), plan.getFrom(), plan.getTo(), plan.getTravelTime(), plan.isUseAsArrivalTime(), plan.getMaxWalkDistance());
        		plan.addPlannerReport(planResult.getReport());
        		if (! planResult.hasError()) {
        			// Ok, car is the reference modality
-       			plan.setReferenceType(TravelReferenceType.CAR);
-       			plan.setReferenceDistance(planResult.getItineraries().get(0).getTotalCarDistance());
-       			plan.setReferenceDuration(planResult.getItineraries().get(0).getDuration());
-       			plan.setReferenceFareInCredits(planResult.getItineraries().get(0).getFareInCredits());
-       		} else {
-       			// Use a geodesic estimation
-       			plan.setReferenceType(TravelReferenceType.GEODESIC);
-       			plan.setReferenceDistance(Math.toIntExact(Math.round(plan.getFrom().getDistanceTo(plan.getTo()) * 1000)));
+       			plan.setReferenceItinerary(planResult.getItineraries().get(0));
        		}
        	}
        	tripPlanDao.save(plan);

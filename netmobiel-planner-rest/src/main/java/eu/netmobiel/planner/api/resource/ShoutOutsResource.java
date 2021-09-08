@@ -90,9 +90,6 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
     	if (shoutOutPlanId == null) {
     		throw new BadRequestException("Missing mandatory path parameter: planId");
     	}
-    	if (from == null) {
-    		throw new BadRequestException("Missing mandatory parameter: from");
-     	}
     	if (now == null) {
     		now = OffsetDateTime.now();
      	}
@@ -108,12 +105,16 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
 			// No delegation for drivers
 			PlannerUser driver = userManager.findOrRegisterCallingUser(securityIdentity);
 			TripPlan driverPlan = new TripPlan();
-			driverPlan.setFrom(GeoLocation.fromString(from));
+			if (from != null) {
+				driverPlan.setFrom(GeoLocation.fromString(from));
+			}
 			if (to != null) {
 				driverPlan.setTo(GeoLocation.fromString(to));
 			}
-			driverPlan.setTravelTime(travelTime != null ? travelTime.toInstant() : null);
-			driverPlan.setUseAsArrivalTime(Boolean.TRUE.equals(useAsArrivalTime));
+			if (travelTime != null) {
+				driverPlan.setTravelTime(travelTime.toInstant());
+				driverPlan.setUseAsArrivalTime(Boolean.TRUE.equals(useAsArrivalTime));
+			}
 			driverPlan = tripPlanManager.planShoutOutSolution(now.toInstant(), driver, shoutOutPlanId, driverPlan, mode);
 			rsp = Response.ok(tripPlanMapper.map(driverPlan)).build();
 		} catch (Exception e) {
