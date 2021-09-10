@@ -23,10 +23,12 @@ public interface CarMapper {
 	// domain Car --> API Car
 	// For my cars, the driver reference is not needed
 	@Mapping(target = "driverRef", ignore = true)
+	@Mapping(target = "carRef", source = "urn")
 	@CarMyDetails
 	eu.netmobiel.rideshare.api.model.Car mapMyCar(Car source);
 
 	// domain Car --> API Car
+	@Mapping(target = "carRef", source = "urn")
 	eu.netmobiel.rideshare.api.model.Car map(Car source);
 
 	// domain Car --> API Car Brand and model only
@@ -43,6 +45,7 @@ public interface CarMapper {
 	@Mapping(target = "nrDoors", ignore = true) 
 	@Mapping(target = "nrSeats", ignore = true) 
 	@Mapping(target = "deleted", ignore = true) 
+	@Mapping(target = "carRef", source = "urn")
 	@CarBrandModelDetails
 	eu.netmobiel.rideshare.api.model.Car mapBrandModel(Car source);
 
