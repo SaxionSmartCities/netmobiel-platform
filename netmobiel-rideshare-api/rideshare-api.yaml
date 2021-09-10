@@ -205,7 +205,12 @@ paths:
         \ then the ride will be soft deleted. \n\nIf a ride is recurrent, the delete\
         \ action can be extended to all rides with the same recurrence pattern by\
         \ setting the `scope` flag to the value `following`. The current ride is always\
-        \ deleted too."
+        \ deleted too.\n\nThere is a fine line between a cancelled ride and a deleted\
+        \ ride. A ride can only be cancelled when scheduled or planned. Cancelling\
+        \ a ride means it is no longer valid. A cancelled ride still appears in the\
+        \ list. Deleting a ride is only possible when the statte of the ride is cancelled\
+        \ or completed.\n\nFor now cancelling a ride will also delete it. A completed\
+        \ ride can also be deleted, but the state will remain completed."
     parameters:
     - name: rideId
       description: A unique identifier for a `Ride`.
@@ -874,6 +879,9 @@ components:
           description: If true then the car has been deleted by the user. The car
             may still be referenced in ride templates.
           type: boolean
+        carRef:
+          description: The urn reference to this car. Use this value in references.
+          type: string
     User:
       description: "A user in the ride share service. A user can have a role as a\
         \ driver or as a passenger. \nThe role is contextually assigned."
