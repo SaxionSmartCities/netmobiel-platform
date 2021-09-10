@@ -25,7 +25,7 @@ public interface TripPlanMapper {
     @Mapping(target = "firstLegRideshare", source = "firstLegRideshareAllowed")
     @Mapping(target = "lastLegRideshare", source = "lastLegRideshareAllowed")
     @Mapping(target = "itineraries", source = "itineraries", qualifiedBy = { ItineraryMapperQualifier.class })
-    @Mapping(target = "referenceItinerary", ignore = true)
+    @Mapping(target = "referenceItinerary", source = "referenceItinerary", qualifiedBy = { ItineraryMapperQualifier.class })
     @TripPlanDetails
     eu.netmobiel.planner.api.model.TripPlan map(TripPlan source );
 

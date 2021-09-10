@@ -119,7 +119,8 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 					@NamedAttributeNode(value = "itineraries", subgraph = "subgraph.itinerary"),		
 					@NamedAttributeNode(value = "traveller"),		
 					@NamedAttributeNode(value = "requestor"),		
-					@NamedAttributeNode(value = "traverseModes")
+					@NamedAttributeNode(value = "traverseModes"),
+					@NamedAttributeNode(value = "referenceItinerary", subgraph = "subgraph.itinerary"),		
 			}, subgraphs = {
 					@NamedSubgraph(
 							name = "subgraph.itinerary",
