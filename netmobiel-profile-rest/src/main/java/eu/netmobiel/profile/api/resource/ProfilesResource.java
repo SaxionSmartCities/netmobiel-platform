@@ -271,7 +271,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 			Place p = placeMapper.mapApiPlace(place);
 	    	Long id = placeManager.createPlace(mid, p);
 			rsp = Response.created(UriBuilder.fromResource(ProfilesApi.class)
-					.path(ProfilesApi.class.getMethod("getPlace", String.class, String.class)).build(profileId, id)).build();
+					.path(ProfilesApi.class.getMethod("getPlace", String.class, String.class, String.class)).build(profileId, id)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException | NoSuchMethodException e) {

@@ -24,10 +24,7 @@ public abstract class ReferableObject implements Serializable {
      * @return A URN reflecting the instance.
      */
 	public String getUrn() {
-		if (getId() == null) {
-			throw new IllegalStateException("Object has not persisted yet");
-		}
-		return UrnHelper.createUrn(getUrnPrefix(), getId());
+		return getId() == null ? null : UrnHelper.createUrn(getUrnPrefix(), getId());
 	}
 
 	public abstract Long getId();

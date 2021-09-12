@@ -64,7 +64,7 @@ public class OpenTripPlannerDao {
     	Instant travelTime = ride.isArrivalTimePinned() ? ride.getArrivalTime() : ride.getDepartureTime();
     	// If there are bookings, then there are probably, but not necessarily, intermediate stops, for 1 booking that can be 0, 1 or 2 stops. 
    		
-    	PlanResponse result = otpClient.createPlan(ride.getFrom(), ride.getTo(), 
+    	PlanResponse result = otpClient.createPlan(null, ride.getFrom(), ride.getTo(), 
     			travelTime, ride.isArrivalTimePinned(), new TraverseMode[] { TraverseMode.CAR }, 
     			false, OTP_MAX_WALK_DISTANCE, null, via.toArray(new GeoLocation[via.size()]), 1);
 		if (result.error != null) {

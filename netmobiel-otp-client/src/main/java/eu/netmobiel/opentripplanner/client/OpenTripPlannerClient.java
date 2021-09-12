@@ -164,7 +164,7 @@ public class OpenTripPlannerClient {
 		}
     }
 
-    public PlanResponse createPlan(GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean useTimeAsArriveBy, 
+    public PlanResponse createPlan(Instant now, GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean useTimeAsArriveBy, 
     		TraverseMode[] modes, boolean showIntermediateStops, Integer maxWalkDistance, Integer maxTransfers, GeoLocation[] via, Integer maxItineraries) throws NotFoundException {
 		PlanResponse result = null;
 		
@@ -183,6 +183,12 @@ public class OpenTripPlannerClient {
     		throw new NotFoundException("Ride departure and arrival location are too close", Message.TOO_CLOSE.name());
     	}
    		List<GeoLocation> vias = places.subList(1, places.size() - 1);
+   		if (travelTime == null) {
+   			throw new IllegalArgumentException("Missing one more parameters: fromPlace, toPlace, travelTime");
+   		}
+		if (now != null && travelTime.isBefore(now)) {
+			throw new IllegalArgumentException(String.format("Travel time %s cannot be before now %s", travelTime, now));
+		}
 		
 		boolean forcedDepartureTime = false;
 		if (vias != null && vias.size() > 0) {
@@ -242,10 +248,10 @@ public class OpenTripPlannerClient {
 //			}
 //			throw new WebApplicationException(msg, result.error.message.getStatus());
 //		}
-		return postProcess(result, forcedDepartureTime);
+		return postProcess(now, result, forcedDepartureTime);
     }
 
-    private PlanResponse postProcess(PlanResponse result, boolean forcedDepartureTime) {
+    private PlanResponse postProcess(Instant now, PlanResponse result, boolean forcedDepartureTime) {
 		if (result.plan != null) {
 			if (forcedDepartureTime) {
 //				if (log.isDebugEnabled()) {
@@ -258,6 +264,11 @@ public class OpenTripPlannerClient {
 					shiftBackItinerary(it, it.duration);
 				}
 			}
+			if (now != null) {
+				// Remove any suggestion that starts before now
+				result.plan.itineraries.removeIf(it -> it.startTime.isBefore(now));
+			}
+
 			// Repair some invalid numbers
 			result.plan.itineraries.forEach(it -> it.updateCharacteristics());
 			if (log.isDebugEnabled()) {

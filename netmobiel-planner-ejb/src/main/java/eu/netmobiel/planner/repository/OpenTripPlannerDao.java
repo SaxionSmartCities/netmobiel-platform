@@ -110,6 +110,7 @@ public class OpenTripPlannerDao {
 
     /**
      * Call the OTP to create a trip plan with a number of possible itineraries.
+     * @param now The time the OTP is called.
      * @param fromPlace The place to depart from.
      * @param toPlace the intended place of arrival.
      * @param departureTime the departure time. This is an instant, i.e. a precise moment in time.
@@ -150,7 +151,7 @@ public class OpenTripPlannerDao {
     	long start = System.currentTimeMillis();
 		PlannerResult plannerResult = new PlannerResult(report);
     	try {
-        	PlanResponse result = otpClient.createPlan(fromPlace, toPlace, travelTime, isArrivalPinned, 
+        	PlanResponse result = otpClient.createPlan(null, fromPlace, toPlace, travelTime, isArrivalPinned, 
 					otpModes, showIntermediateStops, maxWalkDistance, maxTransfers, otpVia, maxItineraries);
     		if (result.error != null) {
     			String msg = String.format("OTP Planner Error: %s - %s", result.error.message, result.error.msg);

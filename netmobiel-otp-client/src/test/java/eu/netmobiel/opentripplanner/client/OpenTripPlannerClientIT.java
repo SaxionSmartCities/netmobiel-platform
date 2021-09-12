@@ -80,7 +80,7 @@ public class OpenTripPlannerClientIT {
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 3;
     	Integer maxTransfers = null;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
+    	PlanResponse result = client.createPlan(null, fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
     	TripPlan plan = result.plan;
         assertNotNull(plan);
         assertPlan(fromPlace, toPlace, travelTime, plan);
@@ -106,7 +106,7 @@ public class OpenTripPlannerClientIT {
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 3;
     	Integer maxTransfers = null;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
+    	PlanResponse result = client.createPlan(null, fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
@@ -134,7 +134,7 @@ public class OpenTripPlannerClientIT {
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 3;
     	Integer maxTransfers = null;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
+    	PlanResponse result = client.createPlan(null, fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
@@ -166,7 +166,7 @@ public class OpenTripPlannerClientIT {
     	Integer maxWalkDistance = 2000;
   	    Integer maxItineraries = 3;
     	Integer maxTransfers = null;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
+    	PlanResponse result = client.createPlan(null, fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
     	TripPlan plan = result.plan;
         assertNotNull(plan);
         assertPlan(fromPlace, toPlace, travelTime, plan);
@@ -196,7 +196,7 @@ public class OpenTripPlannerClientIT {
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 1;
     	Integer maxTransfers = null;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
+    	PlanResponse result = client.createPlan(null, fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
@@ -217,7 +217,7 @@ public class OpenTripPlannerClientIT {
     	Integer maxWalkDistance = 2000;
     	Integer maxItineraries = 1;
     	Integer maxTransfers = null;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
+    	PlanResponse result = client.createPlan(null, fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
@@ -242,7 +242,7 @@ public class OpenTripPlannerClientIT {
     	Integer maxWalkDistance = 1000;
   	    Integer maxItineraries = 1;
     	Integer maxTransfers = null;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
+    	PlanResponse result = client.createPlan(null, fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
     	if (result.error != null) {
     		log.error("Planner error: " + result.error.msg);
     	}
@@ -264,7 +264,7 @@ public class OpenTripPlannerClientIT {
   	    Integer maxItineraries = 1;
     	Integer maxTransfers = null;
  	    try {
-  	    	client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
+  	    	client.createPlan(null, fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
   	    	fail("Expected NotFoundException");
   	    } catch (eu.netmobiel.commons.exception.NotFoundException ex) {
   	    	log.debug("testPlanDepartAndArriveSamePlace " + ex.toString());
@@ -286,7 +286,7 @@ public class OpenTripPlannerClientIT {
     	Integer maxWalkDistance = 1000;
   	    Integer maxItineraries = 1;
     	Integer maxTransfers = null;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
+    	PlanResponse result = client.createPlan(null, fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
@@ -311,7 +311,7 @@ public class OpenTripPlannerClientIT {
     	Integer maxWalkDistance = 1000;
   	    Integer maxItineraries = 1;
     	Integer maxTransfers = null;
-    	PlanResponse result = client.createPlan(fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
+    	PlanResponse result = client.createPlan(null, fromPlace, toPlace, travelTime, useTimeAsArriveBy, modes, false, maxWalkDistance, maxTransfers, via, maxItineraries);
     	TripPlan plan = result.plan;
 
     	assertNotNull(plan);
