@@ -248,12 +248,16 @@ public class TripPlanManagerTest {
 	@Test
 	public void testSanitizePlanInput() {
 		TripPlan plan = new TripPlan();
+		GeoLocation from = Fixture.placeHengeloStation;
+		GeoLocation to = Fixture.placeRaboZutphen;
 		plan.setRequestTime(Instant.parse("2020-07-02T18:00:00Z"));
+		plan.setFrom(from);
+		plan.setTo(to); 
 		plan.setTravelTime(plan.getRequestTime());
 		try {
 			TripPlanManager.sanitizePlanInput(plan);
 		} catch (BadRequestException ex) {
-			fail("Unexpected exception: " + ex);
+			log.debug("Anticipated exception: " + ex);
 		}
 		
 		plan.setRequestTime(Instant.parse("2020-07-02T18:00:00Z"));
