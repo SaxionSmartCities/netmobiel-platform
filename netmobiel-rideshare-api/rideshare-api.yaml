@@ -1396,6 +1396,9 @@ components:
           - NO_SHOW
           - NO_TRIP
           type: string
+        cancelReason:
+          description: Optional. If the ride was cancelled, the reason why.
+          type: string
       example:
         bookings: []
         car:
