@@ -62,6 +62,7 @@ public abstract class RideMapper {
 	@Mapping(target = "recurrence", source = "rideTemplate.recurrence") 
 	@Mapping(target = "rideRef", source = "urn")
 	@Mapping(target = "toPlace", source = "to") 
+	@Mapping(target = "car", ignore = true)
 	public abstract eu.netmobiel.rideshare.api.model.Ride commonMap(Ride source);
 
 	// Common mapping Api --> domain Ride
