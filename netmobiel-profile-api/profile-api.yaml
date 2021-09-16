@@ -1570,8 +1570,9 @@ components:
           description: The country code according to ISO 3166-2.
           type: string
         name:
-          description: The name of the place in th elist of favorite locations. This
+          description: The name of the place in the list of favorite locations. This
             name is a private denotation and is never shared with, e.g., a driver.
+          type: string
       example:
         street: Rembrandtstraat
         houseNumber: "8"
@@ -1579,7 +1580,7 @@ components:
         locality: Hengelo
         countryCode: NL
         id: 1234567
-        label: Jaap
+        name: Jaap
         ref: here:af:streetsection:mwcRU.bxFF9tLSvsSolDdA:CggIBCC2moKoAhABGgE4
         location:
           type: Point
