@@ -1471,60 +1471,6 @@ components:
           firstName: Chauffeur
           lastName: Acceptatie
         complimentType: Soepele communicatie
-    FavoriteLocation:
-      title: Root Type for FavoriteLocation
-      description: A favorite location.
-      type: object
-      properties:
-        title:
-          type: string
-        highlightedTitle:
-          type: string
-        vicinity:
-          type: string
-        highlightedVicinity:
-          type: string
-        position:
-          type: array
-          items:
-            format: double
-            type: number
-        category:
-          type: string
-        categoryTitle:
-          type: string
-        href:
-          type: string
-        type:
-          type: string
-        resultType:
-          type: string
-        id:
-          type: string
-        distance:
-          format: int32
-          type: integer
-        favorite:
-          type: boolean
-        label:
-          type: string
-      example:
-        title: Hengelo
-        highlightedTitle: <span class="search-hit">Hengelo</span>
-        vicinity: Stationsplein 1<br/>7551 CN Hengelo
-        highlightedVicinity: Stationsplein 1<br/>7551 CN Hengelo
-        position:
-        - 52.26233
-        - 6.79396
-        category: railway-station
-        categoryTitle: Railway Station
-        href: https://places.api.here.com/places/v1/places/528u1kc6-774399be9c704af1822d4e0168099ed1;context=Zmxvdy1pZD0zMDczMWMxNS1kYjBiLTUwMTUtOWE1ZS1lMmIzMWM3MmYzNGVfMTU4MDgzMzgzMjU2NV83ODE5XzM5MyZyYW5rPTI?app_id=UMrkPaQbl3dl0AaufjBU&app_code=eFyPG-KbLHo_GQ4Pn75Zcw
-        type: urn:nlp-types:place
-        resultType: place
-        id: 528u1kc6-774399be9c704af1822d4e0168099ed1
-        distance: 101266
-        favorite: true
-        label: Hengelo
     Place:
       title: Root Type for Address
       description: The address of a user.
