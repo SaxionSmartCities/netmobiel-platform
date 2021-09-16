@@ -1548,7 +1548,8 @@ components:
           $ref: '#/components/schemas/Location'
           description: The GPS location of this address.
         label:
-          description: A short description of the place.
+          description: A short description of the place, as suggested by the geoservice
+            in case of a `place` location type.
           type: string
         id:
           description: The unique identifier of the `Place`.
@@ -1568,6 +1569,9 @@ components:
         countryCode:
           description: The country code according to ISO 3166-2.
           type: string
+        name:
+          description: The name of the place in th elist of favorite locations. This
+            name is a private denotation and is never shared with, e.g., a driver.
       example:
         street: Rembrandtstraat
         houseNumber: "8"
