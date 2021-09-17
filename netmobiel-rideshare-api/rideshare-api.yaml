@@ -1394,7 +1394,7 @@ components:
         cancelReason:
           description: Optional. If the ride was cancelled, the reason why.
           type: string
-        canProvideAssistence:
+        ableToAssist:
           description: If true the driver is able to assist a passenger with getting
             in and out of the car, when neccessary.
           type: boolean
