@@ -35,7 +35,8 @@ public class EllipseHelper extends GeometryHelper {
      * If a time is given then the distance is calculated from the nominal speed (m/s). 
      * @param f1 the departure point in WGS84.
      * @param f2 the destination point in WGS84.
-     * @param focal2Border the distance from one focal point to the border along the long axis.
+     * @param focal2Border the distance from one focal point to the border along the long axis. 
+     * 				Along thelong axis this is exact the detour divided by two (as the crow flies).
      * @param defaultMaxDetourDistancePercentage The default maximum allowed detour distance as coefficient of the line distance. 
      * @return a polygon with the desired properties in WGS84.
      */
