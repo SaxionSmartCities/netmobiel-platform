@@ -899,9 +899,6 @@ components:
           description: The user is as known by the IDM (Keycloak). The format is determined
             by the IDM.
           type: string
-        yearOfBirth:
-          description: Year of birth.
-          type: string
         email:
           description: Email address.
           type: string
@@ -910,13 +907,6 @@ components:
           type: string
         familyName:
           description: The family name of the driver.
-          type: string
-        gender:
-          description: The gender of the driver.
-          enum:
-          - MAN
-          - FEMALE
-          - WONTSAY
           type: string
       example:
         familyName: Normalverbraucher
