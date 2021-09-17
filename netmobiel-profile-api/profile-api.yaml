@@ -1147,12 +1147,6 @@ components:
     RidePlanOptions:
       type: object
       properties:
-        numPassengers:
-          description: The maximum number of passengers that can be taken. At least
-            1, at most 4.
-          maximum: 4
-          minimum: 1
-          type: integer
         luggageOptions:
           description: 'A list of default luggage options. Choose from the following
             options: `HANDLUGGAGE`, `PET`, `STROLLER`, `GROCERIES`.'
@@ -1175,6 +1169,12 @@ components:
           description: 'If true the driver is able to help the passenger with getting
             in and out of the car. Default: true.'
           type: boolean
+        nrSeatsAvailable:
+          description: The maximum number of passengers that can be taken. At least
+            1, at most 8.
+          maximum: 4
+          minimum: 1
+          type: integer
     Location:
       title: Root Type for Location
       description: A GPS location.
