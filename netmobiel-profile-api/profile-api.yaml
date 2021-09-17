@@ -1030,8 +1030,8 @@ components:
         maxTransfers:
           description: If true then transfers between modalities are allowed.
           type: number
-        needsAssistence:
-          description: If true the passenger requries assistence with boarding and
+        needsAssistance:
+          description: If true the passenger requires assistance with boarding and
             alighting of the vehicle.
           type: boolean
     Profile:
@@ -1159,13 +1159,13 @@ components:
             at most for the detour to pickup and drop-off a passenger. Default is
             no limit.
           type: number
-        canProvideAssistence:
-          description: 'If true the driver is able to help the passenger with getting
-            in and out of the car. Default: true.'
-          type: boolean
         selectedCarRef:
           description: The currently preferred car for ridesharing.
           type: string
+        ableToAssist:
+          description: 'If true the driver is able to help the passenger with getting
+            in and out of the car. Default: true.'
+          type: boolean
     Location:
       title: Root Type for Location
       description: A GPS location.
