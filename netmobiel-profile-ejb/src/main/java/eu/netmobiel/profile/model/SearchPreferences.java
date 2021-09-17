@@ -45,7 +45,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Access(AccessType.FIELD)
 public class SearchPreferences implements Serializable {
 	private static final long serialVersionUID = 7052181227403511232L;
-	private static final int DEFAULT_MAX_TRANSFER_TIME = 10;
+	private static final int DEFAULT_MAX_WALK_DISTANCE = 2000;
 	private static final int DEFAULT_NR_PASSENGERS = 1;
 	public static final String FULL_SEARCH_PREFS_ENTITY_GRAPH = "full-search-prefs-entity-graph";
 	public static final String DEFAULT_SEARCH_PREFS_ENTITY_GRAPH = "default-search-prefs-entity-graph";
@@ -67,12 +67,12 @@ public class SearchPreferences implements Serializable {
 	private Profile profile;
 
 	/**
-	 * Default maximum transfer time in minutes. 
+	 * Default maximum walk distance meter. 
 	 */
 	@NotNull
 	@Positive
-	@Column(name = "max_transfer_time")
-	private Integer maxTransferTime = DEFAULT_MAX_TRANSFER_TIME;
+	@Column(name = "max_walk_distance")
+	private Integer maxWalkDistance = DEFAULT_MAX_WALK_DISTANCE;
 
 	/**
 	 * Default number of passengers to go along on a rideshare trip.
@@ -98,10 +98,10 @@ public class SearchPreferences implements Serializable {
 	private Set<LuggageOption> luggageOptions;
     
     /**
-     * Are transfers allowed (default)?
+     * How many transfers are allowed?
      */
-	@Column(name = "allow_transfers", nullable = false)
-    private boolean allowTransfers = true;
+	@Column(name = "max_transfers")
+    private Integer maxTransfers;
     
     /**
      * Is (in a multilegged trip) a first leg with rideshare allowed (default)? Example: From home to a train station.
@@ -153,14 +153,6 @@ public class SearchPreferences implements Serializable {
 		this.profile = profile;
 	}
 
-	public Integer getMaxTransferTime() {
-		return maxTransferTime;
-	}
-
-	public void setMaxTransferTime(Integer maxTransferTime) {
-		this.maxTransferTime = maxTransferTime;
-	}
-
 	public Integer getNumberOfPassengers() {
 		return numberOfPassengers;
 	}
@@ -178,14 +170,6 @@ public class SearchPreferences implements Serializable {
 
 	public void setLuggageOptions(Set<LuggageOption> luggageOptions) {
 		this.luggageOptions = luggageOptions;
-	}
-
-	public boolean isAllowTransfers() {
-		return allowTransfers;
-	}
-
-	public void setAllowTransfers(boolean allowTransfers) {
-		this.allowTransfers = allowTransfers;
 	}
 
 	public boolean isAllowFirstLegRideshare() {
@@ -213,5 +197,21 @@ public class SearchPreferences implements Serializable {
 
 	public void setAllowedTraverseModes(Set<TraverseMode> allowedTraverseModes) {
 		this.allowedTraverseModes = allowedTraverseModes;
+	}
+
+	public Integer getMaxWalkDistance() {
+		return maxWalkDistance;
+	}
+
+	public void setMaxWalkDistance(Integer maxWalkDistance) {
+		this.maxWalkDistance = maxWalkDistance;
+	}
+
+	public Integer getMaxTransfers() {
+		return maxTransfers;
+	}
+
+	public void setMaxTransfers(Integer maxTransfers) {
+		this.maxTransfers = maxTransfers;
 	}
 }

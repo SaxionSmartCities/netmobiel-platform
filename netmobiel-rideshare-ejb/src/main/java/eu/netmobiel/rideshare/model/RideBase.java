@@ -40,7 +40,7 @@ public abstract class RideBase extends ReferableObject implements Serializable {
 	private static final long serialVersionUID = 7659815346376185257L;
 	public static final float DEFAULT_RELATIVE_MAX_DETOUR = 0.30f;
 	public static final float DEFAULT_NOMINAL_SPEED = 25 * 1000 / 3600f; 	/* km/h --> m/s */
-
+	public static final int DEFAULT_MAX_DISTANCE_DETOUR_METERS = 10000;
 
     @ManyToOne (fetch = FetchType.LAZY)
 	@JoinColumn(name = "driver", nullable = false, foreignKey = @ForeignKey(name = "ride_base_driver_fk"))
@@ -89,12 +89,13 @@ public abstract class RideBase extends ReferableObject implements Serializable {
     /**
      * The detour the driver is willing to make in meters. 
      */
+    @NotNull
     @Positive
     @Column(name = "max_detour_meters")
-    private Integer maxDetourMeters;
+    private Integer maxDetourMeters = DEFAULT_MAX_DISTANCE_DETOUR_METERS;
     
     /**
-     * The detour the driver is willing to make in seconds. 
+     * The detour the driver is willing to make in seconds. If not set there is no limit.
      */
     @Positive
     @Column(name = "max_detour_seconds")
@@ -140,6 +141,13 @@ public abstract class RideBase extends ReferableObject implements Serializable {
      */
     @Column(name = "arrival_time_pinned")
     private boolean arrivalTimePinned;
+
+    /**
+     * If true then the driver can provide assistence to the passenger for boarding and alighting.
+     */
+    @NotNull
+    @Column(name = "able_to_assist")
+    private boolean ableToAssist = true;
 
     /**
      * Template: The (standard) departure location of the driver.
@@ -354,7 +362,15 @@ public abstract class RideBase extends ReferableObject implements Serializable {
     	return departureTime != null && arrivalTime != null ? Math.toIntExact(arrivalTime.getEpochSecond() - departureTime.getEpochSecond()) : null;
     }
     
-    /**
+    public boolean isAbleToAssist() {
+		return ableToAssist;
+	}
+
+	public void setAbleToAssist(boolean ableToAssist) {
+		this.ableToAssist = ableToAssist;
+	}
+
+	/**
      * Calculates an ellipse with the property that the distance from one focal point (departure stop) to
      * the border of the ellipse and then to the other focal point (arrival) is equal to the maximum detour distance.
      * The distance is calculated from the nominal speed (m/s). 
@@ -362,14 +378,8 @@ public abstract class RideBase extends ReferableObject implements Serializable {
      */
     public void updateShareEligibility() {
     	// See https://en.wikipedia.org/wiki/Ellipse
-    	Integer maxDetourDistance = null;
-    	if (getMaxDetourMeters() != null) {
-    		maxDetourDistance = getMaxDetourMeters();
-    	} else if (getMaxDetourSeconds() != null) {
-    		maxDetourDistance = Math.round(getMaxDetourSeconds() * DEFAULT_NOMINAL_SPEED);    		
-    	}
     	EligibleArea ea = EllipseHelper.calculateEllipse(getFrom().getPoint(), getTo().getPoint(),  
-    			maxDetourDistance != null ? maxDetourDistance / 2.0 : null, DEFAULT_RELATIVE_MAX_DETOUR / 2);
+    			getMaxDetourMeters().doubleValue(), DEFAULT_RELATIVE_MAX_DETOUR / 2);
     	setShareEligibility(ea.eligibleAreaGeometry);
     	setCarthesianDistance(Math.toIntExact(Math.round(ea.carthesianDistance)));
     	setCarthesianBearing(Math.toIntExact(Math.round(ea.carthesianBearing)));
@@ -380,6 +390,7 @@ public abstract class RideBase extends ReferableObject implements Serializable {
      * @return The new ride. 
      */
     public static void copy(RideBase src, RideBase dst) {
+    	dst.ableToAssist = src.ableToAssist;
 		dst.arrivalPostalCode = src.arrivalPostalCode;
 		dst.arrivalTime = src.arrivalTime;
 		dst.arrivalTimePinned = src.arrivalTimePinned;

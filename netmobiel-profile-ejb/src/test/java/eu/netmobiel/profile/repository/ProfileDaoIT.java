@@ -91,7 +91,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
 //    	p.getRidesharePreferences().getLuggageOptions().add(LuggageOption.PET);
     	p.getSearchPreferences().getAllowedTraverseModes().remove(TraverseMode.RAIL);
     	p.getSearchPreferences().setNumberOfPassengers(2);
-    	p.getSearchPreferences().getLuggageOptions().add(LuggageOption.WALKER);
+    	p.getSearchPreferences().getLuggageOptions().add(LuggageOption.PET);
     	searchPreferencesDao.save(p.getSearchPreferences());
     	flush();
     	
@@ -146,7 +146,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	assertNotNull(p.getSearchPreferences());
     	assertEquals(2, p.getSearchPreferences().getNumberOfPassengers().intValue());
     	log.debug("Check search preferences - luggage");
-    	assertTrue(p.getSearchPreferences().getLuggageOptions().contains(LuggageOption.WALKER));
+    	assertTrue(p.getSearchPreferences().getLuggageOptions().contains(LuggageOption.PET));
     	assertFalse(p.getSearchPreferences().getAllowedTraverseModes().contains(TraverseMode.RAIL));
     	log.debug("End of test: savePassenger");
     }
@@ -218,7 +218,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	flush();
     	
     	p.setUserRole(UserRole.BOTH);
-    	p.getRidesharePreferences().setMaxMinutesDetour(30);
+    	p.getRidesharePreferences().setMaxDistanceDetour(30000);
 //    	p.getRidesharePreferences().getLuggageOptions().clear();
     	p.getRidesharePreferences().getLuggageOptions().add(LuggageOption.PET);
     	profileDao.merge(p);
@@ -230,7 +230,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	assertNull(p.getRidesharePreferences());
     	p.setRidesharePreferences(ridesharePreferencesDao.loadGraph(p.getId(), RidesharePreferences.FULL_RIDESHARE_PREFS_ENTITY_GRAPH).orElse(null));
     	assertNotNull(p.getRidesharePreferences());
-    	assertEquals(30, p.getRidesharePreferences().getMaxMinutesDetour().intValue());
+    	assertEquals(30000, p.getRidesharePreferences().getMaxDistanceDetour().intValue());
 //    	log.debug("Check rideshare preferences - luggage");
     	assertTrue(p.getRidesharePreferences().getLuggageOptions().contains(LuggageOption.PET));
     	

@@ -360,6 +360,9 @@ public class RideManager {
     		throw new SecurityException(String.format("Car %s is not owned by %s", car.getLicensePlate(), driverdb.toString()));
     	}
     	ride.setCar(car);
+    	if (ride.getMaxDetourMeters() == null) {
+    		ride.setMaxDetourMeters(RideBase.DEFAULT_MAX_DISTANCE_DETOUR_METERS);
+    	}
     	validateCreateUpdateRide(ride);
     	if (ride.getBookings() != null && !ride.getBookings().isEmpty()) {
     		throw new BadRequestException("Constraint violation: A new ride cannot contain bookings");
@@ -531,6 +534,9 @@ public class RideManager {
     	if (ridedb.hasActiveBookingProcess()) {
     		throw new UpdateException("The ride is involved in a shout-out or a booking is requested, an update is not allowed now");
     	}
+    	if (ride.getMaxDetourMeters() == null) {
+    		ride.setMaxDetourMeters(RideBase.DEFAULT_MAX_DISTANCE_DETOUR_METERS);
+    	}
     	
     	validateCreateUpdateRide(ride);
     	Long carId = UrnHelper.getId(Car.URN_PREFIX, ride.getCarRef());
@@ -618,6 +624,9 @@ public class RideManager {
     	Instant originalDepartureTime = ridedb.getDepartureTime();
     	prepareUpdateOfRide(ridedb, ride, newTemplate);
     	ridedb = rideDao.merge(ride);
+    	if (ridedb.getCar().getNrSeats() != null) {
+    		ridedb.setNrSeatsAvailable(Math.min(ridedb.getNrSeatsAvailable(), ridedb.getCar().getNrSeats() - 1));
+    	}
     	// ride and ridedb refer to the same object now, 
     	// ridebd bookings, legs and stops appear to be empty now! In the database the object are still there.
     	rideItineraryHelper.updateRideItinerary(ridedb);

@@ -4,9 +4,7 @@ public enum LuggageOption {
 	GROCERIES("GR"),
 	HANDLUGGAGE("HL"),
 	PET("PT"),
-	STROLLER("ST"),
-	WALKER("WL"),
-	WHEELCHAIR("WC");
+	STROLLER("ST");
 
 	private String code;
 	 

@@ -45,7 +45,8 @@ import org.hibernate.annotations.OnDeleteAction;
 @Access(AccessType.FIELD)
 public class RidesharePreferences implements Serializable {
 	private static final long serialVersionUID = 7052181227403511232L;
-	private static final int DEFAULT_MAX_DETOUR = 10;
+	private static final int DEFAULT_MAX_DETOUR_MINUTES = 10;
+	private static final int DEFAULT_MAX_DETOUR_METERS = 10000;
 	private static final int DEFAULT_MAX_PASSENGERS = 1;
 	public static final String FULL_RIDESHARE_PREFS_ENTITY_GRAPH = "full-rideshare-prefs-entity-graph";
 	public static final String DEFAULT_RIDESHARE_PREFS_ENTITY_GRAPH = "default-rideshare-prefs-entity-graph";
@@ -72,7 +73,15 @@ public class RidesharePreferences implements Serializable {
 	@NotNull
 	@Positive
 	@Column(name = "max_minutes_detour")
-	private Integer maxMinutesDetour = DEFAULT_MAX_DETOUR;
+	private Integer maxMinutesDetour = DEFAULT_MAX_DETOUR_MINUTES;
+
+	/**
+	 * Default maximum detour to pick up a passenger in meter. 
+	 */
+	@NotNull
+	@Positive
+	@Column(name = "max_distance_detour")
+	private Integer maxDistanceDetour = DEFAULT_MAX_DETOUR_METERS;
 
 	/**
 	 * The (default) maximum number of passengers to take in at a ride.
@@ -135,6 +144,12 @@ public class RidesharePreferences implements Serializable {
 		this.maxMinutesDetour = maxMinutesDetour;
 	}
 
+	public Integer getMaxDistanceDetour() {
+		return maxDistanceDetour;
+	}
+	public void setMaxDistanceDetour(Integer maxDistanceDetour) {
+		this.maxDistanceDetour = maxDistanceDetour;
+	}
 	public Integer getMaxPassengers() {
 		return maxPassengers;
 	}
