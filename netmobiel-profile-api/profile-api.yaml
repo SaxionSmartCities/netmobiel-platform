@@ -1024,9 +1024,6 @@ components:
           description: 'Flag to signal whether last leg of a multi-modal trip can
             be a rideshare leg. Default is false. '
           type: boolean
-        maximumWalkDistance:
-          description: The maximum distance to walk. Default is 1000 meter.
-          type: number
         maxTransfers:
           description: If true then transfers between modalities are allowed.
           type: number
@@ -1034,6 +1031,9 @@ components:
           description: If true the passenger requires assistance with boarding and
             alighting of the vehicle.
           type: boolean
+        maxWalkDistance:
+          description: The maximum distance to walk. Default is 1000 meter.
+          type: number
     Profile:
       description: "The profile attributes of a user in NetMobiel. The public profile\
         \ of a user is visible for other users in case of messaging, being a would-be\
