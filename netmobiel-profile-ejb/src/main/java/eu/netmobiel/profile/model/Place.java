@@ -60,7 +60,7 @@ public class Place implements Serializable {
 	private Address address;
 
 	/**
-	 * The GPS location and a short name.
+	 * The GPS location and a short name. The label is used to describe the place, it is not intended as a single address line.
 	 */
 	@Embedded
     @AttributeOverrides({ 
@@ -70,7 +70,7 @@ public class Place implements Serializable {
 	private GeoLocation location;
 
 	/**
-	 * The external reference of the place as found by the geo service.
+	 * The external reference of the place as found by the geo service. Used to identify equal locations from the geo-service i.o. comparing the GPS position.
 	 */
 	@Size(max = 256)
 	@Column(name = "reference")
@@ -82,6 +82,13 @@ public class Place implements Serializable {
 	@Size(max = 32)
 	@Column(name = "category")
 	private String category;
+
+	/**
+	 * The (optional) name of the place (favourite location) for the NetMobiel user. 
+	 */
+	@Size(max = 64)
+	@Column(name = "name")
+	private String name;
 
 	public Long getId() {
 		return id;
@@ -129,6 +136,14 @@ public class Place implements Serializable {
 
 	public void setCategory(String category) {
 		this.category = category;
+	}
+
+	public String getName() {
+		return name;
+	}
+
+	public void setName(String name) {
+		this.name = name;
 	}
 
 	@Override
