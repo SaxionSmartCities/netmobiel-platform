@@ -1252,6 +1252,7 @@ components:
       - fromPlace
       - toPlace
       - legs
+      - maxDetourMeters
       type: object
       properties:
         nrSeatsAvailable:
@@ -1271,9 +1272,7 @@ components:
           enum:
           - HANDLUGGAGE
           - PET
-          - WALKER
           - STROLLER
-          - WHEELCHAIR
           - GROCERIES
           type: string
         bookings:
@@ -1282,10 +1281,8 @@ components:
           items:
             $ref: '#/components/schemas/Booking'
         maxDetourMeters:
-          description: The distance in meters the driver is prepared to detour to
-            pickup of dropoff a passenger. If the detour in meters as well as in seconds
-            is omitted, then a system defined percentage of the distance between departure
-            and destination is taken.
+          description: 'The distance in meters the driver is prepared to detour to
+            pickup of dropoff a passenger. Default: 10000 meter.'
           type: integer
         carRef:
           description: 'The car used for the ride. This is a URN: urn:nb:rs:car:<id>'
@@ -1301,10 +1298,8 @@ components:
           $ref: '#/components/schemas/Location'
           description: The final destination a stop for the ride.
         maxDetourSeconds:
-          description: The time in seconds the driver is prepared to detour to pickup
-            or drop-off a passenger. It is also possible to specify the detour in
-            meters. The maximum detour is converted to meters using a system defined
-            nominal speed (around 30) km/h.
+          description: 'The time in seconds the driver is prepared to detour to pickup
+            or drop-off a passenger. Default: no limit.'
           type: integer
         rideRef:
           description: (Read-only) The reference to a ride. Format is a URN according
@@ -1399,6 +1394,10 @@ components:
         cancelReason:
           description: Optional. If the ride was cancelled, the reason why.
           type: string
+        canProvideAssistence:
+          description: If true the driver is able to assist a passenger with getting
+            in and out of the car, when neccessary.
+          type: boolean
       example:
         bookings: []
         car:
