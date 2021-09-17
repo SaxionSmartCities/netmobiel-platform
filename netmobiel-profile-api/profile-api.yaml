@@ -1004,33 +1004,35 @@ components:
           maximum: 4
           minimum: 1
           type: integer
-        maximumTransferTime:
-          description: The maximum amount time the transfers may take in minutes.
-            Default is 10 minutes.
-          type: number
         luggageOptions:
           description: 'A list of default luggage options. Choose from the following
-            options: `HANDLUGGAGE`, `PET`, `WALKER`, `STROLLER`, `WHEELCHAIR`, `GROCERIES`.'
+            options: `HANDLUGGAGE`, `PET`, `STROLLER`, `GROCERIES`.'
           type: array
           items:
             type: string
         allowedTravelModes:
           description: 'The default preferences of travel modalities. Choose a combination
-            from the following options: `BICYCLE`, `BUS`, `CAR`, `RAIL`, `RIDESHARE`,
-            `WALK`.'
+            from the following options: `BICYCLE`, `BUS`, `RAIL`, `RIDESHARE`, `WALK`.'
           type: array
           items:
             type: string
-        allowTransfer:
+        allowFirstLegRideshare:
+          description: Flag to signal whether first leg of a multi-modal trip can
+            be a rideshare leg. Default is false.
+          type: boolean
+        allowLastLegRideshare:
+          description: 'Flag to signal whether last leg of a multi-modal trip can
+            be a rideshare leg. Default is false. '
+          type: boolean
+        maximumWalkDistance:
+          description: The maximum distance to walk. Default is 1000 meter.
+          type: number
+        maxTransfers:
           description: If true then transfers between modalities are allowed.
-          type: boolean
-        allowFirstLegTransfer:
-          description: Flag to signal whether first leg can be a rideshare leg. Default
-            is false.
-          type: boolean
-        allowLastLegTransfer:
-          description: 'Flag to signal whether last leg (last mile) can be a rideshare
-            leg. Default is false. '
+          type: number
+        needsAssistence:
+          description: If true the passenger requries assistence with boarding and
+            alighting of the vehicle.
           type: boolean
     Profile:
       description: "The profile attributes of a user in NetMobiel. The public profile\
@@ -1144,15 +1146,24 @@ components:
           type: integer
         luggageOptions:
           description: 'A list of default luggage options. Choose from the following
-            options: `HANDLUGGAGE`, `PET`, `WALKER`, `STROLLER`, `WHEELCHAIR`, `GROCERIES`.'
+            options: `HANDLUGGAGE`, `PET`, `STROLLER`, `GROCERIES`.'
           type: array
           items:
             type: string
-        maxMinutesDetour:
-          description: The maximum amount time the driver will reserve for a detour
-            to pickup and drop-off a passenger. Default is 10 minutes.
+        maxDistanceDetour:
+          description: The maximum distance in meter the driver is prepared for the
+            detour to pickup and drop-off a passenger. Default is 10000 meter.
           type: number
-        selectedCarId:
+        maxTimeDetour:
+          description: The maximum amount of time in minutes the driver wants to spend
+            at most for the detour to pickup and drop-off a passenger. Default is
+            no limit.
+          type: number
+        canProvideAssistence:
+          description: 'If true the driver is able to help the passenger with getting
+            in and out of the car. Default: true.'
+          type: boolean
+        selectedCarRef:
           description: The currently preferred car for ridesharing.
           type: string
     Location:
