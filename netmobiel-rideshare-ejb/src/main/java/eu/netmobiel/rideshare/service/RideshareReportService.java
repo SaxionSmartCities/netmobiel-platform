@@ -136,9 +136,6 @@ public class RideshareReportService {
     			ProfileReport rr = new ProfileReport(user.getManagedIdentity());
     			reportMap.put(user.getManagedIdentity(), rr);
     			rr.setNrActiveCars(user.getCarsInUse() != null ? user.getCarsInUse().size() : 0);
-    			if (user.getYearOfBirth() != null) {
-    				rr.setYearOfBirth(Integer.parseInt(user.getYearOfBirth()));
-    			}
     			if (rr.getNrActiveCars() > 0) {
     				rr.setIsDriver(true);
     			}

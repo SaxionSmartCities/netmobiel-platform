@@ -3,7 +3,6 @@ package eu.netmobiel.rideshare.model;
 import java.util.List;
 
 import javax.enterprise.inject.Vetoed;
-import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
@@ -14,7 +13,6 @@ import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
-import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.User;
@@ -45,13 +43,6 @@ public class RideshareUser extends User {
 
     @OneToMany(mappedBy = "driver")
     private List<Car> carsInUse;
-
-    @Size(max = 4)
-    @Column(name = "year_of_birth")
-    private String yearOfBirth;
-
-	@Column(length = 1)
-    private Gender gender;
 
     public RideshareUser() {
     	// No args constructor
@@ -84,22 +75,6 @@ public class RideshareUser extends User {
 		return URN_PREFIX;
 	}
     
-	public String getYearOfBirth() {
-		return yearOfBirth;
-	}
-
-	public void setYearOfBirth(String yearOfBirth) {
-		this.yearOfBirth = yearOfBirth;
-	}
-
-	public Gender getGender() {
-		return gender;
-	}
-
-	public void setGender(Gender gender) {
-		this.gender = gender;
-	}
-
 	public List<Car> getCarsInUse() {
 		return carsInUse;
 	}
