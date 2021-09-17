@@ -1050,6 +1050,7 @@ components:
       - userRole
       - notificationOptions
       - age
+      - actingRole
       type: object
       properties:
         email:
@@ -1111,6 +1112,14 @@ components:
           description: Read-only. The age of the user at the (local) date of profile
             retrieval.
           type: integer
+        actingRole:
+          description: The role currently used in the GUI. Must be equal to `userRole`
+            unless role is `Both`. In that case the acting role is either `Passenger`
+            or `Driver`.
+          enum:
+          - passenger
+          - driver
+          type: string
     UserConsent:
       title: Root Type for UserConsent
       description: Type user to flag consent with the terms of use of NetMobiel.
