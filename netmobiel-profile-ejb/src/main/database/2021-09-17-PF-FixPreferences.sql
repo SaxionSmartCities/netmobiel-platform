@@ -28,5 +28,6 @@ ALTER TABLE public.rideshare_preferences
 	ADD COLUMN able_to_assist boolean NOT NULL DEFAULT True
 ;
 UPDATE public.rideshare_preferences SET max_distance_detour = max_distance_detour * 1000;
-UPDATE public.rideshare_preferences SET default_car_ref = 'urn:nb:rs:car:' || default_car_ref WHERE char_length(default_car_ref) < 8;
+UPDATE public.rideshare_preferences SET default_car_ref = 'urn:nb:rs:car:' || default_car_ref WHERE char_length(default_car_ref) < 8 AND default_car_ref <> '-1';
+UPDATE public.rideshare_preferences SET default_car_ref = NULL WHERE default_car_ref = '-1';
 
