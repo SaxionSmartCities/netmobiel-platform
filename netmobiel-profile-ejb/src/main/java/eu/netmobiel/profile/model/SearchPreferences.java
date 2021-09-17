@@ -84,6 +84,13 @@ public class SearchPreferences implements Serializable {
 	@Column(name = "number_of_passengers")
 	private Integer numberOfPassengers = DEFAULT_NR_PASSENGERS;
 	
+    /**
+     * If true then the passenger requires assistance with boarding and alighting.
+     */
+    @NotNull
+    @Column(name = "needs_assistance")
+    private boolean needsAssistance = false;
+
 	/**
 	 * Default luggage to take on a trip.
 	 */
@@ -159,6 +166,14 @@ public class SearchPreferences implements Serializable {
 
 	public void setNumberOfPassengers(Integer numberOfPassengers) {
 		this.numberOfPassengers = numberOfPassengers;
+	}
+
+	public boolean isNeedsAssistance() {
+		return needsAssistance;
+	}
+
+	public void setNeedsAssistance(boolean needsAssistance) {
+		this.needsAssistance = needsAssistance;
 	}
 
 	public Set<LuggageOption> getLuggageOptions() {

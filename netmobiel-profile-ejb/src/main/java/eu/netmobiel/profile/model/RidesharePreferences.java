@@ -45,7 +45,6 @@ import org.hibernate.annotations.OnDeleteAction;
 @Access(AccessType.FIELD)
 public class RidesharePreferences implements Serializable {
 	private static final long serialVersionUID = 7052181227403511232L;
-	private static final int DEFAULT_MAX_DETOUR_MINUTES = 10;
 	private static final int DEFAULT_MAX_DETOUR_METERS = 10000;
 	private static final int DEFAULT_MAX_PASSENGERS = 1;
 	public static final String FULL_RIDESHARE_PREFS_ENTITY_GRAPH = "full-rideshare-prefs-entity-graph";
@@ -68,12 +67,11 @@ public class RidesharePreferences implements Serializable {
 	private Profile profile;
 
 	/**
-	 * Default maximum detour to pick up a passenger in minutes. 
+	 * Default maximum detour to pick up a passenger in minutes. If null then no restriction applies.
 	 */
-	@NotNull
 	@Positive
-	@Column(name = "max_minutes_detour")
-	private Integer maxMinutesDetour = DEFAULT_MAX_DETOUR_MINUTES;
+	@Column(name = "max_time_detour")
+	private Integer maxTimeDetour;
 
 	/**
 	 * Default maximum detour to pick up a passenger in meter. 
@@ -93,6 +91,13 @@ public class RidesharePreferences implements Serializable {
 	@Column(name = "max_passengers")
 	private Integer maxPassengers = DEFAULT_MAX_PASSENGERS;
 	
+    /**
+     * If true then the driver can provide assistance to the passenger for boarding and alighting.
+     */
+    @NotNull
+    @Column(name = "able_to_assist")
+    private boolean ableToAssist = true;
+
 	/**
 	 * Default accepted luggage options for rideshare rides driven by this driver.  
 	 */
@@ -136,12 +141,12 @@ public class RidesharePreferences implements Serializable {
 		this.profile = profile;
 	}
 
-	public Integer getMaxMinutesDetour() {
-		return maxMinutesDetour;
+	public Integer getMaxTimeDetour() {
+		return maxTimeDetour;
 	}
 
-	public void setMaxMinutesDetour(Integer maxMinutesDetour) {
-		this.maxMinutesDetour = maxMinutesDetour;
+	public void setMaxTimeDetour(Integer maxTimeMinutesDetour) {
+		this.maxTimeDetour = maxTimeMinutesDetour;
 	}
 
 	public Integer getMaxDistanceDetour() {
@@ -158,6 +163,12 @@ public class RidesharePreferences implements Serializable {
 		this.maxPassengers = maxPassengers;
 	}
 
+	public boolean isAbleToAssist() {
+		return ableToAssist;
+	}
+	public void setAbleToAssist(boolean ableToAssist) {
+		this.ableToAssist = ableToAssist;
+	}
 	public Set<LuggageOption> getLuggageOptions() {
 		if (luggageOptions == null) {
 			luggageOptions = new HashSet<>();
@@ -176,6 +187,4 @@ public class RidesharePreferences implements Serializable {
 	public void setDefaultCarRef(String defaultCarRef) {
 		this.defaultCarRef = defaultCarRef;
 	}
-    
-
 }

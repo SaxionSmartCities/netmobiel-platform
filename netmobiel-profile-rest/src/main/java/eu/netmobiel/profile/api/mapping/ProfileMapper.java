@@ -10,6 +10,7 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.MappingTarget;
 import org.mapstruct.ReportingPolicy;
+import org.mapstruct.ValueMapping;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
@@ -18,9 +19,11 @@ import eu.netmobiel.profile.api.mapping.annotation.ProfileComplete;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileMapperQualifier;
 import eu.netmobiel.profile.api.mapping.annotation.PublicProfile;
 import eu.netmobiel.profile.api.mapping.annotation.Shallow;
+import eu.netmobiel.profile.api.model.Profile.ActingRoleEnum;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
 import eu.netmobiel.profile.model.SearchPreferences;
+import eu.netmobiel.profile.model.UserRole;
 
 /**
  * This mapper defines the mapping from the domain Booking to the API Booking as defined by OpenAPI.
@@ -40,6 +43,10 @@ public abstract class ProfileMapper {
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { PublicProfile.class } )
 	public abstract eu.netmobiel.profile.api.model.Page mapSecondary(PagedResult<Profile> source);
+
+	// Translation of a faulty acting role enum to a safe value,
+    @ValueMapping(target = "PASSENGER", source = "BOTH")
+    public abstract ActingRoleEnum map(UserRole source);
 
 	// Domain --> API
 	@Mapping(target = "firstName", source = "givenName")
@@ -74,6 +81,7 @@ public abstract class ProfileMapper {
 	@Mapping(target = "address.id", ignore = true)
 	@Mapping(target = "address.category", ignore = true)
 	@Mapping(target = "address.ref", ignore = true)
+	@Mapping(target = "address.name", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Profile mapPublicProfile(Profile source);
 
 	@Shallow
@@ -124,7 +132,7 @@ public abstract class ProfileMapper {
 	}
 
 	@Mapping(target = "numPassengers", source = "maxPassengers")
-	@Mapping(target = "selectedCarId", source = "defaultCarRef")
+	@Mapping(target = "selectedCarRef", source = "defaultCarRef")
 	public abstract eu.netmobiel.profile.api.model.RidePlanOptions map(RidesharePreferences source);
 
 	@InheritInverseConfiguration
@@ -132,11 +140,7 @@ public abstract class ProfileMapper {
 	@Mapping(target = "profile", ignore = true)
 	public abstract RidesharePreferences map(eu.netmobiel.profile.api.model.RidePlanOptions source);
 
-	@Mapping(target = "allowFirstLegTransfer", source = "allowFirstLegRideshare")
-	@Mapping(target = "allowLastLegTransfer", source = "allowLastLegRideshare")
-	@Mapping(target = "allowTransfer", source = "allowTransfers")
 	@Mapping(target = "numPassengers", source = "numberOfPassengers")
-	@Mapping(target = "maximumTransferTime", source = "maxTransferTime")
 	@Mapping(target = "allowedTravelModes", source = "allowedTraverseModes")
 	public abstract eu.netmobiel.profile.api.model.SearchPreferences map(SearchPreferences source);
 
