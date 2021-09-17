@@ -161,7 +161,14 @@ public class Profile extends User  {
 	@Column(name = "user_role", length = 2)
 	private UserRole userRole;
 
-    @ManyToOne(fetch = FetchType.LAZY)
+	/**
+	 * The acting role of this user in NetMobiel. Must be Driver or Passenger
+	 */
+	@NotNull
+	@Column(name = "acting_role", length = 2)
+	private UserRole actingRole;
+
+	@ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "created_by", foreignKey = @ForeignKey(name = "profile_created_by_fk"), updatable = false)
     private Profile createdBy;
 
@@ -184,12 +191,14 @@ public class Profile extends User  {
     	super(nbuser);
 		creationTime = Instant.now();
     	this.userRole = role;
+    	this.actingRole = role == UserRole.BOTH ? UserRole.PASSENGER : role;
     }
     
     public Profile(String identity, String givenName, String familyName, String email, UserRole role) {
     	super(identity, givenName, familyName, email);
 		creationTime = Instant.now();
     	this.userRole = role;
+    	this.actingRole = role == UserRole.BOTH ? UserRole.PASSENGER : role;
     }
     
     @Override
@@ -313,6 +322,17 @@ public class Profile extends User  {
 		this.userRole = userRole;
 	}
 
+	public UserRole getActingRole() {
+		return actingRole;
+	}
+
+	public void setActingRole(UserRole actingRole) {
+		if (actingRole == UserRole.BOTH) {
+			throw new IllegalArgumentException("actingRole cannot be Both");
+		}
+		this.actingRole = actingRole;
+	}
+
 	public Profile getCreatedBy() {
 		return createdBy;
 	}
@@ -410,6 +430,13 @@ public class Profile extends User  {
 		return userRole == UserRole.DRIVER || userRole == UserRole.BOTH;
 	}
 
+	public final void setDefaultActingRole() {
+		if (this.userRole == null) {
+			throw new IllegalStateException("userRole is undefined");
+		} else if (this.actingRole == null) {
+	    	this.actingRole = userRole == UserRole.BOTH ? UserRole.PASSENGER : userRole;
+		}
+	}
 	public String getNameEmailPhone() {
 		StringBuilder sb = new StringBuilder();
 		if (getGivenName() != null) {

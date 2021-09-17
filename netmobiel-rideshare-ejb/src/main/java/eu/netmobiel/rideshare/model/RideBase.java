@@ -143,7 +143,7 @@ public abstract class RideBase extends ReferableObject implements Serializable {
     private boolean arrivalTimePinned;
 
     /**
-     * If true then the driver can provide assistence to the passenger for boarding and alighting.
+     * If true then the driver can provide assistance to the passenger for boarding and alighting.
      */
     @NotNull
     @Column(name = "able_to_assist")
