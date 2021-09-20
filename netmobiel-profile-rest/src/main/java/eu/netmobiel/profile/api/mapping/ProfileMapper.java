@@ -131,7 +131,6 @@ public abstract class ProfileMapper {
 		}
 	}
 
-	@Mapping(target = "numPassengers", source = "maxPassengers")
 	@Mapping(target = "selectedCarRef", source = "defaultCarRef")
 	public abstract eu.netmobiel.profile.api.model.RidePlanOptions map(RidesharePreferences source);
 
