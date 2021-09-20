@@ -194,6 +194,12 @@ paths:
         schema:
           type: string
         in: query
+      - name: hard
+        description: If true then set the deleted flag. Deleted rides will not show
+          up in the regular listing.
+        schema:
+          type: boolean
+        in: query
       responses:
         "204":
           description: Successful response.
@@ -201,16 +207,18 @@ paths:
           $ref: '#/components/responses/Forbidden'
       operationId: deleteRide
       summary: Delete a Ride
-      description: "Deletes an existing `Ride`. If a ride is already booked by a passenger,\
-        \ then the ride will be soft deleted. \n\nIf a ride is recurrent, the delete\
-        \ action can be extended to all rides with the same recurrence pattern by\
-        \ setting the `scope` flag to the value `following`. The current ride is always\
-        \ deleted too.\n\nThere is a fine line between a cancelled ride and a deleted\
-        \ ride. A ride can only be cancelled when scheduled or planned. Cancelling\
-        \ a ride means it is no longer valid. A cancelled ride still appears in the\
-        \ list. Deleting a ride is only possible when the statte of the ride is cancelled\
-        \ or completed.\n\nFor now cancelling a ride will also delete it. A completed\
-        \ ride can also be deleted, but the state will remain completed."
+      description: "Cancels and/or deletes an existing `Ride`. If a ride is already\
+        \ booked by a passenger, then the ride will be soft deleted, also when the\
+        \ booking was cancelled or when it was a proposal. \n\nIf a ride is recurrent,\
+        \ the delete action can be extended to all rides with the same recurrence\
+        \ pattern by setting the `scope` flag to the value `following`. The current\
+        \ ride is always deleted too. Because recurrent rides are all scheduled, most\
+        \ of them are completed erases when changing or removing the recurrence pattern.\
+        \ This behaviour prevents the cluttering of the list of cancelled rides.\n\
+        \nThere is a fine line between a cancelled ride and a deleted ride. A ride\
+        \ can only be cancelled when scheduled or planned. Cancelling a ride means\
+        \ it is no longer valid. A cancelled ride still appears in the list. Deleting\
+        \ a ride is only possible when the state of the ride is cancelled or completed."
     parameters:
     - name: rideId
       description: A unique identifier for a `Ride`.
