@@ -687,6 +687,13 @@ paths:
         schema:
           type: string
         in: query
+      - name: hard
+        description: If set to true, then set the deleted flag of the trip. Deleted
+          trip do not whow up in the regular listing.
+        schema:
+          type: boolean
+        in: query
+        required: false
       responses:
         "204":
           description: Succesful response, trip is deleted.
@@ -696,7 +703,9 @@ paths:
           $ref: '#/components/responses/Gone'
       operationId: deleteTrip
       summary: Delete a Trip
-      description: Deletes an existing `Trip`.
+      description: Deletes an existing `Trip`. A trip is cancelled if still in `SCHEDULED`
+        state. If the `hard` flag is set the trip will no longer appear in the regular
+        listing.
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
