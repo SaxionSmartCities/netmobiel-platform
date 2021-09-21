@@ -792,6 +792,12 @@ paths:
       description: |
         Gets the details of a single instance of a `TripPlan`. Only the traveller, a delegate and the system administrator can see all itineraries.
     delete:
+      parameters:
+      - name: reason
+        description: Optional. The reason why the shout-out was cancelled.
+        schema:
+          type: string
+        in: query
       responses:
         "204":
           description: Success response, the plan is cancelled.
