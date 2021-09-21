@@ -168,23 +168,4 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
     	return rsp;
 	}
 
-	/**
-	 * Deprecated. Cancels a shout-out. Only an open shout-out can be cancelled. 
-	 * An already closed shout-out is ignored. It is an error to close a non-shout-out plan.
-	 * Only the admin or the effective owner can close a shout-out.
-	 */
-	@Override
-	public Response cancelShoutOutPlan(String shoutOutPlanId) {
-    	Response rsp = null;
-		try {
-        	Long tid = UrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
-			tripPlanManager.cancelShoutOut(tid);
-			rsp = Response.noContent().build();
-		} catch (BusinessException e) {
-			throw new WebApplicationException(e);
-		}
-    	return rsp;
-	}
-
-
 }
