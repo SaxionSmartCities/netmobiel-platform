@@ -162,16 +162,17 @@ public class RidesResource implements RidesApi {
      * @param scope The scope of the delete action in case of a recurrent ride: Only this one or this one and all following.
      * 		If not set then the scope is set to THIS.
      * @param reason The (optional) reason why the ride was cancelled.
+     * @param hard If set to true then remove the ride from the listing.
      * @return
      */
     @SuppressWarnings("resource")
 	@Override
-	public Response deleteRide(String rideId, String scope, String reason) {
+	public Response deleteRide(String rideId, String scope, String reason, Boolean hard) {
     	Response rsp = null;
     	try {
     		RideScope rs = scope == null ? RideScope.THIS: RideScope.lookup(scope);
         	Long cid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
-			rideManager.removeRide(cid, reason, rs);
+			rideManager.removeRide(cid, reason, rs, Boolean.TRUE.equals(hard));
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);

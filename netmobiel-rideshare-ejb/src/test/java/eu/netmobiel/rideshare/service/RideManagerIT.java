@@ -256,14 +256,14 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 				.getSingleResult();
 		assertNotNull(rdb);
 		flush();
-		rideManager.removeRide(rideId, null, null);
+		rideManager.removeRide(rideId, null, null, true);
 		Long count = em.createQuery("select count(r) from Ride r where id = :id", Long.class)
 				.setParameter("id", rideId)
 				.getSingleResult();
 		assertEquals(0L, count.longValue());
 		try {
 			expectFailure();
-			rideManager.removeRide(rideId, null, null);
+			rideManager.removeRide(rideId, null, null, true);
 			fail("Expected a NotFoundException");
 		} catch (Exception ex) {
 			assertTrue(ex instanceof NotFoundException);
@@ -286,7 +286,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		b.setState(BookingState.CONFIRMED);
 		em.persist(b);
 		flush();
-		rideManager.removeRide(rideId, null, null);
+		rideManager.removeRide(rideId, null, null, true);
 		Long count = em.createQuery("select count(r) from Ride r where r.id = :id and r.deleted = true", Long.class)
 				.setParameter("id", rideId)
 				.getSingleResult();
@@ -296,7 +296,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		flush();
 		try {
 			expectFailure();
-			rideManager.removeRide(rideId, null, null);
+			rideManager.removeRide(rideId, null, null, true);
 			fail("Expected a SoftRemovedException");
 		} catch (Exception ex) {
 			assertTrue(ex instanceof SoftRemovedException);
@@ -335,7 +335,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 				.getSingleResult();
 		assertEquals(nrRides, count.longValue());
 		
-		rideManager.removeRide(rideId, null, null);
+		rideManager.removeRide(rideId, null, null, true);
 		flush();
 		count = em.createQuery("select count(r) from Ride r where r.rideTemplate = :template", Long.class)
 				.setParameter("template", template)
@@ -364,7 +364,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 				.getSingleResult();
 		assertEquals(nrRides, count.longValue());
 		
-		rideManager.removeRide(rideId, null, RideScope.THIS_AND_FOLLOWING);
+		rideManager.removeRide(rideId, null, RideScope.THIS_AND_FOLLOWING, true);
 		flush();
 		count = em.createQuery("select count(r) from Ride r where r.rideTemplate = :template", Long.class)
 				.setParameter("template", template)

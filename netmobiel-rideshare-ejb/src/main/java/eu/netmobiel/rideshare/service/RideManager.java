@@ -468,7 +468,7 @@ public class RideManager {
     	List<Ride> rides = rideDao.loadGraphs(rideIds, Ride.LIST_RIDES_ENTITY_GRAPH, Ride::getId);
     	for (Ride r : rides) {
 			if (! r.hasActiveBooking()) {
-				removeRide(r, "Template has changed");
+				removeRide(r, "Template has changed", true);
 			}
 		}
     	if (! ride.hasActiveBooking()) {
@@ -667,20 +667,23 @@ public class RideManager {
     	checkRideMonitoring(ridedb);
     }
     
-    private void removeRideById(Long rideId, final String reason) {
+    private void removeRideById(Long rideId, final String reason, boolean hard) {
 		try {
 			Ride ridedb = rideDao.find(rideId)
-					.orElseThrow(NotFoundException::new);
-			removeRide(ridedb, reason);
+					.orElseThrow(() -> new NotFoundException("No such ride: " + rideId));
+			removeRide(ridedb, reason, hard);
 		} catch (BusinessException e) {
 			log.warn(String.format("Ride %d not found or not removed, ignoring...", rideId));
 		}
     }
 
-    private void removeRide(Ride ridedb, final String reason) throws BusinessException {
+    private void removeRide(Ride ridedb, final String reason, boolean hard) throws BusinessException {
     	if (ridedb.getState().isFinalState()) {
     		// Already completed or cancelled. 
-    		ridedb.setDeleted(true);
+    		if (hard) {
+	    		// Remove the ride from the listing
+	    		ridedb.setDeleted(true);
+    		}
     	} else if (! ridedb.getState().isPreTravelState()) {
     		// travelling, validating
     		throw new RemoveException(String.format("Cannot cancel ride %s; state %s forbids", ridedb.getId(), ridedb.getState()));
@@ -688,11 +691,15 @@ public class RideManager {
         	cancelRideTimers(ridedb);
 	    	if (ridedb.getBookings().size() > 0) {
 	    		updateRideState(ridedb, RideState.CANCELLED);
-	    		ridedb.setCancelReason(reason);
+	    		if (reason != null && !reason.isBlank()) {
+	    			ridedb.setCancelReason(reason.trim());
+	    		}
 	    		// Allow other parties such as the booking manager to do their job too
 	    		EventFireWrapper.fire(rideRemovedEvent, ridedb);
-	    		// Remove the ride from the listing too (for now)
-	    		ridedb.setDeleted(true);
+	    		if (hard) {
+		    		// Remove the ride from the listing
+		    		ridedb.setDeleted(true);
+	    		}
 			} else {
 				rideDao.remove(ridedb);
 			}
@@ -709,21 +716,22 @@ public class RideManager {
      * @param rideId The ride to remove.
      * @param reason The reason why it was cancelled (optional).
      * @param scope The extent of deletion in case of a recurrent ride. Default RideScope.THIS.  
+     * @param hard If set to true then remove the ride from the listing.
      * @throws BusinessException 
      */
-    public void removeRide(Long rideId, final String reason, RideScope scope) throws BusinessException {
+    public void removeRide(Long rideId, final String reason, RideScope scope, boolean hard) throws BusinessException {
     	Ride ridedb = rideDao.find(rideId)
     			.orElseThrow(NotFoundException::new);
     	if (ridedb.isDeleted()) {
     		throw new SoftRemovedException();
     	}
-    	removeRide(ridedb, reason);
+    	removeRide(ridedb, reason, hard);
     	if (ridedb.getRideTemplate() != null) {
     		// Recurrent ride
     		if (scope == RideScope.THIS_AND_FOLLOWING) {
 	    		// Deletes this ride and all that follow
 	    		rideDao.findFollowingRideIds(ridedb.getRideTemplate(), ridedb.getDepartureTime())
-	    			.forEach(rid -> removeRideById(rid, reason));
+	    			.forEach(rid -> removeRideById(rid, reason, hard));
 	        	limitTemplateHorizonUpToRide(ridedb.getRideTemplate(), ridedb);
     		}
     		checkIfTemplateObsoleted(ridedb.getRideTemplate());
