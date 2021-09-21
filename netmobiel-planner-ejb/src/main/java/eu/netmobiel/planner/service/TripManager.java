@@ -346,24 +346,31 @@ public class TripManager {
      * cancelled by the transport provider. 
      * @param tripId The trip to remove.
      * @param reason The reason for cancelling the trip (optional).
+     * @param hard If set then set the delete flag. The trip will no longer appear in the regular listing. 
      * @throws BusinessException 
      */
-    public void removeTrip(Long tripId, String reason) throws BusinessException {
+    public void removeTrip(Long tripId, String reason, boolean hard) throws BusinessException {
     	Trip tripdb = tripDao.find(tripId)
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripId));
-    	if (! Boolean.TRUE.equals(tripdb.getCancelledByProvider())) {
-    		// Not already cancelled by the provider, so set my own reason for cancelling. 
-    		tripdb.setCancelledByProvider(false);
-    		tripdb.setCancelReason(reason);
-    	}
-    	//FIXME State handling is not robust enough
-       	if (! tripdb.getState().isFinalState() && tripdb.getItinerary().getLegs() != null) {
-       		for (Leg leg : tripdb.getItinerary().getLegs()) {
-       			removeTripLeg(tripdb, leg, reason);
-			}
+       	if (! tripdb.getState().isFinalState()) {
+        	if (! Boolean.TRUE.equals(tripdb.getCancelledByProvider())) {
+        		// Not already cancelled by the provider, so set my own reason for cancelling. 
+        		tripdb.setCancelledByProvider(false);
+        		if (reason != null && !reason.isBlank()) {
+        			tripdb.setCancelReason(reason.trim());
+        		}
+        	}
+       		if (tripdb.getItinerary().getLegs() != null) {
+           		for (Leg leg : tripdb.getItinerary().getLegs()) {
+           			removeTripLeg(tripdb, leg, reason);
+    			}
+       		}
+       		updateTripState(tripdb);
        	}
-   		tripdb.setDeleted(true);
-   		updateTripState(tripdb);
+       	if (hard) {
+       		// Delete from the list too
+       		tripdb.setDeleted(true);
+       	}
     }
 
     private void removeTripLeg(Trip tripdb, Leg leg, String reason) throws BusinessException {
@@ -383,7 +390,7 @@ public class TripManager {
 	    		}
 	    	}
 			leg.setState(TripState.CANCELLED);
-			// FIXME This is probably not intended, it looks silly 
+    		// Not already cancelled by the provider, so set make that explicit (not null anymore)
 			if (! Boolean.TRUE.equals(leg.getCancelledByProvider())) {
 				leg.setCancelledByProvider(false);
 			}

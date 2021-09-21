@@ -134,7 +134,7 @@ public class PlansResource extends PlannerResource implements PlansApi {
 	 * Only the admin or the effective owner can close a shout-out.
 	 */
 	@Override
-	public Response cancelPlan(String xDelegator, String shoutOutPlanId) {
+	public Response cancelPlan(String xDelegator, String shoutOutPlanId, String reason) {
     	Response rsp = null;
 		try {
         	Long tid = UrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
@@ -142,7 +142,7 @@ public class PlansResource extends PlannerResource implements PlansApi {
         	TripPlan plan = tripPlanManager.getShoutOutPlan(tid);
 			CallingContext<PlannerUser> context = userManager.findCallingContext(securityIdentity);
         	allowAdminOrEffectiveUser(request, context, plan.getTraveller());
-			tripPlanManager.cancelShoutOut(tid);
+			tripPlanManager.cancelShoutOut(tid, reason);
 			rsp = Response.noContent().build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);

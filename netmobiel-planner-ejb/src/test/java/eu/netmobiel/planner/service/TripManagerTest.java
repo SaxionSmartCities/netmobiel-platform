@@ -326,7 +326,7 @@ public class TripManagerTest {
 	@Test
 	public void testRemoveTrip_NotFound() {
 		try {
-			tested.removeTrip(34L, null);
+			tested.removeTrip(34L, null, true);
 			fail("Expected exception: NotFound");
 		} catch (NotFoundException ex) {
 			log.debug("Anticipated exception: " + ex);
@@ -351,7 +351,7 @@ public class TripManagerTest {
 			result = trip;
 		}};
 		try {
-			tested.removeTrip(trip.getId(), reason);
+			tested.removeTrip(trip.getId(), reason, true);
 		} catch (BusinessException ex) {
 			fail("Unexpected exception: " + ex);
 		}

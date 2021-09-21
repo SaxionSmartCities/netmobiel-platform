@@ -208,14 +208,14 @@ public class TripsResource extends PlannerResource implements TripsApi {
 	}
 
 	@Override
-	public Response deleteTrip(String xDelegator, String tripId, String reason) {
+	public Response deleteTrip(String xDelegator, String tripId, String reason, Boolean hard) {
     	Response rsp = null;
     	try {
         	Long tid = UrnHelper.getId(Trip.URN_PREFIX, tripId);
 			Trip trip = tripManager.getTripBasics(tid);
 			CallingContext<PlannerUser> context = userManager.findCallingContext(securityIdentity);
         	allowAdminOrEffectiveUser(request, context, trip.getTraveller());
-			tripManager.removeTrip(tid, reason);
+			tripManager.removeTrip(tid, reason, Boolean.TRUE.equals(hard));
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);

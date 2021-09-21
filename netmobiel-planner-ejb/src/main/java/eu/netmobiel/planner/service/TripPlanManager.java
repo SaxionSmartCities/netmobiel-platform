@@ -627,16 +627,18 @@ public class TripPlanManager {
     /**
      * Cancels a shout-out, i.e., the plan is no longer receiving itineraries. 
      * @param id the id of the trip plan
+     * @param reason the optional reason to cancel the shout-out.
      * @throws BusinessException 
      */
-    public void cancelShoutOut(Long id) throws BusinessException {
+    public void cancelShoutOut(Long id, String reason) throws BusinessException {
     	TripPlan plan = tripPlanDao.find(id)
     			.orElseThrow(() -> new NotFoundException("No such trip plan: " + id));
     	if (plan.getPlanType() != PlanType.SHOUT_OUT) {
     		throw new BadRequestException("Plan is not a shout-out: " + id);
     	}
     	if (plan.isOpen()) {
-        	cancelBookedLegs(plan, Optional.empty(), "Plan is geannuleerd");
+        	cancelBookedLegs(plan, Optional.empty(), 
+        			reason != null && !reason.isBlank() ? reason : "Oproep is geannuleerd");
     		plan.close();
     	}
     }
