@@ -863,17 +863,6 @@ paths:
         suggested plan (potential  from any transport provider) must at least contain
         the two stops close (100 meter) to the departure, resp. destination location
         of the traveller.
-    delete:
-      responses:
-        "204":
-          description: Success response, the plan is cancelled.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: cancelShoutOutPlan
-      summary: Cancels a plan
-      description: "Deprecated. Use /plans. \n\nThe traveller cancels a plan. All\
-        \ booking proposals are cancelled. The shout-out is closed, no more proposals\
-        \ can be added."
     parameters:
     - name: shoutOutPlanId
       description: A reference to the shout-out plan of the traveller. The reference
