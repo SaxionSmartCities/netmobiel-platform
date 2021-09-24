@@ -60,7 +60,7 @@ public class RidesResource implements RidesApi {
 	public Response listRides(String driverId, OffsetDateTime since, OffsetDateTime until, String state, String bookingState,
     		String siblingRideId, Boolean deletedToo, String sortDir, Integer maxResults, Integer offset) {
     	Response rsp = null;
-    	if (since == null) {
+    	if (since == null && until == null) {
     		since = OffsetDateTime.now();
     	}
 

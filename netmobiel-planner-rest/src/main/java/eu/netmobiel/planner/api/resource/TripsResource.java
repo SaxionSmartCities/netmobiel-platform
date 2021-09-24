@@ -124,6 +124,9 @@ public class TripsResource extends PlannerResource implements TripsApi {
 		try {
 			TripState state = tripState == null ? null : TripState.valueOf(tripState);
 			SortDirection sortDirection = sortDir == null ? SortDirection.ASC : SortDirection.valueOf(sortDir);
+	    	if (since == null && until == null) {
+	    		since = OffsetDateTime.now();
+	    	}
 			CallingContext<PlannerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
     		PlannerUser traveller = null;
 	    	if (userRef == null) {
