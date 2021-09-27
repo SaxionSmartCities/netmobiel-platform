@@ -30,7 +30,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
 @NamedEntityGraph()
 @Entity
-@Table(name = "car", uniqueConstraints = @UniqueConstraint(name="car_uc", columnNames = {"driver", "registration_country", "license_plate"}))
+@Table(name = "car", uniqueConstraints = @UniqueConstraint(name="car_uc", columnNames = {"driver", "registration_country", "license_plate_raw"}))
 @Vetoed
 @SequenceGenerator(name = "car_sg", sequenceName = "car_id_seq", allocationSize = 1, initialValue = 50)
 public class Car extends ReferableObject implements Serializable {
@@ -61,27 +61,42 @@ public class Car extends ReferableObject implements Serializable {
     @Column(name = "registration_country", length = 3)
     private String registrationCountry;
 
+    /**
+     * The license plate without dashes and spaces.
+     */
+    @NotNull
+    @Size(min = 1, max = 12)
+    @Column(name = "license_plate_raw", length = 12)
+    private String licensePlateRaw;
+
+    /**
+     * The license plate formatted by the user.
+     */
     @NotNull
     @Size(min = 1, max = 16)
     @Column(name = "license_plate", length = 16)
     private String licensePlate;
 
-
+    /**
+     * The brand of the car, e.g. Volvo
+     */
     @NotNull
     @NotEmpty
     @Size(max = 32)
     private String brand;
 
+    /**
+     * The model of the car, e.g. V70
+     */
     @NotNull
     @NotEmpty
     @Size(max = 64)
     private String model;
     
-	@NotNull
+    @NotNull
 	@Column(length = 3)
     private CarType type;
 
-    @NotNull
     @NotEmpty
     @Size(max = 16)
     private String color;
@@ -128,6 +143,14 @@ public class Car extends ReferableObject implements Serializable {
 	@Override
 	public String getUrnPrefix() {
 		return URN_PREFIX;
+	}
+
+	public String getLicensePlateRaw() {
+		return licensePlateRaw;
+	}
+
+	public void setLicensePlateRaw(String licensePlateRaw) {
+		this.licensePlateRaw = licensePlateRaw;
 	}
 
 	public String getLicensePlate() {
@@ -270,8 +293,10 @@ public class Car extends ReferableObject implements Serializable {
 
 	@Override
 	public String toString() {
-		return String.format("Car [%s %s %s]", registrationCountry, licensePlate, driverRef);
+		return String.format("Car [%s %s %s]", registrationCountry, licensePlateRaw, driverRef);
 	}
 
-   
+	public static String unformatPlate(String plate) {
+		return plate.replaceAll("[\\s-]", "").toUpperCase();
+	}
 }

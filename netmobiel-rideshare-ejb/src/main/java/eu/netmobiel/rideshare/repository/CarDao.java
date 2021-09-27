@@ -54,22 +54,22 @@ public class CarDao extends AbstractDao<Car, Long> {
         return tq.getResultList();
     }
 
-    public Optional<Car> findByDriverandPlate(RideshareUser driver, String countryCode, String licensePlate) {
+    public Optional<Car> findByDriverandPlate(RideshareUser driver, String countryCode, String licensePlateRaw) {
     	TypedQuery<Car> tq = em.createQuery(
-    			"from Car c where driver = :driver and registrationCountry = :country and licensePlate = :plate", Car.class)
+    			"from Car c where driver = :driver and registrationCountry = :country and licensePlateRaw = :plate", Car.class)
     			.setParameter("driver", driver)
     			.setParameter("country", countryCode)
-    			.setParameter("plate", licensePlate);
+    			.setParameter("plate", licensePlateRaw);
     	List<Car> cars = tq.getResultList();
     	return cars.isEmpty() ? Optional.empty() : Optional.of(cars.get(0));
     }
 
     public boolean exists(Car c) {
     	return em.createQuery("select count(*) from Car " + 
-    			"where driver = :driver and registrationCountry = :country and licensePlate = :plate", Long.class)
+    			"where driver = :driver and registrationCountry = :country and licensePlateRaw = :plate", Long.class)
     			.setParameter("driver", c.getDriver())
     			.setParameter("country", c.getRegistrationCountry())
-    			.setParameter("plate", c.getLicensePlate())
+    			.setParameter("plate", c.getLicensePlateRaw())
     			.getSingleResult() != 0;
     }
     

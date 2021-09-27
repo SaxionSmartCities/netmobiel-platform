@@ -68,7 +68,8 @@ public class RideshareUserManager extends UserManager<RideshareUserDao, Rideshar
     public Long createCar(Car car) throws CreateException {
     	RideshareUser caller = findOrRegisterCallingUser();
     	car.setDriver(caller);
-    	Car cardb = carDao.findByDriverandPlate(caller, car.getRegistrationCountry(), car.getLicensePlate())
+    	car.setLicensePlateRaw(Car.unformatPlate(car.getLicensePlate()));
+    	Car cardb = carDao.findByDriverandPlate(caller, car.getRegistrationCountry(), car.getLicensePlateRaw())
     				.orElse(null);
     	if (cardb == null) {
     		// New car for this user
@@ -76,7 +77,6 @@ public class RideshareUserManager extends UserManager<RideshareUserDao, Rideshar
     	} else if (Boolean.TRUE.equals(cardb.getDeleted())) {
     		// Car was soft-deleted, but is restored
     		car.setId(cardb.getId());
-    		car.setDriver(caller);
     		carDao.merge(car);
     	} else {
     		// Car already exists for this user

@@ -44,20 +44,19 @@ public class RDWCarLicenseDao {
 
     @SuppressWarnings("el-syntax")
     public Car fetchDutchLicensePlateInformation(String plate) throws IOException {
-		plate = plate.toUpperCase();
+		String plateRaw = Car.unformatPlate(plate);
 		Map<String, String> valuesMap = new HashMap<>();
 		valuesMap.put("APP_TOKEN", rdwAppToken);
-		valuesMap.put("KENTEKEN", plate.replace("-", ""));
+		valuesMap.put("KENTEKEN", plateRaw);
 		StringSubstitutor substitutor = new StringSubstitutor(valuesMap, "#{", "}");
 		String url = substitutor.replace(rdwVoertuigenUrl);
 		Client client = ClientBuilder.newBuilder().build();
 		WebTarget target = client.target(url);
 		String result = null;
-		log.debug(String.format("RDW voertuig for %s", plate));
 		Car car = null;
 		try (Response response = target.request().get()) {
 	        result = response.readEntity(String.class);
-	        car = convertRDW2Car(plate, result);
+	        car = convertRDW2Car(plateRaw, plate, result);
 		} catch (IOException e) {
 			log.error("Unable to parse RDW license JSON - " + e.toString());
 			throw e;
@@ -67,7 +66,7 @@ public class RDWCarLicenseDao {
 			target = client.target(url);
 			try (Response response = target.request().get()) {
 		        result = response.readEntity(String.class);
-		        convertRDWFuel2Car(car, plate, result);
+		        convertRDWFuel2Car(car, plateRaw, result);
 			} catch (IOException e) {
 				log.error("Unable to parse RDW fuel JSON - " + e.toString());
 				throw e;
@@ -76,7 +75,7 @@ public class RDWCarLicenseDao {
         return car;
     }
 
-    private Car convertRDW2Car(String plate, String json) throws IOException {
+    private Car convertRDW2Car(String plateRaw, String plate, String json) throws IOException {
     	Car car = null;
     	try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
     		JsonArray licenseList = jsonReader.readArray();
@@ -87,10 +86,18 @@ public class RDWCarLicenseDao {
             }
             JsonObject node = licenseList.get(0).asJsonObject();
             car = new Car();
+    		car.setLicensePlateRaw(plateRaw);
     		car.setLicensePlate(plate);
+    		if (!plateRaw.equals(node.getString("kenteken", null))) {
+    			log.warn(String.format("Inconsistent license plate format: RDW %s vs NetMobiel %s", node.getString("kenteken", null), plateRaw));
+    		}
+    		car.setLicensePlateRaw(node.getString("kenteken", null));
             car.setBrand(node.getString("merk", null));
             car.setModel(node.getString("handelsbenaming", null));
-            car.setColor(node.getString("eerste_kleur", null));
+            String color = node.getString("eerste_kleur", null);
+            if (!color.equalsIgnoreCase("Niet geregistreerd")) {
+            	car.setColor(color);
+            }
             String color2 = node.getString("tweede_kleur", null);
             if (!color2.equalsIgnoreCase("Niet geregistreerd")) {
             	car.setColor2(color2);
@@ -105,12 +112,10 @@ public class RDWCarLicenseDao {
             car.setNrSeats(getStringAsInt(node, "aantal_zitplaatsen"));
             car.setNrDoors(getStringAsInt(node, "aantal_deuren"));
             String ctype = node.getString("inrichting", null);
-            if (!ctype.equalsIgnoreCase("Niet geregistreerd")) {
-    	        car.setType(carTypeMapping.get(ctype));
-    	        if (car.getType() == null) {
-    	        	car.setType(CarType.OTHER);
-    	        }
-            }
+   	        car.setType(carTypeMapping.get(ctype));
+	        if (car.getType() == null) {
+	        	car.setType(CarType.OTHER);
+	        }
 //          String soort = node.get("voertuigsoort").asText();
             car.setTypeRegistrationId(node.getString("typegoedkeuringsnummer", null));
     	}
@@ -122,13 +127,13 @@ public class RDWCarLicenseDao {
     	return StringUtils.isNumeric(s) ? Integer.parseInt(s) : null;
     }
     
-    private void convertRDWFuel2Car(Car car, String plate, String json) throws IOException {
+    private void convertRDWFuel2Car(Car car, String plateRaw, String json) throws IOException {
     	try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
         	JsonArray cars = jsonReader.readArray();
         	if (cars.size() == 0) { 
                 return;
             } else if (cars.size() > 1) {
-            	log.warn(String.format("Multiple fuel results for plate %s", plate));
+            	log.warn(String.format("Multiple fuel results for plate %s", plateRaw));
             }
             JsonObject node = cars.get(0).asJsonObject();
             car.setCo2Emission(getStringAsInt(node, "co2_uitstoot_gecombineerd"));
@@ -143,6 +148,7 @@ public class RDWCarLicenseDao {
     	carTypeMapping.put("MPV", CarType.SUV);
     	carTypeMapping.put("sedan", CarType.SALOON);
     	carTypeMapping.put("stationwagen", CarType.ESTATE);
+    	carTypeMapping.put("Niet geregistreerd", CarType.OTHER);
     }
     
 // Alle voertuigsoorten
