@@ -824,6 +824,7 @@ components:
       - licensePlate
       - brand
       - model
+      - type
       type: object
       properties:
         registrationCountry:
