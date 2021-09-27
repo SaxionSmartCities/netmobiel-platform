@@ -825,6 +825,7 @@ components:
       - brand
       - model
       - type
+      - licensePlateRaw
       type: object
       properties:
         registrationCountry:
@@ -890,6 +891,9 @@ components:
           type: boolean
         carRef:
           description: The urn reference to this car. Use this value in references.
+          type: string
+        licensePlateRaw:
+          description: 'The license plate without any markup: No spaces, dashes, uppercase.'
           type: string
     User:
       description: "A user in the ride share service. A user can have a role as a\
