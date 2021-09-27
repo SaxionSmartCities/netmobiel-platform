@@ -19,7 +19,7 @@ public class ProfileTest {
 	@Test
 	public void createProfile_Default() {
 		Profile p = new Profile();
-		p.linkOneToOneChildren();
+		p.initializeChildren();
 		assertNotNull(p.getConsent());
 //		assertNull(p.getHomeAddress());
 //		assertNull(p.getHomeLocation());
@@ -32,7 +32,7 @@ public class ProfileTest {
 	@Test
 	public void createProfile_NetMobielPassenger() {
 		Profile p = new Profile(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl", UserRole.PASSENGER);
-		p.linkOneToOneChildren();
+		p.initializeChildren();
 		assertNotNull(p.getConsent());
 //		assertNull(p.getHomeAddress());
 //		assertNull(p.getHomeLocation());
@@ -44,7 +44,7 @@ public class ProfileTest {
 	@Test
 	public void createProfile_NetMobielDriver() {
 		Profile p = new Profile(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl", UserRole.DRIVER);
-		p.linkOneToOneChildren();
+		p.initializeChildren();
 		assertNotNull(p.getConsent());
 //		assertNull(p.getHomeAddress());
 //		assertNull(p.getHomeLocation());
@@ -56,7 +56,7 @@ public class ProfileTest {
 	@Test
 	public void createProfile_NetMobielBoth() {
 		Profile p = new Profile(null, "Jaap", "Reitsma", "j.reitsma@saxion.nl", UserRole.BOTH);
-		p.linkOneToOneChildren();
+		p.initializeChildren();
 		assertNotNull(p.getConsent());
 //		assertNull(p.getHomeAddress());
 //		assertNull(p.getHomeLocation());
