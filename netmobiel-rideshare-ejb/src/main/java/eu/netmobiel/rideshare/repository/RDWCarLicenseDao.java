@@ -87,7 +87,7 @@ public class RDWCarLicenseDao {
             JsonObject node = licenseList.get(0).asJsonObject();
             car = new Car();
     		car.setLicensePlateRaw(plateRaw);
-    		car.setLicensePlate(plate);
+    		car.setLicensePlate(plate.toUpperCase().trim());
     		if (!plateRaw.equals(node.getString("kenteken", null))) {
     			log.warn(String.format("Inconsistent license plate format: RDW %s vs NetMobiel %s", node.getString("kenteken", null), plateRaw));
     		}
