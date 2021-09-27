@@ -94,10 +94,7 @@ public class RDWCarLicenseDao {
     		car.setLicensePlateRaw(node.getString("kenteken", null));
             car.setBrand(node.getString("merk", null));
             car.setModel(node.getString("handelsbenaming", null));
-            String color = node.getString("eerste_kleur", null);
-            if (!color.equalsIgnoreCase("Niet geregistreerd")) {
-            	car.setColor(color);
-            }
+           	car.setColor(node.getString("eerste_kleur", null));
             String color2 = node.getString("tweede_kleur", null);
             if (!color2.equalsIgnoreCase("Niet geregistreerd")) {
             	car.setColor2(color2);
