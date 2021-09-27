@@ -823,7 +823,6 @@ components:
       - registrationCountry
       - licensePlate
       - brand
-      - type
       - model
       type: object
       properties:
@@ -840,7 +839,8 @@ components:
           description: The particular model of the Car.
           type: string
         type:
-          description: The general type of the car.
+          description: The general type of the car. Not always registered for really
+            old cars.
           enum:
           - CONVERTIBLE
           - COUPE
