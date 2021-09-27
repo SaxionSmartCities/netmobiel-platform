@@ -44,6 +44,8 @@ public abstract class TripPlanMapper {
     @Mapping(target = "traveller", ignore = true)
     @Mapping(target = "traverseModes", ignore = true)
     @Mapping(target = "useAsArrivalTime", ignore = true)
+    @Mapping(target = "geodesicDistance", ignore = true)
+    @Mapping(target = "referenceItinerary", ignore = true)
     public abstract eu.netmobiel.planner.model.TripPlan map(TripPlan source );
 
     @Mapping(target = "label", source = "name")
@@ -98,6 +100,7 @@ public abstract class TripPlanMapper {
     @Mapping(target = "confirmationReason", ignore = true)
     @Mapping(target = "confirmationReasonByProvider", ignore = true)
     @Mapping(target = "cancelledByProvider", ignore = true)
+    @Mapping(target = "shoutOutRef", ignore = true)
     public abstract eu.netmobiel.planner.model.Leg legToLeg(Leg leg);
     
     @Mapping(target = "name", source = "streetName")
