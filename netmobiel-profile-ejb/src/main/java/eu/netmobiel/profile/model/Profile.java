@@ -389,7 +389,7 @@ public class Profile extends User  {
 	/**
 	 * Assures that required associations and embedded objects are defined. 
 	 */
-	public void linkOneToOneChildren() {
+	public void initializeChildren() {
 		if (this.notificationOptions == null) {
 			this.notificationOptions = NotificationOptions.createDefault();
 		}
@@ -404,14 +404,21 @@ public class Profile extends User  {
 				searchPreferences = SearchPreferences.createDefault(this);
 			}
 		}
-		if (this.searchPreferences != null) {
-			if (this.searchPreferences.getProfile() == null) {
-				this.searchPreferences.setProfile(this);
-			}
-		}
 		if (userRole == UserRole.DRIVER || userRole == UserRole.BOTH) {
 			if (ridesharePreferences == null) {
 				ridesharePreferences = RidesharePreferences.createDefault(this);
+			}
+		}
+		// Once the preferences are present, they will not be removed on a change of role.
+	}
+
+	/**
+	 * Assures that child association are correct. 
+	 */
+	public void linkOneToOneChildren() {
+		if (this.searchPreferences != null) {
+			if (this.searchPreferences.getProfile() == null) {
+				this.searchPreferences.setProfile(this);
 			}
 		}
 		if (this.ridesharePreferences != null) {
@@ -419,7 +426,6 @@ public class Profile extends User  {
 				this.ridesharePreferences.setProfile(this);
 			}
 		}
-		// Once the preferences are present, they will not be removed on a change of role.
 	}
 	
 	public boolean isPassenger() {

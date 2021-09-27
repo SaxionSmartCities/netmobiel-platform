@@ -188,7 +188,7 @@ public class ProfileManager {
     	}
 
 		// Note: If the profile already exists (i.e. same email address), then a constraint violation will occur.
-		profile.linkOneToOneChildren();
+		profile.initializeChildren();
 		profileDao.save(profile);
 		if (profile.getSearchPreferences() != null) {
 			searchPreferencesDao.save(profile.getSearchPreferences());				
@@ -267,13 +267,16 @@ public class ProfileManager {
 		// Overwrite whatever image path is provided
 		newProfile.setImagePath(dbprofile.getImagePath());
 		dbprofile = profileDao.merge(newProfile);
-		// Transient properties are null now
+		// Transient properties are null now: dbprofile.getSearchPreferences, dbprofile.getRidesharePreferences
 		
 		// Copy the database identifiers
-		if (newProfile.getSearchPreferences() != null && newProfile.getSearchPreferences().getNumberOfPassengers() == 0) {
-			// Silly value, get rid of the object
-			newProfile.setSearchPreferences(null);
-		}
+//		if (newProfile.getSearchPreferences() != null && newProfile.getSearchPreferences().getNumberOfPassengers() == 0) {
+//			newProfile.getSearchPreferences().setNumberOfPassengers(1);
+//		}
+		logger.debug(String.format("DbProfile HC: %d, DbProfile.SearchPref: %d, DbSearchPref: %d", 
+				System.identityHashCode(dbprofile), System.identityHashCode(dbprofile.getSearchPreferences()), System.identityHashCode(searchPrefsDb)));
+		logger.debug(String.format("newProfile HC: %d, newProfile.SearchPref: %d, DbSearchPref: %d", 
+				System.identityHashCode(newProfile), System.identityHashCode(newProfile.getSearchPreferences()), System.identityHashCode(searchPrefsDb)));
 		if (newProfile.getSearchPreferences() != null) {
 			newProfile.getSearchPreferences().setProfile(dbprofile);
 			if (searchPrefsDb != null) {
@@ -285,10 +288,9 @@ public class ProfileManager {
 		} else {
 			// Ignore, we dont't remove preferences once they are set.
 		}
-		if (newProfile.getRidesharePreferences() != null && newProfile.getRidesharePreferences().getMaxPassengers() == 0) {
-			// Silly value, get rid of the object
-			newProfile.setRidesharePreferences(null);
-		}
+//		if (newProfile.getRidesharePreferences() != null && newProfile.getRidesharePreferences().getMaxPassengers() == 0) {
+//			newProfile.getRidesharePreferences().setMaxPassengers(1);;
+//		}
 		if (newProfile.getRidesharePreferences() != null) {
 			newProfile.getRidesharePreferences().setProfile(dbprofile);
 			if (ridePrefsDb != null) {
