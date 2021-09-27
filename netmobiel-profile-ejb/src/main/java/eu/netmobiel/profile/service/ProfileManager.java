@@ -41,7 +41,6 @@ import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
 import eu.netmobiel.profile.model.SearchPreferences;
-import eu.netmobiel.profile.model.UserRole;
 import eu.netmobiel.profile.repository.KeycloakDao;
 import eu.netmobiel.profile.repository.ProfileDao;
 import eu.netmobiel.profile.repository.RidesharePreferencesDao;
@@ -183,12 +182,10 @@ public class ProfileManager {
 				profile.setManagedIdentity(caller.get().getManagedIdentity());
 			}
 		}
-    	if (profile.getActingRole() == null) {
-    		profile.setActingRole(profile.getUserRole() == UserRole.BOTH ? UserRole.PASSENGER : profile.getUserRole());
-    	}
 
 		// Note: If the profile already exists (i.e. same email address), then a constraint violation will occur.
 		profile.initializeChildren();
+		profile.constrainActualRole();
 		profileDao.save(profile);
 		if (profile.getSearchPreferences() != null) {
 			searchPreferencesDao.save(profile.getSearchPreferences());				
@@ -260,12 +257,11 @@ public class ProfileManager {
     	// Assure key attributes are set
     	newProfile.setManagedIdentity(managedId);
     	newProfile.setId(dbprofile.getId());
-    	if (newProfile.getActingRole() == null) {
-    		newProfile.setActingRole(dbprofile.getActingRole());
-    	}
 		newProfile.linkOneToOneChildren();
 		// Overwrite whatever image path is provided
 		newProfile.setImagePath(dbprofile.getImagePath());
+		newProfile.constrainActualRole();
+
 		dbprofile = profileDao.merge(newProfile);
 		// Transient properties are null now: dbprofile.getSearchPreferences, dbprofile.getRidesharePreferences
 		

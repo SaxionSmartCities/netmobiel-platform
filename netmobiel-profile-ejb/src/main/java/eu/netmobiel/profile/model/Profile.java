@@ -467,4 +467,12 @@ public class Profile extends User  {
 	    }
 	    return defaultCountryCode;
 	}
+
+	public void constrainActualRole() {
+		if (getUserRole() == UserRole.PASSENGER || getUserRole() == UserRole.DRIVER) {
+			setActingRole(getUserRole());
+		} else if (getActingRole() != UserRole.PASSENGER && getActingRole() != UserRole.DRIVER) {
+			setActingRole(UserRole.PASSENGER);
+		}
+	}
 }
