@@ -438,10 +438,10 @@ public class LedgerService {
     }
     
     /**
-     * Event handler for handling new users. The ledger service must create and assign a personal monetary account.
+     * Adds a personal account to a new user. The ledger service must create and assign a personal monetary account.
      * @param dbUser the new user account. The user record. It must be persistent already.
      */
-    public void onNewUser(final @Observes(during = TransactionPhase.IN_PROGRESS) @Created BankerUser dbUser) {
+    public void addPersonalAccount(BankerUser dbUser) {
     	if (dbUser.getPersonalAccount() != null) {
 			throw new IllegalStateException("Not a new user, personal account exists already");
     	}    		
@@ -458,6 +458,14 @@ public class LedgerService {
 		dbUser.setPersonalAccount(acc);
     }
 
+    /**
+     * Event handler for handling new users. The ledger service must create and assign a personal monetary account.
+     * @param dbUser the new user account. The user record. It must be persistent already.
+     */
+    public void onNewUser(final @Observes(during = TransactionPhase.IN_PROGRESS) @Created BankerUser dbUser) {
+    	addPersonalAccount(dbUser);
+    }
+    
     public AccountingEntry getAccountingEntry(Long entryId) throws NotFoundException {
     	return accountingEntryDao.find(entryId)
     			.orElseThrow(() -> new NotFoundException("No such AccountingEntry: " + entryId));
