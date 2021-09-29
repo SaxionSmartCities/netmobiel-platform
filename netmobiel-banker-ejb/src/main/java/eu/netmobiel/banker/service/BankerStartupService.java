@@ -11,8 +11,6 @@ import javax.annotation.Resource;
 import javax.ejb.SessionContext;
 import javax.ejb.Singleton;
 import javax.ejb.Startup;
-import javax.ejb.TransactionAttribute;
-import javax.ejb.TransactionAttributeType;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -51,6 +49,7 @@ public class BankerStartupService {
    		bootstrapTheBank();
         state = States.STARTED;
         logger.info("Started");
+   		doMaintenance();
     }
 
     @PreDestroy
@@ -72,7 +71,6 @@ public class BankerStartupService {
     	}
    		ledgerService.prepareAccount(LedgerService.ACC_REF_BANKING_RESERVE, LedgerService.ACC_NAME_BANKING_RESERVE, AccountType.ASSET);
    		ledgerService.prepareAccount(LedgerService.ACC_REF_RESERVATIONS, LedgerService.ACC_NAME_RESERVATIONS, AccountType.LIABILITY);
-   		doMaintenance();
     }
 
     /**
@@ -83,13 +81,11 @@ public class BankerStartupService {
 		logger.info("Bankerusers without a personal account: #" + usersWithoutAccount.size());
 		// For each user: Add the account
 		for (BankerUser user: usersWithoutAccount) {
-			context.getBusinessObject(BankerStartupService.class).addPersonalAccount(user);
+			logger.info("Assigning a personal account to: " + user.getName());
+	    	ledgerService.addPersonalAccount(user);
+	    	// Cannot use following construct: Reentrant call not allowed in a postconstruct
+	    	// If wanted, then call this method from the Overseer.
+			// context.getBusinessObject(BankerStartupService.class).addPersonalAccount(user);
 		}
-    }
-
-	@TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-    public void addPersonalAccount(BankerUser usr) {
-		logger.info("Assigning a personal account to: " + usr.getName());
-    	ledgerService.addPersonalAccount(usr);
     }
 }
