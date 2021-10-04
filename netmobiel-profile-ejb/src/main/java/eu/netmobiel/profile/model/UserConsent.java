@@ -62,5 +62,7 @@ public class UserConsent implements Serializable {
 		this.safetyGuidelines = safetyGuidelines;
 	}
 	
-	
+	public boolean isAllAccepted() {
+		return isAcceptedTerms() && isOlderThanSixteen() && isSafetyGuidelines();
+	}
 }
