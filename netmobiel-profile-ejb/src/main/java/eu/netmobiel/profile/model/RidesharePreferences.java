@@ -45,7 +45,7 @@ import org.hibernate.annotations.OnDeleteAction;
 @Access(AccessType.FIELD)
 public class RidesharePreferences implements Serializable {
 	private static final long serialVersionUID = 7052181227403511232L;
-	private static final int DEFAULT_MAX_DETOUR_METERS = 10000;
+	private static final int DEFAULT_MAX_DETOUR_METERS = 20000;
 	private static final int DEFAULT_MAX_PASSENGERS = 1;
 	public static final String FULL_RIDESHARE_PREFS_ENTITY_GRAPH = "full-rideshare-prefs-entity-graph";
 	public static final String DEFAULT_RIDESHARE_PREFS_ENTITY_GRAPH = "default-rideshare-prefs-entity-graph";

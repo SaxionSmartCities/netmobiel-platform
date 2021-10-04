@@ -114,13 +114,13 @@ public class SearchPreferences implements Serializable {
      * Is (in a multilegged trip) a first leg with rideshare allowed (default)? Example: From home to a train station.
      */
 	@Column(name = "allow_first_leg_rideshare", nullable = false)
-    private boolean allowFirstLegRideshare = false;
+    private boolean allowFirstLegRideshare = true;
     
     /**
      * Is (in a multilegged trip) a last leg with rideshare allowed (default)? Example: train station to home.
      */
 	@Column(name = "allow_last_leg_rideshare", nullable = false)
-    private boolean allowLastLegRideshare = false;
+    private boolean allowLastLegRideshare = true;
     
     /**
      * The default eligible traverse modes.
