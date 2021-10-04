@@ -12,6 +12,7 @@ import eu.netmobiel.commons.api.ErrorResponse;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.exception.DuplicateEntryException;
 import eu.netmobiel.commons.exception.LegalReasonsException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.RemoveException;
@@ -44,6 +45,8 @@ public class BusinessExceptionMapper implements
 			status = Response.Status.BAD_REQUEST;
 		} else if (e instanceof NotFoundException) {
 			status = Response.Status.NOT_FOUND;
+		} else if (e instanceof DuplicateEntryException) {
+			status = Response.Status.CONFLICT;
 		} else if (e instanceof CreateException) {
 			status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
 		} else if (e instanceof UpdateException) {
