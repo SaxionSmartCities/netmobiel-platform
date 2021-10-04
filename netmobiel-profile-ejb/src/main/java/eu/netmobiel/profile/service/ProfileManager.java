@@ -25,6 +25,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.exception.DuplicateEntryException;
 import eu.netmobiel.commons.exception.LegalReasonsException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
@@ -143,8 +144,8 @@ public class ProfileManager {
 				StringUtils.isAllBlank(profile.getFamilyName())) {
 			throw new BadRequestException("Email, firstName and familyName are mandatory profile attributes");
 		}
-		if (!profile.getConsent().isAcceptedTerms() || !profile.getConsent().isOlderThanSixteen()) {
-			throw new LegalReasonsException("Terms have not been accepted.");
+		if (!profile.getConsent().isAllAccepted()) {
+			throw new LegalReasonsException("Not all Terms have been accepted.");
 		}
 		// In the current implementation the caller can be anonymous (old registration) of authenticated (new registration)
 		// If the keycloak id differs then the caller is registering a delegator profile.
@@ -165,6 +166,10 @@ public class ProfileManager {
 			// I am a keycloak user
 			Optional<Profile> myProfile = profileDao.getReferenceByManagedIdentity(caller.get().getManagedIdentity());
 		    if (myProfile.isPresent()) {
+		    	// Could I be creating my own profile again?
+		    	if (myProfile.get().getEmail().equals(profile.getEmail())) {
+		    		throw new DuplicateEntryException("A profile does already exist: " + profile.getEmail());
+		    	}
 		    	// Create a profile for someone else. Email is the key to lookup the profile
 				boolean privileged = sessionContext.isCallerInRole("admin") || sessionContext.isCallerInRole("delegate");
 				if (!privileged) {
@@ -174,7 +179,8 @@ public class ProfileManager {
 			    // Inform participant about the account, also check the communication means (phone number etc.)
 			    // Will throw BadRequestException is something is wrong
 			    // Let Hibernate initialize myProfile
-			    myProfile.get().getManagedIdentity();
+			    @SuppressWarnings("unused")
+				final String newId = myProfile.get().getManagedIdentity();
 			    delegatorAccountCreated = new DelegatorAccountCreatedEvent(myProfile.get(), profile);
 				createOrAttachKeycloakAccount(profile);
 		    } else {
@@ -269,10 +275,10 @@ public class ProfileManager {
 //		if (newProfile.getSearchPreferences() != null && newProfile.getSearchPreferences().getNumberOfPassengers() == 0) {
 //			newProfile.getSearchPreferences().setNumberOfPassengers(1);
 //		}
-		logger.debug(String.format("DbProfile HC: %d, DbProfile.SearchPref: %d, DbSearchPref: %d", 
-				System.identityHashCode(dbprofile), System.identityHashCode(dbprofile.getSearchPreferences()), System.identityHashCode(searchPrefsDb)));
-		logger.debug(String.format("newProfile HC: %d, newProfile.SearchPref: %d, DbSearchPref: %d", 
-				System.identityHashCode(newProfile), System.identityHashCode(newProfile.getSearchPreferences()), System.identityHashCode(searchPrefsDb)));
+//		logger.debug(String.format("DbProfile HC: %d, DbProfile.SearchPref: %d, DbSearchPref: %d", 
+//				System.identityHashCode(dbprofile), System.identityHashCode(dbprofile.getSearchPreferences()), System.identityHashCode(searchPrefsDb)));
+//		logger.debug(String.format("newProfile HC: %d, newProfile.SearchPref: %d, DbSearchPref: %d", 
+//				System.identityHashCode(newProfile), System.identityHashCode(newProfile.getSearchPreferences()), System.identityHashCode(searchPrefsDb)));
 		if (newProfile.getSearchPreferences() != null) {
 			newProfile.getSearchPreferences().setProfile(dbprofile);
 			if (searchPrefsDb != null) {
@@ -285,7 +291,7 @@ public class ProfileManager {
 			// Ignore, we dont't remove preferences once they are set.
 		}
 //		if (newProfile.getRidesharePreferences() != null && newProfile.getRidesharePreferences().getMaxPassengers() == 0) {
-//			newProfile.getRidesharePreferences().setMaxPassengers(1);;
+//			newProfile.getRidesharePreferences().setMaxPassengers(1);
 //		}
 		if (newProfile.getRidesharePreferences() != null) {
 			newProfile.getRidesharePreferences().setProfile(dbprofile);
