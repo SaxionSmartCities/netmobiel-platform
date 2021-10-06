@@ -34,6 +34,7 @@ public interface CarMapper {
 	// domain Car --> API Car Brand and model only
 	@Mapping(target = "co2Emission", ignore = true) 
 	@Mapping(target = "licensePlate", ignore = true) 
+	@Mapping(target = "licensePlateRaw", ignore = true) 
 	@Mapping(target = "registrationCountry", ignore = true) 
 	@Mapping(target = "registrationYear", ignore = true) 
 	@Mapping(target = "type", ignore = true) 
