@@ -23,6 +23,7 @@ import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.Donation;
+import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.banker.repository.DonationDao.CharityPopularity;
 import eu.netmobiel.banker.repository.DonationDao.DonorGenerosity;
 import eu.netmobiel.banker.test.BankerIntegrationTestBase;
@@ -30,6 +31,7 @@ import eu.netmobiel.banker.test.Fixture;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 
 @RunWith(Arquillian.class)
 public class DonationDaoIT  extends BankerIntegrationTestBase {
@@ -126,6 +128,8 @@ public class DonationDaoIT  extends BankerIntegrationTestBase {
 			DonationFilter filter = new DonationFilter();
 			filter.setCharity(charity1);
 			filter.setNow(now);
+			filter.setSortBy(DonationSortBy.DATE);
+			filter.setSortDir(SortDirection.DESC);
 	    	filter.validate();
 			Cursor cursor = new Cursor(3, 0);
 			PagedResult<Long> ids = donationDao.listDonations(filter, cursor);
@@ -152,6 +156,8 @@ public class DonationDaoIT  extends BankerIntegrationTestBase {
     	DonationFilter filter = new DonationFilter();
     	filter.setNow(now);
     	filter.setOmitInactiveCharities(true);
+		filter.setSortBy(DonationSortBy.DONORS);
+		filter.setSortDir(SortDirection.DESC);
     	filter.validate();
     	Cursor cursor = new Cursor(5, 0);
     	try {
@@ -206,6 +212,8 @@ public class DonationDaoIT  extends BankerIntegrationTestBase {
     	DonationFilter filter = new DonationFilter();
     	filter.setOmitInactiveCharities(true);
     	filter.setNow(now);
+		filter.setSortBy(DonationSortBy.AMOUNT);
+		filter.setSortDir(SortDirection.DESC);
     	filter.validate();
     	Cursor cursor = new Cursor(5, 0);
     	
@@ -229,6 +237,9 @@ public class DonationDaoIT  extends BankerIntegrationTestBase {
     	Cursor cursor = new Cursor(5, 0);
     	filter.setNow(now);
     	filter.setCharity(charity1);
+		filter.setSortBy(DonationSortBy.AMOUNT);
+		filter.setSortDir(SortDirection.DESC);
+    	filter.validate();
     	PagedResult<DonorGenerosity> results = donationDao.reportDonorGenerosityTopN(filter, cursor);
     	assertNotNull(results);
     	DonorGenerosity d1 = results.getData().get(0); 

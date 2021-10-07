@@ -156,6 +156,9 @@ public class DonationDao extends AbstractDao<Donation, Long> {
     	cq.groupBy(root.get(Donation_.charity));
     	Expression<?> userCountExpr = cb.countDistinct(root.get(Donation_.user));
     	cq.select(cb.construct(CharityPopularity.class, root.get(Donation_.charity).get(Charity_.id), userCountExpr));
+    	if (filter.getSortBy() != null && filter.getSortBy() != DonationSortBy.DONORS) {
+    		throw new IllegalArgumentException("reportCharityPopularityTopN is always sorted by Donor Count. Not supported: " + filter.getSortBy());
+    	}
         cq.orderBy(filter.getSortDir() == SortDirection.ASC ? cb.asc(userCountExpr) : cb.desc(userCountExpr),
         		cb.desc(root.get(Donation_.charity).get(Charity_.id))); 
 
@@ -238,6 +241,9 @@ public class DonationDao extends AbstractDao<Donation, Long> {
     	cq.where(cb.and(createPredicate(cb, root, filter)));
     	cq.groupBy(root.get(Donation_.user));
     	Expression<?> amountSummedExpr = cb.sum(root.get(Donation_.amount));
+    	if (filter.getSortBy() != null && filter.getSortBy() != DonationSortBy.AMOUNT) {
+    		throw new IllegalArgumentException("reportDonorGenerosityTopN is always sorted by Amount. Not supported: " + filter.getSortBy());
+    	}
     	cq.select(cb.construct(DonorGenerosity.class, root.get(Donation_.user).get(BankerUser_.id), amountSummedExpr));
         cq.orderBy(filter.getSortDir() == SortDirection.ASC ? cb.asc(amountSummedExpr) : cb.desc(amountSummedExpr), 
         		cb.desc(root.get(Donation_.user).get(BankerUser_.id))); 

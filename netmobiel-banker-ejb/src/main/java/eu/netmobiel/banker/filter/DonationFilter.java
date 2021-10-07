@@ -9,7 +9,6 @@ import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.filter.PeriodFilter;
 import eu.netmobiel.commons.model.GeoLocation;
-import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.UrnHelper;
 
 public class DonationFilter extends PeriodFilter {
@@ -38,7 +37,6 @@ public class DonationFilter extends PeriodFilter {
 	private BankerUser user;
 	
 	private DonationSortBy sortBy;
-	private SortDirection sortDir;
 	/**
 	 * Should we ignore the anonymous flag? Only when a user requests his own
 	 * donations, or when an admin requests the overview In report queries the
@@ -177,9 +175,6 @@ public class DonationFilter extends PeriodFilter {
 		super.validate();
     	if (this.sortBy == null) {
     		this.sortBy = DonationSortBy.DATE;
-    	}
-    	if (this.sortDir == null) {
-    		this.sortDir = SortDirection.DESC;
     	}
 	}
 }
