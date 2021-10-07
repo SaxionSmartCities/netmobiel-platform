@@ -183,8 +183,15 @@
 			</dependency>
 			<dependency>
 				<groupId>org.keycloak</groupId>
+				<artifactId>keycloak-common</artifactId>
+				<version>${version.keycloak}</version>
+				<scope>provided</scope>
+			</dependency>
+			<dependency>
+				<groupId>org.keycloak</groupId>
 				<artifactId>keycloak-adapter-core</artifactId>
 				<version>${version.keycloak}</version>
+				<scope>provided</scope>
 			</dependency>
 			<dependency>
 				<groupId>org.keycloak</groupId>
@@ -196,11 +203,13 @@
 				<groupId>org.keycloak</groupId>
 				<artifactId>keycloak-adapter-spi</artifactId>
 				<version>${version.keycloak}</version>
+				<scope>provided</scope>
 			</dependency>
 	        <dependency>
 	            <groupId>org.keycloak</groupId>
 	            <artifactId>keycloak-jboss-adapter-core</artifactId>
 				<version>${version.keycloak}</version>
+				<scope>provided</scope>
 	        </dependency>
 	        <!-- Contains the models, these are needed (more or less) in the admin API -->
 	        <dependency>

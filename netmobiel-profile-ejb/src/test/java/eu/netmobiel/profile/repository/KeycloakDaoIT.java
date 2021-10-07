@@ -37,9 +37,9 @@ public class KeycloakDaoIT {
     			.asFile();
     	WebArchive archive = ShrinkWrap.create(WebArchive.class, "test.war")
                 .addAsLibraries(deps)
-                .addClass(KeycloakDao.class);
+                .addClass(KeycloakDao.class)
 //                .addAsResource("log4j.properties")
-//    	        .addAsWebInfResource("jboss-deployment-structure.xml");
+    	        .addAsWebInfResource("jboss-deployment-structure.xml");
 //		System.out.println(archive.toString(true));
 		return archive;
     }

@@ -180,6 +180,10 @@
 		    		<groupId>org.keycloak</groupId>
 		    		<artifactId>keycloak-common</artifactId>
 		    	</exclusion>
+		    	<exclusion>
+		    		<groupId>org.keycloak</groupId>
+		    		<artifactId>keycloak-core</artifactId>
+		    	</exclusion>
 		    </exclusions>
         </dependency>
         <!-- Contains the models, these are needed (more or less) in the admin API for UPDATE_POLICY and VERIVY_EMAIL. -->
@@ -189,6 +193,16 @@
 <!-- 		    <artifactId>keycloak-server-spi</artifactId> -->
 <!-- 		    <scope>compile</scope> -->
 <!-- 		</dependency> -->
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-core</artifactId>
+		    <scope>provided</scope>
+		</dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-common</artifactId>
+		    <scope>provided</scope>
+		</dependency>
         <dependency>
             <groupId>org.jboss.resteasy</groupId>
             <artifactId>resteasy-client</artifactId>
