@@ -82,6 +82,7 @@ public class Fixture {
 		c.setRegistrationCountry("NL");
 		c.setRegistrationYear(2009);
 		c.setType(CarType.ESTATE);
+    	c.setLicensePlateRaw(Car.unformatPlate(c.getLicensePlate()));
 		return c;
 	}
 	public static Car createCarBMW(RideshareUser driver) {
@@ -97,6 +98,7 @@ public class Fixture {
 		c.setRegistrationCountry("NL");
 		c.setRegistrationYear(2012);
 		c.setType(CarType.CONVERTIBLE);
+    	c.setLicensePlateRaw(Car.unformatPlate(c.getLicensePlate()));
 		return c;
 	}
 	
@@ -120,10 +122,11 @@ public class Fixture {
 		c.setLicensePlate("00-11-AF");
 		c.setModel("Thunderbird");
 		c.setNrDoors(2);
-		c.setNrSeats(1);
+		c.setNrSeats(2);
 		c.setRegistrationCountry("NL");
 		c.setRegistrationYear(1964);
 		c.setType(CarType.CONVERTIBLE);
+    	c.setLicensePlateRaw(Car.unformatPlate(c.getLicensePlate()));
 		return c;
 	}
 	public static Ride createRide(RideTemplate template, Instant departureTime) {
