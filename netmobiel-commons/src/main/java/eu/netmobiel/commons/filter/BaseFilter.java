@@ -20,6 +20,10 @@ public class BaseFilter {
 		}
 	}
 
+	public final void setSortDir(String sortDir, SortDirection defaultSortBy) {
+		this.sortDir = sortDir == null ? defaultSortBy : SortDirection.valueOf(sortDir);
+	}
+
 	public void validate() throws BadRequestException {
     	if (this.sortDir == null) {
     		this.sortDir = SortDirection.ASC;
