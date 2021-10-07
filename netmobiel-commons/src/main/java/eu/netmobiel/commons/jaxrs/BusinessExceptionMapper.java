@@ -9,14 +9,12 @@ import javax.ws.rs.ext.Provider;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.api.ErrorResponse;
-import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.BadRequestException;
-import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.DuplicateEntryException;
 import eu.netmobiel.commons.exception.LegalReasonsException;
 import eu.netmobiel.commons.exception.NotFoundException;
-import eu.netmobiel.commons.exception.RemoveException;
-import eu.netmobiel.commons.exception.UpdateException;
+import eu.netmobiel.commons.exception.PaymentException;
 import eu.netmobiel.commons.util.ExceptionUtil;
 
 /**
@@ -47,14 +45,12 @@ public class BusinessExceptionMapper implements
 			status = Response.Status.NOT_FOUND;
 		} else if (e instanceof DuplicateEntryException) {
 			status = Response.Status.CONFLICT;
-		} else if (e instanceof CreateException) {
-			status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
-		} else if (e instanceof UpdateException) {
-			status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
-		} else if (e instanceof RemoveException) {
-			status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
+		} else if (e instanceof PaymentException) {
+			status = Response.Status.PAYMENT_REQUIRED;		
 		} else if (e instanceof LegalReasonsException) {
-			status = ExtendedStatus.UNVAILABLE_FOR_LEGAL_REASONS;
+			status = ExtendedStatus.UNAVAILABLE_FOR_LEGAL_REASONS;
+		} else {
+			status = ExtendedStatus.UNPROCESSIBLE_ENTITY;
 		}
 		ErrorResponse err = new ErrorResponse(status, e.getVendorCode(), String.join(" - ", msgs));
 		rsp =  Response.status(status).type(MediaType.APPLICATION_JSON).entity(err).build();
