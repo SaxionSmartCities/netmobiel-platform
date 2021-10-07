@@ -371,6 +371,7 @@ public class Fixture {
 		TripPlan plan = new TripPlan();
 		plan.setPlanType(PlanType.SHOUT_OUT);
 		plan.setRequestTime(Instant.parse(nowIso));
+    	plan.setRequestor(traveller);
 		plan.setTraveller(traveller);
 		plan.setFrom(from);
 		plan.setTo(to);
@@ -387,6 +388,7 @@ public class Fixture {
 		TripPlan plan = new TripPlan();
 		plan.setPlanType(PlanType.REGULAR);
 		plan.setRequestTime(Instant.parse(nowIso));
+    	plan.setRequestor(traveller);
 		plan.setTraveller(traveller);
 		plan.setRequestor(traveller);
 		plan.setFrom(from);

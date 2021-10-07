@@ -46,6 +46,9 @@ import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -269,6 +272,10 @@ public class TripPlan implements Serializable {
         	@JoinColumn(name = "plan_id", foreignKey = @ForeignKey(name = "traverse_mode_trip_plan_fk")) 
     })
     @Column(name = "traverse_mode", length = 2)
+    // The following definition is required by OnDelete, just a copy of the same column in @CollectionTable
+    @JoinColumn(name = "plan_id")
+    // Added Cascade for easier integration testing
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Set<TraverseMode> traverseModes;
 
     /**

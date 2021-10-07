@@ -34,6 +34,9 @@ import javax.validation.constraints.Positive;
 import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
+
 import com.vividsolutions.jts.geom.LineString;
 
 import eu.netmobiel.commons.model.GeoLocation;
@@ -122,6 +125,10 @@ public class PlannerReport implements Serializable {
     		@JoinColumn(name = "report_id", foreignKey = @ForeignKey(name = "via_report_fk"))
 	})
     @Column(name = "via_location")
+    // The following definition is required by OnDelete, just a copy of the same column in @CollectionTable
+    @JoinColumn(name = "report_id")
+    // Added Cascade for easier integration testing
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private List<GeoLocation> viaLocations;
 
     /**
@@ -141,6 +148,10 @@ public class PlannerReport implements Serializable {
     })
     @Column(name = "traverse_mode", length = 2)
     @OrderBy("ASC")
+    // The following definition is required by OnDelete, just a copy of the same column in @CollectionTable
+    @JoinColumn(name = "report_id")
+    // Added Cascade for easier integration testing
+    @OnDelete(action = OnDeleteAction.CASCADE)
     private Set<TraverseMode> traverseModes;
 
     /**
