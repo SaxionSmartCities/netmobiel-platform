@@ -8,11 +8,9 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
-import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.PagedResult;
@@ -165,7 +163,6 @@ public class RidesResource implements RidesApi {
      * @param hard If set to true then remove the ride from the listing.
      * @return
      */
-    @SuppressWarnings("resource")
 	@Override
 	public Response deleteRide(String rideId, String scope, String reason, Boolean hard) {
     	Response rsp = null;
@@ -176,8 +173,6 @@ public class RidesResource implements RidesApi {
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
-		} catch (SoftRemovedException e) {
-	    	rsp = Response.status(Status.GONE).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
