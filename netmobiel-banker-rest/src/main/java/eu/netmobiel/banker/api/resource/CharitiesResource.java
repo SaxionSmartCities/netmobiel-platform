@@ -228,6 +228,7 @@ public class CharitiesResource implements CharitiesApi {
 			DonationFilter filter = new DonationFilter(charityId, user == null ? null : user.getId(), since, until, sortBy, sortDir, false);
 			filter.setAnonymousToo(true);
 			filter.setSortBy(sortBy, DonationSortBy.DATE, new DonationSortBy[] { DonationSortBy.DATE, DonationSortBy.AMOUNT });
+			filter.setSortDir(sortDir, SortDirection.DESC);
 			Cursor cursor = new Cursor(maxResults, offset);
 			// Include user data in result
 	    	PagedResult<Donation> results = charityManager.listDonations(filter, cursor, true);
