@@ -396,17 +396,19 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
     	Instant departureTime = Instant.parse("2020-06-02T11:00:00Z");
     	Ride r1 = Fixture.createRideObject(car1, departureTime, departureTime.plusSeconds(3600));
     	em.persist(r1);
-
+    	log.debug("Ride 1: " + r1);
     	// Completely before
     	Ride r2 = Fixture.createRideObject(car1, r1.getDepartureTime().minusSeconds(7200), r1.getArrivalTime().minusSeconds(7200));
     	em.persist(r2);
     	flush();
+    	log.debug("Ride 2: " + r2);
     	assertFalse(rideDao.existsTemporalOverlap(r2));
 
     	// Arrival in overlap
     	r2 = rideDao.find(r2.getId()).orElseThrow(() -> new IllegalStateException("No such ride: "));
     	r2.setDepartureTime(r1.getDepartureTime().minusSeconds(1800));
     	r2.setArrivalTime(r1.getArrivalTime().minusSeconds(1800));
+    	log.debug("Ride 2: " + r2);
     	flush();
     	assertTrue(rideDao.existsTemporalOverlap(r2));
 

@@ -23,7 +23,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import eu.netmobiel.commons.exception.NotFoundException;
-import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
@@ -294,13 +293,14 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		eventListenerHelper.reset();
 		// Test starts here
 		flush();
-		try {
-			expectFailure();
-			rideManager.removeRide(rideId, null, null, true);
-			fail("Expected a SoftRemovedException");
-		} catch (Exception ex) {
-			assertTrue(ex instanceof SoftRemovedException);
-		}
+//		try {
+//			expectFailure();
+//			rideManager.removeRide(rideId, null, null, true);
+//			fail("Expected a SoftRemovedException");
+//		} catch (Exception ex) {
+//			assertTrue(ex instanceof SoftRemovedException);
+//		}
+		rideManager.removeRide(rideId, null, null, true);
 		assertEquals(0, eventListenerHelper.getRideRemovedEventCount());
     }
     

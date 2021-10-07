@@ -162,7 +162,7 @@ public class Fixture {
 		r.setFrom(from);
 		r.setTo(to);
 		r.setMaxDetourMeters(10000);
-		r.setNrSeatsAvailable(3);
+		r.setNrSeatsAvailable(Math.min(3, car.getNrSeats() - 1 ));
 		r.updateShareEligibility();
 		return r;
 	}

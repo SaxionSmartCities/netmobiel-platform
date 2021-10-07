@@ -43,7 +43,6 @@ import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.RemoveException;
-import eu.netmobiel.commons.exception.SoftRemovedException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.ConfirmationReasonType;
@@ -360,6 +359,10 @@ public class RideManager {
     		throw new SecurityException(String.format("Car %s is not owned by %s", car.getLicensePlate(), driverdb.toString()));
     	}
     	ride.setCar(car);
+    	if (car.getNrSeats() != null) {
+    		// There are never more seats available than specified by the manufacturer minus one seat for the driver. 
+    		ride.setNrSeatsAvailable(Math.min(ride.getNrSeatsAvailable(), car.getNrSeats() - 1));
+    	}
     	if (ride.getMaxDetourMeters() == null) {
     		ride.setMaxDetourMeters(RideBase.DEFAULT_MAX_DISTANCE_DETOUR_METERS);
     	}
@@ -712,7 +715,6 @@ public class RideManager {
      * then all following rides are removed as well. The <code>horizon</code> date of the
      * preceding rides of the same template, if any, is set to the day of the departure 
      * date of the ride being deleted. 
-     * If the ride is already deleted the  
      * @param rideId The ride to remove.
      * @param reason The reason why it was cancelled (optional).
      * @param scope The extent of deletion in case of a recurrent ride. Default RideScope.THIS.  
@@ -722,9 +724,6 @@ public class RideManager {
     public void removeRide(Long rideId, final String reason, RideScope scope, boolean hard) throws BusinessException {
     	Ride ridedb = rideDao.find(rideId)
     			.orElseThrow(NotFoundException::new);
-    	if (ridedb.isDeleted()) {
-    		throw new SoftRemovedException();
-    	}
     	removeRide(ridedb, reason, hard);
     	if (ridedb.getRideTemplate() != null) {
     		// Recurrent ride
