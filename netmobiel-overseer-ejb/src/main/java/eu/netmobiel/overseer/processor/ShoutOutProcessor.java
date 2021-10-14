@@ -54,7 +54,7 @@ public class ShoutOutProcessor {
 	private static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
 	private static final String DEFAULT_LOCALE = "nl-NL";
 	private static final int DRIVER_MAX_RADIUS_METERS = 50000;
-	private static final int DRIVER_NEIGHBOURING_RADIUS_METERS = 10000;
+	private static final int DRIVER_NEIGHBOURING_RADIUS_METERS = 20000;
 	
     @Inject
     private PublisherService publisherService;
