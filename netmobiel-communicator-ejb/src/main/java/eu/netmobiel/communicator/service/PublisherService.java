@@ -17,7 +17,6 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
-import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
@@ -30,7 +29,6 @@ import eu.netmobiel.communicator.repository.EnvelopeDao;
 import eu.netmobiel.communicator.repository.MessageDao;
 import eu.netmobiel.firebase.messaging.FirebaseMessagingClient;
 import eu.netmobiel.messagebird.MessageBird;
-import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.service.ProfileManager;
 
@@ -80,8 +78,8 @@ public class PublisherService {
     	if (msg.getDeliveryMode() == null) {
     		throw new BadRequestException("Constraint violation: 'deliveryMode' must be set.");
     	}
-    	if (msg.getEnvelopes().isEmpty() && !msg.isToAllUsers()) {
-    		throw new BadRequestException("Constraint violation: 'envelopes' must be set and contain at least one recipient or set 'toAllUsers'.");
+    	if (msg.getEnvelopes() == null || msg.getEnvelopes().isEmpty()) {
+    		throw new BadRequestException("Constraint violation: 'envelopes' must be set and contain at least one recipient.");
     	}
     }
 
@@ -94,21 +92,16 @@ public class PublisherService {
     @Asynchronous
     public void publish(CommunicatorUser sender, Message msg) {
     	try {
-    		// Validate again in case of a call by another EJB.
 			validateMessage(sender, msg);
 			// The sender is always the calling user (for now)
 			msg.setCreationTime(Instant.now());
 			msg.setSender(sender != null ? sender : findSystemUser());
 			if (logger.isDebugEnabled()) {
-				String rcps = msg.isToAllUsers() ? "ALL" : 
-					msg.getEnvelopes().stream().limit(2).map(env -> env.getRecipient().getManagedIdentity()).collect(Collectors.joining(", ")); 
-			    logger.debug(String.format("Send message from %s to %s%s: %s %s - %s", msg.getSender(), rcps, 
-			    		msg.getEnvelopes().size() > 2 ? "...": "", msg.getContext(), msg.getSubject(), msg.getBody()));
+			    logger.debug(String.format("Send message from %s to %s: %s %s - %s", msg.getSender(), 
+			    		msg.getEnvelopes().stream().map(env -> env.getRecipient().getManagedIdentity()).collect(Collectors.joining(", ")), 
+			    		msg.getContext(), msg.getSubject(), msg.getBody()));
 			}
 			// Assure all recipients are present in the database, replace transient instances of users with persistent instances.
-			if (msg.isToAllUsers()) {
-				addNetmobielUsers(msg);
-			}
 			for (Envelope env : msg.getEnvelopes()) {
 				// Connect the child to the master for JPA
 				env.setMessage(msg);
@@ -140,23 +133,6 @@ public class PublisherService {
 			logger.error(String.format("Cannot publish, validation error: %s %s - %s", 
 					sender, msg, String.join("\n\t", ExceptionUtil.unwindException(ex))));
 		}
-    }
-
-    void addNetmobielUsers(Message msg) throws BadRequestException {
-    	var filter = new ProfileFilter();
-    	var cursor = new Cursor();
-    	var pageCnt = 0;
-    	do {
-    		var page = profileManager.listProfiles(filter, cursor);
-    		for (Profile p : page.getData()) {
-    			msg.addRecipient(p);
-			}
-    		if (page.getCount() == 0 || page.getCount() == page.getTotalCount()) {
-    			break;
-    		}
-    		pageCnt++;
-        	cursor = new Cursor(null, pageCnt * page.getResultsPerPage());
-    	} while (true); 
     }
 
     /**

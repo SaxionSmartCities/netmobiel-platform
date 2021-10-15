@@ -102,25 +102,7 @@ public class Message implements NetMobielMessage, Serializable {
 	@OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	private List<Envelope> envelopes;
 
-	/**
-	 * If set then send the message to all users.
-	 */
-	@Column(name = "to_all_users", nullable = false)
-	private boolean toAllUsers;
-	
-	/**
-	 * If set then send the message always, even if the user has set a flag to ignore the message.
-	 */
-	@Column(name = "important", nullable = false)
-	private boolean important;
-
-	/**
-	 * If set then the message is 'archived', meaning the subject of the message is no longer relevant. 
-	 */
-	@Column(name = "archived", nullable = false)
-	private boolean archived;
-	
-	public Long getId() {
+    public Long getId() {
 		return id;
 	}
 
@@ -196,30 +178,6 @@ public class Message implements NetMobielMessage, Serializable {
 	public void addRecipient(NetMobielUser nmu) {
 		CommunicatorUser rcp = new CommunicatorUser(nmu); 
 		getEnvelopes().add(new Envelope(this, rcp));
-	}
-
-	public boolean isToAllUsers() {
-		return toAllUsers;
-	}
-
-	public void setToAllUsers(boolean toAllUsers) {
-		this.toAllUsers = toAllUsers;
-	}
-
-	public boolean isImportant() {
-		return important;
-	}
-
-	public void setImportant(boolean important) {
-		this.important = important;
-	}
-
-	public boolean isArchived() {
-		return archived;
-	}
-
-	public void setArchived(boolean archived) {
-		this.archived = archived;
 	}
 
 	@Override
