@@ -251,19 +251,6 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/Envelope'
-        toAllUsers:
-          description: |-
-            If set to true then send the message to all users known to the system. Admin privilege required.
-            The sender will be set to the system user.
-          type: boolean
-        important:
-          description: 'Flags a message as important, bypassing any user switch to
-            ignore the message otherwise. Default: false.'
-          type: boolean
-        archived:
-          description: If set the message is archived, i.e., the subject is no longer
-            relevant.
-          type: boolean
       example:
         body: Kunnen we iets later vertrekken?
         context: urn:nb:pl:leg:23
