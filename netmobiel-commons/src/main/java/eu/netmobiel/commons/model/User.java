@@ -89,32 +89,6 @@ public abstract class User extends ReferableObject implements NetMobielUser {
 		this.familyName = familyName;
 	}
 
-	public String getName() {
-		StringBuilder sb = new StringBuilder();
-		if (getGivenName() != null) {
-			sb.append(getGivenName()).append(" ");
-		}
-		if (getFamilyName() != null) {
-			sb.append(getFamilyName());
-		}
-		String name = sb.toString().trim();
-		return name.length() > 0 ? name : null;
-	}
-
-	public String getNameAndEmail() {
-		StringBuilder sb = new StringBuilder();
-		if (getGivenName() != null) {
-			sb.append(getGivenName()).append(" ");
-		}
-		if (getFamilyName() != null) {
-			sb.append(getFamilyName());
-		}
-		if (getEmail() != null) {
-			sb.append(" (").append(getEmail()).append(")");
-		}
-		return sb.toString().trim();
-	}
-	
 	@Override
 	public String getEmail() {
 		return email;

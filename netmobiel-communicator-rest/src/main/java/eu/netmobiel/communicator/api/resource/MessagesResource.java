@@ -20,6 +20,7 @@ import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.communicator.api.MessagesApi;
 import eu.netmobiel.communicator.api.mapping.MessageMapper;
 import eu.netmobiel.communicator.model.CommunicatorUser;
+import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.CommunicatorUserManager;
@@ -47,10 +48,18 @@ public class MessagesResource implements MessagesApi {
 	public Response sendMessage(String xDelegator, eu.netmobiel.communicator.api.model.Message msg) {
     	Response rsp = null;
 		try {
-			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
-			CommunicatorUser sender = context.getEffectiveUser();
-			publisherService.validateMessage(sender, mapper.map(msg));
-			publisherService.publish(sender, mapper.map(msg));
+			CallingContext<CommunicatorUser> callingContext = userManager.findOrRegisterCallingContext(securityIdentity);
+			CommunicatorUser sender = callingContext.getEffectiveUser();
+			Message message = mapper.map(msg);
+			Conversation senderConv = message.getSenderConversation();
+			message.setSenderConversation(null);
+			senderConv.setOwner(sender);
+			// Validate to catch the errors early on, publish is asynchronous.
+			publisherService.validateMessage(message);
+			publisherService.publish(senderConv, message);
+			if (!callingContext.getCallingUser().equals(sender)) {
+				publisherService.informDelegates(sender, "Persoonlijk bericht van " + sender.getName(), DeliveryMode.ALL);
+			}
 			rsp = Response.status(Status.ACCEPTED).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);

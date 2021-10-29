@@ -18,6 +18,7 @@ import javax.persistence.criteria.Root;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.filter.Cursor;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.repository.AbstractDao;
@@ -97,7 +98,7 @@ public class DelegationDao extends AbstractDao<Delegation, Long> {
 	/**
 	 * Checks whether a delegation is active between two parties. If the time is set, 
 	 * it checks whether a delegation was active at that specific time.
-	 * If null, it check whether there is a delegation without revocation time set.
+	 * If null, it checks whether there is a delegation without revocation time set.
 	 * Note that if the revocation time is set in the future (semantically strange, but technical possible)
 	 * this call would detect it only when checking at a specific time.  
 	 * @param delegate
@@ -107,11 +108,22 @@ public class DelegationDao extends AbstractDao<Delegation, Long> {
 	public boolean isDelegationActive(Profile delegate, Profile delegator, Instant pointOfTime) {
     	Long count = em.createQuery("select count(d) from Delegation d where " 
     			+ "(d.revocationTime is null or (:pointOfTime between d.activationTime and d.revocationTime)) and " 
-				+ "d.delegate = :delegate and d.delegator = :delegator", Long.class)
+				+ "d.activationTime is not null && d.delegate = :delegate and d.delegator = :delegator", Long.class)
 			.setParameter("delegate", delegate)
 			.setParameter("delegator", delegator)
 			.setParameter("pointOfTime", pointOfTime)
 			.getSingleResult();
     	return count > 0; 
+	}
+
+	public List<Delegation> getActingDelegates(NetMobielUser delegator, Instant pointOfTime) {
+    	List<Delegation> results = em.createQuery("from Delegation d where " 
+    			+ "(d.revocationTime is null or (:pointOfTime between d.activationTime and d.revocationTime)) and " 
+				+ "d.activationTime is not null and d.delegator.managedIdentity = :delegatorMid "
+    			+ "order by d.activationTime desc", Delegation.class)
+			.setParameter("delegatorMid", delegator.getManagedIdentity())
+			.setParameter("pointOfTime", pointOfTime)
+			.getResultList();
+    	return results; 
 	}
 }

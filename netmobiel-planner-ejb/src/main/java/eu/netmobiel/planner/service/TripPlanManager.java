@@ -607,6 +607,7 @@ public class TripPlanManager {
     	}
     	cancelBookedLegs(plan, Optional.of(event.getSelectedItinerary()), "Andere oplossing gekozen");
     	plan.close();
+    	//TODO Change the active context of the message thread of this user to the trip.
     }
 
     /**

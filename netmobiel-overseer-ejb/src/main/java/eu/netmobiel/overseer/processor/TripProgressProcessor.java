@@ -19,8 +19,8 @@ import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 
-import eu.netmobiel.commons.exception.BadRequestException;
-import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.PublisherService;
@@ -71,7 +71,7 @@ public class TripProgressProcessor {
     }
 
     public void onTripStateChange(@Observes(during = TransactionPhase.IN_PROGRESS) TripStateUpdatedEvent event) 
-    		throws CreateException, BadRequestException {
+    		throws BusinessException {
     	switch (event.getTrip().getState()) {
     	case PLANNING:
     		break;
@@ -110,7 +110,7 @@ public class TripProgressProcessor {
     }
 
     public void onRideStateChange(@Observes(during = TransactionPhase.IN_PROGRESS) RideStateUpdatedEvent event) 
-    		throws CreateException, BadRequestException {
+    		throws BusinessException {
     	Ride ride = event.getRide();
     	switch (ride.getState()) {
     	case SCHEDULED:
@@ -159,11 +159,12 @@ public class TripProgressProcessor {
     	return desc;
     }
 
-    protected void informTravellerOnDeparture(Trip trip) throws CreateException, BadRequestException {
+    protected void informTravellerOnDeparture(Trip trip) throws BusinessException {
+		Conversation passengerConv = publisherService.lookupConversation(trip.getTraveller(), trip.getTripRef());
 		Message msg = new Message();
 		msg.setContext(trip.getTripRef());
-		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-		msg.addRecipient(trip.getTraveller());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(passengerConv, null);
 		msg.setSubject("Je gaat bijna op pad!");
 		msg.setBody(
 				MessageFormat.format("Vertrek om {0} uur naar {1}. Je reist {2}.", 
@@ -173,31 +174,18 @@ public class TripProgressProcessor {
 						)
 				);
 		publisherService.publish(null, msg);
-		
-		// Inform the organizer of the trip
-		if (!trip.getOrganizer().equals(trip.getTraveller())) {
-			Message msg2 = new Message();
-			msg2.setContext(trip.getTripRef());
-			msg2.setDeliveryMode(DeliveryMode.NOTIFICATION);
-			msg2.addRecipient(trip.getOrganizer());
-			msg2.setSubject(MessageFormat.format("Organisator: {0} gaat bijna op pad!", trip.getTraveller().getName()));
-			msg2.setBody(
-					MessageFormat.format("Vertrek om {0} uur naar {1}. {2} reist {3}.", 
-							formatTime(trip.getItinerary().getDepartureTime()),
-							trip.getTo().getLabel(), 
-							trip.getTraveller().getName(),
-							travelsWith(trip.getAgencies())
-							)
-					);
-			publisherService.publish(null, msg2);
-		}
+		// Inform the delegates, if any
+		publisherService.informDelegates(trip.getTraveller(), 
+				MessageFormat.format("{0} gaat bijna op pad!", trip.getTraveller().getName()), 
+				DeliveryMode.ALL);
 	}
 
-	protected void informTravellerOnReview(Trip trip) throws CreateException, BadRequestException {
+	protected void informTravellerOnReview(Trip trip) throws BusinessException {
+		Conversation passengerConv = publisherService.lookupConversation(trip.getTraveller(), trip.getTripRef());
 		Message msg = new Message();
 		msg.setContext(trip.getTripRef());
-		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-		msg.addRecipient(trip.getTraveller());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(passengerConv, null);
 		msg.setSubject("Jouw reis zit erop!");
 		msg.setBody(
 				MessageFormat.format("Heb je de reis naar {0} gemaakt? Geef jouw waardering en beoordeel deze reis.", 
@@ -205,29 +193,18 @@ public class TripProgressProcessor {
 						)
 				);
 		publisherService.publish(null, msg);
-		
-		// Inform the organizer of the trip
-		if (!trip.getOrganizer().equals(trip.getTraveller())) {
-			Message msg2 = new Message();
-			msg2.setContext(trip.getTripRef());
-			msg2.setDeliveryMode(DeliveryMode.NOTIFICATION);
-			msg2.addRecipient(trip.getOrganizer());
-			msg2.setSubject(MessageFormat.format("Organisator: De reis van {0} zit erop!", trip.getTraveller().getName()));
-			msg2.setBody(
-					MessageFormat.format("Heeft {0} de reis naar {1} gemaakt? Vraag de waardering en beoordeel deze reis.", 
-							trip.getTraveller().getName(),
-							trip.getTo().getLabel()
-							)
-					);
-			publisherService.publish(null, msg2);
-		}
+		// Inform the delegates, if any
+		publisherService.informDelegates(trip.getTraveller(), 
+				MessageFormat.format("De reis van {0} zit erop, geef een beoordeling", trip.getTraveller().getName()), 
+				DeliveryMode.ALL);
 	}
 
-	protected void remindTravellerOnReview(Trip trip) throws CreateException, BadRequestException {
+	protected void remindTravellerOnReview(Trip trip) throws BusinessException {
+		Conversation passengerConv = publisherService.lookupConversation(trip.getTraveller(), trip.getTripRef());
 		Message msg = new Message();
 		msg.setContext(trip.getTripRef());
-		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-		msg.addRecipient(trip.getTraveller());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(passengerConv, null);
 		msg.setSubject("Beoordeel jouw reis!");
 		msg.setBody(
 				MessageFormat.format("Jouw reis op {0} naar {1} zit erop! Geef jouw waardering en beoordeel deze reis.", 
@@ -236,31 +213,19 @@ public class TripProgressProcessor {
 						)
 				);
 		publisherService.publish(null, msg);
-
-		// Inform the organizer of the trip
-		if (!trip.getOrganizer().equals(trip.getTraveller())) {
-			Message msg2 = new Message();
-			msg2.setContext(trip.getTripRef());
-			msg2.setDeliveryMode(DeliveryMode.NOTIFICATION);
-			msg2.addRecipient(trip.getOrganizer());
-			msg2.setSubject(MessageFormat.format("Organisator: Beoordeel de reis van {0}", trip.getTraveller().getName()));
-			msg2.setBody(
-					MessageFormat.format("De reis van {0} op{1} naar {2} zit erop! Vraag de waardering en beoordeel deze reis.", 
-							trip.getTraveller().getName(),
-							formatTime(trip.getItinerary().getDepartureTime()),
-							trip.getTo().getLabel()
-							)
-					);
-			publisherService.publish(null, msg2);
-		}
+		// Inform the delegates, if any
+		publisherService.informDelegates(trip.getTraveller(), 
+				MessageFormat.format("Herhaling: De reis van {0} zit erop, geef een beoordeling", trip.getTraveller().getName()), 
+				DeliveryMode.ALL);
 }
 	
-    protected void informDriverOnDeparture(Ride ride) throws CreateException, BadRequestException {
+    protected void informDriverOnDeparture(Ride ride) throws BusinessException {
 		Booking b = ride.getConfirmedBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
+		Conversation driverConv = publisherService.lookupConversation(ride.getDriver(), ride.getUrn());
 		Message msg = new Message();
 		msg.setContext(ride.getUrn());
-		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-		msg.addRecipient(ride.getDriver());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(driverConv, b.getUrn());
 		msg.setSubject("Je gaat bijna op pad!");
 		msg.setBody(
 				MessageFormat.format("Vertrek om {0} uur naar {1}. Je wordt verwacht door {2}.", 
@@ -272,12 +237,13 @@ public class TripProgressProcessor {
 		publisherService.publish(null, msg);
 	}
 
-	protected void informDriverOnReview(Ride ride) throws CreateException, BadRequestException {
+	protected void informDriverOnReview(Ride ride) throws BusinessException {
 		Booking b = ride.getConfirmedBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
+		Conversation driverConv = publisherService.lookupConversation(ride.getDriver(), ride.getUrn());
 		Message msg = new Message();
 		msg.setContext(ride.getUrn());
-		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-		msg.addRecipient(ride.getDriver());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(driverConv, b.getUrn());
 		msg.setSubject("Jouw rit zit erop!");
 		msg.setBody(
 				MessageFormat.format("Heb je {0} meegenomen naar {1}? Claim je credits en beoordeel je passagier!", 
@@ -288,11 +254,13 @@ public class TripProgressProcessor {
 		publisherService.publish(null, msg);
 	}
 
-	protected void remindDriverOnReview(Ride ride) throws CreateException, BadRequestException {
+	protected void remindDriverOnReview(Ride ride) throws BusinessException {
+		Booking b = ride.getConfirmedBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
+		Conversation driverConv = publisherService.lookupConversation(ride.getDriver(), ride.getUrn());
 		Message msg = new Message();
 		msg.setContext(ride.getUrn());
-		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-		msg.addRecipient(ride.getDriver());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(driverConv, b.getUrn());
 		msg.setSubject("Jouw rit zit erop!");
 		msg.setBody("Claim je credits en beoordeel je passagier!");
 		publisherService.publish(null, msg);

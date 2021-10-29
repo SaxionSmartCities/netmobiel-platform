@@ -16,6 +16,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.PublisherService;
@@ -95,14 +96,16 @@ public class DelegationProcessor {
 		logger.info(String.format("Activation of delegation %s confirmed in SMS %s", delegation.getId(), smsId));
 
 		// Inform delegate through push message 
+		String topic = MessageFormat.format("Beheer van reizen van {0}", delegation.getDelegator().getName());
+		Conversation rcp = publisherService.lookupOrCreateConversation(delegation.getDelegate(), delegation.getUrn(), topic, true);
  		Message msg = new Message();
 		msg.setContext(delegation.getUrn());
 		msg.setSubject("Nieuwe Netmobiel cliënt");
 		msg.setBody(
 				MessageFormat.format("U beheert vanaf nu de reizen met NetMobiel van {0}.", delegation.getDelegator().getName())
 				);
-		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-		msg.addRecipient(delegation.getDelegate());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(rcp, null);
 		publisherService.publish(null, msg);
      }
 
@@ -114,9 +117,12 @@ public class DelegationProcessor {
      */
     public void onDelegationTransferRequested(@Observes(during = TransactionPhase.IN_PROGRESS) DelegationTransferRequestedEvent event) {
      	Delegation fromDelegation = event.getFrom();
+     	Delegation toDelegation = event.getTo();
 		// Inform prospected delegate through push message 
+		String topic = MessageFormat.format("Beheer van reizen van {0}", toDelegation.getDelegator().getName());
+		Conversation rcp = publisherService.lookupOrCreateConversation(toDelegation.getDelegate(), toDelegation.getUrn(), topic, true);
  		Message msg = new Message();
-		msg.setContext(fromDelegation.getUrn());
+		msg.setContext(toDelegation.getUrn());
 		msg.setSubject("Aanvraag overdracht Netmobiel cliënt");
 		msg.setBody(
 				MessageFormat.format("{0} vraagt u om het beheer van de reizen in Netmobiel namens {1} over te nemen. " 
@@ -125,8 +131,8 @@ public class DelegationProcessor {
 						fromDelegation.getDelegator().getName(),
 						fromDelegation.getDelegator().getGivenName())
 				);
-		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-		msg.addRecipient(fromDelegation.getDelegate());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(rcp, toDelegation.getUrn());
 		publisherService.publish(null, msg);
     }
 
@@ -141,6 +147,8 @@ public class DelegationProcessor {
      	if (!event.isImmediate()) {
      	}
 		// Inform previous delegate through push message 
+		String topic = MessageFormat.format("Beheer van reizen van {0}", toDelegation.getDelegator().getName());
+		Conversation rcp = publisherService.lookupOrCreateConversation(fromDelegation.getDelegate(), fromDelegation.getUrn(), topic, true);
  		Message msg = new Message();
 		msg.setContext(fromDelegation.getUrn());
 		msg.setSubject("Netmobiel cliënt is overgedragen");
@@ -148,8 +156,8 @@ public class DelegationProcessor {
 				MessageFormat.format("Uw beheer van de reizen in Netmobiel namens {0} is overgedragen aan {1}.", 
 						fromDelegation.getDelegator().getName(), toDelegation.getDelegate().getName())
 				);
-		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-		msg.addRecipient(fromDelegation.getDelegate());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(rcp, null);
 		publisherService.publish(null, msg);
     }
 }

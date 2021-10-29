@@ -92,6 +92,7 @@ public abstract class CommunicatorIntegrationTestBase {
 		log.debug("Dumping old records...");
         em.createQuery("delete from Envelope").executeUpdate();
         em.createQuery("delete from Message").executeUpdate();
+        em.createQuery("delete from Conversation").executeUpdate();
         em.createQuery("delete from CommunicatorUser").executeUpdate();
 		utx.commit();
 	}

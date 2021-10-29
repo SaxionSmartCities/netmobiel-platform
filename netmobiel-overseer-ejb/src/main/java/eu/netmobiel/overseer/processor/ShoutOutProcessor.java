@@ -19,8 +19,10 @@ import javax.inject.Inject;
 
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
-import eu.netmobiel.commons.model.NetMobielUserImpl;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.UrnHelper;
+import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.PublisherService;
@@ -36,6 +38,7 @@ import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.service.RideManager;
+import eu.netmobiel.rideshare.service.RideshareUserManager;
 
 /**
  * Stateless bean for the management of the high-level shout-out process, involving multiple modules.
@@ -64,6 +67,8 @@ public class ShoutOutProcessor {
 
     @Inject
     private RideManager rideManager;
+    @Inject
+    private RideshareUserManager rideshareUserManager;
     
     @Inject
     private BookingManager bookingManager;
@@ -94,6 +99,11 @@ public class ShoutOutProcessor {
     	// We have a shout-out request
 		List<Profile> profiles = profileManager.searchShoutOutProfiles(event.getFrom(), event.getTo(), DRIVER_MAX_RADIUS_METERS, DRIVER_NEIGHBOURING_RADIUS_METERS);
 		if (! profiles.isEmpty()) {
+			String topic = MessageFormat.format("Gezocht: Meerijden op {0} van {1} naar {2}",
+						formatDate(event.getTravelTime()),
+						event.getFrom().getLabel(), 
+						event.getTo().getLabel() 
+						);
 			Message msg = new Message();
 			msg.setContext(event.getPlanRef());
 			msg.setSubject("Rit gezocht!");
@@ -107,17 +117,11 @@ public class ShoutOutProcessor {
 						event.getFrom().getLabel(), 
 						event.getTo().getLabel() 
 						));
-//				msg.setBody( 
-//					MessageFormat.format("{0} zoekt vervoer op {1} (ergens tussen vertrek {2} en aankomst {3}) van {4} naar {5}. Wie kan helpen?",
-//							event.getTraveller().getGivenName(),
-//							formatDate(event.getTravelTime()),
-//							formatTime(event.getEarliestDepartureTime()),
-//							formatTime(event.getLatestArrivalTime()),
-//							event.getFrom().getLabel(), 
-//							event.getTo().getLabel() 
-//							));
-			msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-			profiles.forEach(profile -> msg.addRecipient(new NetMobielUserImpl(profile.getManagedIdentity(), profile.getGivenName(), profile.getFamilyName(), profile.getEmail())));
+			msg.setDeliveryMode(DeliveryMode.ALL);
+			// Start or continue conversation for all recipients with planRef context
+			publisherService.lookupOrCreateConversations(profiles, event.getPlanRef(), topic, true)
+				.forEach(conversation -> msg.addRecipient(conversation, null));
+			// And send the message
 			publisherService.publish(null, msg);
 		}
     }
@@ -136,7 +140,7 @@ public class ShoutOutProcessor {
     	}
     	// We know only one rideshare provider and that's us.
     	if (event.getProposedPlan().getItineraries().size() != 1) {
-    		throw new BadRequestException("proposed plan should contain exactly 1 itinerary");
+    		throw new BadRequestException("Proposed plan should contain exactly 1 itinerary");
     	}
     	TripPlan pp = event.getProposedPlan();
     	TripPlan sop = event.getShoutOutPlan();
@@ -152,6 +156,13 @@ public class ShoutOutProcessor {
     		r.setDepartureTime(pp.getTravelTime());
     	}
     	rideManager.createRide(r);
+
+    	// Assign additional contexts to the driver's conversation: Ride
+		// This is later on used to bundle messages related to the trip plan
+		NetMobielUser nbUser = rideshareUserManager.getUser(UrnHelper.getId(event.getDriverRef()));
+		Conversation driverConv = publisherService.lookupConversation(nbUser, sop.getPlanRef());
+		publisherService.addConversationContexts(driverConv, new String[] { r.getUrn() } );
+
     	
     	Booking b = new Booking();
     	b.setDepartureTime(soi.getDepartureTime());
@@ -164,21 +175,28 @@ public class ShoutOutProcessor {
 		// The reference is only needed by the transport provider to inform the planner on a cancel of the ride,
 		// or to update some details like the car. Implicitly the reference is used to find the planner (in case of an
 		// external service). So the use from the perspective of the transport provider is twofold: 
-		// Find the service that booked a ride, and find the specific trip or tripplan within that service.
-		
+		// Find the service that booked a ride, and find the specific trip or trip plan within that service.
+    	
 		// As a principle we should not use an itinerary as key. Each change will create a new itinerary. Therefore, we 
-		// use a trip (refers to an itinerary) or the shout-out tripplan. The latter is only used in case of proposals.
+		// use a trip (refers to an itinerary) or the shout-out trip plan. The latter is only used in case of proposals.
     	// The booking will keep track of both references. First we don't like the use of a field to point to objects of 
     	// different type, depending on the state. Secondly, we want to report on the use of the field as an measure 
-    	// for usage of the shout-out feature by th erideshare drivers.
+    	// for usage of the shout-out feature by the rideshare drivers.
     	b.setPassengerTripPlanRef(sop.getPlanRef());
 		String bookingRef = bookingManager.createBooking(r.getUrn(), sop.getTraveller(), b);
 		tripPlanManager.assignBookingProposalReference(RideManager.AGENCY_ID, soi, r, bookingRef);
+		// Add the booking also to the driver's context. This might also be done by the rideshare
+		// TODO Check who is responsible
+		publisherService.addConversationContexts(driverConv, new String[] { b.getUrn() } );
 
+		// Find the conversation of the passenger
+		Conversation passengerConv = publisherService.lookupConversation(b.getPassenger(), sop.getPlanRef());
 		Message msg = new Message();
+		// The message context is the sender's context, in this case the system
 		msg.setContext(b.getUrn());
-		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-		msg.addRecipient(b.getPassenger());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		// The context of the passenger is the plan. The passenger can find the leg by looking for the message context in the plan
+		msg.addRecipient(passengerConv, sop.getPlanRef());
 		msg.setSubject("Je hebt een reisaanbieding!");
 		msg.setBody(
 				MessageFormat.format("Voor jouw reisaanvraag op {0} naar {1} kun je meerijden met {2}.", 
@@ -188,22 +206,7 @@ public class ShoutOutProcessor {
 						)
 				);
 		publisherService.publish(null, msg);
-		// Inform the organizer
-		if (!sop.getRequestor().equals(sop.getTraveller())) {
-			Message msg2 = new Message();
-			msg2.setContext(b.getUrn());
-			msg2.setDeliveryMode(DeliveryMode.NOTIFICATION);
-			msg2.addRecipient(sop.getRequestor());
-			msg2.setSubject(MessageFormat.format("Organisator: {0} heeft een reisaanbieding!", sop.getTraveller().getName()));
-			msg2.setBody(
-					MessageFormat.format("Voor de reisaanvraag op {0} naar {1} kan {2} meerijden met {3}.", 
-							formatDate(soi.getDepartureTime()),
-							b.getDropOff().getLabel(), 
-							sop.getTraveller().getName(),
-							r.getDriver().getGivenName()
-							)
-					);
-			publisherService.publish(null, msg2);
-		}
+		// Inform the delegates, if any. They receive limited information only. The delegate can switch to the delegator view and see the normal messages.
+		publisherService.informDelegates(b.getPassenger(), "Nieuwe reisaanbieding van " + r.getDriver().getName(), DeliveryMode.ALL);
     }
 }

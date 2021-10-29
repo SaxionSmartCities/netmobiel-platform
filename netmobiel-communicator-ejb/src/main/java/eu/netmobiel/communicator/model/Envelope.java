@@ -23,11 +23,9 @@ import javax.persistence.SqlResultSetMapping;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
-import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.report.NumericReportValue;
-import eu.netmobiel.commons.util.UrnHelper;
-import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @NamedNativeQueries({
 	@NamedNativeQuery(
@@ -128,7 +126,6 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 public class Envelope implements Serializable {
 
 	private static final long serialVersionUID = 1045941720040157428L;
-	public static final String URN_PREFIX = CommunicatorUrnHelper.createUrnPrefix(Envelope.class);
 
 	public static final String USER_YEAR_MONTH_COUNT_MAPPING = "CMEnvelopeUserYearMonthCountMapping";
 	public static final String ACT_1_MESSAGES_RECEIVED_COUNT = "ListMessagesReceivedCount";
@@ -154,9 +151,8 @@ public class Envelope implements Serializable {
 	/**
 	 * The recipient of the message. 
 	 */
-    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "recipient", nullable = false, foreignKey = @ForeignKey(name = "envelope_recipient_fk"))
+	@JoinColumn(name = "recipient", foreignKey = @ForeignKey(name = "envelope_recipient_fk"))
     private CommunicatorUser recipient;
 
 	/**
@@ -171,8 +167,30 @@ public class Envelope implements Serializable {
 	@Column(name = "push_time")
 	private Instant pushTime;
 	
-	public Envelope() {
+	/**
+	 * The context of the message for the recipient. The context is a urn, referring to an object in the system.
+	 * This is the (optional) context of the message as conceived by the recipient.
+	 * If the receiver shares the context with the sender, refer to the context of the message.
+	 */
+	@Size(max = 32)
+	@Column(name = "context")
+	private String context;
+	
+	/** 
+	 * The thread of the recipient. 
+	 */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "conversation", foreignKey = @ForeignKey(name = "envelope_conversation_fk"))
+    private Conversation conversation;
+
+    public Envelope() {
 		
+	}
+	
+	public Envelope(Message m, String context, Conversation conversation) {
+		this.message = m;
+		this.context = context;
+		this.conversation = conversation;
 	}
 	
 	public Envelope(Message m, CommunicatorUser rcp) {
@@ -186,6 +204,21 @@ public class Envelope implements Serializable {
 		this.ackTime = anAckTime;
 	}
 
+	public Envelope(Conversation rcp) {
+		this(null, rcp, null, null);
+	}
+
+	public Envelope(String aContext, Conversation rcp) {
+		this(aContext, rcp, null, null);
+	}
+	
+	public Envelope(String aContext, Conversation rcp, Instant aPushTime, Instant anAckTime) {
+		this.context = aContext;
+		this.conversation = rcp;
+		this.pushTime = aPushTime;
+		this.ackTime = anAckTime;
+	}
+
 	public Long getId() {
 		return id;
 	}
@@ -193,14 +226,6 @@ public class Envelope implements Serializable {
 	public void setId(Long id) {
 		this.id = id;
 	}
-
-	public String getEnvelopeRef() {
-		if (envelopeRef == null) {
-			envelopeRef = UrnHelper.createUrn(Envelope.URN_PREFIX, getId());
-		}
-		return envelopeRef;
-	}
-
 
 	public Message getMessage() {
 		return message;
@@ -233,6 +258,26 @@ public class Envelope implements Serializable {
 
 	public void setPushTime(Instant pushTime) {
 		this.pushTime = pushTime;
+	}
+
+	public String getContext() {
+		return context;
+	}
+
+	public void setContext(String context) {
+		this.context = context;
+	}
+
+	public String getEffectiveContext() {
+		return getContext() != null ? getContext() : getMessage().getContext();
+	}
+
+	public Conversation getConversation() {
+		return conversation;
+	}
+
+	public void setConversation(Conversation conversation) {
+		this.conversation = conversation;
 	}
 
 	@Override

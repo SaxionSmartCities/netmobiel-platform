@@ -16,10 +16,9 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
-import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
-import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.PublisherService;
@@ -56,12 +55,12 @@ public class NotificationHelper {
     	defaultLocale = Locale.forLanguageTag(DEFAULT_LOCALE);
     }
 
-    protected Message createMessage(Booking booking, String subject, String messageText) {
+    protected Message createMessage(Booking booking, Conversation driverConversation, String subject, String messageText) {
 		Ride ride = booking.getRide();
     	Message msg = new Message();
 		msg.setContext(booking.getUrn());
 		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-		msg.addRecipient(ride.getDriver());
+		msg.addRecipient(driverConversation, ride.getUrn());
 		msg.setSubject(subject);
 		msg.setBody(
 				MessageFormat.format(messageText, 
@@ -76,12 +75,17 @@ public class NotificationHelper {
     public void onBookingCreated(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Booking booking) throws BusinessException {
 		// Inform driver on new booking
 		Message msg = null;
+		// Add the booking context to the ride context
+		Conversation driverConv = publisherService.lookupConversation(booking.getRide().getDriver(), booking.getRide().getUrn());
+		publisherService.addConversationContexts(driverConv, new String[] { booking.getUrn() });
 		if (booking.getState() == BookingState.PROPOSED) {
 			// No message is needed, because is is the drive who created the proposal
 		} else if (booking.getState() == BookingState.REQUESTED) {
-			msg = createMessage(booking, "Je hebt een passagier!", "Voor jouw rit op {0} naar {1} wil {2} graag met je mee.");
+			msg = createMessage(booking, driverConv, "Je hebt een passagier!", 
+					"Voor jouw rit op {0} naar {1} wil {2} graag met je mee.");
 		} else if (booking.getState() == BookingState.CONFIRMED) {
-			msg = createMessage(booking, "Je hebt een passagier!", "Voor jouw rit op {0} naar {1} rijdt {2} met je mee.");
+			msg = createMessage(booking, driverConv, "Je hebt een passagier!", 
+					"Voor jouw rit op {0} naar {1} rijdt {2} met je mee.");
 		} else {
 			throw new IllegalStateException("Unexpected booking state with booking " + booking.toString());
 		}
@@ -90,13 +94,16 @@ public class NotificationHelper {
 		}
 	}
 
-	public void onBookingRemoved(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Removed Booking booking) throws CreateException, BadRequestException {
+	public void onBookingRemoved(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Removed Booking booking) throws BusinessException {
 		// Inform driver about removal of a booking
 		Message msg = null;
+		Conversation driverConv = publisherService.lookupConversation(booking.getRide().getDriver(), booking.getRide().getUrn());
 		if (booking.getState() == BookingState.PROPOSED) {
-			msg = createMessage(booking, "Passagier heeft geannuleerd.", "{2} heeft een andere oplossing gevonden voor de rit op {0} naar {1}. Bedankt voor je aanbod!");
+			msg = createMessage(booking, driverConv, "Passagier heeft geannuleerd.", 
+					"{2} heeft een andere oplossing gevonden voor de rit op {0} naar {1}. Bedankt voor je aanbod!");
 		} else {
-			msg = createMessage(booking, "Passagier heeft geannuleerd.", "Voor jouw rit op {0} naar {1} rijdt {2} niet meer mee.");
+			msg = createMessage(booking, driverConv, "Passagier heeft geannuleerd.", 
+					"Voor jouw rit op {0} naar {1} rijdt {2} niet meer mee.");
 		}
 		publisherService.publish(null, msg);
 	}

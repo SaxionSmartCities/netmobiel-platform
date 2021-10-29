@@ -24,9 +24,9 @@ import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.NetMobielMessage;
-import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @NamedEntityGraph(
@@ -61,39 +61,49 @@ public class Message implements NetMobielMessage, Serializable {
 	/**
 	 * The text of the message. 
 	 */
-	@Column(name = "body", length = MAX_MESSAGE_SIZE)
+	@Size(max = MAX_MESSAGE_SIZE)
+	@Column(name = "body")
 	private String body;
 	
 	/**
-	 * The context of the message. The context is a urn , referring to an object in the system.
+	 * The context of the message. The context is a urn, referring to an object in the system.
+	 * This is the context of the message as conceived by the sender.
+	 * If the receiver needs a different context, that context will be added to the envelope.
 	 */
+	@Size(max = 32)
     @NotNull
-	@Column(name = "context", length = 32, nullable = false)
+	@Column(name = "context")
 	private String context;
 	
 	/**
 	 * The subject of the context, formatted by the client. For the backend this is an opaque string.
-	 * The subject should be fixed for a given context. The reason for a subject is to prevent a 1+N query
-	 * by the client for looking up the context of each message after retrieving the list of messages.   
+	 * The subject should be set for a given context. The reason for a subject is to prevent a 1+N query
+	 * by the client for looking up the context of each message after retrieving the list of messages.
+	 * The context will be used to lookup details of a message (i.e. clicking-through).     
 	 */
+	@Size(max = 128)
     @NotNull
-	@Column(name = "subject", length = 128, nullable = false)
+	@Column(name = "subject")
 	private String subject;
 	
 	
     @NotNull
-	@Column(name = "created_time", nullable = false)
+	@Column(name = "created_time")
 	private Instant creationTime;
 	
-	@Column(name = "delivery_mode", length = 2, nullable = false)
+    /**
+     * Deliver as notification (push), regular message in inbox, or both.
+     */
+    @NotNull
+	@Column(name = "delivery_mode", length = 2)
 	private DeliveryMode deliveryMode;
 
 	/**
 	 * The sender of the message.
 	 */
-    @NotNull
+//    @NotNull
     @ManyToOne
-    @JoinColumn(name = "sender", nullable = false, foreignKey = @ForeignKey(name = "message_sender_fk"))
+    @JoinColumn(name = "sender", foreignKey = @ForeignKey(name = "message_sender_fk"))
     private CommunicatorUser sender;
 
     /**
@@ -101,6 +111,13 @@ public class Message implements NetMobielMessage, Serializable {
      */
 	@OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	private List<Envelope> envelopes;
+
+	/** 
+	 * The thread of the sender of the message. Optional when the system is sending a message. 
+	 */
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "sender_conversation", foreignKey = @ForeignKey(name = "message_sender_conversation_fk"))
+    private Conversation senderConversation;
 
     public Long getId() {
 		return id;
@@ -164,6 +181,14 @@ public class Message implements NetMobielMessage, Serializable {
 		this.sender = sender;
 	}
 
+	public Conversation getSenderConversation() {
+		return senderConversation;
+	}
+
+	public void setSenderConversation(Conversation senderConversation) {
+		this.senderConversation = senderConversation;
+	}
+
 	public List<Envelope> getEnvelopes() {
 		if (envelopes == null) {
 			envelopes = new ArrayList<>();
@@ -175,9 +200,13 @@ public class Message implements NetMobielMessage, Serializable {
 		this.envelopes = envelopes;
 	}
 
-	public void addRecipient(NetMobielUser nmu) {
-		CommunicatorUser rcp = new CommunicatorUser(nmu); 
-		getEnvelopes().add(new Envelope(this, rcp));
+	public void addRecipient(Conversation conv, String rcpContext) {
+		addRecipient(new Envelope(rcpContext, conv));
+	}
+
+	public void addRecipient(Envelope env) {
+		env.setMessage(this);
+		getEnvelopes().add(env);
 	}
 
 	@Override

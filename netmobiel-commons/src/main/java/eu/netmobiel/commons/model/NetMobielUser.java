@@ -43,4 +43,32 @@ public interface NetMobielUser extends Serializable {
 	default String getKeyCloakUrn() {
 		return UrnHelper.createUrnPrefix(NetMobielModule.KEYCLOAK.getCode(), "user") + getManagedIdentity();
 	}
+	
+	default String getName() {
+		StringBuilder sb = new StringBuilder();
+		if (getGivenName() != null) {
+			sb.append(getGivenName()).append(" ");
+		}
+		if (getFamilyName() != null) {
+			sb.append(getFamilyName());
+		}
+		String name = sb.toString().trim();
+		return name.length() > 0 ? name : null;
+	}
+
+	default String getNameAndEmail() {
+		StringBuilder sb = new StringBuilder();
+		if (getGivenName() != null) {
+			sb.append(getGivenName()).append(" ");
+		}
+		if (getFamilyName() != null) {
+			sb.append(getFamilyName());
+		}
+		if (getEmail() != null) {
+			sb.append(" (").append(getEmail()).append(")");
+		}
+		return sb.toString().trim();
+	}
+	
+
 }

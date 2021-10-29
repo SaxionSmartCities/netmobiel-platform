@@ -191,8 +191,11 @@ public class TripManager {
     	if (plan == null) {
     		throw new NotFoundException("Itinerary has no plan attached!: " + trip.getItineraryRef());
     	}
+    	
     	if (plan.getPlanType() == PlanType.SHOUT_OUT) {
     		// it was a shout-out plan. It is being resolved now. 
+    		// Use the event to adjust the context of the message thread from trip plan to trip.
+    		// The trip must have a database identity!
     		EventFireWrapper.fire(shoutOutResolvedEvent, new ShoutOutResolvedEvent(it));
     	}
         trip.setArrivalTimeIsPinned(plan.isUseAsArrivalTime());
