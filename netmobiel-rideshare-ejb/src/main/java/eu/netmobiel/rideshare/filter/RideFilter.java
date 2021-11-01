@@ -3,6 +3,7 @@ package eu.netmobiel.rideshare.filter;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.filter.PeriodFilter;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.model.BookingState;
@@ -68,7 +69,7 @@ public class RideFilter extends PeriodFilter {
 		this.driverId = driverId;
 	}
 
-	public final void setDriverId(String driverId) {
+	public final void setDriverId(String driverId) throws BadRequestException {
 		this.driverId = UrnHelper.getId(RideshareUser.URN_PREFIX, driverId);
 	}
 

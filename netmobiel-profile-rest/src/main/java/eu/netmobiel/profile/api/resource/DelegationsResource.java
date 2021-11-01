@@ -52,7 +52,7 @@ public class DelegationsResource implements DelegationsApi {
 		return mid;
     }
 
-    private static Long resolveDelegationRef(String delegationRef) {
+    private static Long resolveDelegationRef(String delegationRef) throws eu.netmobiel.commons.exception.BadRequestException {
     	Long id = null;
     	if (UrnHelper.isUrn(delegationRef)) {
    			id = UrnHelper.getId(Profile.URN_PREFIX, delegationRef);

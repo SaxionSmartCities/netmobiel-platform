@@ -8,6 +8,7 @@ import javax.inject.Inject;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.NetMobielModule;
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.model.RideshareUser;
@@ -25,7 +26,7 @@ public class IdentityHelper {
     private RideshareUserDao userDao;
     
     
-    public Optional<RideshareUser> resolveUrn(String userRef) {
+    public Optional<RideshareUser> resolveUrn(String userRef) throws BadRequestException {
     	RideshareUser user = null;
     	if (UrnHelper.isUrn(userRef)) {
         	NetMobielModule module = NetMobielModule.getEnum(UrnHelper.getService(userRef));

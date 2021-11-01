@@ -5,12 +5,13 @@ import java.util.stream.Collectors;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.PathParam;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
 
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.api.CarsApi;
@@ -59,13 +60,12 @@ public class CarsResource implements CarsApi {
     	try {
         	Long cid = UrnHelper.getId(Car.URN_PREFIX, carId);
 			car = userManager.getCar(cid);
-		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
-			throw new NotFoundException();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
 		}
     	return Response.ok(mapper.map(car)).build();
     }
 
-    @SuppressWarnings("resource")
 	@Override
 	public Response updateCar(@PathParam("carId") String carId, eu.netmobiel.rideshare.api.model.Car cardt) {
     	Response rsp = null;
@@ -74,8 +74,8 @@ public class CarsResource implements CarsApi {
         	Car car = mapper.map(cardt);
 			userManager.updateCar(cid, car);
 			rsp = Response.noContent().build();
-		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
-			rsp = Response.status(Status.NOT_FOUND).build();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
 		}
     	return rsp;
     }
@@ -90,6 +90,8 @@ public class CarsResource implements CarsApi {
 			rsp = Response.noContent().build();
 		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
 	    	rsp = Response.status(Status.GONE).build();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
 		}
     	return rsp;
     }

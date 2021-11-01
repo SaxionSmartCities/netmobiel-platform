@@ -199,8 +199,9 @@ public class LedgerService {
      * @param transactionRef the reference to the previously made reservation.  
      * @param when the timestamp of the release.
      * @return the transaction  
+     * @throws BadRequestException 
      */
-    public AccountingTransaction release(String transactionRef, OffsetDateTime when) {
+    public AccountingTransaction release(String transactionRef, OffsetDateTime when) throws BadRequestException {
     	Long tid = UrnHelper.getId(AccountingTransaction.URN_PREFIX, transactionRef);
     	AccountingTransaction reservation = accountingTransactionDao.find(tid).orElseThrow(() -> new IllegalArgumentException("No such transaction: " + transactionRef));
     	return release(reservation, when);
@@ -241,12 +242,12 @@ public class LedgerService {
     	return tr.getTransactionRef();
     }
 
-    public String release(String reservationId) {
+    public String release(String reservationId) throws BadRequestException {
     	AccountingTransaction tr = release(reservationId, OffsetDateTime.now());
     	return tr.getTransactionRef();
     }
 
-    public String charge(NetMobielUser nmbeneficiary, String reservationId, int actualAmount) throws BalanceInsufficientException, OverdrawnException {
+    public String charge(NetMobielUser nmbeneficiary, String reservationId, int actualAmount) throws BalanceInsufficientException, OverdrawnException, BadRequestException {
     	BankerUser beneficiary = lookupUser(nmbeneficiary)
     			.orElseThrow(() -> new BalanceInsufficientException("Beneficiary has no account, nothing to transfer to: " + nmbeneficiary.getManagedIdentity()));
     	AccountingTransaction release = release(reservationId, OffsetDateTime.now());

@@ -48,7 +48,7 @@ public class DonationFilter extends PeriodFilter {
 	}
 
 	public DonationFilter(String charityId, Long userId, OffsetDateTime since, OffsetDateTime until,
-			String sortBy, String sortDir, boolean anonymousToo) {
+			String sortBy, String sortDir, boolean anonymousToo) throws BadRequestException {
 		setCharityId(charityId);
 		setUserId(userId);
 		setSince(since);
@@ -79,7 +79,7 @@ public class DonationFilter extends PeriodFilter {
 		this.charityId = charityId;
 	}
 
-	public final void setCharityId(String charityId) {
+	public final void setCharityId(String charityId) throws BadRequestException {
 		this.charityId = UrnHelper.getId(Charity.URN_PREFIX, charityId);
 	}
 

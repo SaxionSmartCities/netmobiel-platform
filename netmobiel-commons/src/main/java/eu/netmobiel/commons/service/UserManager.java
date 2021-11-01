@@ -15,6 +15,7 @@ import javax.ejb.SessionContext;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.NetMobielModule;
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.NetMobielUser;
@@ -226,7 +227,7 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     
     protected abstract Optional<String> resolveUrnPrefix(NetMobielModule module);
 
-    public Optional<T> resolveUrn(String userRef) {
+    public Optional<T> resolveUrn(String userRef) throws BadRequestException {
     	T user = null;
     	if (UrnHelper.isUrn(userRef)) {
         	NetMobielModule module = NetMobielModule.getEnum(UrnHelper.getService(userRef));

@@ -30,6 +30,7 @@ import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.commons.event.TripConfirmedByProviderEvent;
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
@@ -363,7 +364,7 @@ public class BookingProcessor {
     			"Na overeenkomst moet het dispuut handmatig worden opgelost in het systeem door een technisch medewerker. " +
     			"\n\nMet vriendelijke groet,\n\nNetMobiel Platform\n";
     
-	protected void sendDisputeEmail(Trip trip, Leg leg) {
+	protected void sendDisputeEmail(Trip trip, Leg leg) throws BadRequestException {
 		NetMobielUser driver = resolveDriverId(leg);
 		Map<String, String> valuesMap = new HashMap<>();
 		valuesMap.put("driverName", leg.getDriverName());
@@ -394,7 +395,7 @@ public class BookingProcessor {
         }
 	}
 	
-	protected NetMobielUser resolveDriverId(Leg leg) {
+	protected NetMobielUser resolveDriverId(Leg leg) throws BadRequestException {
 		NetMobielUser nmuser = null;
     	if (!NetMobielModule.RIDESHARE.getCode().equals(UrnHelper.getService(leg.getDriverId()))) {
     		logger.error("Driver Id cannot be resolved this service: " + leg.getDriverId());

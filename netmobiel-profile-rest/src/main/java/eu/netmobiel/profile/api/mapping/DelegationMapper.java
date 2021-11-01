@@ -5,6 +5,7 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 import eu.netmobiel.commons.NetMobielModule;
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.mapping.annotation.DelegationMapperQualifier;
@@ -52,8 +53,9 @@ public abstract class DelegationMapper {
 	 * Maps the delegateRef and delegatorRef to a profile instance. Supported are a plain profile id, keycloak managed identity urn and a profile urn.
 	 * @param profileRef
 	 * @return
+	 * @throws BadRequestException 
 	 */
-	public Profile mapProfileRef(String profileRef) {
+	public Profile mapProfileRef(String profileRef) throws BadRequestException {
 		if (profileRef == null) {
 			return null;
 		}

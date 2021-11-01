@@ -5,11 +5,9 @@ import java.time.OffsetDateTime;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
-import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -56,7 +54,7 @@ public class BookingsResource implements BookingsApi {
 			} else {
 				bookings = bookingManager.listBookings(userId, toInstant(sinceDate), toInstant(untilDate), maxResults, offset);
 			}
-		} catch (BadRequestException | eu.netmobiel.commons.exception.NotFoundException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		} 
     	return Response.ok(pageMapper.mapMyBookings(bookings)).build();
@@ -68,8 +66,8 @@ public class BookingsResource implements BookingsApi {
     	try {
         	Long cid = UrnHelper.getId(Booking.URN_PREFIX, bookingId);
 			booking = bookingManager.getBooking(cid);
-		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
-			throw new NotFoundException();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
 		}
     	return Response.ok(mapper.mapInDetail(booking)).build();
     }

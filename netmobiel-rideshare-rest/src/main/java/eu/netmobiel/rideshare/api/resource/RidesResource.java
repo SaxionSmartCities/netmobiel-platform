@@ -81,8 +81,6 @@ public class RidesResource implements RidesApi {
 			}
 			// Map the rides as my rides: Brand/model car only, no driver info (because it is the specified driver)
 			rsp = Response.ok(pageMapper.mapMine(rides)).build();
-		} catch (IllegalArgumentException e) {
-			throw new BadRequestException(e);
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
@@ -122,8 +120,8 @@ public class RidesResource implements RidesApi {
     	try {
         	Long cid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
 			ride = rideManager.getRide(cid);
-		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
-			throw new NotFoundException();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
 		}
     	// Return all information, including car, driver and bookings
     	return Response.ok(mapper.mapDetailed(ride)).build();
@@ -194,7 +192,7 @@ public class RidesResource implements RidesApi {
 			String newBookingId = bookingManager.createBooking(rideId, passenger, booking);
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newBookingId)).build();
 		} catch (BusinessException e) {
-			throw new BadRequestException("Error creating booking for ride " + rideId, e);
+			throw new WebApplicationException(e);
 		}
     	return rsp;
     }
@@ -210,8 +208,6 @@ public class RidesResource implements RidesApi {
         	//TODO Add security restriction
 			rideManager.confirmRide(rid, confirmationValue, reasonType);
 			rsp = Response.noContent().build();
-		} catch (IllegalArgumentException e) {
-			throw new javax.ws.rs.BadRequestException(e);
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}

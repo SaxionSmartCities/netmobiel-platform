@@ -6,6 +6,8 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 
+import eu.netmobiel.commons.exception.BadRequestException;
+
 public class UrnHelperTest {
 	private static final String TEST_SERVICE = "test";
 	private static final String URN_PREFIX = UrnHelper.createUrnPrefix(TEST_SERVICE, UrnHelperTest.class);
@@ -19,7 +21,7 @@ public class UrnHelperTest {
 	}
 
 	@Test
-	public void test() {
+	public void test() throws BadRequestException {
 		String urn = UrnHelper.createUrn(URN_PREFIX, 42L);
 		assertTrue(UrnHelper.isUrn(urn));
 		assertNull(UrnHelper.getId(null));

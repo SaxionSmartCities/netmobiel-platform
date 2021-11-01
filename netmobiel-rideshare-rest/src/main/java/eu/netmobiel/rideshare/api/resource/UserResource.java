@@ -4,10 +4,11 @@ import java.util.stream.Collectors;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.api.UsersApi;
 import eu.netmobiel.rideshare.api.mapping.UserMapper;
@@ -41,8 +42,8 @@ public class UserResource implements UsersApi {
     	try {
         	Long uid = UrnHelper.getId(RideshareUser.URN_PREFIX, userId);
 			user = userManager.getUser(uid);
-		} catch (eu.netmobiel.commons.exception.NotFoundException e) {
-			throw new NotFoundException();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
 		}
     	return Response.ok(mapper.map(user)).build();
     }

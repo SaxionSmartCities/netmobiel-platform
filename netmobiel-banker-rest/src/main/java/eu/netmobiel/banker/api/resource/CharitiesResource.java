@@ -72,7 +72,7 @@ public class CharitiesResource implements CharitiesApi {
 	@Context
 	private HttpServletRequest request;
 
-    protected BankerUser resolveUserReference(String userId, boolean createIfNeeded) {
+    protected BankerUser resolveUserReference(String userId, boolean createIfNeeded) throws NotFoundException, eu.netmobiel.commons.exception.BadRequestException {
 		BankerUser user = null;
 		if ("me".equals(userId)) {
 			user = createIfNeeded ? userManager.findOrRegisterCallingUser() : userManager.findCallingUser();

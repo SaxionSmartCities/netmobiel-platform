@@ -79,7 +79,7 @@ public class UsersResource implements UsersApi {
 
 	private static final Predicate<HttpServletRequest> isAdmin = rq -> rq.isUserInRole("admin");
 	
-    protected BankerUser resolveUserReference(String userId, CallingContext<BankerUser> callingContext) throws NotFoundException {
+    protected BankerUser resolveUserReference(String userId, CallingContext<BankerUser> callingContext) throws NotFoundException, eu.netmobiel.commons.exception.BadRequestException {
 		BankerUser user = null;
 		if ("me".equals(userId)) {
 			user = callingContext.getEffectiveUser();

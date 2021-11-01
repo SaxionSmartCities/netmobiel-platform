@@ -1,5 +1,7 @@
 package eu.netmobiel.commons.util;
 
+import eu.netmobiel.commons.exception.BadRequestException;
+
 public class UrnHelper {
 	public static final String URN_FORMAT = "urn:nb:%s:%s:"; 
 
@@ -27,12 +29,12 @@ public class UrnHelper {
 		return expectedPrefix != null && expectedPrefix.equals(urn);
 	}
 	
-	public static Long getId(String prefix, String value) {
+	public static Long getId(String prefix, String value) throws BadRequestException {
 		String id = value;
 		if (isUrn(value)) {
 			String actualPrefix = getPrefix(value);
 			if (! prefix.equals(actualPrefix)) {
-				throw new IllegalArgumentException(String.format("Expected prefix %s, actual is %s", prefix, actualPrefix));
+				throw new BadRequestException(String.format("Expected prefix %s, actual is %s", prefix, actualPrefix));
 			}
 			id = getSuffix(value);
 		}
@@ -40,7 +42,7 @@ public class UrnHelper {
 			try {
 				return Long.parseLong(id);
 			} catch (NumberFormatException ex) {
-				throw new IllegalArgumentException("Invalid urn or identifier: " + value, ex);
+				throw new BadRequestException("Invalid identifier: " + value, ex);
 			}
 		}
 		return null;
