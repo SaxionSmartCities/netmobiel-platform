@@ -118,9 +118,16 @@ paths:
           description: Successful response.
       operationId: sendMessage
       summary: Create a Message
-      description: 'Creates asynchronously a new instance of a `Message`. If the delivery
-        mode includes `NOTIFICATION` then a notification (push) message is sent to
-        each recipient. The sender of the message is the effective user. '
+      description: "Creates asynchronously a new instance of a `Message`. If the delivery\
+        \ mode includes `NOTIFICATION` then a notification (push) message is sent\
+        \ to each recipient. The sender of the message is the effective user. \n\n\
+        It is (very) important to set the context of the message and the envelope\
+        \ correct, otherwise the conversations of sender and recipient cannot be found\
+        \ and an error is returned. In general the message context reflects the context\
+        \ of the sender, i.e. a `Trip` urn for a passenger. For the receipient, if\
+        \ it is a driver, then the context is a `Booking` or a `Ride`. Thus, context\
+        \ is a system object that has an immediate meaning for a user, and also is\
+        \ owned by that user.\n\n"
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
@@ -144,8 +151,8 @@ paths:
           $ref: '#/components/responses/NotFound'
       operationId: acknowledgeMessage
       summary: Acknowledge a message
-      description: Assigns a timestamp to the message for the caller (the effective
-        user) as implied recipient. The field 'ackTime' represents this time.
+      description: Assigns a timestamp (now) to the message envelope of the caller
+        (the effective user). The field 'ackTime' represents this time.
     delete:
       responses:
         "204":
@@ -167,6 +174,201 @@ paths:
       description: The id of the message.
       schema:
         type: integer
+      in: path
+      required: true
+  /conversations:
+    summary: Path used to manage the list of conversations.
+    description: The REST endpoint/path used to list `Conversation` entities. This
+      path contains a `GET` operation to perform the list task.
+    get:
+      parameters:
+      - name: owner
+        description: The owner of the conversation, i.e. as a recipient or as a sender.
+          Default is `me` (the effective user). An admin can list a conversation of
+          anyone. The participant domain is the Keycloak managed identity or a communicator
+          user.
+        schema:
+          type: string
+        in: query
+      - name: since
+        description: Include a conversation when it has a message created at or after
+          this date and time. No default set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: until
+        description: Include a conversation when it has a message created before this
+          date and time. No default set. The `until` date must be after the `since`
+          parameter.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      - name: select
+        description: |-
+          Determines the contents of the list, based on whether the `archivedTime` of the `Conversation` is set.
+          Default is `CURRENT`.
+        schema:
+          enum:
+          - CURRENT
+          - ARCHIVED
+          - ALL
+          type: string
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+          description: Successful response - returns an array of `Conversation` entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: listConversations
+      summary: List conversations
+      description: Gets a paged list of `Conversation` entities. The list includes
+        the latest message in each conversation. The most recent message of each conversation
+        is returned.  The list is ordered from recent message to older.
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Conversation'
+        required: true
+      responses:
+        "201":
+          description: Succesfull creation of conversation.
+      operationId: createConversation
+      summary: Create a conversation
+      description: Create a conversation for a user. Admin only.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+  /conversations/{conversationId}/messages:
+    summary: Path used to manage the list of messages of a conversation.
+    description: The REST endpoint/path used to list `Message` entities in a conversation.
+      This path contains a `GET` operation to perform the list task. When a call a
+      made by someone with the delegate role, the effective user will be the user
+      specified in the X-Delegator header.
+    get:
+      parameters:
+      - name: deliveryMode
+        description: "The delivery mode to filter on. Default is MESSAGE. \nThe intention\
+          \ of the flag is to filter on the effective delivery mode. Specify MESSAGE\
+          \ to list only the messages. Specify NOTIFICATION to list the notifications\
+          \ only. To list any message leave the parameter empty or specify ALL. "
+        schema:
+          enum:
+          - MESSAGE
+          - NOTIFICATION
+          - ALL
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns an page with `Message` entities
+            that are part of the specified conversation.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: listConversationMessages
+      summary: List messages in a conversation.
+      description: "Gets a paged list of all `Message` entities in a `Conversation`.\
+        \ \nThe filter criteria are applied. Messages are sorted by `creationTime`\
+        \ descending.\n\nNote that all messages are returned for a participant: Message\
+        \ received , but also messages sent. Messages sent are implicitly acknowledged."
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: conversationId
+      description: A unique identifier for a `Conversation`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /conversations/{conversationId}:
+    summary: Path used to manage a single Conversation.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Conversation`.  This path contains `GET` and `PUT` operations used to
+      perform the get and update tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Conversation'
+          description: Successful response - returns a single `Conversation`.
+      operationId: getConversation
+      summary: Get a Conversation
+      description: Gets the details of a single instance of a `Conversation`. All
+        fields are included.
+    put:
+      requestBody:
+        description: A (partly) filled conversation.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Conversation'
+        required: true
+      responses:
+        "204":
+          description: Successfull update.
+      operationId: updateConversation
+      summary: Patch a conversation.
+      description: |-
+        Updates a conversation. It is is not a real PUT operation, only the following attributes can be updated through this call:
+         * topic
+         * contexts
+         * archiveTime
+
+        This call is for admin only.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: conversationId
+      description: A unique identifier for a `Conversation`.
+      schema:
+        type: string
       in: path
       required: true
 components:
@@ -203,12 +405,12 @@ components:
       properties:
         body:
           description: "The payload of the message comprising the actual message text\
-            \ to convey. \nThis text should be in the right language. \nThe backend\
-            \ services use message codes only."
+            \ to convey. \nThis text should be in the right language. \n"
           type: string
         context:
-          description: The object reference to mark the context of the message. This
-            is a urn, uniquely defining the object this message is about.
+          description: The object reference to mark the original context of the message
+            from the sender's perspective. This is a urn, uniquely defining the object
+            this message is about. Note that each envelope can have a context too.
           type: string
         deliveryMode:
           description: "The deliver mode, indicating how the message should be delivered.\n\
@@ -224,9 +426,10 @@ components:
           type: string
         sender:
           $ref: '#/components/schemas/User'
-          description: The address of the sender. The system will assign the caller
-            as the sender. If the caller has elevated privilege, a sender can set
-            by the caller. The sender is an Keycloak managed identity.
+          description: The sender of the message. System messages have no sender.
+            User messages always have a sender. In regular use the (effective) caller
+            is assigned as the sender. If the caller has elevated privilege, the sender
+            can set by the caller. The sender is an Keycloak managed identity.
         creationTime:
           format: date-time
           description: Read-only. The date and time the message was sent. This field
@@ -242,15 +445,21 @@ components:
             of the recipient.
           type: integer
         envelopes:
-          description: |-
-            The list of envelopes, each containing one recipient that should receive the message or have received the message.
-
-            The recipient's domain is the Keycloak managed identity.
-
-            Omit the array if the message is directed to all users (flag `toAllUsers`).
+          description: "The list of envelopes, each containing one recipient that\
+            \ should receive the message or have received the message. The recipient's\
+            \ domain is the Keycloak managed identity. \n\nAn envelope can have a\
+            \ non-null context. That context is always related to some object directly\
+            \ related to the receiver. A context in an envelope is more important\
+            \ that the sender's context in the message."
           type: array
           items:
             $ref: '#/components/schemas/Envelope'
+        senderConversationRef:
+          description: A reference to the conversation of the sender containing this
+            message. Only present when a sender is defined. Only present whith the
+            endpoint `/message`. Only present for messages sent by the caller, unless
+            the caller has elevated privilege.
+          type: string
       example:
         body: Kunnen we iets later vertrekken?
         context: urn:nb:pl:leg:23
@@ -298,41 +507,6 @@ components:
         start: 32
         count: 16
         data: []
-    Envelope:
-      title: Root Type for Envelope
-      description: "The envelope is the header of the message. It contains the recipient\
-        \ and the \ndate and time that the message was read by the recipient."
-      required:
-      - recipient
-      type: object
-      properties:
-        ackTime:
-          format: date-time
-          description: Read-only. The timestamp conforming the reading of the message.
-            Only set in case of a message, thus not in case of a notification.
-          type: string
-        recipient:
-          $ref: '#/components/schemas/User'
-          description: A receiver of the message.
-          properties:
-            managedIndentity:
-              type: string
-            givenName:
-              type: string
-            familiyName:
-              type: string
-        pushTime:
-          format: date-time
-          description: 'Read-only. The time of notifiying the recipient through the
-            push messaging system. If null no notification was delivered. '
-          type: string
-      example:
-        ackTime: 2020-03-17T08:45:00Z
-        pushTime: 2020-03-17T08:27:00Z
-        recipient:
-          managedIndentity: 1234-5678
-          givenName: Jaap
-          familyName: Reitsma
     User:
       description: 'A user in the message service. '
       required:
@@ -364,6 +538,101 @@ components:
         givenName: Otto
         id: 2
         managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+    Conversation:
+      title: Root Type for Conversation
+      description: 'A conversation bundles related messages under a single header. '
+      required:
+      - createdTime
+      - id
+      - owner
+      - topic
+      type: object
+      properties:
+        id:
+          format: int32
+          description: The database ID.
+          type: integer
+        createdTime:
+          format: date-time
+          description: The point of time when the conversation is started.
+          type: string
+        archivedTime:
+          format: date-time
+          description: When defined the conversation is archived, meaning that it
+            is no longer active.
+          type: string
+        topic:
+          description: The main topic of the conversation.
+          type: string
+        owner:
+          $ref: '#/components/schemas/User'
+          description: 'The owner of the conversation. '
+          properties:
+            familyName:
+              type: string
+            givenName:
+              type: string
+            managedIdentity:
+              type: string
+        contexts:
+          description: A list of one or more contexts assigned to this conversation.
+            Only present when the conversation object is requested.
+          type: array
+          items:
+            type: string
+      example:
+        id: 12345
+        createdTime: 2021-10-26T12:00:00Z
+        topic: Dit is een conversatie
+        owner:
+          familyName: Normalverbraucher
+          givenName: Otto
+          managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+        contexts:
+        - urn:nb:pn:tripplan:12345
+        - urn:nb:pn:trip:23456
+    Envelope:
+      title: Root Type for Envelope
+      description: "The envelope is the header of the message. It contains the recipient\
+        \ and the \ndate and time that the message was read by the recipient."
+      required:
+      - recipient
+      type: object
+      properties:
+        ackTime:
+          format: date-time
+          description: Read-only. The timestamp conforming the reading of the message.
+            Only set in case of a message, thus not in case of a notification.
+          type: string
+        recipient:
+          $ref: '#/components/schemas/User'
+          description: A receiver of the message.
+          properties:
+            managedIndentity:
+              type: string
+            givenName:
+              type: string
+            familiyName:
+              type: string
+        pushTime:
+          format: date-time
+          description: 'Read-only. The time of notifiying the recipient through the
+            push messaging system. If null no notification was delivered. '
+          type: string
+        conversationRef:
+          description: "A reference to the conversation of the recipient of the message.\
+            \ \nOnly available when a message is listed as part of the `/message`\
+            \ endpoint.\nOnly available when the messaged is received by the caller,\
+            \ unless  the caller \nhas elevated privilege."
+          type: string
+      example:
+        ackTime: 2020-03-17T08:45:00Z
+        pushTime: 2020-03-17T08:27:00Z
+        recipient:
+          managedIndentity: 1234-5678
+          givenName: Jaap
+          familyName: Reitsma
+        conversationRef: urn:nb:cn:conversation:12345
   responses:
     InternalServerError:
       content:
@@ -422,3 +691,6 @@ components:
       scheme: bearer
       type: http
       description: You need a valid access token.
+security:
+- apikey: []
+  Bearer-only: []
