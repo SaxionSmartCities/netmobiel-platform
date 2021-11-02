@@ -320,7 +320,7 @@ paths:
           Default is `CURRENT`.
         schema:
           enum:
-          - CURRENT
+          - ACTUAL
           - ARCHIVED
           - ALL
           type: string
