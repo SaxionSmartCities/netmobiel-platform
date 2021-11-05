@@ -22,6 +22,7 @@ import javax.persistence.NamedEntityGraph;
 import javax.persistence.OrderBy;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
@@ -54,8 +55,10 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
  * @author Jaap Reitsma
  *
  */
-@NamedEntityGraph(name = Conversation.DEFAULT_ENTITY_GRAPH
-)
+@NamedEntityGraph(name = Conversation.DEFAULT_ENTITY_GRAPH,
+	attributeNodes = {
+		@NamedAttributeNode(value = "contexts")
+})
 @NamedEntityGraph(name = Conversation.FULL_ENTITY_GRAPH,
 	attributeNodes = {
 		@NamedAttributeNode(value = "contexts"),
@@ -102,7 +105,7 @@ public class Conversation extends ReferableObject implements Serializable {
 	 * The owner of the thread.
 	 */
     @NotNull
-    @ManyToOne
+    @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "owner", foreignKey = @ForeignKey(name = "conversation_owner_fk"))
     private CommunicatorUser owner;
 
@@ -119,6 +122,12 @@ public class Conversation extends ReferableObject implements Serializable {
     @OnDelete(action = OnDeleteAction.CASCADE)
 	private Set<String> contexts;
 
+    /**
+     * The most recent message in this conversation. Only present when listing conversations. 
+     */
+    @Transient
+    private Message recentMessage;
+    
     public Conversation() {
     	this(null, null);
     }
@@ -127,6 +136,10 @@ public class Conversation extends ReferableObject implements Serializable {
     	this(null, initialContext, aTopic, Instant.now());
     }
     
+    public Conversation(CommunicatorUser anOwner) {
+    	this(anOwner, null, null);
+    }
+
     public Conversation(CommunicatorUser anOwner, String initialContext, String aTopic) {
     	this(anOwner, initialContext, aTopic, Instant.now());
     }
@@ -193,6 +206,14 @@ public class Conversation extends ReferableObject implements Serializable {
 
 	public void setContexts(Set<String> contexts) {
 		this.contexts = contexts;
+	}
+
+	public Message getRecentMessage() {
+		return recentMessage;
+	}
+
+	public void setRecentMessage(Message recentMessage) {
+		this.recentMessage = recentMessage;
 	}
 
 	@Override

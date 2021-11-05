@@ -2,6 +2,7 @@ package eu.netmobiel.communicator.service;
 
 import java.text.MessageFormat;
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -20,6 +21,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
+import eu.netmobiel.commons.exception.DuplicateEntryException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.NetMobielUser;
@@ -87,7 +89,7 @@ public class PublisherService {
 
 	public void validateMessage(Message msg) throws CreateException, BadRequestException {
     	if (msg.getContext() == null) {
-    		throw new BadRequestException("Constraint violation: 'context' must be set.");
+    		throw new BadRequestException("Constraint violation: sender/system 'context' must be set.");
     	}
     	if (msg.getSubject() == null) {
     		throw new BadRequestException("Constraint violation: 'subject' must be set.");
@@ -98,40 +100,50 @@ public class PublisherService {
     	if (msg.getEnvelopes() == null || msg.getEnvelopes().isEmpty()) {
     		throw new BadRequestException("Constraint violation: 'envelopes' must be set and contain at least one recipient.");
     	}
+		if (msg.getEnvelopes().stream()
+			.filter(env -> env.getContext() == null && env.getContext().isBlank())
+			.findAny().isPresent()) {
+			throw new BadRequestException("Envelope context cannot be null or blank");
+		}
+		// There cannot yet be a sender in the envelopes
+		if (msg.getEnvelopes().stream()
+				.filter(env -> env.isSender())
+				.findAny().isPresent()) {
+				throw new BadRequestException("Do not add a sender envelope");
+		}
     }
 
     /**
      * Sends a message and/or a notification to the recipients in the message envelopes.
      * The conversations of sender and recipients must already exist!
      * This is an asynchronous call. Because of the asynchronous nature, this call cannot throw exceptions to the initiator. 
-     * @param sender the sender of the message 
+     * @param sender the envelope of the sender of the message.
      * @param msg the message to send to the recipients in the envelopes
      * @param topic the topic of the conversation
      * @param overwriteTopic if true then overwrite the existing topic, if any.
      */
     @Asynchronous
-    public void publish(Conversation sender, Message msg) {
+    public void publish(Envelope sender, Message msg) {
     	try {
 			validateMessage(msg);
-			msg.setCreationTime(Instant.now());
+			msg.setCreatedTime(Instant.now());
 			if (sender != null) {
-				Conversation senderdb = sender;
-				if (sender.getId() == null) {
+				if (sender.getConversation().getId() == null) {
 					// Resolve sender conversation
-					senderdb = lookupConversation(sender.getOwner(), msg.getContext());
+					sender.setConversation(lookupConversation(sender.getConversation().getOwner(), msg.getContext()));
 				}
-				msg.setSenderConversation(senderdb);
+				msg.addSender(sender);
 			}
-			if (logger.isDebugEnabled()) {
-			    logger.debug(String.format("Send message from %s to %s: %s %s - %s", msg.getSender(), 
-			    		msg.getEnvelopes().stream().map(env -> env.getConversation().getOwner().getManagedIdentity()).collect(Collectors.joining(", ")), 
-			    		msg.getContext(), msg.getSubject(), msg.getBody()));
-			}
+//			if (logger.isDebugEnabled()) {
+//			    logger.debug(String.format("Send message from %s to %s: %s %s - %s", sender.getConversation().getOwner(), 
+//			    		msg.getEnvelopes().stream().map(env -> env.getConversation().getOwner().getManagedIdentity()).collect(Collectors.joining(", ")), 
+//			    		msg.getContext(), msg.getSubject(), msg.getBody()));
+//			}
 			// Assure all recipient conversations are present in the database, replace transient instances of users with persistent instances.
 			for (Envelope env : msg.getEnvelopes()) {
 				if (env.getConversation().getId() == null) {
-					// Resolve recipient conversation
-					env.setConversation(lookupConversation(env.getConversation().getOwner(), env.getEffectiveContext()));
+					// Resolve conversation
+					env.setConversation(lookupConversation(env.getConversation().getOwner(), env.getContext()));
 				}
 			}
 			msg.setId(null); 	// Assure it is a new message.
@@ -161,6 +173,53 @@ public class PublisherService {
 		}
     }
 
+    /**
+     * Creates a conversation
+     * @param c the conversation. Must already be present in the communicator database.
+     * @return The ID of the conversation just created.
+     * @throws BadRequestException In case of bad parameters.
+     * @throws DuplicateEntryException When a conversation is found with a matching (context, owner)
+     */
+    public Long createConversation(Conversation c) throws BadRequestException, DuplicateEntryException {
+    	if (c.getContexts().isEmpty()) {
+    		throw new BadRequestException("Specify at least one context");
+    	}
+    	if (c.getTopic() == null || c.getTopic().isBlank()) {
+    		throw new BadRequestException("Specify a non-blank topic");
+    	}
+    	Optional<Conversation> optConv = Optional.empty();
+    	for (String context : c.getContexts()) {
+    		optConv = conversationDao.findByContextAndOwner(context, c.getOwner());
+    		if (!optConv.isPresent()) {
+    			throw new DuplicateEntryException(
+    					String.format("Conversation %d already associated with context %s", 
+    							optConv.get().getId(), context));
+    		}
+		}
+    	c.setCreatedTime(Instant.now());
+    	c.setArchivedTime(null);
+		return conversationDao.save(c).getId();
+    }
+
+    /**
+     * Fetches a single conversation.  
+     * @param id the id of the conversation
+     * @return A conversation object (without messages).
+     * @throws NotFoundException If there is no matching id found.
+     */
+    public Conversation getConversation(Long id) throws NotFoundException {
+    	Conversation convdb = conversationDao.loadGraph(id, Conversation.FULL_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such conversation: " + id));
+    	return convdb;
+    }
+
+    public void updateConversation(Conversation conversation) throws BusinessException {
+    	Conversation convdb = conversationDao.loadGraph(conversation.getId(), Conversation.DEFAULT_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such conversation: " + conversation.getId()));
+    	conversation.setOwner(convdb.getOwner());
+    	conversationDao.merge(conversation);
+    }
+    
     public Conversation lookupOrCreateConversation(CommunicatorUser owner, String context, String topic, boolean overwriteTopic) {
 		Optional<Conversation> optConv = conversationDao.findByContextAndOwner(context, owner);
 		if (optConv.isPresent()) {
@@ -270,29 +329,47 @@ public class PublisherService {
 	/**
 	 * Lists the conversations of a user. Each conversation is a related list of messages, the relation is determined by the context attribute.
 	 * The result contains the latest message for each conversation. Notification only messages are ignored.
-	 * @param participant the sender or recipient
-     * @param maxResults for paging: maximum number of results per page. 
+	 * @param owner the owner of the conversation
+	 * @param actualOnly If true then list only the actual conversations, i.e. those that are not archived yet.   
+	 * @param archoivedOnly If true then list only the archived conversations.   
+     * @param maxResults for paging: maximum number of results per page.
      * @param offset for paging: zero-based offset in the result.  
      * @return A page of messages.
+	 * @throws BadRequestException 
 	 */
-    public @NotNull PagedResult<Message> listConversations(String participant, Integer maxResults, Integer offset) {
+    public @NotNull PagedResult<Conversation> listConversations(String owner, boolean actualOnly, boolean archivedOnly, Integer maxResults, Integer offset) throws BadRequestException {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
         if (offset == null) {
         	offset = 0;
         }
+        if (actualOnly && archivedOnly) {
+        	throw new BadRequestException("You cannot have actualOnly AND archiveOnly at the same time");
+        }
     	// Get the total count
-    	PagedResult<Long> prs = messageDao.listConversations(participant, 0, offset);
-    	List<Message> results = null;
+    	PagedResult<Long> prs = messageDao.listTopMessagesByConversations(owner, actualOnly, archivedOnly, 0, offset);
+    	List<Message> messages = null;
     	if (maxResults > 0) {
     		// Get the actual data
-        	PagedResult<Long> mids = messageDao.listConversations(participant, maxResults, offset);
-        	results = messageDao.loadGraphs(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
+        	PagedResult<Long> mids = messageDao.listTopMessagesByConversations(owner, actualOnly, archivedOnly, maxResults, offset);
+        	messages = messageDao.loadGraphs(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
     	} else {
-    		results = Collections.emptyList();
+    		messages = Collections.emptyList();
     	}
-    	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());
+    	// Detach all objects, we do not want to modify the database.
+    	messageDao.clear();
+    	List<Conversation> conversations = new ArrayList<>();
+    	for (Message msg: messages) {
+    		Conversation c = msg.getEnvelopes().stream()
+    				.filter(env -> owner.equals(env.getConversation().getOwner().getManagedIdentity()))
+    				.findFirst()
+    				.orElseThrow(() -> new IllegalStateException("Expected an envelope for owner: " + owner))
+    				.getConversation();
+    		conversations.add(c);
+    		c.setRecentMessage(msg);
+    	}
+    	return new PagedResult<>(conversations, maxResults, offset, prs.getTotalCount());
     }
 
     /**

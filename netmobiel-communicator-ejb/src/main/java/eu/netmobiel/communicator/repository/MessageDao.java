@@ -3,6 +3,7 @@ package eu.netmobiel.communicator.repository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -20,6 +21,7 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.User_;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
+import eu.netmobiel.communicator.model.Conversation_;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Envelope_;
@@ -63,22 +65,24 @@ public class MessageDao extends AbstractDao<Message, Long> {
         List<Predicate> predicates = new ArrayList<>();
         if (participant != null) {
             Join<Message, Envelope> envelope = message.join(Message_.envelopes);
-            Predicate predSender = cb.equal(message.get(Message_.sender).get(User_.managedIdentity), participant);
-            Predicate predRecipient = cb.equal(envelope.get(Envelope_.recipient).get(User_.managedIdentity), participant);
-            predicates.add(cb.or(predSender, predRecipient));
+            Predicate predRecipient = cb.equal(envelope.get(Envelope_.conversation)
+            		.get(Conversation_.owner)
+            		.get(User_.managedIdentity), participant);
+            predicates.add(predRecipient);
 //	        cq.distinct(true);
         }
         if (context != null) {
-        	Predicate contextNotNull = cb.isNotNull(message.get(Message_.context));
-        	Predicate contextMatches = cb.equal(message.get(Message_.context), context);
-	        predicates.add(cb.and(contextNotNull,contextMatches));
+            Join<Message, Envelope> envelope = message.join(Message_.envelopes);
+            Predicate envContext = cb.equal(envelope.get(Envelope_.context), context);
+        	Predicate msgContext = cb.equal(message.get(Message_.context), context);
+	        predicates.add(cb.or(envContext, msgContext));
         }        
         if (since != null) {
-	        Predicate predSince = cb.greaterThanOrEqualTo(message.get(Message_.creationTime), since);
+	        Predicate predSince = cb.greaterThanOrEqualTo(message.get(Message_.createdTime), since);
 	        predicates.add(predSince);
         }        
         if (until != null) {
-	        Predicate predUntil = cb.lessThan(message.get(Message_.creationTime), until);
+	        Predicate predUntil = cb.lessThan(message.get(Message_.createdTime), until);
 	        predicates.add(predUntil);
         }
         // 'modes' represents the query: null, empty or ALL represent any message. 
@@ -96,7 +100,7 @@ public class MessageDao extends AbstractDao<Message, Long> {
           totalCount = em.createQuery(cq).getSingleResult();
         } else {
 	        cq.select(message.get(Message_.id));
-	        cq.orderBy(cb.desc(message.get(Message_.creationTime)));
+	        cq.orderBy(cb.desc(message.get(Message_.createdTime)));
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
 			tq.setMaxResults(maxResults);
@@ -106,34 +110,85 @@ public class MessageDao extends AbstractDao<Message, Long> {
 	}
 
 	
-	public PagedResult<Long> listConversations(String participant, Integer maxResults, Integer offset) {
-		String basicQuery = 
-				" from Message m where (m.context, m.creationTime) in " +
-				" (select mm.context, max(mm.creationTime) from Message mm join mm.envelopes env" + 
-				" where (env.recipient.managedIdentity = :participant or mm.sender.managedIdentity = :participant)" + 
-				" group by mm.context) and m.deliveryMode in (:DeliveryModeAll, :DeliveryModeMessage)";
-
+	public PagedResult<Long> listTopMessagesByConversations(String ownerMangedIdentity, boolean actualOnly, boolean archivedOnly, Integer maxResults, Integer offset) {
+		// To write the query below as a criteria query seems impossible, I can't get the selection of a subquery right.
+		String queryString = String.format( 
+				"%s from Envelope e where (e.conversation, e.message.createdTime) in" +
+				" (select env.conversation, max(env.message.createdTime) from Envelope env" + 
+				"  where env.conversation.owner.managedIdentity = :participant and env.message.deliveryMode in :deliverySet" +
+				"  group by env.conversation" +
+				" ) %s %s",
+				maxResults == 0 ? "select count(e.message.id)" : "select e.message.id",  
+				actualOnly ? "and e.conversation.archivedTime is null" : (archivedOnly ? "and e.conversation.archivedTime is not null" : ""),
+				maxResults == 0 ? "order by e.message.createdTime desc" : ""
+		);
+		TypedQuery<Long> query = em.createQuery(queryString, Long.class);
+		query.setParameter("participant", ownerMangedIdentity);
+		query.setParameter("deliverySet", EnumSet.of(DeliveryMode.ALL, DeliveryMode.MESSAGE));
 		Long totalCount = null;
         List<Long> results = null;
         if (maxResults == 0) {
-    		TypedQuery<Long> countQuery = em.createQuery("select count(m) " + basicQuery, Long.class);
-    		countQuery.setParameter("participant", participant);
-    		countQuery.setParameter("DeliveryModeAll", DeliveryMode.ALL);
-    		countQuery.setParameter("DeliveryModeMessage", DeliveryMode.MESSAGE);
-            totalCount = countQuery.getSingleResult();
+            totalCount = query.getSingleResult();
             results = Collections.emptyList();
         } else {
-    		TypedQuery<Long> selectQuery = em.createQuery("select m.id " + basicQuery + " order by m.creationTime desc", Long.class);
-    		selectQuery.setParameter("participant", participant);
-    		selectQuery.setParameter("DeliveryModeAll", DeliveryMode.ALL);
-    		selectQuery.setParameter("DeliveryModeMessage", DeliveryMode.MESSAGE);
-    		selectQuery.setFirstResult(offset);
-    		selectQuery.setMaxResults(maxResults);
-    		results = selectQuery.getResultList();
+    		query.setFirstResult(offset);
+    		query.setMaxResults(maxResults);
+    		results = query.getResultList();
         }
         return new PagedResult<>(results, maxResults, offset, totalCount);
 	}
-	
+
+//	public static class RecentConversationMessage {
+//		private Conversation conversation;
+//		private Instant creationTime;
+//		public Conversation getConversation() {
+//			return conversation;
+//		}
+//		public void setConversation(Conversation conversation) {
+//			this.conversation = conversation;
+//		}
+//		public Instant getCreationTime() {
+//			return creationTime;
+//		}
+//		public void setCreationTime(Instant creationTime) {
+//			this.creationTime = creationTime;
+//		}
+//	}
+//	public PagedResult<Long> listTopMessagesByConversations(String ownerMangedIdentity, boolean actualOnly, boolean archiveOnly, Integer maxResults, Integer offset) {
+//    	CriteriaBuilder cb = em.getCriteriaBuilder();
+//        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+//        Root<Envelope> envelope = cq.from(Envelope.class);
+//        List<Predicate> predicates = new ArrayList<>();
+//        
+//        if (ownerMangedIdentity != null) {
+//            Predicate predRecipient = cb.equal(envelope.get(Envelope_.conversation)
+//            		.get(Conversation_.owner)
+//            		.get(User_.managedIdentity), ownerMangedIdentity);
+//            predicates.add(predRecipient);
+////	        cq.distinct(true);
+//        }
+//        Subquery<RecentConversationMessage> subquery = cq.subquery(RecentConversationMessage.class);
+//        Root<Envelope> sqenv = subquery.from(Envelope.class);
+//        cb.construct(RecentConversationMessage.class, sqenv.get(Envelope_.conversation), cb.greatest(sqenv.get(Envelope_.message).get(Message_.createdTime))).alias("topMessages");
+//        subquery.select();
+////        subquery.select();
+////        , envelope.get(Envelope_.message).get(Message_.createdTime)
+//        cq.where(cb.in(envelope.get(Envelope_.conversation)).value(subquery));
+//        Long totalCount = null;
+//        List<Long> results = Collections.emptyList();
+//        if (maxResults == 0) {
+//          cq.select(cb.count(envelope.get(Envelope_.message).get(Message_.id)));
+//          totalCount = em.createQuery(cq).getSingleResult();
+//        } else {
+//	        cq.select(envelope.get(Envelope_.message).get(Message_.id));
+//	        cq.orderBy(cb.desc(envelope.get(Envelope_.message).get(Message_.createdTime)));
+//	        TypedQuery<Long> tq = em.createQuery(cq);
+//			tq.setFirstResult(offset);
+//			tq.setMaxResults(maxResults);
+//			results = tq.getResultList();
+//        }
+//        return new PagedResult<>(results, maxResults, offset, totalCount);
+//	}	
 /*
 Get the latest message for each context for recipient A2:
 select distinct m.id, m.body, m.context, m.subject, m.sender, m.created_time from envelope e join message m on m.id = e.message

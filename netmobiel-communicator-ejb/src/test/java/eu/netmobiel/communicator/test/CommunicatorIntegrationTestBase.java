@@ -18,6 +18,9 @@ import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.communicator.Resources;
 import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
+import eu.netmobiel.communicator.model.CommunicatorUser;
+import eu.netmobiel.communicator.model.Conversation;
+import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.repository.converter.DeliveryModeConverter;
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
@@ -53,6 +56,17 @@ public abstract class CommunicatorIntegrationTestBase {
     @Inject
     private Logger log;
     
+    protected CommunicatorUser userP1;
+    protected CommunicatorUser userP2;
+    protected CommunicatorUser userC1;
+    protected CommunicatorUser userC2;
+    
+    protected Conversation convP1_1;
+    protected Conversation convP1_2;
+    protected Conversation convP2_1;
+    protected Conversation convC1_1;
+    protected Conversation convC1_2;
+    protected Conversation convC2_1;
 
     private boolean expectFailure;
     
@@ -109,7 +123,57 @@ public abstract class CommunicatorIntegrationTestBase {
 		em.clear();
 	}
 
-	protected abstract void insertData() throws Exception;
+	protected void insertData() throws Exception {
+        userP1 = Fixture.createUser("P1", "passagier", "FN P1", null);
+        em.persist(userP1);
+        userP2 = Fixture.createUser("P2", "passagier", "FN P2", null);
+        em.persist(userP2);
+        userC1 = Fixture.createUser("C1", "chauffeur", "FN C1", null);
+        em.persist(userC1);
+        userC2 = Fixture.createUser("C2", "chauffeur", "FN C2", null);
+        em.persist(userC2);
+
+        convP1_1 = Fixture.createConversation(userP1, "Topic P1.1", "2020-02-10T13:00:00Z", null, "Trip Plan P1.1", "Trip P1.1");
+        em.persist(convP1_1);
+    	convP1_2 = Fixture.createConversation(userP1, "Topic P1.2", "2020-02-10T14:00:00Z", null, "Trip Plan P1.2");
+        em.persist(convP1_2);
+    	convP2_1 = Fixture.createConversation(userP2, "Topic P2.1", "2020-02-10T15:00:00Z", null, "Trip P2.1");
+        em.persist(convP2_1);
+    	convC1_1 = Fixture.createConversation(userC1, "Topic C1.1", "2020-02-10T16:00:00Z", "2020-02-26T16:00:00Z", "Trip Plan P1.1", "Ride C1.1", "Booking C1.1.1");
+        em.persist(convC1_1);
+    	convC2_1 = Fixture.createConversation(userC2, "Topic C2.1", "2020-02-10T16:00:00Z", null, "Trip Plan P1.1", "Ride C2.1", "Booking C2.1.1");
+        em.persist(convC2_1);
+    	convC1_2 = Fixture.createConversation(userC1, "Topic C1.2", "2020-02-10T17:00:00Z", null, "Ride C1.2", "Booking C1.2.1");
+        em.persist(convC1_2);
+       
+        em.persist(Fixture.createMessage("P1 zoekt een rit van A naar B", "Trip Plan P1.1", "Rit gezocht", DeliveryMode.MESSAGE, "2020-02-11T13:00:00Z", null, 
+        		new Envelope(convC1_1), new Envelope(convC2_1)));
+        em.persist(Fixture.createMessage("Je hebt een aanbod van C1", "Booking C1.1.1", "Rit aangeboden", DeliveryMode.MESSAGE, "2020-02-11T14:25:00Z", null, 
+        		new Envelope("Trip Plan P1.1", convP1_1)));
+        em.persist(Fixture.createMessage("Je hebt een rit aangeboden aan P1", "Ride C1.1", "Rit aangeboden", DeliveryMode.NOTIFICATION, "2020-02-11T14:25:00Z", null, 
+        		new Envelope(convC1_1)));
+        em.persist(Fixture.createMessage("C1 heeft het aanbod geannuleerd", "Booking C1.1.1", "Aanbod geannuleerd", DeliveryMode.MESSAGE, "2020-02-11T14:45:00Z", null, 
+        		new Envelope("Trip Plan P1.1", convP1_1)));
+        em.persist(Fixture.createMessage("Je hebt het aanbod aan P1 geannuleerd", "Ride C1.1", "Aanbod geannuleerd", DeliveryMode.NOTIFICATION, "2020-02-11T15:30:00Z", null, 
+        		new Envelope(convC1_1)));
+        em.persist(Fixture.createMessage("Je hebt een aanbod van C2", "Booking C2.1.1", "Rit aangeboden", DeliveryMode.MESSAGE, "2020-02-11T14:25:00Z", null, 
+        		new Envelope("Trip Plan P1.1", convP1_1)));
+        em.persist(Fixture.createMessage("Je hebt een rit aangeboden aan P1", "Ride C2.1", "Rit aangeboden", DeliveryMode.NOTIFICATION, "2020-02-11T14:25:00Z", null, 
+        		new Envelope(convC2_1)));
+        em.persist(Fixture.createMessage("P1 heeft je aanbod geaccepteerd", "Trip P1.1", "Rit geaccepteerd", DeliveryMode.MESSAGE, "2020-02-11T14:25:00Z", null, 
+        		new Envelope("Ride C2.1", convC2_1)));
+        em.persist(Fixture.createMessage("Kun je 10 minuten eerder langskomen?", "Trip P1.1", "Persoonlijk bericht van P1", DeliveryMode.ALL, "2020-02-11T14:25:00Z", convP1_1, 
+        		new Envelope("Ride C2.1", convC2_1)));
+        em.persist(Fixture.createMessage("Is prima!", "Ride C2.1", "Persoonlijk bericht van C1", DeliveryMode.ALL, "2020-02-11T14:25:00Z", convC2_1, 
+        		new Envelope("Trip P1.1", convP1_1)));
+
+        em.persist(Fixture.createMessage("P1 zoekt een rit van C naar D", "Trip Plan P1.2", "Rit gezocht", DeliveryMode.MESSAGE, "2020-02-11T13:30:00Z", null, 
+        		new Envelope(convC1_1)));
+
+        em.persist(Fixture.createMessage("P2 rijdt met je mee", "Trip P2.1", "Meerijden bevestigd", DeliveryMode.MESSAGE, "2020-02-11T14:25:00Z", null, 
+        		new Envelope("Ride C1.2", convC1_2)));
+        
+    }
 
 	protected void startTransaction() throws Exception {
 		utx.begin();

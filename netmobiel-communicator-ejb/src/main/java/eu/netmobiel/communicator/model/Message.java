@@ -68,7 +68,7 @@ public class Message implements NetMobielMessage, Serializable {
 	/**
 	 * The context of the message. The context is a urn, referring to an object in the system.
 	 * This is the context of the message as conceived by the sender.
-	 * If the receiver needs a different context, that context will be added to the envelope.
+	 * The receiver might have a different context, that context will be added to the envelope.
 	 */
 	@Size(max = 32)
     @NotNull
@@ -89,7 +89,7 @@ public class Message implements NetMobielMessage, Serializable {
 	
     @NotNull
 	@Column(name = "created_time")
-	private Instant creationTime;
+	private Instant createdTime;
 	
     /**
      * Deliver as notification (push), regular message in inbox, or both.
@@ -99,7 +99,7 @@ public class Message implements NetMobielMessage, Serializable {
 	private DeliveryMode deliveryMode;
 
 	/**
-	 * The sender of the message.
+	 * Deprecated: The sender of the message.
 	 */
 //    @NotNull
     @ManyToOne
@@ -111,13 +111,6 @@ public class Message implements NetMobielMessage, Serializable {
      */
 	@OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	private List<Envelope> envelopes;
-
-	/** 
-	 * The thread of the sender of the message. Optional when the system is sending a message. 
-	 */
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "sender_conversation", foreignKey = @ForeignKey(name = "message_sender_conversation_fk"))
-    private Conversation senderConversation;
 
     public Long getId() {
 		return id;
@@ -156,12 +149,12 @@ public class Message implements NetMobielMessage, Serializable {
 	}
 
 	@Override
-	public Instant getCreationTime() {
-		return creationTime;
+	public Instant getCreatedTime() {
+		return createdTime;
 	}
 
-	public void setCreationTime(Instant creationTime) {
-		this.creationTime = creationTime;
+	public void setCreatedTime(Instant createdTime) {
+		this.createdTime = createdTime;
 	}
 
 	public DeliveryMode getDeliveryMode() {
@@ -179,14 +172,6 @@ public class Message implements NetMobielMessage, Serializable {
 
 	public void setSender(CommunicatorUser sender) {
 		this.sender = sender;
-	}
-
-	public Conversation getSenderConversation() {
-		return senderConversation;
-	}
-
-	public void setSenderConversation(Conversation senderConversation) {
-		this.senderConversation = senderConversation;
 	}
 
 	public List<Envelope> getEnvelopes() {
@@ -209,10 +194,21 @@ public class Message implements NetMobielMessage, Serializable {
 		getEnvelopes().add(env);
 	}
 
+	public void addSender(Conversation conv, String sndContext) {
+		addSender(new Envelope(sndContext, conv));
+	}
+
+	public void addSender(Envelope env) {
+		env.setMessage(this);
+		env.setAckTime(this.getCreatedTime());
+		env.setSender(true);
+		getEnvelopes().add(env);
+	}
+
 	@Override
 	public String toString() {
-		return String.format("Message [%d %s %s '%s' %s %s '%s']", id, sender.toString(), 
-				context, subject, deliveryMode, DateTimeFormatter.ISO_INSTANT.format(creationTime), body != null ? body : "");
+		return String.format("Message [%d %s %s '%s' %s %s '%s']", id, sender, 
+				context, subject, deliveryMode, DateTimeFormatter.ISO_INSTANT.format(createdTime), body != null ? body : "");
 	}
 
 }

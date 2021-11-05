@@ -25,6 +25,8 @@ import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.Size;
 
+import com.google.firebase.database.annotations.NotNull;
+
 import eu.netmobiel.commons.report.NumericReportValue;
 
 @NamedNativeQueries({
@@ -35,9 +37,10 @@ import eu.netmobiel.commons.report.NumericReportValue;
         		+ "date_part('month', m.created_time) as month, "
         		+ "count(*) as count "
         		+ "from envelope e "
+        		+ "join conversation c on c.id = e.conversation "
         		+ "join message m on m.id = e.message "
-        		+ "join cm_user u on u.id = e.recipient "
-        		+ "where m.created_time >= ? and m.created_time < ? and (m.delivery_mode = 'AL' or m.delivery_mode = 'MS') "
+        		+ "join cm_user u on u.id = c.owner "
+        		+ "where e.sender = false and m.created_time >= ? and m.created_time < ? and (m.delivery_mode = 'AL' or m.delivery_mode = 'MS') "
         		+ "group by u.managed_identity, year, month "
         		+ "order by u.managed_identity, year, month",
         resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
@@ -48,8 +51,9 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "date_part('month', e.push_time) as month, "
 	        		+ "count(*) as count "
 	        		+ "from envelope e "
-	        		+ "join cm_user u on u.id = e.recipient "
-	        		+ "where e.push_time >= ? and e.push_time < ? "
+	        		+ "join conversation c on c.id = e.conversation "
+	        		+ "join cm_user u on u.id = c.owner "
+	        		+ "where e.sender = false and e.push_time >= ? and e.push_time < ? "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
@@ -60,9 +64,10 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "date_part('month', e.ack_time) as month, "
 	        		+ "count(*) as count "
 	        		+ "from envelope e "
+	        		+ "join conversation c on c.id = e.conversation "
 	        		+ "join message m on m.id = e.message "
-	        		+ "join cm_user u on u.id = e.recipient "
-	        		+ "where e.ack_time >= ? and e.ack_time < ? and (m.delivery_mode = 'AL' or m.delivery_mode = 'MS') "
+	        		+ "join cm_user u on u.id = c.owner "
+	        		+ "where e.sender = false and e.ack_time >= ? and e.ack_time < ? and (m.delivery_mode = 'AL' or m.delivery_mode = 'MS') "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
@@ -73,8 +78,9 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "date_part('month', e.ack_time) as month, "
 	        		+ "count(*) as count "
 	        		+ "from envelope e "
-	        		+ "join cm_user u on u.id = e.recipient "
-	        		+ "where e.ack_time >= ? and e.ack_time < ? and e.push_time is not null "
+	        		+ "join conversation c on c.id = e.conversation "
+	        		+ "join cm_user u on u.id = c.owner "
+	        		+ "where e.sender = false and e.ack_time >= ? and e.ack_time < ? and e.push_time is not null "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
@@ -85,9 +91,10 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "date_part('month', e.push_time) as month, "
 	        		+ "count(*) as count "
 	        		+ "from envelope e "
+	        		+ "join conversation c on c.id = e.conversation "
 	        		+ "join message m on m.id = e.message "
-	        		+ "join cm_user u on u.id = e.recipient "
-	        		+ "where e.push_time >= ? and e.push_time < ? and m.context like 'urn:nb:pn:tripplan:' " 
+	        		+ "join cm_user u on u.id = c.owner "
+	        		+ "where e.sender = false and e.push_time >= ? and e.push_time < ? and e.context like 'urn:nb:pn:tripplan:' " 
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
@@ -98,9 +105,10 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "date_part('month', e.ack_time) as month, "
 	        		+ "count(*) as count "
 	        		+ "from envelope e "
+	        		+ "join conversation c on c.id = e.conversation "
 	        		+ "join message m on m.id = e.message "
 	        		+ "join cm_user u on u.id = e.recipient "
-	        		+ "where e.ack_time >= ? and e.ack_time < ? and e.push_time is not null and m.context like 'urn:nb:pn:tripplan:' "
+	        		+ "where e.sender = false and e.ack_time >= ? and e.ack_time < ? and e.push_time is not null and e.context like 'urn:nb:pn:tripplan:' "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
@@ -144,12 +152,13 @@ public class Envelope implements Serializable {
     @Transient
     private String envelopeRef;
 
+    @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "message", nullable = false, foreignKey = @ForeignKey(name = "envelope_message_fk"))
     private Message message;
 
 	/**
-	 * The recipient of the message. 
+	 * Deprecated: The recipient of the message. 
 	 */
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "recipient", foreignKey = @ForeignKey(name = "envelope_recipient_fk"))
@@ -168,22 +177,30 @@ public class Envelope implements Serializable {
 	private Instant pushTime;
 	
 	/**
-	 * The context of the message for the recipient. The context is a urn, referring to an object in the system.
-	 * This is the (optional) context of the message as conceived by the recipient.
+	 * The context of the message for the participant. The context is a urn, referring to an object in the system.
+	 * This is the (non-optional) context of the message as conceived by the recipient.
 	 * If the receiver shares the context with the sender, refer to the context of the message.
 	 */
 	@Size(max = 32)
+	@NotNull
 	@Column(name = "context")
 	private String context;
 	
 	/** 
 	 * The thread of the recipient. 
 	 */
+	@NotNull
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "conversation", foreignKey = @ForeignKey(name = "envelope_conversation_fk"))
     private Conversation conversation;
 
-    public Envelope() {
+    /**
+     * If true this participant is the sender of the message.
+     */
+	@Column(name = "sender", nullable = false)
+    private boolean sender;
+
+	public Envelope() {
 		
 	}
 	
@@ -193,28 +210,17 @@ public class Envelope implements Serializable {
 		this.conversation = conversation;
 	}
 	
-	public Envelope(Message m, CommunicatorUser rcp) {
-		this(m, rcp, null, null);
-	}
-	
-	public Envelope(Message m, CommunicatorUser rcp, Instant aPushTime, Instant anAckTime) {
-		this.message = m;
-		this.recipient = rcp;
-		this.pushTime = aPushTime;
-		this.ackTime = anAckTime;
+	public Envelope(Conversation aParticipant) {
+		this(null, aParticipant, null, null);
 	}
 
-	public Envelope(Conversation rcp) {
-		this(null, rcp, null, null);
-	}
-
-	public Envelope(String aContext, Conversation rcp) {
-		this(aContext, rcp, null, null);
+	public Envelope(String aContext, Conversation aParticipant) {
+		this(aContext, aParticipant, null, null);
 	}
 	
-	public Envelope(String aContext, Conversation rcp, Instant aPushTime, Instant anAckTime) {
+	public Envelope(String aContext, Conversation aParticipant, Instant aPushTime, Instant anAckTime) {
 		this.context = aContext;
-		this.conversation = rcp;
+		this.conversation = aParticipant;
 		this.pushTime = aPushTime;
 		this.ackTime = anAckTime;
 	}
@@ -268,10 +274,6 @@ public class Envelope implements Serializable {
 		this.context = context;
 	}
 
-	public String getEffectiveContext() {
-		return getContext() != null ? getContext() : getMessage().getContext();
-	}
-
 	public Conversation getConversation() {
 		return conversation;
 	}
@@ -280,12 +282,21 @@ public class Envelope implements Serializable {
 		this.conversation = conversation;
 	}
 
+	public boolean isSender() {
+		return sender;
+	}
+
+	public void setSender(boolean sender) {
+		this.sender = sender;
+	}
+
 	@Override
 	public String toString() {
-		return String.format("Envelope [%s %s %s %s]", 
+		return String.format("Envelope [%s %s %s %s %s]",
+				getId(),
 				ackTime != null ? DateTimeFormatter.ISO_INSTANT.format(ackTime) : "<no ack>",
 				pushTime != null ? DateTimeFormatter.ISO_INSTANT.format(pushTime) : "<no push>",
-				recipient,
+				conversation != null ? conversation.getId() : "?",
 				message.toString());
 	}
 
