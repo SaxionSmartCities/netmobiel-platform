@@ -28,7 +28,7 @@ public interface NetMobielMessage {
 	 * Returns the creation time of the message.
 	 * @return the creation time. Never null.
 	 */
-	Instant getCreationTime();
+	Instant getCreatedTime();
 	/**
 	 * Returns the sender of the message
 	 * @return the sender object.

@@ -107,7 +107,7 @@ public class FirebaseMessagingClient {
     protected Map<String, String> createCustomDataMap(NetMobielMessage msg) {
     	Map<String, String> map = new LinkedHashMap<>();
         map.put("context", msg.getContext());
-        map.put("creationTime", DateTimeFormatter.ISO_INSTANT.format(msg.getCreationTime()));
+        map.put("creationTime", DateTimeFormatter.ISO_INSTANT.format(msg.getCreatedTime()));
         map.put("senderId", msg.getSender().getManagedIdentity());
         map.put("senderGivenName", msg.getSender().getGivenName());
         map.put("senderFamilyName", msg.getSender().getFamilyName());

@@ -142,7 +142,7 @@ public class FirebaseMessagingClientIT {
 		}
 
 		@Override
-		public Instant getCreationTime() {
+		public Instant getCreatedTime() {
 			return creationTime;
 		}
 

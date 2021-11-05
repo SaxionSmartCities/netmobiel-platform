@@ -7,7 +7,6 @@ import java.util.stream.Stream;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -22,12 +21,13 @@ import eu.netmobiel.communicator.api.mapping.MessageMapper;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
+import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.CommunicatorUserManager;
 import eu.netmobiel.communicator.service.PublisherService;
 
 @RequestScoped
-public class MessagesResource implements MessagesApi {
+public class MessagesResource extends CommunicatorResource implements MessagesApi {
 
 	@Inject
 	private MessageMapper mapper;
@@ -51,12 +51,15 @@ public class MessagesResource implements MessagesApi {
 			CallingContext<CommunicatorUser> callingContext = userManager.findOrRegisterCallingContext(securityIdentity);
 			CommunicatorUser sender = callingContext.getEffectiveUser();
 			Message message = mapper.map(msg);
-			Conversation senderConv = message.getSenderConversation();
-			message.setSenderConversation(null);
-			senderConv.setOwner(sender);
+			if (msg.getSender() != null && !request.isUserInRole("admin")) {
+				throw new SecurityException("You have no privilege to specify a sender");
+			}
+			// Input should not set a sender
+			message.setSender(null);
+			Envelope senderEnvelope = new Envelope(message.getContext(), new Conversation(sender));
 			// Validate to catch the errors early on, publish is asynchronous.
 			publisherService.validateMessage(message);
-			publisherService.publish(senderConv, message);
+			publisherService.publish(senderEnvelope, message);
 			if (!callingContext.getCallingUser().equals(sender)) {
 				publisherService.informDelegates(sender, "Persoonlijk bericht van " + sender.getName(), DeliveryMode.ALL);
 			}
@@ -78,24 +81,17 @@ public class MessagesResource implements MessagesApi {
 			} else if ("me".equals(participant)) {
 				participant = securityIdentity.getEffectivePrincipal().getName();
 			}
-			if (groupByConversation != null && groupByConversation) {
-				if (context != null || deliveryMode != null || since != null || until != null) {
-					throw new BadRequestException("Parameters 'context', 'deliveryMode', 'since' or 'until' are not allowed when listing conversations"); 
-				}
-				result = publisherService.listConversations(participant, maxResults, offset); 
-			} else {
-				DeliveryMode dm = deliveryMode == null ? DeliveryMode.MESSAGE : 
-					(deliveryMode.isEmpty() ? DeliveryMode.ALL :  
-						Stream.of(DeliveryMode.values())
-							.filter(m -> m.getCode().equals(deliveryMode))
-							.findFirst()
-							.orElseThrow(() -> new IllegalArgumentException("Unsupported DeliveryMode: " + deliveryMode)));
-				result = publisherService.listMessages(participant, context, 
-								since != null ? since.toInstant() : null, 
-								until != null ? until.toInstant() : null,
-								dm,
-								maxResults, offset); 
-			}
+			DeliveryMode dm = deliveryMode == null ? DeliveryMode.MESSAGE : 
+				(deliveryMode.isEmpty() ? DeliveryMode.ALL :  
+					Stream.of(DeliveryMode.values())
+						.filter(m -> m.getCode().equals(deliveryMode))
+						.findFirst()
+						.orElseThrow(() -> new IllegalArgumentException("Unsupported DeliveryMode: " + deliveryMode)));
+			result = publisherService.listMessages(participant, context, 
+							since != null ? since.toInstant() : null, 
+							until != null ? until.toInstant() : null,
+							dm,
+							maxResults, offset); 
 			rsp = Response.ok(mapper.map(result)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
