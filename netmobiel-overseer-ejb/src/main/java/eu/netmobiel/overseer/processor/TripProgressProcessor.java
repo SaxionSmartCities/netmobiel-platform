@@ -164,7 +164,7 @@ public class TripProgressProcessor {
 		Message msg = new Message();
 		msg.setContext(trip.getTripRef());
 		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(passengerConv, null);
+		msg.addRecipient(passengerConv, trip.getTripRef());
 		msg.setSubject("Je gaat bijna op pad!");
 		msg.setBody(
 				MessageFormat.format("Vertrek om {0} uur naar {1}. Je reist {2}.", 
@@ -185,7 +185,7 @@ public class TripProgressProcessor {
 		Message msg = new Message();
 		msg.setContext(trip.getTripRef());
 		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(passengerConv, null);
+		msg.addRecipient(passengerConv, trip.getTripRef());
 		msg.setSubject("Jouw reis zit erop!");
 		msg.setBody(
 				MessageFormat.format("Heb je de reis naar {0} gemaakt? Geef jouw waardering en beoordeel deze reis.", 
@@ -204,7 +204,7 @@ public class TripProgressProcessor {
 		Message msg = new Message();
 		msg.setContext(trip.getTripRef());
 		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(passengerConv, null);
+		msg.addRecipient(passengerConv, trip.getTripRef());
 		msg.setSubject("Beoordeel jouw reis!");
 		msg.setBody(
 				MessageFormat.format("Jouw reis op {0} naar {1} zit erop! Geef jouw waardering en beoordeel deze reis.", 

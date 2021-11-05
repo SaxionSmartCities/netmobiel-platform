@@ -58,9 +58,9 @@ public class NotificationHelper {
     protected Message createMessage(Booking booking, Conversation driverConversation, String subject, String messageText) {
 		Ride ride = booking.getRide();
     	Message msg = new Message();
-		msg.setContext(booking.getUrn());
+		msg.setContext(booking.getRide().getUrn());
 		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
-		msg.addRecipient(driverConversation, ride.getUrn());
+		msg.addRecipient(driverConversation, booking.getUrn());
 		msg.setSubject(subject);
 		msg.setBody(
 				MessageFormat.format(messageText, 

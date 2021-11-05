@@ -120,7 +120,7 @@ public class ShoutOutProcessor {
 			msg.setDeliveryMode(DeliveryMode.ALL);
 			// Start or continue conversation for all recipients with planRef context
 			publisherService.lookupOrCreateConversations(profiles, event.getPlanRef(), topic, true)
-				.forEach(conversation -> msg.addRecipient(conversation, null));
+				.forEach(conversation -> msg.addRecipient(conversation, event.getPlanRef()));
 			// And send the message
 			publisherService.publish(null, msg);
 		}

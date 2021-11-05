@@ -105,7 +105,7 @@ public class DelegationProcessor {
 				MessageFormat.format("U beheert vanaf nu de reizen met NetMobiel van {0}.", delegation.getDelegator().getName())
 				);
 		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(rcp, null);
+		msg.addRecipient(rcp, delegation.getUrn());
 		publisherService.publish(null, msg);
      }
 
@@ -157,7 +157,7 @@ public class DelegationProcessor {
 						fromDelegation.getDelegator().getName(), toDelegation.getDelegate().getName())
 				);
 		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(rcp, null);
+		msg.addRecipient(rcp, fromDelegation.getUrn());
 		publisherService.publish(null, msg);
     }
 }
