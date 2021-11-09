@@ -2,7 +2,7 @@
 
 CREATE TABLE public.conversation(
     id bigint NOT NULL,
-    topic character varying(128) NOT NULL, 
+    topic character varying(256) NOT NULL, 
     created_time timestamp without time zone,
     archived_time timestamp without time zone,
     owner bigint NOT NULL,
@@ -37,3 +37,15 @@ ALTER TABLE public.envelope
 	ALTER COLUMN recipient DROP NOT NULL,
 	ADD CONSTRAINT envelope_conversation_fk FOREIGN KEY (conversation) REFERENCES public.conversation(id)
 ;
+
+CREATE TABLE public.conversation_context(
+    conversation bigint NOT NULL,
+    context character varying(32) COLLATE pg_catalog."default",
+    CONSTRAINT conversation_context_conversation_fk FOREIGN KEY (conversation)
+        REFERENCES public.conversation (id) MATCH SIMPLE
+        ON UPDATE NO ACTION
+        ON DELETE CASCADE
+);
+
+ALTER TABLE public.conversation_context OWNER to communicator;
+

@@ -6,6 +6,6 @@ ALTER TABLE public.envelope
     ALTER COLUMN context SET NOT NULL
 ;
 
-ALTER TABLE public.message
-    ALTER COLUMN context DROP NOT NULL
-;
+-- ALTER TABLE public.message
+--    ALTER COLUMN context DROP NOT NULL
+--;

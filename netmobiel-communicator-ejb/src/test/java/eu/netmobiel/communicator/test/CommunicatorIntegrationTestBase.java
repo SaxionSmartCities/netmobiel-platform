@@ -18,6 +18,7 @@ import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.communicator.Resources;
 import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
+import eu.netmobiel.communicator.filter.MessageFilter;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
@@ -38,6 +39,7 @@ public abstract class CommunicatorIntegrationTestBase {
                 .addAsLibraries(deps)
                 .addPackages(true, CommunicatorDatabase.class.getPackage())
                 .addPackages(true, CommunicatorUrnHelper.class.getPackage())
+                .addPackages(true, MessageFilter.class.getPackage())
                 .addPackages(true, Envelope.class.getPackage())
                 .addPackages(true, AbstractDao.class.getPackage())
                 .addPackages(true, DeliveryModeConverter.class.getPackage())

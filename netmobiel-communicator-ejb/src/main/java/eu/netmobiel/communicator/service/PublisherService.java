@@ -3,7 +3,6 @@ package eu.netmobiel.communicator.service;
 import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
@@ -28,6 +27,7 @@ import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.communicator.filter.MessageFilter;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
@@ -280,50 +280,48 @@ public class PublisherService {
     /**
      * Extend the context list of an existing conversation.
      * @param conversation the (existing) conversation to update
-     * @param contexts the list of contexts to add.
+     * @param context the context to add.
      * @throws NotFoundException In case the conversation does not exist.
      */
-    public void addConversationContexts(Conversation conversation, String[] contexts) throws NotFoundException {
+    public void addConversationContext(Conversation conversation, String context, String topic, boolean overwriteTopic) throws NotFoundException {
 		Conversation cvdb = conversationDao.loadGraph(conversation.getId(), Conversation.FULL_ENTITY_GRAPH)
 				.orElseThrow(() -> new NotFoundException("No such Conversation: " + conversation.getId()));
-		cvdb.getContexts().addAll(Arrays.asList(contexts));
+		cvdb.getContexts().add(context);
+		if (overwriteTopic && topic != null) {
+			cvdb.setTopic(topic);
+		}
+    }
+
+    public void addConversationContext(Conversation conversation, String context) throws NotFoundException {
+    	addConversationContext(conversation, context, null, false);
     }
 
     /**
      * Lists the messages matching the criteria.
-     * @param participant The managed identity of the sender or recipient of the message. 
-     * @param context the context of the message (a urn pointing to the database object triggering the message). Default is any context.
-     * @param since only show messages sent after a specified time. Default is no time limit set.
-     * @param until only show message sent before specified time. Default is no time limit set.
-     * @param mode only show messages with specific (effective) delivery mode. Omitting the modes or specifying DeliveryMode.ALL 
-     * 				has the same effect: No filter. 
-     * @param maxResults for paging: maximum number of results per page. 
-     * @param offset for paging: zero-based offset in the result.  
+	/**
+	 * Lists the message ids considering the filter parameters.  
+	 * @param filter The message filter to use. 
+	 * @param cursor The cursor to use. 
      * @return A page of messages.
      * @throws BadRequestException Missing parameters.
      */
-	public @NotNull PagedResult<Message> listMessages(String participant, String context, Instant since, Instant until, 
-			DeliveryMode mode, Integer maxResults, Integer offset) throws BadRequestException {
+	public @NotNull PagedResult<Message> listMessages(MessageFilter filter, Cursor cursor) throws BadRequestException {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
     	// For now don't do conditional things. First always total count, then data if data is requested. 
     	// Get the total count
-        if (maxResults == null) {
-        	maxResults = MAX_RESULTS;
-        }
-        if (offset == null) {
-        	offset = 0;
-        }
-    	PagedResult<Long> prs = messageDao.listMessages(participant, context, since, until, mode, 0, offset);
+		filter.validate();
+		cursor.validate(MAX_RESULTS, 0);
+    	PagedResult<Long> prs = messageDao.listMessages(filter, Cursor.COUNTING_CURSOR);
     	List<Message> results = null;
-    	if (maxResults > 0) {
+    	if (!cursor.isCountingQuery()) {
     		// Get the actual data
-    		PagedResult<Long> mids = messageDao.listMessages(participant, context, since, until, mode, maxResults, offset);
+    		PagedResult<Long> mids = messageDao.listMessages(filter, cursor);
     		results = messageDao.loadGraphs(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
     	} else {
     		results = Collections.emptyList();
     	}
-    	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());
+    	return new PagedResult<>(results, cursor, prs.getTotalCount());
 	}
 
 	/**
@@ -370,6 +368,15 @@ public class PublisherService {
     		c.setRecentMessage(msg);
     	}
     	return new PagedResult<>(conversations, maxResults, offset, prs.getTotalCount());
+    }
+
+    public void updateMessage(Long messageId, Message message) throws NotFoundException, BadRequestException {
+//    	for (Envelope env : message.getEnvelopes()) {
+//    		if (env.getId() == null) {
+//    			envelopeDao.save(env);
+//    		}
+//		}
+    	messageDao.merge(message);
     }
 
     /**

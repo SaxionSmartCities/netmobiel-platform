@@ -39,10 +39,18 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 						name = "envelope-details",
 						attributeNodes = {
 								@NamedAttributeNode(value = "recipient"),
-								@NamedAttributeNode(value = "ackTime")
+								@NamedAttributeNode(value = "ackTime"),
+								@NamedAttributeNode(value = "conversation", subgraph = "conversation-details"),
+						}
+					),
+				@NamedSubgraph(
+						name = "conversation-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "owner")
 						}
 					)
 				}
+
 	)
 @Entity
 @Table(name = "message")

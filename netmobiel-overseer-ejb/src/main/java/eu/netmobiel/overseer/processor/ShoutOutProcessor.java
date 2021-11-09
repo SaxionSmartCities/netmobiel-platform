@@ -126,6 +126,14 @@ public class ShoutOutProcessor {
 		}
     }
 
+	private String createRideTopic(Ride r) {
+		return MessageFormat.format("Rit op {0} van {1} naar {2}", 
+				DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(r.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
+				r.getFrom().getLabel(), 
+				r.getTo().getLabel()
+		);
+	}
+
     /**
      * Handles the TravelOfferEvent. A driver has found an trip plan for himself in which a traveller can take part. 
      * The handler creates a ride for the driver according the trip plan calculated before, adds a booking for the traveller.
@@ -161,7 +169,7 @@ public class ShoutOutProcessor {
 		// This is later on used to bundle messages related to the trip plan
 		NetMobielUser nbUser = rideshareUserManager.getUser(UrnHelper.getId(event.getDriverRef()));
 		Conversation driverConv = publisherService.lookupConversation(nbUser, sop.getPlanRef());
-		publisherService.addConversationContexts(driverConv, new String[] { r.getUrn() } );
+		publisherService.addConversationContext(driverConv, r.getUrn(), createRideTopic(r), true);
 
     	
     	Booking b = new Booking();
@@ -187,7 +195,7 @@ public class ShoutOutProcessor {
 		tripPlanManager.assignBookingProposalReference(RideManager.AGENCY_ID, soi, r, bookingRef);
 		// Add the booking also to the driver's context. This might also be done by the rideshare
 		// TODO Check who is responsible
-		publisherService.addConversationContexts(driverConv, new String[] { b.getUrn() } );
+		publisherService.addConversationContext(driverConv, b.getUrn());
 
 		// Find the conversation of the passenger
 		Conversation passengerConv = publisherService.lookupConversation(b.getPassenger(), sop.getPlanRef());

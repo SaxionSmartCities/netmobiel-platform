@@ -1,6 +1,5 @@
 package eu.netmobiel.communicator.repository;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.EnumSet;
@@ -17,10 +16,13 @@ import javax.persistence.criteria.Join;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.model.User_;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
+import eu.netmobiel.communicator.filter.MessageFilter;
 import eu.netmobiel.communicator.model.Conversation_;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
@@ -45,68 +47,64 @@ public class MessageDao extends AbstractDao<Message, Long> {
 	}
 
 	/**
-	 * Lists the message ids considering the filter parameters. If a message has context, it is considered 
-	 * as part of a conversation. In that case the messages with that context must be grouped and only the 
-	 * most recent message is added in the list.   
-	 * @param participant The address (managed identity) of the recipient or sender of the message. 
-	 * @param context the context of the message (used as a conversation id). 
-	 * @param since the date from which to list messages, using the creation date.
-	 * @param until the date until to list the messages, using the creation date.
-     * @param mode only show messages with the specified (effective) delivery mode. Omitting the mode or 
-     * 				specifying DeliveryMode.ALL has the same effect: no filter on delivery mode.   
-	 * @param maxResults The maximum number of messages (page size).
-	 * @param offset the zero-based index to start the page.
-	 * @return A list of envelope IDs matching the criteria. 
+	 * Lists the message ids considering the filter parameters.  
+	 * @param filter The message filter to use. 
+	 * @param cursor The cursor to use. 
+	 * @return A list of message IDs matching the criteria. 
 	 */
-	public PagedResult<Long> listMessages(String participant, String context, Instant since, Instant until, DeliveryMode mode, Integer maxResults, Integer offset) {
+	public PagedResult<Long> listMessages(MessageFilter filter, Cursor cursor) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Message> message = cq.from(Message.class);
         List<Predicate> predicates = new ArrayList<>();
-        if (participant != null) {
+        if (filter.getParticipantId() != null) {
             Join<Message, Envelope> envelope = message.join(Message_.envelopes);
             Predicate predRecipient = cb.equal(envelope.get(Envelope_.conversation)
             		.get(Conversation_.owner)
-            		.get(User_.managedIdentity), participant);
+            		.get(User_.managedIdentity), filter.getParticipantId());
             predicates.add(predRecipient);
 //	        cq.distinct(true);
         }
-        if (context != null) {
+        if (filter.getContext() != null) {
             Join<Message, Envelope> envelope = message.join(Message_.envelopes);
-            Predicate envContext = cb.equal(envelope.get(Envelope_.context), context);
-        	Predicate msgContext = cb.equal(message.get(Message_.context), context);
+            Predicate envContext = cb.equal(envelope.get(Envelope_.context), filter.getContext());
+        	Predicate msgContext = cb.equal(message.get(Message_.context), filter.getContext());
 	        predicates.add(cb.or(envContext, msgContext));
         }        
-        if (since != null) {
-	        Predicate predSince = cb.greaterThanOrEqualTo(message.get(Message_.createdTime), since);
+        if (filter.getSince() != null) {
+	        Predicate predSince = cb.greaterThanOrEqualTo(message.get(Message_.createdTime), filter.getSince());
 	        predicates.add(predSince);
         }        
-        if (until != null) {
-	        Predicate predUntil = cb.lessThan(message.get(Message_.createdTime), until);
+        if (filter.getUntil() != null) {
+	        Predicate predUntil = cb.lessThan(message.get(Message_.createdTime), filter.getUntil());
 	        predicates.add(predUntil);
         }
         // 'modes' represents the query: null, empty or ALL represent any message. 
         // The message attribute 'deliveryMode' has a slightly different meaning. 
-        if (mode != null && mode != DeliveryMode.ALL) {
-	        Predicate predMode = cb.equal(message.get(Message_.deliveryMode), mode);
+        if (filter.getDeliveryMode() != null && filter.getDeliveryMode() != DeliveryMode.ALL) {
+	        Predicate predMode = cb.equal(message.get(Message_.deliveryMode), filter.getDeliveryMode());
 	        Predicate predModeAll = cb.equal(message.get(Message_.deliveryMode), DeliveryMode.ALL);
 	        predicates.add(cb.or(predMode, predModeAll));
         }        
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;
         List<Long> results = Collections.emptyList();
-        if (maxResults == 0) {
+        if (cursor.isCountingQuery()) {
           cq.select(cb.count(message.get(Message_.id)));
           totalCount = em.createQuery(cq).getSingleResult();
         } else {
 	        cq.select(message.get(Message_.id));
-	        cq.orderBy(cb.desc(message.get(Message_.createdTime)));
+	        if (filter.getSortDir() == SortDirection.DESC) {
+	        	cq.orderBy(cb.desc(message.get(Message_.createdTime)), cb.desc(message.get(Message_.id)));
+	        } else {
+	        	cq.orderBy(cb.asc(message.get(Message_.createdTime)), cb.asc(message.get(Message_.id)));
+	        }
 	        TypedQuery<Long> tq = em.createQuery(cq);
-			tq.setFirstResult(offset);
-			tq.setMaxResults(maxResults);
+			tq.setFirstResult(cursor.getOffset());
+			tq.setMaxResults(cursor.getMaxResults());
 			results = tq.getResultList();
         }
-        return new PagedResult<>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, cursor, totalCount);
 	}
 
 	

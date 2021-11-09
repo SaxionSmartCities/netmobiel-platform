@@ -20,7 +20,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.communicator.filter.MessageFilter;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
@@ -62,30 +64,37 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
 
     @Test
     public void listMessages_All() {
-    	PagedResult<Long> messageIds = messageDao.listMessages(null, null, null, null, null, 100, 0);
+    	MessageFilter filter = new MessageFilter();
+    	Cursor cursor = new Cursor(100, 0);
+    	PagedResult<Long> messageIds = messageDao.listMessages(filter, cursor);
     	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
     	Long expCount = em.createQuery("select count(m) from Message m", Long.class).getSingleResult();
     	assertEquals("All messages present", Math.toIntExact(expCount) , messages.size());
     	assertNull("No total count", messageIds.getTotalCount());
-    	assertEquals("Offset matches", 0, messageIds.getOffset());
-    	assertEquals("maxResults matches", 100, messageIds.getResultsPerPage());
+    	assertEquals("Offset matches", cursor.getOffset().intValue(), messageIds.getOffset());
+    	assertEquals("maxResults matches", cursor.getMaxResults().intValue(), messageIds.getResultsPerPage());
     	assertEquals("Result count matches", expCount.longValue(), messageIds.getCount());
     }
 
     @Test
     public void listMessages_AllCount() {
-    	PagedResult<Long> messageIds = messageDao.listMessages(null, null, null, null, null, 100, 0);
+    	MessageFilter filter = new MessageFilter();
+    	Cursor cursor = new Cursor(100, 0);
+    	PagedResult<Long> messageIds = messageDao.listMessages(filter, cursor);
     	Long expCount = em.createQuery("select count(m) from Message m", Long.class).getSingleResult();
     	assertNull("No total count", messageIds.getTotalCount());
     	assertEquals("All messages present", expCount.longValue() , messageIds.getCount());
-    	assertEquals("Offset matches", 0, messageIds.getOffset());
-    	assertEquals("maxResults matches", 100, messageIds.getResultsPerPage());
+    	assertEquals("Offset matches", cursor.getOffset().intValue(), messageIds.getOffset());
+    	assertEquals("maxResults matches", cursor.getMaxResults().intValue(), messageIds.getResultsPerPage());
     }
 
     @Test
     public void listMessages_ByParticipant() {
     	final String participant = userP1.getManagedIdentity();
-    	PagedResult<Long> messageIds = messageDao.listMessages(participant, null, null, null, null, 100, 0);
+    	MessageFilter filter = new MessageFilter();
+    	filter.setParticipantId(participant);
+    	Cursor cursor = new Cursor(100, 0);
+    	PagedResult<Long> messageIds = messageDao.listMessages(filter, cursor);
     	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
     	for (Message message : messages) {
 			// The participant is one of the recipients or is the sender of the message
@@ -103,7 +112,10 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     @Test
     public void listMessages_Context() {
     	final String context = convP2_1.getContexts().iterator().next();
-    	PagedResult<Long> messageIds = messageDao.listMessages(null, context, null, null, null, 100, 0);
+    	MessageFilter filter = new MessageFilter();
+    	filter.setContext(context);
+    	Cursor cursor = new Cursor(100, 0);
+    	PagedResult<Long> messageIds = messageDao.listMessages(filter, cursor);
 //    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
     	Long expCount = em.createQuery(
         		"select count(m) from Message m join m.envelopes env where env.context = :context or m.context = :context",
@@ -117,7 +129,10 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     public void listMessages_Since_Until() {
     	final Instant since = Instant.parse("2020-02-11T14:24:00Z");
     	final Instant until = since;
-    	PagedResult<Long> sinceMessageIds = messageDao.listMessages(null, null, since, null, null, 100, 0);
+    	MessageFilter filter = new MessageFilter();
+    	filter.setSince(since);
+    	Cursor cursor = new Cursor(100, 0);
+    	PagedResult<Long> sinceMessageIds = messageDao.listMessages(filter, cursor);
     	Long expCountSince = em.createQuery(
         		"select count(m) from Message m where m.createdTime >= :since",
         		Long.class)
@@ -125,7 +140,9 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
         		.getSingleResult();
     	assertEquals("Message since count should match", expCountSince.longValue(), sinceMessageIds.getCount());
 
-    	PagedResult<Long> untilMessageIds = messageDao.listMessages(null, null, null, until, null, 100, 0);
+    	filter = new MessageFilter();
+    	filter.setUntil(until);
+    	PagedResult<Long> untilMessageIds = messageDao.listMessages(filter, cursor);
     	Long expCountUntil = em.createQuery(
         		"select count(m) from Message m where m.createdTime < :until",
         		Long.class)
@@ -142,11 +159,16 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
 
     @Test
     public void listMessages_DeliveryModes() {
-    	PagedResult<Long> defaultMessageIds = messageDao.listMessages(null, null, null, null, null, 100, 0);
+    	MessageFilter filter = new MessageFilter();
+    	Cursor cursor = new Cursor(100, 0);
+    	PagedResult<Long> defaultMessageIds = messageDao.listMessages(filter, cursor);
 
-    	PagedResult<Long> allMessageIds = messageDao.listMessages(null, null, null, null, DeliveryMode.ALL, 100, 0);
-    	PagedResult<Long> msgMessageIds = messageDao.listMessages(null, null, null, null, DeliveryMode.MESSAGE, 100, 0);
-    	PagedResult<Long> notMessageIds = messageDao.listMessages(null, null, null, null, DeliveryMode.NOTIFICATION, 100, 0);
+    	filter.setDeliveryMode(DeliveryMode.ALL);
+    	PagedResult<Long> allMessageIds = messageDao.listMessages(filter,cursor);
+    	filter.setDeliveryMode(DeliveryMode.MESSAGE);
+    	PagedResult<Long> msgMessageIds = messageDao.listMessages(filter,cursor);
+    	filter.setDeliveryMode(DeliveryMode.NOTIFICATION);
+    	PagedResult<Long> notMessageIds = messageDao.listMessages(filter,cursor);
 
     	Long expCountTotal = em.createQuery(
         		"select count(m) from Message m",

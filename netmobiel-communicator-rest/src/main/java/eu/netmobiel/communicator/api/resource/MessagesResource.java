@@ -13,11 +13,14 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
 
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.communicator.api.MessagesApi;
 import eu.netmobiel.communicator.api.mapping.MessageMapper;
+import eu.netmobiel.communicator.filter.MessageFilter;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
@@ -87,11 +90,10 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 						.filter(m -> m.getCode().equals(deliveryMode))
 						.findFirst()
 						.orElseThrow(() -> new IllegalArgumentException("Unsupported DeliveryMode: " + deliveryMode)));
-			result = publisherService.listMessages(participant, context, 
-							since != null ? since.toInstant() : null, 
-							until != null ? until.toInstant() : null,
-							dm,
-							maxResults, offset); 
+			MessageFilter filter = new MessageFilter(participant, since, until, context, SortDirection.DESC.name());
+			filter.setDeliveryMode(dm);
+			Cursor cursor = new Cursor(maxResults, offset);
+			result = publisherService.listMessages(filter, cursor); 
 			rsp = Response.ok(mapper.map(result)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);

@@ -84,7 +84,7 @@ public class Conversation extends ReferableObject implements Serializable {
 	 * The subject of the thread, formatted by the backend.    
 	 */
     @NotNull
-    @Size(max = 128)
+    @Size(max = 256)
 	@Column(name = "topic")
 	private String topic;
 	

@@ -55,11 +55,11 @@ public class NotificationHelper {
     	defaultLocale = Locale.forLanguageTag(DEFAULT_LOCALE);
     }
 
-    protected Message createMessage(Booking booking, Conversation driverConversation, String subject, String messageText) {
+    private Message createMessage(Booking booking, Conversation driverConversation, String subject, String messageText) {
 		Ride ride = booking.getRide();
     	Message msg = new Message();
 		msg.setContext(booking.getRide().getUrn());
-		msg.setDeliveryMode(DeliveryMode.NOTIFICATION);
+		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(driverConversation, booking.getUrn());
 		msg.setSubject(subject);
 		msg.setBody(
@@ -72,12 +72,20 @@ public class NotificationHelper {
 		return msg;
     }
 
+	private String createRideTopic(Ride r) {
+		return MessageFormat.format("Rit op {0} van {1} naar {2}", 
+				DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(r.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
+				r.getFrom().getLabel(), 
+				r.getTo().getLabel()
+		);
+	}
+
     public void onBookingCreated(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Booking booking) throws BusinessException {
 		// Inform driver on new booking
 		Message msg = null;
 		// Add the booking context to the ride context
 		Conversation driverConv = publisherService.lookupConversation(booking.getRide().getDriver(), booking.getRide().getUrn());
-		publisherService.addConversationContexts(driverConv, new String[] { booking.getUrn() });
+		publisherService.addConversationContext(driverConv, booking.getUrn(), createRideTopic(booking.getRide()), true);
 		if (booking.getState() == BookingState.PROPOSED) {
 			// No message is needed, because is is the drive who created the proposal
 		} else if (booking.getState() == BookingState.REQUESTED) {
