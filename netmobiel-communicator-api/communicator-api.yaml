@@ -430,11 +430,6 @@ components:
             User messages always have a sender. In regular use the (effective) caller
             is assigned as the sender. If the caller has elevated privilege, the sender
             can set by the caller. The sender is an Keycloak managed identity.
-        creationTime:
-          format: date-time
-          description: Read-only. The date and time the message was sent. This field
-            is set by the message service.
-          type: string
         subject:
           description: Human-readable context, used for displaying the subject of
             the context.
@@ -455,10 +450,14 @@ components:
           items:
             $ref: '#/components/schemas/Envelope'
         senderConversationRef:
-          description: A reference to the conversation of the sender containing this
+          description: 'A reference to the conversation of the sender containing this
             message. Only present when a sender is defined. Only present whith the
-            endpoint `/message`. Only present for messages sent by the caller, unless
-            the caller has elevated privilege.
+            endpoint `/message`. '
+          type: string
+        createdTime:
+          format: date-time
+          description: Read-only. The date and time the message was sent. This field
+            is set by the message service.
           type: string
       example:
         body: Kunnen we iets later vertrekken?
@@ -580,6 +579,9 @@ components:
           type: array
           items:
             type: string
+        recentMessage:
+          $ref: '#/components/schemas/Message'
+          description: The most recent message in the conversation, if any.
       example:
         id: 12345
         createdTime: 2021-10-26T12:00:00Z
@@ -622,8 +624,7 @@ components:
         conversationRef:
           description: "A reference to the conversation of the recipient of the message.\
             \ \nOnly available when a message is listed as part of the `/message`\
-            \ endpoint.\nOnly available when the messaged is received by the caller,\
-            \ unless  the caller \nhas elevated privilege."
+            \ endpoint.\n"
           type: string
       example:
         ackTime: 2020-03-17T08:45:00Z
