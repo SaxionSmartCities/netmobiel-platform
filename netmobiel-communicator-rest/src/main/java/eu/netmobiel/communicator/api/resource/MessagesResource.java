@@ -70,7 +70,7 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 	}
 
 	@Override
-	public Response listMessages(String xDelegator, Boolean groupByConversation, String participant, String context, 
+	public Response listMessages(String xDelegator, String participant, String context, 
 			OffsetDateTime since, OffsetDateTime until, String deliveryMode, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		PagedResult<Message> result = null;
