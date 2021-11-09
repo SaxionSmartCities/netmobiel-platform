@@ -411,6 +411,7 @@ components:
           description: The object reference to mark the original context of the message
             from the sender's perspective. This is a urn, uniquely defining the object
             this message is about. Note that each envelope can have a context too.
+            The context determines to which (sender) conversation the message is assigned.
           type: string
         deliveryMode:
           description: "The deliver mode, indicating how the message should be delivered.\n\
@@ -450,9 +451,9 @@ components:
           items:
             $ref: '#/components/schemas/Envelope'
         senderConversationRef:
-          description: 'A reference to the conversation of the sender containing this
-            message. Only present when a sender is defined. Only present whith the
-            endpoint `/message`. '
+          description: 'Read-only. A reference to the conversation of the sender containing
+            this message. Only present when a sender is defined. Only present whith
+            the endpoint `/message`. '
           type: string
         createdTime:
           format: date-time
@@ -599,12 +600,20 @@ components:
         \ and the \ndate and time that the message was read by the recipient."
       required:
       - recipient
+      - context
       type: object
       properties:
         ackTime:
           format: date-time
           description: Read-only. The timestamp conforming the reading of the message.
             Only set in case of a message, thus not in case of a notification.
+          type: string
+        context:
+          description: The object reference to mark the original context of the message
+            from the recipient's perspective. This is a urn, uniquely defining the
+            object this message is about. Note that the mesage has  a context too,
+            the sender's perspective. The context determines to which (recipient)
+            conversation the message is assigned.
           type: string
         recipient:
           $ref: '#/components/schemas/User'
@@ -622,9 +631,9 @@ components:
             push messaging system. If null no notification was delivered. '
           type: string
         conversationRef:
-          description: "A reference to the conversation of the recipient of the message.\
-            \ \nOnly available when a message is listed as part of the `/message`\
-            \ endpoint.\n"
+          description: "Read-only. A reference to the conversation of the recipient\
+            \ of the message. \nOnly available when a message is listed as part of\
+            \ the `/message` endpoint.\n"
           type: string
       example:
         ackTime: 2020-03-17T08:45:00Z
