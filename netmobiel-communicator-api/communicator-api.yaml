@@ -22,13 +22,6 @@ paths:
       role, the effective user will be the user specified in the X-Delegator header.
     get:
       parameters:
-      - name: groupByConversation
-        description: If set then the most recent message of each conversation is returned,
-          ordered recent to older. If set no other filter is allowed. Without this
-          flag a plain list of messages is returned, ordered from recent to older.
-        schema:
-          type: boolean
-        in: query
       - name: participant
         description: The participant in the messages, i.e. as a recipient or a sender.
           Use `me` as indicator to retrieve the own messages. Defaults to the effective
@@ -99,12 +92,12 @@ paths:
           $ref: '#/components/responses/BadRequest'
       operationId: listMessages
       summary: List messages
-      description: |-
-        Gets a paged list of all `Message` entities. There are two forms supported:
-        With the flag 'groupByConversation' the latest message of each context (the conversation) is selected.
-        Without that flag a list of messages complying to the filter criteria are returned.
-
-        Note that all messages are returned for a participant: Message received , but also messages sent. Messages sent are always acknowledged.
+      description: "Gets a paged list of all `Message` entities according the filter\
+        \ criteria. \nWithout that flag a list of messages complying to the filter\
+        \ criteria are returned.\n\nNote that all messages are returned for a participant:\
+        \ Message received , but also messages sent. Messages sent are always acknowledged.\n\
+        \nThe admin can always see all recipients. non-admin users can only see the\
+        \ other recipients if they are the sender."
     post:
       requestBody:
         description: A new `Message` to be created.
@@ -221,7 +214,9 @@ paths:
       description: "Gets a paged list of all `Message` entities in a `Conversation`.\
         \ \nThe filter criteria are applied. Messages are sorted by `creationTime`\
         \ descending.\n\nNote that all messages are returned for a participant: Message\
-        \ received , but also messages sent. Messages sent are implicitly acknowledged."
+        \ received , but also messages sent. Messages sent are implicitly acknowledged.\n\
+        \nThe admin can always see all recipients. non-admin users can only see the\
+        \ other recipients if they are the sender."
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
@@ -299,6 +294,7 @@ paths:
         schema:
           type: string
         in: query
+        required: false
       - name: since
         description: Include a conversation when it has a message created at or after
           this date and time. No default set.
