@@ -1,11 +1,11 @@
 package eu.netmobiel.communicator.api.resource;
 
 import java.time.OffsetDateTime;
+import java.util.stream.Stream;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
 import javax.servlet.http.HttpServletRequest;
-import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
@@ -14,14 +14,20 @@ import javax.ws.rs.core.UriBuilder;
 import com.google.common.base.Objects;
 
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.api.ConversationsApi;
 import eu.netmobiel.communicator.api.mapping.ConversationMapper;
+import eu.netmobiel.communicator.api.mapping.MessageMapper;
+import eu.netmobiel.communicator.filter.MessageFilter;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.Conversation;
+import eu.netmobiel.communicator.model.DeliveryMode;
+import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.CommunicatorUserManager;
 import eu.netmobiel.communicator.service.PublisherService;
 @RequestScoped
@@ -30,7 +36,10 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 	@Inject
 	private ConversationMapper mapper;
 
-    @Inject
+	@Inject
+	private MessageMapper messageMapper;
+
+	@Inject
     private PublisherService publisherService;
 
 	@Inject
@@ -50,7 +59,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 		// The owner of the trip, the traveller, will be the effective user.
 		try {
 			if (!request.isUserInRole("admin")) {
-				throw new SecurityException("You have no privilege to create a conversation");
+				throw new SecurityException("You don't have the privilege to create a conversation");
 			}
 			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
 			CommunicatorUser traveller = context.getEffectiveUser();
@@ -69,12 +78,8 @@ public class ConversationsResource extends CommunicatorResource implements Conve
     	Response rsp = null;
 		try {
 			Conversation conv = null;
-			if (! UrnHelper.isUrn(conversationId) || UrnHelper.matchesPrefix(Conversation.URN_PREFIX, conversationId)) {
-	        	Long tid = UrnHelper.getId(Conversation.URN_PREFIX, conversationId);
-				conv = publisherService.getConversation(tid);
-			} else {
-				throw new BadRequestException("Don't understand urn: " + conversationId);
-			}
+        	Long cid = UrnHelper.getId(Conversation.URN_PREFIX, conversationId);
+			conv = publisherService.getConversation(cid);
 			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
         	allowAdminOrEffectiveUser(request, context, conv.getOwner());
 			rsp = Response.ok(mapper.map(conv)).build();
@@ -90,10 +95,12 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 		Response rsp = null;
 		PagedResult<Conversation> result = null;
 		try {
-			if (owner == null && !request.isUserInRole("admin")) {
-				owner = securityIdentity.getEffectivePrincipal().getName();
-			} else if ("me".equals(owner)) {
-				owner = securityIdentity.getEffectivePrincipal().getName();
+			String me = securityIdentity.getEffectivePrincipal().getName();
+			if (owner == null || "me".equals(owner)) {
+				owner = me;
+			}
+			if (!request.isUserInRole("admin") && !me.equals(me)) {
+				throw new SecurityException("You don't have the privilege to list conversations of someone else");
 			}
 			if (since != null || until != null) {
 				throw new UnsupportedOperationException("Parameters 'since' and 'until' are not yet supported");
@@ -106,6 +113,12 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 				archivedOnly = true;
 			}
 			result = publisherService.listConversations(owner, actualOnly, archivedOnly, maxResults, offset); 
+			if (!request.isUserInRole("admin")) {
+				// If I am not the sender, then remove all the envelopes of other people
+				for (Conversation c : result.getData()) {
+					removeOtherRecipients(me, c.getRecentMessage());
+				}
+			}
 			rsp = Response.ok(mapper.map(result)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
@@ -119,9 +132,14 @@ public class ConversationsResource extends CommunicatorResource implements Conve
     	Response rsp = null;
     	try {
         	Long cid = UrnHelper.getId(Conversation.URN_PREFIX, conversationId);
-        	Conversation ride = mapper.map(conversation);
-			ride.setId(cid);
-			publisherService.updateConversation(ride);
+        	// Check whether this call is allowed
+			Conversation conv = publisherService.getConversation(cid);
+			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+        	allowAdminOrEffectiveUser(request, context, conv.getOwner());
+
+        	conv = mapper.map(conversation);
+			conv.setId(cid);
+			publisherService.updateConversation(conv);
 			rsp = Response.noContent().build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
@@ -132,8 +150,30 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 	@Override
 	public Response listConversationMessages(String xDelegator, String conversationId, String deliveryMode,
 			Integer maxResults, Integer offset) {
-		// TODO Auto-generated method stub
-		return null;
+		Response rsp = null;
+		PagedResult<Message> result = null;
+		try {
+			Long convId = UrnHelper.getId(Conversation.URN_PREFIX, conversationId);
+        	// Check whether this call is allowed
+			Conversation conv = publisherService.getConversation(convId);
+			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+        	allowAdminOrEffectiveUser(request, context, conv.getOwner());
+
+        	DeliveryMode dm = deliveryMode == null ? DeliveryMode.MESSAGE : 
+				(deliveryMode.isEmpty() ? DeliveryMode.ALL :  
+					Stream.of(DeliveryMode.values())
+						.filter(m -> m.getCode().equals(deliveryMode))
+						.findFirst()
+						.orElseThrow(() -> new IllegalArgumentException("Unsupported DeliveryMode: " + deliveryMode)));
+			MessageFilter filter = new MessageFilter(convId, SortDirection.DESC.name());
+			filter.setDeliveryMode(dm);
+			Cursor cursor = new Cursor(maxResults, offset);
+			result = publisherService.listMessages(filter, cursor); 
+			rsp = Response.ok(messageMapper.map(result)).build();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+		return rsp;
 	}
 
 }

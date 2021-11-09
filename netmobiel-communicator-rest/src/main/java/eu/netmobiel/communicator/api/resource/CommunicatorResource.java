@@ -9,6 +9,7 @@ import com.google.common.base.Objects;
 
 import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.communicator.model.CommunicatorUser;
+import eu.netmobiel.communicator.model.Message;
 
 /**
  * Base class for the communicator resource handling. Contains a view convenience methods.
@@ -29,4 +30,13 @@ class CommunicatorResource {
     	}
     }
     
+	protected void removeOtherRecipients(String me, Message msg) {
+		// If I am not the sender, then remove all the envelopes of other people
+		CommunicatorUser sender = msg.getSender();
+		if (sender == null || !me.equals(sender.getManagedIdentity())) {
+			msg.getEnvelopes()
+				.removeIf(env -> !me.equals(env.getRecipient().getManagedIdentity()));
+		}
+	}
+
 }

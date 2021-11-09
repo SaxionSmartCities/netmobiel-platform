@@ -5,7 +5,6 @@ import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
 
 /**
@@ -15,24 +14,16 @@ import eu.netmobiel.communicator.model.Message;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
-	uses = { JavaTimeMapper.class, UserMapper.class })
+	uses = { JavaTimeMapper.class, UserMapper.class, EnvelopeMapper.class })
 public abstract class MessageMapper {
-
-	@Mapping(target = "id", ignore = true)
-	@Mapping(target = "pushTime", ignore = true)
-	@Mapping(target = "ackTime", ignore = true)
-	@Mapping(target = "message", ignore = true)
-	public abstract Envelope map(eu.netmobiel.communicator.api.model.Envelope source);
-
-	public abstract eu.netmobiel.communicator.api.model.Envelope map(Envelope source);
-	
-	// Domain Envelope --> API Message 
+	// Domain Message --> API Message 
 	public abstract eu.netmobiel.communicator.api.model.Message map(Message source);
 
 	
 	public abstract eu.netmobiel.communicator.api.model.Page map(PagedResult<Message> source);
 
 	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "oldSender", ignore = true)
 	public abstract Message map(eu.netmobiel.communicator.api.model.Message source);
 
 }

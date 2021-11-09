@@ -22,9 +22,7 @@ import eu.netmobiel.communicator.api.MessagesApi;
 import eu.netmobiel.communicator.api.mapping.MessageMapper;
 import eu.netmobiel.communicator.filter.MessageFilter;
 import eu.netmobiel.communicator.model.CommunicatorUser;
-import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
-import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.CommunicatorUserManager;
 import eu.netmobiel.communicator.service.PublisherService;
@@ -57,12 +55,10 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 			if (msg.getSender() != null && !request.isUserInRole("admin")) {
 				throw new SecurityException("You have no privilege to specify a sender");
 			}
-			// Input should not set a sender
-			message.setSender(null);
-			Envelope senderEnvelope = new Envelope(message.getContext(), new Conversation(sender));
+			message.setSender(sender);
 			// Validate to catch the errors early on, publish is asynchronous.
 			publisherService.validateMessage(message);
-			publisherService.publish(senderEnvelope, message);
+			publisherService.publish(sender, message);
 			if (!callingContext.getCallingUser().equals(sender)) {
 				publisherService.informDelegates(sender, "Persoonlijk bericht van " + sender.getName(), DeliveryMode.ALL);
 			}
@@ -79,10 +75,15 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 		Response rsp = null;
 		PagedResult<Message> result = null;
 		try {
+			String me = securityIdentity.getEffectivePrincipal().getName();
+			if ("me".equals(participant)) {
+				participant = me;
+			}
 			if (participant == null && !request.isUserInRole("admin")) {
-				participant = securityIdentity.getEffectivePrincipal().getName();
-			} else if ("me".equals(participant)) {
-				participant = securityIdentity.getEffectivePrincipal().getName();
+				participant = me;
+			}  
+			if (!me.equals(participant) && !request.isUserInRole("admin")) {
+				throw new SecurityException("You don't have the privilege the messages of someone else");
 			}
 			DeliveryMode dm = deliveryMode == null ? DeliveryMode.MESSAGE : 
 				(deliveryMode.isEmpty() ? DeliveryMode.ALL :  
@@ -94,6 +95,11 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 			filter.setDeliveryMode(dm);
 			Cursor cursor = new Cursor(maxResults, offset);
 			result = publisherService.listMessages(filter, cursor); 
+			if (!request.isUserInRole("admin")) {
+				for (Message msg : result.getData()) {
+					removeOtherRecipients(me, msg);
+				}
+			}
 			rsp = Response.ok(mapper.map(result)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
