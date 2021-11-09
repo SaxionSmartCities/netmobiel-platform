@@ -149,9 +149,6 @@ public class Envelope implements Serializable {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "envelope_sg")
     private Long id;
 
-    @Transient
-    private String envelopeRef;
-
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "message", nullable = false, foreignKey = @ForeignKey(name = "envelope_message_fk"))
@@ -160,9 +157,10 @@ public class Envelope implements Serializable {
 	/**
 	 * Deprecated: The recipient of the message. 
 	 */
+    @Deprecated
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "recipient", foreignKey = @ForeignKey(name = "envelope_recipient_fk"))
-    private CommunicatorUser recipient;
+    private CommunicatorUser oldRecipient;
 
 	/**
 	 * The time the message was acknowledged (read) by the user.
@@ -199,6 +197,12 @@ public class Envelope implements Serializable {
      */
 	@Column(name = "sender", nullable = false)
     private boolean sender;
+
+	/**
+	 * Convenience. Uses the owner of the conversation.
+	 */
+	@Transient
+    private CommunicatorUser recipient;
 
 	public Envelope() {
 		
@@ -241,14 +245,30 @@ public class Envelope implements Serializable {
 		this.message = message;
 	}
 
+	@Deprecated
+	public CommunicatorUser getOldRecipient() {
+		return oldRecipient;
+	}
+
+	@Deprecated
+	public void setOldRecipient(CommunicatorUser recipient) {
+		this.oldRecipient = recipient;
+	}
+
 	public CommunicatorUser getRecipient() {
+		if (recipient == null && conversation != null) {
+			recipient = conversation.getOwner();
+		}
 		return recipient;
 	}
 
+	/**
+	 * Use this method only when creating a new envelope.
+	 * @param recipient
+	 */
 	public void setRecipient(CommunicatorUser recipient) {
 		this.recipient = recipient;
 	}
-
 
 	public Instant getAckTime() {
 		return ackTime;

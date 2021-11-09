@@ -22,8 +22,18 @@ public class MessageFilter extends PeriodFilter {
 	 * The delivery mode to look for. 
 	 */
 	private DeliveryMode deliveryMode;
-	
+
+	/**
+	 * The conversation id.
+	 */
+	private Long conversationId;
+
 	public MessageFilter() {
+	}
+
+	public MessageFilter(Long conversationId, String sortDir) {
+		this(sortDir);
+		this.conversationId = conversationId;
 	}
 
 	public MessageFilter(String sortDir) {
@@ -62,6 +72,14 @@ public class MessageFilter extends PeriodFilter {
 		this.deliveryMode = deliveryMode;
 	}
 
+	public Long getConversationId() {
+		return conversationId;
+	}
+
+	public void setConversationId(Long conversationId) {
+		this.conversationId = conversationId;
+	}
+
 	@Override
 	public void validate() throws BadRequestException {
     	if (getSortDir() == null) {
@@ -74,14 +92,19 @@ public class MessageFilter extends PeriodFilter {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("RideFilter [");
-		if (participantId != null) {
-			builder.append("participantId=");
-			builder.append(participantId);
+		if (conversationId != null) {
+			builder.append("conversationId=");
+			builder.append(conversationId);
 			builder.append(", ");
 		}
 		if (participantId != null) {
 			builder.append("participantId=");
 			builder.append(participantId);
+			builder.append(", ");
+		}
+		if (deliveryMode != null) {
+			builder.append("deliveryMode=");
+			builder.append(deliveryMode);
 			builder.append(", ");
 		}
 		if (context != null) {

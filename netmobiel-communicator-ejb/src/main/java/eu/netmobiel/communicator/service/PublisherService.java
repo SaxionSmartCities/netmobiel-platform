@@ -117,22 +117,19 @@ public class PublisherService {
      * Sends a message and/or a notification to the recipients in the message envelopes.
      * The conversations of sender and recipients must already exist!
      * This is an asynchronous call. Because of the asynchronous nature, this call cannot throw exceptions to the initiator. 
-     * @param sender the envelope of the sender of the message.
+     * @param sender the sender of the message.
      * @param msg the message to send to the recipients in the envelopes
      * @param topic the topic of the conversation
      * @param overwriteTopic if true then overwrite the existing topic, if any.
      */
     @Asynchronous
-    public void publish(Envelope sender, Message msg) {
+    public void publish(CommunicatorUser sender, Message msg) {
     	try {
 			validateMessage(msg);
 			msg.setCreatedTime(Instant.now());
 			if (sender != null) {
-				if (sender.getConversation().getId() == null) {
-					// Resolve sender conversation
-					sender.setConversation(lookupConversation(sender.getConversation().getOwner(), msg.getContext()));
-				}
-				msg.addSender(sender);
+				Conversation senderConv = lookupConversation(sender, msg.getContext());
+				msg.addSender(senderConv, msg.getContext());
 			}
 //			if (logger.isDebugEnabled()) {
 //			    logger.debug(String.format("Send message from %s to %s: %s %s - %s", sender.getConversation().getOwner(), 
@@ -141,10 +138,8 @@ public class PublisherService {
 //			}
 			// Assure all recipient conversations are present in the database, replace transient instances of users with persistent instances.
 			for (Envelope env : msg.getEnvelopes()) {
-				if (env.getConversation().getId() == null) {
-					// Resolve conversation
-					env.setConversation(lookupConversation(env.getConversation().getOwner(), env.getContext()));
-				}
+				Conversation rcpConv = lookupConversation(env.getRecipient(), env.getContext());
+				env.setConversation(rcpConv);
 			}
 			msg.setId(null); 	// Assure it is a new message.
 			// Save message and envelopes in database
@@ -341,6 +336,11 @@ public class PublisherService {
         }
         if (offset == null) {
         	offset = 0;
+        }
+        if (owner == null) {
+        	// The paging does work with owner null, because of the inversion of message --> conversation
+        	// To get it to work, something must be done to invert it. Not requried right now.
+        	throw new BadRequestException("The owner of the conversation is a mandatory parameter");
         }
         if (actualOnly && archivedOnly) {
         	throw new BadRequestException("You cannot have actualOnly AND archiveOnly at the same time");

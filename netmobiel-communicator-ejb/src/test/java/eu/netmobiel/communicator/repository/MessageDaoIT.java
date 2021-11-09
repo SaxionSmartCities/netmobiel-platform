@@ -200,7 +200,7 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
 
 
     @Test
-    public void listConversation() {
+    public void listConversations_Data() {
     	log.info("Test lookup of conversations with most recent message");
     	final String participant = userC1.getManagedIdentity();
     	PagedResult<Long> archMessageIds = messageDao.listTopMessagesByConversations(participant, false, true, 100, 0);
@@ -211,6 +211,7 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
         		Long.class)
         		.setParameter("participant", participant)
         		.getSingleResult();
+    	assertTrue("Arch Count > 0", expArchCount > 0);
     	assertEquals("Archived count must match", expArchCount.longValue(), archMessageIds.getCount());
 
     	PagedResult<Long> actualMessageIds = messageDao.listTopMessagesByConversations(participant, true, false, 100, 0);
@@ -219,6 +220,7 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
         		Long.class)
         		.setParameter("participant", participant)
         		.getSingleResult();
+    	assertTrue("Actual Count > 0", expActualCount > 0);
     	assertEquals("Actual count must match", expActualCount.longValue(), actualMessageIds.getCount());
 
     	PagedResult<Long> messageIds = messageDao.listTopMessagesByConversations(participant, false, false, 100, 0);
@@ -227,9 +229,43 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
         		Long.class)
         		.setParameter("participant", participant)
         		.getSingleResult();
+    	assertTrue("Count > 0", expCount > 0);
     	assertEquals("Total count must match", expCount.longValue(), messageIds.getCount());
     	assertEquals("Total count must match", expCount.longValue(), archMessageIds.getCount() + actualMessageIds.getCount());
     }
 
+    @Test
+    public void listConversations_count() {
+    	log.info("Test lookup of conversations with most recent message");
+    	final String participant = userC1.getManagedIdentity();
+    	PagedResult<Long> archMessageIds = messageDao.listTopMessagesByConversations(participant, false, true, 0, 0);
+    	
+    	Long expArchCount = em.createQuery(
+        		"select count(c) from Conversation c where c.owner.managedIdentity = :participant and c.archivedTime is not null",
+        		Long.class)
+        		.setParameter("participant", participant)
+        		.getSingleResult();
+    	assertTrue("Arch Count > 0", expArchCount > 0);
+    	assertEquals("Archived count must match", expArchCount.longValue(), archMessageIds.getTotalCount().longValue());
+
+    	PagedResult<Long> actualMessageIds = messageDao.listTopMessagesByConversations(participant, true, false, 0, 0);
+    	Long expActualCount = em.createQuery(
+        		"select count(c) from Conversation c where c.owner.managedIdentity = :participant and c.archivedTime is null",
+        		Long.class)
+        		.setParameter("participant", participant)
+        		.getSingleResult();
+    	assertTrue("Actual Count > 0", expActualCount > 0);
+    	assertEquals("Actual count must match", expActualCount.longValue(), actualMessageIds.getTotalCount().longValue());
+
+    	PagedResult<Long> messageIds = messageDao.listTopMessagesByConversations(participant, false, false, 0, 0);
+    	Long expCount = em.createQuery(
+        		"select count(c) from Conversation c where c.owner.managedIdentity = :participant",
+        		Long.class)
+        		.setParameter("participant", participant)
+        		.getSingleResult();
+    	assertTrue("Count > 0", expCount > 0);
+    	assertEquals("Total count must match", expCount.longValue(), messageIds.getTotalCount().longValue());
+    	assertEquals("Total count must match", expCount.longValue(), archMessageIds.getTotalCount().longValue() + actualMessageIds.getTotalCount().longValue());
+    }
 
 }

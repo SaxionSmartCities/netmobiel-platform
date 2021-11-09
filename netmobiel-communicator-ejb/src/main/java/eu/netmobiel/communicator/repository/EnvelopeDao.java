@@ -36,7 +36,7 @@ public class EnvelopeDao extends AbstractDao<Envelope, Long> {
 	}
 
 	public Envelope findByMessageAndRecipient(Long messageId, String managedIdentity) throws NoResultException {
-		String q = "select e from Envelope e where e.message.id = :messageId and e.recipient.managedIdentity = :identity";
+		String q = "select e from Envelope e where e.message.id = :messageId and e.conversation.owner.managedIdentity = :identity";
 		TypedQuery<Envelope> tq = em.createQuery(q, Envelope.class);
 		tq.setParameter("messageId", messageId);
 		tq.setParameter("identity", managedIdentity);

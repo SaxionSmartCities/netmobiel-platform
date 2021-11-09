@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.CascadeType;
@@ -23,6 +24,7 @@ import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
@@ -32,13 +34,13 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 @NamedEntityGraph(
 		name = Message.LIST_MY_MESSAGES_ENTITY_GRAPH, 
 		attributeNodes = { 
-				@NamedAttributeNode(value = "sender"),		
+				@NamedAttributeNode(value = "oldSender"),		
 				@NamedAttributeNode(value = "envelopes", subgraph = "envelope-details")		
 		}, subgraphs = {
 				@NamedSubgraph(
 						name = "envelope-details",
 						attributeNodes = {
-								@NamedAttributeNode(value = "recipient"),
+								@NamedAttributeNode(value = "oldRecipient"),
 								@NamedAttributeNode(value = "ackTime"),
 								@NamedAttributeNode(value = "conversation", subgraph = "conversation-details"),
 						}
@@ -46,7 +48,8 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 				@NamedSubgraph(
 						name = "conversation-details",
 						attributeNodes = {
-								@NamedAttributeNode(value = "owner")
+								@NamedAttributeNode(value = "owner"),
+								@NamedAttributeNode(value = "contexts")
 						}
 					)
 				}
@@ -109,10 +112,11 @@ public class Message implements NetMobielMessage, Serializable {
 	/**
 	 * Deprecated: The sender of the message.
 	 */
+    @Deprecated
 //    @NotNull
     @ManyToOne
     @JoinColumn(name = "sender", foreignKey = @ForeignKey(name = "message_sender_fk"))
-    private CommunicatorUser sender;
+    private CommunicatorUser oldSender;
 
     /**
      * The recipients of the message.
@@ -120,6 +124,12 @@ public class Message implements NetMobielMessage, Serializable {
 	@OneToMany(mappedBy = "message", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
 	private List<Envelope> envelopes;
 
+	/**
+	 * Convenience method. Used to het the sender from an envelope, or as input from, to create a sender envelope for.
+	 */
+	@Transient
+    private CommunicatorUser sender;
+	
     public Long getId() {
 		return id;
 	}
@@ -173,11 +183,29 @@ public class Message implements NetMobielMessage, Serializable {
 		this.deliveryMode = deliveryMode;
 	}
 
+	@Deprecated
+	public CommunicatorUser getOldSender() {
+		return oldSender;
+	}
+
+	@Deprecated
+	public void setOldSender(CommunicatorUser sender) {
+		this.oldSender = sender;
+	}
+
 	@Override
 	public CommunicatorUser getSender() {
+		if (sender == null) {
+			findSenderEnvelope().ifPresent(env -> sender = env.getConversation().getOwner());
+		}
 		return sender;
 	}
 
+	/**
+	 * Use this method only to prepare the sending of a message. The field is transient is used only when creating a message.
+	 * 
+	 * @param sender
+	 */
 	public void setSender(CommunicatorUser sender) {
 		this.sender = sender;
 	}
@@ -213,9 +241,22 @@ public class Message implements NetMobielMessage, Serializable {
 		getEnvelopes().add(env);
 	}
 
+	public Optional<Envelope> findSenderEnvelope() {
+		return this.getEnvelopes().stream().filter(env -> env.isSender()).findFirst();
+	}
+
+	public String getSenderConversationRef() {
+		String convUrn = null;
+		Optional<Envelope> optSenderEnv = findSenderEnvelope();
+		if (optSenderEnv.isPresent()) {
+			convUrn = optSenderEnv.get().getConversation().getUrn();
+		}
+		return convUrn;
+	}
+	
 	@Override
 	public String toString() {
-		return String.format("Message [%d %s %s '%s' %s %s '%s']", id, sender, 
+		return String.format("Message [%d %s '%s' %s %s '%s']", id, 
 				context, subject, deliveryMode, DateTimeFormatter.ISO_INSTANT.format(createdTime), body != null ? body : "");
 	}
 

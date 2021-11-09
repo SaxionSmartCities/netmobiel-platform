@@ -29,6 +29,7 @@ import com.google.firebase.messaging.Notification;
 
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.NetMobielMessage;
+import eu.netmobiel.commons.model.NetMobielUser;
 
 /**
  * Client for Google Firebase messaging.
@@ -108,9 +109,12 @@ public class FirebaseMessagingClient {
     	Map<String, String> map = new LinkedHashMap<>();
         map.put("context", msg.getContext());
         map.put("creationTime", DateTimeFormatter.ISO_INSTANT.format(msg.getCreatedTime()));
-        map.put("senderId", msg.getSender().getManagedIdentity());
-        map.put("senderGivenName", msg.getSender().getGivenName());
-        map.put("senderFamilyName", msg.getSender().getFamilyName());
+        NetMobielUser sender = msg.getSender();
+        if (sender != null) {
+		    map.put("senderId", sender.getManagedIdentity());
+		    map.put("senderGivenName", sender.getGivenName());
+		    map.put("senderFamilyName", sender.getFamilyName());
+        }
     	return map;
     }
     /**
