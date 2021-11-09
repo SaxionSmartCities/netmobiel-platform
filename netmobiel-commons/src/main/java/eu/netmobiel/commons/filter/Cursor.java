@@ -53,6 +53,10 @@ public class Cursor {
 		return maxResults == 0;
 	}
 
+	public void next() {
+		this.offset += this.maxResults;
+	}
+	
 	@Override
 	public String toString() {
 		return String.format("Cursor [%s %s]", maxResults, offset);

@@ -56,13 +56,13 @@ public class PeriodFilter extends BaseFilter {
 
 	@Override
 	public void validate() throws BadRequestException {
-		super.validate();
     	if (now == null) {
     		now = Instant.now();
     	}
     	if (until != null && since != null && !until.isAfter(since)) {
     		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
     	}
+		super.validate();
 	}
 	
 	@Override
