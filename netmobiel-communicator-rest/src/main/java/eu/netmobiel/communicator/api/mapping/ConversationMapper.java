@@ -4,7 +4,9 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
-import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.communicator.api.mapping.annotation.Complete;
+import eu.netmobiel.communicator.api.mapping.annotation.ConversationMapperQualifier;
+import eu.netmobiel.communicator.api.mapping.annotation.Shallow;
 import eu.netmobiel.communicator.model.Conversation;
 
 /**
@@ -15,14 +17,17 @@ import eu.netmobiel.communicator.model.Conversation;
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
 	uses = { JavaTimeMapper.class, UserMapper.class, MessageMapper.class })
+@ConversationMapperQualifier
 public abstract class ConversationMapper {
 
 	// Domain --> API 
-	public abstract eu.netmobiel.communicator.api.model.Conversation map(Conversation source);
+	@Complete
+	public abstract eu.netmobiel.communicator.api.model.Conversation mapComplete(Conversation source);
 
+	@Shallow
+	@Mapping(target = "contexts", ignore = true)
+	public abstract eu.netmobiel.communicator.api.model.Conversation mapShallow(Conversation source);
 	
-	public abstract eu.netmobiel.communicator.api.model.Page map(PagedResult<Conversation> source);
-
 	@Mapping(target = "id", ignore = true)
 	public abstract Conversation map(eu.netmobiel.communicator.api.model.Conversation source);
 

@@ -49,7 +49,7 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 						name = "conversation-details",
 						attributeNodes = {
 								@NamedAttributeNode(value = "owner"),
-								@NamedAttributeNode(value = "contexts")
+//								@NamedAttributeNode(value = "contexts")
 						}
 					)
 				}

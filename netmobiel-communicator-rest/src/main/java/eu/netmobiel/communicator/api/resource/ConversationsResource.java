@@ -23,6 +23,7 @@ import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.api.ConversationsApi;
 import eu.netmobiel.communicator.api.mapping.ConversationMapper;
 import eu.netmobiel.communicator.api.mapping.MessageMapper;
+import eu.netmobiel.communicator.api.mapping.PageMapper;
 import eu.netmobiel.communicator.filter.MessageFilter;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.Conversation;
@@ -34,7 +35,10 @@ import eu.netmobiel.communicator.service.PublisherService;
 public class ConversationsResource extends CommunicatorResource implements ConversationsApi {
 
 	@Inject
-	private ConversationMapper mapper;
+	private PageMapper pageMapper;
+
+	@Inject
+	private ConversationMapper conversationMapper;
 
 	@Inject
 	private MessageMapper messageMapper;
@@ -63,7 +67,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 			}
 			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
 			CommunicatorUser traveller = context.getEffectiveUser();
-			Conversation conversation = mapper.map(apiConversation);
+			Conversation conversation = conversationMapper.map(apiConversation);
 			conversation.setOwner(traveller);
 			String newConversationId = UrnHelper.createUrn(Conversation.URN_PREFIX, publisherService.createConversation(conversation));
 			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newConversationId)).build();
@@ -82,7 +86,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 			conv = publisherService.getConversation(cid);
 			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
         	allowAdminOrEffectiveUser(request, context, conv.getOwner());
-			rsp = Response.ok(mapper.map(conv)).build();
+			rsp = Response.ok(conversationMapper.mapComplete(conv)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
@@ -119,7 +123,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 					removeOtherRecipients(me, c.getRecentMessage());
 				}
 			}
-			rsp = Response.ok(mapper.map(result)).build();
+			rsp = Response.ok(pageMapper.mapShallow(result)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
@@ -137,7 +141,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
         	allowAdminOrEffectiveUser(request, context, conv.getOwner());
 
-        	conv = mapper.map(conversation);
+        	conv = conversationMapper.map(conversation);
 			conv.setId(cid);
 			publisherService.updateConversation(conv);
 			rsp = Response.noContent().build();
