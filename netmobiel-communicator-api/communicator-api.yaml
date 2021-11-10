@@ -213,7 +213,7 @@ paths:
       summary: List messages in a conversation.
       description: "Gets a paged list of all `Message` entities in a `Conversation`.\
         \ \nThe filter criteria are applied. Messages are sorted by `creationTime`\
-        \ descending.\n\nNote that all messages are returned for a participant: Message\
+        \ ascending.\n\nNote that all messages are returned for a participant: Message\
         \ received , but also messages sent. Messages sent are implicitly acknowledged.\n\
         \nThe admin can always see all recipients. non-admin users can only see the\
         \ other recipients if they are the sender."
