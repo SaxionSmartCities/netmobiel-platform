@@ -579,6 +579,9 @@ components:
         recentMessage:
           $ref: '#/components/schemas/Message'
           description: The most recent message in the conversation, if any.
+        conversationRef:
+          description: The reference to the conversation.
+          type: string
       example:
         id: 12345
         createdTime: 2021-10-26T12:00:00Z
