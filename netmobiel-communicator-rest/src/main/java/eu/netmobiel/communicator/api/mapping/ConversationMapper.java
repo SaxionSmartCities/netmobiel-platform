@@ -22,10 +22,12 @@ public abstract class ConversationMapper {
 
 	// Domain --> API 
 	@Complete
+	@Mapping(target = "conversationRef", source = "urn")
 	public abstract eu.netmobiel.communicator.api.model.Conversation mapComplete(Conversation source);
 
 	@Shallow
 	@Mapping(target = "contexts", ignore = true)
+	@Mapping(target = "conversationRef", source = "urn")
 	public abstract eu.netmobiel.communicator.api.model.Conversation mapShallow(Conversation source);
 	
 	@Mapping(target = "id", ignore = true)
