@@ -91,7 +91,7 @@ public class MessageFilter extends PeriodFilter {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("RideFilter [");
+		builder.append("MessageFilter [");
 		if (conversationId != null) {
 			builder.append("conversationId=");
 			builder.append(conversationId);
