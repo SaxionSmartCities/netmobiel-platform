@@ -26,7 +26,7 @@ public class UrnHelper {
 	}
 
 	public static boolean matchesPrefix(String expectedPrefix, String urn) {
-		return expectedPrefix != null && expectedPrefix.equals(urn);
+		return urn != null && urn.startsWith(expectedPrefix);
 	}
 	
 	public static Long getId(String prefix, String value) throws BadRequestException {

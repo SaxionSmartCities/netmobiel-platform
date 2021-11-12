@@ -96,6 +96,7 @@ public class TripsResource extends PlannerResource implements TripsApi {
 		try {
 			Trip trip = null;
 			if (! UrnHelper.isUrn(someId) || UrnHelper.matchesPrefix(Trip.URN_PREFIX, someId)) {
+				// If not a urn, it will get the Long identifier
 	        	Long tid = UrnHelper.getId(Trip.URN_PREFIX, someId);
 				trip = tripManager.getTrip(tid);
 			} else if (UrnHelper.matchesPrefix(Itinerary.URN_PREFIX, someId)) {
