@@ -128,24 +128,33 @@ public class Conversation extends ReferableObject implements Serializable {
     @Transient
     private Message recentMessage;
     
+	/**
+	 * The effective role of the owner at the time the conversation was created.
+	 * The role is used when the context is ambiguous, like in the case of a shout-out.
+	 */
+//	@NotNull
+	@Column(name = "owner_role", length = 2)
+	private UserRole ownerRole;
+
     public Conversation() {
-    	this(null, null);
+    	this(null, null, null, null);
     }
 
     public Conversation(String initialContext, String aTopic) {
-    	this(null, initialContext, aTopic, Instant.now());
+    	this(null, null, initialContext, aTopic, Instant.now());
     }
     
-    public Conversation(CommunicatorUser anOwner) {
-    	this(anOwner, null, null);
+    public Conversation(CommunicatorUser anOwner, UserRole ownerRole) {
+    	this(anOwner, ownerRole, null, null);
     }
 
-    public Conversation(CommunicatorUser anOwner, String initialContext, String aTopic) {
-    	this(anOwner, initialContext, aTopic, Instant.now());
+    public Conversation(CommunicatorUser anOwner, UserRole ownerRole, String initialContext, String aTopic) {
+    	this(anOwner, ownerRole, initialContext, aTopic, Instant.now());
     }
 
-    public Conversation(CommunicatorUser anOwner, String initialContext, String aTopic, Instant aCcreationTime) {
+    public Conversation(CommunicatorUser anOwner, UserRole ownerRole, String initialContext, String aTopic, Instant aCcreationTime) {
     	this.owner = anOwner;
+    	this.ownerRole = ownerRole;
     	this.topic = aTopic;
     	this.createdTime = aCcreationTime;
     	this.contexts = new HashSet<>();
@@ -216,8 +225,16 @@ public class Conversation extends ReferableObject implements Serializable {
 		this.recentMessage = recentMessage;
 	}
 
+	public UserRole getOwnerRole() {
+		return ownerRole;
+	}
+
+	public void setOwnerRole(UserRole ownerRole) {
+		this.ownerRole = ownerRole;
+	}
+
 	@Override
 	public String toString() {
-		return String.format("%s %s", StringUtils.abbreviate(getTopic(), 32), getOwner());
+		return String.format("%s %s %s", StringUtils.abbreviate(getTopic(), 32), getOwner(), getOwnerRole());
 	}
 }

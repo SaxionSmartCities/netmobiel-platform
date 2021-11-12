@@ -33,6 +33,7 @@ import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
+import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.repository.CommunicatorUserDao;
 import eu.netmobiel.communicator.repository.ConversationDao;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
@@ -215,28 +216,38 @@ public class PublisherService {
     	conversationDao.merge(conversation);
     }
     
-    public Conversation lookupOrCreateConversation(CommunicatorUser owner, String context, String topic, boolean overwriteTopic) {
+    /**
+     * Lookup a conversation by owner and context. If absent create a new conversation.
+     * @param owner the owner of the conversation to look for
+     * @param ownerRole the role of the owner at the time of creation of the conversation. In general
+     * 		this can be deducted from the context of the operation.
+     * @param context the context to look for. Initial context for a new conversation. 
+     * @param topic the subject the conversation is about. Might change during the lifetime of the conversation.
+     * @param overwriteTopic if true then overwrite the subject. 
+     * @return a conversation object.
+     */
+    public Conversation lookupOrCreateConversation(CommunicatorUser owner, UserRole ownerRole, String context, String topic, boolean overwriteTopic) {
 		Optional<Conversation> optConv = conversationDao.findByContextAndOwner(context, owner);
 		if (optConv.isPresent()) {
 			if (overwriteTopic) {
 				optConv.get().setTopic(topic);
 			}
 		} else {
-			optConv = Optional.of(new Conversation(owner, context, topic));
+			optConv = Optional.of(new Conversation(owner, ownerRole, context, topic));
 			conversationDao.save(optConv.get());
 		}
 		return optConv.get();
     }
 
-    public Conversation lookupOrCreateConversation(NetMobielUser owner, String context, String topic, boolean overwriteTopic) {
+    public Conversation lookupOrCreateConversation(NetMobielUser owner, UserRole ownerRole, String context, String topic, boolean overwriteTopic) {
 		CommunicatorUser user = userDao.findByManagedIdentity(owner.getManagedIdentity())
 				.orElseGet(() -> userDao.save(new CommunicatorUser(owner)));
-    	return lookupOrCreateConversation(user, context, topic, overwriteTopic);
+    	return lookupOrCreateConversation(user, ownerRole, context, topic, overwriteTopic);
     }
 
-    public List<Conversation> lookupOrCreateConversations(List<? extends NetMobielUser> owner, String context, String topic, boolean overwriteTopic) {
+    public List<Conversation> lookupOrCreateConversations(List<? extends NetMobielUser> owner, UserRole ownerRole, String context, String topic, boolean overwriteTopic) {
     	return owner.stream()
-    			.map(usr -> lookupOrCreateConversation(usr, context, topic, overwriteTopic))
+    			.map(usr -> lookupOrCreateConversation(usr, ownerRole, context, topic, overwriteTopic))
     			.collect(Collectors.toList());
     }
 
@@ -453,15 +464,17 @@ public class PublisherService {
 			if (delegations.getTotalCount() > cursor.getMaxResults()) {
 				logger.warn("Too many delegates detected!");
 			}
-			if (delegations.getTotalCount() > 0) {
+			if (delegations.getCount() > 0) {
 				String topic = MessageFormat.format("Beheer van reizen van {0}", delegator.getName());
 				Message msg = new Message();
-				msg.setContext(delegator.getKeyCloakUrn());
+				// The context of the 'sender': The profile of the delegator (the common denominator)
+				msg.setContext(delegations.getData().get(0).getDelegatorRef());
 				msg.setDeliveryMode(deliveryMode);
 				msg.setBody(message);
 				// Start or continue conversation for all recipients with delegation context
+				// Delegation conversations are by definition targeting a passenger role.
 				delegations.getData().forEach(delegation -> msg.addRecipient(
-						lookupOrCreateConversation(delegation.getDelegate(), delegation.getUrn(), topic, false), delegation.getUrn()
+						lookupOrCreateConversation(delegation.getDelegate(), UserRole.DELEGATE, delegation.getUrn(), topic, false), delegation.getUrn()
 				));
 				publish(null, msg);
 			}

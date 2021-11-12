@@ -9,6 +9,10 @@ ALTER TABLE public.envelope
 ;
 
 ALTER TABLE public.message
-	DROP COLUMN sender
+	DROP COLUMN sender,
+	DROP COLUMN subject,
 	ALTER COLUMN context SET NOT NULL
+;
+ALTER TABLE public.conversation
+	ALTER COLUMN owner_role SET NOT NULL
 ;

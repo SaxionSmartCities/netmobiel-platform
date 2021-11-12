@@ -93,7 +93,7 @@ public class Message implements NetMobielMessage, Serializable {
 	 * The context will be used to lookup details of a message (i.e. clicking-through).     
 	 */
 	@Size(max = 128)
-    @NotNull
+//    @NotNull
 	@Column(name = "subject")
 	private String subject;
 	

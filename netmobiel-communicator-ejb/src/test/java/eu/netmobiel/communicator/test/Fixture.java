@@ -9,6 +9,7 @@ import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
+import eu.netmobiel.communicator.model.UserRole;
 
 public class Fixture {
 
@@ -45,10 +46,10 @@ public class Fixture {
     	return env;
     }
 
-    public static Conversation createConversation(CommunicatorUser owner, String topic, String creationTimeIso, String archiveTimeIso, String... contexts) {
+    public static Conversation createConversation(CommunicatorUser owner, UserRole ownerRole, String topic, String creationTimeIso, String archiveTimeIso, String... contexts) {
     	Instant creationTime = Instant.parse(creationTimeIso);
     	Instant archiveTime = archiveTimeIso != null ? Instant.parse(archiveTimeIso) : null; 
-    	Conversation c = new Conversation(owner, null, topic, creationTime);
+    	Conversation c = new Conversation(owner, ownerRole, null, topic, creationTime);
     	c.setArchivedTime(archiveTime);
     	c.setContexts(new HashSet<>(Arrays.asList(contexts)));
     	return c;

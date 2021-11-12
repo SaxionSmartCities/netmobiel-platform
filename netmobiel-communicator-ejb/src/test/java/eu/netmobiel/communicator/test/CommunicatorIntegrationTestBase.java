@@ -23,6 +23,7 @@ import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
+import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.repository.converter.DeliveryModeConverter;
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
@@ -135,17 +136,17 @@ public abstract class CommunicatorIntegrationTestBase {
         userC2 = Fixture.createUser("C2", "chauffeur", "FN C2", null);
         em.persist(userC2);
 
-        convP1_1 = Fixture.createConversation(userP1, "Topic P1.1", "2020-02-10T13:00:00Z", null, "Trip Plan P1.1", "Trip P1.1");
+        convP1_1 = Fixture.createConversation(userP1, UserRole.PASSENGER, "Topic P1.1", "2020-02-10T13:00:00Z", null, "Trip Plan P1.1", "Trip P1.1");
         em.persist(convP1_1);
-    	convP1_2 = Fixture.createConversation(userP1, "Topic P1.2", "2020-02-10T14:00:00Z", null, "Trip Plan P1.2");
+    	convP1_2 = Fixture.createConversation(userP1, UserRole.PASSENGER, "Topic P1.2", "2020-02-10T14:00:00Z", null, "Trip Plan P1.2");
         em.persist(convP1_2);
-    	convP2_1 = Fixture.createConversation(userP2, "Topic P2.1", "2020-02-10T15:00:00Z", null, "Trip P2.1");
+    	convP2_1 = Fixture.createConversation(userP2, UserRole.PASSENGER, "Topic P2.1", "2020-02-10T15:00:00Z", null, "Trip P2.1");
         em.persist(convP2_1);
-    	convC1_1 = Fixture.createConversation(userC1, "Topic C1.1", "2020-02-10T16:00:00Z", "2020-02-26T16:00:00Z", "Trip Plan P1.1", "Ride C1.1", "Booking C1.1.1");
+    	convC1_1 = Fixture.createConversation(userC1, UserRole.DRIVER, "Topic C1.1", "2020-02-10T16:00:00Z", "2020-02-26T16:00:00Z", "Trip Plan P1.1", "Ride C1.1", "Booking C1.1.1");
         em.persist(convC1_1);
-    	convC2_1 = Fixture.createConversation(userC2, "Topic C2.1", "2020-02-10T16:00:00Z", null, "Trip Plan P1.1", "Ride C2.1", "Booking C2.1.1");
+    	convC2_1 = Fixture.createConversation(userC2, UserRole.DRIVER, "Topic C2.1", "2020-02-10T16:00:00Z", null, "Trip Plan P1.1", "Ride C2.1", "Booking C2.1.1");
         em.persist(convC2_1);
-    	convC1_2 = Fixture.createConversation(userC1, "Topic C1.2", "2020-02-10T17:00:00Z", null, "Ride C1.2", "Booking C1.2.1");
+    	convC1_2 = Fixture.createConversation(userC1, UserRole.DRIVER, "Topic C1.2", "2020-02-10T17:00:00Z", null, "Ride C1.2", "Booking C1.2.1");
         em.persist(convC1_2);
        
         em.persist(Fixture.createMessage("P1 zoekt een rit van A naar B", "Trip Plan P1.1", "Rit gezocht", DeliveryMode.MESSAGE, "2020-02-11T13:00:00Z", null, 
