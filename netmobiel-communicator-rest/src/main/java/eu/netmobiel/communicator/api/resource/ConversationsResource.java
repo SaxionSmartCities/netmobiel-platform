@@ -163,15 +163,17 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
         	allowAdminOrEffectiveUser(request, context, conv.getOwner());
 
-        	DeliveryMode dm = deliveryMode == null ? DeliveryMode.MESSAGE : 
-				(deliveryMode.isEmpty() ? DeliveryMode.ALL :  
-					Stream.of(DeliveryMode.values())
-						.filter(m -> m.getCode().equals(deliveryMode))
-						.findFirst()
-						.orElseThrow(() -> new IllegalArgumentException("Unsupported DeliveryMode: " + deliveryMode)));
-			MessageFilter filter = new MessageFilter(convId, SortDirection.DESC.name());
-			filter.setDeliveryMode(dm);
+			MessageFilter filter = new MessageFilter(convId, SortDirection.ASC.name());
 			Cursor cursor = new Cursor(maxResults, offset);
+			if (deliveryMode != null && !deliveryMode.isEmpty()) {
+	        	DeliveryMode dm = Stream.of(DeliveryMode.values())
+							.filter(m -> m.name().equals(deliveryMode))
+							.findFirst()
+							.orElseThrow(() -> new IllegalArgumentException("Unsupported DeliveryMode: " + deliveryMode));
+				filter.setDeliveryMode(dm);
+			} else {
+				filter.setDeliveryMode(DeliveryMode.MESSAGE);
+			}
 			result = publisherService.listMessages(filter, cursor); 
 			rsp = Response.ok(messageMapper.map(result)).build();
 		} catch (BusinessException e) {

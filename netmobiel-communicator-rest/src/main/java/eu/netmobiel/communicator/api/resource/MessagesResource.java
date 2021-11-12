@@ -85,15 +85,17 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 			if (!me.equals(participant) && !request.isUserInRole("admin")) {
 				throw new SecurityException("You don't have the privilege the messages of someone else");
 			}
-			DeliveryMode dm = deliveryMode == null ? DeliveryMode.MESSAGE : 
-				(deliveryMode.isEmpty() ? DeliveryMode.ALL :  
-					Stream.of(DeliveryMode.values())
-						.filter(m -> m.getCode().equals(deliveryMode))
-						.findFirst()
-						.orElseThrow(() -> new IllegalArgumentException("Unsupported DeliveryMode: " + deliveryMode)));
 			MessageFilter filter = new MessageFilter(participant, since, until, context, SortDirection.DESC.name());
-			filter.setDeliveryMode(dm);
 			Cursor cursor = new Cursor(maxResults, offset);
+			if (deliveryMode != null && !deliveryMode.isEmpty()) {
+	        	DeliveryMode dm = Stream.of(DeliveryMode.values())
+							.filter(m -> m.name().equals(deliveryMode))
+							.findFirst()
+							.orElseThrow(() -> new IllegalArgumentException("Unsupported DeliveryMode: " + deliveryMode));
+				filter.setDeliveryMode(dm);
+			} else {
+				filter.setDeliveryMode(DeliveryMode.MESSAGE);
+			}
 			result = publisherService.listMessages(filter, cursor); 
 			if (!request.isUserInRole("admin")) {
 				for (Message msg : result.getData()) {
