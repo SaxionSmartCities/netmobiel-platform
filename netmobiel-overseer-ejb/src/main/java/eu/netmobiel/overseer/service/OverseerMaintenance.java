@@ -1,10 +1,8 @@
 package eu.netmobiel.overseer.service;
 
-import java.text.MessageFormat;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
-import java.util.Locale;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.Set;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.Singleton;
@@ -27,7 +25,9 @@ import eu.netmobiel.communicator.filter.MessageFilter;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
+import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.service.PublisherService;
+import eu.netmobiel.overseer.processor.TextHelper;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
@@ -85,13 +85,19 @@ public class OverseerMaintenance {
     private TripPlanManager tripPlanManager;
 	@Inject
     private TripManager tripManager;
-    private Locale defaultLocale;
+    @Inject
+    private TextHelper textHelper;
+    
 
 	@PostConstruct
 	@TransactionAttribute(TransactionAttributeType.NEVER)
 	public void initialize() {
 		log.info("Starting up the Overseer, checking for maintenance tasks");
-    	defaultLocale = Locale.forLanguageTag(DEFAULT_LOCALE);
+    	migrateAllMessagesToConversations();
+    	updateMessageBody();
+	}
+	
+	private void migrateAllMessagesToConversations() {
 		// Get all CM users
 		// Get all Profiles
 		// Get all messages, skip those that have all envelopes set with a conversation
@@ -139,15 +145,15 @@ public class OverseerMaintenance {
 				PagedResult<Message> messages = publisherService.listMessages(filter, cursor);
 				for (Message m : messages.getData()) {
 					try {
-						if (m.getContext().contains("booking")) {
+						if (m.getContext().contains(":booking:")) {
 							handleBooking(m);
-						} else if (m.getContext().contains("tripplan")) {
+						} else if (m.getContext().contains(":tripplan:")) {
 							handleTripPlan(m);
-						} else if (m.getContext().contains("trip")) {
+						} else if (m.getContext().contains(":trip:")) {
 							handleTrip(m);
-						} else if (m.getContext().contains("ride")) {
+						} else if (m.getContext().contains(":ride:")) {
 							handleRide(m);
-						} else if (m.getContext().contains("delegation")) {
+						} else if (m.getContext().contains(":delegation:")) {
 							handleDelegation(m);
 						} else {
 							log.error("Cannot handle context: " + m.getContext());
@@ -175,9 +181,8 @@ public class OverseerMaintenance {
 				// Already handled
 				continue;
 			}
-			// Driver is recipient
 			e.setContext(m.getContext());
-			Conversation conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), e.getContext(), createDelegationTopic(delegation), true);
+			Conversation conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), UserRole.DELEGATE, e.getContext(), textHelper.createDelegationTopic(delegation), true);
 			e.setConversation(conv);
 			e.setOldRecipient(null);
 		}
@@ -198,7 +203,7 @@ public class OverseerMaintenance {
 			if (e.getOldRecipient().getManagedIdentity().equals(ride.getDriver().getManagedIdentity())) {
 				// Driver is recipient
 				e.setContext(m.getContext());
-				Conversation conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), e.getContext(), createRideTopic(ride), true);
+				Conversation conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), UserRole.DRIVER, e.getContext(), textHelper.createRideTopic(ride), true);
 				e.setConversation(conv);
 			} else {
 				// Passenger is recipient
@@ -213,16 +218,16 @@ public class OverseerMaintenance {
 					if (myBooking.getPassengerTripPlanRef() != null) {
 						e.setContext(myBooking.getPassengerTripPlanRef());
 						TripPlan plan = tripPlanManager.getTripPlan(UrnHelper.getId(TripPlan.URN_PREFIX, e.getContext()));
-						conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), e.getContext(), createPassengerTripPlanTopic(plan), true);
+						conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), UserRole.PASSENGER, e.getContext(), textHelper.createPassengerShoutOutTopic(plan), true);
 						e.setConversation(conv);
 					}
 					if (myBooking.getPassengerTripRef() != null) {
 						e.setContext(myBooking.getPassengerTripRef());
 						Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, e.getContext()));
 						if (conv == null) {
-							conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), e.getContext(), createPassengerTripTopic(trip), true);
+							conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), UserRole.PASSENGER, e.getContext(), textHelper.createPassengerTripTopic(trip), true);
 						} else {
-							publisherService.addConversationContext(conv, e.getContext(), createPassengerTripTopic(trip), true);
+							publisherService.addConversationContext(conv, e.getContext(), textHelper.createPassengerTripTopic(trip), true);
 						}
 						e.setConversation(conv);
 					}
@@ -233,7 +238,7 @@ public class OverseerMaintenance {
 		if (m.getOldSender() != null) {
 			if (m.getOldSender().getManagedIdentity().equals(ride.getDriver().getManagedIdentity())) {
 				// Driver is sender
-				Conversation conv = publisherService.lookupOrCreateConversation(m.getOldSender(), m.getContext(), createRideTopic(ride), true);
+				Conversation conv = publisherService.lookupOrCreateConversation(m.getOldSender(), UserRole.DRIVER, m.getContext(), textHelper.createRideTopic(ride), true);
 				m.addSender(conv, m.getContext());
 			} else {
 				// Passenger is sender
@@ -249,15 +254,15 @@ public class OverseerMaintenance {
 					if (myBooking.getPassengerTripPlanRef() != null) {
 						context = myBooking.getPassengerTripPlanRef();
 						TripPlan plan = tripPlanManager.getTripPlan(UrnHelper.getId(TripPlan.URN_PREFIX, context));
-						conv = publisherService.lookupOrCreateConversation(m.getOldSender(), context, createPassengerTripPlanTopic(plan), true);
+						conv = publisherService.lookupOrCreateConversation(m.getOldSender(), UserRole.PASSENGER, context, textHelper.createPassengerShoutOutTopic(plan), true);
 					}
 					if (myBooking.getPassengerTripRef() != null) {
 						context = myBooking.getPassengerTripRef();
 						Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, context));
 						if (conv == null) {
-							conv = publisherService.lookupOrCreateConversation(m.getOldSender(), context, createPassengerTripTopic(trip), true);
+							conv = publisherService.lookupOrCreateConversation(m.getOldSender(), UserRole.PASSENGER, context, textHelper.createPassengerTripTopic(trip), true);
 						} else {
-							publisherService.addConversationContext(conv, context, createPassengerTripTopic(trip), true);
+							publisherService.addConversationContext(conv, context, textHelper.createPassengerTripTopic(trip), true);
 						}
 					}
 					m.addSender(conv, context);
@@ -279,7 +284,7 @@ public class OverseerMaintenance {
 			if (e.getOldRecipient().getManagedIdentity().equals(trip.getTraveller().getManagedIdentity())) {
 				// Passenger is recipient
 				e.setContext(m.getContext());
-				Conversation conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), e.getContext(), createPassengerTripTopic(trip), true);
+				Conversation conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), UserRole.PASSENGER, e.getContext(), textHelper.createPassengerTripTopic(trip), true);
 				e.setConversation(conv);
 			} else {
 				// Driver is recipient
@@ -290,7 +295,7 @@ public class OverseerMaintenance {
 					e.setContext(rsleg.getBookingId());
 					Booking b = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, rsleg.getBookingId()));
 					Ride r = b.getRide();
-					Conversation conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), r.getUrn(), createRideTopic(r), true);
+					Conversation conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), UserRole.DRIVER, r.getUrn(), textHelper.createRideTopic(r), true);
 					publisherService.addConversationContext(conv, rsleg.getBookingId());
 					e.setConversation(conv);
 				}
@@ -299,7 +304,7 @@ public class OverseerMaintenance {
 		}
 		if (m.getOldSender() != null) {
 			if (m.getOldSender().getManagedIdentity().equals(trip.getTraveller().getManagedIdentity())) {
-				Conversation conv = publisherService.lookupOrCreateConversation(m.getOldSender(), m.getContext(), createPassengerTripTopic(trip), true);
+				Conversation conv = publisherService.lookupOrCreateConversation(m.getOldSender(), UserRole.PASSENGER, m.getContext(), textHelper.createPassengerTripTopic(trip), true);
 				m.addSender(conv, m.getContext());
 			} else {
 				// Driver is sender
@@ -309,7 +314,7 @@ public class OverseerMaintenance {
 				} else {
 					Booking b = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, rsleg.getBookingId()));
 					Ride r = b.getRide();
-					Conversation conv = publisherService.lookupOrCreateConversation(m.getOldSender(), r.getUrn(), createRideTopic(r), true);
+					Conversation conv = publisherService.lookupOrCreateConversation(m.getOldSender(), UserRole.DRIVER, r.getUrn(), textHelper.createRideTopic(r), true);
 					publisherService.addConversationContext(conv, rsleg.getBookingId());
 					m.addSender(conv, rsleg.getBookingId());
 				}
@@ -328,7 +333,7 @@ public class OverseerMaintenance {
 			}
 			// Driver is recipient
 			e.setContext(m.getContext());
-			Conversation conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), e.getContext(), createDriverTripPlanTopic(plan), true);
+			Conversation conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), UserRole.DRIVER, e.getContext(), textHelper.createDriverShoutOutTopic(plan), true);
 			e.setConversation(conv);
 			e.setOldRecipient(null);
 		}
@@ -350,7 +355,7 @@ public class OverseerMaintenance {
 			if (e.getOldRecipient().getManagedIdentity().equals(r.getDriver().getManagedIdentity())) {
 				// Driver is recipient
 				e.setContext(m.getContext());
-				Conversation conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), r.getUrn(), createRideTopic(r), true);
+				Conversation conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), UserRole.DRIVER, r.getUrn(), textHelper.createRideTopic(r), true);
 				// Add booking context too.
 				publisherService.addConversationContext(conv, m.getContext());
 				e.setConversation(conv);
@@ -360,16 +365,16 @@ public class OverseerMaintenance {
 				if (b.getPassengerTripPlanRef() != null) {
 					e.setContext(b.getPassengerTripPlanRef());
 					TripPlan plan = tripPlanManager.getTripPlan(UrnHelper.getId(TripPlan.URN_PREFIX, e.getContext()));
-					conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), e.getContext(), createPassengerTripPlanTopic(plan), true);
+					conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), UserRole.PASSENGER, e.getContext(), textHelper.createPassengerShoutOutTopic(plan), true);
 					e.setConversation(conv);
 				}
 				if (b.getPassengerTripRef() != null) {
 					e.setContext(b.getPassengerTripRef());
 					Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, e.getContext()));
 					if (conv == null) {
-						conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), e.getContext(), createPassengerTripTopic(trip), true);
+						conv = publisherService.lookupOrCreateConversation(e.getOldRecipient(), UserRole.PASSENGER, e.getContext(), textHelper.createPassengerTripTopic(trip), true);
 					} else {
-						publisherService.addConversationContext(conv, e.getContext(), createPassengerTripTopic(trip), true);
+						publisherService.addConversationContext(conv, e.getContext(), textHelper.createPassengerTripTopic(trip), true);
 					}
 					e.setConversation(conv);
 				}
@@ -384,37 +389,6 @@ public class OverseerMaintenance {
 		}
 	}
 
-	private String createPassengerTripPlanTopic(TripPlan plan) {
-		return MessageFormat.format("Oproep voor reis op {0} van {1} naar {2}", 
-				DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(plan.getTravelTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
-				plan.getFrom().getLabel(), 
-				plan.getTo().getLabel()
-		);
-	}
-
-	private String createDriverTripPlanTopic(TripPlan plan) {
-		return createPassengerTripPlanTopic(plan);
-	}
-
-	private String createPassengerTripTopic(Trip trip) {
-		return MessageFormat.format("Reis op {0} van {1} naar {2}", 
-				DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(trip.getItinerary().getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
-				trip.getFrom().getLabel(), 
-				trip.getTo().getLabel()
-		);
-	}
-	
-	private String createRideTopic(Ride r) {
-		return MessageFormat.format("Rit op {0} van {1} naar {2}", 
-				DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(r.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
-				r.getFrom().getLabel(), 
-				r.getTo().getLabel()
-		);
-	}
-
-	private static String createDelegationTopic(Delegation d) {
-		return MessageFormat.format("Beheer van reizen van {0}", d.getDelegator().getName());
-	}
 
 //	private Map<String, Profile> listAllProfiles() throws BadRequestException {
 //		Map<String, Profile> profileMap = new HashMap<>();
@@ -431,5 +405,114 @@ public class OverseerMaintenance {
 //		return profileMap;
 //	}
 
+	private void updateMessageBody() {
+		try {
+	    	Cursor cursor = new Cursor(100, 0);
+	    	MessageFilter filter = new MessageFilter(SortDirection.ASC.name());
+	    	while (true) {
+				PagedResult<Message> messages = publisherService.listMessages(filter, cursor);
+				for (Message m : messages.getData()) {
+					try {
+						if (m.getSender() != null) {
+							// Private message. Do not change
+							continue;
+						}
+						if (m.getContext().contains(":booking:")) {
+							updateBooking(m);
+						} else if (m.getContext().contains(":tripplan:")) {
+							updateTripPlan(m);
+						} else if (m.getContext().contains(":trip:")) {
+							updateTrip(m);
+						} else if (m.getContext().contains(":ride:")) {
+							updateRide(m);
+						} else if (m.getContext().contains(":delegation:")) {
+							updateDelegation(m);
+						} else {
+							log.error("Cannot handle context: " + m.getContext());
+						}
+						publisherService.updateMessage(m.getId(), m);
+					} catch (BusinessException e) {
+						log.error("Error migrating message: " + e);
+					}
+				}
+				if (messages.getCount() < cursor.getMaxResults()) {
+					break;
+				}
+				cursor.next();
+	    	}
+		} catch (BusinessException e) {
+			log.error("Error migrating messages", e);
+		}
+	}
+
+	private void updateBooking(Message m) throws BusinessException {
+		Booking b = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, m.getContext()));
+		Ride r = b.getRide();
+		if (m.getBody().startsWith("Voor jouw rit")) {
+			// Driver
+			if (m.getBody().contains("niet")) {
+				String reason = b.getCancelReason() != null && !b.getCancelReason().isEmpty() ? ": " + b.getCancelReason() : ".";
+				m.setBody(String.format("%s rijdt niet meer met je mee%s", b.getPassenger().getName(), reason));
+			} else {
+				m.setBody(String.format("%s rijdt graag met je mee.", b.getPassenger().getName()));
+			}
+		} else if (m.getBody().startsWith("Voor jouw reisaanvraag")) {
+			// Passenger shout-out
+			if (m.getBody().contains("niet")) {
+				String reason = b.getCancelReason() != null && !b.getCancelReason().isEmpty() ? ": " + b.getCancelReason() : ".";
+				m.setBody(String.format("Je kunt helaas niet meer meerijden met %s%s", r.getDriver().getName(), reason));
+			} else {
+				m.setBody(String.format("Je kunt meerijden met %s.", r.getDriver().getName()));
+			}
+		} else if (m.getBody().startsWith("Voor de reis")) {
+			if (m.getBody().contains("niet")) {
+				String reason = b.getCancelReason() != null && !b.getCancelReason().isEmpty() ? ": " + b.getCancelReason() : ".";
+				m.setBody(String.format("%s kan helaas niet meer meerijden met %s%s", b.getPassenger().getName(), r.getDriver().getName(), reason));
+			} else {
+				m.setBody(String.format("%s kan meerijden met %s.", b.getPassenger().getName(), r.getDriver().getName()));
+			}
+		}
+	}
+
+	private void updateTripPlan(Message m) throws BusinessException {
+		TripPlan plan = tripPlanManager.getTripPlan(UrnHelper.getId(TripPlan.URN_PREFIX, m.getContext()));
+		m.setBody(String.format("%s zoekt vervoer (%s rond %s). Wie kan helpen?", 
+				plan.getTraveller().getName(), plan.isUseAsArrivalTime() ? "aankomst" : "vertrek", textHelper.formatTime(plan.getTravelTime())));
+	}
+
+	 protected String travelsWith(Set<String> agencies) {
+	    	// FIXME Als er geen agency is, dan moet het per voet zijn
+	    	String desc = "te voet";
+	    	List<String> ags = new ArrayList<>(agencies);
+	    	if (ags.size() == 1) {
+	    		desc = "met " + ags.get(0);
+	    	} else if (ags.size() > 1) {
+	    		String last = ags.remove(ags.size() - 1);
+	    		desc = "met " + String.join( " en ", String.join(", ", ags), last);
+	    	}
+	    	return desc;
+	    }
+	 
+	private void updateTrip(Message m) throws NotFoundException, BadRequestException {
+		Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, m.getContext()));
+		if (m.getBody().startsWith("Vertrek om ")) {
+			m.setBody(String.format("Vertrek om %s uur. Je reist %s.", 
+					textHelper.formatTime(trip.getItinerary().getDepartureTime()), travelsWith(trip.getAgencies())));
+		} else if (m.getBody().startsWith("Heb je de reis")) {
+			m.setBody(String.format("Heb je de reis gemaakt? Geef jouw waardering en beoordeel deze reis."));
+		} else if (m.getBody().startsWith("Jouw reis op")) {
+			m.setBody(String.format("Je reis zit erop! Geef jouw waardering en beoordeel deze reis."));
+		}
+		
+	}
 	
+	private void updateRide(Message m) throws NotFoundException, BadRequestException {
+		//Ride ride = rideManager.getRide(UrnHelper.getId(Ride.URN_PREFIX ,m.getContext()));
+		// Seems all right for now
+	}
+
+	private void updateDelegation(Message m) throws NotFoundException, BadRequestException {
+		// Delegation delegation = delegationManager.getDelegation(UrnHelper.getId(Delegation.URN_PREFIX, m.getContext()), Delegation.PROFILES_ENTITY_GRAPH);
+		// Seems all right for now
+	}
 }
