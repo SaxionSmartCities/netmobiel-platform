@@ -1,6 +1,5 @@
 package eu.netmobiel.overseer.processor;
 
-import java.text.MessageFormat;
 import java.time.Instant;
 
 import javax.annotation.Resource;
@@ -19,6 +18,7 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
+import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.profile.event.DelegationActivationConfirmedEvent;
 import eu.netmobiel.profile.event.DelegationActivationRequestedEvent;
@@ -50,6 +50,10 @@ public class DelegationProcessor {
     @Inject
     private Logger logger;
     
+    @Inject
+    private TextHelper textHelper;
+
+
     public void onDelegatorAccountPrepared(@Observes(during = TransactionPhase.IN_PROGRESS) DelegatorAccountPreparedEvent event) throws BusinessException {
 	    // The delegator needs to have a number that can receive an SMS. We require a mobile number.
     	if (! publisherService.isValidForMobileMessaging(event.getDelegator())) {
@@ -58,9 +62,7 @@ public class DelegationProcessor {
     }
 
     public void onDelegatorAccountCreated(@Observes(during = TransactionPhase.IN_PROGRESS) DelegatorAccountCreatedEvent event) throws BusinessException {
-		String text = String.format("U hebt een account bij NetMobiel: %s. Uw registratie is uitgevoerd door %s.", 
-				event.getDelegator().getNameAndEmail(), 
-				event.getInitiator().getNameEmailPhone());
+		String text = textHelper.createDelegatorAccountCreatedText(event.getDelegator(), event.getInitiator());
 		publisherService.sendTextMessage(text, event.getDelegator());
     }
 
@@ -73,10 +75,7 @@ public class DelegationProcessor {
     	// The activation code is already set/renewed
     	// Inform delegator
     	Delegation delegation = event.getDelegation();
-		String text = String.format(
-				"%s biedt aan om uw reizen met NetMobiel voor u te beheren. "
-						+ "Uw instemming geeft u door deze persoon desgevraagd de volgende verificatiecode te geven: %s. ", 
-						delegation.getDelegate().getName(), delegation.getActivationCode());
+		String text = textHelper.createDelegationActivationText(delegation);
 		String smsId = publisherService.sendTextMessage(text, delegation.getDelegator());
 		// Update the information in the delegation object (!) 
 		delegation.setActivationCodeSentTime(Instant.now());
@@ -91,19 +90,16 @@ public class DelegationProcessor {
      public void onDelegationActivationConfirmed(@Observes(during = TransactionPhase.IN_PROGRESS) DelegationActivationConfirmedEvent event) throws BusinessException {
      	Delegation delegation = event.getDelegation();
      	// Inform delegator trough SMS
-		String delegatorText = String.format("%s beheert vanaf nu uw reizen met NetMobiel.", delegation.getDelegate().getName());
+		String delegatorText = textHelper.createDelegationConfirmedToDelegatorText(delegation);
  		String smsId = publisherService.sendTextMessage(delegatorText, delegation.getDelegator());
 		logger.info(String.format("Activation of delegation %s confirmed in SMS %s", delegation.getId(), smsId));
 
-		// Inform delegate through push message 
-		String topic = MessageFormat.format("Beheer van reizen van {0}", delegation.getDelegator().getName());
-		Conversation rcp = publisherService.lookupOrCreateConversation(delegation.getDelegate(), delegation.getUrn(), topic, true);
+		// Inform delegate  
+		String topic = textHelper.createDelegationTopic(delegation);
+		Conversation rcp = publisherService.lookupOrCreateConversation(delegation.getDelegate(), UserRole.DELEGATE, delegation.getUrn(), topic, true);
  		Message msg = new Message();
 		msg.setContext(delegation.getUrn());
-		msg.setSubject("Nieuwe Netmobiel cliënt");
-		msg.setBody(
-				MessageFormat.format("U beheert vanaf nu de reizen met NetMobiel van {0}.", delegation.getDelegator().getName())
-				);
+		msg.setBody(textHelper.createDelegationConfirmedToDelegateText(delegation));
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(rcp, delegation.getUrn());
 		publisherService.publish(null, msg);
@@ -119,18 +115,11 @@ public class DelegationProcessor {
      	Delegation fromDelegation = event.getFrom();
      	Delegation toDelegation = event.getTo();
 		// Inform prospected delegate through push message 
-		String topic = MessageFormat.format("Beheer van reizen van {0}", toDelegation.getDelegator().getName());
-		Conversation rcp = publisherService.lookupOrCreateConversation(toDelegation.getDelegate(), toDelegation.getUrn(), topic, true);
+		String topic = textHelper.createDelegationTopic(toDelegation);
+		Conversation rcp = publisherService.lookupOrCreateConversation(toDelegation.getDelegate(), UserRole.DELEGATE, toDelegation.getUrn(), topic, true);
  		Message msg = new Message();
 		msg.setContext(toDelegation.getUrn());
-		msg.setSubject("Aanvraag overdracht Netmobiel cliënt");
-		msg.setBody(
-				MessageFormat.format("{0} vraagt u om het beheer van de reizen in Netmobiel namens {1} over te nemen. " 
-						+ "Vraag {2} om de via SMS ontvangen activeringscode en vul deze in op het overdrachtsformulier in de app. ", 
-						fromDelegation.getDelegate().getName(), 
-						fromDelegation.getDelegator().getName(),
-						fromDelegation.getDelegator().getGivenName())
-				);
+		msg.setBody(textHelper.createTransferDelegationToText(fromDelegation));
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(rcp, toDelegation.getUrn());
 		publisherService.publish(null, msg);
@@ -146,16 +135,12 @@ public class DelegationProcessor {
      	Delegation toDelegation = event.getTo();
      	if (!event.isImmediate()) {
      	}
-		// Inform previous delegate through push message 
-		String topic = MessageFormat.format("Beheer van reizen van {0}", toDelegation.getDelegator().getName());
-		Conversation rcp = publisherService.lookupOrCreateConversation(fromDelegation.getDelegate(), fromDelegation.getUrn(), topic, true);
+		// Inform previous delegate 
+		String topic = textHelper.createDelegationTopic(toDelegation);
+		Conversation rcp = publisherService.lookupOrCreateConversation(fromDelegation.getDelegate(), UserRole.DELEGATE, fromDelegation.getUrn(), topic, true);
  		Message msg = new Message();
 		msg.setContext(fromDelegation.getUrn());
-		msg.setSubject("Netmobiel cliënt is overgedragen");
-		msg.setBody(
-				MessageFormat.format("Uw beheer van de reizen in Netmobiel namens {0} is overgedragen aan {1}.", 
-						fromDelegation.getDelegator().getName(), toDelegation.getDelegate().getName())
-				);
+		msg.setBody(textHelper.createTransferDelegationCompletedText(fromDelegation, toDelegation));
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(rcp, fromDelegation.getUrn());
 		publisherService.publish(null, msg);

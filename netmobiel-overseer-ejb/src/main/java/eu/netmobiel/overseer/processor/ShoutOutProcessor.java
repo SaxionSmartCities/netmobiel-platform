@@ -1,14 +1,7 @@
 package eu.netmobiel.overseer.processor;
 
-import java.text.MessageFormat;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.List;
-import java.util.Locale;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
 import javax.ejb.SessionContext;
@@ -25,6 +18,7 @@ import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
+import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
@@ -54,8 +48,6 @@ import eu.netmobiel.rideshare.service.RideshareUserManager;
 @Logging
 @RunAs("system") 
 public class ShoutOutProcessor {
-	private static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
-	private static final String DEFAULT_LOCALE = "nl-NL";
 	private static final int DRIVER_MAX_RADIUS_METERS = 50000;
 	private static final int DRIVER_NEIGHBOURING_RADIUS_METERS = 20000;
 	
@@ -79,60 +71,27 @@ public class ShoutOutProcessor {
     @Resource
     private SessionContext context;
 
-    private Locale defaultLocale;
+    @Inject
+    private TextHelper textHelper;
     
-    @PostConstruct
-    public void initialize() {
-    	defaultLocale = Locale.forLanguageTag(DEFAULT_LOCALE);
-    }
-
-    private String formatDate(Instant instant) {
-    	return DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(instant.atZone(ZoneId.of(DEFAULT_TIME_ZONE)));
-    }
-
-    private String formatTime(Instant instant) {
-    	return DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(defaultLocale).format(instant.atZone(ZoneId.of(DEFAULT_TIME_ZONE)));
-    }
-
 //    @Asynchronous
     public void onShoutOutRequested(@Observes(during = TransactionPhase.IN_PROGRESS) TripPlan event) throws BusinessException {
     	// We have a shout-out request
 		List<Profile> profiles = profileManager.searchShoutOutProfiles(event.getFrom(), event.getTo(), DRIVER_MAX_RADIUS_METERS, DRIVER_NEIGHBOURING_RADIUS_METERS);
 		if (! profiles.isEmpty()) {
-			String topic = MessageFormat.format("Gezocht: Meerijden op {0} van {1} naar {2}",
-						formatDate(event.getTravelTime()),
-						event.getFrom().getLabel(), 
-						event.getTo().getLabel() 
-						);
+			String topic = textHelper.createDriverShoutOutTopic(event);
 			Message msg = new Message();
 			msg.setContext(event.getPlanRef());
-			msg.setSubject("Rit gezocht!");
-			String travelMoment = event.isUseAsArrivalTime() ? "aankomst" : "vertrek";  
-			msg.setBody( 
-				MessageFormat.format("{0} zoekt vervoer op {1} ({2} rond {3}) van {4} naar {5}. Wie kan helpen?",
-						event.getTraveller().getGivenName(),
-						formatDate(event.getTravelTime()),
-						travelMoment,
-						formatTime(event.getTravelTime()),
-						event.getFrom().getLabel(), 
-						event.getTo().getLabel() 
-						));
+			msg.setBody(textHelper.createDriverShoutOutMessage(event)); 
 			msg.setDeliveryMode(DeliveryMode.ALL);
 			// Start or continue conversation for all recipients with planRef context
-			publisherService.lookupOrCreateConversations(profiles, event.getPlanRef(), topic, true)
+			// The recipients are by definition Drivers (in the conversation)
+			publisherService.lookupOrCreateConversations(profiles, UserRole.DRIVER, event.getPlanRef(), topic, true)
 				.forEach(conversation -> msg.addRecipient(conversation, event.getPlanRef()));
 			// And send the message
 			publisherService.publish(null, msg);
 		}
     }
-
-	private String createRideTopic(Ride r) {
-		return MessageFormat.format("Rit op {0} van {1} naar {2}", 
-				DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(r.getDepartureTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))),
-				r.getFrom().getLabel(), 
-				r.getTo().getLabel()
-		);
-	}
 
     /**
      * Handles the TravelOfferEvent. A driver has found an trip plan for himself in which a traveller can take part. 
@@ -169,7 +128,7 @@ public class ShoutOutProcessor {
 		// This is later on used to bundle messages related to the trip plan
 		NetMobielUser nbUser = rideshareUserManager.getUser(UrnHelper.getId(event.getDriverRef()));
 		Conversation driverConv = publisherService.lookupConversation(nbUser, sop.getPlanRef());
-		publisherService.addConversationContext(driverConv, r.getUrn(), createRideTopic(r), true);
+		publisherService.addConversationContext(driverConv, r.getUrn(), textHelper.createRideTopic(r), true);
 
     	
     	Booking b = new Booking();
@@ -197,22 +156,17 @@ public class ShoutOutProcessor {
 		// TODO Check who is responsible
 		publisherService.addConversationContext(driverConv, b.getUrn());
 
-		// Find the conversation of the passenger
-		Conversation passengerConv = publisherService.lookupConversation(b.getPassenger(), sop.getPlanRef());
+		// Find the conversation of the passenger. There might not yet be a conversation started
+		String passengerTopic = textHelper.createPassengerShoutOutTopic(sop);
+		Conversation passengerConv = publisherService.lookupOrCreateConversation(b.getPassenger(), 
+				UserRole.PASSENGER, sop.getPlanRef(), passengerTopic, true);
 		Message msg = new Message();
 		// The message context is the sender's context, in this case the system
 		msg.setContext(b.getUrn());
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		// The context of the passenger is the plan. The passenger can find the leg by looking for the message context in the plan
 		msg.addRecipient(passengerConv, sop.getPlanRef());
-		msg.setSubject("Je hebt een reisaanbieding!");
-		msg.setBody(
-				MessageFormat.format("Voor jouw reisaanvraag op {0} naar {1} kun je meerijden met {2}.", 
-						formatDate(soi.getDepartureTime()),
-						b.getDropOff().getLabel(), 
-						r.getDriver().getGivenName()
-						)
-				);
+		msg.setBody(textHelper.createPassengerTravelOfferMessageBody(r));
 		publisherService.publish(null, msg);
 		// Inform the delegates, if any. They receive limited information only. The delegate can switch to the delegator view and see the normal messages.
 		publisherService.informDelegates(b.getPassenger(), "Nieuwe reisaanbieding van " + r.getDriver().getName(), DeliveryMode.ALL);

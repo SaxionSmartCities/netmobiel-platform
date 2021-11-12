@@ -1,16 +1,5 @@
 package eu.netmobiel.overseer.processor;
 
-import java.text.MessageFormat;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.Locale;
-import java.util.Set;
-
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
 import javax.ejb.SessionContext;
@@ -45,8 +34,6 @@ import eu.netmobiel.rideshare.model.RideState;
 @Stateless
 @RunAs("system") 
 public class TripProgressProcessor {
-	private static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
-	private static final String DEFAULT_LOCALE = "nl-NL";
 	
     @Inject
     private PublisherService publisherService;
@@ -54,22 +41,9 @@ public class TripProgressProcessor {
     @Resource
     private SessionContext context;
 
-    private Locale defaultLocale;
+    @Inject
+    private TextHelper textHelper;
     
-    @PostConstruct
-    public void initialize() {
-    	defaultLocale = Locale.forLanguageTag(DEFAULT_LOCALE);
-    }
-
-    @SuppressWarnings("unused")
-	private String formatDate(Instant instant) {
-    	return DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(instant.atZone(ZoneId.of(DEFAULT_TIME_ZONE)));
-    }
-
-    private String formatTime(Instant instant) {
-    	return DateTimeFormatter.ofLocalizedTime(FormatStyle.SHORT).withLocale(defaultLocale).format(instant.atZone(ZoneId.of(DEFAULT_TIME_ZONE)));
-    }
-
     public void onTripStateChange(@Observes(during = TransactionPhase.IN_PROGRESS) TripStateUpdatedEvent event) 
     		throws BusinessException {
     	switch (event.getTrip().getState()) {
@@ -146,18 +120,6 @@ public class TripProgressProcessor {
 //			logger.error("Unable to obtain nearby driver profiles: " + e.toString());
 //		}
     }
-    protected String travelsWith(Set<String> agencies) {
-    	// FIXME Als er geen agency is, dan moet het per voet zijn
-    	String desc = "te voet";
-    	List<String> ags = new ArrayList<>(agencies);
-    	if (ags.size() == 1) {
-    		desc = "met " + ags.get(0);
-    	} else if (ags.size() > 1) {
-    		String last = ags.remove(ags.size() - 1);
-    		desc = "met " + String.join( " en ", String.join(", ", ags), last);
-    	}
-    	return desc;
-    }
 
     protected void informTravellerOnDeparture(Trip trip) throws BusinessException {
 		Conversation passengerConv = publisherService.lookupConversation(trip.getTraveller(), trip.getTripRef());
@@ -165,18 +127,11 @@ public class TripProgressProcessor {
 		msg.setContext(trip.getTripRef());
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(passengerConv, trip.getTripRef());
-		msg.setSubject("Je gaat bijna op pad!");
-		msg.setBody(
-				MessageFormat.format("Vertrek om {0} uur naar {1}. Je reist {2}.", 
-						formatTime(trip.getItinerary().getDepartureTime()),
-						trip.getTo().getLabel(), 
-						travelsWith(trip.getAgencies())
-						)
-				);
+		msg.setBody(textHelper.createTripDepartureText(trip));
 		publisherService.publish(null, msg);
 		// Inform the delegates, if any
 		publisherService.informDelegates(trip.getTraveller(), 
-				MessageFormat.format("{0} gaat bijna op pad!", trip.getTraveller().getName()), 
+				textHelper.informDelegateTripDepartureText(trip), 
 				DeliveryMode.ALL);
 	}
 
@@ -186,16 +141,11 @@ public class TripProgressProcessor {
 		msg.setContext(trip.getTripRef());
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(passengerConv, trip.getTripRef());
-		msg.setSubject("Jouw reis zit erop!");
-		msg.setBody(
-				MessageFormat.format("Heb je de reis naar {0} gemaakt? Geef jouw waardering en beoordeel deze reis.", 
-						trip.getTo().getLabel()
-						)
-				);
+		msg.setBody(textHelper.createTripReviewRequestText(trip));
 		publisherService.publish(null, msg);
 		// Inform the delegates, if any
 		publisherService.informDelegates(trip.getTraveller(), 
-				MessageFormat.format("De reis van {0} zit erop, geef een beoordeling", trip.getTraveller().getName()), 
+				textHelper.informDelegateTripReviewRequestText(trip), 
 				DeliveryMode.ALL);
 	}
 
@@ -205,64 +155,48 @@ public class TripProgressProcessor {
 		msg.setContext(trip.getTripRef());
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(passengerConv, trip.getTripRef());
-		msg.setSubject("Beoordeel jouw reis!");
-		msg.setBody(
-				MessageFormat.format("Jouw reis op {0} naar {1} zit erop! Geef jouw waardering en beoordeel deze reis.", 
-						formatTime(trip.getItinerary().getDepartureTime()),
-						trip.getTo().getLabel()
-						)
-				);
+		msg.setBody(textHelper.createTripReviewRequestReminderText(trip));
 		publisherService.publish(null, msg);
 		// Inform the delegates, if any
-		publisherService.informDelegates(trip.getTraveller(), 
-				MessageFormat.format("Herhaling: De reis van {0} zit erop, geef een beoordeling", trip.getTraveller().getName()), 
+		publisherService.informDelegates(trip.getTraveller(),
+				textHelper.informDelegateTripReviewReminderText(trip),
 				DeliveryMode.ALL);
-}
+	}
 	
-    protected void informDriverOnDeparture(Ride ride) throws BusinessException {
-		Booking b = ride.getConfirmedBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
+	private static Booking getConfirmedBooking(Ride ride) throws BusinessException {
+		return ride.getConfirmedBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
+	}
+	
+    private void informDriverOnDeparture(Ride ride) throws BusinessException {
+		Booking b = getConfirmedBooking(ride);
 		Conversation driverConv = publisherService.lookupConversation(ride.getDriver(), ride.getUrn());
 		Message msg = new Message();
 		msg.setContext(ride.getUrn());
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(driverConv, b.getUrn());
-		msg.setSubject("Je gaat bijna op pad!");
-		msg.setBody(
-				MessageFormat.format("Vertrek om {0} uur naar {1}. Je wordt verwacht door {2}.", 
-						formatTime(ride.getDepartureTime()),
-						ride.getTo().getLabel(), 
-						b.getPassenger().getGivenName()
-						)
-				);
+		msg.setBody(textHelper.createRideDepartureText(ride, b));
 		publisherService.publish(null, msg);
 	}
 
-	protected void informDriverOnReview(Ride ride) throws BusinessException {
-		Booking b = ride.getConfirmedBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
+    private void informDriverOnReview(Ride ride) throws BusinessException {
+		Booking b = getConfirmedBooking(ride);
 		Conversation driverConv = publisherService.lookupConversation(ride.getDriver(), ride.getUrn());
 		Message msg = new Message();
 		msg.setContext(ride.getUrn());
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(driverConv, b.getUrn());
-		msg.setSubject("Jouw rit zit erop!");
-		msg.setBody(
-				MessageFormat.format("Heb je {0} meegenomen naar {1}? Claim je credits en beoordeel je passagier!", 
-						b.getPassenger().getGivenName(),
-						ride.getTo().getLabel()
-						)
-				);
+		msg.setBody(textHelper.createRideReviewRequestText(ride, b));
 		publisherService.publish(null, msg);
 	}
 
-	protected void remindDriverOnReview(Ride ride) throws BusinessException {
-		Booking b = ride.getConfirmedBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
+    private void remindDriverOnReview(Ride ride) throws BusinessException {
+		Booking b = getConfirmedBooking(ride);
 		Conversation driverConv = publisherService.lookupConversation(ride.getDriver(), ride.getUrn());
 		Message msg = new Message();
 		msg.setContext(ride.getUrn());
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(driverConv, b.getUrn());
-		msg.setSubject("Jouw rit zit erop!");
-		msg.setBody("Claim je credits en beoordeel je passagier!");
+		msg.setBody(textHelper.createRideReviewRequestText(ride, b));
 		publisherService.publish(null, msg);
 	}
 	

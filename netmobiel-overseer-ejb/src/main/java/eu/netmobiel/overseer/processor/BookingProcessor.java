@@ -1,16 +1,9 @@
 package eu.netmobiel.overseer.processor;
 
-import java.text.MessageFormat;
-import java.time.Instant;
-import java.time.ZoneId;
-import java.time.format.DateTimeFormatter;
-import java.time.format.FormatStyle;
 import java.util.Date;
 import java.util.HashMap;
-import java.util.Locale;
 import java.util.Map;
 
-import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
 import javax.ejb.SessionContext;
@@ -28,6 +21,8 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.NetMobielModule;
+import eu.netmobiel.commons.annotation.Created;
+import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.commons.event.TripConfirmedByProviderEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
@@ -49,7 +44,6 @@ import eu.netmobiel.planner.event.TripConfirmedEvent;
 import eu.netmobiel.planner.event.TripValidationExpiredEvent;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PaymentState;
-import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.service.TripManager;
@@ -72,8 +66,6 @@ import eu.netmobiel.rideshare.service.BookingManager;
 @Logging
 @RunAs("system") 
 public class BookingProcessor {
-	private static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
-	private static final String DEFAULT_LOCALE = "nl-NL";
 	
     @Inject
     private PublisherService publisherService;
@@ -96,8 +88,6 @@ public class BookingProcessor {
     @Inject
     private Logger logger;
     
-    private Locale defaultLocale;
-
 	@Resource(mappedName="java:jboss/mail/NetMobiel")
     private Session mailSession;	
 
@@ -107,32 +97,14 @@ public class BookingProcessor {
     @Resource(lookup = "java:global/planner/senderEmailAddress")
     private String senderEmailAddress;
 
-    @PostConstruct
-    public void initialize() {
-    	defaultLocale = Locale.forLanguageTag(DEFAULT_LOCALE);
-    }
-
-    private String formatDate(Instant instant) {
-    	return DateTimeFormatter.ofLocalizedDate(FormatStyle.LONG).withLocale(defaultLocale).format(instant.atZone(ZoneId.of(DEFAULT_TIME_ZONE)));
-    }
-
-    private String createDescription(Leg leg) {
-    	String prefix = null;
-    	if (leg.getTraverseMode() == TraverseMode.RIDESHARE) {
-    		prefix = String.format("Meerijden met %s", leg.getDriverName()); 
-    	} else if (leg.getTraverseMode().isTransit()) {
-    		prefix = String.format("Reizen met %s", leg.getAgencyName()); 
-    	} else {
-    		throw new IllegalStateException("TraverseMode is not supported: " + leg.getTraverseMode());
-    	}
-		return String.format("%s van %s naar %s op %s", prefix, 
-			leg.getFrom().getLabel(), leg.getTo().getLabel(), formatDate(leg.getStartTime()));
-    }
-
+    @Inject
+    private TextHelper textHelper;
+    
     protected void reserveFare(Trip trip, Leg leg) throws BusinessException {
 		if (leg.hasFareInCredits()) {
 			// Reserve the fare
-			String reservationId = ledgerService.reserve(trip.getTraveller(), leg.getFareInCredits(), createDescription(leg), leg.getLegRef());
+			String reservationId = ledgerService.reserve(trip.getTraveller(), 
+					leg.getFareInCredits(), textHelper.createDescriptionText(leg), leg.getLegRef());
 			tripManager.updateLegPaymentState(trip, leg, PaymentState.RESERVED, reservationId);
 		}
     }
@@ -198,7 +170,31 @@ public class BookingProcessor {
 		reserveFare(event.getTrip(), event.getLeg());
     }
 
-    /**
+    public void onBookingCreated(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Booking booking) throws BusinessException {
+		// Inform driver on new booking
+		// Add the booking context to the ride context
+		Conversation driverConv = publisherService.lookupConversation(booking.getRide().getDriver(), booking.getRide().getUrn());
+		publisherService.addConversationContext(driverConv, booking.getUrn(), textHelper.createRideTopic(booking.getRide()), true);
+    	Message msg = new Message();
+		msg.setContext(booking.getRide().getUrn());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(driverConv, booking.getUrn());
+		msg.setBody(textHelper.createBookingCreatedText(booking));
+		publisherService.publish(null, msg);
+	}
+
+	public void onBookingRemoved(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Removed Booking booking) throws BusinessException {
+		// Inform driver about removal of a booking
+		Conversation driverConv = publisherService.lookupConversation(booking.getRide().getDriver(), booking.getRide().getUrn());
+    	Message msg = new Message();
+		msg.setContext(booking.getRide().getUrn());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(driverConv, booking.getUrn());
+		msg.setBody(textHelper.createBookingCancelledByPassengerText(booking));
+		publisherService.publish(null, msg);
+	}
+
+	/**
      * Handles the case where a traveller confirms a proposed booking of a provider. The provider's gets the trip reference assigned.
      * The fare is debited for the traveller and credited to the reservation account.  
      * @param event the confirmed event
@@ -284,21 +280,13 @@ public class BookingProcessor {
 			Conversation passengerConv = publisherService.lookupConversation(event.getTraveller(), passengerContext);
 			Message msg = new Message();
 			msg.setContext(event.getBookingRef());
-			msg.setSubject("Chauffeur heeft geannuleerd.");
-			msg.setBody(
-					MessageFormat.format("Voor jouw reis op {0} naar {1} kun je helaas niet meer met {2} meerijden.", 
-							formatDate(b.getDepartureTime()),
-							b.getDropOff().getLabel(), 
-							b.getRide().getDriver().getGivenName()
-							)
-					);
+			msg.setBody(textHelper.createDriverCancelledBookingText(b));
 			msg.setDeliveryMode(DeliveryMode.ALL);
 			msg.addRecipient(passengerConv, passengerContext);
 			publisherService.publish(null, msg);
 			// Inform the delegates, if any. They receive limited information only. The delegate can switch to the delegator view and see the normal messages.
 			publisherService.informDelegates(b.getPassenger(), 
-					MessageFormat.format("Chauffeur {0} heeft geannuleerd.", b.getRide().getDriver().getName()), 
-					DeliveryMode.ALL);
+					textHelper.informDelegateCancelledBookingText(b), DeliveryMode.ALL);
 		} else {
 			// Notification of the driver is done by transport provider
 		}
@@ -373,7 +361,7 @@ public class BookingProcessor {
 		valuesMap.put("passengerEmail", trip.getTraveller().getEmail());
 		valuesMap.put("pickup", leg.getFrom().getLabel());
 		valuesMap.put("dropOff", leg.getTo().getLabel());
-		valuesMap.put("travelDate", formatDate(leg.getStartTime()));
+		valuesMap.put("travelDate", textHelper.formatDate(leg.getStartTime()));
 
 		StringSubstitutor substitutor = new StringSubstitutor(valuesMap);
 		String subject = substitutor.replace(SUBJECT);
