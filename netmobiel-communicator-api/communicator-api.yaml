@@ -542,6 +542,7 @@ components:
       - id
       - owner
       - topic
+      - ownerRole
       type: object
       properties:
         id:
@@ -581,6 +582,17 @@ components:
           description: The most recent message in the conversation, if any.
         conversationRef:
           description: The reference to the conversation.
+          type: string
+        ownerRole:
+          description: The role of the owner when the conversation was created. This
+            is necessary to resolve a possible ambiguity when deciding on the action
+            for a context, e.g., a trip plan from a shout-out. Passenger and Driver
+            use different end-points with a shout-out.
+          enum:
+          - PASSENGER
+          - DRIVER
+          - DELEGATE
+          - DELEGATOR
           type: string
       example:
         id: 12345
