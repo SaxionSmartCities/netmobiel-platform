@@ -19,8 +19,6 @@ import java.util.stream.Collectors;
 import javax.ejb.EJBAccessException;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Event;
-import javax.enterprise.event.Observes;
-import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -37,7 +35,6 @@ import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.event.BookingProposalRejectedEvent;
-import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
@@ -596,18 +593,18 @@ public class TripPlanManager {
     }
 
     /**
-     * Handler on the event for resolving an shout-out into an itinerary: Cancel other options.
-     * @param event
-     * @throws BusinessException
+     * Handles the resolvement of a shout-out at the side of the trip manager: Close other options, close the plan.
+     * @param shoutOutPlan the shout-out
+     * @param selectedItinerary the itinerary not to cancel. Already in persistence context.
+     * @throws BusinessException in case of trouble
      */
-    public void onShoutOutResolved(@Observes(during = TransactionPhase.IN_PROGRESS) ShoutOutResolvedEvent event) throws BusinessException {
-    	TripPlan plan = getTripPlan(event.getSelectedItinerary().getTripPlan().getId());
-    	if (plan.getPlanType() != PlanType.SHOUT_OUT) {
-    		throw new IllegalStateException("ShoutOutResolvedEvent received with non-shout-out plan");
+    public void resolveShoutOut(TripPlan aShoutOutPlan, Itinerary selectedItinerary) throws BusinessException {
+    	TripPlan shoutOutPlan = getTripPlan(aShoutOutPlan.getId());
+    	if (shoutOutPlan.getPlanType() != PlanType.SHOUT_OUT) {
+    		throw new IllegalStateException("Expect to handle a shout-out plan");
     	}
-    	cancelBookedLegs(plan, Optional.of(event.getSelectedItinerary()), "Andere oplossing gekozen");
-    	plan.close();
-    	//TODO Change the active context of the message thread of this user to the trip.
+    	cancelBookedLegs(shoutOutPlan, Optional.of(selectedItinerary), "Andere oplossing gekozen");
+    	shoutOutPlan.close();
     }
 
     /**

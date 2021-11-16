@@ -4,7 +4,7 @@ import java.io.Serializable;
 
 import javax.validation.constraints.NotNull;
 
-import eu.netmobiel.planner.model.Itinerary;
+import eu.netmobiel.planner.model.Trip;
 
 /**
  * This event is issued when a shout-out is resolved 
@@ -16,17 +16,17 @@ public class ShoutOutResolvedEvent implements Serializable {
 	private static final long serialVersionUID = 743661264510405320L;
 
 	/**
-     * The selected itinerary
+     * The new trip with the itinerary
      */
     @NotNull
-    private Itinerary selectedItinerary;
+    private Trip trip;
 
-    public ShoutOutResolvedEvent(Itinerary aSelectedItinerary) {
-    	this.selectedItinerary = aSelectedItinerary;
+    public ShoutOutResolvedEvent(Trip aNewTrip) {
+    	this.trip = aNewTrip;
     }
 
-	public Itinerary getSelectedItinerary() {
-		return selectedItinerary;
+	public Trip getTrip() {
+		return trip;
 	}
 
 }

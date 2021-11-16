@@ -192,12 +192,6 @@ public class TripManager {
     		throw new NotFoundException("Itinerary has no plan attached!: " + trip.getItineraryRef());
     	}
     	
-    	if (plan.getPlanType() == PlanType.SHOUT_OUT) {
-    		// it was a shout-out plan. It is being resolved now. 
-    		// Use the event to adjust the context of the message thread from trip plan to trip.
-    		// The trip must have a database identity!
-    		EventFireWrapper.fire(shoutOutResolvedEvent, new ShoutOutResolvedEvent(it));
-    	}
         trip.setArrivalTimeIsPinned(plan.isUseAsArrivalTime());
     	trip.setNrSeats(plan.getNrSeats());
         trip.setFrom(plan.getFrom());
@@ -207,6 +201,12 @@ public class TripManager {
         trip.setArrivalPostalCode(hereSearchClient.getPostalCode6(trip.getTo()));
         tripDao.save(trip);
        	tripDao.flush();
+    	if (plan.getPlanType() == PlanType.SHOUT_OUT) {
+    		// it was a shout-out plan. It is being resolved now. 
+    		// Use the event to adjust the context of the message thread from trip plan to trip.
+    		// The trip must have a database identity!
+    		EventFireWrapper.fire(shoutOutResolvedEvent, new ShoutOutResolvedEvent(trip));
+    	}
        	List<BookingRequestedEvent> bookingRequestedEvents = new ArrayList<>();
        	List<BookingConfirmedEvent> bookingConfirmedEvents = new ArrayList<>();
    		for (Leg leg : trip.getItinerary().getLegs()) {

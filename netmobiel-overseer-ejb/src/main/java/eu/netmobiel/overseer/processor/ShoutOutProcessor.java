@@ -1,6 +1,7 @@
 package eu.netmobiel.overseer.processor;
 
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
@@ -19,8 +20,10 @@ import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.service.PublisherService;
+import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
+import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.TripPlanManager;
@@ -170,4 +173,20 @@ public class ShoutOutProcessor {
 		// Inform the delegates, if any. They receive limited information only. The delegate can switch to the delegator view and see the normal messages.
 		publisherService.informDelegates(b.getPassenger(), "Nieuwe reisaanbieding van " + r.getDriver().getName(), DeliveryMode.ALL);
     }
+
+    /**
+     * Handler on the event for resolving an shout-out into an itinerary.
+     * @param event
+     * @throws BusinessException
+     */
+    public void onShoutOutResolved(@Observes(during = TransactionPhase.IN_PROGRESS) ShoutOutResolvedEvent event) throws BusinessException {
+    	TripPlan shoutOutPlan = event.getTrip().getItinerary().getTripPlan();
+    	tripPlanManager.resolveShoutOut(shoutOutPlan, event.getTrip().getItinerary());
+    	// Add the new trip to the conversation of the passenger
+		Conversation passengerConv = publisherService.lookupConversation(shoutOutPlan.getTraveller(), shoutOutPlan.getPlanRef());
+		// Add the trip ands adapt the conversation topic
+		publisherService.addConversationContext(passengerConv, event.getTrip().getTripRef(), textHelper.createPassengerTripTopic(event.getTrip()), true);
+    }
+
+
 }
