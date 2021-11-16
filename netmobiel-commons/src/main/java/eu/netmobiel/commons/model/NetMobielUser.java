@@ -11,6 +11,8 @@ import eu.netmobiel.commons.util.UrnHelper;
  *
  */
 public interface NetMobielUser extends Serializable {
+	public static final String KEYCLOAK_URN_PREFIX = UrnHelper.createUrnPrefix(NetMobielModule.KEYCLOAK.getCode(), "user");
+	
 	/**
 	 * The unique identity of the user as determined by Keycloak. 
 	 * @return the managed identity. 
@@ -41,7 +43,7 @@ public interface NetMobielUser extends Serializable {
 	boolean isSame(NetMobielUser other);
 
 	default String getKeyCloakUrn() {
-		return UrnHelper.createUrnPrefix(NetMobielModule.KEYCLOAK.getCode(), "user") + getManagedIdentity();
+		return UrnHelper.createUrn(KEYCLOAK_URN_PREFIX, getManagedIdentity());
 	}
 	
 	default String getName() {
@@ -70,5 +72,4 @@ public interface NetMobielUser extends Serializable {
 		return sb.toString().trim();
 	}
 	
-
 }

@@ -17,6 +17,10 @@ public class UrnHelper {
 		return id == null ? null : prefix + id.toString();
 	}
 
+	public static String createUrn(String prefix, String id) {
+		return id == null ? null : prefix + id;
+	}
+
 	public static String getSuffix(String urn) {
 		return urn == null ? null : urn.substring(urn.lastIndexOf(":") + 1);
 	}
@@ -48,6 +52,18 @@ public class UrnHelper {
 		return null;
 	}
 	
+	public static String getIdAsString(String prefix, String value) throws BadRequestException {
+		String id = value;
+		if (isUrn(value)) {
+			String actualPrefix = getPrefix(value);
+			if (! prefix.equals(actualPrefix)) {
+				throw new BadRequestException(String.format("Expected prefix %s, actual is %s", prefix, actualPrefix));
+			}
+			id = getSuffix(value);
+		}
+		return id;
+	}
+
 	public static Long getId(String value) {
 		return value == null ? null : Long.parseLong(value);
 	}

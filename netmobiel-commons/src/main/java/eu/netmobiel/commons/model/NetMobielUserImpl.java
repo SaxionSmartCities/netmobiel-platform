@@ -13,6 +13,11 @@ public class NetMobielUserImpl implements NetMobielUser, Serializable {
 	public NetMobielUserImpl() {
 		
 	}
+
+	public NetMobielUserImpl(String id) {
+		this(id, null, null, null);
+	}
+
 	public NetMobielUserImpl(String id, String givenName, String familyName, String email) {
 		this.managedIdentity = id;
 		this.givenName = givenName;
