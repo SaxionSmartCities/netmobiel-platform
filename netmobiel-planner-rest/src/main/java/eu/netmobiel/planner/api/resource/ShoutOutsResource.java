@@ -152,8 +152,10 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
 
 	/**
 	 * Retrieves a shout-out. Anyone can retrieve a shout-out. Only the plan itself is retrieved, not the itineraries.
-	 * The exception is the caller that is the driver in a leg. Should a driver be able to read his own suggestions? He can see his ride in the RideShare a a proposed booking.
-	 * 
+	 * The exception is the caller that is the driver in a leg. These itineraries are added. 
+	 * The driver can see his ride in the RideShare by requesting the proposed bookings.
+	 * @param shoutOutPlanId The id or urn of the shout-out plan to lookup.
+	 * @return The shout-out plan object.
 	 */
 	@Override
 	public Response getShoutOut(String shoutOutPlanId) {
