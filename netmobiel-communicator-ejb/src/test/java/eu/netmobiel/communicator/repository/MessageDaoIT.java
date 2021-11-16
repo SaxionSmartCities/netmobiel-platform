@@ -95,7 +95,7 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     	filter.setParticipantId(participant);
     	Cursor cursor = new Cursor(100, 0);
     	PagedResult<Long> messageIds = messageDao.listMessages(filter, cursor);
-    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
+    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), Message.MESSAGE_ENVELOPES_ENTITY_GRAPH, Message::getId);
     	for (Message message : messages) {
 			// The participant is one of the recipients or is the sender of the message
         	Set<String> recipients = message.getEnvelopes().stream().map(env -> env.getConversation().getOwner().getManagedIdentity()).collect(Collectors.toSet());
@@ -204,7 +204,7 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     	log.info("Test lookup of conversations with most recent message");
     	final String participant = userC1.getManagedIdentity();
     	PagedResult<Long> archMessageIds = messageDao.listTopMessagesByConversations(participant, false, true, 100, 0);
-    	List<Message> messages = messageDao.loadGraphs(archMessageIds.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
+    	List<Message> messages = messageDao.loadGraphs(archMessageIds.getData(), Message.MESSAGE_ENVELOPES_ENTITY_GRAPH, Message::getId);
     	dump("Archived Top Messages", messages);
     	Long expArchCount = em.createQuery(
         		"select count(c) from Conversation c where c.owner.managedIdentity = :participant and c.archivedTime is not null",

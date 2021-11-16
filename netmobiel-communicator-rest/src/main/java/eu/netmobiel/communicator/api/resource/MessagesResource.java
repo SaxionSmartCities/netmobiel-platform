@@ -10,7 +10,7 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
+import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
@@ -18,6 +18,7 @@ import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.security.SecurityIdentity;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.api.MessagesApi;
 import eu.netmobiel.communicator.api.mapping.MessageMapper;
 import eu.netmobiel.communicator.filter.MessageFilter;
@@ -56,13 +57,12 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 				throw new SecurityException("You have no privilege to specify a sender");
 			}
 			message.setSender(sender);
-			// Validate to catch the errors early on, publish is asynchronous.
-			publisherService.validateMessage(message);
-			publisherService.publish(sender, message);
+			Long mid = publisherService.publish(sender, message);
 			if (!callingContext.getCallingUser().equals(sender)) {
 				publisherService.informDelegates(sender, "Persoonlijk bericht van " + sender.getName(), DeliveryMode.ALL);
 			}
-			rsp = Response.status(Status.ACCEPTED).build();
+			String newMsgUrn = UrnHelper.createUrn(Message.URN_PREFIX, mid);
+			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newMsgUrn)).build() ;
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}

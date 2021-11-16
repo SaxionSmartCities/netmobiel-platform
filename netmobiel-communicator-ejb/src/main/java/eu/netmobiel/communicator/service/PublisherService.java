@@ -77,23 +77,17 @@ public class PublisherService {
     private DelegationManager delegationManager;
 
     @Inject
-    private FirebaseMessagingClient firebaseMessagingClient;
-    @Inject
     private MessageBird	messageBirdClient;
 
-    public static final CommunicatorUser SYSTEM_USER = new CommunicatorUser("SYSTEM", "Netmobiel", "", null);
+//    @Inject
+//    private NotifierService notifierService;
 
-    public CommunicatorUser findSystemUser() {
-    	return userDao.findByManagedIdentity(SYSTEM_USER.getManagedIdentity())
-    			.orElseGet(() -> userDao.save(SYSTEM_USER));
-    }
+    @Inject
+    private FirebaseMessagingClient firebaseMessagingClient;
 
 	public void validateMessage(Message msg) throws CreateException, BadRequestException {
     	if (msg.getContext() == null) {
     		throw new BadRequestException("Constraint violation: sender/system 'context' must be set.");
-    	}
-    	if (msg.getSubject() == null) {
-    		throw new BadRequestException("Constraint violation: 'subject' must be set.");
     	}
     	if (msg.getDeliveryMode() == null) {
     		throw new BadRequestException("Constraint violation: 'deliveryMode' must be set.");
@@ -117,56 +111,50 @@ public class PublisherService {
     /**
      * Sends a message and/or a notification to the recipients in the message envelopes.
      * The conversations of sender and recipients must already exist!
-     * This is an asynchronous call. Because of the asynchronous nature, this call cannot throw exceptions to the initiator. 
      * @param sender the sender of the message.
      * @param msg the message to send to the recipients in the envelopes
-     * @param topic the topic of the conversation
-     * @param overwriteTopic if true then overwrite the existing topic, if any.
+     * @return the message Id.
+     * @throws BusinessException 
      */
-    @Asynchronous
-    public void publish(CommunicatorUser sender, Message msg) {
-    	try {
-			validateMessage(msg);
-			msg.setCreatedTime(Instant.now());
-			if (sender != null) {
-				Conversation senderConv = lookupConversation(sender, msg.getContext());
-				msg.addSender(senderConv, msg.getContext());
-			}
-//			if (logger.isDebugEnabled()) {
-//			    logger.debug(String.format("Send message from %s to %s: %s %s - %s", sender.getConversation().getOwner(), 
-//			    		msg.getEnvelopes().stream().map(env -> env.getConversation().getOwner().getManagedIdentity()).collect(Collectors.joining(", ")), 
-//			    		msg.getContext(), msg.getSubject(), msg.getBody()));
-//			}
-			// Assure all recipient conversations are present in the database, replace transient instances of users with persistent instances.
+    public Long publish(CommunicatorUser sender, Message msg) throws BusinessException {
+		msg.setCreatedTime(Instant.now());
+		validateMessage(msg);
+		if (sender != null) {
+			Conversation senderConv = lookupConversation(sender, msg.getContext());
+			msg.addSender(senderConv, msg.getContext());
+		}
+		// Assure all recipient conversations are present in the database, replace transient instances of users with persistent instances.
+		for (Envelope env : msg.getEnvelopes()) {
+			Conversation rcpConv = lookupConversation(env.getRecipient(), env.getContext());
+			env.setConversation(rcpConv);
+		}
+		msg.setId(null); 	// Assure it is a new message.
+		// Save message and envelopes in database
+		messageDao.save(msg);
+		// Just to be sure before invoking the next (asynchronous) method.
+//		messageDao.flush();
+		// Send each user a notification, if required
+		if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
+			// The asynchronous notifier method does not save the push time for some reason.
+			// For now: Make synchronous until it is a real problem.
+//			notifierService.sendNotification(msg);
 			for (Envelope env : msg.getEnvelopes()) {
-				Conversation rcpConv = lookupConversation(env.getRecipient(), env.getContext());
-				env.setConversation(rcpConv);
-			}
-			msg.setId(null); 	// Assure it is a new message.
-			// Save message and envelopes in database
-			messageDao.save(msg);
-			// Send each user a notification, if required
-			if (msg.getDeliveryMode() == DeliveryMode.NOTIFICATION || msg.getDeliveryMode() == DeliveryMode.ALL) {
-				for (Envelope env : msg.getEnvelopes()) {
-					try {
-						Profile profile = profileManager.getFlatProfileByManagedIdentity(env.getRecipient().getManagedIdentity());
-						if (profile.getFcmToken() == null || profile.getFcmToken().isBlank()) {
-							logger.error(String.format("Cannot send push notification to %s (%s): No FCM token set", 
-									profile.getManagedIdentity(), profile.getName()));  
-						} else {
-							firebaseMessagingClient.send(profile.getFcmToken(), msg);
-							env.setPushTime(Instant.now());
-						}
-					} catch (Exception ex) {
-						logger.error(String.format("Cannot send push notification to %s: %s", 
-								env.getRecipient().getManagedIdentity(), String.join("\n\t", ExceptionUtil.unwindException(ex))));
+				try {
+					Profile profile = profileManager.getFlatProfileByManagedIdentity(env.getRecipient().getManagedIdentity());
+					if (profile.getFcmToken() == null || profile.getFcmToken().isBlank()) {
+						logger.error(String.format("Cannot send push notification to %s (%s): No FCM token set", 
+								profile.getManagedIdentity(), profile.getName()));  
+					} else {
+						firebaseMessagingClient.send(profile.getFcmToken(), msg);
+						env.setPushTime(Instant.now());
 					}
+				} catch (Exception ex) {
+					logger.error(String.format("Cannot send push notification to %s: %s", 
+							env.getRecipient().getManagedIdentity(), String.join("\n\t", ExceptionUtil.unwindException(ex))));
 				}
 			}
-		} catch (BusinessException ex) {
-			logger.error(String.format("Cannot publish: %s %s - %s", 
-					sender, msg, String.join("\n\t", ExceptionUtil.unwindException(ex))));
 		}
+    	return msg.getId();
     }
 
     /**
@@ -323,7 +311,7 @@ public class PublisherService {
     	if (!cursor.isCountingQuery()) {
     		// Get the actual data
     		PagedResult<Long> mids = messageDao.listMessages(filter, cursor);
-    		results = messageDao.loadGraphs(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
+    		results = messageDao.loadGraphs(mids.getData(), Message.MESSAGE_ENVELOPES_ENTITY_GRAPH, Message::getId);
     	} else {
     		results = Collections.emptyList();
     	}
@@ -362,7 +350,7 @@ public class PublisherService {
     	if (maxResults > 0) {
     		// Get the actual data
         	PagedResult<Long> mids = messageDao.listTopMessagesByConversations(owner, actualOnly, archivedOnly, maxResults, offset);
-        	messages = messageDao.loadGraphs(mids.getData(), Message.LIST_MY_MESSAGES_ENTITY_GRAPH, Message::getId);
+        	messages = messageDao.loadGraphs(mids.getData(), Message.MESSAGE_ENVELOPES_ENTITY_GRAPH, Message::getId);
     	} else {
     		messages = Collections.emptyList();
     	}
@@ -460,9 +448,9 @@ public class PublisherService {
 			DelegationFilter filter = new DelegationFilter();
 			Cursor cursor = new Cursor(10, 0);
 			filter.setDelegator(new Profile(delegator.getManagedIdentity()));
-			PagedResult<Delegation> delegations = delegationManager.listDelegations(filter, null, Delegation.DELEGATE_PROFILE_ENTITY_GRAPH);
+			PagedResult<Delegation> delegations = delegationManager.listDelegations(filter, cursor, Delegation.DELEGATE_PROFILE_ENTITY_GRAPH);
 			if (delegations.getTotalCount() > cursor.getMaxResults()) {
-				logger.warn("Too many delegates detected!");
+				logger.warn("Too many delegates detected: # > " + cursor.getMaxResults());
 			}
 			if (delegations.getCount() > 0) {
 				String topic = MessageFormat.format("Beheer van reizen van {0}", delegator.getName());
