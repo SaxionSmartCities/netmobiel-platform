@@ -32,7 +32,7 @@ import eu.netmobiel.commons.model.NetMobielMessage;
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @NamedEntityGraph(
-		name = Message.LIST_MY_MESSAGES_ENTITY_GRAPH, 
+		name = Message.MESSAGE_ENVELOPES_ENTITY_GRAPH, 
 		attributeNodes = { 
 				@NamedAttributeNode(value = "oldSender"),		
 				@NamedAttributeNode(value = "envelopes", subgraph = "envelope-details")		
@@ -63,7 +63,7 @@ public class Message implements NetMobielMessage, Serializable {
 
 	private static final long serialVersionUID = 5034396677188994964L;
 	public static final String URN_PREFIX = CommunicatorUrnHelper.createUrnPrefix(Message.class);
-	public static final String LIST_MY_MESSAGES_ENTITY_GRAPH = "list-my-messages-graph";
+	public static final String MESSAGE_ENVELOPES_ENTITY_GRAPH = "message-envelopes-entity-graph";
 	public static final int MAX_MESSAGE_SIZE = 1024;
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "message_sg")
