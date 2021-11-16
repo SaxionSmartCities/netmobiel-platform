@@ -438,6 +438,20 @@ public class Itinerary implements Serializable {
 	}
 
 	/**
+	 * Searches through the legs of this trip for a leg with a specific driverId. The driver id is a urn reference to the driver of the vehicle 
+	 * in rideshare. In public transport the driverId is null. 
+	 * @param driverId the driver id to look for.
+	 * @return An Optional with the leg containing the driver id.  
+	 */
+	public Optional<Leg> findLegByDriverId(String driverId) {
+		Optional<Leg> leg = Optional.empty();
+		if (getLegs() != null) {
+			leg = getLegs().stream().filter(lg -> driverId.equals(lg.getDriverId())).findFirst();
+		}
+		return leg;
+	}
+
+	/**
 	 * Searches through the legs of this trip for a leg with a specific bookingId.  
 	 * @param bookingId the booking id to find
 	 * @return An Optional with the leg containing the booking id or null if not found.  

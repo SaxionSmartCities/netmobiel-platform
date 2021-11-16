@@ -152,15 +152,19 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
 
 	/**
 	 * Retrieves a shout-out. Anyone can retrieve a shout-out. Only the plan itself is retrieved, not the itineraries.
-	 * ? Should a driver be able to read his own suggestions? He can see his ride in the RideShare a a proposed booking.
+	 * The exception is the caller that is the driver in a leg. Should a driver be able to read his own suggestions? He can see his ride in the RideShare a a proposed booking.
+	 * 
 	 */
 	@Override
 	public Response getShoutOut(String shoutOutPlanId) {
     	Response rsp = null;
 		TripPlan plan;
 		try {
+			PlannerUser driver = userManager.findOrRegisterCallingUser(securityIdentity);
         	Long tid = UrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
 			plan = tripPlanManager.getShoutOutPlan(tid);
+			// Remove the itineraries not driven by the caller
+			plan.getItineraries().removeIf(it -> it.findLegByDriverId(driver.getManagedIdentity()).isEmpty());
 			rsp = Response.ok(tripPlanMapper.mapShoutOut(plan)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);

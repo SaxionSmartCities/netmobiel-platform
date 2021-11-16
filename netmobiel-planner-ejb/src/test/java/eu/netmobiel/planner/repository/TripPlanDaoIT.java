@@ -125,7 +125,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
 	    	flush();
 	    	assertFalse(em.contains(plan));
 	    	assertNotNull(plan);
-	    	assertFalse(puu.isLoaded(plan, TripPlan_.ITINERARIES));
+	    	assertTrue(puu.isLoaded(plan, TripPlan_.ITINERARIES));
 	    	assertFalse(puu.isLoaded(plan, TripPlan_.PLANNER_REPORTS));
 	    	assertTrue(puu.isLoaded(plan, TripPlan_.TRAVELLER));
 	    	assertTrue(puu.isLoaded(plan, TripPlan_.TRAVERSE_MODES));

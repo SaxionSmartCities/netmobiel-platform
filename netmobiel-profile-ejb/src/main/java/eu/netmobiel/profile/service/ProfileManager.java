@@ -236,6 +236,20 @@ public class ProfileManager {
     	return profile;
     }
 
+
+    /**
+     * Returns the profile without initialization of the search and rideshare preferences. 
+     * 
+     * @param managedId the mananaged id to look up.
+     * @return the plain profile.
+     * @throws NotFoundException if no such user exists in the profile database. 
+     */
+    public Profile getFlatProfile(Long id) throws NotFoundException {
+    	Profile profile = profileDao.loadGraph(id, Profile.DEFAULT_PROFILE_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + id));
+    	return profile;
+    }
+
     /**
      * Updates all fields of the profile.
      * @param managedId

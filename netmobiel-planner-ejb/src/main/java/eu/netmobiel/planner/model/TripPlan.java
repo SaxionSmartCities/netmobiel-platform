@@ -144,6 +144,8 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 	@NamedEntityGraph(
 			name = TripPlan.SHOUT_OUT_ENTITY_GRAPH, 
 			attributeNodes = { 
+					// This is een privacy risk, the iternaries MUST be filtered in the service or resource. 
+					@NamedAttributeNode(value = "itineraries", subgraph = "subgraph.itinerary"),		
 					@NamedAttributeNode(value = "traveller"),		
 					@NamedAttributeNode(value = "traverseModes"),
 					@NamedAttributeNode(value = "referenceItinerary", subgraph = "subgraph.itinerary"),		

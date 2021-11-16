@@ -28,7 +28,8 @@ public class TripPlanHelper {
      * @param ride The ride carrying the passenger. 
      */
     public void assignRideToPassengerLeg(Leg leg, Ride ride) {
-		leg.setDriverId(ride.getDriverRef());
+    	// Use the driver keycloak urn for easier use in shout-out and by client.
+		leg.setDriverId(ride.getDriver().getKeyCloakUrn());
 		leg.setDriverName(ride.getDriver().getName());
 		leg.setVehicleId(ride.getCarRef());
 		leg.setVehicleLicensePlate(ride.getCar().getLicensePlate());
