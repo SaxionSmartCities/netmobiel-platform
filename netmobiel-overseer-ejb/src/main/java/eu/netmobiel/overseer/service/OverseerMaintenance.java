@@ -2,7 +2,9 @@ package eu.netmobiel.overseer.service;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.PostConstruct;
 import javax.ejb.Singleton;
@@ -32,6 +34,7 @@ import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
+import eu.netmobiel.planner.service.PlannerMigrationService;
 import eu.netmobiel.planner.service.TripManager;
 import eu.netmobiel.planner.service.TripPlanManager;
 import eu.netmobiel.profile.model.Delegation;
@@ -40,6 +43,7 @@ import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.service.RideManager;
+import eu.netmobiel.rideshare.service.RideshareUserManager;
 
 /**
  * Singleton startup bean for doing some maintenance on startup of the system.
@@ -71,8 +75,8 @@ public class OverseerMaintenance {
 //	@Inject
 //	private PlannerUserManager plannerUserManager;
 //
-//	@Inject
-//	private RideshareUserManager rideshareUserManager;
+	@Inject
+	private RideshareUserManager rideshareUserManager;
 //
 //	@Inject
 //	private ProfileMaintenance profileMaintenance;
@@ -87,7 +91,8 @@ public class OverseerMaintenance {
     private TripManager tripManager;
     @Inject
     private TextHelper textHelper;
-    
+    @Inject
+    private PlannerMigrationService plannerMigrationService;
 
 	@PostConstruct
 	@TransactionAttribute(TransactionAttributeType.NEVER)
@@ -95,6 +100,8 @@ public class OverseerMaintenance {
 		log.info("Starting up the Overseer, checking for maintenance tasks");
     	migrateAllMessagesToConversations();
     	updateMessageBody();
+    	
+    	migrateLegDriverId();
 	}
 	
 	private void migrateAllMessagesToConversations() {
@@ -514,5 +521,12 @@ public class OverseerMaintenance {
 	private void updateDelegation(Message m) throws NotFoundException, BadRequestException {
 		// Delegation delegation = delegationManager.getDelegation(UrnHelper.getId(Delegation.URN_PREFIX, m.getContext()), Delegation.PROFILES_ENTITY_GRAPH);
 		// Seems all right for now
+	}
+	
+	private void migrateLegDriverId() {
+		// Migrate leg.driverId to Keycloak driver Id
+    	Map<String, String> rs2kcMap = rideshareUserManager.listUsers().stream()
+    			.collect(Collectors.toMap(rsuser -> rsuser.getUrn(), rsuser -> rsuser.getKeyCloakUrn()));
+    	plannerMigrationService.updateDriverIdInLeg(rs2kcMap);
 	}
 }

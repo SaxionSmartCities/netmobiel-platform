@@ -14,7 +14,6 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
@@ -32,7 +31,6 @@ import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.service.RideManager;
-import eu.netmobiel.rideshare.service.RideshareUserManager;
 
 /**
  * Stateless bean for the management of the high-level shout-out process, involving multiple modules.
@@ -60,7 +58,7 @@ public class ShoutOutProcessor {
     @Inject
     private RideManager rideManager;
     @Inject
-    private RideshareUserManager rideshareUserManager;
+    private IdentityHelper identityHelper;
     
     @Inject
     private BookingManager bookingManager;
@@ -126,7 +124,8 @@ public class ShoutOutProcessor {
 
     	// Assign additional contexts to the driver's conversation: Ride
 		// This is later on used to bundle messages related to the trip plan
-		NetMobielUser nbUser = rideshareUserManager.getUser(UrnHelper.getId(event.getDriverRef()));
+		NetMobielUser nbUser = identityHelper.resolveUserUrn(event.getDriverRef())
+				.orElseThrow(() -> new IllegalStateException("Unknown driver: " + event.getDriverRef()));
 		Conversation driverConv = publisherService.lookupConversation(nbUser, sop.getPlanRef());
 		publisherService.addConversationContext(driverConv, r.getUrn(), textHelper.createRideTopic(r), true);
 

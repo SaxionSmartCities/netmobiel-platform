@@ -170,7 +170,7 @@ public class BookingProcessor {
 		reserveFare(event.getTrip(), event.getLeg());
     }
 
-    public void onBookingCreated(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Booking booking) throws BusinessException {
+    public void onBookingCreated(@Observes(during = TransactionPhase.IN_PROGRESS) @Created Booking booking) throws BusinessException {
 		// Inform driver on new booking
 		// Add the booking context to the ride context
 		Conversation driverConv = publisherService.lookupConversation(booking.getRide().getDriver(), booking.getRide().getUrn());
@@ -183,7 +183,7 @@ public class BookingProcessor {
 		publisherService.publish(null, msg);
 	}
 
-	public void onBookingRemoved(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Removed Booking booking) throws BusinessException {
+	public void onBookingRemoved(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Booking booking) throws BusinessException {
 		// Inform driver about removal of a booking
 		Conversation driverConv = publisherService.lookupConversation(booking.getRide().getDriver(), booking.getRide().getUrn());
     	Message msg = new Message();
@@ -385,13 +385,16 @@ public class BookingProcessor {
 	
 	protected NetMobielUser resolveDriverId(Leg leg) throws BadRequestException {
 		NetMobielUser nmuser = null;
-    	if (!NetMobielModule.RIDESHARE.getCode().equals(UrnHelper.getService(leg.getDriverId()))) {
+    	if (!NetMobielModule.KEYCLOAK.getCode().equals(UrnHelper.getService(leg.getDriverId()))) {
     		logger.error("Driver Id cannot be resolved this service: " + leg.getDriverId());
     	} else {
     		// Hmmm just fetch the booking and then the driver
     		try {
     			Booking bdb = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, leg.getBookingId()));
     			nmuser = bdb.getRide().getDriver();
+    			if (!nmuser.getManagedIdentity().equals(UrnHelper.getIdAsString(NetMobielUser.KEYCLOAK_URN_PREFIX, leg.getDriverId()))) {
+    				throw new IllegalStateException(String.format("Leg driverId %s is inconsistent with Booking driver Id %s", leg.getDriverId(), nmuser.getManagedIdentity()));
+    			}
     		} catch (NotFoundException ex) {
     			logger.error("No such booking: " + leg.getBookingId());
     		}

@@ -111,7 +111,7 @@ public class DelegationProcessor {
      * @param event the transfer event
      * @throws BusinessException 
      */
-    public void onDelegationTransferRequested(@Observes(during = TransactionPhase.IN_PROGRESS) DelegationTransferRequestedEvent event) {
+    public void onDelegationTransferRequested(@Observes(during = TransactionPhase.IN_PROGRESS) DelegationTransferRequestedEvent event) throws BusinessException {
      	Delegation fromDelegation = event.getFrom();
      	Delegation toDelegation = event.getTo();
 		// Inform prospected delegate through push message 
@@ -130,7 +130,7 @@ public class DelegationProcessor {
      * @param event the transfer event
      * @throws BusinessException 
      */
-    public void onDelegationTransferCompleted(@Observes(during = TransactionPhase.IN_PROGRESS) DelegationTransferCompletedEvent event) {
+    public void onDelegationTransferCompleted(@Observes(during = TransactionPhase.IN_PROGRESS) DelegationTransferCompletedEvent event) throws BusinessException {
      	Delegation fromDelegation = event.getFrom();
      	Delegation toDelegation = event.getTo();
      	if (!event.isImmediate()) {
