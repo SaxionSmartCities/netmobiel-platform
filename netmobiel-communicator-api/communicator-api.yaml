@@ -286,6 +286,15 @@ paths:
       path contains a `GET` operation to perform the list task.
     get:
       parameters:
+      - name: context
+        description: "The context to look for. Whether or not this retrieves a single\
+          \ result depends a bit on the context.\nIf none found then a conversation\
+          \ with this context has not yet started. \nThe system will have setup a\
+          \ conversation once a relation has been setup between a passenger and a\
+          \ driver."
+        schema:
+          type: string
+        in: query
       - name: owner
         description: The owner of the conversation, i.e. as a recipient or as a sender.
           Default is `me` (the effective user). An admin can list a conversation of
@@ -397,6 +406,8 @@ components:
       required:
       - deliveryMode
       - context
+      - body
+      - envelopes
       type: object
       properties:
         body:
@@ -428,8 +439,8 @@ components:
             is assigned as the sender. If the caller has elevated privilege, the sender
             can set by the caller. The sender is an Keycloak managed identity.
         subject:
-          description: Human-readable context, used for displaying the subject of
-            the context.
+          description: Deprecated. Human-readable context, used for displaying the
+            subject of the context.
           type: string
         id:
           description: Read-only. A unique identification for the message. To get
@@ -458,19 +469,19 @@ components:
           type: string
       example:
         body: Kunnen we iets later vertrekken?
-        context: urn:nb:pl:leg:23
+        context: urn:nb:pn:trip:23
         deliveryMode: MESSAGE
         sender:
           managedIdentity: 71f69345-42e1-4d17-a7c4-7c47178edcd7
           familyName: Normalverbraucher
           givenName: Otto
         envelopes:
-        - recipient:
+        - context: urn:nb:rs:ride:54
+          recipient:
             managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
             familyName: Netmobiel
             givenName: Carla1
-        creationTime: 2020-02-27T15:30+01:00
-        subject: Meerijden Zieuwert - Doetinchem
+        createdTime: 2020-02-27T15:30+01:00
     Page:
       title: Root Type for Page
       description: A page from a result set. For smaller sets the page contains the
@@ -543,6 +554,7 @@ components:
       - owner
       - topic
       - ownerRole
+      - contexts
       type: object
       properties:
         id:
@@ -551,7 +563,7 @@ components:
           type: integer
         createdTime:
           format: date-time
-          description: The point of time when the conversation is started.
+          description: Read-only. The point of time when the conversation is started.
           type: string
         archivedTime:
           format: date-time
