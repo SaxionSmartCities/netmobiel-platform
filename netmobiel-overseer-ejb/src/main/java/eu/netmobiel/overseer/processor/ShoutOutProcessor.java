@@ -1,7 +1,6 @@
 package eu.netmobiel.overseer.processor;
 
 import java.util.List;
-import java.util.Optional;
 
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
@@ -23,7 +22,6 @@ import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
-import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.TripPlanManager;
@@ -98,6 +96,8 @@ public class ShoutOutProcessor {
      * Handles the TravelOfferEvent. A driver has found an trip plan for himself in which a traveller can take part. 
      * The handler creates a ride for the driver according the trip plan calculated before, adds a booking for the traveller.
      * When is the traveller's itinerary saved?
+     * Note tthat might not yet be a driver's conversation started, because that would be the case only if the driver live's 
+     * close enough near the traveller.
      * @param event
      * @throws BusinessException
      */
@@ -129,9 +129,9 @@ public class ShoutOutProcessor {
 		// This is later on used to bundle messages related to the trip plan
 		NetMobielUser nbUser = identityHelper.resolveUserUrn(event.getDriverRef())
 				.orElseThrow(() -> new IllegalStateException("Unknown driver: " + event.getDriverRef()));
-		Conversation driverConv = publisherService.lookupConversation(nbUser, sop.getPlanRef());
+		// At this moment there might already be conversation already started with the tripplan. If not, then create one.
+		Conversation driverConv = publisherService.lookupOrCreateConversation(nbUser, UserRole.DRIVER, sop.getPlanRef(), textHelper.createDriverShoutOutTopic(sop), true);
 		publisherService.addConversationContext(driverConv, r.getUrn(), textHelper.createRideTopic(r), true);
-
     	
     	Booking b = new Booking();
     	b.setDepartureTime(soi.getDepartureTime());
@@ -156,6 +156,7 @@ public class ShoutOutProcessor {
 		tripPlanManager.assignBookingProposalReference(RideManager.AGENCY_ID, soi, r, bookingRef);
 		// Add the booking also to the driver's context. This might also be done by the rideshare
 		// TODO Check who is responsible
+		// Add the booking also as context of the driver
 		publisherService.addConversationContext(driverConv, b.getUrn());
 
 		// Find the conversation of the passenger. There might not yet be a conversation started
@@ -171,7 +172,7 @@ public class ShoutOutProcessor {
 		msg.setBody(textHelper.createPassengerTravelOfferMessageBody(r));
 		publisherService.publish(null, msg);
 		// Inform the delegates, if any. They receive limited information only. The delegate can switch to the delegator view and see the normal messages.
-		publisherService.informDelegates(b.getPassenger(), "Nieuwe reisaanbieding van " + r.getDriver().getName(), DeliveryMode.ALL);
+		publisherService.informDelegates(b.getPassenger(), textHelper.informDelegateNewTravelOfferText(r), DeliveryMode.ALL);
     }
 
     /**
@@ -183,8 +184,10 @@ public class ShoutOutProcessor {
     	TripPlan shoutOutPlan = event.getTrip().getItinerary().getTripPlan();
     	tripPlanManager.resolveShoutOut(shoutOutPlan, event.getTrip().getItinerary());
     	// Add the new trip to the conversation of the passenger
-		Conversation passengerConv = publisherService.lookupConversation(shoutOutPlan.getTraveller(), shoutOutPlan.getPlanRef());
-		// Add the trip ands adapt the conversation topic
+    	// Just to be sure, create the conversation if not already there.
+		Conversation passengerConv = publisherService.lookupOrCreateConversation(shoutOutPlan.getTraveller(),  
+				UserRole.PASSENGER, shoutOutPlan.getPlanRef(), textHelper.createPassengerShoutOutTopic(shoutOutPlan), true);
+		// Add the trip and adapt the conversation topic
 		publisherService.addConversationContext(passengerConv, event.getTrip().getTripRef(), textHelper.createPassengerTripTopic(event.getTrip()), true);
     }
 

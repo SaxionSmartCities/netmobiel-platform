@@ -1,5 +1,7 @@
 package eu.netmobiel.overseer.processor;
 
+import java.util.Optional;
+
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
 import javax.ejb.SessionContext;
@@ -8,10 +10,13 @@ import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 
+import org.slf4j.Logger;
+
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
+import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.planner.event.TripStateUpdatedEvent;
 import eu.netmobiel.planner.model.Trip;
@@ -34,7 +39,9 @@ import eu.netmobiel.rideshare.model.RideState;
 @Stateless
 @RunAs("system") 
 public class TripProgressProcessor {
-	
+    @Inject
+    private Logger logger;
+    
     @Inject
     private PublisherService publisherService;
 
@@ -121,83 +128,65 @@ public class TripProgressProcessor {
 //		}
     }
 
-    protected void informTravellerOnDeparture(Trip trip) throws BusinessException {
-		Conversation passengerConv = publisherService.lookupConversation(trip.getTraveller(), trip.getTripRef());
+	private void informPassengerTripProgress(Trip trip, String text, String delegateText) throws BusinessException {
+		Conversation passengerConv = publisherService.lookupOrCreateConversation(trip.getTraveller(), 
+				UserRole.PASSENGER, trip.getTripRef(), textHelper.createPassengerTripTopic(trip), true);
 		Message msg = new Message();
 		msg.setContext(trip.getTripRef());
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(passengerConv, trip.getTripRef());
-		msg.setBody(textHelper.createTripDepartureText(trip));
+		msg.setBody(text);
 		publisherService.publish(null, msg);
 		// Inform the delegates, if any
 		publisherService.informDelegates(trip.getTraveller(), 
-				textHelper.informDelegateTripDepartureText(trip), 
+				delegateText, 
 				DeliveryMode.ALL);
 	}
 
-	protected void informTravellerOnReview(Trip trip) throws BusinessException {
-		Conversation passengerConv = publisherService.lookupConversation(trip.getTraveller(), trip.getTripRef());
-		Message msg = new Message();
-		msg.setContext(trip.getTripRef());
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(passengerConv, trip.getTripRef());
-		msg.setBody(textHelper.createTripReviewRequestText(trip));
-		publisherService.publish(null, msg);
-		// Inform the delegates, if any
-		publisherService.informDelegates(trip.getTraveller(), 
-				textHelper.informDelegateTripReviewRequestText(trip), 
-				DeliveryMode.ALL);
+	private void informTravellerOnDeparture(Trip trip) throws BusinessException {
+		informPassengerTripProgress(trip, textHelper.createTripDepartureText(trip), textHelper.informDelegateTripDepartureText(trip));
 	}
 
-	protected void remindTravellerOnReview(Trip trip) throws BusinessException {
-		Conversation passengerConv = publisherService.lookupConversation(trip.getTraveller(), trip.getTripRef());
-		Message msg = new Message();
-		msg.setContext(trip.getTripRef());
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(passengerConv, trip.getTripRef());
-		msg.setBody(textHelper.createTripReviewRequestReminderText(trip));
-		publisherService.publish(null, msg);
-		// Inform the delegates, if any
-		publisherService.informDelegates(trip.getTraveller(),
-				textHelper.informDelegateTripReviewReminderText(trip),
-				DeliveryMode.ALL);
+    
+	private void informTravellerOnReview(Trip trip) throws BusinessException {
+		informPassengerTripProgress(trip, textHelper.createTripReviewRequestText(trip), textHelper.informDelegateTripReviewRequestText(trip));
+	}
+
+	private void remindTravellerOnReview(Trip trip) throws BusinessException {
+		informPassengerTripProgress(trip, textHelper.createTripReviewRequestReminderText(trip), textHelper.informDelegateTripReviewReminderText(trip));
 	}
 	
 	private static Booking getConfirmedBooking(Ride ride) throws BusinessException {
 		return ride.getConfirmedBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
 	}
 	
-    private void informDriverOnDeparture(Ride ride) throws BusinessException {
+	private void informDriverRideProgress(Ride ride, Booking b, String text) throws BusinessException {
+		Optional<Conversation> driverConv = publisherService.findConversation(ride.getDriver(), ride.getUrn());
+		if (driverConv.isEmpty()) {
+			logger.error(String.format("Expected to find a driver conversation with a urn: %s", ride.getUrn()));
+		} else {
+			Message msg = new Message();
+			msg.setContext(ride.getUrn());
+			msg.setDeliveryMode(DeliveryMode.ALL);
+			msg.addRecipient(driverConv.get(), b.getUrn());
+			msg.setBody(text);
+			publisherService.publish(null, msg);
+		}
+	}	
+
+	private void informDriverOnDeparture(Ride ride) throws BusinessException {
 		Booking b = getConfirmedBooking(ride);
-		Conversation driverConv = publisherService.lookupConversation(ride.getDriver(), ride.getUrn());
-		Message msg = new Message();
-		msg.setContext(ride.getUrn());
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(driverConv, b.getUrn());
-		msg.setBody(textHelper.createRideDepartureText(ride, b));
-		publisherService.publish(null, msg);
+		informDriverRideProgress(ride, b, textHelper.createRideDepartureText(ride, b));
 	}
 
     private void informDriverOnReview(Ride ride) throws BusinessException {
 		Booking b = getConfirmedBooking(ride);
-		Conversation driverConv = publisherService.lookupConversation(ride.getDriver(), ride.getUrn());
-		Message msg = new Message();
-		msg.setContext(ride.getUrn());
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(driverConv, b.getUrn());
-		msg.setBody(textHelper.createRideReviewRequestText(ride, b));
-		publisherService.publish(null, msg);
+		informDriverRideProgress(ride, b, textHelper.createRideReviewRequestText(ride, b));
 	}
 
     private void remindDriverOnReview(Ride ride) throws BusinessException {
 		Booking b = getConfirmedBooking(ride);
-		Conversation driverConv = publisherService.lookupConversation(ride.getDriver(), ride.getUrn());
-		Message msg = new Message();
-		msg.setContext(ride.getUrn());
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(driverConv, b.getUrn());
-		msg.setBody(textHelper.createRideReviewRequestText(ride, b));
-		publisherService.publish(null, msg);
+		informDriverRideProgress(ride, b, textHelper.createRideReviewRequestReminderText(ride, b));
 	}
 	
 }

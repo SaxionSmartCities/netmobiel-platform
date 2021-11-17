@@ -3,6 +3,7 @@ package eu.netmobiel.overseer.processor;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Optional;
 
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
@@ -35,6 +36,7 @@ import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
+import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.planner.event.BookingCancelledEvent;
 import eu.netmobiel.planner.event.BookingConfirmedEvent;
@@ -168,30 +170,41 @@ public class BookingProcessor {
 		}
 		tripManager.assignBookingReference(trip.getTripRef(), leg.getTripId(), bookingRef, autoConfirmed);
 		reserveFare(event.getTrip(), event.getLeg());
+		// Inform passenger on booking
+//		Conversation passengerConv = publisherService.lookupOrCreateConversation(trip.getTraveller(), 
+//				UserRole.PASSENGER, trip.getTripRef(), textHelper.createPassengerTripTopic(trip), true);
+//    	Message msg = new Message();
+//		msg.setContext(bookingRef);
+//		msg.setDeliveryMode(DeliveryMode.ALL);
+//		msg.addRecipient(passengerConv, trip.getTripRef());
+//		msg.setBody(textHelper.cre);
+//		publisherService.publish(null, msg);
     }
-
-    public void onBookingCreated(@Observes(during = TransactionPhase.IN_PROGRESS) @Created Booking booking) throws BusinessException {
+    
+    private void informDriverOnBookingChangeConversation(Booking booking, String text) throws BusinessException {
 		// Inform driver on new booking
+    	// Create the ride context, it might not yet exist.
 		// Add the booking context to the ride context
-		Conversation driverConv = publisherService.lookupConversation(booking.getRide().getDriver(), booking.getRide().getUrn());
+		Conversation driverConv = publisherService.lookupOrCreateConversation(booking.getRide().getDriver(), 
+				UserRole.DRIVER, booking.getRide().getUrn(), textHelper.createRideTopic(booking.getRide()), true);
 		publisherService.addConversationContext(driverConv, booking.getUrn(), textHelper.createRideTopic(booking.getRide()), true);
     	Message msg = new Message();
 		msg.setContext(booking.getRide().getUrn());
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(driverConv, booking.getUrn());
-		msg.setBody(textHelper.createBookingCreatedText(booking));
+		msg.setBody(text);
 		publisherService.publish(null, msg);
+    }
+
+    public void onBookingCreated(@Observes(during = TransactionPhase.IN_PROGRESS) @Created Booking booking) throws BusinessException {
+		// Inform driver on new booking
+    	informDriverOnBookingChangeConversation(booking, textHelper.createBookingCreatedText(booking));
 	}
 
 	public void onBookingRemoved(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Booking booking) throws BusinessException {
 		// Inform driver about removal of a booking
-		Conversation driverConv = publisherService.lookupConversation(booking.getRide().getDriver(), booking.getRide().getUrn());
-    	Message msg = new Message();
-		msg.setContext(booking.getRide().getUrn());
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(driverConv, booking.getUrn());
-		msg.setBody(textHelper.createBookingCancelledByPassengerText(booking));
-		publisherService.publish(null, msg);
+    	informDriverOnBookingChangeConversation(booking, textHelper.createBookingCancelledByPassengerText(booking));
+
 	}
 
 	/**
@@ -277,16 +290,20 @@ public class BookingProcessor {
 			// Notify the passenger
 			// Find the conversation of the passenger
 			String passengerContext = b.getPassengerTripRef() != null ? b.getPassengerTripRef() : b.getPassengerTripPlanRef();
-			Conversation passengerConv = publisherService.lookupConversation(event.getTraveller(), passengerContext);
-			Message msg = new Message();
-			msg.setContext(event.getBookingRef());
-			msg.setBody(textHelper.createDriverCancelledBookingText(b));
-			msg.setDeliveryMode(DeliveryMode.ALL);
-			msg.addRecipient(passengerConv, passengerContext);
-			publisherService.publish(null, msg);
-			// Inform the delegates, if any. They receive limited information only. The delegate can switch to the delegator view and see the normal messages.
-			publisherService.informDelegates(b.getPassenger(), 
-					textHelper.informDelegateCancelledBookingText(b), DeliveryMode.ALL);
+			Optional<Conversation> passengerConv = publisherService.findConversation(event.getTraveller(), passengerContext);
+			if (passengerConv.isEmpty()) {
+				logger.error(String.format("Expected to find a passenger conversation with a urn: %s", passengerContext));
+			} else {
+				Message msg = new Message();
+				msg.setContext(event.getBookingRef());
+				msg.setBody(textHelper.createDriverCancelledBookingText(b));
+				msg.setDeliveryMode(DeliveryMode.ALL);
+				msg.addRecipient(passengerConv.get(), passengerContext);
+				publisherService.publish(null, msg);
+				// Inform the delegates, if any. They receive limited information only. The delegate can switch to the delegator view and see the normal messages.
+				publisherService.informDelegates(b.getPassenger(), 
+						textHelper.informDelegateCancelledBookingText(b), DeliveryMode.ALL);
+			}
 		} else {
 			// Notification of the driver is done by transport provider
 		}

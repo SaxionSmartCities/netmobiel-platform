@@ -179,6 +179,10 @@ public class TextHelper {
 		return text; 
 	}
 	
+	public String informDelegateNewTravelOfferText(Ride ride) {
+		return MessageFormat.format("Nieuwe reisaanbieding van {0}.", ride.getDriver().getName()); 
+	}
+
 	public String createBookingCancelledByPassengerText(Booking booking) {
 		String text = null;
 		if (booking.getState() == BookingState.PROPOSED) {
