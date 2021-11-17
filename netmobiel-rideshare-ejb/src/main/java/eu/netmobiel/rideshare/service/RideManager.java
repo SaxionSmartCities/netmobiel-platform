@@ -515,12 +515,12 @@ public class RideManager {
      * @throws NotFoundException
      */
     public Ride getRide(Long id) throws NotFoundException {
-    	Ride ridedb = rideDao.find(id, rideDao.createLoadHint(Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH))
+    	Ride ridedb = rideDao.loadGraph(id, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such ride"));
     	// Because Hibernate cannot fetch multiple bags in one step, we retrieve the bookings separately
     	// Detach ride to avoid propagation of changes
     	rideDao.detach(ridedb);
-    	ridedb.setBookings(bookingDao.findByRide(ridedb, QueryHints.FETCHGRAPH, bookingDao.getEntityGraph(Booking.SHALLOW_ENTITY_GRAPH)));
+    	ridedb.setBookings(bookingDao.findByRide(ridedb, QueryHints.LOADGRAPH, bookingDao.getEntityGraph(Booking.SHALLOW_ENTITY_GRAPH)));
     	return ridedb;
     }
 
