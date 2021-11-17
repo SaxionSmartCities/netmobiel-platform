@@ -5,6 +5,7 @@ import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
@@ -217,7 +218,8 @@ public class PublisherService {
     public Conversation lookupOrCreateConversation(CommunicatorUser owner, UserRole ownerRole, String context, String topic, boolean overwriteTopic) {
 		Optional<Conversation> optConv = conversationDao.findByContextAndOwner(context, owner);
 		if (optConv.isPresent()) {
-			if (overwriteTopic) {
+			// Is the equal check really needed?
+			if (overwriteTopic && !Objects.equals(topic, optConv.get().getTopic())) {
 				optConv.get().setTopic(topic);
 			}
 		} else {
@@ -245,8 +247,8 @@ public class PublisherService {
      * @param contexts
      * @return
      */
-    public Optional<Conversation> findConversation(CommunicatorUser owner, String context) {
-		return conversationDao.findByContextAndOwner(context, owner);
+    public Optional<Conversation> findConversation(NetMobielUser owner, String context) {
+		return findConversation(owner.getManagedIdentity(), context);
     }
 
     /**
@@ -321,6 +323,7 @@ public class PublisherService {
 	/**
 	 * Lists the conversations of a user. Each conversation is a related list of messages, the relation is determined by the context attribute.
 	 * The result contains the latest message for each conversation. Notification only messages are ignored.
+	 * @param context the context to look for.
 	 * @param owner the owner of the conversation
 	 * @param actualOnly If true then list only the actual conversations, i.e. those that are not archived yet.   
 	 * @param archoivedOnly If true then list only the archived conversations.   
@@ -329,7 +332,7 @@ public class PublisherService {
      * @return A page of messages.
 	 * @throws BadRequestException 
 	 */
-    public @NotNull PagedResult<Conversation> listConversations(String owner, boolean actualOnly, boolean archivedOnly, Integer maxResults, Integer offset) throws BadRequestException {
+    public @NotNull PagedResult<Conversation> listConversations(String context, String owner, boolean actualOnly, boolean archivedOnly, Integer maxResults, Integer offset) throws BadRequestException {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
@@ -337,7 +340,7 @@ public class PublisherService {
         	offset = 0;
         }
         if (owner == null) {
-        	// The paging does work with owner null, because of the inversion of message --> conversation
+        	// The paging does not work with owner null, because of the inversion of message --> conversation
         	// To get it to work, something must be done to invert it. Not requried right now.
         	throw new BadRequestException("The owner of the conversation is a mandatory parameter");
         }
@@ -345,11 +348,11 @@ public class PublisherService {
         	throw new BadRequestException("You cannot have actualOnly AND archiveOnly at the same time");
         }
     	// Get the total count
-    	PagedResult<Long> prs = messageDao.listTopMessagesByConversations(owner, actualOnly, archivedOnly, 0, offset);
+    	PagedResult<Long> prs = messageDao.listTopMessagesByConversations(context, owner, actualOnly, archivedOnly, 0, offset);
     	List<Message> messages = null;
     	if (maxResults > 0) {
     		// Get the actual data
-        	PagedResult<Long> mids = messageDao.listTopMessagesByConversations(owner, actualOnly, archivedOnly, maxResults, offset);
+        	PagedResult<Long> mids = messageDao.listTopMessagesByConversations(context, owner, actualOnly, archivedOnly, maxResults, offset);
         	messages = messageDao.loadGraphs(mids.getData(), Message.MESSAGE_ENVELOPES_ENTITY_GRAPH, Message::getId);
     	} else {
     		messages = Collections.emptyList();

@@ -115,22 +115,26 @@ public class MessageDao extends AbstractDao<Message, Long> {
 	}
 
 	
-	public PagedResult<Long> listTopMessagesByConversations(String ownerManagedIdentity, boolean actualOnly, boolean archivedOnly, Integer maxResults, Integer offset) {
+	public PagedResult<Long> listTopMessagesByConversations(String context, String ownerManagedIdentity, boolean actualOnly, boolean archivedOnly, Integer maxResults, Integer offset) {
 		// To write the query below as a criteria query seems impossible, I can't get the selection of a subquery right.
 		String queryString = String.format( 
 				"%s from Envelope e where (e.conversation, e.message.createdTime) in" +
 				" (select env.conversation, max(env.message.createdTime) from Envelope env" + 
-				"  where env.message.deliveryMode in :deliverySet %s" +
+				"  where env.message.deliveryMode in :deliverySet %s %s" +
 				"  group by env.conversation" +
 				" ) %s %s",
 				maxResults == 0 ? "select count(e.message.id)" : "select e.message.id",  
-						ownerManagedIdentity != null ? "and env.conversation.owner.managedIdentity = :participant" : "",
+				ownerManagedIdentity != null ? "and env.conversation.owner.managedIdentity = :participant" : "",
+				context != null ? "and :context member of env.conversation.contexts" : "",
 				actualOnly ? "and e.conversation.archivedTime is null" : (archivedOnly ? "and e.conversation.archivedTime is not null" : ""),
 				maxResults > 0 ? "order by e.message.createdTime desc" : ""
 		);
 		TypedQuery<Long> query = em.createQuery(queryString, Long.class);
 		if (ownerManagedIdentity != null) {
 			query.setParameter("participant", ownerManagedIdentity);
+		}
+		if (context != null) {
+			query.setParameter("context", context);
 		}
 		query.setParameter("deliverySet", EnumSet.of(DeliveryMode.ALL, DeliveryMode.MESSAGE));
 		Long totalCount = null;

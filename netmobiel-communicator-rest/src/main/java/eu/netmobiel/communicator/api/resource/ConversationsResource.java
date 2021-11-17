@@ -94,7 +94,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 	}
 
 	@Override
-	public Response listConversations(String xDelegator, String owner, OffsetDateTime since, OffsetDateTime until,
+	public Response listConversations(String xDelegator, String context, String owner, OffsetDateTime since, OffsetDateTime until,
 			String select, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		PagedResult<Conversation> result = null;
@@ -116,7 +116,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 			} else if (Objects.equal(select,  "ARCHIVED")) {
 				archivedOnly = true;
 			}
-			result = publisherService.listConversations(owner, actualOnly, archivedOnly, maxResults, offset); 
+			result = publisherService.listConversations(context, owner, actualOnly, archivedOnly, maxResults, offset); 
 			if (!request.isUserInRole("admin")) {
 				// If I am not the sender, then remove all the envelopes of other people
 				for (Conversation c : result.getData()) {
