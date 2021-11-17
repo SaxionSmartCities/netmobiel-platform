@@ -5,7 +5,7 @@ CREATE TABLE public.conversation(
     topic character varying(256) NOT NULL, 
     created_time timestamp without time zone,
     archived_time timestamp without time zone,
-    owner bigint NOT NULL,
+    owner bigint NOT NULL
 );
 ALTER TABLE public.conversation
 	ADD CONSTRAINT conversation_pkey PRIMARY KEY (id),
