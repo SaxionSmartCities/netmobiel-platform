@@ -1,7 +1,5 @@
 package eu.netmobiel.overseer.processor;
 
-import java.util.Optional;
-
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
 import javax.ejb.SessionContext;
@@ -9,8 +7,6 @@ import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
-
-import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.communicator.model.Conversation;
@@ -39,9 +35,6 @@ import eu.netmobiel.rideshare.model.RideState;
 @Stateless
 @RunAs("system") 
 public class TripProgressProcessor {
-    @Inject
-    private Logger logger;
-    
     @Inject
     private PublisherService publisherService;
 

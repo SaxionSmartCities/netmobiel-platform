@@ -3,7 +3,6 @@ package eu.netmobiel.overseer.processor;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
-import java.util.Optional;
 
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
