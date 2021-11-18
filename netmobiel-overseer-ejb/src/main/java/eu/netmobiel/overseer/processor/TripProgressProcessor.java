@@ -161,17 +161,14 @@ public class TripProgressProcessor {
 	}
 	
 	private void informDriverRideProgress(Ride ride, Booking b, String text) throws BusinessException {
-		Optional<Conversation> driverConv = publisherService.findConversation(ride.getDriver(), ride.getUrn());
-		if (driverConv.isEmpty()) {
-			logger.error(String.format("Expected to find a driver conversation with a urn: %s", ride.getUrn()));
-		} else {
-			Message msg = new Message();
-			msg.setContext(ride.getUrn());
-			msg.setDeliveryMode(DeliveryMode.ALL);
-			msg.addRecipient(driverConv.get(), b.getUrn());
-			msg.setBody(text);
-			publisherService.publish(null, msg);
-		}
+		Conversation driverConv = publisherService.lookupOrCreateConversation(ride.getDriver(), 
+				UserRole.DRIVER, ride.getUrn(), textHelper.createRideTopic(ride), true);
+		Message msg = new Message();
+		msg.setContext(ride.getUrn());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(driverConv, b.getUrn());
+		msg.setBody(text);
+		publisherService.publish(null, msg);
 	}	
 
 	private void informDriverOnDeparture(Ride ride) throws BusinessException {

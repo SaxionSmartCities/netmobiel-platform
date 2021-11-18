@@ -47,6 +47,7 @@ import eu.netmobiel.planner.event.TripValidationExpiredEvent;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PaymentState;
 import eu.netmobiel.planner.model.Trip;
+import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.service.TripManager;
 import eu.netmobiel.planner.service.TripPlanManager;
@@ -271,10 +272,11 @@ public class BookingProcessor {
     			event.getCancelReason() != null ? event.getCancelReason() : "---"));
 		// The booking is cancelled by transport provider
 		Booking b = bookingManager.getBooking(UrnHelper.getId(Booking.URN_PREFIX, event.getBookingRef()));
+		Trip trip = null;
 		if (b.getPassengerTripRef() != null) {
 			// The call in in the trip manager checks the state of the leg.
 			Leg leg = tripManager.cancelBooking(b.getPassengerTripRef(), event.getBookingRef(), event.getCancelReason(), event.isCancelledByDriver());
-			Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, b.getPassengerTripRef()));
+			trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, b.getPassengerTripRef()));
 			if (leg.hasFareInCredits()) {
 				// cancel the reservation
 				cancelFare(trip, leg);
@@ -289,19 +291,30 @@ public class BookingProcessor {
 		if (event.isCancelledByDriver()) {
 			// Notify the passenger
 			// Find the conversation of the passenger
-			String passengerContext = b.getPassengerTripRef() != null ? b.getPassengerTripRef() : b.getPassengerTripPlanRef();
-			Optional<Conversation> passengerConv = publisherService.findConversation(event.getTraveller(), passengerContext);
-			if (passengerConv.isEmpty()) {
-				logger.error(String.format("Expected to find a passenger conversation with a urn: %s", passengerContext));
+			Conversation passengerConv = null;
+			String passengerContext = null;
+			String passengerTopic = null;
+			if (b.getPassengerTripRef() != null) {
+				passengerContext = b.getPassengerTripRef();
+				passengerTopic = textHelper.createPassengerTripTopic(trip);
+			} else if (b.getPassengerTripPlanRef() != null) {
+				passengerContext = b.getPassengerTripPlanRef();
+				TripPlan plan = tripPlanManager.getTripPlan(UrnHelper.getId(TripPlan.URN_PREFIX, b.getPassengerTripPlanRef()));
+				passengerTopic = textHelper.createPassengerShoutOutTopic(plan);
 			} else {
+				logger.error("Booking has no reference to trip or tripplan: " + b.getUrn());
+			}
+			if (passengerContext != null) {
+				passengerConv = publisherService.lookupOrCreateConversation(event.getTraveller(), 
+						UserRole.PASSENGER, passengerContext, passengerTopic, true); 
 				Message msg = new Message();
 				msg.setContext(event.getBookingRef());
 				msg.setBody(textHelper.createDriverCancelledBookingText(b));
 				msg.setDeliveryMode(DeliveryMode.ALL);
-				msg.addRecipient(passengerConv.get(), passengerContext);
+				msg.addRecipient(passengerConv, passengerContext);
 				publisherService.publish(null, msg);
 				// Inform the delegates, if any. They receive limited information only. The delegate can switch to the delegator view and see the normal messages.
-				publisherService.informDelegates(b.getPassenger(), 
+				publisherService.informDelegates(event.getTraveller(), 
 						textHelper.informDelegateCancelledBookingText(b), DeliveryMode.ALL);
 			}
 		} else {
