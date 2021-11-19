@@ -21,7 +21,8 @@ paths:
           description: Returns a list of compliment strings.
       operationId: getComplimentTypes
       summary: List compliment types
-      description: Return an array of compliment types.
+      description: 'Return a vocabulary of compliment types. The compliment type is
+        a code for a certain compliment. '
   /delegations:
     summary: Path used to manage the list of delegations.
     description: |+
@@ -273,20 +274,20 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Compliment'
+                $ref: '#/components/schemas/Compliments'
           description: Successful response - returns a single `Compliment`.
       operationId: getCompliment
       summary: Get a Compliment
       description: |-
         Gets the details of a single instance of a `Compliment`. An admin can see any compliment.
-        Non-privileged user can only see compliments received and paid.
+        Non-privileged user can only see compliments received and given.
     put:
       requestBody:
         description: Updated `Compliment` information.
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Compliment'
+              $ref: '#/components/schemas/Compliments'
         required: true
       responses:
         "202":
@@ -715,7 +716,7 @@ paths:
       in: header
   /compliments:
     summary: Path used to manage the list of compliments.
-    description: The REST endpoint/path used to list and create zero or more `Compliment`
+    description: The REST endpoint/path used to list and create zero or more `Compliments`
       entities.  This path contains a `GET` and `POST` operation to perform the list
       and create tasks, respectively. When a call a made by someone with the delegate
       role, the effective user will be the user specified in the X-Delegator header.
@@ -742,17 +743,18 @@ paths:
           description: Successful response - returns a `Page` with `Compliment` entities.
       operationId: getCompliments
       summary: List compliments
-      description: "Gets a list of all `Compliment` entities. The admin can list compliments\
-        \ of anyone.\nThe effective user can only list his own received or given compliments.\
-        \ The parameter `me` \nreferes to the effective user. If not admin the default\
-        \ query id compliments received by me.\n"
+      description: "Gets a list of all `Compliments` entities. The admin can list\
+        \ compliments of anyone.\nThe effective user can only list his own received\
+        \ or given compliments. The parameter `me` \nrefers to the effective user.\
+        \ If not admin the default query gets the compliments received by me or sent\
+        \ by me.\n"
     post:
       requestBody:
         description: A new `Compliment` to be created.
         content:
           application/json:
             schema:
-              $ref: '#/components/schemas/Compliment'
+              $ref: '#/components/schemas/Compliments'
         required: true
       responses:
         "201":
@@ -762,13 +764,15 @@ paths:
         "422":
           description: Missing parameters.
       operationId: createCompliment
-      summary: Create a Compliment
+      summary: Create, update, or delete a Compliment
       description: |-
-        Creates a new instance of a `Compliment`. An admin can post compliments on behalf of anyone to anyone.
+        Creates a new instance of a `Compliments`. An admin can post compliments on behalf of anyone to anyone.
         Non-privileged (effective) users can only pay personal compliments to someone else.
         It is an error to compliment oneself.
 
-        If a combination of (receiver, context, compliment) exists, it is overwritten.
+        If the compliment set exists, then it is overwritten.
+
+        If the input set is empty, the existing set is deleted.
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
@@ -1222,13 +1226,18 @@ components:
     UserRef:
       title: Root Type for UserRef
       description: A reference to a user, with the name included.
+      required:
+      - id
       type: object
       properties:
         id:
+          description: The managed identity of the user.
           type: string
         firstName:
+          description: The given name of the user.
           type: string
         lastName:
+          description: The family nmae of the user.
           type: string
       example:
         id: 5c76c977-2ffd-4100-a8c0-77db7129660d
@@ -1236,17 +1245,18 @@ components:
         lastName: Acceptatie
     ComplimentTypesResponse:
       title: Root Type for ComplimentTypesResponse
-      description: The response on the request for compliment types.
+      description: 'The response on the request for compliment types: The complete
+        vocabulary.'
       type: object
       properties:
         complimentTypes:
           description: A list of compliments.
           type: array
           items:
-            type: string
+            $ref: '#/components/schemas/complimentType'
       example:
         complimentTypes:
-        - GOOD_COMMUNICATION
+        - NICE_CAR
         - ON_TIME
     FirebaseTokenResponse:
       title: Root Type for FirebaseMessagingToken
@@ -1358,7 +1368,7 @@ components:
         compliments:
           type: array
           items:
-            $ref: '#/components/schemas/Compliment'
+            $ref: '#/components/schemas/Compliments'
       example:
         message: Succes!
         success: true
@@ -1380,72 +1390,6 @@ components:
         message: Succes!
         success: true
         reviews: []
-    Compliment:
-      title: Root Type for Review
-      description: A review for a user.
-      required:
-      - receiver
-      - published
-      - complimentCodes
-      - context
-      type: object
-      properties:
-        id:
-          description: Read-only. Unique id of the compliment
-          type: string
-        published:
-          format: date-time
-          description: Read-only for non-admin. Date of publishing of the compliment.
-          type: string
-        sender:
-          $ref: '#/components/schemas/UserRef'
-          description: The sender of the compliment, i.e. the reviewer.
-          properties:
-            id:
-              type: string
-            firstName:
-              type: string
-            lastName:
-              type: string
-        receiver:
-          $ref: '#/components/schemas/UserRef'
-          description: The user receiving the compliment.
-          properties:
-            id:
-              type: string
-            firstName:
-              type: string
-            lastName:
-              type: string
-        context:
-          description: The context of the compliment, i.e. the object owned by the
-            receiver of the compliment. Could be a trip (passenger) or a ride (driver).
-          type: string
-        complimentCodes:
-          description: The compliments as an array with code names. If the array is
-            empty the existing compliment set, if any, is removed,
-          type: array
-          items:
-            type: string
-        codes:
-          description: ""
-          type: array
-          items:
-            $ref: '#/components/schemas/CloneOfCompliment'
-      example:
-        id: 5f9c1893bf7c52051be2231b
-        published: 2020-10-27T08:29:51.901Z
-        sender:
-          id: 5c76c977-2ffd-4100-a8c0-77db7129660d
-          firstName: Passagier
-          lastName: Acceptatie
-        receiver:
-          id: b0c0d6c0-0de8-4669-88c7-57732a8dcd22
-          firstName: Chauffeur
-          lastName: Acceptatie
-        complimentCodes:
-        - GOOD_COMMUNICATION
-        - ON_TIME
     Place:
       title: Root Type for Address
       description: The address of a user.
@@ -1728,11 +1672,75 @@ components:
           firstName: Chauffeur
           lastName: Acceptatie
         review: Tot de volgende keer.
-    CloneOfCompliment:
+    Compliments:
+      title: Root Type for Review
       description: A review for a user.
+      required:
+      - receiver
+      - published
+      - compliments
+      - context
+      type: object
+      properties:
+        id:
+          description: Read-only. Unique id of the compliment
+          type: string
+        published:
+          format: date-time
+          description: Read-only for non-admin. Date of publishing of the compliment.
+          type: string
+        sender:
+          $ref: '#/components/schemas/UserRef'
+          description: The sender of the compliment, i.e. the reviewer.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        receiver:
+          $ref: '#/components/schemas/UserRef'
+          description: The user receiving the compliment.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        context:
+          description: The context of the compliment, i.e. the object owned by the
+            receiver of the compliment. Could be a trip (passenger) or a ride (driver).
+          type: string
+        compliments:
+          description: 'The compliments for the receiver in the given context. '
+          type: array
+          items:
+            $ref: '#/components/schemas/complimentType'
+      example:
+        id: 5f9c1893bf7c52051be2231b
+        published: 2020-10-27T08:29:51.901Z
+        sender:
+          id: 5c76c977-2ffd-4100-a8c0-77db7129660d
+          firstName: Passagier
+          lastName: Acceptatie
+        receiver:
+          id: b0c0d6c0-0de8-4669-88c7-57732a8dcd22
+          firstName: Chauffeur
+          lastName: Acceptatie
+        complimentCodes:
+        - NICE_CAR
+        - ON_TIME
+    complimentType:
+      description: The vocabulary of compliments.
       enum:
-      - GOOD_COMMUNICATION
+      - SAME_INTERESTS
       - ON_TIME
+      - TALKS_EASILY
+      - SOCIABLE
+      - NEATLY
+      - NICE_CAR
       type: string
   responses:
     InternalServerError:
