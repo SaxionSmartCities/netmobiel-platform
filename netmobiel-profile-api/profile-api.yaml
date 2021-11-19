@@ -767,6 +767,8 @@ paths:
         Creates a new instance of a `Compliment`. An admin can post compliments on behalf of anyone to anyone.
         Non-privileged (effective) users can only pay personal compliments to someone else.
         It is an error to compliment oneself.
+
+        If a combination of (receiver, context, compliment) exists, it is overwritten.
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
@@ -1244,61 +1246,8 @@ components:
             type: string
       example:
         complimentTypes:
-        - Soepele Communicatie
-        - Gezellig
-    Review:
-      title: Root Type for Review
-      description: A review for a user.
-      required:
-      - receiver
-      - published
-      - id
-      - review
-      - sender
-      type: object
-      properties:
-        id:
-          description: Unique id of the review
-          type: string
-        published:
-          format: date-time
-          description: Date of publishing of the review.
-          type: string
-        sender:
-          $ref: '#/components/schemas/UserRef'
-          description: The sender of the review, i.e. the reviewer.
-          properties:
-            id:
-              type: string
-            firstName:
-              type: string
-            lastName:
-              type: string
-        receiver:
-          $ref: '#/components/schemas/UserRef'
-          description: The user receiving the review.
-          properties:
-            id:
-              type: string
-            firstName:
-              type: string
-            lastName:
-              type: string
-        review:
-          description: The review text.
-          type: string
-      example:
-        id: 5f9c1893bf7c52051be2231b
-        published: 2020-10-27T08:29:51.901Z
-        sender:
-          id: 5c76c977-2ffd-4100-a8c0-77db7129660d
-          firstName: Passagier
-          lastName: Acceptatie
-        receiver:
-          id: b0c0d6c0-0de8-4669-88c7-57732a8dcd22
-          firstName: Chauffeur
-          lastName: Acceptatie
-        review: Tot de volgende keer.
+        - GOOD_COMMUNICATION
+        - ON_TIME
     FirebaseTokenResponse:
       title: Root Type for FirebaseMessagingToken
       description: Type of a messaging token.
@@ -1437,17 +1386,16 @@ components:
       required:
       - receiver
       - published
-      - id
-      - complimentType
-      - sender
+      - complimentCodes
+      - context
       type: object
       properties:
         id:
-          description: Unique id of the compliment
+          description: Read-only. Unique id of the compliment
           type: string
         published:
           format: date-time
-          description: Date of publishing of the compliment.
+          description: Read-only for non-admin. Date of publishing of the compliment.
           type: string
         sender:
           $ref: '#/components/schemas/UserRef'
@@ -1469,16 +1417,21 @@ components:
               type: string
             lastName:
               type: string
-        complimentType:
-          description: The compliment as an enum.
-          enum:
-          - Zelfde interesses
-          - Op tijd
-          - Soepele communicatie
-          - Gezellig
-          - Netjes
-          - Goede auto
+        context:
+          description: The context of the compliment, i.e. the object owned by the
+            receiver of the compliment. Could be a trip (passenger) or a ride (driver).
           type: string
+        complimentCodes:
+          description: The compliments as an array with code names. If the array is
+            empty the existing compliment set, if any, is removed,
+          type: array
+          items:
+            type: string
+        codes:
+          description: ""
+          type: array
+          items:
+            $ref: '#/components/schemas/CloneOfCompliment'
       example:
         id: 5f9c1893bf7c52051be2231b
         published: 2020-10-27T08:29:51.901Z
@@ -1490,7 +1443,9 @@ components:
           id: b0c0d6c0-0de8-4669-88c7-57732a8dcd22
           firstName: Chauffeur
           lastName: Acceptatie
-        complimentType: Soepele communicatie
+        complimentCodes:
+        - GOOD_COMMUNICATION
+        - ON_TIME
     Place:
       title: Root Type for Address
       description: The address of a user.
@@ -1716,6 +1671,69 @@ components:
         redirectCount: 1
         submitTime: 2021-09-01T12:14:00Z
         expirationTime: 2021-09-06T13:24:00Z
+    Review:
+      title: Root Type for Review
+      description: A review for a user.
+      required:
+      - receiver
+      - published
+      - id
+      - review
+      - sender
+      type: object
+      properties:
+        id:
+          description: Unique id of the review
+          type: string
+        published:
+          format: date-time
+          description: Date of publishing of the review.
+          type: string
+        sender:
+          $ref: '#/components/schemas/UserRef'
+          description: The sender of the review, i.e. the reviewer.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        receiver:
+          $ref: '#/components/schemas/UserRef'
+          description: The user receiving the review.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        review:
+          description: The review text.
+          type: string
+        context:
+          description: The context of the compliment, i.e. the object owned by the
+            receiver of the compliment. Could be a trip (passenger) or a ride (driver).
+          type: string
+      example:
+        id: 5f9c1893bf7c52051be2231b
+        published: 2020-10-27T08:29:51.901Z
+        sender:
+          id: 5c76c977-2ffd-4100-a8c0-77db7129660d
+          firstName: Passagier
+          lastName: Acceptatie
+        receiver:
+          id: b0c0d6c0-0de8-4669-88c7-57732a8dcd22
+          firstName: Chauffeur
+          lastName: Acceptatie
+        review: Tot de volgende keer.
+    CloneOfCompliment:
+      description: A review for a user.
+      enum:
+      - GOOD_COMMUNICATION
+      - ON_TIME
+      type: string
   responses:
     InternalServerError:
       content:
