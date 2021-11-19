@@ -3,11 +3,14 @@ package eu.netmobiel.profile.model;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.Objects;
+import java.util.Set;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Access;
 import javax.persistence.AccessType;
+import javax.persistence.CollectionTable;
 import javax.persistence.Column;
+import javax.persistence.ElementCollection;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
@@ -19,33 +22,48 @@ import javax.persistence.ManyToOne;
 import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
+import javax.persistence.OrderBy;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Size;
+
+import org.hibernate.annotations.OnDelete;
+import org.hibernate.annotations.OnDeleteAction;
 
 @NamedEntityGraphs({
-	@NamedEntityGraph(name = Compliment.LIST_COMPLIMENTS_ENTITY_GRAPH,
+	@NamedEntityGraph(name = Compliments.LIST_COMPLIMENTS_ENTITY_GRAPH,
 		attributeNodes = {
+			@NamedAttributeNode(value = "compliments"),
 			@NamedAttributeNode(value = "receiver"),
 			@NamedAttributeNode(value = "sender"),
 	}),
 })
 @Entity
-@Table(name = "compliment")
+@Table(name = "compliment_set", uniqueConstraints = {
+	    @UniqueConstraint(name = "cs_compliment_set_unique", columnNames = { "receiver", "context" })
+})
 @Vetoed
 @Access(AccessType.FIELD)
-@SequenceGenerator(name = "compliment_sg", sequenceName = "compliment_id_seq", allocationSize = 1, initialValue = 50)
-public class Compliment implements Serializable {
+@SequenceGenerator(name = "compliment_set_sg", sequenceName = "compliment_set_id_seq", allocationSize = 1, initialValue = 50)
+public class Compliments implements Serializable {
 	private static final long serialVersionUID = 7052181227403511232L;
 	public static final String LIST_COMPLIMENTS_ENTITY_GRAPH = "list-compliments-entity-graph";
 
 	@Id
-    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "compliment_sg")
+    @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "compliment_set_sg")
     private Long id;
 	
-	@NotNull
-	@Column(name = "compliment", length = 2)
-	private ComplimentType compliment;
+    @ElementCollection(fetch = FetchType.LAZY)
+    @CollectionTable(name = "compliment", joinColumns = { 
+    	@JoinColumn(name = "compliment_set", foreignKey = @ForeignKey(name = "compliment_compliment_set_fk")) 
+    })
+    @Column(name = "compliment", length = 2)
+    @OrderBy("ASC")
+    @JoinColumn(name = "compliment_set")	// This definition is required by OnDelete, just a copy of the same column in @CollectionTable 
+    @OnDelete(action = OnDeleteAction.CASCADE)
+	private Set<ComplimentType> compliments;
 
 	@NotNull
 	@Column(name = "published")
@@ -59,20 +77,21 @@ public class Compliment implements Serializable {
 	@JoinColumn(name = "sender", nullable = false, foreignKey = @ForeignKey(name = "compliment_sender_profile_fk"))
 	private Profile sender;
 
+	/**
+	 * The context of the compliment. The context is a urn, referring to an object in the system.
+	 * The context concerns the trip (passenger) or ride (driver) that is owned by the receiver.
+	 */
+	@Size(max = 32)
+    @NotNull
+	@Column(name = "context")
+	private String context;
+
 	public Long getId() {
 		return id;
 	}
 
 	public void setId(Long id) {
 		this.id = id;
-	}
-
-	public ComplimentType getCompliment() {
-		return compliment;
-	}
-
-	public void setCompliment(ComplimentType compliment) {
-		this.compliment = compliment;
 	}
 
 	public Instant getPublished() {
@@ -99,9 +118,25 @@ public class Compliment implements Serializable {
 		this.sender = sender;
 	}
 
+	public String getContext() {
+		return context;
+	}
+
+	public void setContext(String context) {
+		this.context = context;
+	}
+
+	public Set<ComplimentType> getCompliments() {
+		return compliments;
+	}
+
+	public void setCompliments(Set<ComplimentType> compliments) {
+		this.compliments = compliments;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(compliment, published, receiver, sender);
+		return Objects.hash(context, receiver);
 	}
 
 	@Override
@@ -109,12 +144,12 @@ public class Compliment implements Serializable {
 		if (this == obj) {
 			return true;
 		}
-		if (!(obj instanceof Compliment)) {
+		if (!(obj instanceof Compliments)) {
 			return false;
 		}
-		Compliment other = (Compliment) obj;
-		return compliment == other.compliment && Objects.equals(published, other.published)
-				&& Objects.equals(receiver, other.receiver) && Objects.equals(sender, other.sender);
+		Compliments other = (Compliments) obj;
+		return Objects.equals(context, other.context)
+				&& Objects.equals(receiver, other.receiver);
 	}
 	
 	

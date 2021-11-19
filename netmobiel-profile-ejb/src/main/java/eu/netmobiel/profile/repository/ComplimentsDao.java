@@ -23,14 +23,14 @@ import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.model.User_;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.profile.annotation.ProfileDatabase;
-import eu.netmobiel.profile.filter.ComplimentFilter;
-import eu.netmobiel.profile.model.Compliment;
-import eu.netmobiel.profile.model.Compliment_;
+import eu.netmobiel.profile.filter.ComplimentsFilter;
+import eu.netmobiel.profile.model.Compliments;
+import eu.netmobiel.profile.model.Compliments_;
 
 
 @ApplicationScoped
-@Typed(ComplimentDao.class)
-public class ComplimentDao extends AbstractDao<Compliment, Long> {
+@Typed(ComplimentsDao.class)
+public class ComplimentsDao extends AbstractDao<Compliments, Long> {
 
 	@Inject @ProfileDatabase
     private EntityManager em;
@@ -39,8 +39,8 @@ public class ComplimentDao extends AbstractDao<Compliment, Long> {
 	@Inject
 	private Logger logger;
 	
-    public ComplimentDao() {
-		super(Compliment.class);
+    public ComplimentsDao() {
+		super(Compliments.class);
 	}
 
 	@Override
@@ -56,26 +56,29 @@ public class ComplimentDao extends AbstractDao<Compliment, Long> {
 	 * @param offset The offset (starting at 0) to start the result set.
 	 * @return A pages result. Total count is determined only when maxResults is set to 0.
 	 */
-	public PagedResult<Long> listCompliments(ComplimentFilter filter, Cursor cursor) {
+	public PagedResult<Long> listComplimentSets(ComplimentsFilter filter, Cursor cursor) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
-        Root<Compliment> compliment = cq.from(Compliment.class);
+        Root<Compliments> root = cq.from(Compliments.class);
         List<Predicate> predicates = new ArrayList<>();
         if (filter.getSender() != null) {
-        	predicates.add(cb.equal(compliment.get(Compliment_.sender).get(User_.managedIdentity), filter.getSender()));
+        	predicates.add(cb.equal(root.get(Compliments_.sender).get(User_.managedIdentity), filter.getSender()));
         }
         if (filter.getReceiver() != null) {
-        	predicates.add(cb.equal(compliment.get(Compliment_.receiver).get(User_.managedIdentity), filter.getReceiver()));
+        	predicates.add(cb.equal(root.get(Compliments_.receiver).get(User_.managedIdentity), filter.getReceiver()));
+        }
+        if (filter.getContext() != null) {
+        	predicates.add(cb.equal(root.get(Compliments_.context), filter.getContext()));
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;
         List<Long> results = null;
         if (cursor.isCountingQuery()) {
-          cq.select(cb.count(compliment.get(Compliment_.id)));
+          cq.select(cb.count(root.get(Compliments_.id)));
           totalCount = em.createQuery(cq).getSingleResult();
         } else {
-	        cq.select(compliment.get(Compliment_.id));
-	        Expression<?> sortBy = compliment.get(Compliment_.id);
+	        cq.select(root.get(Compliments_.id));
+	        Expression<?> sortBy = root.get(Compliments_.id);
 	        cq.orderBy(filter.getSortDir() == SortDirection.ASC ? cb.asc(sortBy) : cb.desc(sortBy));
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(cursor.getOffset());
@@ -85,14 +88,12 @@ public class ComplimentDao extends AbstractDao<Compliment, Long> {
         return new PagedResult<>(results, cursor, totalCount);
 	}
 
-	public Optional<Compliment> findComplimentByAttributes(Compliment r) {
-    	List<Compliment> results = em.createQuery("from Compliment r where r.receiver.managedIdentity = :receiver " 
-    				+ "and r.sender.managedIdentity = :sender and r.compliment = :compliment and r.published = :published",
-    			Compliment.class)
-    			.setParameter("receiver", r.getReceiver().getManagedIdentity())
-    			.setParameter("sender", r.getSender().getManagedIdentity())
-    			.setParameter("compliment", r.getCompliment())
-    			.setParameter("published", r.getPublished())
+	public Optional<Compliments> findComplimentSetByReceiverAndContext(String rcvmid, String context) {
+    	List<Compliments> results = 
+    			em.createQuery("from Compliments c where c.receiver.managedIdentity = :receiver and c.context = :context",
+    			Compliments.class)
+    			.setParameter("receiver", rcvmid)
+    			.setParameter("context", context)
     			.getResultList();
     	return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0)); 
 	}

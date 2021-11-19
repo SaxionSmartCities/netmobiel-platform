@@ -27,6 +27,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.SqlResultSetMapping;
 import javax.persistence.SqlResultSetMappings;
 import javax.persistence.Table;
+import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
@@ -82,7 +83,9 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	}),
 })
 @Entity
-@Table(name = "review")
+@Table(name = "review", uniqueConstraints = {
+	    @UniqueConstraint(name = "cs_review_unique", columnNames = { "receiver", "context" })
+})
 @Vetoed
 @Access(AccessType.FIELD)
 @SequenceGenerator(name = "review_sg", sequenceName = "review_id_seq", allocationSize = 1, initialValue = 50)
@@ -113,6 +116,15 @@ public class Review implements Serializable {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "sender", nullable = false, foreignKey = @ForeignKey(name = "review_sender_profile_fk"))
 	private Profile sender;
+
+	/**
+	 * The context of the review. The context is a urn, referring to an object in the system.
+	 * The context concerns the trip (passenger) or ride (driver) that is owned by the receiver of the review.
+	 */
+	@Size(max = 32)
+    @NotNull
+	@Column(name = "context")
+	private String context;
 
 	public Long getId() {
 		return id;
@@ -154,9 +166,17 @@ public class Review implements Serializable {
 		this.sender = sender;
 	}
 
+	public String getContext() {
+		return context;
+	}
+
+	public void setContext(String context) {
+		this.context = context;
+	}
+
 	@Override
 	public int hashCode() {
-		return Objects.hash(published, receiver, review, sender);
+		return Objects.hash(context, receiver);
 	}
 
 	@Override
@@ -168,8 +188,7 @@ public class Review implements Serializable {
 			return false;
 		}
 		Review other = (Review) obj;
-		return Objects.equals(published, other.published) && Objects.equals(receiver, other.receiver)
-				&& Objects.equals(review, other.review) && Objects.equals(sender, other.sender);
+		return Objects.equals(context, other.context) && Objects.equals(receiver, other.receiver);
 	}
 	
 }

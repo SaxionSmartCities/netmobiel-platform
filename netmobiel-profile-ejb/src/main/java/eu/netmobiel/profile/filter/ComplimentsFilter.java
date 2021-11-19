@@ -1,20 +1,21 @@
 package eu.netmobiel.profile.filter;
 
-public class ReviewFilter extends BiPartyFilter {
-	
+public class ComplimentsFilter extends BiPartyFilter {
+
 	private String context;
 	
-	public ReviewFilter() {
+	public ComplimentsFilter() {
 	}
 
-	public ReviewFilter(String receiver, String sender) {
+	public ComplimentsFilter(String receiver, String sender) {
 		super(receiver, sender);
 	}
-	
-	public ReviewFilter(String receiver, String sender, String context) {
+
+	public ComplimentsFilter(String receiver, String sender, String context) {
 		super(receiver, sender);
 		this.context = context;
 	}
+
 	
 	public String getContext() {
 		return context;
@@ -27,7 +28,7 @@ public class ReviewFilter extends BiPartyFilter {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("ReviewFilter [");
+		builder.append("ComplimentFilter [");
 		builder.append(super.toString());
 		if (this.context != null) {
 			builder.append(", ");
@@ -36,4 +37,5 @@ public class ReviewFilter extends BiPartyFilter {
 		builder.append("]");
 		return builder.toString();
 	}
+
 }

@@ -67,6 +67,9 @@ public class ReviewDao extends AbstractDao<Review, Long> {
         if (filter.getReceiver() != null) {
         	predicates.add(cb.equal(review.get(Review_.receiver).get(User_.managedIdentity), filter.getReceiver()));
         }
+        if (filter.getContext() != null) {
+        	predicates.add(cb.equal(review.get(Review_.context), filter.getContext()));
+        }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;
         List<Long> results = null;
@@ -85,14 +88,12 @@ public class ReviewDao extends AbstractDao<Review, Long> {
         return new PagedResult<>(results, cursor, totalCount);
 	}
 
-	public Optional<Review> findReviewByAttributes(Review r) {
-    	List<Review> results = em.createQuery("from Review r where r.receiver.managedIdentity = :receiver " 
-    				+ "and r.sender.managedIdentity = :sender and r.review = :reviewText and r.published = :published",
+	public Optional<Review> findReviewByReceiverAndContext(String rcvmid, String context) {
+    	List<Review> results = 
+    			em.createQuery("from Review r where r.receiver.managedIdentity = :receiver and r.context = :context",
     			Review.class)
-    			.setParameter("receiver", r.getReceiver().getManagedIdentity())
-    			.setParameter("sender", r.getSender().getManagedIdentity())
-    			.setParameter("reviewText", r.getReview())
-    			.setParameter("published", r.getPublished())
+    			.setParameter("receiver", rcvmid)
+    			.setParameter("context", context)
     			.getResultList();
     	return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0)); 
 	}

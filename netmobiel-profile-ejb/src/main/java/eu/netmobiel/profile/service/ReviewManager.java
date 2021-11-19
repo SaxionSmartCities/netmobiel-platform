@@ -1,6 +1,7 @@
 package eu.netmobiel.profile.service;
 
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
@@ -44,7 +45,7 @@ public class ReviewManager {
     @Inject
     private ReviewDao reviewDao;
     
-	public Long createReview(Review review) throws BadRequestException, NotFoundException {
+    private void prepareReview(Review review) throws BadRequestException, NotFoundException {
 		if (review.getReceiver() == null) {
 			throw new BadRequestException("Review receiver is a mandatory parameter");
 		}
@@ -62,6 +63,9 @@ public class ReviewManager {
     	if (review.getReview() == null) {
 			throw new BadRequestException("Review text is a mandatory parameter");
 		}
+    }
+	public Long createReview(Review review) throws BadRequestException, NotFoundException {
+		prepareReview(review);
 		reviewDao.save(review);
 		return review.getId();
 	}
@@ -79,9 +83,19 @@ public class ReviewManager {
     	return new PagedResult<>(results, cursor, prs.getTotalCount());
 	}
 
+	public Optional<Review> lookupReview(String receiverManagedIdentity, String context) {
+		return reviewDao.findReviewByReceiverAndContext(receiverManagedIdentity, context);
+	}
+
 	public Review getReview(Long reviewId) throws NotFoundException {
 		return reviewDao.find(reviewId)
 				.orElseThrow(() -> new NotFoundException("No such review: " + reviewId));
+	}
+
+	public void updateReview(Long reviewId, Review review) throws NotFoundException, BadRequestException {
+    	prepareReview(review);
+    	review.setId(reviewId);
+    	reviewDao.merge(review);
 	}
 
 	public void removeReview(Long reviewId) throws NotFoundException {

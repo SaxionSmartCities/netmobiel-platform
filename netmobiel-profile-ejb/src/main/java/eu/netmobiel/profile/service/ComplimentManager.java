@@ -1,10 +1,8 @@
 package eu.netmobiel.profile.service;
 
 import java.util.List;
+import java.util.Optional;
 
-import javax.annotation.Resource;
-import javax.annotation.security.DeclareRoles;
-import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.inject.Inject;
 import javax.validation.constraints.NotNull;
@@ -16,10 +14,10 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.profile.filter.ComplimentFilter;
-import eu.netmobiel.profile.model.Compliment;
+import eu.netmobiel.profile.filter.ComplimentsFilter;
+import eu.netmobiel.profile.model.Compliments;
 import eu.netmobiel.profile.model.Profile;
-import eu.netmobiel.profile.repository.ComplimentDao;
+import eu.netmobiel.profile.repository.ComplimentsDao;
 import eu.netmobiel.profile.repository.ProfileDao;
 
 /**
@@ -27,12 +25,8 @@ import eu.netmobiel.profile.repository.ProfileDao;
  */
 @Stateless
 @Logging
-@DeclareRoles({ "admin", "delegate" })
 public class ComplimentManager {
 	public static final Integer MAX_RESULTS = 10; 
-
-	@Resource
-    private SessionContext sessionContext;
 
     @SuppressWarnings("unused")
 	@Inject
@@ -42,52 +36,69 @@ public class ComplimentManager {
     private ProfileDao profileDao;
     
     @Inject
-    private ComplimentDao complimentDao;
-    
-	public Long createCompliment(Compliment compliment) throws BadRequestException, NotFoundException {
-		if (compliment.getReceiver() == null) {
+    private ComplimentsDao complimentsDao;
+
+    private void prepareCompliments(Compliments complimentSet) throws BadRequestException, NotFoundException {
+		if (complimentSet.getContext() == null) {
+			throw new BadRequestException("Compliment context is a mandatory parameter");
+		} 
+		if (complimentSet.getReceiver() == null) {
 			throw new BadRequestException("Compliment receiver is a mandatory parameter");
 		} 
-    	Profile rcvProfile = profileDao.getReferenceByManagedIdentity(compliment.getReceiver().getManagedIdentity())
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + compliment.getReceiver().getManagedIdentity()));
-    	compliment.setReceiver(rcvProfile);
+    	Profile rcvProfile = profileDao.getReferenceByManagedIdentity(complimentSet.getReceiver().getManagedIdentity())
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + complimentSet.getReceiver().getManagedIdentity()));
+    	complimentSet.setReceiver(rcvProfile);
 
-    	if (compliment.getSender() == null) {
+    	if (complimentSet.getSender() == null) {
 			throw new BadRequestException("Compliment sender is a mandatory parameter");
 		}
-    	Profile sndProfile = profileDao.getReferenceByManagedIdentity(compliment.getSender().getManagedIdentity())
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + compliment.getSender().getManagedIdentity()));
-    	compliment.setSender(sndProfile);
-    	
-		if (compliment.getCompliment() == null) {
-			throw new BadRequestException("Compliment type is a mandatory parameter");
-		}
-		complimentDao.save(compliment);
-		return compliment.getId();
+    	Profile sndProfile = profileDao.getReferenceByManagedIdentity(complimentSet.getSender().getManagedIdentity())
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + complimentSet.getSender().getManagedIdentity()));
+    	complimentSet.setSender(sndProfile);
+
+    	if (rcvProfile.equals(sndProfile)) {
+    		throw new BadRequestException("You cannot compliment yourself");
+    	}
+    }
+
+    public Long createCompliments(Compliments complimentSet) throws BadRequestException, NotFoundException {
+    	prepareCompliments(complimentSet);
+		complimentsDao.save(complimentSet);
+		return complimentSet.getId();
 	}
 
-	public @NotNull PagedResult<Compliment> listCompliments(ComplimentFilter filter, Cursor cursor) throws BadRequestException {
+	public Optional<Compliments> lookupComplimentSet(String receiverManagedIdentity, String context) {
+		return complimentsDao.findComplimentSetByReceiverAndContext(receiverManagedIdentity, context);
+	}
+
+	public @NotNull PagedResult<Compliments> listCompliments(ComplimentsFilter filter, Cursor cursor) throws BadRequestException {
 		cursor.validate(MAX_RESULTS, 0);
 		filter.validate();
-    	PagedResult<Long> prs = complimentDao.listCompliments(filter, Cursor.COUNTING_CURSOR);
-    	List<Compliment> results = null;
+    	PagedResult<Long> prs = complimentsDao.listComplimentSets(filter, Cursor.COUNTING_CURSOR);
+    	List<Compliments> results = null;
     	if (prs.getTotalCount() > 0 && !cursor.isCountingQuery()) {
     		// Get the actual data
-    		PagedResult<Long> pids = complimentDao.listCompliments(filter, cursor);
-    		results = complimentDao.loadGraphs(pids.getData(), Compliment.LIST_COMPLIMENTS_ENTITY_GRAPH, Compliment::getId);
+    		PagedResult<Long> pids = complimentsDao.listComplimentSets(filter, cursor);
+    		results = complimentsDao.loadGraphs(pids.getData(), Compliments.LIST_COMPLIMENTS_ENTITY_GRAPH, Compliments::getId);
     	}
     	return new PagedResult<>(results, cursor, prs.getTotalCount());
 	}
 
-	public Compliment getCompliment(Long complimentId) throws NotFoundException {
-		return complimentDao.find(complimentId)
+	public void updateCompliments(Long complimentsId, Compliments complimentSet) throws NotFoundException, BadRequestException {
+    	prepareCompliments(complimentSet);
+    	complimentSet.setId(complimentsId);
+    	complimentsDao.merge(complimentSet);
+	}
+
+	public Compliments getCompliment(Long complimentId) throws NotFoundException {
+		return complimentsDao.loadGraph(complimentId, Compliments.LIST_COMPLIMENTS_ENTITY_GRAPH)
 				.orElseThrow(() -> new NotFoundException("No such compliment: " + complimentId));
 	}
 
 	public void removeCompliment(Long complimentId) throws NotFoundException {
-		Compliment c = complimentDao.find(complimentId)
+		Compliments c = complimentsDao.find(complimentId)
 				.orElseThrow(() -> new NotFoundException("No such compliment: " + complimentId));
-		complimentDao.remove(c);
+		complimentsDao.remove(c);
 	}
 
 }

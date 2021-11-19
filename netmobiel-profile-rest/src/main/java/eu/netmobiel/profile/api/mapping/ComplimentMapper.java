@@ -7,11 +7,9 @@ import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
-import org.mapstruct.ValueMapping;
-import org.mapstruct.ValueMappings;
 
-import eu.netmobiel.profile.model.Compliment;
 import eu.netmobiel.profile.model.ComplimentType;
+import eu.netmobiel.profile.model.Compliments;
 import eu.netmobiel.profile.model.Profile;
 
 /**
@@ -25,7 +23,7 @@ import eu.netmobiel.profile.model.Profile;
 public abstract class ComplimentMapper {
 
 //	public abstract List<Object> map(List<Compliment> source);
-	public abstract List<eu.netmobiel.profile.api.model.Compliment> map(List<Compliment> source);
+	public abstract List<eu.netmobiel.profile.api.model.Compliments> map(List<Compliments> source);
 //	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Compliment> source);
 
 	// Domain --> API
@@ -41,24 +39,24 @@ public abstract class ComplimentMapper {
 	
 	// Domain --> API
 	
-	@Mapping(target = "complimentType", source = "compliment")
-	public abstract eu.netmobiel.profile.api.model.Compliment map(Compliment source);
+//	@Mapping(target = "complimentType", source = "compliment")
+	public abstract eu.netmobiel.profile.api.model.Compliments map(Compliments source);
 
 	// API --> Domain
 	@InheritInverseConfiguration
-	public abstract Compliment map(eu.netmobiel.profile.api.model.Compliment source);
+	public abstract Compliments map(eu.netmobiel.profile.api.model.Compliments source);
 
-	@ValueMappings({
-        @ValueMapping(target = "ZELFDE_INTERESSES", source = "SAME_INTERESTS"),
-        @ValueMapping(target = "OP_TIJD", source = "ON_TIME"),
-        @ValueMapping(target = "SOEPELE_COMMUNICATIE", source = "TALKS_EASILY"),
-        @ValueMapping(target = "GEZELLIG", source = "SOCIABLE"),
-        @ValueMapping(target = "NETJES", source = "NEATLY"),
-        @ValueMapping(target = "GOEDE_AUTO", source = "NICE_CAR"),
-    })
-	public abstract eu.netmobiel.profile.api.model.Compliment.ComplimentTypeEnum map(ComplimentType source);
+//	@ValueMappings({
+//        @ValueMapping(target = "ZELFDE_INTERESSES", source = "SAME_INTERESTS"),
+//        @ValueMapping(target = "OP_TIJD", source = "ON_TIME"),
+//        @ValueMapping(target = "SOEPELE_COMMUNICATIE", source = "TALKS_EASILY"),
+//        @ValueMapping(target = "GEZELLIG", source = "SOCIABLE"),
+//        @ValueMapping(target = "NETJES", source = "NEATLY"),
+//        @ValueMapping(target = "GOEDE_AUTO", source = "NICE_CAR"),
+//    })
+	public abstract eu.netmobiel.profile.api.model.ComplimentType map(ComplimentType source);
 
-	@InheritInverseConfiguration
-	public abstract ComplimentType map(eu.netmobiel.profile.api.model.Compliment.ComplimentTypeEnum source);
+//	@InheritInverseConfiguration
+	public abstract ComplimentType map(eu.netmobiel.profile.api.model.ComplimentType source);
 
 }
