@@ -27,7 +27,7 @@ CREATE TABLE public.compliment (
 );
 
 ALTER TABLE public.compliment
-    ADD CONSTRAINT compliment_compliment_set_fk FOREIGN KEY (compliment_set) REFERENCES public.compliment_set(id);
+    ADD CONSTRAINT compliment_compliment_set_fk FOREIGN KEY (compliment_set) REFERENCES public.compliment_set(id),
     ADD CONSTRAINT cs_compliment_unique UNIQUE (compliment_set, compliment)
 ;
 
