@@ -438,10 +438,6 @@ components:
             User messages always have a sender. In regular use the (effective) caller
             is assigned as the sender. If the caller has elevated privilege, the sender
             can set by the caller. The sender is an Keycloak managed identity.
-        subject:
-          description: Deprecated. Human-readable context, used for displaying the
-            subject of the context.
-          type: string
         id:
           description: Read-only. A unique identification for the message. To get
             the right envelope the message id must be combined with the managed identity
