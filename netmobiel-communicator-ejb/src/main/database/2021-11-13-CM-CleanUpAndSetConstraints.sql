@@ -18,4 +18,9 @@ ALTER TABLE public.conversation
 ;
 
 ALTER TABLE public.envelope
-    ADD CONSTRAINT cs_unique_conversation_message UNIQUE (conversation, message);
+    ADD CONSTRAINT cs_unique_conversation_message UNIQUE (conversation, message)
+;
+
+ALTER TABLE public.message
+	ALTER COLUMN body SET NOT NULL
+;

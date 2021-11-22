@@ -68,6 +68,7 @@ public class Message extends ReferableObject implements NetMobielMessage, Serial
 	/**
 	 * The text of the message. 
 	 */
+    @NotNull
 	@Size(max = MAX_MESSAGE_SIZE)
 	@Column(name = "body")
 	private String body;
