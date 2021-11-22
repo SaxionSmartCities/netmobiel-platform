@@ -52,7 +52,7 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     
     @Test
     public void saveMessage() {
-		Message message = Fixture.createMessage("Het is tijd om te vertrekken voor Trip P2.1", "Trip P2.1", "De reis begint", DeliveryMode.MESSAGE, "2020-02-12T12:00:00Z", null, 
+		Message message = Fixture.createMessage("Het is tijd om te vertrekken voor Trip P2.1", "Trip P2.1", DeliveryMode.MESSAGE, "2020-02-12T12:00:00Z", null, 
         		new Envelope("Trip P2.1", convP2_1));
     	messageDao.save(message);
     	List<Message> actual = em.createQuery("select m from Message m where m.body = :body", Message.class)

@@ -25,7 +25,6 @@ public abstract class MessageMapper {
 	public abstract eu.netmobiel.communicator.api.model.Page map(PagedResult<Message> source);
 
 	@Mapping(target = "id", ignore = true)
-	@Mapping(target = "oldSender", ignore = true)
 	public abstract Message map(eu.netmobiel.communicator.api.model.Message source);
 
 	@AfterMapping

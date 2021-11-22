@@ -107,7 +107,7 @@ public class FirebaseMessagingClient {
 
     protected Map<String, String> createCustomDataMap(NetMobielMessage msg) {
     	Map<String, String> map = new LinkedHashMap<>();
-        map.put("context", msg.getContext());
+        map.put("messageRef", msg.getUrn());
         map.put("creationTime", DateTimeFormatter.ISO_INSTANT.format(msg.getCreatedTime()));
         NetMobielUser sender = msg.getSender();
         if (sender != null) {
@@ -131,7 +131,7 @@ public class FirebaseMessagingClient {
     	// This registration token comes from the client FCM SDKs.
 	    // See documentation on defining a message payload.
 	    Notification notification = Notification.builder()
-	    		.setTitle(msg.getSubject())
+//	    		.setTitle(msg.getSubject())
 	    		.setBody(msg.getBody())
 	    		.build();
 	    Message message = Message.builder()
@@ -160,6 +160,17 @@ public class FirebaseMessagingClient {
     	send(firebaseTokens, msg, false);
     }
 
+    private static String createTitle(NetMobielMessage msg) {
+    	String title = null;
+    	if (msg.getSender() != null) {
+    		// Personal message
+    		title = String.format("Persoonlijk bericht van %s %s", msg.getSender().getGivenName(), msg.getSender().getGivenName());
+    	} else {
+    		title = "Melding van Netmobiel";
+    	}
+    	return title;
+    }
+    
     /**
      * Sends a single message to multiple recipients (at most 500).
      * @param firebaseTokens the firebase tokens of the recipients.
@@ -169,7 +180,7 @@ public class FirebaseMessagingClient {
     public void send(Collection<String> firebaseTokens, NetMobielMessage msg, boolean dryRun) {
     	sanityCheck();
 	    Notification notification = Notification.builder()
-	    		.setTitle(msg.getSubject())
+	    		.setTitle(createTitle(msg))
 	    		.setBody(msg.getBody())
 	    		.build();
     	MulticastMessage message = MulticastMessage.builder()
@@ -210,7 +221,7 @@ public class FirebaseMessagingClient {
     	}
     	// The topic name can be optionally prefixed with "/topics/".
 	    Notification notification = Notification.builder()
-	    		.setTitle(msg.getSubject())
+	    		.setTitle(createTitle(msg))
 	    		.setBody(msg.getBody())
 	    		.build();
 	    Message message = Message.builder()

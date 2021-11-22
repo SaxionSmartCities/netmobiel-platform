@@ -127,7 +127,7 @@ import eu.netmobiel.commons.report.NumericReportValue;
 
 @Entity
 @Table(name = "envelope", uniqueConstraints = {
-	    @UniqueConstraint(name = "cs_unique_message_recipient", columnNames = { "recipient", "message" })
+	    @UniqueConstraint(name = "cs_unique_conversation_message", columnNames = { "conversation", "message" })
 })
 @Vetoed
 @SequenceGenerator(name = "envelope_sg", sequenceName = "envelope_id_seq", allocationSize = 1, initialValue = 50)
@@ -153,14 +153,6 @@ public class Envelope implements Serializable {
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "message", nullable = false, foreignKey = @ForeignKey(name = "envelope_message_fk"))
     private Message message;
-
-	/**
-	 * Deprecated: The recipient of the message. 
-	 */
-    @Deprecated
-    @ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name = "recipient", foreignKey = @ForeignKey(name = "envelope_recipient_fk"))
-    private CommunicatorUser oldRecipient;
 
 	/**
 	 * The time the message was acknowledged (read) by the user.
@@ -243,16 +235,6 @@ public class Envelope implements Serializable {
 
 	public void setMessage(Message message) {
 		this.message = message;
-	}
-
-	@Deprecated
-	public CommunicatorUser getOldRecipient() {
-		return oldRecipient;
-	}
-
-	@Deprecated
-	public void setOldRecipient(CommunicatorUser recipient) {
-		this.oldRecipient = recipient;
 	}
 
 	public CommunicatorUser getRecipient() {

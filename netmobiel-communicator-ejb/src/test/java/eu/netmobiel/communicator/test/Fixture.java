@@ -22,14 +22,13 @@ public class Fixture {
 		return new CommunicatorUser(identity, givenName, familyName, email);
 	}
 
-    public static Message createMessage(String body, String context, String subject, DeliveryMode mode, String creationTimeIso, Conversation sender, Envelope... rcpEnvelopes) {
+    public static Message createMessage(String body, String context, DeliveryMode mode, String creationTimeIso, Conversation sender, Envelope... rcpEnvelopes) {
     	Instant creationTime = Instant.parse(creationTimeIso);
     	Message m = new Message();
     	m.setBody(body);
     	m.setContext(context);
     	m.setCreatedTime(creationTime);
     	m.setDeliveryMode(mode);
-    	m.setSubject(subject);
     	Arrays.stream(rcpEnvelopes)
     			.forEach(env -> m.addRecipient(env));
     	if (sender != null) {

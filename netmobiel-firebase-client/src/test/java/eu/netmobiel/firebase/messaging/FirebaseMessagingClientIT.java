@@ -25,6 +25,7 @@ import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.NetMobielMessage;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.NetMobielUserImpl;
+import eu.netmobiel.commons.util.UrnHelper;
 
 @RunWith(Arquillian.class)
 public class FirebaseMessagingClientIT {
@@ -82,7 +83,7 @@ public class FirebaseMessagingClientIT {
     
     @Test
     public void testSendMessageDryRunBadToken() throws Exception {
-    	NetMobielMessage msg = new TestMessage("a body", "urn:nb:ts:Test:1234", "Test 1234", Instant.now(), aSender);
+    	NetMobielMessage msg = new TestMessage(999L, "a body", Instant.now(), aSender);
     	try {
     		client.send("someFcmToken", msg, true);
     		fail("Expected an exception due to invalid FCM token");
@@ -93,7 +94,7 @@ public class FirebaseMessagingClientIT {
 
     @Test
     public void testSendMessageRealToken() throws Exception {
-    	NetMobielMessage msg = new TestMessage("Dit is een NetMobiel test van Jaap, stuur even appje als je dit ontvangt", "urn:nb:ts:Test:1234", "Test 1234", Instant.now(), aSender);
+    	NetMobielMessage msg = new TestMessage(1000L, "Dit is een NetMobiel test van Jaap, stuur even appje als je dit ontvangt", Instant.now(), aSender);
     	try {
     		client.send(testFcmToken, msg, !enableRealSendMessage);
     	} catch (SystemException ex) {
@@ -104,7 +105,7 @@ public class FirebaseMessagingClientIT {
     @Test
     public void testPublishMessage() {
     	try {
-	    	NetMobielMessage msg = new TestMessage("a body", "urn:nb:ts:Test:1234", "Test 1234", Instant.now(), aSender);
+	    	NetMobielMessage msg = new TestMessage(999L, "a body", Instant.now(), aSender);
 	    	client.publish("systemTopic", msg, true);
     	} catch (Exception ex) {
     		fail("Got exception");
@@ -112,33 +113,26 @@ public class FirebaseMessagingClientIT {
     }
 
     private static class TestMessage implements NetMobielMessage {
+    	private Long id;
     	private String body;
-    	private String context;
-    	private String subject;
     	private Instant creationTime;
         private NetMobielUser sender;
 
-        public TestMessage(String body, String context, String subject, Instant creationTime, NetMobielUser sender) {
+        public TestMessage(Long id, String body, Instant creationTime, NetMobielUser sender) {
+        	this.id = id;
         	this.body = body;
-        	this.context = context;
-        	this.subject = subject;
         	this.creationTime = creationTime;
         	this.sender = sender;
         }
 
 		@Override
+        public String getUrn() {
+        	return UrnHelper.createUrn("urn:nb:cm:message:", this.id);
+        }
+        
+		@Override
 		public String getBody() {
 			return body;
-		}
-
-		@Override
-		public String getContext() {
-			return context;
-		}
-
-		@Override
-		public String getSubject() {
-			return subject;
 		}
 
 		@Override

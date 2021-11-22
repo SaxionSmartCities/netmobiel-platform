@@ -146,6 +146,8 @@ public class PublisherService {
 						logger.error(String.format("Cannot send push notification to %s (%s): No FCM token set", 
 								profile.getManagedIdentity(), profile.getName()));  
 					} else {
+						//FIXME Should use only the details that are required in the push message as displayed initially. 
+						// Other information is retrieved froom database later on.
 						firebaseMessagingClient.send(profile.getFcmToken(), msg);
 						env.setPushTime(Instant.now());
 					}

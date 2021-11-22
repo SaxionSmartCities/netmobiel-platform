@@ -12,12 +12,9 @@ import javax.persistence.CascadeType;
 import javax.persistence.Column;
 import javax.persistence.Entity;
 import javax.persistence.FetchType;
-import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
-import javax.persistence.JoinColumn;
-import javax.persistence.ManyToOne;
 import javax.persistence.NamedAttributeNode;
 import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedSubgraph;
@@ -29,18 +26,17 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.NetMobielMessage;
+import eu.netmobiel.commons.model.ReferableObject;
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
 @NamedEntityGraph(
 		name = Message.MESSAGE_ENVELOPES_ENTITY_GRAPH, 
 		attributeNodes = { 
-				@NamedAttributeNode(value = "oldSender"),		
 				@NamedAttributeNode(value = "envelopes", subgraph = "envelope-details")		
 		}, subgraphs = {
 				@NamedSubgraph(
 						name = "envelope-details",
 						attributeNodes = {
-								@NamedAttributeNode(value = "oldRecipient"),
 								@NamedAttributeNode(value = "ackTime"),
 								@NamedAttributeNode(value = "conversation", subgraph = "conversation-details"),
 						}
@@ -59,7 +55,7 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 @Table(name = "message")
 @Vetoed
 @SequenceGenerator(name = "message_sg", sequenceName = "message_id_seq", allocationSize = 1, initialValue = 50)
-public class Message implements NetMobielMessage, Serializable {
+public class Message extends ReferableObject implements NetMobielMessage, Serializable {
 
 	private static final long serialVersionUID = 5034396677188994964L;
 	public static final String URN_PREFIX = CommunicatorUrnHelper.createUrnPrefix(Message.class);
@@ -86,18 +82,6 @@ public class Message implements NetMobielMessage, Serializable {
 	@Column(name = "context")
 	private String context;
 	
-	/**
-	 * The subject of the context, formatted by the client. For the backend this is an opaque string.
-	 * The subject should be set for a given context. The reason for a subject is to prevent a 1+N query
-	 * by the client for looking up the context of each message after retrieving the list of messages.
-	 * The context will be used to lookup details of a message (i.e. clicking-through).     
-	 */
-	@Size(max = 128)
-//    @NotNull
-	@Column(name = "subject")
-	private String subject;
-	
-	
     @NotNull
 	@Column(name = "created_time")
 	private Instant createdTime;
@@ -108,15 +92,6 @@ public class Message implements NetMobielMessage, Serializable {
     @NotNull
 	@Column(name = "delivery_mode", length = 2)
 	private DeliveryMode deliveryMode;
-
-	/**
-	 * Deprecated: The sender of the message.
-	 */
-    @Deprecated
-//    @NotNull
-    @ManyToOne
-    @JoinColumn(name = "sender", foreignKey = @ForeignKey(name = "message_sender_fk"))
-    private CommunicatorUser oldSender;
 
     /**
      * The recipients of the message.
@@ -130,7 +105,8 @@ public class Message implements NetMobielMessage, Serializable {
 	@Transient
     private CommunicatorUser sender;
 	
-    public Long getId() {
+    @Override
+	public Long getId() {
 		return id;
 	}
 
@@ -138,6 +114,10 @@ public class Message implements NetMobielMessage, Serializable {
 		this.id = id;
 	}
 
+	@Override
+	public String getUrnPrefix() {
+		return URN_PREFIX;
+	}
 
 	@Override
 	public String getBody() {
@@ -148,22 +128,12 @@ public class Message implements NetMobielMessage, Serializable {
 		this.body = body;
 	}
 
-	@Override
 	public String getContext() {
 		return context;
 	}
 
 	public void setContext(String context) {
 		this.context = context;
-	}
-
-	@Override
-	public String getSubject() {
-		return subject;
-	}
-
-	public void setSubject(String subject) {
-		this.subject = subject;
 	}
 
 	@Override
@@ -181,16 +151,6 @@ public class Message implements NetMobielMessage, Serializable {
 
 	public void setDeliveryMode(DeliveryMode deliveryMode) {
 		this.deliveryMode = deliveryMode;
-	}
-
-	@Deprecated
-	public CommunicatorUser getOldSender() {
-		return oldSender;
-	}
-
-	@Deprecated
-	public void setOldSender(CommunicatorUser sender) {
-		this.oldSender = sender;
 	}
 
 	@Override
@@ -256,8 +216,8 @@ public class Message implements NetMobielMessage, Serializable {
 	
 	@Override
 	public String toString() {
-		return String.format("Message [%d %s '%s' %s %s '%s']", id, 
-				context, subject, deliveryMode, DateTimeFormatter.ISO_INSTANT.format(createdTime), body != null ? body : "");
+		return String.format("Message [%d %s %s %s '%s']", id, 
+				context, deliveryMode, DateTimeFormatter.ISO_INSTANT.format(createdTime), body != null ? body : "");
 	}
 
 }

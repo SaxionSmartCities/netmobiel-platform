@@ -25,7 +25,6 @@ public abstract class EnvelopeMapper {
 	@Mapping(target = "message", ignore = true)
 	@Mapping(target = "conversation", ignore = true)
 	@Mapping(target = "sender", ignore = true)
-	@Mapping(target = "oldRecipient", ignore = true)
 	public abstract Envelope map(eu.netmobiel.communicator.api.model.Envelope source);
 
 	@Mapping(target = "conversationRef", source = "conversation.urn")

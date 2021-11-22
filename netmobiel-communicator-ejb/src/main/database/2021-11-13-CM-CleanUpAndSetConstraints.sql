@@ -16,3 +16,6 @@ ALTER TABLE public.message
 ALTER TABLE public.conversation
 	ALTER COLUMN owner_role SET NOT NULL
 ;
+
+ALTER TABLE public.envelope
+    ADD CONSTRAINT cs_unique_conversation_message UNIQUE (conversation, message);

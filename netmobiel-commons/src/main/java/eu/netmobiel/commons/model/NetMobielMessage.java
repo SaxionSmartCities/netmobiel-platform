@@ -9,21 +9,19 @@ import java.time.Instant;
  *
  */
 public interface NetMobielMessage {
+
+	/**
+	 * The unique identifier of the message
+	 * @return The urn of the message
+	 */
+	String getUrn();
+	
 	/**
 	 * Returns the body text of the message.
 	 * @return a text or null if none set.
 	 */
 	String getBody();
-	/**
-	 * Returns the context of message. The context is a urn referring to the business object triggering the message. 
-	 * @return the context urn. 
-	 */
-	String getContext();
-	/**
-	 * Returns the context as a textual message. 
-	 * @return a text or null if not set.
-	 */
-	String getSubject();
+
 	/**
 	 * Returns the creation time of the message.
 	 * @return the creation time. Never null.
