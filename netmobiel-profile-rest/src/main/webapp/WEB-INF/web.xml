@@ -45,17 +45,6 @@
 	</security-constraint>
 	<security-constraint>
 		<web-resource-collection>
-			<web-resource-name>Create profile</web-resource-name>
-			<url-pattern>/api/profiles</url-pattern>
-			<!-- An unauthenticated user can create a profile, dodgy but true -->
-			<http-method-omission>POST</http-method-omission>
-		</web-resource-collection>
-		<auth-constraint>
-			<role-name>**</role-name>
-		</auth-constraint>
-	</security-constraint>
-	<security-constraint>
-		<web-resource-collection>
 			<web-resource-name>All other resources</web-resource-name>
 			<url-pattern>/api/*</url-pattern>
 		</web-resource-collection>
