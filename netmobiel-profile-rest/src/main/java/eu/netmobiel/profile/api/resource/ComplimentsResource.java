@@ -98,7 +98,7 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 	public Response getCompliments(String xDelegator, String senderId, String receiverId) {
 		Response rsp = null;
 		try {
-			Cursor cursor = new Cursor();
+			Cursor cursor = new Cursor(100, 0);
 			ComplimentsFilter filter = new ComplimentsFilter(resolveIdentity(xDelegator, receiverId), resolveIdentity(xDelegator, senderId));
 			String me = securityIdentity.getEffectivePrincipal().getName();
 			final boolean privileged = request.isUserInRole("admin"); 

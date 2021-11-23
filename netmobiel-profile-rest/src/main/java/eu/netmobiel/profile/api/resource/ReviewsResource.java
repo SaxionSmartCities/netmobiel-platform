@@ -112,7 +112,7 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 	public Response getReviews(String xDelegator, String senderId, String receiverId) {
 		Response rsp = null;
 		try {
-			Cursor cursor = new Cursor();
+			Cursor cursor = new Cursor(100, 0);
 			ReviewFilter filter = new ReviewFilter(resolveIdentity(xDelegator, receiverId), resolveIdentity(xDelegator, senderId));
 			String me = securityIdentity.getEffectivePrincipal().getName();
 			final boolean privileged = request.isUserInRole("admin"); 
