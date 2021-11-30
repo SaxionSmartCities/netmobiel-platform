@@ -107,7 +107,7 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "from envelope e "
 	        		+ "join conversation c on c.id = e.conversation "
 	        		+ "join message m on m.id = e.message "
-	        		+ "join cm_user u on u.id = e.recipient "
+	        		+ "join cm_user u on u.id = c.owner "
 	        		+ "where e.sender = false and e.ack_time >= ? and e.ack_time < ? and e.push_time is not null and e.context like 'urn:nb:pn:tripplan:' "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
