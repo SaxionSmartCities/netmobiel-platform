@@ -140,6 +140,10 @@ public class PublisherService {
 			// For now: Make synchronous until it is a real problem.
 //			notifierService.sendNotification(msg);
 			for (Envelope env : msg.getEnvelopes()) {
+				// Skip the sender envelope, if any.
+				if (env.isSender()) {
+					continue;
+				}
 				try {
 					Profile profile = profileManager.getFlatProfileByManagedIdentity(env.getRecipient().getManagedIdentity());
 					if (profile.getFcmToken() == null || profile.getFcmToken().isBlank()) {
