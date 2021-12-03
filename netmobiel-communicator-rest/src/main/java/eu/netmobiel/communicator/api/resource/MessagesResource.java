@@ -110,12 +110,13 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 	}
 
 	@Override
-	public Response acknowledgeMessage(String xDelegator, Integer messageId) {
+	public Response acknowledgeMessage(String xDelegator, String messageId) {
     	Response rsp = null;
     	try {
 			CallingContext<CommunicatorUser> context = userManager.findCallingContext(securityIdentity);
 			CommunicatorUser recipient = context.getEffectiveUser();
-			publisherService.updateAcknowledgment(recipient, messageId.longValue(), Instant.now());
+        	Long mid = UrnHelper.getId(Message.URN_PREFIX, messageId);
+			publisherService.updateAcknowledgment(recipient, mid, Instant.now());
 			rsp = Response.noContent().build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
@@ -124,13 +125,32 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 	}
 
 	@Override
-	public Response removeAcknowledgement(String xDelegator, Integer messageId) {
+	public Response removeAcknowledgement(String xDelegator, String messageId) {
     	Response rsp = null;
     	try {
 			CallingContext<CommunicatorUser> context = userManager.findCallingContext(securityIdentity);
 			CommunicatorUser recipient = context.getEffectiveUser();
-			publisherService.updateAcknowledgment(recipient, messageId.longValue(), null);
+        	Long mid = UrnHelper.getId(Message.URN_PREFIX, messageId);
+			publisherService.updateAcknowledgment(recipient, mid, null);
 			rsp = Response.noContent().build();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+    	return rsp;
+	}
+
+	@Override
+	public Response getMessage(String xDelegator, String messageId) {
+    	Response rsp = null;
+    	try {
+			CallingContext<CommunicatorUser> context = userManager.findCallingContext(securityIdentity);
+			CommunicatorUser me = context.getEffectiveUser();
+        	Long mid = UrnHelper.getId(Message.URN_PREFIX, messageId);
+			Message msg = publisherService.getMessage(mid);
+			if (!request.isUserInRole("admin") && !msg.isUserParticipant(me)) {
+	    		throw new SecurityException("You have no access rights");
+			}
+			rsp = Response.ok(mapper.map(msg)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}

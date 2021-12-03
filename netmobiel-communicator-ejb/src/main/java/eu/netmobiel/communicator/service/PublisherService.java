@@ -378,6 +378,11 @@ public class PublisherService {
     	return new PagedResult<>(conversations, maxResults, offset, prs.getTotalCount());
     }
 
+    public Message getMessage(Long messageId) throws NotFoundException {
+    	return messageDao.loadGraph(messageId, Message.MESSAGE_ENVELOPES_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such message: " + messageId));
+    }
+    
     public void updateMessage(Long messageId, Message message) throws NotFoundException, BadRequestException {
 //    	for (Envelope env : message.getEnvelopes()) {
 //    		if (env.getId() == null) {

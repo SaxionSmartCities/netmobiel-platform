@@ -215,6 +215,13 @@ public class Message extends ReferableObject implements NetMobielMessage, Serial
 		return convUrn;
 	}
 	
+	public boolean isUserParticipant(CommunicatorUser user) {
+		return envelopes.stream()
+				.filter(env -> env.getConversation().getOwner().equals(user))
+				.findAny()
+				.isPresent();
+	}
+	
 	@Override
 	public String toString() {
 		return String.format("Message [%d %s %s %s '%s']", id, 
