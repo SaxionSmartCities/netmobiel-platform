@@ -37,6 +37,8 @@ import eu.netmobiel.commons.model.NetMobielMessage;
  */
 @ApplicationScoped
 public class FirebaseMessagingClient {
+	public final static String SYSTEM_USER_NAME = "Netmobiel";
+	
     @Inject
     private Logger log;
 
@@ -93,6 +95,10 @@ public class FirebaseMessagingClient {
     		throw new IllegalStateException("Firebase has not properly been initialized, cannot send messages.");
     	}
     }
+
+    private static String getTitle(NetMobielMessage msg) {
+    	return msg.getSender() != null ? msg.getSender().getName() : SYSTEM_USER_NAME;
+    }
     
     /**
      * Sends a single message to a recipient.
@@ -122,7 +128,7 @@ public class FirebaseMessagingClient {
     	// This registration token comes from the client FCM SDKs.
 	    // See documentation on defining a message payload.
 	    Notification notification = Notification.builder()
-	    		.setTitle(msg.getSender() != null ? msg.getSender().getName() : null)
+	    		.setTitle(getTitle(msg))
 	    		.setBody(msg.getBody())
 	    		.build();
 	    Message message = Message.builder()
@@ -160,7 +166,7 @@ public class FirebaseMessagingClient {
     public void send(Collection<String> firebaseTokens, NetMobielMessage msg, boolean dryRun) {
     	sanityCheck();
 	    Notification notification = Notification.builder()
-	    		.setTitle(msg.getSender() != null ? msg.getSender().getName() : null)
+	    		.setTitle(getTitle(msg))
 	    		.setBody(msg.getBody())
 	    		.build();
     	MulticastMessage message = MulticastMessage.builder()
