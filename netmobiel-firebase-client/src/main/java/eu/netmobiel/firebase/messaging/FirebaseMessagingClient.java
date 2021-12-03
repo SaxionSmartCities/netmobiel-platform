@@ -4,7 +4,6 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
-import java.time.format.DateTimeFormatter;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -29,7 +28,6 @@ import com.google.firebase.messaging.Notification;
 
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.NetMobielMessage;
-import eu.netmobiel.commons.model.NetMobielUser;
 
 /**
  * Client for Google Firebase messaging.
@@ -108,13 +106,6 @@ public class FirebaseMessagingClient {
     protected Map<String, String> createCustomDataMap(NetMobielMessage msg) {
     	Map<String, String> map = new LinkedHashMap<>();
         map.put("messageRef", msg.getUrn());
-        map.put("creationTime", DateTimeFormatter.ISO_INSTANT.format(msg.getCreatedTime()));
-        NetMobielUser sender = msg.getSender();
-        if (sender != null) {
-		    map.put("senderId", sender.getManagedIdentity());
-		    map.put("senderGivenName", sender.getGivenName());
-		    map.put("senderFamilyName", sender.getFamilyName());
-        }
     	return map;
     }
     /**
@@ -131,7 +122,7 @@ public class FirebaseMessagingClient {
     	// This registration token comes from the client FCM SDKs.
 	    // See documentation on defining a message payload.
 	    Notification notification = Notification.builder()
-//	    		.setTitle(msg.getSubject())
+	    		.setTitle(msg.getSender() != null ? msg.getSender().getName() : null)
 	    		.setBody(msg.getBody())
 	    		.build();
 	    Message message = Message.builder()
@@ -160,17 +151,6 @@ public class FirebaseMessagingClient {
     	send(firebaseTokens, msg, false);
     }
 
-    private static String createTitle(NetMobielMessage msg) {
-    	String title = null;
-    	if (msg.getSender() != null) {
-    		// Personal message
-    		title = String.format("Persoonlijk bericht van %s %s", msg.getSender().getGivenName(), msg.getSender().getGivenName());
-    	} else {
-    		title = "Melding van Netmobiel";
-    	}
-    	return title;
-    }
-    
     /**
      * Sends a single message to multiple recipients (at most 500).
      * @param firebaseTokens the firebase tokens of the recipients.
@@ -180,7 +160,7 @@ public class FirebaseMessagingClient {
     public void send(Collection<String> firebaseTokens, NetMobielMessage msg, boolean dryRun) {
     	sanityCheck();
 	    Notification notification = Notification.builder()
-	    		.setTitle(createTitle(msg))
+	    		.setTitle(msg.getSender() != null ? msg.getSender().getName() : null)
 	    		.setBody(msg.getBody())
 	    		.build();
     	MulticastMessage message = MulticastMessage.builder()
@@ -221,7 +201,7 @@ public class FirebaseMessagingClient {
     	}
     	// The topic name can be optionally prefixed with "/topics/".
 	    Notification notification = Notification.builder()
-	    		.setTitle(createTitle(msg))
+	    		.setTitle(msg.getSender() != null ? msg.getSender().getName() : null)
 	    		.setBody(msg.getBody())
 	    		.build();
 	    Message message = Message.builder()
