@@ -166,7 +166,7 @@ paths:
     - name: messageId
       description: The id of the message.
       schema:
-        type: integer
+        type: string
       in: path
       required: true
   /conversations/{conversationId}/messages:
@@ -376,6 +376,39 @@ paths:
       schema:
         type: string
       in: header
+  /messages/{messageId}:
+    summary: Path used to handle a single message.
+    description: |-
+      The REST endpoint/path used to get single instances of a `Message`.  This path contains a `GET` operation used to perform the get task.
+      When a call a made by someone with the delegate role, the effective user will be the user specified in the X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Message'
+          description: Succesfull response.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getMessage
+      summary: Retrieve a specific message
+      description: Retrieves a specific message, including the conversation id.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: messageId
+      description: The id of the message.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
