@@ -129,7 +129,7 @@ public class TripProgressProcessor {
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(passengerConv, trip.getTripRef());
 		msg.setBody(text);
-		publisherService.publish(null, msg);
+		publisherService.publish(msg);
 		// Inform the delegates, if any
 		publisherService.informDelegates(trip.getTraveller(), 
 				delegateText, 
@@ -161,7 +161,7 @@ public class TripProgressProcessor {
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(driverConv, b.getUrn());
 		msg.setBody(text);
-		publisherService.publish(null, msg);
+		publisherService.publish(msg);
 	}	
 
 	private void informDriverOnDeparture(Ride ride) throws BusinessException {

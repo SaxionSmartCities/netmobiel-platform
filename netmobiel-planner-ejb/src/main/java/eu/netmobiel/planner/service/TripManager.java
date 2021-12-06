@@ -212,7 +212,7 @@ public class TripManager {
    		for (Leg leg : trip.getItinerary().getLegs()) {
 	    	// Check for bookingID set. If so than it was a shout-out and we need to convert the PROPOSAL to a CONFIRMED booking
 	    	if (leg.getBookingId() != null) {
-	    		// This must be a proposed booking. Confirm it. Replace the plan reference with the trip reference
+	    		// This must be a proposed booking. Confirm it. Add a trip reference.
 	    		BookingConfirmedEvent bce = new BookingConfirmedEvent(trip, leg);
    				leg.setState(TripState.SCHEDULED);
    				bookingConfirmedEvents.add(bce);

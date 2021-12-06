@@ -102,7 +102,7 @@ public class DelegationProcessor {
 		msg.setBody(textHelper.createDelegationConfirmedToDelegateText(delegation));
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(rcp, delegation.getUrn());
-		publisherService.publish(null, msg);
+		publisherService.publish(msg);
      }
 
     
@@ -122,7 +122,7 @@ public class DelegationProcessor {
 		msg.setBody(textHelper.createTransferDelegationToText(fromDelegation));
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(rcp, toDelegation.getUrn());
-		publisherService.publish(null, msg);
+		publisherService.publish(msg);
     }
 
     /**
@@ -143,6 +143,6 @@ public class DelegationProcessor {
 		msg.setBody(textHelper.createTransferDelegationCompletedText(fromDelegation, toDelegation));
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(rcp, fromDelegation.getUrn());
-		publisherService.publish(null, msg);
+		publisherService.publish(msg);
     }
 }

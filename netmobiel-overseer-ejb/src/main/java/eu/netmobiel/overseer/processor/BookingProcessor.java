@@ -170,15 +170,15 @@ public class BookingProcessor {
 		}
 		tripManager.assignBookingReference(trip.getTripRef(), leg.getTripId(), bookingRef, autoConfirmed);
 		reserveFare(event.getTrip(), event.getLeg());
-		// Inform passenger on booking
-//		Conversation passengerConv = publisherService.lookupOrCreateConversation(trip.getTraveller(), 
-//				UserRole.PASSENGER, trip.getTripRef(), textHelper.createPassengerTripTopic(trip), true);
-//    	Message msg = new Message();
-//		msg.setContext(bookingRef);
-//		msg.setDeliveryMode(DeliveryMode.ALL);
-//		msg.addRecipient(passengerConv, trip.getTripRef());
-//		msg.setBody(textHelper.cre);
-//		publisherService.publish(null, msg);
+		// Inform passenger on booking. This will also start the conversation of the passenger for this ride! 
+		Conversation passengerConv = publisherService.lookupOrCreateConversation(trip.getTraveller(), 
+				UserRole.PASSENGER, trip.getTripRef(), textHelper.createPassengerTripTopic(trip), true);
+    	Message msg = new Message();
+		msg.setContext(bookingRef);
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(passengerConv, trip.getTripRef());
+		msg.setBody(textHelper.createBookingTextForPassenger(b));
+		publisherService.publish(msg);
     }
     
     private void informDriverOnBookingChangeConversation(Booking booking, String text) throws BusinessException {
@@ -193,12 +193,12 @@ public class BookingProcessor {
 		msg.setDeliveryMode(DeliveryMode.ALL);
 		msg.addRecipient(driverConv, booking.getUrn());
 		msg.setBody(text);
-		publisherService.publish(null, msg);
+		publisherService.publish(msg);
     }
 
     public void onBookingCreated(@Observes(during = TransactionPhase.IN_PROGRESS) @Created Booking booking) throws BusinessException {
 		// Inform driver on new booking
-    	informDriverOnBookingChangeConversation(booking, textHelper.createBookingCreatedText(booking));
+    	informDriverOnBookingChangeConversation(booking, textHelper.createBookingCreatedTextForDriver(booking));
 	}
 
 	public void onBookingRemoved(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Booking booking) throws BusinessException {
@@ -208,13 +208,13 @@ public class BookingProcessor {
 	}
 
 	/**
-     * Handles the case where a traveller confirms a proposed booking of a provider. The provider's gets the trip reference assigned.
+     * Handles the case where a traveller confirms a proposed booking of a provider. The provider gets the trip reference assigned.
      * The fare is debited for the traveller and credited to the reservation account.  
      * @param event the confirmed event
      * @throws BusinessException 
      */
     public void onBookingConfirmed(@Observes(during = TransactionPhase.IN_PROGRESS) BookingConfirmedEvent event) throws BusinessException {
-		// Replace the plan reference with trip reference
+		// Add a trip reference to the booking.
 		bookingManager.confirmBooking(UrnHelper.getId(Booking.URN_PREFIX, event.getLeg().getBookingId()), event.getTrip().getTripRef());
 		reserveFare(event.getTrip(), event.getLeg());
     }
@@ -311,7 +311,7 @@ public class BookingProcessor {
 				msg.setBody(textHelper.createDriverCancelledBookingText(b));
 				msg.setDeliveryMode(DeliveryMode.ALL);
 				msg.addRecipient(passengerConv, passengerContext);
-				publisherService.publish(null, msg);
+				publisherService.publish(msg);
 				// Inform the delegates, if any. They receive limited information only. The delegate can switch to the delegator view and see the normal messages.
 				publisherService.informDelegates(event.getTraveller(), 
 						textHelper.informDelegateCancelledBookingText(b), DeliveryMode.ALL);

@@ -86,7 +86,17 @@ public class PublisherService {
     @Inject
     private FirebaseMessagingClient firebaseMessagingClient;
 
-	public void validateMessage(Message msg) throws CreateException, BadRequestException {
+	private static void validateChatMessage(Message msg) throws CreateException, BadRequestException {
+		validateMessage(msg);
+		// There cannot yet be a sender in the envelopes
+		if (msg.getEnvelopes().stream()
+				.filter(env -> env.isSender())
+				.findAny().isPresent()) {
+				throw new BadRequestException("Do not add a sender envelope");
+		}
+    }
+ 	
+	private static void validateMessage(Message msg) throws CreateException, BadRequestException {
     	if (msg.getContext() == null) {
     		throw new BadRequestException("Constraint violation: sender/system 'context' must be set.");
     	}
@@ -101,12 +111,6 @@ public class PublisherService {
 			.findAny().isPresent()) {
 			throw new BadRequestException("Envelope context cannot be null or blank");
 		}
-		// There cannot yet be a sender in the envelopes
-		if (msg.getEnvelopes().stream()
-				.filter(env -> env.isSender())
-				.findAny().isPresent()) {
-				throw new BadRequestException("Do not add a sender envelope");
-		}
     }
 
     /**
@@ -117,13 +121,24 @@ public class PublisherService {
      * @return the message Id.
      * @throws BusinessException 
      */
-    public Long publish(CommunicatorUser sender, Message msg) throws BusinessException {
-		msg.setCreatedTime(Instant.now());
+    public Long chat(@NotNull CommunicatorUser sender, Message msg) throws BusinessException {
+    	validateChatMessage(msg);
+		Conversation senderConv = lookupConversation(sender, msg.getContext());
+		msg.addSender(senderConv, msg.getContext());
+		return publish(msg);
+    }
+
+    /**
+     * Sends a message and/or a notification to the recipients in the message envelopes.
+     * The conversations of sender and recipients must already exist!
+     * @param sender the sender of the message.
+     * @param msg the message to send to the recipients in the envelopes
+     * @return the message Id.
+     * @throws BusinessException 
+     */
+    public Long publish(Message msg) throws BusinessException {
 		validateMessage(msg);
-		if (sender != null) {
-			Conversation senderConv = lookupConversation(sender, msg.getContext());
-			msg.addSender(senderConv, msg.getContext());
-		}
+		msg.setCreatedTime(Instant.now());
 		// Assure all recipient conversations are present in the database, replace transient instances of users with persistent instances.
 		for (Envelope env : msg.getEnvelopes()) {
 			Conversation rcpConv = lookupConversation(env.getRecipient(), env.getContext());
@@ -147,7 +162,7 @@ public class PublisherService {
 				try {
 					Profile profile = profileManager.getFlatProfileByManagedIdentity(env.getRecipient().getManagedIdentity());
 					if (profile.getFcmToken() == null || profile.getFcmToken().isBlank()) {
-						logger.error(String.format("Cannot send push notification to %s (%s): No FCM token set", 
+						logger.warn(String.format("Cannot send push notification to %s (%s): No FCM token set", 
 								profile.getManagedIdentity(), profile.getName()));  
 					} else {
 						//FIXME Should use only the details that are required in the push message as displayed initially. 
@@ -478,7 +493,7 @@ public class PublisherService {
 				delegations.getData().forEach(delegation -> msg.addRecipient(
 						lookupOrCreateConversation(delegation.getDelegate(), UserRole.DELEGATE, delegation.getUrn(), topic, false), delegation.getUrn()
 				));
-				publish(null, msg);
+				publish(msg);
 			}
 		} catch (BusinessException ex) {
 			logger.error("Cannot inform delegates: " + String.join("\n\t", ExceptionUtil.unwindException(ex)));

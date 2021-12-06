@@ -57,7 +57,7 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 				throw new SecurityException("You have no privilege to specify a sender");
 			}
 			message.setSender(sender);
-			Long mid = publisherService.publish(sender, message);
+			Long mid = publisherService.chat(sender, message);
 			if (!callingContext.getCallingUser().equals(sender)) {
 				publisherService.informDelegates(sender, "Persoonlijk bericht van " + sender.getName(), DeliveryMode.ALL);
 			}

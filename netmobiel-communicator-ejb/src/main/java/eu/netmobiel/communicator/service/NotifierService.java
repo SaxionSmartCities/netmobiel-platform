@@ -56,7 +56,7 @@ public class NotifierService {
 				try {
 					Profile profile = profileManager.getFlatProfileByManagedIdentity(env.getRecipient().getManagedIdentity());
 					if (profile.getFcmToken() == null || profile.getFcmToken().isBlank()) {
-						logger.error(String.format("Cannot send push notification to %s (%s): No FCM token set", 
+						logger.warn(String.format("Cannot send push notification to %s (%s): No FCM token set", 
 								profile.getManagedIdentity(), profile.getName()));  
 					} else {
 						firebaseMessagingClient.send(profile.getFcmToken(), msgdb);

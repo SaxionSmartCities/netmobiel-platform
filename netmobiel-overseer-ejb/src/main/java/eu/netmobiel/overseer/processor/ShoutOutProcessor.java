@@ -88,7 +88,7 @@ public class ShoutOutProcessor {
 			publisherService.lookupOrCreateConversations(profiles, UserRole.DRIVER, event.getPlanRef(), topic, true)
 				.forEach(conversation -> msg.addRecipient(conversation, event.getPlanRef()));
 			// And send the message
-			publisherService.publish(null, msg);
+			publisherService.publish(msg);
 		}
     }
 
@@ -170,7 +170,7 @@ public class ShoutOutProcessor {
 		// The context of the passenger is the plan. The passenger can find the leg by looking for the message context in the plan
 		msg.addRecipient(passengerConv, sop.getPlanRef());
 		msg.setBody(textHelper.createPassengerTravelOfferMessageBody(r));
-		publisherService.publish(null, msg);
+		publisherService.publish(msg);
 		// Inform the delegates, if any. They receive limited information only. The delegate can switch to the delegator view and see the normal messages.
 		publisherService.informDelegates(b.getPassenger(), textHelper.informDelegateNewTravelOfferText(r), DeliveryMode.ALL);
     }

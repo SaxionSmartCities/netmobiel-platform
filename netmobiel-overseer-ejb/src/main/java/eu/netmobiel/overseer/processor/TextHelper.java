@@ -159,7 +159,21 @@ public class TextHelper {
 		);
 	}
 
-	public String createBookingCreatedText(Booking booking) {
+	public String createBookingTextForPassenger(Booking booking) {
+		String text = null;
+		if (booking.getState() == BookingState.REQUESTED) {
+			text = MessageFormat.format("Je hebt {0} gevraagd of je kunt meerijden.",
+					booking.getRide().getDriver().getGivenName());
+		} else if (booking.getState() == BookingState.CONFIRMED) {
+			text = MessageFormat.format("Je kunt meerijden met {0}.",
+					booking.getRide().getDriver().getGivenName());
+		} else {
+			throw new IllegalStateException("Unexpected booking state (passenger view) with booking " + booking.toString());
+		}
+		return text; 
+	}
+
+	public String createBookingCreatedTextForDriver(Booking booking) {
 		String text = null;
 		if (booking.getState() == BookingState.PROPOSED) {
 			text = MessageFormat.format("Je hebt een aanbod gedaan om {0} te laten meerijden.", 
@@ -174,7 +188,7 @@ public class TextHelper {
 					booking.getPickup().getLabel(), 
 					booking.getDropOff().getLabel());
 		} else {
-			throw new IllegalStateException("Unexpected booking state with booking " + booking.toString());
+			throw new IllegalStateException("Unexpected booking state (driver view) with booking " + booking.toString());
 		}
 		return text; 
 	}
