@@ -224,7 +224,21 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     	return getUserDao().find(uid)
     			.orElseThrow(() -> new NotFoundException("No such user: " + uid));
     }
-    
+
+    /**
+     * Updates a user. 
+     * @param uid The id of the user.
+     * @return A user object.
+     * @throws NotFoundException If the user does not exist.
+     */
+    public void updateUser(Long uid, NetMobielUser user) throws NotFoundException {
+    	T usr = getUserDao().find(uid)
+    			.orElseThrow(() -> new NotFoundException("No such user: " + uid));
+    	usr.setEmail(user.getEmail());
+    	usr.setFamilyName(user.getFamilyName());
+    	usr.setGivenName(user.getGivenName());
+    }
+
     protected abstract Optional<String> resolveUrnPrefix(NetMobielModule module);
 
     public Optional<T> resolveUrn(String userRef) throws BadRequestException {

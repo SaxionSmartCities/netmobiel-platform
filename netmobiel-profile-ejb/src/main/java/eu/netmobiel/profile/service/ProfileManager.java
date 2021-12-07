@@ -23,6 +23,7 @@ import javax.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.annotation.Updated;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.DuplicateEntryException;
@@ -78,6 +79,9 @@ public class ProfileManager {
     @Inject
     private Event<DelegatorAccountCreatedEvent> delegatorAccountCreatedEvent;
 
+    @Inject @Updated
+    private Event<NetMobielUser> netMobielUserUpdatedEvent;
+    
 	public @NotNull PagedResult<Profile> listProfiles(ProfileFilter filter, Cursor cursor) throws BadRequestException {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
@@ -273,6 +277,7 @@ public class ProfileManager {
 				logger.debug("Update user attributes in Keycloak: " + newuser);
 			}
 			keycloakDao.updateUser(newuser);
+    		EventFireWrapper.fire(netMobielUserUpdatedEvent, newuser);
 		}
     	// Assure key attributes are set
     	newProfile.setManagedIdentity(managedId);
