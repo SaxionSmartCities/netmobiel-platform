@@ -266,9 +266,10 @@ paths:
           $ref: '#/components/responses/NotFound'
       operationId: createBooking
       summary: Creates a booking.
-      description: 'Creates a booking for a ride for the calling user. Required are:
-        pickup, dropOff, (desired) departureTime, (desired) arrivalTime. The actual
-        departure time  and arrivalTime are calculated from the driver''s route.'
+      description: |-
+        Creates a booking for a ride for the calling user. Required are: pickup, dropOff, (desired) departureTime, (desired) arrivalTime. The actual departure time  and arrivalTime are calculated from the driver's route.
+
+        It is not allowed to book your own ride.
     parameters:
     - name: rideId
       description: A unique identifier for a `Ride`.
