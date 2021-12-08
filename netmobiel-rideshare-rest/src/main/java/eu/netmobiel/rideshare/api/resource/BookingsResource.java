@@ -1,6 +1,5 @@
 package eu.netmobiel.rideshare.api.resource;
 
-import java.time.Instant;
 import java.time.OffsetDateTime;
 
 import javax.enterprise.context.RequestScoped;
@@ -19,7 +18,7 @@ import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.service.RideshareUserManager;
 
 @RequestScoped
-public class BookingsResource implements BookingsApi {
+public class BookingsResource extends RideshareResource implements BookingsApi {
 
 	@Inject
 	private BookingMapper mapper;
@@ -32,10 +31,6 @@ public class BookingsResource implements BookingsApi {
 
     @Inject
     private RideshareUserManager userManager;
-
-    private static Instant toInstant(OffsetDateTime odt) {
-		return odt == null ? null : odt.toInstant();
-	}
 
 	/**
      * Lists the bookings driven by the calling user.

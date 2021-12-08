@@ -374,6 +374,7 @@ public class ProfileManager {
 	
 	/**
 	 * Search for drivers that are eligible to drive a potential passenger to his/her destination.
+	 * @param traveller the traveller asking the question. The profile of this user is never included. 
 	 * @param pickup the pickup location of the passenger. 
 	 * @param dropOff the drop-off location of the passenger.
 	 * @param driverMaxRadiusMeter The radius of the circles that limits the eligibility of the the driver 
@@ -381,10 +382,14 @@ public class ProfileManager {
 	 * @param driverNeighbouringRadiusMeter The radius of the circles that limits the eligibility of the the driver 
 	 * 			by demanding his living location to be in the neighbourhood of one of the pickup or drop-off locations.
 	 * @return A list of profiles of potential drivers, possibly empty.
-	 * @throws BusinessException In case of trouble.
+	 * @throws NotFoundException When the traveller profile could not be found.
 	 */
-    public List<Profile> searchShoutOutProfiles(GeoLocation pickup, GeoLocation dropOff, int driverMaxRadiusMeter, int driverNeighbouringRadiusMeter) {
-    	return profileDao.searchShoutOutProfiles(pickup, dropOff, driverMaxRadiusMeter, driverNeighbouringRadiusMeter);
+    public List<Profile> searchShoutOutProfiles(String travellerIdentity,  GeoLocation pickup, GeoLocation dropOff, int driverMaxRadiusMeter, int driverNeighbouringRadiusMeter) throws NotFoundException {
+    	Profile traveller = null;
+    	if (travellerIdentity != null) {
+    		traveller = getFlatProfileByManagedIdentity(travellerIdentity);
+    	}
+    	return profileDao.searchShoutOutProfiles(traveller, pickup, dropOff, driverMaxRadiusMeter, driverNeighbouringRadiusMeter);
     }
     
 }

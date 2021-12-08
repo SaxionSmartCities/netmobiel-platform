@@ -11,7 +11,7 @@ import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.planner.model.PlannerUser;
 
 /**
- * Base class for the planner resource handling. Contains a view convenience methods.
+ * Base class for the planner resource handling. Contains a few convenience methods.
  * 
  * @author Jaap Reitsma
  *

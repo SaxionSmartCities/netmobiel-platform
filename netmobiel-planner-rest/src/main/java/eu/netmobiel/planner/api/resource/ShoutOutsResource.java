@@ -67,8 +67,9 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
     		throw new BadRequestException("Missing mandatory parameter: location");
     	}
 		try {
-			Integer smallRadius = depArrRadius != null ? depArrRadius : DEFAULT_DEP_ARR_RADIUS; 
-			PagedResult<TripPlan> result = tripPlanManager.listShoutOuts(GeoLocation.fromString(location), 
+			Integer smallRadius = depArrRadius != null ? depArrRadius : DEFAULT_DEP_ARR_RADIUS;
+			PlannerUser caller = userManager.findOrRegisterCallingUser();
+			PagedResult<TripPlan> result = tripPlanManager.findShoutOuts(caller, GeoLocation.fromString(location), 
 					startTime != null ? startTime.toInstant() : Instant.now(), 
 					smallRadius, travelRadius != null ? travelRadius : smallRadius, maxResults, offset);
 			rsp = Response.ok(pageMapper.mapShoutOutPlans(result)).build();

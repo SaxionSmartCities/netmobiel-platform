@@ -6,8 +6,10 @@ import java.time.format.DateTimeParseException;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import org.slf4j.Logger;
@@ -21,7 +23,7 @@ import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.service.RideManager;
 
 @RequestScoped
-public class SearchResource implements SearchApi {
+public class SearchResource extends RideshareResource implements SearchApi {
 
 	@SuppressWarnings("unused")
 	@Inject
@@ -33,9 +35,8 @@ public class SearchResource implements SearchApi {
 	@Inject
     private RideManager rideManager;
 
-	private static Instant toInstant(OffsetDateTime odt) {
-		return odt == null ? null : odt.toInstant();
-	}
+    @Context
+	private HttpServletRequest request;
 
     /**
      * Search rides that fit the query..
@@ -74,7 +75,8 @@ public class SearchResource implements SearchApi {
 		try {
 			Instant earliestDeparture = toInstant(fromDate);
 			Instant latestArrival = toInstant(toDate);
-    		rides = rideManager.search(GeoLocation.fromString(fromPlace), GeoLocation.fromString(toPlace), earliestDeparture, latestArrival, nrSeats, true, maxResults, offset);
+    		rides = rideManager.search(request.getUserPrincipal().getName(), GeoLocation.fromString(fromPlace), 
+    				GeoLocation.fromString(toPlace), earliestDeparture, latestArrival, nrSeats, true, maxResults, offset);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		} catch (DateTimeParseException ex) {

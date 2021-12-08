@@ -96,7 +96,7 @@ public class DelegationDao extends AbstractDao<Delegation, Long> {
 	}
 
 	/**
-	 * Checks whether a delegation is active between two parties. If the time is set, 
+	 * Checks whether there is a delegation that is active between two parties. If the time is set, 
 	 * it checks whether a delegation was active at that specific time.
 	 * If null, it checks whether there is a delegation without revocation time set.
 	 * Note that if the revocation time is set in the future (semantically strange, but technical possible)
@@ -108,7 +108,7 @@ public class DelegationDao extends AbstractDao<Delegation, Long> {
 	public boolean isDelegationActive(Profile delegate, Profile delegator, Instant pointOfTime) {
     	Long count = em.createQuery("select count(d) from Delegation d where " 
     			+ "(d.revocationTime is null or (:pointOfTime between d.activationTime and d.revocationTime)) and " 
-				+ "d.activationTime is not null && d.delegate = :delegate and d.delegator = :delegator", Long.class)
+				+ "d.activationTime is not null and d.delegate = :delegate and d.delegator = :delegator", Long.class)
 			.setParameter("delegate", delegate)
 			.setParameter("delegator", delegator)
 			.setParameter("pointOfTime", pointOfTime)

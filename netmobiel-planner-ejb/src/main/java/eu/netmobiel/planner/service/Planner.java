@@ -145,27 +145,22 @@ public class Planner {
 		}
     }
     
-    public RideshareResult searchRides(Instant now, GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean useAsArrivalTime,
-    		Instant earliestDeparture, Instant latestArrival, Integer nrSeats, boolean lenient, Integer maxResults, Integer offset) {
-    	PlannerReport report = new PlannerReport();
-    	report.setRequestTime(now);
-    	report.setTravelTime(travelTime);
-    	report.setUseAsArrivalTime(useAsArrivalTime);
-    	report.setEarliestDepartureTime(latestArrival);
-    	report.setLatestArrivalTime(earliestDeparture);
+    private RideshareResult searchRides(TripPlan plan, GeoLocation fromPlace, GeoLocation toPlace, boolean lenient, Integer maxResults, Integer offset) {
+    	PlannerReport report = new PlannerReport(plan);
     	report.setFrom(fromPlace);
     	report.setTo(toPlace);
     	report.setToolType(ToolType.NETMOBIEL_RIDESHARE);
     	report.setMaxResults(maxResults);
     	report.setStartPosition(offset);
-    	report.setNrSeats(nrSeats);
     	report.setLenientSearch(lenient);
     	report.setRequestGeometry(GeometryHelper.createLines(fromPlace.getPoint().getCoordinate(), toPlace.getPoint().getCoordinate(), null));
     	RideshareResult result = new RideshareResult(report);
     	PagedResult<Ride> ridePage = null;;
     	long start = System.currentTimeMillis();
     	try { 
-    		ridePage = rideManager.search(fromPlace, toPlace,  earliestDeparture, latestArrival, nrSeats, lenient, maxResults, offset);
+    		ridePage = rideManager.search(plan.getTraveller().getManagedIdentity(), fromPlace, toPlace,  
+    				plan.getEarliestDepartureTime(), plan.getLatestArrivalTime(), plan.getNrSeats(), 
+    				lenient, maxResults, offset);
 			report.setStatusCode(Response.Status.OK.getStatusCode());
 	    	report.setNrItineraries(ridePage.getCount());
     	// TODO: In case there are many more rides, we need a criterium to sort them on most probable candidate!
@@ -232,19 +227,13 @@ public class Planner {
 	 * an eligibility interval: A difficult issue as we do not know the passengers
 	 * intentions and concerns. Therefore we use earliestDeparture and latestArrival.
 	 * 
-	 * @param fromPlace The departure location of the passenger 
-	 * @param toPlace The arrival location of the passenger
-	 * @param earliestDeparture The earliest possible departure time. If not set then it will be set to
-	 * 						 RIDESHARE_MAX_SLACK_BACKWARD hours before arrival time, with <code>now<code> as minimum.
-	 * @param latestArrival The latest possible arrival time. If not set then it will be set to
-	 * 						 RIDESHARE_MAX_SLACK_FORWARD hours after earliest departure time.
-	 * @param maxWalkDistance The maximum distance the passenger is prepared to walk
-	 * @param nrSeats The number of seats required
+	 * @param plan the pan of the traveller
+	 * @param fromPlace The departure location of the passenger. Not necessarily the departure location of the plan (in case of a multi-legged journey).
+	 * @param toPlace The arrival location of the passenger.  Not necessarily the departure location of the plan (in case of a multi-legged journey).
 	 * @return A list of possible itineraries.
 	 */
-    private List<PlannerResult> searchRideshareOnly(Instant now, GeoLocation fromPlace, GeoLocation toPlace,  Instant travelTime, boolean useAsArrivalTime,
-    		Instant earliestDeparture, Instant latestArrival, Integer maxWalkDistance, Integer nrSeats) {
-    	RideshareResult ridesResult = searchRides(now, fromPlace, toPlace,  travelTime, useAsArrivalTime, earliestDeparture, latestArrival, nrSeats, RIDESHARE_LENIENT_SEARCH, MAX_RIDESHARES, 0);
+    private List<PlannerResult> searchRideshareOnly(TripPlan plan, GeoLocation fromPlace, GeoLocation toPlace) {
+    	RideshareResult ridesResult = searchRides(plan, fromPlace, toPlace,  RIDESHARE_LENIENT_SEARCH, MAX_RIDESHARES, 0);
 		List<GeoLocation> intermediatePlaces = Arrays.asList(new GeoLocation[] { fromPlace, toPlace });
 		List<PlannerResult> results = new ArrayList<>();
 		results.add(new PlannerResult(ridesResult.getReport()));
@@ -258,7 +247,7 @@ public class Planner {
         	// Calculate for each ride found the itinerary when the passenger would ride along, i.e., add the pickup and drop-off location
         	// as intermediate places to the OTP planner and calculate the itinerary.
     		Instant driverTravelTime = ride.isArrivalTimePinned() ? ride.getArrivalTime() : ride.getDepartureTime();
-        	PlannerResult driverSharedRidePlanResult = planRideshareItinerary(now, from, to, driverTravelTime, ride.isArrivalTimePinned(), maxWalkDistance, intermediatePlaces);
+        	PlannerResult driverSharedRidePlanResult = planRideshareItinerary(plan.getRequestTime(), from, to, driverTravelTime, ride.isArrivalTimePinned(), plan.getMaxWalkDistance(), intermediatePlaces);
         	PlannerResult passengerSharedRidePlanResult = new PlannerResult(driverSharedRidePlanResult.getReport());
         	results.add(passengerSharedRidePlanResult);
     		if (driverSharedRidePlanResult.hasError()) {
@@ -307,8 +296,7 @@ public class Planner {
     	Integer maxPublicTransportTransfers = plan.getMaxTransfers() == null ? null : plan.getMaxTransfers() - 1;
     	for (Stop place : transitBoardingStops) {
     		// Try to find a shared ride from passenger's departure to a transit hub
-        	List<PlannerResult> rideResults = searchRideshareOnly(plan.getRequestTime(), plan.getFrom(), place.getLocation(), plan.getTravelTime(), false,
-        			plan.getEarliestDepartureTime(), plan.getLatestArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
+        	List<PlannerResult> rideResults = searchRideshareOnly(plan, plan.getFrom(), place.getLocation());
         	// Add all reports
         	rideResults.stream().forEach(pr -> plan.addPlannerReport(pr.getReport()));
         	// Collect all possible rides 
@@ -352,8 +340,7 @@ public class Planner {
     	//FIXME Should be in fact alighting stops 
     	for (Stop place : transitAlightingStops) {
     		// Try to find a shared ride from transit hub to passenger's destination
-    		List<PlannerResult> rideResults = searchRideshareOnly(plan.getRequestTime(), place.getLocation(), plan.getTo(), plan.getTravelTime(), true,
-        		plan.getEarliestDepartureTime(), plan.getLatestArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
+    		List<PlannerResult> rideResults = searchRideshareOnly(plan, place.getLocation(), plan.getTo());
         	// Add all reports
         	rideResults.stream().forEach(pr -> plan.addPlannerReport(pr.getReport()));
         	// Collect all possible rides 
@@ -412,8 +399,7 @@ public class Planner {
     
     private void addRidesharePlans(TripPlan plan, Set<TraverseMode> transitModalities) {
     	// Add the RIDESHARE only itineraries
-		List<PlannerResult> rideResults = searchRideshareOnly(plan.getRequestTime(), plan.getFrom(), plan.getTo(), plan.getTravelTime(), plan.isUseAsArrivalTime(),
-				plan.getEarliestDepartureTime(), plan.getLatestArrivalTime(), plan.getMaxWalkDistance(), plan.getNrSeats());
+		List<PlannerResult> rideResults = searchRideshareOnly(plan, plan.getFrom(), plan.getTo());
     	rideResults.stream().forEach(pr -> plan.addPlannerReport(pr.getReport()));
     	List<Itinerary> passengerItineraries = rideResults.stream()
     			.flatMap(pr -> pr.getItineraries().stream())

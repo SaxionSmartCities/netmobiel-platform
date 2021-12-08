@@ -51,28 +51,31 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     private Logger log;
     
 
-    private PlannerUser user1;
-    private PlannerUser user2;
-    private PlannerUser user3;
+    private PlannerUser simon1;
+    private PlannerUser simon2;
+    private PlannerUser simon3;
+    private PlannerUser carla1;
 
     
 	@Override
     protected void insertData() throws Exception {
-        user1 = new PlannerUser("T1", "Simon1", "Netmobiel");
-        user2 = new PlannerUser("T2", "Simon2", "Netmobiel");
-        user3 = new PlannerUser("T3", "Simon3", "Netmobiel");
+        simon1 = new PlannerUser("T1", "Simon1", "Netmobiel");
+        simon2 = new PlannerUser("T2", "Simon2", "Netmobiel");
+        simon3 = new PlannerUser("T3", "Simon3", "Netmobiel");
+        carla1 = new PlannerUser("T4", "Carla1", "Netmobiel");	// Chauffeur
     	List<PlannerUser> users = new ArrayList<>();
-    	users.add(user1);
-    	users.add(user2);
-    	users.add(user3);
+    	users.add(simon1);
+    	users.add(simon2);
+    	users.add(simon3);
+    	users.add(carla1);
         for (PlannerUser user : users) {
 			em.persist(user);
 		}
     	List<TripPlan> plans = new ArrayList<>();
-    	plans.add(Fixture.createShoutOutTripPlan(user1, "2020-03-18T10:00:00Z", Fixture.placeZieuwent, Fixture.placeSlingeland, "2020-03-19T13:00:00Z", false, 24 * 60 * 60 * 3600L));
-    	plans.add(Fixture.createShoutOutTripPlan(user1, "2020-03-20T10:00:00Z", Fixture.placeZieuwent, Fixture.placeSlingeland, "2020-03-21T13:00:00Z", false, null));
-    	plans.add(Fixture.createShoutOutTripPlan(user2, "2020-03-21T09:00:00Z", Fixture.placeZieuwent, Fixture.placeRaboZutphen, "2020-03-21T14:00:00Z", false, null));
-    	plans.add(Fixture.createShoutOutTripPlan(user3, "2020-03-21T09:30:00Z", Fixture.placeSlingeland, Fixture.placeRaboZutphen, "2020-03-21T10:00:00Z", false, null));
+    	plans.add(Fixture.createShoutOutTripPlan(simon1, "2020-03-18T10:00:00Z", Fixture.placeZieuwent, Fixture.placeSlingeland, "2020-03-19T13:00:00Z", false, 24 * 60 * 60 * 3600L));
+    	plans.add(Fixture.createShoutOutTripPlan(simon1, "2020-03-20T10:00:00Z", Fixture.placeZieuwent, Fixture.placeSlingeland, "2020-03-21T13:00:00Z", false, null));
+    	plans.add(Fixture.createShoutOutTripPlan(simon2, "2020-03-21T09:00:00Z", Fixture.placeZieuwent, Fixture.placeRaboZutphen, "2020-03-21T14:00:00Z", false, null));
+    	plans.add(Fixture.createShoutOutTripPlan(simon3, "2020-03-21T09:30:00Z", Fixture.placeSlingeland, Fixture.placeRaboZutphen, "2020-03-21T10:00:00Z", false, null));
         for (TripPlan t : plans) {
 			em.persist(t);
 		}
@@ -81,7 +84,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     @Test
     public void saveLargeTripPlan() {
     	try {
-	    	TripPlan plan = Fixture.createTransitPlan(user1);
+	    	TripPlan plan = Fixture.createTransitPlan(simon1);
 	    	tripPlanDao.save(plan); 
 	    	flush();
 	    	plan = tripPlanDao.find(plan.getId()).orElseThrow(() -> new IllegalStateException("Should have an ID by now"));
@@ -186,7 +189,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     
     @Test
     public void listTripPlans_ByUser() {
-    	PlannerUser traveller = user1;
+    	PlannerUser traveller = simon1;
     	PlanType planType = null;
     	Instant since = null;
     	Instant until = null; 
@@ -199,7 +202,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     
     @Test
     public void listTripPlans_ByUserSince() {
-    	PlannerUser traveller = user1;
+    	PlannerUser traveller = simon1;
     	PlanType planType = null;
     	Instant since = Instant.parse("2020-03-19T12:00:00Z");
     	Instant until = null; 
@@ -220,7 +223,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
 
     @Test
     public void listTripPlans_ByUserUntil() {
-    	PlannerUser traveller = user1;
+    	PlannerUser traveller = simon1;
     	PlanType planType = null;
     	Instant since = null;
     	Instant until = Instant.parse("2020-03-19T12:00:00Z"); 
@@ -241,7 +244,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
 
     @Test
     public void listTripPlans_ByType() throws Exception {
-    	TripPlan plan = Fixture.createTransitPlan(user1);
+    	TripPlan plan = Fixture.createTransitPlan(simon1);
     	tripPlanDao.save(plan); 
     	flush();
     	PlannerUser traveller = null;
@@ -263,10 +266,10 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     @Test
     public void listShoutOutTripPlans() {
     	final Instant startTime = OffsetDateTime.parse("2020-03-21T09:00:00Z").toInstant();
-    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(Fixture.placeZieuwentRKKerk, startTime, 10000, 50000, 0, 0);
+    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(carla1, Fixture.placeZieuwentRKKerk, startTime, 10000, 50000, 0, 0);
     	assertNotNull(planIds);
     	assertEquals(2, planIds.getTotalCount().intValue());
-    	planIds = tripPlanDao.findShoutOutPlans(Fixture.placeZieuwentRKKerk, startTime, 10000, 50000, 10, 0);
+    	planIds = tripPlanDao.findShoutOutPlans(carla1, Fixture.placeZieuwentRKKerk, startTime, 10000, 50000, 10, 0);
     	
 //    	log.info("Found " + planIds.getCount() + " trips");
 //    	List<Trip> trips= tripDao.fetch(planIds.getData(), Trip.LIST_TRIPS_ENTITY_GRAPH);
@@ -275,11 +278,11 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
 //		}
     	
     }
-    
+
     @Test
     public void listShoutOutTripPlansStartTime() {
     	final Instant startTime = OffsetDateTime.parse("2020-03-21T15:00:00Z").toInstant();
-    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(Fixture.placeZieuwentRKKerk, startTime, 10000, 50000, 0, 0);
+    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(carla1, Fixture.placeZieuwentRKKerk, startTime, 10000, 50000, 0, 0);
     	assertNotNull(planIds);
     	assertEquals(0, planIds.getTotalCount().intValue());
     }
@@ -287,21 +290,32 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     @Test
     public void listShoutOutTripPlansStartTime2() {
     	final Instant startTime = OffsetDateTime.parse("2020-03-21T13:30:00Z").toInstant();
-    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(Fixture.placeZieuwentRKKerk, startTime, 10000, 50000, 0, 0);
+    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(carla1, Fixture.placeZieuwentRKKerk, startTime, 10000, 50000, 0, 0);
     	assertNotNull(planIds);
     	assertEquals(1, planIds.getTotalCount().intValue());
     }
+
     @Test
     public void listShoutOutTripPlansAll() {
     	final Instant startTime = OffsetDateTime.parse("2020-03-21T09:00:00Z").toInstant();
-    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(Fixture.placeZieuwentRKKerk, startTime, 50000, 50000, 0, 0);
+    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(carla1, Fixture.placeZieuwentRKKerk, startTime, 50000, 50000, 0, 0);
     	assertNotNull(planIds);
     	assertEquals(3, planIds.getTotalCount().intValue());
     }
+
+    @Test
+    public void listShoutOutTripPlansAll_NotMine() {
+    	final Instant startTime = OffsetDateTime.parse("2020-03-21T09:00:00Z").toInstant();
+    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(simon1, Fixture.placeZieuwentRKKerk, startTime, 50000, 50000, 0, 0);
+    	assertNotNull(planIds);
+    	assertEquals(2, planIds.getTotalCount().intValue());
+    	
+    }
+
     @Test
     public void listShoutOutTripPlansNearby() {
     	final Instant startTime = OffsetDateTime.parse("2020-03-21T09:00:00Z").toInstant();
-    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(Fixture.placeZieuwentRKKerk, startTime, 1000, 50000, 0, 0);
+    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(carla1, Fixture.placeZieuwentRKKerk, startTime, 1000, 50000, 0, 0);
     	assertNotNull(planIds);
     	assertEquals(2, planIds.getTotalCount().intValue());
     }
@@ -309,7 +323,7 @@ public class TripPlanDaoIT extends PlannerIntegrationTestBase {
     @Test
     public void listShoutOutTripPlansNearby2() {
     	final Instant startTime = OffsetDateTime.parse("2020-03-21T09:00:00Z").toInstant();
-    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(Fixture.placeZieuwentRKKerk, startTime, 1000, 20000, 0, 0);
+    	PagedResult<Long> planIds = tripPlanDao.findShoutOutPlans(carla1, Fixture.placeZieuwentRKKerk, startTime, 1000, 20000, 0, 0);
     	assertNotNull(planIds);
     	assertEquals(1, planIds.getTotalCount().intValue());
     }

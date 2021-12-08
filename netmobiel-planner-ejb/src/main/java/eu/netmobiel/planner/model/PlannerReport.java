@@ -255,6 +255,21 @@ public class PlannerReport implements Serializable {
     @Column(name = "rejection_reason", length = 256)
     private String rejectionReason;
     
+    public PlannerReport() {
+    	
+    }
+    
+    public PlannerReport(TripPlan plan) {
+        this.requestTime = plan.getRequestTime();
+        this.travelTime = plan.getTravelTime();
+        this.useAsArrivalTime = plan.isUseAsArrivalTime();
+        this.earliestDepartureTime = plan.getEarliestDepartureTime();
+        this.latestArrivalTime = plan.getLatestArrivalTime();
+        this.nrSeats = plan.getNrSeats();
+        this.maxWalkDistance = plan.getMaxWalkDistance();
+    }
+
+
     @PrePersist
     protected void onCreate() {
     	creationTime = Instant.now();

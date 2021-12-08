@@ -142,13 +142,13 @@ public class TripPlanManagerTest {
 		Integer maxResults = 9;
 		Integer offset = 1;
 		new Expectations() {{
-			tripPlanDao.findShoutOutPlans(location, start, depArrRadius, travelRadius, 0, 0);
+			tripPlanDao.findShoutOutPlans(driver, location, start, depArrRadius, travelRadius, 0, 0);
 			result = PagedResult.empty();
 		}};
-		tested.listShoutOuts(location, start, depArrRadius, travelRadius, maxResults, offset);
+		tested.findShoutOuts(driver, location, start, depArrRadius, travelRadius, maxResults, offset);
 		new Verifications() {{
 			// Verify call to DAO. No results returned, so no second call.
-			tripPlanDao.findShoutOutPlans(location, start, depArrRadius, travelRadius, 0, 0);
+			tripPlanDao.findShoutOutPlans(driver, location, start, depArrRadius, travelRadius, 0, 0);
 			times = 1;
 		}};
 	}

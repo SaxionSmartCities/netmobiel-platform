@@ -30,7 +30,7 @@ import eu.netmobiel.rideshare.service.RideManager;
 import eu.netmobiel.rideshare.service.RideshareUserManager;
 
 @RequestScoped
-public class RidesResource implements RidesApi {
+public class RidesResource extends RideshareResource implements RidesApi {
 
     @Inject
     private RideManager rideManager;

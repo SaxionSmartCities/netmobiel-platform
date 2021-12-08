@@ -152,7 +152,7 @@ public abstract class ProfileIntegrationTestBase {
 		em.createQuery("delete from SurveyInteraction").executeUpdate();
 		em.createQuery("delete from Survey").executeUpdate();
 		em.createQuery("delete from Place").executeUpdate();
-		em.createQuery("delete from Compliment").executeUpdate();
+		em.createQuery("delete from Compliments").executeUpdate();
 		em.createQuery("delete from Review").executeUpdate();
 		em.createQuery("delete from Delegation").executeUpdate();
 		em.createQuery("delete from SearchPreferences").executeUpdate();

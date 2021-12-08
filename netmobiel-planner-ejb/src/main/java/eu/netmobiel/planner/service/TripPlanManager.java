@@ -373,11 +373,12 @@ public class TripPlanManager {
     }
 
     /**
-     * Lists a page of trip plans in progress of the shout-out type that have a departure or arrival location within a circle with radius 
+     * Lists a page of shout-out trip plans in progress that have a departure or arrival location within a circle with radius 
      * <code>arrdepRadius</code> meter around the <code>location</code> and where both departure and arrival location are within
      * a circle with radius <code>travelRadius</code> meter. Consider only plans with a travel time beyond now.
-     * For a shout-out we have two option: Drive to the nearby departure, then to the drop-off, then back home. The other way around is
-     * also feasible. This why the small circle must included either departure or arrival location!
+     * For a shout-out we have two options: Drive to the nearby departure, then to the drop-off, then back home. The other way around is
+     * also feasible. This is why the small circle must include either departure or arrival location!
+     * @param caller the effective user doing the query. The caller will never find his own shout-outs.
      * @param location the reference location of the driver asking for the trips.
      * @param startTime the time from where to start the search. 
      * @param depArrRadius the small circle containing at least departure or arrival location of the traveller.
@@ -386,7 +387,7 @@ public class TripPlanManager {
      * @param offset For paging: the offset in the results to return.
      * @return A list of trips matching the parameters.
      */
-    public PagedResult<TripPlan> listShoutOuts(GeoLocation location, Instant startTime, Integer depArrRadius, 
+    public PagedResult<TripPlan> findShoutOuts(PlannerUser caller, GeoLocation location, Instant startTime, Integer depArrRadius, 
     		Integer travelRadius, Integer maxResults, Integer offset) {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
@@ -396,11 +397,11 @@ public class TripPlanManager {
         }
         List<TripPlan> results = Collections.emptyList();
         Long totalCount = 0L;
-   		PagedResult<Long> prs = tripPlanDao.findShoutOutPlans(location, startTime, depArrRadius, travelRadius, 0, 0);
+   		PagedResult<Long> prs = tripPlanDao.findShoutOutPlans(caller, location, startTime, depArrRadius, travelRadius, 0, 0);
 		totalCount = prs.getTotalCount();
     	if (totalCount > 0 && maxResults > 0) {
     		// Get the actual data
-    		PagedResult<Long> tripIds = tripPlanDao.findShoutOutPlans(location, startTime, depArrRadius, travelRadius, maxResults, offset);
+    		PagedResult<Long> tripIds = tripPlanDao.findShoutOutPlans(caller, location, startTime, depArrRadius, travelRadius, maxResults, offset);
     		if (tripIds.getData().size() > 0) {
     			// Return the plan and the traveller 
     			results = tripPlanDao.loadGraphs(tripIds.getData(), TripPlan.SHOUT_OUT_ENTITY_GRAPH, TripPlan::getId);

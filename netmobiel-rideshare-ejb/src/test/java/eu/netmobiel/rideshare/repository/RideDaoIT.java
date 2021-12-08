@@ -280,17 +280,41 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
     }
 
     private void testSimpleSearch(GeoLocation from, GeoLocation to, Instant earliestDeparture, Instant latestArrival, boolean lenient, int expectedCount) {
-    	PagedResult<Long> result = rideDao.search(from, to, 60, earliestDeparture, latestArrival, 1, lenient, 1, 0, 0);
+    	PagedResult<Long> result = rideDao.search(null, from, to, 60, earliestDeparture, latestArrival, 1, lenient, 1, 0, 0);
     	assertNotNull(result);
     	assertEquals(expectedCount, result.getTotalCount().intValue());
     }
 
     private void testSimpleSearch(GeoLocation from, GeoLocation to, Instant earliestDeparture, Instant latestArrival, boolean lenient, Integer maxBookings, int expectedCount) {
-    	PagedResult<Long> result = rideDao.search(from, to, 60, earliestDeparture, latestArrival, 1, lenient, maxBookings, 0, 0);
+    	PagedResult<Long> result = rideDao.search(null, from, to, 60, earliestDeparture, latestArrival, 1, lenient, maxBookings, 0, 0);
     	assertNotNull(result);
     	assertEquals(expectedCount, result.getTotalCount().intValue());
     }
 
+    @Test
+    public void testSearchRides_MyOwn() throws Exception {
+    	Instant departureTime = Instant.parse("2020-06-02T12:00:00Z");
+    	Instant arrivalTime = Instant.parse("2020-06-02T13:00:00Z");
+    	Ride r1 = Fixture.createRide(car1, Fixture.placeThuisLichtenvoorde, departureTime, Fixture.placeCentrumDoetinchem, arrivalTime);
+    	saveNewRide(r1);
+    	flush();
+
+    	final GeoLocation from = Fixture.placeZieuwent;
+    	final GeoLocation to = Fixture.placeSlingeland;
+    	final Instant earliestDeparture = departureTime.minusSeconds(15 * 60);
+    	final Instant latestArrival = arrivalTime.plusSeconds(15 * 60);
+    	final boolean lenient = false;
+    	testSimpleSearch(from, to, earliestDeparture, latestArrival, lenient, 1);
+    	
+    	PagedResult<Long> result = rideDao.search(passenger1, from, to, 60, earliestDeparture, latestArrival, 1, lenient, 1, 0, 0);
+    	assertNotNull(result);
+    	assertEquals(1, result.getTotalCount().intValue());
+
+    	result = rideDao.search(car1.getDriver(), from, to, 60, earliestDeparture, latestArrival, 1, lenient, 1, 0, 0);
+    	assertNotNull(result);
+    	assertEquals(0, result.getTotalCount().intValue());
+    	
+    }
     @Test
     public void testSearchRides_Leniet() throws Exception {
 //      * 2.1 lenient = false: The ride departs after <code>earliestDeparture</code> and arrives before <code>latestArrival</code>;

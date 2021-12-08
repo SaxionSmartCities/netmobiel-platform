@@ -99,6 +99,7 @@ public class TripPlanDao extends AbstractDao<TripPlan, Long> {
      * a circle with radius <code>travelRadius</code> meter. Consider only plans with a travel time beyond now.
      * For a shout-out we have two option: Drive to the nearby departure, then to the drop-off, then back home. The other way around is
      * also feasible. This why the small circle must included either departure or arrival location!
+     * @param caller the effective user doing the query. The caller will never find his own shout-outs.
      * @param location the reference location of the driver asking for the trips.
      * @param startTime the time from where to start the search. 
      * @param depArrRadius the small circle containing at least departure or arrival location of the traveller.
@@ -107,16 +108,18 @@ public class TripPlanDao extends AbstractDao<TripPlan, Long> {
      * @param offset For paging: the offset in the results to return.
      * @return A list of trip plans matching the criteria.
      */
-    public PagedResult<Long> findShoutOutPlans(GeoLocation location, Instant startTime, Integer depArrRadius, Integer travelRadius, Integer maxResults, Integer offset) {
+    public PagedResult<Long> findShoutOutPlans(PlannerUser caller, GeoLocation location, Instant startTime, Integer depArrRadius, Integer travelRadius, Integer maxResults, Integer offset) {
     	Polygon deparrCircle = EllipseHelper.calculateCircle(location.getPoint(), depArrRadius);
     	Polygon travelCircle = EllipseHelper.calculateCircle(location.getPoint(), travelRadius);
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<TripPlan> plan = cq.from(TripPlan.class);
         List<Predicate> predicates = new ArrayList<>();
-        // Only trips in planning state
+        // Only plans not issued by me
+        predicates.add(cb.notEqual(plan.get(TripPlan_.traveller), caller));
+        // Only plans in planning state
         predicates.add(cb.equal(plan.get(TripPlan_.planType), PlanType.SHOUT_OUT));
-        // Only consider trips that depart after startTime
+        // Only consider plans that depart after startTime
         predicates.add(cb.greaterThanOrEqualTo(plan.get(TripPlan_.travelTime), startTime));
         // Select only the plans that are in progress
         predicates.add(cb.isNull(plan.get(TripPlan_.requestDuration)));

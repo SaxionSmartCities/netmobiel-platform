@@ -106,6 +106,7 @@ public class ProfileDao extends UserDao<Profile> {
 
 	/**
 	 * Search for drivers that are eligible to drive a potential passenger to his/her destination.
+	 * @param traveller the traveller asking the question. The profile of this user is never included. 
 	 * @param pickup the pickup location of the passenger. 
 	 * @param dropOff the drop-off location of the passenger.
 	 * @param driverMaxRadiusMeter The radius of the circles that limits the eligibility of the the driver 
@@ -115,7 +116,7 @@ public class ProfileDao extends UserDao<Profile> {
 	 * @return A list of profiles of potential drivers, possibly empty.
 	 * @throws BusinessException In case of trouble.
 	 */
-    public List<Profile> searchShoutOutProfiles(GeoLocation pickup, GeoLocation dropOff, int driverMaxRadiusMeter, int driverNeighbouringRadiusMeter) {
+    public List<Profile> searchShoutOutProfiles(Profile traveller, GeoLocation pickup, GeoLocation dropOff, int driverMaxRadiusMeter, int driverNeighbouringRadiusMeter) {
     	if (driverMaxRadiusMeter < driverNeighbouringRadiusMeter) {
     		throw new IllegalArgumentException("driverMaxRadiusMeter must be equal or greater than driverNeighbouringRadiusMeter");
     	}
@@ -129,11 +130,12 @@ public class ProfileDao extends UserDao<Profile> {
 //    		logger.debug("Pickup small circle: " + GeometryHelper.createWKT(pickupSmallCircle));
 //    		logger.debug("Drop-off small circle: " + GeometryHelper.createWKT(dropOffSmallCircle));
 //    	}
-    	TypedQuery<Profile> tq = em.createQuery("from Profile p where "
-    			+ "     contains(:pickupLarge, p.homeLocation.point) = true and contains(:dropOffLarge, p.homeLocation.point) = true "
-    			+ " and (contains(:pickupSmall, p.homeLocation.point) = true or contains(:dropOffSmall, p.homeLocation.point) = true) "
-    			+ " and p.userRole != :passengerRole "
-    			+ "order by id asc ", Profile.class)
+    	TypedQuery<Profile> tq = em.createQuery("from Profile p where"
+    			+ " contains(:pickupLarge, p.homeLocation.point) = true and contains(:dropOffLarge, p.homeLocation.point) = true"
+    			+ " and (contains(:pickupSmall, p.homeLocation.point) = true or contains(:dropOffSmall, p.homeLocation.point) = true)"
+    			+ " and p.userRole != :passengerRole and (:traveller is null or p != :traveller) "
+    			+ " order by id asc ", Profile.class)
+    			.setParameter("traveller", traveller)
     			.setParameter("pickupLarge", pickupLargeCircle)
     			.setParameter("dropOffLarge", dropOffLargeCircle)
     			.setParameter("pickupSmall", pickupSmallCircle)

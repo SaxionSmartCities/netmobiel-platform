@@ -270,6 +270,8 @@ public class RideManager {
      * 5. The passenger and driver should travel in more or less the same direction. 
      * 6. The ride has less than <code>maxBookings</code> active bookings.
      * 7. earliestDeparture is before latestArrival.  
+     * 8. Rides driven by the traveller are skipped. 
+     * @param travellerIdentity The managed identity of the traveller asking the question. Rides by this user are skipped.
      * @param fromPlace The location for pickup
      * @param toPlace The location for drop-off
      * @param maxBearingDifference The maximum difference in bearing direction between driver and passenger vectors.
@@ -283,7 +285,7 @@ public class RideManager {
      * @return A list of potential matches.
      */
 
-    public PagedResult<Ride> search(@NotNull GeoLocation fromPlace, @NotNull GeoLocation toPlace, Instant earliestDeparture, 
+    public PagedResult<Ride> search(String travellerIdentity, @NotNull GeoLocation fromPlace, @NotNull GeoLocation toPlace, Instant earliestDeparture, 
     		Instant latestArrival, Integer nrSeats, boolean lenient, Integer maxResults, Integer offset) throws BadRequestException {
     	if (earliestDeparture != null && latestArrival != null && earliestDeparture.isAfter(latestArrival)) {
     		throw new BadRequestException("Departure time must be before arrival time");
@@ -297,11 +299,12 @@ public class RideManager {
     	if (offset == null) {
     		offset = 0;
     	}
+    	RideshareUser traveller = userDao.findByManagedIdentity(travellerIdentity).orElse(null);
     	List<Ride> results = Collections.emptyList();
-        PagedResult<Long> prs = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, earliestDeparture, latestArrival, nrSeats, lenient, MAX_BOOKINGS, 0, 0);
+        PagedResult<Long> prs = rideDao.search(traveller, fromPlace, toPlace, MAX_BEARING_DIFFERENCE, earliestDeparture, latestArrival, nrSeats, lenient, MAX_BOOKINGS, 0, 0);
         Long totalCount = prs.getTotalCount();
     	if (totalCount > 0 && maxResults > 0) {
-    		PagedResult<Long> rideIds = rideDao.search(fromPlace, toPlace, MAX_BEARING_DIFFERENCE, earliestDeparture, latestArrival, nrSeats, lenient, MAX_BOOKINGS, maxResults, offset);
+    		PagedResult<Long> rideIds = rideDao.search(traveller, fromPlace, toPlace, MAX_BEARING_DIFFERENCE, earliestDeparture, latestArrival, nrSeats, lenient, MAX_BOOKINGS, maxResults, offset);
         	if (! rideIds.getData().isEmpty()) {
         		results = rideDao.loadGraphs(rideIds.getData(), Ride.SEARCH_RIDES_ENTITY_GRAPH, Ride::getId);
         	}

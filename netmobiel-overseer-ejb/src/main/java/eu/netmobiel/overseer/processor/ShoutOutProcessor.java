@@ -76,7 +76,7 @@ public class ShoutOutProcessor {
 //    @Asynchronous
     public void onShoutOutRequested(@Observes(during = TransactionPhase.IN_PROGRESS) TripPlan event) throws BusinessException {
     	// We have a shout-out request
-		List<Profile> profiles = profileManager.searchShoutOutProfiles(event.getFrom(), event.getTo(), DRIVER_MAX_RADIUS_METERS, DRIVER_NEIGHBOURING_RADIUS_METERS);
+		List<Profile> profiles = profileManager.searchShoutOutProfiles(event.getTraveller().getManagedIdentity(), event.getFrom(), event.getTo(), DRIVER_MAX_RADIUS_METERS, DRIVER_NEIGHBOURING_RADIUS_METERS);
 		if (! profiles.isEmpty()) {
 			String topic = textHelper.createDriverShoutOutTopic(event);
 			Message msg = new Message();

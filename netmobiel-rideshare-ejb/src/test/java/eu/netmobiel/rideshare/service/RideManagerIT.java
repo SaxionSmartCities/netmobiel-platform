@@ -689,7 +689,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 				.getSingleResult();
 		assertNotNull(rideId);
 		flush();
-    	PagedResult<Ride> ruts = rideManager.search(Fixture.placeZieuwentRKKerk, Fixture.placeSlingeland, 
+    	PagedResult<Ride> ruts = rideManager.search(passenger1.getManagedIdentity(), Fixture.placeZieuwentRKKerk, Fixture.placeSlingeland, 
     			rdb.getDepartureTime().minusSeconds(3600), rdb.getArrivalTime().plusSeconds(3600), 1, false, 10, 0);
     	flush();
     	assertEquals(1, ruts.getTotalCount().intValue());

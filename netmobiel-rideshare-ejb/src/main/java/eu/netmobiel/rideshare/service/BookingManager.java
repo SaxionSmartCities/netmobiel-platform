@@ -134,6 +134,9 @@ public class BookingManager {
     	if (ride.getBookings().stream().filter(b -> !b.isDeleted()).collect(Collectors.counting()) > 0) {
     		throw new CreateException(String.format("Ride %s has already a booking", ride.getId()));
     	}
+    	if (ride.getDriver().equals(passenger)) {
+    		throw new CreateException(String.format("Driver of Ride %s cannot be a Passenger too!", ride.getId()));
+    	}
     	ride.addBooking(booking);
 		booking.setPassenger(passenger);
 		if (booking.getState() != BookingState.PROPOSED) {

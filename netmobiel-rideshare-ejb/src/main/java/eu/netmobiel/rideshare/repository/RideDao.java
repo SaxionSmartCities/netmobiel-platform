@@ -35,6 +35,7 @@ import eu.netmobiel.rideshare.model.RideBase_;
 import eu.netmobiel.rideshare.model.RideState;
 import eu.netmobiel.rideshare.model.RideTemplate;
 import eu.netmobiel.rideshare.model.Ride_;
+import eu.netmobiel.rideshare.model.RideshareUser;
 
 @ApplicationScoped
 @Typed(RideDao.class)
@@ -117,7 +118,9 @@ public class RideDao extends AbstractDao<Ride, Long> {
      * 3. The car has enough seats available [restriction: only 1 booking allowed now]; 
      * 4. The ride has not been deleted;
      * 5. The passenger and driver should travel in more or less the same direction. 
-     * 6. The ride has less than <code>maxBookings</code> active bookings. 
+     * 6. The ride has less than <code>maxBookings</code> active bookings.
+     * 7. Rides driven by the traveller are skipped. 
+     * @param travellerIdentity The managed identity of the traveller asking the question. Rides by this user are skipped.
      * @param fromPlace The location for pickup
      * @param toPlace The location for drop-off
      * @param maxBearingDifference The maximum difference in bearing direction between driver and passenger vectors.
@@ -130,7 +133,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
      * @param graphName the graph name of the entity graph to use.
      * @return A list of potential matches.
      */
-    public PagedResult<Long> search(GeoLocation fromPlace, GeoLocation toPlace, int maxBearingDifference, 
+    public PagedResult<Long> search(RideshareUser traveller, GeoLocation fromPlace, GeoLocation toPlace, int maxBearingDifference, 
     		Instant earliestDeparture, Instant latestArrival, Integer nrSeatsRequested, boolean lenient, Integer maxBookings, Integer maxResults, Integer offset) {
     	int searchBearing = Math.toIntExact(Math.round(EllipseHelper.getBearing(fromPlace.getPoint(), toPlace.getPoint())));
 //    	if (logger.isDebugEnabled()) {
@@ -147,7 +150,8 @@ public class RideDao extends AbstractDao<Ride, Long> {
     			"(CAST(:latestArrival as java.lang.String) is null or (:lenient = false and r.arrivalTime <= :latestArrival) or (:lenient = true and r.departureTime < :latestArrival)) and " +
     			"r.nrSeatsAvailable >= :nrSeatsRequested and " +
     			"(r.deleted is null or r.deleted = false) and " +
-    			"(:maxBookings is null or (select cast(count(b) as java.lang.Integer) from r.bookings b where b.state <> eu.netmobiel.rideshare.model.BookingState.CANCELLED) < :maxBookings)";
+    			"(:maxBookings is null or (select cast(count(b) as java.lang.Integer) from r.bookings b where b.state <> eu.netmobiel.rideshare.model.BookingState.CANCELLED) < :maxBookings) and " +
+    			"(:traveller is null or r.driver != :traveller) ";
     	TypedQuery<Long> tq = null;
     	if (maxResults == 0) {
     		// Only request the possible number of results
@@ -164,7 +168,8 @@ public class RideDao extends AbstractDao<Ride, Long> {
 			.setParameter("latestArrival", latestArrival)
 			.setParameter("nrSeatsRequested", nrSeatsRequested)
 			.setParameter("lenient", lenient)
-    		.setParameter("maxBookings", maxBookings);
+    		.setParameter("maxBookings", maxBookings)
+    		.setParameter("traveller", traveller);
         Long totalCount = null;
         List<Long> results = Collections.emptyList();
         if (maxResults == 0) {

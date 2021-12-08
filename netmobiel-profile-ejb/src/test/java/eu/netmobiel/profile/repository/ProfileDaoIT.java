@@ -296,7 +296,7 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	profileDao.save(carla2);
     	ridesharePreferencesDao.save(carla2.getRidesharePreferences());
     	flush();
-
+    	var simon1 = passenger1;
     	carla1 = profileDao.loadGraph(carla1.getId(), Profile.DEFAULT_PROFILE_ENTITY_GRAPH).get();
     	assertNotNull(carla1.getHomeAddress());
     	assertNotNull(carla1.getHomeLocation());
@@ -307,23 +307,28 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	// So now , we have two drivers: Lichtenvoorde (carla1) and Hengelo (carla2).
     	// We want a ride from Zieuwent to Doetinchem. Lichtenvoorde is nearby, Hengelo is not.
     	
-    	List<Profile> drivers = profileDao.searchShoutOutProfiles(Fixture.placeZieuwent, Fixture.placeSlingeland, 30000, 10000);
+    	List<Profile> drivers = profileDao.searchShoutOutProfiles(simon1, Fixture.placeZieuwent, Fixture.placeSlingeland, 30000, 10000);
     	assertNotNull(drivers);
     	assertEquals(1, drivers.size());
     	assertEquals(carla1, drivers.get(0));
 
     	// Other way around should also be possible
     	
-    	drivers = profileDao.searchShoutOutProfiles(Fixture.placeSlingeland, Fixture.placeZieuwent, 30000, 10000);
+    	drivers = profileDao.searchShoutOutProfiles(simon1, Fixture.placeSlingeland, Fixture.placeZieuwent, 30000, 10000);
     	assertNotNull(drivers);
     	assertEquals(1, drivers.size());
     	assertEquals(carla1, drivers.get(0));
-    	
-    	drivers = profileDao.searchShoutOutProfiles(Fixture.placeZieuwent, Fixture.placeSlingeland, 10000, 10000);
+
+    	// If carla asks then she does not find her own profile
+    	drivers = profileDao.searchShoutOutProfiles(carla1, Fixture.placeSlingeland, Fixture.placeZieuwent, 30000, 10000);
     	assertNotNull(drivers);
     	assertEquals(0, drivers.size());
 
-    	drivers = profileDao.searchShoutOutProfiles(Fixture.placeSlingeland, Fixture.placeZieuwent, 10000, 10000);
+    	drivers = profileDao.searchShoutOutProfiles(simon1, Fixture.placeZieuwent, Fixture.placeSlingeland, 10000, 10000);
+    	assertNotNull(drivers);
+    	assertEquals(0, drivers.size());
+
+    	drivers = profileDao.searchShoutOutProfiles(simon1, Fixture.placeSlingeland, Fixture.placeZieuwent, 10000, 10000);
     	assertNotNull(drivers);
     	assertEquals(0, drivers.size());
     }
