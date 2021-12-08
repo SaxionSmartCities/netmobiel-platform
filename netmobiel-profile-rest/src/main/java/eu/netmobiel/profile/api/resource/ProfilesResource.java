@@ -16,7 +16,6 @@ import javax.ws.rs.core.UriBuilder;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.ProfilesApi;
 import eu.netmobiel.profile.api.mapping.PlaceMapper;
@@ -33,7 +32,6 @@ import eu.netmobiel.profile.service.PlaceManager;
 import eu.netmobiel.profile.service.ProfileManager;
 
 @RequestScoped
-@Logging
 public class ProfilesResource extends BasicResource implements ProfilesApi {
 
 	@Inject
