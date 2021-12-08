@@ -462,75 +462,6 @@ paths:
         type: string
       in: path
       required: true
-  /shout-outs:
-    summary: Path used to manage the list of trip plans that are active and unfulfilled
-      yet.
-    description: The REST endpoint/path used to list and `TripPlan` entities that
-      are of type SHOUT_OUT. Those plans are eligible for reconciliation with a shared
-      ride. This path contains a `GET` operation to perform the list task. This endpoint
-      is intended for use by drivers.
-    get:
-      parameters:
-      - examples:
-          Station-Borne:
-            value: Station Borne::52.298417,6.749157
-        name: location
-        description: The center of the circle to search planning trips, comprising
-          of a latitude and longitude pair in degrees according WGS84. For logging
-          purposes you may prepend the coordinates with a place label followed by
-          two colons.
-        schema:
-          type: string
-        in: query
-        required: true
-      - name: startTime
-        description: The start time to search. Only trips departing after the `startTime`
-          are listed. If not set then `now` is used.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: depArrRadius
-        description: the radius (in meter) of the small circle containing at least
-          departure or arrival location of the traveller. If omitted a radius of 10
-          kilometer is used.
-        schema:
-          type: integer
-        in: query
-        required: false
-      - name: travelRadius
-        description: The radius (in meter) of the larger circle containing both departure
-          and arrival location of the traveller. If omitted the `depArrRadius` is
-          used.
-        schema:
-          type: integer
-        in: query
-        required: false
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a page with an array of `TripPlan`
-            entities.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      operationId: listShoutOuts
-      summary: List the shout-outs.
-      description: |-
-        List the trip plans that are unfulfilled and are eligible for a shared ride.
-        This endpoint is intended for drivers to find passengers.
   /trips:
     summary: Path used to manage the list of trips.
     description: |-
@@ -632,6 +563,10 @@ paths:
           application/json:
             schema:
               $ref: '#/components/schemas/Trip'
+            examples:
+              createTrip:
+                value:
+                  itineraryRef: urn:nb:pn:itinerary:232
         required: true
       responses:
         "201":
@@ -871,6 +806,76 @@ paths:
         type: string
       in: path
       required: true
+  /shout-outs:
+    summary: Path used to manage the list of trip plans that are active and unfulfilled
+      yet.
+    description: The REST endpoint/path used to list and `TripPlan` entities that
+      are of type SHOUT_OUT. Those plans are eligible for reconciliation with a shared
+      ride. This path contains a `GET` operation to perform the list task. This endpoint
+      is intended for use by drivers.
+    get:
+      parameters:
+      - examples:
+          Station-Borne:
+            value: Station Borne::52.298417,6.749157
+        name: location
+        description: The center of the circle to search planning trips, comprising
+          of a latitude and longitude pair in degrees according WGS84. For logging
+          purposes you may prepend the coordinates with a place label followed by
+          two colons.
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: startTime
+        description: The start time to search. Only trips departing after the `startTime`
+          are listed. If not set then `now` is used.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: depArrRadius
+        description: the radius (in meter) of the small circle containing at least
+          departure or arrival location of the traveller. If omitted a radius of 10
+          kilometer is used.
+        schema:
+          type: integer
+        in: query
+        required: false
+      - name: travelRadius
+        description: The radius (in meter) of the larger circle containing both departure
+          and arrival location of the traveller. If omitted the `depArrRadius` is
+          used.
+        schema:
+          type: integer
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a page with an array of `TripPlan`
+            entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: listShoutOuts
+      summary: List the shout-outs.
+      description: "List the trip plans that are unfulfilled and are eligible for\
+        \ a shared ride.\nThis endpoint is intended for drivers to find passengers.\
+        \ \n\nBecause a driver can act as a passenger too, shout-outs issued by the\
+        \ effective caller are never included."
 components:
   schemas:
     Error:
