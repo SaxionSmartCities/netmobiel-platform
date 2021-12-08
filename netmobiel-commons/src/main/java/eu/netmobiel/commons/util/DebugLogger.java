@@ -33,8 +33,7 @@ public class DebugLogger implements Serializable {
 	public Object logMethodEntry(InvocationContext ic) throws Exception {
 		if (logger.isDebugEnabled()) {
 			StringBuilder sb = new StringBuilder();
-			sb.append("Call: ");
-		    sb.append(ic.getMethod().getDeclaringClass().getSimpleName());
+		    sb.append(ic.getTarget().getClass().getSimpleName());
 			sb.append(".");
 			sb.append(ic.getMethod().getName());
 			sb.append("(");
