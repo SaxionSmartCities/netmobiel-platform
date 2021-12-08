@@ -591,7 +591,8 @@ paths:
       - OAuth2: []
       operationId: searchRides
       summary: Search for rides
-      description: Search and retrieve matching rides.
+      description: Search and retrieve matching rides. The own rides are never included
+        with this call.
   /rides:
     summary: Path used to manage rides.
     description: The REST endpoint/path used to list and create zero or more `Ride`
