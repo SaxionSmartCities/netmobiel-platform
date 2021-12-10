@@ -814,6 +814,28 @@ paths:
         type: boolean
       in: path
       required: true
+  /rides/{rideId}/unconfirm:
+    summary: Path used to unconfirm a ride.
+    description: Endpoint used to unconfirm a ride, using a PUT.
+    put:
+      responses:
+        "204":
+          description: Success response, the ride has been confirmed.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      operationId: unconfirmRide
+      summary: Unconfirms a ride.
+      description: |-
+        Reverses an implicit or explicit confirmation that the driver has actually driven this ride. The driver can only unconfirm a ride that has given him credits. Once reversed, the credit account of the driver is debited, and the fare is again a reservation made by the passenger.
+
+        A 403 is returned when the driver unconfirms a trip when he was not credited. In case of a dispute, both parties can unconfirm. In the latter case the ride is still being validated.
+    parameters:
+    - name: rideId
+      description: A unique identifier for a `Ride`.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Car:
