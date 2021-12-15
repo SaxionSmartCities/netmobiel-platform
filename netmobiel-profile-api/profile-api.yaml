@@ -1630,18 +1630,15 @@ components:
       description: A review for a user.
       required:
       - receiver
-      - published
-      - id
       - review
-      - sender
       type: object
       properties:
         id:
-          description: Unique id of the review
-          type: string
+          description: Read-only. Unique id of the review
+          type: integer
         published:
           format: date-time
-          description: Date of publishing of the review.
+          description: Read-only. Date of publishing of the review.
           type: string
         sender:
           $ref: '#/components/schemas/UserRef'
@@ -1671,7 +1668,7 @@ components:
             receiver of the compliment. Could be a trip (passenger) or a ride (driver).
           type: string
       example:
-        id: 5f9c1893bf7c52051be2231b
+        id: 1234
         published: 2020-10-27T08:29:51.901Z
         sender:
           id: 5c76c977-2ffd-4100-a8c0-77db7129660d
@@ -1684,17 +1681,16 @@ components:
         review: Tot de volgende keer.
     Compliments:
       title: Root Type for Review
-      description: A review for a user.
+      description: A compliment set for a user.
       required:
       - receiver
-      - published
       - compliments
       - context
       type: object
       properties:
         id:
           description: Read-only. Unique id of the compliment
-          type: string
+          type: integer
         published:
           format: date-time
           description: Read-only for non-admin. Date of publishing of the compliment.
@@ -1729,7 +1725,7 @@ components:
           items:
             $ref: '#/components/schemas/complimentType'
       example:
-        id: 5f9c1893bf7c52051be2231b
+        id: "1234"
         published: 2020-10-27T08:29:51.901Z
         sender:
           id: 5c76c977-2ffd-4100-a8c0-77db7129660d
