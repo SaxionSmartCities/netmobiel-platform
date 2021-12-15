@@ -674,6 +674,11 @@ paths:
         schema:
           type: string
         in: query
+      - name: context
+        description: 'The context of the the review: A reference to a trip (a urn).'
+        schema:
+          type: string
+        in: query
       responses:
         "200":
           content:
@@ -683,7 +688,7 @@ paths:
           description: Successful response - returns a `Page` with `Review` entities.
       operationId: getReviews
       summary: List reviews
-      description: Gets a list of all `Review` entities. The admin can list compliments
+      description: Gets a list of all `Review` entities. The admin can list reviews
         of anyone. The effective user can only list his own received or given compliments.
         The parameter `me` referes to the effective user. If not admin the default
         query id compliments received by me.
@@ -707,72 +712,6 @@ paths:
       description: Creates a new instance of a `Review`. An admin can post reviews
         on behalf of anyone about anyone. Non-privileged (effective) users can only
         post personal reviews about someone. It is an error to review oneself.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-  /compliments:
-    summary: Path used to manage the list of compliments.
-    description: The REST endpoint/path used to list and create zero or more `Compliments`
-      entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively. When a call a made by someone with the delegate
-      role, the effective user will be the user specified in the X-Delegator header.
-    get:
-      parameters:
-      - name: senderId
-        description: The user ID of the sender of the compliment. Parameter `me` is
-          allowed as well.
-        schema:
-          type: string
-        in: query
-      - name: receiverId
-        description: The user ID of the receiver of the compliment. Parameter `me`
-          is allowed as well.
-        schema:
-          type: string
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ComplimentResponse'
-          description: Successful response - returns a `Page` with `Compliment` entities.
-      operationId: getCompliments
-      summary: List compliments
-      description: "Gets a list of all `Compliments` entities. The admin can list\
-        \ compliments of anyone.\nThe effective user can only list his own received\
-        \ or given compliments. The parameter `me` \nrefers to the effective user.\
-        \ If not admin the default query gets the compliments received by me or sent\
-        \ by me.\n"
-    post:
-      requestBody:
-        description: A new `Compliment` to be created.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Compliments'
-        required: true
-      responses:
-        "201":
-          description: Successful response.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-        "422":
-          description: Missing parameters.
-      operationId: createCompliment
-      summary: Create, update, or delete a Compliment
-      description: |-
-        Creates a new instance of a `Compliments`. An admin can post compliments on behalf of anyone to anyone.
-        Non-privileged (effective) users can only pay personal compliments to someone else.
-        It is an error to compliment oneself.
-
-        If the compliment set exists, then it is overwritten.
-
-        If the input set is empty, the existing set is deleted.
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
@@ -999,6 +938,77 @@ paths:
         type: string
       in: path
       required: true
+  /compliments:
+    summary: Path used to manage the list of compliments.
+    description: The REST endpoint/path used to list and create zero or more `Compliments`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively. When a call a made by someone with the delegate
+      role, the effective user will be the user specified in the X-Delegator header.
+    get:
+      parameters:
+      - name: senderId
+        description: The user ID of the sender of the compliment. Parameter `me` is
+          allowed as well.
+        schema:
+          type: string
+        in: query
+      - name: receiverId
+        description: The user ID of the receiver of the compliment. Parameter `me`
+          is allowed as well.
+        schema:
+          type: string
+        in: query
+      - name: context
+        description: 'The context of the the review: A reference to a trip (a urn).'
+        schema:
+          type: string
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplimentResponse'
+          description: Successful response - returns a `Page` with `Compliment` entities.
+      operationId: getCompliments
+      summary: List compliments
+      description: "Gets a list of all `Compliments` entities. The admin can list\
+        \ compliments of anyone.\nThe effective user can only list his own received\
+        \ or given compliments. The parameter `me` \nrefers to the effective user.\
+        \ If not admin the default query gets the compliments received by me or sent\
+        \ by me.\n"
+    post:
+      requestBody:
+        description: A new `Compliment` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Compliments'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "422":
+          description: Missing parameters.
+      operationId: createCompliment
+      summary: Create, update, or delete a Compliment
+      description: |-
+        Creates a new instance of a `Compliments`. An admin can post compliments on behalf of anyone to anyone.
+        Non-privileged (effective) users can only pay personal compliments to someone else.
+        It is an error to compliment oneself.
+
+        If the compliment set exists, then it is overwritten.
+
+        If the input set is empty, the existing set is deleted.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
 components:
   schemas:
     SearchPreferences:
