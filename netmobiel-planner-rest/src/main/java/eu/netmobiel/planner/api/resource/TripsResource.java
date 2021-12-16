@@ -15,6 +15,7 @@ import javax.ws.rs.core.UriBuilder;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.PagedResult;
@@ -164,7 +165,7 @@ public class TripsResource extends PlannerResource implements TripsApi {
 			Trip trip = tripManager.getTripBasics(tid);
 			CallingContext<PlannerUser> context = userManager.findCallingContext(securityIdentity);
         	allowAdminOrEffectiveUser(request, context, trip.getTraveller());
-			tripManager.confirmTrip(tid, confirmationValue, reasonType, false);
+			tripManager.confirmTrip(tid, confirmationValue, reasonType, true);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);
@@ -192,6 +193,27 @@ public class TripsResource extends PlannerResource implements TripsApi {
 		}
     	return rsp;
 	}
+
+	@Override
+	public Response unconfirmTrip(String xDelegator, String tripId) {
+    	Response rsp = null;
+    	try {
+        	Long tid = UrnHelper.getId(Trip.URN_PREFIX, tripId);
+			Trip trip = tripManager.getTripBasics(tid);
+			CallingContext<PlannerUser> context = userManager.findCallingContext(securityIdentity);
+        	allowAdminOrEffectiveUser(request, context, trip.getTraveller());
+			tripManager.unconfirmTrip(tid);
+			rsp = Response.noContent().build();
+		} catch (IllegalArgumentException e) {
+			throw new javax.ws.rs.BadRequestException(e);
+		} catch (RemoveException e) {
+			throw new SecurityException(e);
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+    	return rsp;
+	}
+
 
 	@Override
 	public Response settleDisputeInFavorOfTraveller(String tripId) {

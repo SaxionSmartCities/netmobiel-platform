@@ -7,21 +7,21 @@ import eu.netmobiel.rideshare.model.Ride;
 
 
 /**
- * This event is issued when a booking is settled (the fare is paid or cancelled).  
+ * This event is issued when a booking is reset (the fare is reserved again).  
  * 
  * @author Jaap Reitsma
  *
  */
-public class BookingFareSettledEvent extends BookingFareEvent implements Serializable {
+public class BookingFareResetEvent extends BookingFareEvent implements Serializable {
 
 	private static final long serialVersionUID = 8837457274309434137L;
 
-    public BookingFareSettledEvent(Ride aRide, Booking aBooking) {
+    public BookingFareResetEvent(Ride aRide, Booking aBooking) {
     	super(aRide, aBooking);
     }
 
 	@Override
 	public String toString() {
-		return String.format("BookingFareSettledEvent %s %s]", getRide().getId(), getBooking().getId());
+		return String.format("BookingFareResetEvent %s %s]", getRide().getId(), getBooking().getId());
 	}
 }

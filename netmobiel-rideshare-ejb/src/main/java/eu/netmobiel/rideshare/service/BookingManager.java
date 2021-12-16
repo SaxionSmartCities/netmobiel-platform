@@ -26,6 +26,7 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
+import eu.netmobiel.rideshare.event.BookingFareResetEvent;
 import eu.netmobiel.rideshare.event.BookingFareSettledEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
@@ -55,6 +56,9 @@ public class BookingManager {
 
     @Inject
     private Event<BookingFareSettledEvent> bookingFareSettledEvent;
+
+    @Inject
+    private Event<BookingFareResetEvent> bookingFareResetEvent;
 
     @Inject @Updated
     private Event<Ride> staleItineraryEvent;
@@ -243,6 +247,18 @@ public class BookingManager {
     }
 
     /**
+     * Restart the validation, as if the validation of the booking was not yet started.
+     * @param bookingRef the booking to revalidate.
+     * @throws BusinessException 
+     */
+    public void restartValidation(String bookingRef) throws BusinessException {
+    	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
+    	Booking bookingdb = bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
+		EventFireWrapper.fire(bookingFareResetEvent, new BookingFareResetEvent(bookingdb.getRide(), bookingdb));
+    }
+
+    /**
      * Signals the settlement of the booking fare.
      * @param rideRef the ride involved
      * @param bookingRef the booking involved.
@@ -258,4 +274,13 @@ public class BookingManager {
 		EventFireWrapper.fire(bookingFareSettledEvent, new BookingFareSettledEvent(ride, bookingdb));
     }
 
+    /**
+     * Signals the reset of the booking fare.
+     * @param rideRef the ride involved
+     * @param bookingRef the booking involved.
+     * @throws BusinessException
+     */
+    public void informBookingFareReset(String rideRef, String bookingRef) throws BusinessException {
+    	// Nothing to do here.
+    }
 }

@@ -4,13 +4,16 @@ import java.time.OffsetDateTime;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.PagedResult;
@@ -50,6 +53,9 @@ public class RidesResource extends RideshareResource implements RidesApi {
     @Inject
     private RideshareUserManager userManager;
     
+    @Context
+    private HttpServletRequest request;
+
     /**
      * List all rides owned by the calling user. Soft deleted rides are omitted.
      * @return A list of rides owned by the calling user.
@@ -119,7 +125,9 @@ public class RidesResource extends RideshareResource implements RidesApi {
     	Ride ride = null;
     	try {
         	Long cid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
+			RideshareUser caller = userManager.findCallingUser();
 			ride = rideManager.getRide(cid);
+			allowAdminOrCaller(request, caller, ride.getDriver());
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
@@ -140,6 +148,9 @@ public class RidesResource extends RideshareResource implements RidesApi {
     	Response rsp = null;
     	try {
         	Long cid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
+			RideshareUser caller = userManager.findCallingUser();
+			Ride rdb = rideManager.getRideWithDriver(cid);
+			allowAdminOrCaller(request, caller, rdb.getDriver());
 			Ride ride = mapper.map(ridedt);
 			ride.setId(cid);
     		RideScope rs = scope == null ? RideScope.THIS: RideScope.lookup(scope);
@@ -167,6 +178,9 @@ public class RidesResource extends RideshareResource implements RidesApi {
     	try {
     		RideScope rs = scope == null ? RideScope.THIS: RideScope.lookup(scope);
         	Long cid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
+			RideshareUser caller = userManager.findCallingUser();
+			Ride rdb = rideManager.getRideWithDriver(cid);
+			allowAdminOrCaller(request, caller, rdb.getDriver());
 			rideManager.removeRide(cid, reason, rs, Boolean.TRUE.equals(hard));
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
@@ -202,11 +216,14 @@ public class RidesResource extends RideshareResource implements RidesApi {
     	Response rsp = null;
     	try {
         	Long rid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
+			RideshareUser caller = userManager.findCallingUser();
+			Ride rdb = rideManager.getRideWithDriver(rid);
+			allowAdminOrCaller(request, caller, rdb.getDriver());
         	ConfirmationReasonEnum reasonEnum = reason == null ? null : 
         		ConfirmationReasonEnum.valueOf(reason);
         	ConfirmationReasonType reasonType = mapper.map(reasonEnum); 
         	//TODO Add security restriction
-			rideManager.confirmRide(rid, confirmationValue, reasonType);
+			rideManager.confirmRide(rid, confirmationValue, reasonType, true);
 			rsp = Response.noContent().build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
@@ -214,4 +231,22 @@ public class RidesResource extends RideshareResource implements RidesApi {
     	return rsp;
 	}
 
+	@Override
+	public Response unconfirmRide(String rideId) {
+    	Response rsp = null;
+    	try {
+        	Long rid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
+			RideshareUser caller = userManager.findCallingUser();
+			Ride rdb = rideManager.getRideWithDriver(rid);
+			allowAdminOrCaller(request, caller, rdb.getDriver());
+			rideManager.unconfirmRide(rid);
+			rsp = Response.noContent().build();
+		} catch (RemoveException e) {
+			// Convert to security exception (403)
+			throw new SecurityException(e);
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+    	return rsp;
+	}
 }

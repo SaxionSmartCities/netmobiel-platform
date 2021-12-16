@@ -8,7 +8,11 @@ package eu.netmobiel.planner.model;
  */
 public enum TripMonitorEvent {
 	/**
-	 * It is time to prepare for the trip. Inform the passnger about the upcoming departure. 
+	 * It is time to check whether to start the monitoring. This is an artificial event. 
+	 */
+	TIME_TO_PREPARE_MONITORING,
+	/**
+	 * It is time to prepare for the trip. Inform the passenger about the upcoming departure. 
 	 */
 	TIME_TO_PREPARE,
 	/**
@@ -23,10 +27,6 @@ public enum TripMonitorEvent {
 	 * The passenger is now at the destination location for some time, send an invitation for a confirmation (only if requested, e.g. for rideshare) 
 	 */
 	TIME_TO_VALIDATE,
-	/**
-	 * Friendly reminder to confirm the trip  
-	 */
-	TIME_TO_CONFIRM_REMINDER,
 	/**
 	 * It is time to complete the trip and terminate the monitoring.
 	 */

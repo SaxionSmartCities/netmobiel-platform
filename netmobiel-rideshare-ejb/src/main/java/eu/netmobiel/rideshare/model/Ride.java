@@ -78,6 +78,12 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 })
 
 @NamedEntityGraph(
+		name = Ride.RIDE_DRIVER_ENTITY_GRAPH, 
+		attributeNodes = { 
+				@NamedAttributeNode(value = "driver")
+		}
+	)
+@NamedEntityGraph(
 	name = Ride.SEARCH_RIDES_ENTITY_GRAPH, 
 	attributeNodes = { 
 			@NamedAttributeNode(value = "car"),		
@@ -140,6 +146,7 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 public class Ride extends RideBase implements Serializable {
 	private static final long serialVersionUID = 4342765799358026502L;
 	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix("ride");
+	public static final String RIDE_DRIVER_ENTITY_GRAPH = "ride-driver-graph";
 	public static final String SEARCH_RIDES_ENTITY_GRAPH = "search-rides-graph";
 	public static final String LIST_RIDES_ENTITY_GRAPH = "list-rides-graph";
 	public static final String DETAILS_WITH_LEGS_ENTITY_GRAPH = "ride-details-graph";
@@ -232,6 +239,13 @@ public class Ride extends RideBase implements Serializable {
      */
     @Column(name = "conf_reason")
     private ConfirmationReasonType confirmationReason;
+
+    /**
+     * The number of reminders sent during the validation of the ride
+     */
+    @NotNull
+    @Column(name = "reminder_count")
+    private int reminderCount;
     
 	@Override
     public Long getId() {
@@ -354,6 +368,18 @@ public class Ride extends RideBase implements Serializable {
 
 	public void setConfirmationReason(ConfirmationReasonType confirmationReason) {
 		this.confirmationReason = confirmationReason;
+	}
+
+	public int getReminderCount() {
+		return reminderCount;
+	}
+
+	public void setReminderCount(int reminderCount) {
+		this.reminderCount = reminderCount;
+	}
+
+	public void incrementReminderCount() {
+		this.reminderCount++;
 	}
 
 	/**

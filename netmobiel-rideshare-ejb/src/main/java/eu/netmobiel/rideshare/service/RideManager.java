@@ -38,6 +38,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.annotation.Updated;
 import eu.netmobiel.commons.event.TripConfirmedByProviderEvent;
+import eu.netmobiel.commons.event.TripUnconfirmedByProviderEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
@@ -52,7 +53,9 @@ import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
+import eu.netmobiel.commons.util.ValidEjbTimer;
 import eu.netmobiel.here.search.HereSearchClient;
+import eu.netmobiel.rideshare.event.BookingFareResetEvent;
 import eu.netmobiel.rideshare.event.BookingFareSettledEvent;
 import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
 import eu.netmobiel.rideshare.filter.RideFilter;
@@ -107,19 +110,16 @@ public class RideManager {
 	/**
 	 * The delay before sending a invitation for a confirmation.
 	 */
-	private static final Duration CONFIRMATION_DELAY = Duration.ofMinutes(15);
+	private static final Duration VALIDATION_DELAY = Duration.ofMinutes(15);
 	/**
-	 * The maximum duration of the first confirmation period.
+	 * The duration of the validation interval (before sending the next reminder).
 	 */
-	private static final Duration CONFIRM_PERIOD_1 = Duration.ofDays(2);
+	private static final Duration VALIDATION_INTERVAL = Duration.ofDays(2);
+
 	/**
-	 * The period after which to send a confirmation reminder, if necessary.
+	 * The maximum number of reminders to sent during validation.
 	 */
-	private static final Duration CONFIRM_PERIOD_2 = Duration.ofDays(2);
-	/**
-	 * The total period after which a confirmation period expires.
-	 */
-	private static final Duration CONFIRMATION_PERIOD = CONFIRM_PERIOD_1.plus(CONFIRM_PERIOD_2);
+	private static final int MAX_REMINDERS = 2;
 	
 	@Inject
     private Logger log;
@@ -155,6 +155,9 @@ public class RideManager {
 
 	@Inject
     private Event<TripConfirmedByProviderEvent> transportProviderConfirmedEvent;
+
+	@Inject
+    private Event<TripUnconfirmedByProviderEvent> transportProviderUnconfirmedEvent;
 
     /**
      * Updates all recurrent rides by advancing the system horizon to a predefined offset with reference to the calling time.
@@ -527,6 +530,18 @@ public class RideManager {
     	return ridedb;
     }
 
+    /**
+     * Retrieves a ride and the driver. 
+     * @param id
+     * @return
+     * @throws NotFoundException
+     */
+    public Ride getRideWithDriver(Long id) throws NotFoundException {
+    	Ride ridedb = rideDao.loadGraph(id, Ride.RIDE_DRIVER_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such ride"));
+    	return ridedb;
+    }
+
     private void prepareUpdateOfRide(Ride ridedb, Ride ride, RideTemplate newTemplate) throws BusinessException {
     	if (!ridedb.getState().isPreTravelState()) {
     		throw new UpdateException("Ride can not be updated, travelling has already started!");
@@ -753,23 +768,29 @@ public class RideManager {
      * @param rideId the ride to update.
      * @throws BusinessException 
      */
-    public void confirmRide(Long rideId, Boolean confirmationValue, ConfirmationReasonType reason) throws BusinessException {
+    public void confirmRide(Long rideId, Boolean confirmationValue, ConfirmationReasonType reason, boolean overwrite) throws BusinessException {
     	Ride ridedb = rideDao.find(rideId)
     			.orElseThrow(() -> new NotFoundException("No such ride: " + rideId));
-    	if (confirmationValue == null) {
-    		throw new BadRequestException("An empty confirmation value is not allowed");
-    	}
-    	if (ridedb.getConfirmed() != null) {
-    		throw new BadRequestException("Ride has already a confirmation value: " + rideId);
-    	}
-    	ridedb.setConfirmed(confirmationValue);
-    	ridedb.setConfirmationReason(reason);
-    	Optional<Booking> optBooking = ridedb.getConfirmedBooking();
-    	if (optBooking.isPresent()) {
-    		EventFireWrapper.fire(transportProviderConfirmedEvent, 
-    				new TripConfirmedByProviderEvent(optBooking.get().getUrn(), 
-    						optBooking.get().getPassengerTripRef(), 
-    						confirmationValue, reason));
+    	if (ridedb.getState() != RideState.COMPLETED) { 
+    		// No use to set this flag when the trip has already been finished physically and administratively)
+        	if (ridedb.getState() != RideState.VALIDATING) {
+        		throw new BadRequestException("Unexpected state for a confirmation: " + rideId + " " + ridedb.getState());
+        	}
+	    	if (confirmationValue == null) {
+	    		throw new BadRequestException("An empty confirmation value is not allowed");
+	    	}
+	    	if (ridedb.getConfirmed() != null && !overwrite) {
+	    		throw new BadRequestException("Ride has already a confirmation value: " + rideId);
+	    	}
+	    	ridedb.setConfirmed(confirmationValue);
+	    	ridedb.setConfirmationReason(reason);
+	    	Optional<Booking> optBooking = ridedb.getConfirmedBooking();
+	    	if (optBooking.isPresent()) {
+	    		EventFireWrapper.fire(transportProviderConfirmedEvent, 
+	    				new TripConfirmedByProviderEvent(optBooking.get().getUrn(), 
+	    						optBooking.get().getPassengerTripRef(), 
+	    						confirmationValue, reason));
+	    	}
     	}
     }
 
@@ -787,6 +808,51 @@ public class RideManager {
     		// The fare was settled or cancelled, any way, the ride is done
 			cancelRideTimers(ride);
 			updateRideState(ride, RideState.COMPLETED);
+    	}
+    }
+
+    /**
+     * Flags the booking fare as reserved again. 
+     * @param event the event from the booking manager.
+     * @throws BusinessException
+     */
+    public void onBookingFareReset(@Observes(during = TransactionPhase.IN_PROGRESS) BookingFareResetEvent event) throws BusinessException {
+    	restartValidation(event.getRide());
+    }
+
+    /**
+     * Unconfirms (revokes confirmation) a ride and restores the state of a ride as if the validation has just started.
+     * This method is called by the driver through the API.
+     * The unconfirm is intended to roll-back a cancel, charge or dispute situation. The confirmation can still be altered when 
+     * the payment decision is not made yet. The driver cannot uncancel a fare, only a charge.
+     * @param rideId the ride to unconfirm.
+     * @throws BusinessException
+     */
+    public void unconfirmRide(Long rideId) throws BusinessException {
+    	Ride ridedb = rideDao.find(rideId)
+    			.orElseThrow(() -> new NotFoundException("No such ride: " + rideId));
+    	if (ridedb.getState() != RideState.COMPLETED && ridedb.getState() != RideState.VALIDATING) { 
+    		// Not allowed when the ride has not been finished or cancelled physically and administratively)
+       		throw new BadRequestException("Unexpected state for revoking a confirmation: " + rideId + " " + ridedb.getState());
+    	}
+    	ridedb.setConfirmed(null);
+    	ridedb.setConfirmationReason(null);
+    	// FIXME the payment status and fare should in the booking. Now we have to check the leg of the passenger trip
+    	Optional<Booking> optBooking = ridedb.getConfirmedBooking();
+    	if (optBooking.isPresent()) {
+    		EventFireWrapper.fire(transportProviderUnconfirmedEvent, 
+    				new TripUnconfirmedByProviderEvent(optBooking.get().getUrn(), optBooking.get().getPassengerTripRef()));
+    	}
+    	restartValidation(ridedb);
+    }
+    
+    public void restartValidation(Ride ride) throws BusinessException {
+    	if (ride.getState().isPostTravelState() ) {
+    		// The fare was uncancelled or refunded, any way, the ride needs validation again
+			cancelRideTimers(ride);
+    		ride.setReminderCount(0);
+			ride.setMonitored(true);
+			handleRideMonitorEvent(ride, RideMonitorEvent.TIME_TO_VALIDATE);
     	}
     }
 
@@ -822,14 +888,12 @@ public class RideManager {
 		}
 	}
 
-	protected void handleRideEvent(RideInfo rideInfo) throws BusinessException {
+	protected void handleRideMonitorEvent(Ride ride, RideMonitorEvent event) throws BusinessException {
 		if (log.isDebugEnabled()) {
-			log.debug("Received ride event: " + rideInfo.toString());
+			log.debug("Received ride event: " + event.toString());
 		}
-		Ride ride = rideDao.fetchGraph(rideInfo.rideId, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
-				.orElseThrow(() -> new IllegalArgumentException("No such ride: " + rideInfo.rideId));
 		Instant now = Instant.now();
-		switch (rideInfo.event) {
+		switch (event) {
 		case TIME_TO_PREPARE:
 			updateRideState(ride, RideState.DEPARTING);
 			timerService.createTimer(Date.from(ride.getDepartureTime()), 
@@ -842,8 +906,8 @@ public class RideManager {
 			break;
 		case TIME_TO_ARRIVE:
 			updateRideState(ride, RideState.ARRIVING);
-			if (ride.hasConfirmedBooking() && ride.getArrivalTime().plus(CONFIRMATION_PERIOD).isAfter(now)) {
-				timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRMATION_DELAY)), 
+			if (ride.hasConfirmedBooking()) {
+				timerService.createTimer(Date.from(ride.getArrivalTime().plus(VALIDATION_DELAY)), 
 						new RideInfo(RideMonitorEvent.TIME_TO_VALIDATE, ride.getId()));
 			} else {
 				timerService.createTimer(Date.from(ride.getArrivalTime().plus(ARRIVING_PERIOD)), 
@@ -852,24 +916,26 @@ public class RideManager {
 			break;
 		case TIME_TO_VALIDATE:
 			updateRideState(ride, RideState.VALIDATING);
-			timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_1)), 
-					new RideInfo(RideMonitorEvent.TIME_TO_CONFIRM_REMINDER, ride.getId()));
-			break;
-		case TIME_TO_CONFIRM_REMINDER:
-			updateRideState(ride, RideState.VALIDATING);
-			timerService.createTimer(Date.from(ride.getArrivalTime().plus(CONFIRM_PERIOD_2)), 
-					new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
+			timerService.createTimer(Date.from(now.plus(VALIDATION_INTERVAL)), 
+					new RideInfo(nextEventAfterValidationExpiration(ride), ride.getId()));
 			break;
 		case TIME_TO_COMPLETE:
 			updateRideState(ride, RideState.COMPLETED);
 			ride.setMonitored(false);
 			break;
 		default:
-			log.warn("Don't know how to handle event: " + rideInfo.event);
+			log.warn("Don't know how to handle event: " + event);
 			break;
 		}
 	}
 
+	private static RideMonitorEvent nextEventAfterValidationExpiration(Ride ride) {
+		ride.incrementReminderCount();
+		return ride.getReminderCount() < MAX_REMINDERS ? 
+				RideMonitorEvent.TIME_TO_VALIDATE : 
+				RideMonitorEvent.TIME_TO_COMPLETE;  
+	}
+	
 	@Timeout
 	public void onTimeout(Timer timer) {
 		try {
@@ -878,7 +944,9 @@ public class RideManager {
 				return;
 			}
 			RideInfo rideInfo = (RideInfo) timer.getInfo();
-			handleRideEvent(rideInfo);
+			Ride ridedb = rideDao.fetchGraph(rideInfo.rideId, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
+					.orElseThrow(() -> new IllegalArgumentException("No such ride: " + rideInfo.rideId));
+			handleRideMonitorEvent(ridedb, rideInfo.event);
 		} catch (BusinessException ex) {
 			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
 			log.info("Rollback status after exception: " + context.getRollbackOnly()); 
@@ -929,28 +997,50 @@ public class RideManager {
     protected void cancelRideTimers(Ride ride) {
     	// Find all timers related to this ride and cancel them
     	Collection<Timer> timers = timerService.getTimers();
+    	int count = 0;
 		for (Timer timer : timers) {
 			if ((timer.getInfo() instanceof RideInfo)) {
 				RideInfo rideInfo = (RideInfo) timer.getInfo();
 				if (rideInfo.rideId.equals(ride.getId())) {
 					try {
-						if (log.isDebugEnabled()) {
-							log.debug("Cancel monitor timer for ride " + ride.getId());
-						}
 						timer.cancel();
+						count++;
 					} catch (Exception ex) {
 						log.error("Unable to cancel timer: " + ex.toString());
 					}
 				}
 			}
 		}
+		if (count > 0 && log.isDebugEnabled()) {
+			log.debug(String.format("Cancel %d timer(s) for ride %s", count, ride.getId()));
+		}
 		ride.setMonitored(false);
     }
-	public List<RideInfo> listAllTripMonitorTimers() {
-    	// Find all timers related to the trip manager
+
+    public List<RideInfo> listAllRideMonitorTimers() {
+    	// Find all timers related to the ride manager
     	Collection<Timer> timers = timerService.getTimers();
+    	ValidEjbTimer validEjbTimer = new ValidEjbTimer();
+    	Collection<Timer> invalidTimers = timers.stream()
+        		.filter(validEjbTimer.negate())
+        		.collect(Collectors.toList());
+    	invalidTimers.stream()
+    		.forEach(tm -> {
+    			log.info(String.format("Cancelling invalid ride timer: %s", tm.getInfo()));
+    			tm.cancel();
+    		});
+    	timers.removeAll(invalidTimers);
+    	timers.removeIf(tm -> !(tm.getInfo() instanceof RideInfo));
+		if (timers.isEmpty()) {
+			log.info("NO active ride timers");
+		} else {
+			log.info("Active ride timers:\n\t" + String.join("\n\t", 
+					timers.stream()
+					.map(tm -> String.format("%s %s %d %s", tm.getInfo(), tm.getNextTimeout(), tm.getTimeRemaining(), tm.isPersistent()))
+					.collect(Collectors.toList()))
+			);
+		}		
     	return timers.stream()
-    			.filter(tm -> tm.getInfo() instanceof RideInfo)
     			.map(tm -> (RideInfo) tm.getInfo())
     			.collect(Collectors.toList());
 	}
@@ -972,16 +1062,7 @@ public class RideManager {
 	 * Revive the ride monitors that have been crashed due due to some unrecoverable errors.
 	 */
 	public void reviveRideMonitors() {
-		List<RideInfo> rideInfos = listAllTripMonitorTimers();
-		if (rideInfos.isEmpty()) {
-			log.info("NO active ride timers");
-		} else {
-			log.info("Active ride timers:\n" + String.join("\n\t", 
-					rideInfos.stream()
-					.map(ti -> ti.toString())
-					.collect(Collectors.toList()))
-			);
-		}		
+		List<RideInfo> rideInfos = listAllRideMonitorTimers();
 
 		Set<Long> timedTripIds = rideInfos.stream()
 				.map(ti -> ti.rideId)
@@ -999,10 +1080,11 @@ public class RideManager {
 					// First check what is really needed before switching off the monitor 
 					// ride.setMonitored(false);
 			} else {
-					RideInfo ti = new RideInfo(event, ride.getId());
 					rideDao.detach(ride);
 					try {
-						handleRideEvent(ti);
+						Ride ridedb = rideDao.fetchGraph(ride.getId(), Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
+								.orElseThrow(() -> new IllegalArgumentException("No such ride: " + ride.getId()));
+						handleRideMonitorEvent(ridedb, event);
 					} catch (BusinessException ex) {
 						log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
 					} catch (Exception ex) {

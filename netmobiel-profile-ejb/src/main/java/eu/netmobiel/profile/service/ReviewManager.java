@@ -88,7 +88,7 @@ public class ReviewManager {
 	}
 
 	public Review getReview(Long reviewId) throws NotFoundException {
-		return reviewDao.find(reviewId)
+		return reviewDao.loadGraph(reviewId, Review.LIST_REVIEWS_ENTITY_GRAPH)
 				.orElseThrow(() -> new NotFoundException("No such review: " + reviewId));
 	}
 

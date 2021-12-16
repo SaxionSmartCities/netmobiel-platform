@@ -2,6 +2,7 @@ package eu.netmobiel.planner.model;
 
 
 import java.io.Serializable;
+import java.time.Duration;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
@@ -48,6 +49,15 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 public class Leg implements Serializable {
 	private static final long serialVersionUID = -3789784762166689720L;
 	public static final String URN_PREFIX = PlannerUrnHelper.createUrnPrefix(Leg.class);
+
+	/**
+	 * The duration of the departing state.
+	 */
+	public static final Duration DEPARTING_PERIOD = Duration.ofMinutes(15);
+	/**
+	 * The duration of the arriving state.
+	 */
+	public static final Duration ARRIVING_PERIOD = Duration.ofMinutes(15);
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "leg_sg")
@@ -191,6 +201,9 @@ public class Leg implements Serializable {
      */
     @Column(name = "booking_required")
     private Boolean bookingRequired;
+
+    @Transient
+    private boolean bookingConfirmed;
 
     /**
      * The leg's geometry. This one is used only when storing trips into the database. 
@@ -550,6 +563,19 @@ public class Leg implements Serializable {
 		return bookingRequired == Boolean.TRUE;
 	}
 	
+    /**
+     * Currently we do not support bookings that are not implicitly confirmed.
+     * @return true if the booking is confirmed.
+     */
+    public boolean isBookingConfirmed() {
+    	// FIXME Store flag in database 
+    	return bookingConfirmed || getBookingId() != null;
+    }
+    
+    public void setBookingConfirmed(boolean confirmed) {
+    	this.bookingConfirmed = confirmed;
+    }
+
 	public MultiPoint getLegGeometry() {
 		return legGeometry;
 	}
@@ -736,12 +762,60 @@ public class Leg implements Serializable {
         return traverseMode == null ? null : traverseMode.isTransit();
     }
 
+    /**
+     * Evaluates the current state parameters and determines the leg state accordingly.
+     * This method determines the state without considering the current state. This might result in 'unexpected' transitions,
+     * caused by. e.g., not checking often enough.
+     * @param referenceTime The time the check occurs. Ordinarily 'now', but for testing might be different.   
+     */
+    public TripState nextState(Instant referenceTime) {
+    	TripState next = state;
+    	if (state == TripState.CANCELLED) {
+    		// The cancel state is set explicitly. Once cancelled stays cancelled forever.
+    		return state;
+    	}
+    	if (state == null) {
+    		state = TripState.PLANNING;
+    	}
+    	next = state;
+    	if (isBookingRequired() && (getBookingId() == null || !isBookingConfirmed())) {
+    		next = TripState.BOOKING;
+    	} else if (referenceTime.plus(ARRIVING_PERIOD).isAfter(getEndTime())) {
+        	if (isPaymentDue()) {
+        		next = TripState.VALIDATING;
+        	} else {
+        		next = TripState.COMPLETED;
+        	}
+       	} else if (referenceTime.isAfter(getEndTime())) {
+    		next = TripState.ARRIVING;
+    	} else if (getStartTime().isAfter(referenceTime)) {
+    		next = TripState.IN_TRANSIT;
+    	} else if (getStartTime().minus(DEPARTING_PERIOD).isAfter(referenceTime)) {
+    		next = TripState.DEPARTING;
+    	} else {
+    		next = TripState.SCHEDULED;
+    	}
+    	return next;
+    }
+    
     public int getDestinationStopDistance() {
     	Coordinate lastCoord = getLegGeometry().getCoordinates()[getLegGeometry().getCoordinates().length - 1];
     	GeoLocation lastPoint = new GeoLocation(GeometryHelper.createPoint(lastCoord));
     	return Math.toIntExact(Math.round(to.getLocation().getDistanceFlat(lastPoint) * 1000));
     }
     
+	public String toStringCompact() {
+		StringBuilder builder = new StringBuilder();
+		builder.append("Leg ");
+		builder.append(id).append(" ");
+		builder.append(duration).append("s ");
+		builder.append(distance).append("m ");
+		builder.append(traverseMode).append(" ");
+		builder.append(from).append(" ");
+		builder.append(to).append(" ");
+		return builder.toString();
+	}
+	
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();

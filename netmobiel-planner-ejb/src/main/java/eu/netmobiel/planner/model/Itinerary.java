@@ -50,18 +50,9 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 		name = Itinerary.LIST_ITINERARIES_ENTITY_GRAPH, 
 		attributeNodes = { 
 				@NamedAttributeNode(value = "stops"),		
-				@NamedAttributeNode(value = "legs", subgraph = "leg-details")		
-		}, subgraphs = {
-				// Without this subgraph no leg details are retrieved
-				@NamedSubgraph(
-						name = "leg-details",
-						attributeNodes = {
-								@NamedAttributeNode(value = "guideSteps")
-						}
-					)
-				}
-
-	)
+				@NamedAttributeNode(value = "legs")		
+		}
+)
 @NamedEntityGraph(
 		name = Itinerary.LIST_ITINERARY_DETAIL_ENTITY_GRAPH, 
 		attributeNodes = { 
@@ -75,9 +66,8 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 								@NamedAttributeNode(value = "guideSteps")
 						}
 					)
-				}
-
-	)
+		}
+)
 
 @Entity
 @Table(name = "itinerary")

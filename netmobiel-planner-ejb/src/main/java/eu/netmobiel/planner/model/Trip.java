@@ -435,6 +435,13 @@ public class Trip implements Serializable {
     @Column(name = "creation_time", nullable = false)
     private Instant creationTime;
 
+    /**
+     * The number of reminders sent during the validation of the trip.
+     */
+    @NotNull
+    @Column(name = "reminder_count")
+    private int reminderCount;
+    
     public Trip() {
     	this.creationTime = Instant.now();
     }
@@ -601,6 +608,18 @@ public class Trip implements Serializable {
 		this.creationTime = creationTime;
 	}
 
+	public int getReminderCount() {
+		return reminderCount;
+	}
+
+	public void setReminderCount(int reminderCount) {
+		this.reminderCount = reminderCount;
+	}
+
+	public void incrementReminderCount() {
+		this.reminderCount++;
+	}
+
 	private static String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
     }
@@ -618,34 +637,75 @@ public class Trip implements Serializable {
 		return String.format("%s\n\t%s", toStringCompact(), itinerary.toStringCompact());
 	}
 
+	public Leg getFirstLeg() {
+		return getItinerary().getLegs().get(0);
+	}
+	
+	public Leg getLastLeg() {
+		return getItinerary().getLegs().get(getItinerary().getLegs().size() - 1);
+	}
+	
+    /**
+     * Fiven the current state of the legs, determine the current state of the trip. 
+     * If there are no legs then the state remains as is.
+     * 
+     */
+   	public TripState nextState(Instant referenceTime) {
+    	if (state == TripState.CANCELLED) {
+    		// The cancel state is set explicitly. Once cancelled stays cancelled forever.
+    		return state;
+    	}
+   		if (getItinerary() == null || getItinerary().getLegs() == null || getItinerary().getLegs().isEmpty()) {
+   			return state;
+   		}
+   		TripState next = state;
+   		// Update the leg states
+//   		getItinerary().getLegs().forEach(lg -> lg.setState(lg.nextState(referenceTime)));
+   		Optional<Leg> minleg = getItinerary().getLegs().stream().min(Comparator.comparingInt(leg -> leg.getState().ordinal()));
+   		Optional<Leg> maxleg = getItinerary().getLegs().stream().max(Comparator.comparingInt(leg -> leg.getState().ordinal()));
+   		if (maxleg.isPresent() && minleg.get().getState() == TripState.CANCELLED) {
+   			next = TripState.CANCELLED;
+   		} else if (minleg.isPresent()) {
+   			TripState min = minleg.get().getState();
+   			// If some leg is less than scheduled, the trip is also not yet scheduled
+   			if (min.ordinal() < TripState.SCHEDULED.ordinal()) {
+   				next = min;
+   			} else if (getFirstLeg().getState() == TripState.DEPARTING) {
+				next = TripState.DEPARTING;
+   			} else if (getLastLeg().getState() == TripState.ARRIVING) {
+				next = TripState.ARRIVING;
+   			} else if (min.ordinal() < TripState.VALIDATING.ordinal()) {
+				next = TripState.IN_TRANSIT;
+   			} else {
+   				next = min;
+   			}
+   		}
+   		return next;
+   	}
+
     /**
      * Assigns the lowest leg state (in ordinal terms) to the overall trip state.
      * If there are no legs then the state remains as is.
-     * The new state cannot be lower than the current trip state
+     * Note: The new state can be lower than the current trip state
      */
-   	public void updateTripState() {
+   	public void deriveTripState() {
    		if (getItinerary() == null || getItinerary().getLegs() == null) {
    			return;
    		}
    		Optional<Leg> minleg = getItinerary().getLegs().stream().min(Comparator.comparingInt(leg -> leg.getState().ordinal()));
-   		if (minleg.isPresent() && minleg.get().getState().ordinal() > getState().ordinal()) {
+   		if (minleg.isPresent()) {
 			setState(minleg.get().getState());
    		}
    	}
-
-    /**
-     * Assigns the current trip state to all legs, if any, but only if the leg state is 
-     * lower in terms of the ordinal. A trip with a cancelled leg can never be set to completed.  
+   	
+   	/**
+     * Assigns the current trip state to all legs, if any.   
      */
-   	public void forceTripStateDown() {
+   	public void propagateTripStateDown() {
    		if (getItinerary() == null || getItinerary().getLegs() == null) {
    			return;
    		}
-   		for (Leg leg: getItinerary().getLegs()) {
-   			if (leg.getState().ordinal() < getState().ordinal()) {
-   				leg.setState(getState());
-   			}
-   		}
+   		getItinerary().getLegs().forEach(lg -> lg.setState(getState()));
    	}
 
    	public Set<String> getAgencies() {

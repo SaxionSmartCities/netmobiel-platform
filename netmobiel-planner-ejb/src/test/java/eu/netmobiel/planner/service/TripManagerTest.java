@@ -342,7 +342,7 @@ public class TripManagerTest {
 		trip.setId(55L);
 		Leg leg = trip.getItinerary().getLegs().get(0);
 		leg.setState(TripState.SCHEDULED);
-		trip.updateTripState();
+		trip.deriveTripState();
 		String bookingRef = UrnHelper.createUrn("urn:nb:myservice:booking:", 42L);
 		leg.setBookingId(bookingRef);
 		String reason = "Ik wil niet meer";

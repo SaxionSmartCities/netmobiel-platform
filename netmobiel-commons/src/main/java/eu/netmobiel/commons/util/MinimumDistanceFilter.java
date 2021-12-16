@@ -4,11 +4,11 @@ import java.util.function.Predicate;
 
 import eu.netmobiel.commons.model.GeoLocation;
 
-public class MinumumDistanceFilter implements Predicate<GeoLocation>{
+public class MinimumDistanceFilter implements Predicate<GeoLocation>{
 	private double distanceInKm;
 	private GeoLocation previous;
 	
-	public MinumumDistanceFilter(int minimumDistanceInMeters) {
+	public MinimumDistanceFilter(int minimumDistanceInMeters) {
 		this.distanceInKm = minimumDistanceInMeters / 1000.0;
 	}
 

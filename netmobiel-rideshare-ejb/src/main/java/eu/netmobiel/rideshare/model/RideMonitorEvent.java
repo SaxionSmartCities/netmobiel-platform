@@ -24,10 +24,6 @@ public enum RideMonitorEvent {
 	 */
 	TIME_TO_VALIDATE,
 	/**
-	 * Friendly reminder to confirm the trip  
-	 */
-	TIME_TO_CONFIRM_REMINDER,
-	/**
 	 * It is time to complete the trip and terminate the monitoring.
 	 */
 	TIME_TO_COMPLETE

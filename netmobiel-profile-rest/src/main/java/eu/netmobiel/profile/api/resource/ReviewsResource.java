@@ -109,22 +109,24 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 	}
 
 	@Override
-	public Response getReviews(String xDelegator, String senderId, String receiverId) {
+	public Response getReviews(String xDelegator, String senderId, String receiverId, String context) {
 		Response rsp = null;
 		try {
 			Cursor cursor = new Cursor(100, 0);
 			ReviewFilter filter = new ReviewFilter(resolveIdentity(xDelegator, receiverId), resolveIdentity(xDelegator, senderId));
-			String me = securityIdentity.getEffectivePrincipal().getName();
-			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && filter.getReceiver() != null && !filter.getReceiver().equals(me)) {
-				throw new SecurityException("You have no privilege to list reviews received by someone else");
-			}
-			if (! privileged && filter.getSender() != null && !filter.getSender().equals(me)) {
-				throw new SecurityException("You have no privilege to list reviews sent by someone else");
-			}
-			if (! privileged && filter.getReceiver() == null) {
-				filter.setReceiver(me);
-			}
+			filter.setContext(context);
+			// Anyone can see the reviews on somebody
+//			String me = securityIdentity.getEffectivePrincipal().getName();
+//			final boolean privileged = request.isUserInRole("admin"); 
+//			if (! privileged && filter.getReceiver() != null && !filter.getReceiver().equals(me)) {
+//				throw new SecurityException("You have no privilege to list reviews received by someone else");
+//			}
+//			if (! privileged && filter.getSender() != null && !filter.getSender().equals(me)) {
+//				throw new SecurityException("You have no privilege to list reviews sent by someone else");
+//			}
+//			if (! privileged && filter.getReceiver() == null) {
+//				filter.setReceiver(me);
+//			}
 	    	PagedResult<Review> results = reviewManager.listReviews(filter, cursor);
 	    	ReviewResponse rr = new ReviewResponse();
 	    	rr.setReviews(mapper.map(results.getData()));

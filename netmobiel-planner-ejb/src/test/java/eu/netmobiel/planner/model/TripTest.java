@@ -29,11 +29,11 @@ public class TripTest {
 		leg2.setState(TripState.SCHEDULED);
 		it.getLegs().add(leg2);
 		assertEquals(TripState.PLANNING, trip.getState());
-		trip.updateTripState();
+		trip.deriveTripState();
 		assertEquals(TripState.BOOKING, trip.getState());
 		
 		leg1.setState(TripState.SCHEDULED);
-		trip.updateTripState();
+		trip.deriveTripState();
 		assertEquals(TripState.SCHEDULED, trip.getState());
 	}
 

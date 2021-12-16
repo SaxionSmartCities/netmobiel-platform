@@ -95,22 +95,24 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 	}
 
 	@Override
-	public Response getCompliments(String xDelegator, String senderId, String receiverId) {
+	public Response getCompliments(String xDelegator, String senderId, String receiverId, String context) {
 		Response rsp = null;
 		try {
 			Cursor cursor = new Cursor(100, 0);
 			ComplimentsFilter filter = new ComplimentsFilter(resolveIdentity(xDelegator, receiverId), resolveIdentity(xDelegator, senderId));
-			String me = securityIdentity.getEffectivePrincipal().getName();
-			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && filter.getReceiver() != null && !filter.getReceiver().equals(me)) {
-				throw new SecurityException("You have no privilege to list compliments received by someone else");
-			}
-			if (! privileged && filter.getSender() != null && !filter.getSender().equals(me)) {
-				throw new SecurityException("You have no privilege to list compliments sent by someone else");
-			}
-			if (! privileged && filter.getReceiver() == null) {
-				filter.setReceiver(me);
-			}
+			filter.setContext(context);
+			// Anyone can see the compliments for someone
+//			String me = securityIdentity.getEffectivePrincipal().getName();
+//			final boolean privileged = request.isUserInRole("admin"); 
+//			if (! privileged && filter.getReceiver() != null && !filter.getReceiver().equals(me)) {
+//				throw new SecurityException("You have no privilege to list compliments received by someone else");
+//			}
+//			if (! privileged && filter.getSender() != null && !filter.getSender().equals(me)) {
+//				throw new SecurityException("You have no privilege to list compliments sent by someone else");
+//			}
+//			if (! privileged && filter.getReceiver() == null) {
+//				filter.setReceiver(me);
+//			}
 	    	PagedResult<Compliments> results = complimentManager.listCompliments(filter, cursor);
 	    	ComplimentResponse cr = new ComplimentResponse();
 	    	cr.setCompliments(mapper.map(results.getData()));

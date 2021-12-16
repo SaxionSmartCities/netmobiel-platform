@@ -36,10 +36,12 @@ import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.util.Command;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
+import eu.netmobiel.commons.util.ValidEjbTimer;
 import eu.netmobiel.here.search.HereSearchClient;
 import eu.netmobiel.planner.event.BookingCancelledEvent;
 import eu.netmobiel.planner.event.BookingConfirmedEvent;
@@ -47,6 +49,7 @@ import eu.netmobiel.planner.event.BookingRequestedEvent;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.event.TripConfirmedEvent;
 import eu.netmobiel.planner.event.TripStateUpdatedEvent;
+import eu.netmobiel.planner.event.TripUnconfirmedEvent;
 import eu.netmobiel.planner.event.TripValidationExpiredEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
@@ -64,30 +67,24 @@ import eu.netmobiel.planner.repository.TripDao;
 @Logging
 public class TripManager {
 	public static final Integer MAX_RESULTS = 10; 
-	/**
-	 * The duration of the departing state.
-	 */
-	private static final Duration DEPARTING_PERIOD = Duration.ofMinutes(15);
-	/**
-	 * The duration of the arriving state.
-	 */
-	private static final Duration ARRIVING_PERIOD = Duration.ofMinutes(15);
+	
 	/**
 	 * The delay before sending a invitation for a confirmation.
 	 */
-	private static final Duration CONFIRMATION_DELAY = Duration.ofMinutes(15);
+	private static final Duration VALIDATION_DELAY = Duration.ofMinutes(15);
 	/**
 	 * The maximum duration of the first confirmation period.
 	 */
-	private static final Duration CONFIRM_PERIOD_1 = Duration.ofDays(2);
+	private static final Duration VALIDATION_INTERVAL = Duration.ofDays(2);
 	/**
-	 * The period after which to send a confirmation reminder, if necessary.
+	 * The duration of the pre-departing period in which the monitoring should start or have started.
 	 */
-	private static final Duration CONFIRM_PERIOD_2 = Duration.ofDays(5);
+	private static final Duration PRE_DEPARTING_PERIOD = Leg.DEPARTING_PERIOD.plus(Duration.ofHours(2));
+
 	/**
-	 * The total period after which a confirmation period expires.
+	 * The maximum number of reminders to sent during validation.
 	 */
-	private static final Duration CONFIRMATION_PERIOD = CONFIRM_PERIOD_1.plus(CONFIRM_PERIOD_2);
+	private static final int MAX_REMINDERS = 2;
 
 	@Inject
 	private HereSearchClient hereSearchClient;
@@ -124,6 +121,9 @@ public class TripManager {
 
     @Inject
     private Event<TripConfirmedEvent> tripConfirmedEvent;
+
+    @Inject
+    private Event<TripUnconfirmedEvent> tripUnconfirmedEvent;
 
     @Inject
     private Event<TripValidationExpiredEvent> tripValidationExpiredEvent;
@@ -182,10 +182,12 @@ public class TripManager {
     		throw new BadRequestException("Specify an itinerary reference");
     	}
 		// Create a trip for this itinerary
-    	Itinerary it = itineraryDao.find(UrnHelper.getId(Itinerary.URN_PREFIX, trip.getItineraryRef()))
+    	Itinerary it = itineraryDao
+    			.loadGraph(UrnHelper.getId(Itinerary.URN_PREFIX, trip.getItineraryRef()), Itinerary.LIST_ITINERARIES_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such itinerary: " + trip.getItineraryRef()));
     	trip.setState(TripState.PLANNING);
     	trip.setItinerary(it);
+    	trip.propagateTripStateDown();
     	// Load trip plan (lazy loaded, only plan itself)
     	TripPlan plan = it.getTripPlan();
     	if (plan == null) {
@@ -207,39 +209,109 @@ public class TripManager {
     		// The trip must have a database identity!
     		EventFireWrapper.fire(shoutOutResolvedEvent, new ShoutOutResolvedEvent(trip));
     	}
-       	List<BookingRequestedEvent> bookingRequestedEvents = new ArrayList<>();
-       	List<BookingConfirmedEvent> bookingConfirmedEvents = new ArrayList<>();
-   		for (Leg leg : trip.getItinerary().getLegs()) {
-	    	// Check for bookingID set. If so than it was a shout-out and we need to convert the PROPOSAL to a CONFIRMED booking
-	    	if (leg.getBookingId() != null) {
-	    		// This must be a proposed booking. Confirm it. Add a trip reference.
-	    		BookingConfirmedEvent bce = new BookingConfirmedEvent(trip, leg);
-   				leg.setState(TripState.SCHEDULED);
-   				bookingConfirmedEvents.add(bce);
-	    	} else if (leg.isBookingRequired()) {
-   	    		// Ok, we need to take additional steps before the leg can be scheduled. Start a booking procedure.
-   	    		leg.setState(TripState.BOOKING);
-   				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
-   				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
-   				bookingRequestedEvents.add(new BookingRequestedEvent(trip, leg));
-	    	} else {
-   	    		// If no booking is required then no further action is required. Schedule the leg.
-   				leg.setState(TripState.SCHEDULED);
-	    	}
-       		// So what is exactly the content of the persistence context after the firing of the event?
-       		// Should we merge/refresh?
-       	}
-		updateTripState(trip);
-       	// Update the trip state before sending the event. Just for consistency.
-		for (BookingRequestedEvent bre : bookingRequestedEvents) {
-			EventFireWrapper.fire(bookingRequestedEvent, bre);
-		}
-		for (BookingConfirmedEvent bce : bookingConfirmedEvents) {
-			EventFireWrapper.fire(bookingConfirmedEvent, bce);
-		}
+    	updateTripStateMachine(trip);
     	return trip.getId();
     }
 
+    private List<Command> legStateMachineHandler(Trip trip, Leg leg) {
+    	List<Command> actions = new ArrayList<>();
+    	// Determine the new state(s)
+    	TripState oldState = leg.getState();
+    	Instant now = Instant.now();
+    	// Update the legs
+		leg.setState(leg.nextState(now));
+		TripState newState = leg.getState();
+		if (log.isDebugEnabled()) {
+			log.debug(String.format("Leg SM %s --> %s: %s", oldState, newState, leg.toStringCompact()));
+		}
+		switch (newState) {
+		case PLANNING:
+			break;
+		case BOOKING:
+			if (oldState == TripState.PLANNING) {
+				// A booking is required. Create an action to inform
+   				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
+   				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
+				actions.add(() -> EventFireWrapper.fire(bookingRequestedEvent, new BookingRequestedEvent(trip, leg)));
+			}
+			break;
+		case SCHEDULED:
+			if (oldState == TripState.PLANNING) {
+		    	// Check for bookingID set. If so than it was a shout-out and we need to convert the PROPOSAL to a CONFIRMED booking
+		    	if (leg.getBookingId() != null) {
+		    		// This must be a proposed booking. Confirm it and add a trip reference.
+		    		actions.add(() -> EventFireWrapper.fire(bookingConfirmedEvent, new BookingConfirmedEvent(trip, leg)));
+		    	}
+			}
+			break;
+		case DEPARTING:
+			break;
+		case IN_TRANSIT:
+			break;
+		case ARRIVING:
+			break;
+		case VALIDATING:
+			break;
+		case COMPLETED:
+			break;
+		case CANCELLED:
+			break;
+		}
+		return actions;
+    }
+
+    private void updateTripStateMachine(Trip trip) throws BusinessException {
+    	List<Command> actions = new ArrayList<>();
+    	// Determine the new state(s)
+    	TripState oldState = trip.getState();
+    	Instant now = Instant.now();
+    	// Update the legs and collect the action to execute
+		trip.getItinerary().getLegs().forEach(lg -> actions.addAll(legStateMachineHandler(trip, lg)));
+		trip.setState(trip.nextState(now));
+		TripState newState = trip.getState();
+		if (log.isDebugEnabled()) {
+			log.debug(String.format("Trip SM %s --> %s: %s", oldState, newState, trip.toStringCompact()));
+		}
+    	if (newState.ordinal() < oldState.ordinal()) {
+    		log.warn(String.format("Trip %s: State is set back from %s --> %s", trip.getId(), oldState, newState));
+    	}
+		// Execute the delayed actions.
+		for (Command action : actions) {
+			action.execute();
+		}
+		switch (newState) {
+		case PLANNING:
+			break;
+		case BOOKING:
+			break;
+		case SCHEDULED:
+			// Should we monitor already?
+			checkToStartMonitoring(trip);
+			break;
+		case DEPARTING:
+			break;
+		case IN_TRANSIT:
+			break;
+		case ARRIVING:
+			break;
+		case VALIDATING:
+       		if (!trip.isMonitored()) {
+       			trip.setMonitored(true);
+        		handleTripMonitorEvent(trip, TripMonitorEvent.TIME_TO_VALIDATE);
+       		}
+			break;
+		case COMPLETED:
+       		cancelTripTimers(trip);
+			break;
+		case CANCELLED:
+       		cancelTripTimers(trip);
+			break;
+		}
+		// Inform the observers
+    	EventFireWrapper.fire(tripStateUpdatedEvent, new TripStateUpdatedEvent(oldState, trip));
+    }
+
+    
     /**
      * Assign a booking reference to the leg with the specified transport provider tripId.  
      * @param tripRef The traveller trip reference, i.e. our  trip reference.
@@ -262,10 +334,8 @@ public class TripManager {
     				leg.getTripId(), transportProviderTripRef, bookingRef, tripRef));
     	}
     	leg.setBookingId(bookingRef);
-    	if (bookingConfirmed) {
-    		leg.setState(TripState.SCHEDULED);
-    		updateTripState(trip);
-    	}
+    	leg.setBookingConfirmed(bookingConfirmed);
+    	updateTripStateMachine(trip);
     }
 
     /**
@@ -290,7 +360,11 @@ public class TripManager {
 		}
 		leg.setCancelledByProvider(cancelledByTransportProvider);
 		leg.setState(TripState.CANCELLED);
-		updateTripState(trip);
+		// Cancel also the other legs
+		for (Leg lg: trip.getItinerary().getLegs()) {
+			removeTripLeg(trip, lg, "");
+		}
+		updateTripStateMachine(trip);
 		return leg;
     }
 
@@ -368,7 +442,7 @@ public class TripManager {
            			removeTripLeg(tripdb, leg, reason);
     			}
        		}
-       		updateTripState(tripdb);
+       		updateTripStateMachine(tripdb);
        	}
        	if (hard) {
        		// Delete from the list too
@@ -383,9 +457,8 @@ public class TripManager {
 				if (log.isDebugEnabled()) {
 					log.debug("Cancelling a booking. State = " + leg.getState());
 				}
-				BookingCancelledEvent bce = new BookingCancelledEvent(tripdb, leg, reason);
 				// For now use a synchronous removal
-	        	EventFireWrapper.fire(bookingCancelledEvent, bce);
+	        	EventFireWrapper.fire(bookingCancelledEvent, new BookingCancelledEvent(tripdb, leg, reason));
 	    	} else {
 	    		// There is a small opening between setting Booking and the setting of a booking ID.
 	    		if (leg.getState() == TripState.BOOKING) {
@@ -437,7 +510,41 @@ public class TripManager {
     }
 
     /**
-     * Sets the confirmation flag on each leg in the trip.
+     * Unconfirms (revokes confirmation) a trip and restores the state of a trip as if the validation has just started.
+     * A passenger can only unconfirm if he or she was not actually charged. A RemoveException is thrown if the traveller 
+     * is not allowed to undo the confirmation. 
+     * This method is called by the passenger through the API.
+     * The unconfirm is intended to roll-back a cancel, charge or dispute situation. The confirmation can still be altered when 
+     * the payment decision is not made yet.
+     * @param tripId the trip to unconfirm.
+     * @throws BusinessException
+     */
+    public void unconfirmTrip(Long tripId) throws BusinessException {
+    	Trip tripdb = tripDao.fetchGraph(tripId, Trip.MY_LEGS_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such trip: " + tripId));
+    	if (tripdb.getState() != TripState.COMPLETED && tripdb.getState() != TripState.VALIDATING) { 
+    		// No use to set this flag when the trip has not been finished or cancelled physically and administratively)
+       		throw new BadRequestException("Unexpected state for revoking a confirmation: " + tripId + " " + tripdb.getState());
+    	}
+    	// Did this trip require validation anyway?
+    	boolean validatable = tripdb.getItinerary().isConfirmationRequested();
+    	if (!validatable) {
+       		throw new BadRequestException("Trip does not require validation: " + tripdb.getTripRef());
+    	}
+    	// Update the leg state
+    	tripdb.getItinerary().getLegs().forEach(lg -> {
+        	lg.setConfirmed(null);
+        	lg.setConfirmationReason(null);
+    	});
+    	// Reverse the global effects of the previous confirmation (all in one transaction)
+    	EventFireWrapper.fire(tripUnconfirmedEvent, new TripUnconfirmedEvent(tripdb));
+    	
+    	// If all goes well, then restart the validation
+    	restartValidation(tripdb);
+	}
+
+    /**
+     * Sets the confirmation flag on each leg in the trip. The method is called by the Overseer.  
      * @param tripRef the trip reference to update.
      * @param bookingRef the reference to the booking 
      * @param confirmationValue the answer of the traveller.
@@ -445,7 +552,7 @@ public class TripManager {
      * @param overrideResponse If true then skip the check whether an answer was already available.
      * @throws BusinessException 
      */
-    public void confirmTripByTransportProvider(String tripRef, String bookingRef, 
+    public Trip confirmTripByTransportProvider(String tripRef, String bookingRef, 
     		Boolean confirmationValue, ConfirmationReasonType reason, boolean overrideResponse) throws BusinessException {
     	Trip tripdb = tripDao.fetchGraph(UrnHelper.getId(Trip.URN_PREFIX, tripRef), Trip.MY_LEGS_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
@@ -461,63 +568,103 @@ public class TripManager {
         	if (bookingRef != null && tripdb.getItinerary().findLegByBookingId(bookingRef).isEmpty()) {
         		throw new IllegalArgumentException("No such booking on trip: " + tripRef + " " + bookingRef);
         	}
-        	confirmTripLegsByTransportProvider(tripdb.getItinerary().getLegs(), bookingRef, confirmationValue, reason, overrideResponse);
-        	EventFireWrapper.fire(tripConfirmedEvent, new TripConfirmedEvent(tripdb));
-    	}
-    }
-
-    private static void confirmTripLegsByTransportProvider(List<Leg> legs, String bookingRef, 
-    		Boolean confirmationValue, ConfirmationReasonType reason, boolean overrideResponse) throws BadRequestException {
-    	for (Leg leg : legs) {
-    		if (leg.isConfirmationByProviderRequested() && (bookingRef == null || bookingRef.equals(leg.getBookingId()))) {
-            	if (!overrideResponse && leg.getConfirmedByProvider() != null) {
-            		throw new BadRequestException("Leg has already a confirmation value by provider: " + leg.getId());
-            	}
-            	leg.setConfirmedByProvider(confirmationValue);
-            	leg.setConfirmationReasonByProvider(reason);
-    		}
-    	}
-    }
-    
-    protected void updateTripState(Trip trip) throws BusinessException {
-    	TripState previousState = trip.getState();
-		trip.updateTripState();
-		if (log.isDebugEnabled()) {
-			log.debug(String.format("updateTripState %s --> %s: %s", previousState, trip.getState(), trip.toStringCompact()));
-		}
-       	if (trip.getState() == TripState.SCHEDULED) {
-       		Duration timeLeftToDeparture = Duration.between(Instant.now(), trip.getItinerary().getDepartureTime());
-    		if (log.isDebugEnabled()) {
-    			log.debug(String.format("Trip %s is scheduled, time left to departure is %s", trip.getId(), timeLeftToDeparture.toString()));
-    		}
-        	if (! trip.isMonitored() && timeLeftToDeparture.compareTo(DEPARTING_PERIOD.plus(Duration.ofHours(2))) < 0) {
-        		if (log.isDebugEnabled()) {
-        			log.debug("Start monitoring trip " + trip.getId());
+        	for (Leg leg : tripdb.getItinerary().getLegs()) {
+        		if (leg.isConfirmationByProviderRequested() && (bookingRef == null || bookingRef.equals(leg.getBookingId()))) {
+                	if (!overrideResponse && leg.getConfirmedByProvider() != null) {
+                		throw new BadRequestException("Leg has already a confirmation value by provider: " + leg.getId());
+                	}
+                	leg.setConfirmedByProvider(confirmationValue);
+                	leg.setConfirmationReasonByProvider(reason);
         		}
-        		startMonitoring(trip);
         	}
-       	} else if (trip.getState().isFinalState()) {
-       		cancelTripTimers(trip);
-       	}
-    	EventFireWrapper.fire(tripStateUpdatedEvent, new TripStateUpdatedEvent(previousState, trip));
+    	}
+    	return tripdb;
     }
 
-    protected void updateTripAndLegState(Trip trip, TripState newState) throws BusinessException {
-    	TripState previousState = trip.getState();
-    	if (newState.ordinal() >= previousState.ordinal()) {
-    		trip.setState(newState);
-    	} else if (newState != previousState) {
-    		log.warn(String.format("Trip %s: Blocked attempt to set back state from %s --> %s", trip.getId(), previousState, newState));
+    /**
+     * Clears the confirmation flag on the providers leg. This method is called by the Overseer.
+     * @param tripRef the trip reference to update.
+     * @param bookingRef the reference to the booking 
+     * @throws BusinessException 
+     */
+    public Trip unconfirmTripByTransportProvider(String tripRef, String bookingRef) throws BusinessException {
+    	Trip tripdb = tripDao.fetchGraph(UrnHelper.getId(Trip.URN_PREFIX, tripRef), Trip.MY_LEGS_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
+    	if (tripdb.getState() != TripState.COMPLETED && tripdb.getState() != TripState.VALIDATING) { 
+    		// No use to set this flag when the trip has not been finished or cancelled physically and administratively)
+       		throw new BadRequestException("Unexpected state for revoking a confirmation: " + tripRef + " " + tripdb.getState());
     	}
-		trip.forceTripStateDown();
-		if (log.isDebugEnabled()) {
-			log.debug(String.format("updateTripAndLegState %s --> %s: %s", previousState, trip.getState(), trip.toStringCompact()));
-		}
-		if (trip.getState().isFinalState()) {
-       		cancelTripTimers(trip);
-		}
-    	EventFireWrapper.fire(tripStateUpdatedEvent, new TripStateUpdatedEvent(previousState, trip));
+    	// Did this trip require validation anyway?
+    	boolean validatable = tripdb.getItinerary().isConfirmationRequested();
+    	if (!validatable) {
+       		throw new BadRequestException("Trip does not require validation: " + tripdb.getTripRef());
+    	}
+    	// A unconfirmation from a transport provider can arrive even the trip is still in transit, but the leg should be validating of completed
+    	// For now we don't care
+    	Optional<Leg> providerLeg = tripdb.getItinerary().findLegByBookingId(bookingRef);
+    	if (providerLeg.isEmpty()) {
+    		throw new IllegalArgumentException("No such booking on trip: " + tripRef + " " + bookingRef);
+    	}
+    	Leg leg = providerLeg.get();
+    	leg.setConfirmedByProvider(null);
+    	leg.setConfirmationReasonByProvider(null);
+    	return tripdb;
     }
+
+    /**
+     * Restart the validation, as if the state was ARRIVING. This call finalizes the unconfirmation process.
+     * @param tripRef the trip to revalidate.
+     * @throws BusinessException 
+     */
+    public void restartValidation(Trip trip) throws BusinessException {
+    	if (trip.getState().isPostTravelState()) {
+    		cancelTripTimers(trip);
+    		trip.setReminderCount(0);
+    		trip.setMonitored(true);
+    		handleTripMonitorEvent(trip, TripMonitorEvent.TIME_TO_VALIDATE);
+    	}
+    }
+
+    /**
+     * Updates the payment state of the leg. This method called from the Overseer on various moments of the process.
+     * @param trip
+     * @param leg
+     * @param newState
+     * @param paymentReference
+     * @throws BusinessException
+     */
+	public void updateLegPaymentState(Trip trip, Leg leg, PaymentState newState, String paymentReference) throws BusinessException {
+		Trip tripdb = trip; 
+		if (!tripDao.contains(trip)) {
+			tripdb = tripDao.fetchGraph(trip.getId(), Trip.DETAILED_ENTITY_GRAPH)
+					.orElseThrow(() -> new IllegalArgumentException("No such trip: " + trip.getId()));
+
+		}
+		Leg legdb = tripdb.getItinerary().getLegs().stream()
+				.filter(lg -> lg.getId().equals(leg.getId()))
+				.findFirst()
+				.orElseThrow(() -> new IllegalStateException("Expected to find leg " + leg.getId() + "in trip " + trip.getId()));
+		/**
+		 * X = invalid (should never happen)
+		 * 
+		 * Previous ---> Next ----> Action
+		 * null			null		X
+		 * null			Reserve		Normal operation
+		 * null			Cancel		X
+		 * null			Paid		X
+		 * Reserve		Reserve		X
+		 * Reserve		Cancel		Completed
+		 * Reserve		Paid		Completed
+		 * Paid			Reserve		Re-validating
+		 * Paid			Cancel		X
+		 * Paid			Paid		X
+		 * Cancel		Reserve		Re-validating
+		 * Cancel		Cancel		X
+		 * Cancel		Paid		X
+		 */
+		legdb.setPaymentState(newState);
+		legdb.setPaymentId(paymentReference);
+	}
 
     public static class TripInfo implements Serializable {
 		private static final long serialVersionUID = -2715209888482006490L;
@@ -536,66 +683,69 @@ public class TripManager {
     
 	@Schedule(info = "Collect due trips", hour = "*/1", minute = "0", second = "0", persistent = false /* non-critical job */)
 	public void checkForDueTrips() {
-//		log.debug("CollectDueTrips");
 		// Get all trips that are in scheduled state and have a departure time within a certain window
-		List<Trip> trips = tripDao.findMonitorableTrips(Instant.now().plus(Duration.ofHours(2).plus(DEPARTING_PERIOD)));
-		for (Trip trip : trips) {
-			startMonitoring(trip);
+		try {
+			List<Trip> trips = tripDao.findMonitorableTrips(Instant.now().plus(PRE_DEPARTING_PERIOD));
+			for (Trip trip : trips) {
+				handleTripMonitorEvent(trip, TripMonitorEvent.TIME_TO_PREPARE_MONITORING);
+			}
+		} catch (BusinessException ex) {
+			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
+			log.info("Rollback status after exception: " + context.getRollbackOnly()); 
+		} catch (Exception ex) {
+			log.error(String.format("Error handling timeout: %s", ex.toString()));
 		}
 	}
 
-	protected void handleTripEvent(TripInfo tripInfo) throws BusinessException {
-		if (log.isDebugEnabled()) {
-			log.debug("Received trip event: " + tripInfo.toString());
+	protected void handleTripMonitorEvent(Trip trip, TripMonitorEvent event) throws BusinessException {
+		if (trip.getState() == TripState.CANCELLED) {
+			log.warn("Cannot monitor, trip has been canceled: " + trip.getId());
+			return;
 		}
-		Trip trip = tripDao.fetchGraph(tripInfo.tripId, Trip.DETAILED_ENTITY_GRAPH)
-				.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripInfo.tripId));
+		updateTripStateMachine(trip);
 		Instant now = Instant.now();
-		
-		switch (tripInfo.event) {
+		switch (event) {
+		case TIME_TO_PREPARE_MONITORING:
+			// Dummy event for easier timer startup
+			checkToStartMonitoring(trip);
+        	break;
 		case TIME_TO_PREPARE:
-			updateTripAndLegState(trip, TripState.DEPARTING);
 			timerService.createTimer(Date.from(trip.getItinerary().getDepartureTime()), 
 					new TripInfo(TripMonitorEvent.TIME_TO_DEPART, trip.getId()));
 			break;
 		case TIME_TO_DEPART:
-			updateTripAndLegState(trip, TripState.IN_TRANSIT);
 			timerService.createTimer(Date.from(trip.getItinerary().getArrivalTime()), 
 					new TripInfo(TripMonitorEvent.TIME_TO_ARRIVE, trip.getId()));
 			break;
 		case TIME_TO_ARRIVE:
-			updateTripAndLegState(trip, TripState.ARRIVING);
-			if (trip.getItinerary().isConfirmationRequested() && 
-					trip.getItinerary().getArrivalTime().plus(CONFIRMATION_PERIOD).isAfter(now)) {
-				timerService.createTimer(Date.from(trip.getItinerary().getArrivalTime().plus(CONFIRMATION_DELAY)), 
+			if (trip.getItinerary().isConfirmationRequested()) {
+				timerService.createTimer(Date.from(trip.getItinerary().getArrivalTime().plus(VALIDATION_DELAY)), 
 						new TripInfo(TripMonitorEvent.TIME_TO_VALIDATE, trip.getId()));
 			} else {
-				timerService.createTimer(Date.from(trip.getItinerary().getArrivalTime().plus(ARRIVING_PERIOD)), 
+				timerService.createTimer(Date.from(trip.getItinerary().getArrivalTime().plus(Leg.ARRIVING_PERIOD)), 
 						new TripInfo(TripMonitorEvent.TIME_TO_COMPLETE, trip.getId()));
 			}
 			break;
 		case TIME_TO_VALIDATE:
-			updateTripAndLegState(trip, TripState.VALIDATING);
-			timerService.createTimer(Date.from(trip.getItinerary().getArrivalTime().plus(CONFIRM_PERIOD_1)), 
-					new TripInfo(TripMonitorEvent.TIME_TO_CONFIRM_REMINDER, trip.getId()));
-			break;
-		case TIME_TO_CONFIRM_REMINDER:
-			updateTripAndLegState(trip, TripState.VALIDATING);
-			timerService.createTimer(Date.from(trip.getItinerary().getArrivalTime().plus(CONFIRM_PERIOD_2)), 
-					new TripInfo(TripMonitorEvent.TIME_TO_COMPLETE, trip.getId()));
+			timerService.createTimer(Date.from(now.plus(VALIDATION_INTERVAL)), 
+					new TripInfo(nextEventAfterValidationExpiration(trip), trip.getId()));
 			break;
 		case TIME_TO_COMPLETE:
 			if (trip.getState() == TripState.VALIDATING) {
 				EventFireWrapper.fire(tripValidationExpiredEvent, new TripValidationExpiredEvent(trip));
 			}
-			updateTripAndLegState(trip, TripState.COMPLETED);
-			trip.setMonitored(false);
 			break;
 		default:
-			log.warn("Don't know how to handle event: " + tripInfo.event);
+			log.warn("Don't know how to handle event: " + event);
 			break;
 		}
-		
+	}
+	
+	private static TripMonitorEvent nextEventAfterValidationExpiration(Trip ride) {
+		ride.incrementReminderCount();
+		return ride.getReminderCount() < MAX_REMINDERS ? 
+				TripMonitorEvent.TIME_TO_VALIDATE : 
+				TripMonitorEvent.TIME_TO_COMPLETE;  
 	}
 	
     @Timeout
@@ -605,8 +755,7 @@ public class TripManager {
 				log.error("Don't know how to handle timeout: " + timer.getInfo());
 				return;
 			}
-			TripInfo tripInfo = (TripInfo) timer.getInfo();
-			handleTripEvent(tripInfo);
+			handleTimeout((TripInfo) timer.getInfo());
 		} catch (BusinessException ex) {
 			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
 			log.info("Rollback status after exception: " + context.getRollbackOnly()); 
@@ -615,22 +764,36 @@ public class TripManager {
 		}
 	}
 
-	protected void startMonitoring(Trip trip) {
+    protected void handleTimeout(TripInfo tripInfo) throws BusinessException {
+		if (log.isDebugEnabled()) {
+			log.debug("Received trip event: " + tripInfo.toString());
+		}
+		Trip trip = tripDao.fetchGraph(tripInfo.tripId, Trip.DETAILED_ENTITY_GRAPH)
+				.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripInfo.tripId));
+		handleTripMonitorEvent(trip, tripInfo.event);
+    }
+
+    private void checkToStartMonitoring(Trip trip) {
 		if (trip.getState() == TripState.CANCELLED) {
 			log.warn("Cannot monitor, trip has been canceled: " + trip.getId());
 			return;
 		}
-		if (trip.isMonitored()) {
-			log.warn("Trip already monitored: " + trip.getId());
-			return;
+   		Duration timeLeftToDeparture = Duration.between(Instant.now(), trip.getItinerary().getDepartureTime());
+		if (log.isDebugEnabled()) {
+			log.debug(String.format("Trip %s is scheduled, time left to departure is %s", trip.getId(), timeLeftToDeparture.toString()));
 		}
-		trip.setMonitored(true);
-		// Should we always generate timer events and let the state machine decide what to do?
-		// Tested. Result: Timer events are received in random order.
-		// Workaround: Set the next timer in each event handler
-		timerService.createTimer(Date.from(trip.getItinerary().getDepartureTime().minus(DEPARTING_PERIOD)), 
-				new TripInfo(TripMonitorEvent.TIME_TO_PREPARE, trip.getId()));
-	}
+    	if (! trip.isMonitored() && timeLeftToDeparture.compareTo(PRE_DEPARTING_PERIOD) < 0) {
+    		if (log.isDebugEnabled()) {
+    			log.debug("Start monitoring trip " + trip.getId());
+    		}
+    		trip.setMonitored(true);
+    		// Should we generate multiple timer events and let the state machine decide what to do?
+    		// Tested. Result: Timer events are received in random order, not in the order created.
+    		// Workaround: Set the next timer successively in each event handler
+    		timerService.createTimer(Date.from(trip.getItinerary().getDepartureTime().minus(Leg.DEPARTING_PERIOD)), 
+    				new TripInfo(TripMonitorEvent.TIME_TO_PREPARE, trip.getId()));
+    	}
+    }
 
 	protected void cancelTripTimers(Trip trip) {
     	// Find all timers related to this trip and cancel them
@@ -664,8 +827,27 @@ public class TripManager {
 	public List<TripInfo> listAllTripMonitorTimers() {
     	// Find all timers related to the trip manager
     	Collection<Timer> timers = timerService.getTimers();
+    	ValidEjbTimer validEjbTimer = new ValidEjbTimer();
+    	Collection<Timer> invalidTimers = timers.stream()
+        		.filter(validEjbTimer.negate())
+        		.collect(Collectors.toList());
+    	invalidTimers.stream()
+    		.forEach(tm -> {
+    			log.info(String.format("Cancelling invalid trip timer: %s", tm.getInfo()));
+    			tm.cancel();
+    		});
+    	timers.removeAll(invalidTimers);
+    	timers.removeIf(tm -> !(tm.getInfo() instanceof TripInfo));
+		if (timers.isEmpty()) {
+			log.info("NO active trip timers");
+		} else {
+			log.info("Active trip timers:\n\t" + String.join("\n\t", 
+					timers.stream()
+					.map(tm -> String.format("%s %s %d %s", tm.getInfo(), tm.getNextTimeout(), tm.getTimeRemaining(), tm.isPersistent()))
+					.collect(Collectors.toList()))
+			);
+		}		
     	return timers.stream()
-    			.filter(tm -> tm.getInfo() instanceof TripInfo)
     			.map(tm -> (TripInfo) tm.getInfo())
     			.collect(Collectors.toList());
 	}
@@ -675,7 +857,7 @@ public class TripManager {
 	 * Note that only trips that are monitored are considered, e.g. SCHEDULED AND monitored = true. 
 	 */
 	private static Map<TripState, TripMonitorEvent> tripStateToMonitorRevivalEvent = Map.ofEntries(
-			new AbstractMap.SimpleEntry<>(TripState.SCHEDULED, TripMonitorEvent.TIME_TO_PREPARE),
+			new AbstractMap.SimpleEntry<>(TripState.SCHEDULED, TripMonitorEvent.TIME_TO_PREPARE_MONITORING),
 			new AbstractMap.SimpleEntry<>(TripState.DEPARTING, TripMonitorEvent.TIME_TO_PREPARE),
 			new AbstractMap.SimpleEntry<>(TripState.IN_TRANSIT, TripMonitorEvent.TIME_TO_DEPART),
 			new AbstractMap.SimpleEntry<>(TripState.ARRIVING, TripMonitorEvent.TIME_TO_ARRIVE),
@@ -688,15 +870,6 @@ public class TripManager {
 	 */
 	public void reviveTripMonitors() {
 		List<TripInfo> tripInfos = listAllTripMonitorTimers();
-		if (tripInfos.isEmpty()) {
-			log.info("NO active trip timers");
-		} else {
-			log.info("Active trip timers:\n" + String.join("\n\t", 
-					tripInfos.stream()
-					.map(ti -> ti.toString())
-					.collect(Collectors.toList()))
-			);
-		}		
 
 		Set<Long> timedTripIds = tripInfos.stream()
 				.map(ti -> ti.tripId)
@@ -713,11 +886,11 @@ public class TripManager {
 					log.warn(String.format("Trip %s state is %s, no suitable revival event found", trip.getId(), trip.getState()));
 					// First check what is really needed before switching off the monitor 
 					// trip.setMonitored(false);
-			} else {
-					TripInfo ti = new TripInfo(event, trip.getId());
-					tripDao.detach(trip);
+				} else {
 					try {
-						handleTripEvent(ti);
+						TripInfo ti = new TripInfo(event, trip.getId());
+						tripDao.detach(trip);
+						handleTimeout(ti);
 					} catch (BusinessException ex) {
 						log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
 					} catch (Exception ex) {
@@ -728,29 +901,6 @@ public class TripManager {
 		}
 	}
 	
-	public void updateLegPaymentState(Trip trip, Leg leg, PaymentState newState, String paymentReference) throws BusinessException {
-		Trip tripdb = trip; 
-		if (!tripDao.contains(trip)) {
-			tripdb = tripDao.fetchGraph(trip.getId(), Trip.DETAILED_ENTITY_GRAPH)
-					.orElseThrow(() -> new IllegalArgumentException("No such trip: " + trip.getId()));
-
-		}
-		Leg legdb = tripdb.getItinerary().getLegs().stream()
-				.filter(lg -> lg.getId().equals(leg.getId()))
-				.findFirst()
-				.orElseThrow(() -> new IllegalStateException("Expected to find leg " + leg.getId() + "in trip " + trip.getId()));
-		legdb.setPaymentState(newState);
-		legdb.setPaymentId(paymentReference);
-		Optional<Leg> dueLeg =  tripdb.getItinerary().getLegs().stream()
-			.filter(lg -> lg.hasFareInCredits() && lg.isPaymentDue())
-			.findFirst();
-		if (!dueLeg.isPresent() && trip.getState() == TripState.VALIDATING) {
-			// We're done! No more due payments 
-			updateTripAndLegState(trip, TripState.COMPLETED);
-		}
-		
-	}
-
 	public Optional<GeoLocation> findNextMissingPostalCode() {
 		Optional<Trip> t = tripDao.findFirstTripWithoutPostalCode();
 		GeoLocation loc = null;

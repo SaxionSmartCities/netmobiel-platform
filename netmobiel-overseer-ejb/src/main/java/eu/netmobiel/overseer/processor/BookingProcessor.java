@@ -2,6 +2,7 @@ package eu.netmobiel.overseer.processor;
 
 import java.util.Date;
 import java.util.HashMap;
+import java.util.List;
 import java.util.Map;
 
 import javax.annotation.Resource;
@@ -25,9 +26,11 @@ import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.commons.event.TripConfirmedByProviderEvent;
+import eu.netmobiel.commons.event.TripUnconfirmedByProviderEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.util.Logging;
@@ -42,6 +45,7 @@ import eu.netmobiel.planner.event.BookingConfirmedEvent;
 import eu.netmobiel.planner.event.BookingProposalRejectedEvent;
 import eu.netmobiel.planner.event.BookingRequestedEvent;
 import eu.netmobiel.planner.event.TripConfirmedEvent;
+import eu.netmobiel.planner.event.TripUnconfirmedEvent;
 import eu.netmobiel.planner.event.TripValidationExpiredEvent;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PaymentState;
@@ -114,7 +118,7 @@ public class BookingProcessor {
     protected void cancelFare(Trip trip, Leg leg) throws BusinessException {
 		if (leg.hasFareInCredits()) {
 			// Release the fare
-			if (leg.getPaymentState() != PaymentState.RESERVED || leg.getPaymentId() == null) {
+			if (leg.getPaymentState() != PaymentState.RESERVED) {
 				throw new IllegalStateException("Cannot cancel fare, payment state is invalid: " + 
 						leg.getLegRef() + " " + leg.getPaymentState() + " " + leg.getPaymentId());
 			}
@@ -122,6 +126,25 @@ public class BookingProcessor {
 			tripManager.updateLegPaymentState(trip, leg, PaymentState.CANCELLED, releaseId);
 			// Settled without payment
 			bookingManager.informBookingFareSettled(leg.getTripId(), leg.getBookingId());
+		}
+    }
+
+    /**
+     * Reverses the earlier cancel of a fare by reserving the fare again on expense of the passenger.
+     * @param trip
+     * @param leg
+     * @throws BusinessException
+     */
+    protected void uncancelFare(Trip trip, Leg leg) throws BusinessException {
+		if (leg.hasFareInCredits()) {
+			if (leg.getPaymentState() != PaymentState.CANCELLED) {
+				throw new IllegalStateException("Cannot uncancel fare, payment state is invalid: " + 
+						leg.getLegRef() + " " + leg.getPaymentState() + " " + leg.getPaymentId());
+			}
+			// Reserve the fare again
+			String reservationId = ledgerService.reserve(trip.getTraveller(), 
+					leg.getFareInCredits(), textHelper.createDescriptionText(leg), leg.getLegRef());
+			tripManager.updateLegPaymentState(trip, leg, PaymentState.RESERVED, reservationId);
 		}
     }
 
@@ -135,6 +158,26 @@ public class BookingProcessor {
 			tripManager.updateLegPaymentState(trip, leg, PaymentState.PAID, chargeId);
 			// Settled with payment
 			bookingManager.informBookingFareSettled(leg.getTripId(), leg.getBookingId());
+		}
+    }
+
+    /**
+     * Reverses the earlier cancel of a fare by reserving the fare again on expense of the passenger.
+     * @param trip
+     * @param leg
+     * @throws BusinessException
+     */
+    protected void refundFare(Trip trip, Leg leg) throws BusinessException {
+		if (leg.hasFareInCredits()) {
+			if (leg.getPaymentState() != PaymentState.PAID) {
+				throw new IllegalStateException("Cannot refund fare, payment state is invalid: " + 
+						leg.getLegRef() + " " + leg.getPaymentState() + " " + leg.getPaymentId());
+			}
+			// Refund the fare credits
+			String reservationId = ledgerService.reserve(resolveDriverId(leg), 
+				leg.getFareInCredits(), textHelper.createDescriptionText(leg), leg.getLegRef());
+			tripManager.updateLegPaymentState(trip, leg, PaymentState.RESERVED, reservationId);
+			bookingManager.informBookingFareReset(leg.getTripId(), leg.getBookingId());
 		}
     }
 
@@ -322,7 +365,7 @@ public class BookingProcessor {
     }
 
     /** 
-     * Handle the event where the traveller or provider confirms (or denies) the trip. 
+     * Handle the event where the traveller confirms (or denies) the trip. 
      * @param event
      * @throws BusinessException 
      */
@@ -334,13 +377,59 @@ public class BookingProcessor {
    		evaluateTripAfterConfirmation(event.getTrip(), false);
     }
 
+    /** 
+     * Handle the event where the traveller unconfirms the trip. 
+     * @param event
+     * @throws BusinessException 
+     */
+    public void onTripUnconfirmation(@Observes(during = TransactionPhase.IN_PROGRESS) TripUnconfirmedEvent event) 
+    		throws BusinessException {
+    	List<Leg> legs = event.getTrip().getItinerary().findLegsToConfirm();
+    	if (legs.size() > 1) {
+    		logger.error("Multiple legs to (un)confirm: " + event.getTrip().getTripRef());
+    	} else if (legs.isEmpty()) {
+    		logger.warn("No leg to (un)confirm: " + event.getTrip().getTripRef());
+    		return;
+    	}
+    	Leg legToConfirm = legs.get(0);
+   		evaluateTripConfirmationRevocation(event.getTrip());
+   		// Inform the rideshare to restart the validation (through the booking manager)
+   		bookingManager.restartValidation(legToConfirm.getBookingId());
+    }
+
+    /** 
+     * Handle the event where the provider confirms (or denies) the trip. 
+     * @param event
+     * @throws BusinessException 
+     */
     public void onProviderConfirmation(@Observes(during = TransactionPhase.IN_PROGRESS) TripConfirmedByProviderEvent event) 
     		throws BusinessException {
   		// The trip manager checks the state for reasonable values
-		tripManager.confirmTripByTransportProvider(event.getTravellerTripRef(), event.getBookingRef(), 
-				event.getConfirmationByTransportProvider(), event.getConfirmationReason(), false);
+		Trip trip = tripManager.confirmTripByTransportProvider(event.getTravellerTripRef(), event.getBookingRef(), 
+				event.getConfirmationByTransportProvider(), event.getConfirmationReason(), true);
+   		evaluateTripAfterConfirmation(trip, false);
     }
 
+    /** 
+     * Handle the event where the provider unconfirms the trip. 
+     * @param event
+     * @throws BusinessException 
+     */
+    public void onProviderUnconfirmation(@Observes(during = TransactionPhase.IN_PROGRESS) TripUnconfirmedByProviderEvent event) 
+    		throws BusinessException {
+    	// The next call could be integrated with the restartValidation of the trip manager
+		Trip trip = tripManager.unconfirmTripByTransportProvider(event.getTravellerTripRef(), event.getBookingRef());
+   		evaluateTripConfirmationRevocationByProvider(trip);
+   		// Restart the validation of the trip.
+   		tripManager.restartValidation(trip);
+    }
+
+    /**
+     * The validation period has expired. Notice that this guard is placed at the trip. One guard is enough, the ride has no expiration
+     * event defined.
+     * @param event
+     * @throws BusinessException
+     */
     public void onTripValidationExpired(@Observes(during = TransactionPhase.IN_PROGRESS) TripValidationExpiredEvent event) 
     		throws BusinessException {
    		evaluateTripAfterConfirmation(event.getTrip(), true);
@@ -370,9 +459,49 @@ public class BookingProcessor {
 				}
 			}
     	}
-//    	tripManager.markTripFaresPaid(trip);
     }
     
+    /**
+     * Handle the revocation of the confirmation by the passenger.
+     * 
+     * @param trip the trip to consider
+     * @throws BusinessException
+     */
+    protected void evaluateTripConfirmationRevocation(Trip trip) throws BusinessException {
+    	// If the payment is already made, then the passenger cannot reverse, only the driver can
+    	// Only when payment is cancelled, action is taken and the payment is reserved again.
+   		for (Leg leg : trip.getItinerary().findLegsToConfirm()) {
+			if (leg.getPaymentState() == PaymentState.PAID) {
+        		throw new RemoveException(String.format("Trip has been paid for, ask the driver to reconsider: %s %s",
+        				trip.getTripRef(), leg.getLegRef()));
+			} else if (leg.getPaymentState() == PaymentState.CANCELLED) {
+				uncancelFare(trip, leg);
+			} else {
+				// Keep as is
+			}
+		}
+    }
+
+    /**
+     * Handle the revocation of the confirmation by the driver.
+     * 
+     * @param trip the trip to consider
+     * @throws BusinessException
+     */
+    protected void evaluateTripConfirmationRevocationByProvider(Trip trip) throws BusinessException {
+    	// If the payment is already made, then the passenger cannot reverse, only the driver can
+    	// Only when payment is cancelled, action is taken and the payment is reserved again.
+   		for (Leg leg : trip.getItinerary().findLegsToConfirm()) {
+			if (leg.getPaymentState() == PaymentState.CANCELLED) {
+        		throw new RemoveException(String.format("Trip payment has been cancelled, ask the passenger to reconsider: %s %s",
+        				trip.getTripRef(), leg.getLegRef()));
+			} else if (leg.getPaymentState() == PaymentState.PAID) {
+				refundFare(trip, leg);
+			} else {
+				// Keep as is
+			}
+		}
+    }
     private static final String SUBJECT = "Verschil van mening over rit";
     private static final String BODY = 
     			"Chauffeur ${driverName} (${driverEmail}) heeft volgens eigen zeggen passagier ${passengerName} " + 
