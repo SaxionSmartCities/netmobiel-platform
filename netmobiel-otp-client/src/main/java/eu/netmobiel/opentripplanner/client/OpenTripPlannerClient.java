@@ -39,7 +39,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.commons.util.MinumumDistanceFilter;
+import eu.netmobiel.commons.util.MinimumDistanceFilter;
 import eu.netmobiel.opentripplanner.api.model.Itinerary;
 import eu.netmobiel.opentripplanner.api.model.Leg;
 import eu.netmobiel.opentripplanner.api.model.Message;
@@ -176,7 +176,7 @@ public class OpenTripPlannerClient {
     	places.add(toPlace);
     	// Remove places that are too close, OTP will not accept
     	places = places.stream()
-    			.filter(new MinumumDistanceFilter(OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS))
+    			.filter(new MinimumDistanceFilter(OpenTripPlannerClient.MINIMUM_PLANNING_DISTANCE_METERS))
     			.collect(Collectors.toList());
     	if (places.size() < 2) {
     		// This can only mean that the from and to places very close, too close
