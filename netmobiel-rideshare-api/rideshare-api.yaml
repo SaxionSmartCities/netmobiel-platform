@@ -772,28 +772,6 @@ paths:
         Add a new ride. The calling user will be the driver.
 
         If recurrence is set, then all future drivers up to 8 weeks in advance are generated as well.
-  /rides/{rideId}/unconfirm:
-    summary: Path used to unconfirm a ride.
-    description: Endpoint used to unconfirm a ride, using a PUT.
-    put:
-      responses:
-        "204":
-          description: Success response, the ride has been confirmed.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-      operationId: unconfirmRide
-      summary: Unconfirms a ride.
-      description: |-
-        Reverses an implicit or explicit confirmation that the driver has actually driven this ride. The driver can only unconfirm a ride that has given him credits. Once reversed, the credit account of the driver is debited, and the fare is again a reservation made by the passenger.
-
-        A 403 is returned when the driver unconfirms a trip when he was not credited. In case of a dispute, both parties can unconfirm. In the latter case the ride is still being validated.
-    parameters:
-    - name: rideId
-      description: A unique identifier for a `Ride`.
-      schema:
-        type: string
-      in: path
-      required: true
   /bookings/{bookingId}/confirm/{value}:
     summary: Path used by the driver to confirm that the passenger took the ride.
     description: Endpoint used to confirm (or deny) the use of booking , using a PUT.
@@ -835,6 +813,28 @@ paths:
       description: 'A confirmation alue: true of false.'
       schema:
         type: boolean
+      in: path
+      required: true
+  /bookings/{bookingId}/unconfirm:
+    summary: Path used to unconfirm a booking travel.
+    description: Endpoint used to unconfirm travelling after a booking, using a PUT.
+    put:
+      responses:
+        "204":
+          description: Success response, the ride has been confirmed.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      operationId: unconfirmTravelling
+      summary: Unconfirms travelling in a booking.
+      description: |-
+        Reverses an implicit or explicit confirmation that the passenger has actually been on this ride. The driver can only unconfirm a travel that has given him credits. Once reversed, the credit account of the driver is debited, and the fare is again a reservation made by the passenger.
+
+        A 403 is returned when the driver unconfirms a trip when he was not credited. In case of a dispute, both parties can unconfirm.
+    parameters:
+    - name: bookingId
+      description: A unique identifier for a `Ride`.
+      schema:
+        type: string
       in: path
       required: true
 components:
