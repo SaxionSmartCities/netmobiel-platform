@@ -772,48 +772,6 @@ paths:
         Add a new ride. The calling user will be the driver.
 
         If recurrence is set, then all future drivers up to 8 weeks in advance are generated as well.
-  /rides/{rideId}/confirm/{value}:
-    summary: Path used to confirm a ride.
-    description: Endpoint used to confirm a ride, using a PUT.
-    put:
-      parameters:
-      - name: reason
-        description: |-
-          The reason for the given (negative) confirmation value.
-           - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
-           - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
-           - `NO_SHOW`: The passenger did not show up
-           - `NO_TRIP`: The ride did not take place at all.
-        schema:
-          enum:
-          - TRIP_NOT_NEEDED
-          - FOUND_OTHER_TRANSPORT
-          - NO_SHOW
-          - NO_TRIP
-          type: string
-        in: query
-      responses:
-        "204":
-          description: Success response, the ride has been confirmed.
-      operationId: confirmRide
-      summary: Confirms a ride.
-      description: Confirms that the driver has actually driven this ride. It cannot
-        be undone. Once the driver has confirmed the ride, the credits will be claimed
-        unless the passenger denies having been in the car. A confirmation can only
-        be issued once.
-    parameters:
-    - name: rideId
-      description: A unique identifier for a `Ride`.
-      schema:
-        type: string
-      in: path
-      required: true
-    - name: value
-      description: 'A confirmation alue: true of false.'
-      schema:
-        type: boolean
-      in: path
-      required: true
   /rides/{rideId}/unconfirm:
     summary: Path used to unconfirm a ride.
     description: Endpoint used to unconfirm a ride, using a PUT.
@@ -834,6 +792,49 @@ paths:
       description: A unique identifier for a `Ride`.
       schema:
         type: string
+      in: path
+      required: true
+  /bookings/{bookingId}/confirm/{value}:
+    summary: Path used by the driver to confirm that the passenger took the ride.
+    description: Endpoint used to confirm (or deny) the use of booking , using a PUT.
+    put:
+      parameters:
+      - name: reason
+        description: |-
+          The reason for the given (negative) confirmation value.
+           - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
+           - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
+           - `NO_SHOW`: The passenger did not show up
+           - `NO_TRIP`: The ride did not take place at all.
+        schema:
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          - NO_TRIP
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the ride has been confirmed.
+      operationId: confirmBooking
+      summary: Confirms a booking use.
+      description: "Confirms that the passenger has been in the car for this ride.\
+        \ Once the driver has confirmed the ride, the credits will be claimed unless\
+        \ the passenger denies having been in the car. A confirmation can only be\
+        \ issued once. Only an 'unconfirm' can be used to reconsider the the payment.\n\
+        \nA booking can be confirmed only by the driver. "
+    parameters:
+    - name: bookingId
+      description: A unique identifier for a `Ride`.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: value
+      description: 'A confirmation alue: true of false.'
+      schema:
+        type: boolean
       in: path
       required: true
 components:
@@ -1129,6 +1130,49 @@ components:
           latitude: 52.004485
           longitude: 6.519542
           label: Zieuwent, R.K. Kerk
+    Recurrence:
+      title: Root Type for Recurrency
+      description: A descriptor for a recurrent ride.
+      required:
+      - unit
+      - interval
+      type: object
+      properties:
+        interval:
+          format: int32
+          description: The repetition interval. One week means every week. Two weeks
+            means every two weeks.
+          type: integer
+        unit:
+          description: The unit of the repetition.
+          enum:
+          - DAY
+          - WEEK
+          type: string
+        horizon:
+          format: date
+          description: 'Optional: the horizon date (a local date!) limits the recurrence
+            to a future date where the ride is no longer repeated. The horizon date
+            is exclusive.'
+          type: string
+        daysOfWeekMask:
+          format: int32
+          description: 'In case of unit ''week'': A bitmask of day included in the
+            recurrence. The days of the week are numbered according ISO8601: 1 to
+            7 for Monday to Sunday. The number of the weekday corresponds with the
+            bit number plus one, i.e., bit 0 corresponds with Monday.'
+          type: integer
+        timeZone:
+          description: 'The time zone of the recurrence. The zone is required to calculate
+            the local time, as it is the local departure/arrival time that is repeated.
+            Default: Europe/Amsterdam. '
+          type: string
+      example:
+        interval: 2
+        unit: WEEK
+        daysOfWeek: 62
+        horizon: 2019-12-31
+        timeZone: Europe/Amsterdam
     Booking:
       description: A booking of a ride by a passenger.
       required:
@@ -1205,6 +1249,36 @@ components:
             The reference to the passenger's (shout-out) trip plan (a planner URN).
             This field is used to refer to the plan of the passenger asking for transport.
           type: string
+        confirmed:
+          description: (Read-only) If true then the driver has indeed executed the
+            scheduled ride. If false then the driver has not driven this ride. If
+            unspecified then it is unclear.
+          type: boolean
+        confirmationReason:
+          description: |-
+            The reason for the given (negative) confirmation value.
+             - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
+             - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
+             - `NO_SHOW`: The passenger did not show up
+             - `NO_TRIP`: The ride did not take place at all.
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          - NO_TRIP
+          type: string
+        paymentState:
+          description: The payment state of the booking. If `CANCELLED`, the payment
+            was cancelled because the booking was not effectuated, or the driver did
+            not confirm the ride.
+          enum:
+          - CANCELLED
+          - PAID
+          type: string
+        paymentId:
+          description: The urn to the payment transaction. Only present when the payment
+            state equals `PAID`.
+          type: string
       example:
         departureTime: 2020-05-27T10:00:00Z
         arrivalTime: 2020-05-27T10:45:00Z
@@ -1227,49 +1301,6 @@ components:
         legRefs:
         - urn:nb:rs:leg:54
         passengerTripRef: urn:nb:pl:trip:568
-    Recurrence:
-      title: Root Type for Recurrency
-      description: A descriptor for a recurrent ride.
-      required:
-      - unit
-      - interval
-      type: object
-      properties:
-        interval:
-          format: int32
-          description: The repetition interval. One week means every week. Two weeks
-            means every two weeks.
-          type: integer
-        unit:
-          description: The unit of the repetition.
-          enum:
-          - DAY
-          - WEEK
-          type: string
-        horizon:
-          format: date
-          description: 'Optional: the horizon date (a local date!) limits the recurrence
-            to a future date where the ride is no longer repeated. The horizon date
-            is exclusive.'
-          type: string
-        daysOfWeekMask:
-          format: int32
-          description: 'In case of unit ''week'': A bitmask of day included in the
-            recurrence. The days of the week are numbered according ISO8601: 1 to
-            7 for Monday to Sunday. The number of the weekday corresponds with the
-            bit number plus one, i.e., bit 0 corresponds with Monday.'
-          type: integer
-        timeZone:
-          description: 'The time zone of the recurrence. The zone is required to calculate
-            the local time, as it is the local departure/arrival time that is repeated.
-            Default: Europe/Amsterdam. '
-          type: string
-      example:
-        interval: 2
-        unit: WEEK
-        daysOfWeek: 62
-        horizon: 2019-12-31
-        timeZone: Europe/Amsterdam
     Ride:
       description: A Ride object specifies a ride with a car by a driver on a certain.
         The retour can be specified as well.
@@ -1396,27 +1427,9 @@ components:
           - COMPLETED
           - CANCELLED
           type: string
-        confirmed:
-          description: (Read-only) If true then the driver has indeed executed the
-            scheduled ride. If false then the driver has not driven this ride. If
-            unspecified then it is unclear.
-          type: boolean
         templateRef:
           description: '(Read-only) The reference to the template of the ride, if
             any. '
-          type: string
-        confirmationReason:
-          description: |-
-            The reason for the given (negative) confirmation value.
-             - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
-             - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
-             - `NO_SHOW`: The passenger did not show up
-             - `NO_TRIP`: The ride did not take place at all.
-          enum:
-          - TRIP_NOT_NEEDED
-          - FOUND_OTHER_TRANSPORT
-          - NO_SHOW
-          - NO_TRIP
           type: string
         cancelReason:
           description: Optional. If the ride was cancelled, the reason why.
@@ -1425,6 +1438,15 @@ components:
           description: If true the driver is able to assist a passenger with getting
             in and out of the car, when neccessary.
           type: boolean
+        validationExpirationTime:
+          format: date-time
+          description: The time when the validation expires. If the driver does not
+            respond in time, the payment will be cancelled.
+          type: string
+        validationReminderTime:
+          format: date-time
+          description: The time when the next reminder for the validation is due.
+          type: string
       example:
         bookings: []
         car:
