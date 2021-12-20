@@ -795,7 +795,7 @@ paths:
       responses:
         "204":
           description: Success response, the ride has been confirmed.
-      operationId: confirmBooking
+      operationId: confirmTravelling
       summary: Confirms a booking use.
       description: "Confirms that the passenger has been in the car for this ride.\
         \ Once the driver has confirmed the ride, the credits will be claimed unless\
