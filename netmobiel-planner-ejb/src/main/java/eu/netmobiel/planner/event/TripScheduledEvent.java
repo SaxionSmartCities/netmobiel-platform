@@ -10,7 +10,7 @@ import eu.netmobiel.planner.model.Trip;
  * @author Jaap Reitsma
  *
  */
-public class TripScheduledEvent extends TripEvent implements Serializable {
+public class TripScheduledEvent extends BasicTripEvent implements Serializable {
 	private static final long serialVersionUID = 258921475228053609L;
 
 	public TripScheduledEvent(Trip aTrip) {

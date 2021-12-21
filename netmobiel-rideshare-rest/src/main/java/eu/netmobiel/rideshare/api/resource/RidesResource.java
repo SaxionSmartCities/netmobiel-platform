@@ -13,16 +13,13 @@ import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
-import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.filter.Cursor;
-import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.api.RidesApi;
 import eu.netmobiel.rideshare.api.mapping.BookingMapper;
 import eu.netmobiel.rideshare.api.mapping.PageMapper;
 import eu.netmobiel.rideshare.api.mapping.RideMapper;
-import eu.netmobiel.rideshare.api.model.Ride.ConfirmationReasonEnum;
 import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Ride;
@@ -211,42 +208,4 @@ public class RidesResource extends RideshareResource implements RidesApi {
     	return rsp;
     }
     
-	@Override
-	public Response confirmRide(String rideId, Boolean confirmationValue, String reason) {
-    	Response rsp = null;
-    	try {
-        	Long rid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
-			RideshareUser caller = userManager.findCallingUser();
-			Ride rdb = rideManager.getRideWithDriver(rid);
-			allowAdminOrCaller(request, caller, rdb.getDriver());
-        	ConfirmationReasonEnum reasonEnum = reason == null ? null : 
-        		ConfirmationReasonEnum.valueOf(reason);
-        	ConfirmationReasonType reasonType = mapper.map(reasonEnum); 
-        	//TODO Add security restriction
-			rideManager.confirmRide(rid, confirmationValue, reasonType, true);
-			rsp = Response.noContent().build();
-		} catch (BusinessException e) {
-			throw new WebApplicationException(e);
-		}
-    	return rsp;
-	}
-
-	@Override
-	public Response unconfirmRide(String rideId) {
-    	Response rsp = null;
-    	try {
-        	Long rid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
-			RideshareUser caller = userManager.findCallingUser();
-			Ride rdb = rideManager.getRideWithDriver(rid);
-			allowAdminOrCaller(request, caller, rdb.getDriver());
-			rideManager.unconfirmRide(rid);
-			rsp = Response.noContent().build();
-		} catch (RemoveException e) {
-			// Convert to security exception (403)
-			throw new SecurityException(e);
-		} catch (BusinessException e) {
-			throw new WebApplicationException(e);
-		}
-    	return rsp;
-	}
 }

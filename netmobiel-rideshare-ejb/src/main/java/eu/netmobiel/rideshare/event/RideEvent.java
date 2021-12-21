@@ -5,7 +5,7 @@ import java.io.Serializable;
 import javax.validation.constraints.NotNull;
 
 import eu.netmobiel.rideshare.model.Ride;
-import eu.netmobiel.rideshare.model.RideState;
+import eu.netmobiel.rideshare.model.RideMonitorEvent;
 
 
 /**
@@ -14,7 +14,7 @@ import eu.netmobiel.rideshare.model.RideState;
  * @author Jaap Reitsma
  *
  */
-public class RideStateUpdatedEvent implements Serializable {
+public class RideEvent implements Serializable {
 
 	private static final long serialVersionUID = 8837457274309434137L;
 	/**
@@ -24,15 +24,15 @@ public class RideStateUpdatedEvent implements Serializable {
     private Ride ride;
     
     @NotNull
-    private RideState previousState;
+    private RideMonitorEvent event;
 
-    public RideStateUpdatedEvent(RideState aPreviousState, Ride aRide) {
-    	this.previousState = aPreviousState;
+    public RideEvent(RideMonitorEvent anEvent, Ride aRide) {
+    	this.event = anEvent;
     	this.ride = aRide;
     }
 
-    public RideState getPreviousState() {
-		return previousState;
+	public RideMonitorEvent getEvent() {
+		return event;
 	}
 
 	public Ride getRide() {
@@ -41,6 +41,6 @@ public class RideStateUpdatedEvent implements Serializable {
 
 	@Override
 	public String toString() {
-		return String.format("RideStateUpdatedEvent %s %s -> %s]", ride.getId(), previousState, ride.getState());
+		return String.format("RideEvent %s %s in %s ]", ride.getUrn(), event, ride.getState());
 	}
 }

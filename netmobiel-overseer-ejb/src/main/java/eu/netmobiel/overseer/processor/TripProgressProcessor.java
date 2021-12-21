@@ -14,13 +14,11 @@ import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.service.PublisherService;
-import eu.netmobiel.planner.event.TripStateUpdatedEvent;
+import eu.netmobiel.planner.event.TripEvent;
 import eu.netmobiel.planner.model.Trip;
-import eu.netmobiel.planner.model.TripState;
-import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
+import eu.netmobiel.rideshare.event.RideEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Ride;
-import eu.netmobiel.rideshare.model.RideState;
 
 /**
  * Stateless bean for the monitoring of trips and rides.
@@ -44,81 +42,58 @@ public class TripProgressProcessor {
     @Inject
     private TextHelper textHelper;
     
-    public void onTripStateChange(@Observes(during = TransactionPhase.IN_PROGRESS) TripStateUpdatedEvent event) 
+    public void onTripEvent(@Observes(during = TransactionPhase.IN_PROGRESS) TripEvent event) 
     		throws BusinessException {
-    	switch (event.getTrip().getState()) {
-    	case PLANNING:
+    	Trip trip = event.getTrip();
+    	switch (event.getEvent()) {
+    	case TIME_TO_CHECK:
     		break;
-    	case BOOKING:
+    	case TIME_TO_PREPARE:
+   			informTravellerOnDeparture(trip);
     		break;
-    	case SCHEDULED:
+    	case TIME_TO_DEPART:
     		break;
-    	case DEPARTING:
-    		if (event.getPreviousState() == TripState.SCHEDULED) {
-    			informTravellerOnDeparture(event.getTrip());
-    		}
+    	case TIME_TO_ARRIVE:
     		break;
-    	case IN_TRANSIT:
+    	case TIME_TO_VALIDATE:
+			informTravellerOnReview(trip);
     		break;
-    	case ARRIVING:
+		case TIME_TO_VALIDATE_REMINDER:
+			remindTravellerOnReview(trip);
     		break;
-    	case VALIDATING:
-    		if (event.getPreviousState() == TripState.ARRIVING) {
-    			informTravellerOnReview(event.getTrip());
-    		} else if (event.getPreviousState() == TripState.VALIDATING) {
-    			remindTravellerOnReview(event.getTrip());
-    		}
-    		break;
-    	case COMPLETED:
-    		break;
-    	case CANCELLED:
+    	case TIME_TO_COMPLETE:
     		break;
     	default:
     		break;
     	}
-//    	try {
-//    		
-//		} catch (ApplicationException e) {
-//			logger.error("Unable to obtain nearby driver profiles: " + e.toString());
-//		}
     }
 
-    public void onRideStateChange(@Observes(during = TransactionPhase.IN_PROGRESS) RideStateUpdatedEvent event) 
+    public void onRideEvent(@Observes(during = TransactionPhase.IN_PROGRESS) RideEvent event) 
     		throws BusinessException {
     	Ride ride = event.getRide();
-    	switch (ride.getState()) {
-    	case SCHEDULED:
+    	switch (event.getEvent()) {
+    	case TIME_TO_CHECK:
     		break;
-    	case DEPARTING:
-    		if (event.getPreviousState() == RideState.SCHEDULED && ride.hasConfirmedBooking()) {
+    	case TIME_TO_PREPARE:
+    		if (ride.hasConfirmedBooking()) {
     			informDriverOnDeparture(event.getRide());
     		}
     		break;
-    	case IN_TRANSIT:
+    	case TIME_TO_DEPART:
     		break;
-    	case ARRIVING:
+    	case TIME_TO_ARRIVE:
     		break;
-    	case VALIDATING:
-    		if (ride.hasConfirmedBooking()) {
-	    		if (event.getPreviousState() == RideState.ARRIVING) {
-	    			informDriverOnReview(ride);
-	    		} else if (event.getPreviousState() == RideState.VALIDATING) {
-	    			remindDriverOnReview(ride);
-	    		}
-    		}
+    	case TIME_TO_VALIDATE:
+   			informDriverOnReview(ride);
     		break;
-    	case COMPLETED:
+		case TIME_TO_VALIDATE_REMINDER:
+			remindDriverOnReview(ride);
     		break;
-    	case CANCELLED:
+    	case TIME_TO_COMPLETE:
     		break;
     	default:
     		break;
     	}
-//    	try {
-//    		
-//		} catch (ApplicationException e) {
-//			logger.error("Unable to obtain nearby driver profiles: " + e.toString());
-//		}
     }
 
 	private void informPassengerTripProgress(Trip trip, String text, String delegateText) throws BusinessException {

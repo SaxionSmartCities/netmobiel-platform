@@ -467,7 +467,7 @@ public class Fixture {
 	public static Trip createTrip(PlannerUser traveller, TripPlan plan) {
 		Itinerary itinerary = plan.getItineraries().iterator().next();
         Trip trip = new Trip();
-        trip.setCreationTime(Instant.now());
+        trip.setCreationTime(plan.getRequestTime().plusSeconds(60));
         trip.setArrivalTimeIsPinned(plan.isUseAsArrivalTime());
         trip.setFrom(plan.getFrom());
         trip.setTo(plan.getTo());

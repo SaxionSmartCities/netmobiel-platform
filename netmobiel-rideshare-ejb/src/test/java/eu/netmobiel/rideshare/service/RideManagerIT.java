@@ -27,7 +27,7 @@ import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.rideshare.event.BookingFareSettledEvent;
+import eu.netmobiel.rideshare.event.RideEvent;
 import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
@@ -66,8 +66,9 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
         WebArchive archive = createDeploymentBase()
 //	            .addAsResource("logging.properties")
                 .addPackages(true, RideDao.class.getPackage())
-                .addPackage(BookingFareSettledEvent.class.getPackage())
+                .addPackage(RideEvent.class.getPackage())
 	            .addClass(RideItineraryHelper.class)
+	            .addClass(RideMonitor.class)
 	            .addClass(IdentityHelper.class)
 	            .addClass(EventListenerHelper.class)
 	            .addClass(RideManager.class);
@@ -301,7 +302,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 //			assertTrue(ex instanceof SoftRemovedException);
 //		}
 		rideManager.removeRide(rideId, null, null, true);
-		assertEquals(0, eventListenerHelper.getRideRemovedEventCount());
+		assertEquals(1, eventListenerHelper.getRideRemovedEventCount());
     }
     
     public Long createRecurrentRides(int nrRides) throws Exception {
@@ -469,11 +470,9 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		assertEquals(oldArrivalTime.plusSeconds(delay), rdb.getArrivalTime());
 		verifyRideBase(r, rdb, departureTime, null);
 		assertEquals(r.getCancelReason(), rdb.getCancelReason());
-		assertEquals(r.getConfirmed(), rdb.getConfirmed());
 		assertEquals(r.getDeleted(), rdb.getDeleted());
 		assertEquals(r.getRideTemplate(), rdb.getRideTemplate());
 		assertEquals(r.getState(), rdb.getState());
-		assertEquals(r.isMonitored(), rdb.isMonitored());
 		checkRideConsistency(rdb);
     }
 

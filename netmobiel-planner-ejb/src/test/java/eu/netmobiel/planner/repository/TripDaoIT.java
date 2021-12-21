@@ -50,6 +50,7 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     @Inject
     private TripDao tripDao;
 
+	@SuppressWarnings("unused")
 	@Inject
     private Logger log;
     
@@ -300,39 +301,78 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     	assertEquals(2, tripIds.getCount());
     }
 
+//    @Test
+//    public void findMonitorableTrips_OnlyPlanning() throws Exception {
+//    	List<Trip> trips = em.createQuery("from Trip", Trip.class).getResultList(); 
+//    	for (Trip trip : trips) {
+//        	trip.setState(TripState.PLANNING);
+//		}
+//    	flush();
+//    	
+//    	trips = tripDao.findMonitorableTrips(Instant.parse("2020-03-22T19:30:00Z"));
+//    	assertNotNull(trips);
+//    	for (Trip trip : trips) {
+//			log.debug(trip.toString());
+//		}
+//    	assertEquals(0, trips.size());
+//    }
+//
+//    @Test
+//    public void findMonitorableTrips_AllScheduled() throws Exception {
+//    	List<Trip> trips = tripDao.findMonitorableTrips(Instant.parse("2020-03-22T19:30:00Z"));
+//    	assertNotNull(trips);
+//    	assertEquals(4, trips.size());
+//    	// Assert trip is departing within 1 hour
+//    	// Need to fetch the graph
+//    	Trip trip = tripDao.fetchGraph(trips.get(3).getId(), Trip.DETAILED_ENTITY_GRAPH).orElse(null);
+//    	assertNotNull(trip);
+//    	assertTrue(Duration.between(trip.getItinerary().getDepartureTime(), Instant.parse("2020-03-22T19:30:00Z")).getSeconds() < 3600);
+//    }
+//
+//    @Test
+//    public void findMonitorableTrips_Some() throws Exception {
+//    	List<Trip> trips = tripDao.findMonitorableTrips(Instant.parse("2020-03-22T17:00:00Z"));
+//    	assertNotNull(trips);
+//    	assertEquals(3, trips.size());
+//    }
+//
+//    @Test
+//    public void findTripIdByItineryId() throws Exception {
+//    	Long iid = trip1.getItinerary().getId();
+//    	Optional<Long> tripId = tripDao.findTripIdByItineraryId(iid);
+//    	assertNotNull(tripId);
+//    	assertTrue(tripId.isPresent());
+//    	assertEquals(trip1.getId(), tripId.get());
+//    }
     @Test
-    public void findMonitorableTrips_OnlyPlanning() throws Exception {
+    public void findTripsToMonitor_OnlyPlanning() throws Exception {
     	List<Trip> trips = em.createQuery("from Trip", Trip.class).getResultList(); 
     	for (Trip trip : trips) {
         	trip.setState(TripState.PLANNING);
 		}
     	flush();
-    	
-    	trips = tripDao.findMonitorableTrips(Instant.parse("2020-03-22T19:30:00Z"));
-    	assertNotNull(trips);
-    	for (Trip trip : trips) {
-			log.debug(trip.toString());
-		}
-    	assertEquals(0, trips.size());
+    	List<Long> tripIds = tripDao.findTripsToMonitor(Instant.parse("2020-03-22T19:30:00Z"));
+    	assertNotNull(tripIds);
+    	assertEquals(0, tripIds.size());
     }
 
     @Test
-    public void findMonitorableTrips_AllScheduled() throws Exception {
-    	List<Trip> trips = tripDao.findMonitorableTrips(Instant.parse("2020-03-22T19:30:00Z"));
-    	assertNotNull(trips);
-    	assertEquals(4, trips.size());
+    public void findTripsToMonitor_AllScheduled() throws Exception {
+    	List<Long> tripIds = tripDao.findTripsToMonitor(Instant.parse("2020-03-22T19:30:00Z"));
+    	assertNotNull(tripIds);
+    	assertEquals(4, tripIds.size());
     	// Assert trip is departing within 1 hour
     	// Need to fetch the graph
-    	Trip trip = tripDao.fetchGraph(trips.get(3).getId(), Trip.DETAILED_ENTITY_GRAPH).orElse(null);
+    	Trip trip = tripDao.fetchGraph(tripIds.get(3), Trip.DETAILED_ENTITY_GRAPH).orElse(null);
     	assertNotNull(trip);
     	assertTrue(Duration.between(trip.getItinerary().getDepartureTime(), Instant.parse("2020-03-22T19:30:00Z")).getSeconds() < 3600);
     }
 
     @Test
-    public void findMonitorableTrips_Some() throws Exception {
-    	List<Trip> trips = tripDao.findMonitorableTrips(Instant.parse("2020-03-22T17:00:00Z"));
-    	assertNotNull(trips);
-    	assertEquals(3, trips.size());
+    public void findTripsToMonitor_Some() throws Exception {
+    	List<Long> tripIds = tripDao.findTripsToMonitor(Instant.parse("2020-03-22T17:00:00Z"));
+    	assertNotNull(tripIds);
+    	assertEquals(3, tripIds.size());
     }
 
     @Test

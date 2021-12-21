@@ -3,6 +3,7 @@ package eu.netmobiel.rideshare.repository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -231,33 +232,45 @@ public class RideDao extends AbstractDao<Ride, Long> {
     	return tq.getSingleResult();
     }
 
-    /**
-     * Find rides that should be monitored. 
-     * @param departureBefore the threshold time of the ride to start monitoring.
-     * @return A list of rides to start monitoring
-     */
-    public List<Ride> findMonitorableRides(Instant departureBefore) {
-    	List<Ride> rides = em.createQuery(
-    			"from Ride r " + 
-    			"where state = :state and monitored = false and r.departureTime < :departureTime " +
-    			" and (r.deleted is null or r.deleted = false) " +
-    			"order by r.departureTime asc", Ride.class)
-    			.setParameter("state", RideState.SCHEDULED)
-    			.setParameter("departureTime", departureBefore)
-    			.getResultList();
-    	return rides; 
-    }
+//    /**
+//     * Find rides that should be monitored. 
+//     * @param departureBefore the threshold time of the ride to start monitoring.
+//     * @return A list of rides to start monitoring
+//     */
+//    public List<Ride> findMonitorableRides(Instant departureBefore) {
+//    	List<Ride> rides = em.createQuery(
+//    			"from Ride r " + 
+//    			"where state = :state and monitored = false and r.departureTime < :departureTime " +
+//    			" and (r.deleted is null or r.deleted = false) " +
+//    			"order by r.departureTime asc", Ride.class)
+//    			.setParameter("state", RideState.SCHEDULED)
+//    			.setParameter("departureTime", departureBefore)
+//    			.getResultList();
+//    	return rides; 
+//    }
+//
+//    /**
+//     * Find all rides that are monitored right now, according to their monitor status.
+//     * @return A list of rides with the monitor flag set.
+//     */
+//    public List<Ride> findMonitoredRides() {
+//    	List<Ride> rides = em.createQuery(
+//    			"from Ride r where monitored = true order by r.departureTime asc", Ride.class)
+//    			.getResultList();
+//    	return rides; 
+//    }
 
-    /**
-     * Find all rides that are monitored right now, according to their monitor status.
-     * @return A list of rides with the monitor flag set.
-     */
-    public List<Ride> findMonitoredRides() {
-    	List<Ride> rides = em.createQuery(
-    			"from Ride r where monitored = true order by r.departureTime asc", Ride.class)
-    			.getResultList();
-    	return rides; 
-    }
+	public List<Long> findRidesToMonitor(Instant departureBefore) {
+		List<Long> rides = em
+				.createQuery("select r.id from Ride r "
+						+ "where state in :stateSet and r.departureTime < :departureTime "
+						+ "order by r.departureTime asc", Long.class)
+				.setParameter("departureTime", departureBefore)
+				.setParameter("stateSet", EnumSet.of(RideState.SCHEDULED,
+						RideState.DEPARTING, RideState.IN_TRANSIT, RideState.ARRIVING, RideState.VALIDATING))
+				.getResultList();
+		return rides;
+	}
 
 
     public boolean existsTemporalOverlap(Ride ride) {

@@ -1,29 +1,17 @@
 package eu.netmobiel.rideshare.service;
 
-import java.io.Serializable;
-import java.time.Duration;
 import java.time.Instant;
 import java.time.ZoneOffset;
 import java.time.ZonedDateTime;
 import java.time.format.DateTimeFormatter;
-import java.util.AbstractMap;
-import java.util.Collection;
 import java.util.Collections;
-import java.util.Date;
 import java.util.List;
-import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
-import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
-import javax.ejb.NoSuchObjectLocalException;
 import javax.ejb.Schedule;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
-import javax.ejb.Timeout;
-import javax.ejb.Timer;
-import javax.ejb.TimerService;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
@@ -37,8 +25,6 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.annotation.Updated;
-import eu.netmobiel.commons.event.TripConfirmedByProviderEvent;
-import eu.netmobiel.commons.event.TripUnconfirmedByProviderEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
@@ -46,25 +32,18 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
-import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EventFireWrapper;
-import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
-import eu.netmobiel.commons.util.ValidEjbTimer;
 import eu.netmobiel.here.search.HereSearchClient;
-import eu.netmobiel.rideshare.event.BookingFareResetEvent;
-import eu.netmobiel.rideshare.event.BookingFareSettledEvent;
-import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
 import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Car;
 import eu.netmobiel.rideshare.model.Recurrence;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideBase;
-import eu.netmobiel.rideshare.model.RideMonitorEvent;
 import eu.netmobiel.rideshare.model.RideScope;
 import eu.netmobiel.rideshare.model.RideState;
 import eu.netmobiel.rideshare.model.RideTemplate;
@@ -75,7 +54,10 @@ import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.repository.RideTemplateDao;
 import eu.netmobiel.rideshare.repository.RideshareUserDao;
 /**
- * The manager for the rides. 
+ * The manager for the rides. This EJB handles the calls from the resource layer.
+ * The state machine of each ride is maintained by the RideMonitor. 
+ * The calls (potentially) mutating the state of a ride will call the update state method of the RideMonitor.
+ * This EJB does not and must not observe events.
  * 
  * @author Jaap Reitsma
  *
@@ -99,30 +81,11 @@ public class RideManager {
 	private static final int HORIZON_WEEKS = 8;
 	private static final int TEMPLATE_CURSOR_SIZE = 10;
 
-	/**
-	 * The duration of the departing state.
-	 */
-	private static final Duration DEPARTING_PERIOD = Duration.ofMinutes(15);
-	/**
-	 * The duration of the arriving state.
-	 */
-	private static final Duration ARRIVING_PERIOD = Duration.ofMinutes(15);
-	/**
-	 * The delay before sending a invitation for a confirmation.
-	 */
-	private static final Duration VALIDATION_DELAY = Duration.ofMinutes(15);
-	/**
-	 * The duration of the validation interval (before sending the next reminder).
-	 */
-	private static final Duration VALIDATION_INTERVAL = Duration.ofDays(2);
-
-	/**
-	 * The maximum number of reminders to sent during validation.
-	 */
-	private static final int MAX_REMINDERS = 2;
-	
 	@Inject
     private Logger log;
+
+    @Resource
+	protected SessionContext sessionContext;
 
     @Inject
     private RideshareUserDao userDao;
@@ -141,23 +104,14 @@ public class RideManager {
     @Inject
     private HereSearchClient hereSearchClient;
 
+    @Inject
+    private RideMonitor rideMonitor;
+
     @Resource
     private SessionContext context;
 
     @Inject @Removed
     private Event<Ride> rideRemovedEvent;
-
-    @Resource
-    private TimerService timerService;
-
-    @Inject
-    private Event<RideStateUpdatedEvent> rideStateUpdatedEvent;
-
-	@Inject
-    private Event<TripConfirmedByProviderEvent> transportProviderConfirmedEvent;
-
-	@Inject
-    private Event<TripUnconfirmedByProviderEvent> transportProviderUnconfirmedEvent;
 
     /**
      * Updates all recurrent rides by advancing the system horizon to a predefined offset with reference to the calling time.
@@ -224,7 +178,7 @@ public class RideManager {
 		List<Ride> rides = generateNonOverlappingRides(template, systemHorizon);
 		for (Ride ride : rides) {
 			rideItineraryHelper.saveNewRide(ride);
-			checkRideMonitoring(ride);
+			rideMonitor.updateRideStateMachine(ride);
 		}
 		return rides.size();
 	}
@@ -416,7 +370,8 @@ public class RideManager {
     		// Create the current rides
     		attachTemplateAndInstantiateRides(ride, template);
     	}
-    	checkRideMonitoring(ride);
+    	// Force update of state machine
+    	rideMonitor.updateRideStateMachine(ride);
     	return ride.getId();
     }
 
@@ -457,7 +412,7 @@ public class RideManager {
 		// None of the rides in the list are in the persistence context
 		for (Ride r : rides) {
 			rideItineraryHelper.saveNewRide(r);
-			checkRideMonitoring(r);
+			rideMonitor.updateRideStateMachine(r);
 		}
     }
     
@@ -574,11 +529,8 @@ public class RideManager {
     	// Copy non-modifiable attributes to the input object
     	ride.setArrivalPostalCode(ridedb.getArrivalPostalCode());
     	ride.setCancelReason(ridedb.getCancelReason());
-    	ride.setConfirmed(ridedb.getConfirmed());
-    	ride.setConfirmationReason(ridedb.getConfirmationReason());
     	ride.setDeleted(ridedb.getDeleted());
     	ride.setDeparturePostalCode(ridedb.getDeparturePostalCode());
-    	ride.setMonitored(ridedb.isMonitored());
     	ride.setState(ridedb.getState());
     	ride.setVersion(ridedb.getVersion());
     	// If the ride contains no departure then, then the arrival time is important
@@ -685,7 +637,7 @@ public class RideManager {
     	if (rideDao.existsTemporalOverlap(ride)) {
     		throw new UpdateException("Ride overlaps existing ride");
     	}
-    	checkRideMonitoring(ridedb);
+    	rideMonitor.updateRideStateMachine(ridedb);
     }
     
     private void removeRideById(Long rideId, final String reason, boolean hard) {
@@ -709,9 +661,7 @@ public class RideManager {
     		// travelling, validating
     		throw new RemoveException(String.format("Cannot cancel ride %s; state %s forbids", ridedb.getId(), ridedb.getState()));
     	} else {
-        	cancelRideTimers(ridedb);
 	    	if (ridedb.getBookings().size() > 0) {
-	    		updateRideState(ridedb, RideState.CANCELLED);
 	    		if (reason != null && !reason.isBlank()) {
 	    			ridedb.setCancelReason(reason.trim());
 	    		}
@@ -721,6 +671,7 @@ public class RideManager {
 		    		// Remove the ride from the listing
 		    		ridedb.setDeleted(true);
 	    		}
+	    		rideMonitor.updateRideStateMachine(ridedb);
 			} else {
 				rideDao.remove(ridedb);
 			}
@@ -760,340 +711,10 @@ public class RideManager {
 			log.debug("Ride is already deleted, ignoring update itinerary request: " + ride.getUrn());
 		} else {
 			rideItineraryHelper.updateRideItinerary(ride);
+			rideMonitor.evaluateStateMachineDelayed(ride);
+			
 		}
     }
-
-    /**
-     * Sets the confirmation flag on the ride and sends a event to inform that the provider has confirmed the ride.
-     * @param rideId the ride to update.
-     * @throws BusinessException 
-     */
-    public void confirmRide(Long rideId, Boolean confirmationValue, ConfirmationReasonType reason, boolean overwrite) throws BusinessException {
-    	Ride ridedb = rideDao.find(rideId)
-    			.orElseThrow(() -> new NotFoundException("No such ride: " + rideId));
-    	if (ridedb.getState() != RideState.COMPLETED) { 
-    		// No use to set this flag when the trip has already been finished physically and administratively)
-        	if (ridedb.getState() != RideState.VALIDATING) {
-        		throw new BadRequestException("Unexpected state for a confirmation: " + rideId + " " + ridedb.getState());
-        	}
-	    	if (confirmationValue == null) {
-	    		throw new BadRequestException("An empty confirmation value is not allowed");
-	    	}
-	    	if (ridedb.getConfirmed() != null && !overwrite) {
-	    		throw new BadRequestException("Ride has already a confirmation value: " + rideId);
-	    	}
-	    	ridedb.setConfirmed(confirmationValue);
-	    	ridedb.setConfirmationReason(reason);
-	    	Optional<Booking> optBooking = ridedb.getConfirmedBooking();
-	    	if (optBooking.isPresent()) {
-	    		EventFireWrapper.fire(transportProviderConfirmedEvent, 
-	    				new TripConfirmedByProviderEvent(optBooking.get().getUrn(), 
-	    						optBooking.get().getPassengerTripRef(), 
-	    						confirmationValue, reason));
-	    	}
-    	}
-    }
-
-    /**
-     * Flags the ride as complete when in validating state.
-     * FIXME This state machine is too sensitive to small changes in the process.
-     * @param event the event from the booking manager.
-     * @throws BusinessException
-     */
-    public void onBookingFareSettled(@Observes(during = TransactionPhase.IN_PROGRESS) BookingFareSettledEvent event) throws BusinessException {
-    	Ride ride = event.getRide();
-    	// Only handle when the ride is being validated, this is the moment where confirmation is requested.
-    	// When the event is received in a different ride state, it is probably because the booking was cancelled and the fare released. 
-    	if (ride.getState() == RideState.VALIDATING) {
-    		// The fare was settled or cancelled, any way, the ride is done
-			cancelRideTimers(ride);
-			updateRideState(ride, RideState.COMPLETED);
-    	}
-    }
-
-    /**
-     * Flags the booking fare as reserved again. 
-     * @param event the event from the booking manager.
-     * @throws BusinessException
-     */
-    public void onBookingFareReset(@Observes(during = TransactionPhase.IN_PROGRESS) BookingFareResetEvent event) throws BusinessException {
-    	restartValidation(event.getRide());
-    }
-
-    /**
-     * Unconfirms (revokes confirmation) a ride and restores the state of a ride as if the validation has just started.
-     * This method is called by the driver through the API.
-     * The unconfirm is intended to roll-back a cancel, charge or dispute situation. The confirmation can still be altered when 
-     * the payment decision is not made yet. The driver cannot uncancel a fare, only a charge.
-     * @param rideId the ride to unconfirm.
-     * @throws BusinessException
-     */
-    public void unconfirmRide(Long rideId) throws BusinessException {
-    	Ride ridedb = rideDao.find(rideId)
-    			.orElseThrow(() -> new NotFoundException("No such ride: " + rideId));
-    	if (ridedb.getState() != RideState.COMPLETED && ridedb.getState() != RideState.VALIDATING) { 
-    		// Not allowed when the ride has not been finished or cancelled physically and administratively)
-       		throw new BadRequestException("Unexpected state for revoking a confirmation: " + rideId + " " + ridedb.getState());
-    	}
-    	ridedb.setConfirmed(null);
-    	ridedb.setConfirmationReason(null);
-    	// FIXME the payment status and fare should in the booking. Now we have to check the leg of the passenger trip
-    	Optional<Booking> optBooking = ridedb.getConfirmedBooking();
-    	if (optBooking.isPresent()) {
-    		EventFireWrapper.fire(transportProviderUnconfirmedEvent, 
-    				new TripUnconfirmedByProviderEvent(optBooking.get().getUrn(), optBooking.get().getPassengerTripRef()));
-    	}
-    	restartValidation(ridedb);
-    }
-    
-    public void restartValidation(Ride ride) throws BusinessException {
-    	if (ride.getState().isPostTravelState() ) {
-    		// The fare was uncancelled or refunded, any way, the ride needs validation again
-			cancelRideTimers(ride);
-    		ride.setReminderCount(0);
-			ride.setMonitored(true);
-			handleRideMonitorEvent(ride, RideMonitorEvent.TIME_TO_VALIDATE);
-    	}
-    }
-
-    public static class RideInfo implements Serializable {
-		private static final long serialVersionUID = -2715209888482006490L;
-		public RideMonitorEvent event;
-    	public Long rideId;
-    	public RideInfo(RideMonitorEvent anEvent, Long aRideId) {
-    		this.event = anEvent;
-    		this.rideId = aRideId;
-    	}
-    	
-		@Override
-		public String toString() {
-			return String.format("RideInfo [%s %s]", event, rideId);
-		}
-    }
-    
-    protected void updateRideState(Ride ride, RideState newState) throws BusinessException {
-    	RideState previousState = ride.getState();
-		ride.setState(newState);
-    	log.debug(String.format("updateRideState %s: %s --> %s", ride.toStringCompact(), previousState, ride.getState()));
-   		EventFireWrapper.fire(rideStateUpdatedEvent, new RideStateUpdatedEvent(previousState, ride));
-    }
-
-	@Schedule(info = "Collect due rides", hour = "*/1", minute = "0", second = "0", persistent = false /* non-critical job */)
-	public void checkForDueRides() {
-//		log.debug("CollectDueRides");
-		// Get all rides that have a departure time within a certain window (and not monitored)
-		List<Ride> rides = rideDao.findMonitorableRides(Instant.now().plus(Duration.ofHours(2).plus(DEPARTING_PERIOD)));
-		for (Ride ride : rides) {
-			startMonitoring(ride);
-		}
-	}
-
-	protected void handleRideMonitorEvent(Ride ride, RideMonitorEvent event) throws BusinessException {
-		if (log.isDebugEnabled()) {
-			log.debug("Received ride event: " + event.toString());
-		}
-		Instant now = Instant.now();
-		switch (event) {
-		case TIME_TO_PREPARE:
-			updateRideState(ride, RideState.DEPARTING);
-			timerService.createTimer(Date.from(ride.getDepartureTime()), 
-					new RideInfo(RideMonitorEvent.TIME_TO_DEPART, ride.getId()));
-			break;
-		case TIME_TO_DEPART:
-			updateRideState(ride, RideState.IN_TRANSIT);
-			timerService.createTimer(Date.from(ride.getArrivalTime()), 
-					new RideInfo(RideMonitorEvent.TIME_TO_ARRIVE, ride.getId()));
-			break;
-		case TIME_TO_ARRIVE:
-			updateRideState(ride, RideState.ARRIVING);
-			if (ride.hasConfirmedBooking()) {
-				timerService.createTimer(Date.from(ride.getArrivalTime().plus(VALIDATION_DELAY)), 
-						new RideInfo(RideMonitorEvent.TIME_TO_VALIDATE, ride.getId()));
-			} else {
-				timerService.createTimer(Date.from(ride.getArrivalTime().plus(ARRIVING_PERIOD)), 
-						new RideInfo(RideMonitorEvent.TIME_TO_COMPLETE, ride.getId()));
-			}
-			break;
-		case TIME_TO_VALIDATE:
-			updateRideState(ride, RideState.VALIDATING);
-			timerService.createTimer(Date.from(now.plus(VALIDATION_INTERVAL)), 
-					new RideInfo(nextEventAfterValidationExpiration(ride), ride.getId()));
-			break;
-		case TIME_TO_COMPLETE:
-			updateRideState(ride, RideState.COMPLETED);
-			ride.setMonitored(false);
-			break;
-		default:
-			log.warn("Don't know how to handle event: " + event);
-			break;
-		}
-	}
-
-	private static RideMonitorEvent nextEventAfterValidationExpiration(Ride ride) {
-		ride.incrementReminderCount();
-		return ride.getReminderCount() < MAX_REMINDERS ? 
-				RideMonitorEvent.TIME_TO_VALIDATE : 
-				RideMonitorEvent.TIME_TO_COMPLETE;  
-	}
-	
-	@Timeout
-	public void onTimeout(Timer timer) {
-		try {
-			if (! (timer.getInfo() instanceof RideInfo)) {
-				log.error("Don't know how to handle timeout: " + timer.getInfo());
-				return;
-			}
-			RideInfo rideInfo = (RideInfo) timer.getInfo();
-			Ride ridedb = rideDao.fetchGraph(rideInfo.rideId, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
-					.orElseThrow(() -> new IllegalArgumentException("No such ride: " + rideInfo.rideId));
-			handleRideMonitorEvent(ridedb, rideInfo.event);
-		} catch (BusinessException ex) {
-			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
-			log.info("Rollback status after exception: " + context.getRollbackOnly()); 
-		} catch(NoSuchObjectLocalException ex) {
-			log.error(String.format("Error handling timeout: %s", ex.toString()));
-		}
-	}
-
-	protected void startMonitoring(Ride ride) {
-		if (ride.isDeleted() ) {
-			log.warn("Cannot monitor, ride has been deleted: " + ride.getId());
-			return;
-		}
-		if (ride.getState() == RideState.CANCELLED) {
-			log.warn("Cannot monitor, ride has been canceled: " + ride.getId());
-			return;
-		}
-		if (ride.isMonitored()) {
-			log.warn("Ride already monitored: " + ride.getId());
-			return;
-		}
-		ride.setMonitored(true);
-		// Should we always generate timer events and let the state machine decide what to do?
-		// Tested. Result: Timer events are received in random order.
-		// Workaround: Set the next timer in each event handler
-		timerService.createTimer(Date.from(ride.getDepartureTime().minus(DEPARTING_PERIOD)), 
-				new RideInfo(RideMonitorEvent.TIME_TO_PREPARE, ride.getId()));
-	}
-
-    protected void checkRideMonitoring(Ride ride) {
-   		Duration timeLeftToDeparture = Duration.between(Instant.now(), ride.getDepartureTime());
-		if (log.isDebugEnabled()) {
-			log.debug(String.format("Ride %s is scheduled, time left to departure is %s", ride.getId(), timeLeftToDeparture.toString()));
-		}
-    	if (! ride.isMonitored() && timeLeftToDeparture.compareTo(DEPARTING_PERIOD.plus(Duration.ofHours(2))) < 0) {
-    		if (log.isDebugEnabled()) {
-    			log.debug("Start monitoring ride " + ride.getId());
-    		}
-    		startMonitoring(ride);
-    	}
-    	// Otherwise leave to the scheduled retrieval of rides
-    }	
-
-    /**
-     * Kills the timers for the specified Ride.  
-     * @param ride the ride for which to cancel all timers.
-     */
-    protected void cancelRideTimers(Ride ride) {
-    	// Find all timers related to this ride and cancel them
-    	Collection<Timer> timers = timerService.getTimers();
-    	int count = 0;
-		for (Timer timer : timers) {
-			if ((timer.getInfo() instanceof RideInfo)) {
-				RideInfo rideInfo = (RideInfo) timer.getInfo();
-				if (rideInfo.rideId.equals(ride.getId())) {
-					try {
-						timer.cancel();
-						count++;
-					} catch (Exception ex) {
-						log.error("Unable to cancel timer: " + ex.toString());
-					}
-				}
-			}
-		}
-		if (count > 0 && log.isDebugEnabled()) {
-			log.debug(String.format("Cancel %d timer(s) for ride %s", count, ride.getId()));
-		}
-		ride.setMonitored(false);
-    }
-
-    public List<RideInfo> listAllRideMonitorTimers() {
-    	// Find all timers related to the ride manager
-    	Collection<Timer> timers = timerService.getTimers();
-    	ValidEjbTimer validEjbTimer = new ValidEjbTimer();
-    	Collection<Timer> invalidTimers = timers.stream()
-        		.filter(validEjbTimer.negate())
-        		.collect(Collectors.toList());
-    	invalidTimers.stream()
-    		.forEach(tm -> {
-    			log.info(String.format("Cancelling invalid ride timer: %s", tm.getInfo()));
-    			tm.cancel();
-    		});
-    	timers.removeAll(invalidTimers);
-    	timers.removeIf(tm -> !(tm.getInfo() instanceof RideInfo));
-		if (timers.isEmpty()) {
-			log.info("NO active ride timers");
-		} else {
-			log.info("Active ride timers:\n\t" + String.join("\n\t", 
-					timers.stream()
-					.map(tm -> String.format("%s %s %d %s", tm.getInfo(), tm.getNextTimeout(), tm.getTimeRemaining(), tm.isPersistent()))
-					.collect(Collectors.toList()))
-			);
-		}		
-    	return timers.stream()
-    			.map(tm -> (RideInfo) tm.getInfo())
-    			.collect(Collectors.toList());
-	}
-	
-	/**
-	 * Create a map to revive the monitor. Use the event that would cause the favourable transition.
-	 * Note that only rides that are monitored are considered, e.g. SCHEDULED AND monitored = true. 
-	 */
-	private static Map<RideState, RideMonitorEvent> rideStateToMonitorRevivalEvent = Map.ofEntries(
-			new AbstractMap.SimpleEntry<>(RideState.SCHEDULED, RideMonitorEvent.TIME_TO_PREPARE),
-			new AbstractMap.SimpleEntry<>(RideState.DEPARTING, RideMonitorEvent.TIME_TO_PREPARE),
-			new AbstractMap.SimpleEntry<>(RideState.IN_TRANSIT, RideMonitorEvent.TIME_TO_DEPART),
-			new AbstractMap.SimpleEntry<>(RideState.ARRIVING, RideMonitorEvent.TIME_TO_ARRIVE),
-			new AbstractMap.SimpleEntry<>(RideState.VALIDATING, RideMonitorEvent.TIME_TO_VALIDATE),
-			new AbstractMap.SimpleEntry<>(RideState.COMPLETED, RideMonitorEvent.TIME_TO_COMPLETE)
-		);
-
-	/**
-	 * Revive the ride monitors that have been crashed due due to some unrecoverable errors.
-	 */
-	public void reviveRideMonitors() {
-		List<RideInfo> rideInfos = listAllRideMonitorTimers();
-
-		Set<Long> timedTripIds = rideInfos.stream()
-				.map(ti -> ti.rideId)
-				.collect(Collectors.toSet());
-		List<Ride> monitoredTrips = rideDao.findMonitoredRides();
-		monitoredTrips.removeIf(t -> timedTripIds.contains(t.getId()));
-		if (monitoredTrips.isEmpty()) {
-			log.info("All required ride monitors are in place");
-		} else {
-			log.warn(String.format("There are %d rides without active monitoring, fixing now...", monitoredTrips.size()));
-			for (Ride ride : monitoredTrips) {
-				RideMonitorEvent event = rideStateToMonitorRevivalEvent.get(ride.getState());
-				if (event == null) {
-					log.warn(String.format("Ride %s state is %s, no suitable revival event found", ride.getId(), ride.getState()));
-					// First check what is really needed before switching off the monitor 
-					// ride.setMonitored(false);
-			} else {
-					rideDao.detach(ride);
-					try {
-						Ride ridedb = rideDao.fetchGraph(ride.getId(), Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
-								.orElseThrow(() -> new IllegalArgumentException("No such ride: " + ride.getId()));
-						handleRideMonitorEvent(ridedb, event);
-					} catch (BusinessException ex) {
-						log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
-					} catch (Exception ex) {
-						log.error(String.format("Error reviving ride monitor: %s", ex.toString()));
-					}
-				}
-			}
-		}
-	}
 
 	public Optional<GeoLocation> findNextMissingPostalCode() {
 		Optional<Ride> r = rideDao.findFirstRideWithoutPostalCode();

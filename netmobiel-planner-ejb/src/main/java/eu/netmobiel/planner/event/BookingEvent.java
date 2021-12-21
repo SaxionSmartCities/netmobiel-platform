@@ -13,7 +13,7 @@ import eu.netmobiel.planner.model.Trip;
  * @author Jaap Reitsma
  *
  */
-public class BookingEvent extends TripEvent implements Serializable {
+public class BookingEvent extends BasicTripEvent implements Serializable {
 	private static final long serialVersionUID = -8453852001191953795L;
 	/**
      * The leg involved in the booking.

@@ -37,7 +37,6 @@ import javax.persistence.Version;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
-import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
@@ -139,6 +138,20 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 			@NamedAttributeNode(value = "rideTemplate")		
 		}
 	)
+@NamedEntityGraph(
+		name = Ride.RIDE_DRIVER_BOOKING_DETAILS_ENTITY_GRAPH, 
+		attributeNodes = { 
+				@NamedAttributeNode(value = "bookings", subgraph = "booking-details"),		
+				@NamedAttributeNode(value = "driver"),
+		}, subgraphs = {
+				@NamedSubgraph(
+						name = "booking-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "passenger")
+						}
+					)
+		}
+	)
 @Entity
 @Table(name = "ride")
 @Vetoed
@@ -151,9 +164,19 @@ public class Ride extends RideBase implements Serializable {
 	public static final String LIST_RIDES_ENTITY_GRAPH = "list-rides-graph";
 	public static final String DETAILS_WITH_LEGS_ENTITY_GRAPH = "ride-details-graph";
 	public static final String UPDATE_DETAILS_ENTITY_GRAPH = "ride-update-details-graph";
+	public static final String RIDE_DRIVER_BOOKING_DETAILS_ENTITY_GRAPH = "ride-driver-booking-details-graph";
 	
 	public static final String RIDE_USER_YEAR_MONTH_COUNT_MAPPING = "RSRideUserYearMonthCountMapping";
 	public static final String RGC_1_OFFERED_RIDES_COUNT = "ListOfferedRidesCount";
+
+	/**
+	 * The duration of the departing state.
+	 */
+	public static final Duration DEPARTING_PERIOD = Duration.ofMinutes(15);
+	/**
+	 * The duration of the arriving state.
+	 */
+	public static final Duration ARRIVING_PERIOD = Duration.ofMinutes(15);
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "ride_sg")
@@ -222,32 +245,26 @@ public class Ride extends RideBase implements Serializable {
     private RideState state;
 
     /**
-     * If true then the ride is being monitored.
-     */
-    @Column(name = "monitored", nullable = false)
-    private boolean monitored;
-
-    /**
-     * If true then the ride is confirmed by the driver, i.e. all bookings are confirmed.
-     * This flag should sit at the booking.
-     */
-    @Column(name = "confirmed")
-    private Boolean confirmed;
-    
-    /**
-     * The reason of the (negative) confirmation of the passenger's trip (from the perspective of the driver).
-     */
-    @Column(name = "conf_reason")
-    private ConfirmationReasonType confirmationReason;
-
-    /**
      * The number of reminders sent during the validation of the ride
      */
     @NotNull
     @Column(name = "reminder_count")
     private int reminderCount;
-    
-	@Override
+
+    /**
+     * The time of the next reminder for the validation.  
+     */
+    @Column(name = "validation_rem_time")
+    private Instant validationReminderTime;
+
+    /**
+     * The expiration time of the validation. After expiration a payment decision is made (either cancel or pay).
+     * Note that the only the Planner will action on expiration. The expiration at the ride is informative only. 
+     */
+    @Column(name = "validation_exp_time")
+    private Instant validationExpirationTime;
+
+    @Override
     public Long getId() {
 		return id;
 	}
@@ -346,30 +363,6 @@ public class Ride extends RideBase implements Serializable {
 		this.state = state;
 	}
 
-	public boolean isMonitored() {
-		return monitored;
-	}
-
-	public void setMonitored(boolean monitored) {
-		this.monitored = monitored;
-	}
-
-	public Boolean getConfirmed() {
-		return confirmed;
-	}
-
-	public void setConfirmed(Boolean confirmed) {
-		this.confirmed = confirmed;
-	}
-
-	public ConfirmationReasonType getConfirmationReason() {
-		return confirmationReason;
-	}
-
-	public void setConfirmationReason(ConfirmationReasonType confirmationReason) {
-		this.confirmationReason = confirmationReason;
-	}
-
 	public int getReminderCount() {
 		return reminderCount;
 	}
@@ -380,6 +373,22 @@ public class Ride extends RideBase implements Serializable {
 
 	public void incrementReminderCount() {
 		this.reminderCount++;
+	}
+
+	public Instant getValidationReminderTime() {
+		return validationReminderTime;
+	}
+
+	public void setValidationReminderTime(Instant validationReminderTime) {
+		this.validationReminderTime = validationReminderTime;
+	}
+
+	public Instant getValidationExpirationTime() {
+		return validationExpirationTime;
+	}
+
+	public void setValidationExpirationTime(Instant validationExpirationTime) {
+		this.validationExpirationTime = validationExpirationTime;
 	}
 
 	/**
@@ -449,6 +458,40 @@ public class Ride extends RideBase implements Serializable {
     	return getBookings().stream()
     			.filter(b -> b.getState() == BookingState.CONFIRMED)
     			.findFirst();
+    }
+
+	public boolean isPaymentDue() {
+		return getConfirmedBooking().filter(b -> b.isPaymentDue()).isPresent();
+	}
+
+
+    public RideState nextState(Instant referenceTime) {
+    	RideState next = state;
+    	if (state == null) {
+    		state = RideState.SCHEDULED;
+    	}
+    	if (state == RideState.CANCELLED ) {
+    		// The cancel state is set explicitly. Once cancelled stays cancelled forever. 
+    		// The completed is not so final as it looks.
+    		return state;
+    	}
+    	next = state;
+    	if (!getArrivalTime().plus(ARRIVING_PERIOD).isAfter(referenceTime)) {
+    		if (isPaymentDue()) {
+        		next = RideState.VALIDATING;
+        	} else {
+        		next = RideState.COMPLETED;
+        	}
+       	} else if (!getArrivalTime().isAfter(referenceTime)) {
+    		next = RideState.ARRIVING;
+    	} else if (!getDepartureTime().isAfter(referenceTime)) {
+    		next = RideState.IN_TRANSIT;
+    	} else if (!getDepartureTime().minus(DEPARTING_PERIOD).isAfter(referenceTime)) {
+    		next = RideState.DEPARTING;
+    	} else {
+    		next = RideState.SCHEDULED;
+    	}
+    	return next;
     }
 
 	public String toStringCompact() {

@@ -52,6 +52,9 @@ public interface TripMapper {
     @Mapping(target = "agencies", ignore = true)
     @Mapping(target = "arrivalPostalCode", ignore = true)
     @Mapping(target = "departurePostalCode", ignore = true)
+    @Mapping(target = "reminderCount", ignore = true)
+    @Mapping(target = "validationExpirationTime", ignore = true)
+    @Mapping(target = "validationReminderTime", ignore = true)
     Trip map(eu.netmobiel.planner.api.model.Trip source );
 
 }

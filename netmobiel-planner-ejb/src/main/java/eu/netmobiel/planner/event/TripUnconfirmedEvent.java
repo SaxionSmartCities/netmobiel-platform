@@ -10,7 +10,7 @@ import eu.netmobiel.planner.model.Trip;
  * @author Jaap Reitsma
  *
  */
-public class TripUnconfirmedEvent extends TripEvent implements Serializable {
+public class TripUnconfirmedEvent extends BasicTripEvent implements Serializable {
 	private static final long serialVersionUID = 2270398465038857971L;
 
 	public TripUnconfirmedEvent(Trip aTrip) {

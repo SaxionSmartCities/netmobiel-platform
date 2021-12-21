@@ -19,7 +19,7 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.User_;
 import eu.netmobiel.commons.util.UrnHelper;
-import eu.netmobiel.rideshare.event.BookingFareSettledEvent;
+import eu.netmobiel.rideshare.event.RideEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Booking_;
@@ -53,7 +53,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 	            .addClass(StopDao.class)
 	            .addClass(OpenTripPlannerDao.class)
 	            .addPackage(LegMapper.class.getPackage())
-	            .addPackage(BookingFareSettledEvent.class.getPackage())
+	            .addPackage(RideEvent.class.getPackage())
 	            .addClass(EventListenerHelper.class)
 	            .addClass(RideItineraryHelper.class)
 	            .addClass(BookingManager.class);

@@ -13,7 +13,7 @@ import eu.netmobiel.planner.model.TripState;
  * @author Jaap Reitsma
  *
  */
-public class TripStateUpdatedEvent extends TripEvent implements Serializable {
+public class TripStateUpdatedEvent extends BasicTripEvent implements Serializable {
 	private static final long serialVersionUID = 3219309393169307909L;
 
 	@NotNull

@@ -38,7 +38,9 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
+import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.PaymentState;
 import eu.netmobiel.commons.model.ReferableObject;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -171,6 +173,20 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 		}
 	)
 @NamedEntityGraph(
+		name = Booking.RIDE_AND_DRIVER_ENTITY_GRAPH, 
+		attributeNodes = { 
+				@NamedAttributeNode(value = "passenger"),		
+				@NamedAttributeNode(value = "ride", subgraph = "ride-details"),		
+		}, subgraphs = {
+				@NamedSubgraph(
+						name = "ride-details",
+						attributeNodes = {
+								@NamedAttributeNode(value = "driver")
+						}
+					),
+		}
+	)
+@NamedEntityGraph(
 		name = Booking.DEEP_ENTITY_GRAPH, 
 		attributeNodes = { 
 				@NamedAttributeNode(value = "state"),		
@@ -214,6 +230,7 @@ public class Booking extends ReferableObject implements Serializable {
 	private static final long serialVersionUID = 3727019200633708992L;
 	public static final String URN_PREFIX = RideshareUrnHelper.createUrnPrefix("booking");
 	public static final String SHALLOW_ENTITY_GRAPH = "booking-shallow-details-graph";
+	public static final String RIDE_AND_DRIVER_ENTITY_GRAPH = "booking-ride-driver-graph";
 	public static final String DEEP_ENTITY_GRAPH = "booking-deep-details-graph";
 
 	public static final String RS_BOOKING_USER_YEAR_MONTH_COUNT_MAPPING = "RSBookingUserYearMonthCountMapping";
@@ -309,7 +326,7 @@ public class Booking extends ReferableObject implements Serializable {
 
 
     /**
-     * The reference to the passenger as known in the rideshare
+     * The reference URN to the passenger as known in the rideshare
      */
     @Transient
     private String passengerRef;
@@ -333,6 +350,38 @@ public class Booking extends ReferableObject implements Serializable {
 	 */
     @Column(name = "passenger_trip_ref", length = 32, nullable = true)
     private String passengerTripRef;
+
+    /**
+     * If true then the ride is confirmed by the driver, i.e. all bookings are confirmed.
+     * This flag should sit at the booking.
+     */
+    @Column(name = "confirmed")
+    private Boolean confirmed;
+    
+    /**
+     * The reason of the (negative) confirmation of the passenger's trip (from the perspective of the driver).
+     */
+    @Column(name = "conf_reason", length = 3)
+    private ConfirmationReasonType confirmationReason;
+
+    /**
+     * The costs of this booking in NetMobiel credits.
+     * Should this be used in Rideshare
+     */
+    @Column(name = "fare_credits")
+    private Integer fareInCredits;
+
+    /**
+     * The state of the payment. If null it is undefined.  
+     */
+    @Column(name = "payment_state", length = 1)
+    private PaymentState paymentState;
+
+    /**
+     * The urn of the payment, if any. Only present if payment state is PAID.
+     */
+    @Column(name = "payment_id", length = 32)
+    private String paymentId = null;
 
     /**
      * No-args constructor.
@@ -480,6 +529,54 @@ public class Booking extends ReferableObject implements Serializable {
 
 	public void setPassengerTripRef(String passengerTripRef) {
 		this.passengerTripRef = passengerTripRef;
+	}
+
+	public Boolean getConfirmed() {
+		return confirmed;
+	}
+
+	public void setConfirmed(Boolean confirmed) {
+		this.confirmed = confirmed;
+	}
+
+	public ConfirmationReasonType getConfirmationReason() {
+		return confirmationReason;
+	}
+
+	public void setConfirmationReason(ConfirmationReasonType confirmationReason) {
+		this.confirmationReason = confirmationReason;
+	}
+
+	public Integer getFareInCredits() {
+		return fareInCredits;
+	}
+
+	public void setFareInCredits(Integer fareInCredits) {
+		this.fareInCredits = fareInCredits;
+	}
+
+	public boolean hasFare() {
+		return this.fareInCredits != null && this.fareInCredits > 0;
+	}
+	
+	public PaymentState getPaymentState() {
+		return paymentState;
+	}
+
+	public void setPaymentState(PaymentState paymentState) {
+		this.paymentState = paymentState;
+	}
+
+	public String getPaymentId() {
+		return paymentId;
+	}
+
+	public void setPaymentId(String paymentId) {
+		this.paymentId = paymentId;
+	}
+
+	public boolean isPaymentDue() {
+		return this.state == BookingState.CONFIRMED && hasFare() && this.paymentState == null;  
 	}
 
 	public void markAsCancelled(String reason, boolean byDriver) {

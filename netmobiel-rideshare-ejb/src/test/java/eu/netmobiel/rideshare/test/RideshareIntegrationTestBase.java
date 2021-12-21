@@ -17,7 +17,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.rideshare.Resources;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
@@ -47,7 +46,6 @@ public abstract class RideshareIntegrationTestBase {
                 .addPackages(true, RideshareUrnHelper.class.getPackage())
                 .addPackages(true, RideTemplate.class.getPackage())
                 .addPackages(true, RideTemplate_.class.getPackage())
-                .addPackages(true, AbstractDao.class.getPackage())
                 .addPackages(true, BookingStateConverter.class.getPackage())
                 .addPackages(true, RideFilter.class.getPackage())
                 .addPackages(true, Fixture.class.getPackage())

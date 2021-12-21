@@ -36,6 +36,8 @@ public class RideshareMaintenance {
 
 	@Inject
 	private RideManager rideManager;
+	@Inject
+	private RideMonitor rideMonitor;
     
 	@Inject
     private HereSearchClient hereSearchClient;
@@ -48,7 +50,7 @@ public class RideshareMaintenance {
 	@PostConstruct
 	public void initialize() {
 		log.info("Starting up the Rideshare, doing some maintenance tasks");
-		rideManager.reviveRideMonitors();
+		rideMonitor.reviveRideMonitors();
 		schedulePostalCodeGeocoding();
 	}
 	

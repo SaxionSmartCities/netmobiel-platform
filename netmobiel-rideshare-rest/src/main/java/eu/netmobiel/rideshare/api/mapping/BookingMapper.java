@@ -2,8 +2,12 @@ package eu.netmobiel.rideshare.api.mapping;
 
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
+import org.mapstruct.MappingConstants;
 import org.mapstruct.ReportingPolicy;
+import org.mapstruct.ValueMapping;
 
+import eu.netmobiel.commons.model.ConfirmationReasonType;
+import eu.netmobiel.commons.model.PaymentState;
 import eu.netmobiel.rideshare.api.mapping.annotation.BookingFlat;
 import eu.netmobiel.rideshare.api.mapping.annotation.BookingMapperQualifier;
 import eu.netmobiel.rideshare.api.mapping.annotation.BookingNested;
@@ -14,6 +18,8 @@ import eu.netmobiel.rideshare.api.mapping.annotation.LegMapperQualifier;
 import eu.netmobiel.rideshare.api.mapping.annotation.LegReference;
 import eu.netmobiel.rideshare.api.mapping.annotation.RideDetailsForBooking;
 import eu.netmobiel.rideshare.api.mapping.annotation.RideMapperQualifier;
+import eu.netmobiel.rideshare.api.model.Booking.ConfirmationReasonEnum;
+import eu.netmobiel.rideshare.api.model.Booking.PaymentStateEnum;
 import eu.netmobiel.rideshare.model.Booking;
 
 /**
@@ -71,4 +77,16 @@ public abstract class BookingMapper {
 	@Mapping(target = "dropOff.point", ignore = true)
 	public abstract Booking map(eu.netmobiel.rideshare.api.model.Booking source);
 
+    // Translation of the confirmation reason (used in confirmRide)
+    @ValueMapping(target = "UNKNOWN", source = MappingConstants.ANY_REMAINING)
+    public abstract ConfirmationReasonType map(ConfirmationReasonEnum source);
+    
+    @ValueMapping(target = MappingConstants.NULL, source = "UNKNOWN")
+    @ValueMapping(target = MappingConstants.NULL, source = "DISPUTED")
+    public abstract ConfirmationReasonEnum map(ConfirmationReasonType source);
+
+    // For a driver's view, the payment of a booking is cancelled or paid for. 
+    // A reservation is only visible for the passenger and not relevant for the driver. 
+    @ValueMapping(target = MappingConstants.NULL, source = "RESERVED")
+    public abstract PaymentStateEnum map(PaymentState source);
 }

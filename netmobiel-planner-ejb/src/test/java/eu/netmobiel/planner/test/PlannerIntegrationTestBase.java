@@ -18,7 +18,6 @@ import org.junit.After;
 import org.junit.Before;
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.planner.Resources;
 import eu.netmobiel.planner.model.TripPlan;
@@ -44,7 +43,6 @@ public abstract class PlannerIntegrationTestBase {
             .addPackage(PlannerUrnHelper.class.getPackage())
             .addPackages(true, PlanTypeConverter.class.getPackage())
             .addPackages(true, TripPlan.class.getPackage())
-            .addPackages(true, AbstractDao.class.getPackage())
             .addPackages(true, Fixture.class.getPackage())
             .addClass(Resources.class)
             .addAsResource("META-INF/test-persistence.xml", "META-INF/persistence.xml")

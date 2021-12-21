@@ -3,6 +3,7 @@ package eu.netmobiel.planner.repository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 import java.util.Optional;
 
@@ -93,27 +94,39 @@ public class TripDao extends AbstractDao<Trip, Long> {
         return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
-    public List<Trip> findMonitorableTrips(Instant departureBefore) {
-    	List<Trip> trips = em.createQuery(
-    			"from Trip t " + 
-    			"where state = :state and monitored = false and t.itinerary.departureTime < :departureTime " +
-    			"order by t.itinerary.departureTime asc", Trip.class)
-    			.setParameter("state", TripState.SCHEDULED)
-    			.setParameter("departureTime", departureBefore)
-    			.getResultList();
-    	return trips; 
-    }
+//    public List<Trip> findMonitorableTrips(Instant departureBefore) {
+//    	List<Trip> trips = em.createQuery(
+//    			"from Trip t " + 
+//    			"where state = :state and monitored = false and t.itinerary.departureTime < :departureTime " +
+//    			"order by t.itinerary.departureTime asc", Trip.class)
+//    			.setParameter("state", TripState.SCHEDULED)
+//    			.setParameter("departureTime", departureBefore)
+//    			.getResultList();
+//    	return trips; 
+//    }
 
-    /**
-     * Find all trips that are monitored right now, according to their monitor status.
-     * @return A list of trips with the monitor flag set.
-     */
-    public List<Trip> findMonitoredTrips() {
-    	List<Trip> trips = em.createQuery(
-    			"from Trip t where monitored = true order by t.itinerary.departureTime asc", Trip.class)
-    			.getResultList();
-    	return trips; 
-    }
+	public List<Long> findTripsToMonitor(Instant departureBefore) {
+		List<Long> trips = em
+				.createQuery("select t.id from Trip t "
+						+ "where state in :stateSet and t.itinerary.departureTime < :departureTime "
+						+ "order by t.itinerary.departureTime asc", Long.class)
+				.setParameter("departureTime", departureBefore)
+				.setParameter("stateSet", EnumSet.of(TripState.SCHEDULED,
+						TripState.DEPARTING, TripState.IN_TRANSIT, TripState.ARRIVING, TripState.VALIDATING))
+				.getResultList();
+		return trips;
+	}
+
+//    /**
+//     * Find all trips that are monitored right now, according to their monitor status.
+//     * @return A list of trips with the monitor flag set.
+//     */
+//    public List<Trip> findMonitoredTrips() {
+//    	List<Trip> trips = em.createQuery(
+//    			"from Trip t where monitored = true order by t.itinerary.departureTime asc", Trip.class)
+//    			.getResultList();
+//    	return trips; 
+//    }
 
     public Optional<Long> findTripIdByItineraryId(Long itineraryId) {
     	Long tripId = null;

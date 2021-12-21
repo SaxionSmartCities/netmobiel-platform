@@ -5,33 +5,33 @@ import java.io.Serializable;
 import javax.validation.constraints.NotNull;
 
 import eu.netmobiel.planner.model.Trip;
+import eu.netmobiel.planner.model.TripMonitorEvent;
+
 
 /**
- * Basic trip event. 
+ * This event is issued when an ride event occurs.  
  * 
  * @author Jaap Reitsma
  *
  */
-public class TripEvent implements Serializable {
-	private static final long serialVersionUID = 8845962032082359275L;
+public class TripEvent extends BasicTripEvent implements Serializable {
 
-	/**
-     * The trip.
-     */
-    @NotNull
-    private Trip trip;
+	private static final long serialVersionUID = 8837457274309434137L;
     
-    public TripEvent(Trip aTrip) {
-    	this.trip = aTrip;
+    @NotNull
+    private TripMonitorEvent event;
+
+    public TripEvent(TripMonitorEvent anEvent, Trip aTrip) {
+    	super(aTrip);
+    	this.event = anEvent;
     }
 
-    public Trip getTrip() {
-		return trip;
+	public TripMonitorEvent getEvent() {
+		return event;
 	}
 
 	@Override
 	public String toString() {
-		return String.format("%s [%s]", this.getClass().getSimpleName(), trip.getId());
+		return String.format("RideEvent %s %s in %s ]", getTrip().getTripRef(), event, getTrip().getState());
 	}
-
 }

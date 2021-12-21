@@ -110,8 +110,11 @@ public class RideshareReportService {
         			rr.setNrOfPassengers(optBooking.get().getNrSeats());
     			}
     			// RSC-6
-    			rr.setRideConfirmedByDriver(ride.getConfirmed());
+    			if (optBooking.isPresent()) {
+    				rr.setRideConfirmedByDriver(optBooking.get().getConfirmed());
+    			}
     			// RSC-7
+    			// FIXME Add review reports
 //    			rr.setReviewedByDriver(reviewedByDriver);
     			// RSC-8
 //    			rr.setReviewedByPassenger(reviewedByPassenger);

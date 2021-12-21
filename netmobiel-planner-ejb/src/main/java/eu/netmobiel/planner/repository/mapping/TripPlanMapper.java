@@ -93,6 +93,7 @@ public abstract class TripPlanMapper {
     @Mapping(target = "paymentId", ignore = true)
     @Mapping(target = "paymentState", ignore = true)
     @Mapping(target = "fareInCredits", ignore = true)
+    @Mapping(target = "bookingConfirmed", ignore = true)
     @Mapping(target = "confirmationRequested", ignore = true)
     @Mapping(target = "confirmationByProviderRequested", ignore = true)
     @Mapping(target = "confirmed", ignore = true)

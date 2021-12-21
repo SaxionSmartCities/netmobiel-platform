@@ -32,6 +32,7 @@ import com.vividsolutions.jts.geom.MultiPoint;
 import eu.netmobiel.commons.api.EncodedPolylineBean;
 import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.PaymentState;
 import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.commons.util.PolylineEncoder;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -202,8 +203,11 @@ public class Leg implements Serializable {
     @Column(name = "booking_required")
     private Boolean bookingRequired;
 
-    @Transient
-    private boolean bookingConfirmed;
+    /**
+     * For bookable legs: the provider has confirmed the booking request of the passenger
+     */
+    @Column(name = "booking_confirmed")
+    private Boolean bookingConfirmed;
 
     /**
      * The leg's geometry. This one is used only when storing trips into the database. 
@@ -323,18 +327,22 @@ public class Leg implements Serializable {
     private String shoutOutRef;
     
     public Leg() {
+    	this.state = TripState.PLANNING;
     }
 
     public Leg(Stop from, Stop to) {
+    	this();
     	this.from = from;
     	this.to = to;
     	// Other parameters are still unknown.
     }
 
     public Leg(Leg other) {
+    	this();
 		this.agencyId = other.agencyId;
 		this.agencyName = other.agencyName;
 		this.agencyTimeZoneOffset = other.agencyTimeZoneOffset;
+		this.bookingConfirmed = other.bookingConfirmed;
 		this.bookingId = other.bookingId;
 		this.bookingRequired = other.bookingRequired;
 		this.cancelledByProvider = other.cancelledByProvider;
@@ -563,16 +571,14 @@ public class Leg implements Serializable {
 		return bookingRequired == Boolean.TRUE;
 	}
 	
-    /**
-     * Currently we do not support bookings that are not implicitly confirmed.
-     * @return true if the booking is confirmed.
-     */
+	public Boolean getBookingConfirmed() {
+		return bookingConfirmed;
+	}
     public boolean isBookingConfirmed() {
-    	// FIXME Store flag in database 
-    	return bookingConfirmed || getBookingId() != null;
+    	return bookingConfirmed == Boolean.TRUE;
     }
     
-    public void setBookingConfirmed(boolean confirmed) {
+    public void setBookingConfirmed(Boolean confirmed) {
     	this.bookingConfirmed = confirmed;
     }
 
@@ -770,27 +776,28 @@ public class Leg implements Serializable {
      */
     public TripState nextState(Instant referenceTime) {
     	TripState next = state;
-    	if (state == TripState.CANCELLED) {
-    		// The cancel state is set explicitly. Once cancelled stays cancelled forever.
-    		return state;
-    	}
     	if (state == null) {
     		state = TripState.PLANNING;
+    	}
+    	if (state == TripState.CANCELLED ) {
+    		// The cancel state is set explicitly. Once cancelled stays cancelled forever. 
+    		// The completed is not so final as it looks.
+    		return state;
     	}
     	next = state;
     	if (isBookingRequired() && (getBookingId() == null || !isBookingConfirmed())) {
     		next = TripState.BOOKING;
-    	} else if (referenceTime.plus(ARRIVING_PERIOD).isAfter(getEndTime())) {
+    	} else if (!getEndTime().plus(ARRIVING_PERIOD).isAfter(referenceTime)) {
         	if (isPaymentDue()) {
         		next = TripState.VALIDATING;
         	} else {
         		next = TripState.COMPLETED;
         	}
-       	} else if (referenceTime.isAfter(getEndTime())) {
+       	} else if (!getEndTime().isAfter(referenceTime)) {
     		next = TripState.ARRIVING;
-    	} else if (getStartTime().isAfter(referenceTime)) {
+    	} else if (!getStartTime().isAfter(referenceTime)) {
     		next = TripState.IN_TRANSIT;
-    	} else if (getStartTime().minus(DEPARTING_PERIOD).isAfter(referenceTime)) {
+    	} else if (!getStartTime().minus(DEPARTING_PERIOD).isAfter(referenceTime)) {
     		next = TripState.DEPARTING;
     	} else {
     		next = TripState.SCHEDULED;
@@ -808,6 +815,7 @@ public class Leg implements Serializable {
 		StringBuilder builder = new StringBuilder();
 		builder.append("Leg ");
 		builder.append(id).append(" ");
+		builder.append(state).append(" ");
 		builder.append(duration).append("s ");
 		builder.append(distance).append("m ");
 		builder.append(traverseMode).append(" ");
@@ -820,6 +828,7 @@ public class Leg implements Serializable {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("Leg ");
+		builder.append(state).append(" ");
 		builder.append(duration).append("s ");
 		builder.append(distance).append("m ");
 		builder.append(traverseMode).append(" ");

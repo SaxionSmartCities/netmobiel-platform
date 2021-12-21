@@ -1,4 +1,4 @@
-package eu.netmobiel.planner.repository.converter;
+package eu.netmobiel.rideshare.repository.converter;
 
 import java.util.stream.Stream;
 

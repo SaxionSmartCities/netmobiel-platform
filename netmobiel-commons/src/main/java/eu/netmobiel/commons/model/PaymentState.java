@@ -1,4 +1,4 @@
-package eu.netmobiel.planner.model;
+package eu.netmobiel.commons.model;
 
 /**
  * The state of a payment for a leg to the transport provider.

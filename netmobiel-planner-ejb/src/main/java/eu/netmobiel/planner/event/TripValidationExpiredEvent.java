@@ -10,7 +10,7 @@ import eu.netmobiel.planner.model.Trip;
  * @author Jaap Reitsma
  *
  */
-public class TripValidationExpiredEvent extends TripEvent implements Serializable {
+public class TripValidationExpiredEvent extends BasicTripEvent implements Serializable {
 	private static final long serialVersionUID = 258921475228053609L;
 
 	public TripValidationExpiredEvent(Trip aTrip) {

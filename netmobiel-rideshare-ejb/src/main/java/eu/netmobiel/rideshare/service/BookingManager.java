@@ -17,20 +17,23 @@ import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.annotation.Updated;
 import eu.netmobiel.commons.event.BookingCancelledFromProviderEvent;
+import eu.netmobiel.commons.event.TripConfirmedByProviderEvent;
+import eu.netmobiel.commons.event.TripUnconfirmedByProviderEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.PaymentState;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
-import eu.netmobiel.rideshare.event.BookingFareResetEvent;
-import eu.netmobiel.rideshare.event.BookingFareSettledEvent;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Ride;
+import eu.netmobiel.rideshare.model.RideState;
 import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.repository.BookingDao;
 import eu.netmobiel.rideshare.repository.RideDao;
@@ -52,13 +55,10 @@ public class BookingManager {
     private RideshareUserDao userDao;
     
     @Inject
+    private RideMonitor rideMonitor;
+
+    @Inject
     private Event<BookingCancelledFromProviderEvent> bookingCancelledEvent;
-
-    @Inject
-    private Event<BookingFareSettledEvent> bookingFareSettledEvent;
-
-    @Inject
-    private Event<BookingFareResetEvent> bookingFareResetEvent;
 
     @Inject @Updated
     private Event<Ride> staleItineraryEvent;
@@ -68,6 +68,12 @@ public class BookingManager {
 
     @Inject @Removed
     private Event<Booking> bookingRemovedEvent;
+
+    @Inject
+    private Event<TripConfirmedByProviderEvent> transportProviderConfirmedEvent;
+
+	@Inject
+    private Event<TripUnconfirmedByProviderEvent> transportProviderUnconfirmedEvent;
 
     /**
      * Search for bookings.
@@ -175,6 +181,12 @@ public class BookingManager {
     	return bookingdb;
     }
 
+    private Booking getShallowBooking(String bookingRef)  throws NotFoundException, BadRequestException {
+    	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
+    	return bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
+    }
+
     /**
      * Removes a booking. A booking can be cancelled by the passenger or by the driver. A booking is not really removed from
      * the database, but its state is set to cancelled. 
@@ -183,9 +195,7 @@ public class BookingManager {
      * @throws BusinessException 
      */
     public void removeBooking(String bookingRef, final String reason, Boolean cancelledByDriver, boolean cancelledFromRideshare) throws BusinessException {
-    	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
-    	Booking b = bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
+    	Booking b = getShallowBooking(bookingRef);
    		b.markAsCancelled(reason, cancelledByDriver);
    		if (cancelledFromRideshare) {
    			// The driver of passenger has cancelled the ride or the booking through the rideshare API. 
@@ -228,15 +238,18 @@ public class BookingManager {
     /**
      * Confirms an earlier booking. 
      * @param id the booking to conform
+     * @param passengerTripRef The r3eference to the passenger's trip.
+     * @param the fare of the passenger
      * @throws BusinessException 
      */
-    public void confirmBooking(Long id, String passengerTripRef) throws BusinessException {
+    public void confirmBooking(Long id, String passengerTripRef, int fareinCredits) throws BusinessException {
     	Booking b = bookingDao.loadGraph(id, Booking.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such booking: " + id));
     	if (b.getState() != BookingState.PROPOSED && b.getState() != BookingState.REQUESTED) {
     		log.warn(String.format("Booking %d has an unexpected booking state at confirmation: %s", id, b.getState().toString()));
     		throw new IllegalStateException("Unexpected booking state: " + b.getUrn() + " " + b.getState());
     	}
+    	b.setFareInCredits(fareinCredits);
     	b.setState(BookingState.CONFIRMED);
     	b.setPassengerTripRef(passengerTripRef);
 		// Update itinerary of the driver
@@ -247,40 +260,94 @@ public class BookingManager {
     }
 
     /**
-     * Restart the validation, as if the validation of the booking was not yet started.
-     * @param bookingRef the booking to revalidate.
+     * Sets the confirmation flag on the ride and sends a event to inform that the provider has confirmed the ride.
+     * @param rideId the ride to update.
      * @throws BusinessException 
      */
-    public void restartValidation(String bookingRef) throws BusinessException {
-    	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
-    	Booking bookingdb = bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
+    public void confirmTravelling(Long bookingId, Boolean confirmationValue, ConfirmationReasonType reason, boolean overwrite) throws BusinessException {
+    	Booking b = bookingDao.loadGraph(bookingId, Booking.RIDE_AND_DRIVER_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
-		EventFireWrapper.fire(bookingFareResetEvent, new BookingFareResetEvent(bookingdb.getRide(), bookingdb));
+    	if (b.getState() != BookingState.CONFIRMED) {
+    		throw new BadRequestException("The booking is not confirmed at all! " + bookingId);
+    	}
+    	if (b.getRide().getState() != RideState.COMPLETED) { 
+    		// No use to set this flag when the trip has already been finished physically and administratively)
+        	if (b.getRide().getState() != RideState.VALIDATING) {
+        		throw new BadRequestException("Unexpected state for a confirmation: " + b.getRide().getUrn() + " " + b.getRide().getState());
+        	}
+	    	if (confirmationValue == null) {
+	    		throw new BadRequestException("An empty confirmation value is not allowed");
+	    	}
+	    	if (b.getConfirmed() != null && !overwrite) {
+	    		throw new BadRequestException("Booking has already a confirmation value: " + bookingId);
+	    	}
+	    	b.setConfirmed(confirmationValue);
+	    	b.setConfirmationReason(reason);
+    		EventFireWrapper.fire(transportProviderConfirmedEvent, 
+    				new TripConfirmedByProviderEvent(b.getUrn(), b.getPassengerTripRef(), confirmationValue, reason));
+    	}
     }
 
     /**
-     * Signals the settlement of the booking fare.
+     * Unconfirms (revokes confirmation) a ride and restores the state of a ride as if the validation has just started.
+     * This method is called by the driver through the API.
+     * The unconfirm is intended to roll-back a cancel, charge or dispute situation. The confirmation can still be altered when 
+     * the payment decision is not made yet. The driver cannot uncancel a fare, only a charge.
+     * @param rideId the ride to unconfirm.
+     * @throws BusinessException
+     */
+    public void unconfirmTravelling(Long bookingId) throws BusinessException {
+    	Booking b = bookingDao.loadGraph(bookingId, Booking.RIDE_AND_DRIVER_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
+    	if (b.getState() != BookingState.CONFIRMED) {
+    		throw new BadRequestException("The booking is not confirmed at all! " + bookingId);
+    	}
+    	if (b.getRide().getState() != RideState.COMPLETED && b.getRide().getState() != RideState.VALIDATING) { 
+    		// Not allowed when the ride has not been finished or cancelled physically and administratively)
+       		throw new BadRequestException("Unexpected ride state for revoking a confirmation: " + b.getRide().getUrn() + " " + b.getRide().getState());
+    	}
+    	b.setConfirmed(null);
+    	b.setConfirmationReason(null);
+    	// Inform the Overseer
+		EventFireWrapper.fire(transportProviderUnconfirmedEvent, new TripUnconfirmedByProviderEvent(b.getUrn(), b.getPassengerTripRef()));
+		rideMonitor.restartValidation(b.getRide());
+    }
+    
+    /**
+     * Signals the settlement of the booking fare. This method is called from the Overseer.
      * @param rideRef the ride involved
      * @param bookingRef the booking involved.
      * @throws BusinessException
      */
-    public void informBookingFareSettled(String rideRef, String bookingRef) throws BusinessException {
-    	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
-    	Booking bookingdb = bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
-    	Long rid = UrnHelper.getId(Ride.URN_PREFIX, rideRef);
-		Ride ride = rideDao.find(rid)
-    			.orElseThrow(() -> new NotFoundException("Ride not found: " + rideRef));
-		EventFireWrapper.fire(bookingFareSettledEvent, new BookingFareSettledEvent(ride, bookingdb));
+    public void informBookingFareSettled(String rideRef, String bookingRef, PaymentState paymentState, String paymentId) throws BusinessException {
+    	Booking bookingdb = getShallowBooking(bookingRef);
+    	bookingdb.setPaymentState(paymentState);
+    	bookingdb.setPaymentId(paymentId);
+		rideMonitor.evaluateStateMachineDelayed(bookingdb.getRide());
     }
 
     /**
-     * Signals the reset of the booking fare.
+     * Signals the reset of the booking fare payment. No update of ride state necessary yet. 
+     * Will be done later.
      * @param rideRef the ride involved
      * @param bookingRef the booking involved.
      * @throws BusinessException
      */
     public void informBookingFareReset(String rideRef, String bookingRef) throws BusinessException {
-    	// Nothing to do here.
+    	Booking bookingdb = getShallowBooking(bookingRef);
+    	bookingdb.setPaymentState(null);
+    	bookingdb.setPaymentId(null);
     }
+
+    /**
+     * Restart the validation, as if the validation of the booking was not yet started.
+     * @param bookingRef the booking to revalidate.
+     * @throws BusinessException 
+     */
+    public void restartValidation(String bookingRef) throws BusinessException {
+    	Booking bookingdb = getShallowBooking(bookingRef);
+		rideMonitor.restartValidation(bookingdb.getRide());
+    }
+
+
 }

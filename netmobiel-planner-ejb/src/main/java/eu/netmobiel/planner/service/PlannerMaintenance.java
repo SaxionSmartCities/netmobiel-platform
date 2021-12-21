@@ -32,6 +32,9 @@ public class PlannerMaintenance {
     private Logger log;
 	@Inject
 	private TripManager tripManager;
+    @Inject
+    private TripMonitor tripMonitor;
+    
 
 	@Inject
     private HereSearchClient hereSearchClient;
@@ -44,7 +47,7 @@ public class PlannerMaintenance {
 	@PostConstruct
 	public void initialize() {
 		log.info("Starting up the Planner, doing some maintenance tasks");
-		tripManager.reviveTripMonitors();
+		tripMonitor.reviveTripMonitors();
 		schedulePostalCodeGeocoding();
 	}
 
