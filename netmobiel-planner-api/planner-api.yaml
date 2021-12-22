@@ -1502,6 +1502,8 @@ components:
           - FOUND_OTHER_TRANSPORT
           - NO_SHOW
           - NO_TRIP
+          - DISPUTED
+          - UNKNOWN
           type: string
         confirmationReasonByProvider:
           description: |-
@@ -1515,6 +1517,8 @@ components:
           - FOUND_OTHER_TRANSPORT
           - NO_SHOW
           - NO_TRIP
+          - DISPUTED
+          - UNKNOWN
           type: string
         paymentId:
           description: The reference to the payment transaction (the meaning depends
