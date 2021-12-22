@@ -1266,6 +1266,8 @@ components:
           - FOUND_OTHER_TRANSPORT
           - NO_SHOW
           - NO_TRIP
+          - DISPUTED
+          - UNKNOWN
           type: string
         paymentState:
           description: The payment state of the booking. If `CANCELLED`, the payment
