@@ -111,7 +111,7 @@ public class Leg implements Serializable {
     
     /**
      * For transit legs, the ID of the trip.
-     * For ridesharing it is the ride reference.
+     * For ridesharing it is the ride reference, i.e. the ride URN!.
      * Otherwise null.
      */
     @Column(name = "trip_id", length = 32)
@@ -728,6 +728,10 @@ public class Leg implements Serializable {
 		return Boolean.FALSE.equals(confirmed);
 	}
 
+	public boolean isConfirmationDisputed() {
+		return isConfirmedByProvider() && isDenied();
+	}
+	
 	public ConfirmationReasonType getConfirmationReasonByProvider() {
 		return confirmationReasonByProvider;
 	}

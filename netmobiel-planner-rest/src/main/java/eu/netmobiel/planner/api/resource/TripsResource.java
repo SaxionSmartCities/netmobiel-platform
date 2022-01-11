@@ -223,7 +223,7 @@ public class TripsResource extends PlannerResource implements TripsApi {
 		}
     	Response rsp = null;
     	try {
-			tripManager.confirmTripByTransportProvider(tripId, null, Boolean.FALSE, ConfirmationReasonType.DISPUTED, true);
+			tripManager.afterConfirmTripByTransportProvider(tripId, null, Boolean.FALSE, ConfirmationReasonType.DISPUTED, true);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new javax.ws.rs.BadRequestException(e);

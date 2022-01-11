@@ -15,7 +15,6 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import eu.netmobiel.commons.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -31,7 +30,6 @@ import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.event.TripConfirmedEvent;
 import eu.netmobiel.planner.event.TripStateUpdatedEvent;
 import eu.netmobiel.planner.event.TripUnconfirmedEvent;
-import eu.netmobiel.planner.event.TripValidationExpiredEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlannerUser;
@@ -89,9 +87,6 @@ public class TripManagerTest {
 
     @Injectable
     private Event<TripUnconfirmedEvent> tripUnconfirmedEvent;
-
-    @Injectable
-    private Event<TripValidationExpiredEvent> tripValidationExpiredEvent;
 
     @Injectable
     private SessionContext context;

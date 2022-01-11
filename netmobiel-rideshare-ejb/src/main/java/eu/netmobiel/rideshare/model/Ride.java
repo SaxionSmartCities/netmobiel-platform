@@ -460,10 +460,23 @@ public class Ride extends RideBase implements Serializable {
     			.findFirst();
     }
 
+    /**
+     * Return true if booking waits for a confirmation value (positive or negative) from the driver.
+     * 
+     * @return true if waiting, otherwise false.
+     */
+	public boolean isConfirmationPending() {
+		return getConfirmedBooking().filter(b -> b.isConfirmationPending()).isPresent();
+	}
+
+	/**
+	 * Returns true if the payment decision has not been made yet.
+	 * 
+	 * @return true if waiting for the payment decision.
+	 */
 	public boolean isPaymentDue() {
 		return getConfirmedBooking().filter(b -> b.isPaymentDue()).isPresent();
 	}
-
 
     public RideState nextState(Instant referenceTime) {
     	RideState next = state;

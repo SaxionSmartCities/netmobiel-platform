@@ -3,7 +3,6 @@ package eu.netmobiel.planner.service;
 import java.io.Serializable;
 import java.time.Duration;
 import java.time.Instant;
-import java.util.ArrayList;
 import java.util.Collection;
 import java.util.Date;
 import java.util.List;
@@ -17,28 +16,26 @@ import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.ejb.Timeout;
 import javax.ejb.Timer;
-import javax.ejb.TimerConfig;
 import javax.ejb.TimerService;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
+import javax.enterprise.event.Observes;
+import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.event.TripValidationEvent;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.repository.ClockDao;
-import eu.netmobiel.commons.util.Command;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.ValidEjbTimer;
-import eu.netmobiel.planner.event.BookingConfirmedEvent;
-import eu.netmobiel.planner.event.BookingRequestedEvent;
+import eu.netmobiel.planner.event.TripEvaluatedEvent;
 import eu.netmobiel.planner.event.TripEvent;
-import eu.netmobiel.planner.event.TripStateUpdatedEvent;
-import eu.netmobiel.planner.event.TripValidationExpiredEvent;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripMonitorEvent;
@@ -71,7 +68,7 @@ public class TripMonitor {
 	 * The maximum duration of the first confirmation period.
 	 */
 //	private static final Duration VALIDATION_INTERVAL = Duration.ofDays(2);
-	private static final Duration VALIDATION_INTERVAL = Duration.ofMinutes(10);
+	private static final Duration VALIDATION_INTERVAL = Duration.ofMinutes(2).plus(Duration.ofSeconds(10));
 	/**
 	 * The duration of the pre-departing period in which the monitoring should start or have started.
 	 */
@@ -98,21 +95,26 @@ public class TripMonitor {
     private TimerService timerService;
 
     @Inject
-    private Event<BookingRequestedEvent> bookingRequestedEvent;
-
-    @Inject
-    private Event<BookingConfirmedEvent> bookingConfirmedEvent;
-
-    @Inject
-    private Event<TripStateUpdatedEvent> tripStateUpdatedEvent;
-
-    @Inject
-    private Event<TripValidationExpiredEvent> tripValidationExpiredEvent;
+    private Event<TripValidationEvent> tripValidationEvent;
+    
 
     @Inject
     private Event<TripEvent> tripEvent;
 
     private final static ValidEjbTimer validEjbTimer = new ValidEjbTimer();
+    
+    public static class TripInfo implements Serializable {
+		private static final long serialVersionUID = -2715209888482006490L;
+    	public Long tripId;
+    	public TripInfo(Long aTripId) {
+    		this.tripId = aTripId;
+    	}
+    	
+		@Override
+		public String toString() {
+			return String.format("TripInfo [%s]", tripId);
+		}
+    }
     
     /**
      * Retrieves a trip. Anyone can read a trip, given the id. All details are retrieved.
@@ -127,89 +129,87 @@ public class TripMonitor {
     }
     
     /**
-     * Start a timer to check the state machine.
-     * TODO: Does this timer interfere with the other timers? A timer event might get lost because of the deletion of a timer?
-     * @param trip the trip to check
+     * Reset the state to arriving as if the trip was just finished. Update the state of the trip. 
+     * @param ride
+     * @throws BusinessException
      */
-    public void evaluateStateMachineDelayed(Trip trip) {
-		setupTimer(trip, TripMonitorEvent.TIME_TO_CHECK, clockDao.now());
-    }
-    
+    @TransactionAttribute(TransactionAttributeType.MANDATORY)
     public void restartValidation(Trip trip) throws BusinessException {
     	if (trip.getState().isPostTravelState() ) {
     		// The fare was uncancelled or refunded, any way, the trip needs validation again
-    		// Use the timer to decouple to assure no recursion occurs
     		trip.setState(TripState.ARRIVING);
-    		setupTimer(trip, TripMonitorEvent.TIME_TO_VALIDATE, clockDao.now());
+    		cancelTripTimer(trip, TripMonitorEvent.TIME_TO_CHECK);
+    		updateTripStateMachine(trip);
     	}
     }
 
-    /**
-     * Evaluates the state of a leg.
-     * @param now The time reference.
-     * @param trip The trip of the leg
-     * @param leg The leg to evaluate.
-     * @return the actions resulting from leg state transitions to execute.
-     */
-    private List<Command> legStateMachineHandler(Instant now, Trip trip, Leg leg) {
-    	List<Command> actions = new ArrayList<>();
-    	// Determine the new state(s)
-    	TripState oldState = leg.getState();
-    	// Update the legs
-		TripState newState = leg.nextState(now);
-		leg.setState(newState);
-		if (log.isDebugEnabled()) {
-			log.debug(String.format("Leg SM %s --> %s: %s", oldState, newState, leg.toStringCompact()));
-		}
-		switch (newState) {
-		case PLANNING:
-			break;
-		case BOOKING:
-			if (oldState == TripState.PLANNING) {
-				// A booking is required. Create an action to inform
-   				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
-   				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
-				actions.add(() -> EventFireWrapper.fire(bookingRequestedEvent, new BookingRequestedEvent(trip, leg)));
-			}
-			break;
-		case SCHEDULED:
-			if (oldState == TripState.PLANNING) {
-		    	// Check for bookingID set. If so than it was a shout-out and we need to convert the PROPOSAL to a CONFIRMED booking
-		    	if (leg.getBookingId() != null) {
-		    		// This must be a proposed booking. Confirm it and add a trip reference.
-		    		actions.add(() -> EventFireWrapper.fire(bookingConfirmedEvent, new BookingConfirmedEvent(trip, leg)));
-		    	}
-			}
-			break;
-		case DEPARTING:
-			break;
-		case IN_TRANSIT:
-			break;
-		case ARRIVING:
-			break;
-		case VALIDATING:
-			break;
-		case COMPLETED:
-			break;
-		case CANCELLED:
-			break;
-		}
-		return actions;
-    }
+//    /**
+//     * Evaluates the state of a leg.
+//     * @param now The time reference.
+//     * @param trip The trip of the leg
+//     * @param leg The leg to evaluate.
+//     * @return the actions resulting from leg state transitions to execute.
+//     */
+//    private List<Command> legStateMachineHandler(Instant now, Trip trip, Leg leg) {
+//    	List<Command> actions = new ArrayList<>();
+//    	// Determine the new state(s)
+//    	TripState oldState = leg.getState();
+//    	// Update the legs
+//		TripState newState = leg.nextState(now);
+//		leg.setState(newState);
+//		if (log.isDebugEnabled()) {
+//			log.debug(String.format("Leg SM %s --> %s: %s", oldState, newState, leg.toStringCompact()));
+//		}
+//		switch (newState) {
+//		case PLANNING:
+//			break;
+//		case BOOKING:
+//			if (oldState == TripState.PLANNING) {
+//				// A booking is required. Create an action to inform
+//   				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
+//   				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
+//				actions.add(() -> EventFireWrapper.fire(bookingRequestedEvent, new BookingRequestedEvent(trip, leg)));
+//			}
+//			break;
+//		case SCHEDULED:
+//			if (oldState == TripState.PLANNING) {
+//		    	// Check for bookingID set. If so than it was a shout-out and we need to convert the PROPOSAL to a CONFIRMED booking
+//		    	if (leg.getBookingId() != null) {
+//		    		// This must be a proposed booking. Confirm it and add a trip reference.
+//		    		actions.add(() -> EventFireWrapper.fire(bookingConfirmedEvent, new BookingConfirmedEvent(trip, leg)));
+//		    	}
+//			}
+//			break;
+//		case DEPARTING:
+//			break;
+//		case IN_TRANSIT:
+//			break;
+//		case ARRIVING:
+//			break;
+//		case VALIDATING:
+//			break;
+//		case COMPLETED:
+//			break;
+//		case CANCELLED:
+//			break;
+//		}
+//		return actions;
+//    }
 
     /**
      * Evaluate the trip state. NOTE: Only call methods that do not call an update of the state machine, i.e. no recursion!
      * @param trip the trip to evaluate.
      * @throws BusinessException
      */
+    @TransactionAttribute(TransactionAttributeType.MANDATORY)
     public void updateTripStateMachine(Trip trip) throws BusinessException {
-    	List<Command> actions = new ArrayList<>();
+//    	List<Command> actions = new ArrayList<>();
     	Instant now = clockDao.now();
     	// Determine the new state(s)
     	TripState oldState = trip.getState();
     	// Update the legs and collect the action to execute
-		trip.getItinerary().getLegs().forEach(lg -> actions.addAll(legStateMachineHandler(now, trip, lg)));
-		TripState newState = trip.nextState(now);
+//		trip.getItinerary().getLegs().forEach(lg -> actions.addAll(legStateMachineHandler(now, trip, lg)));
+		TripState newState = trip.nextStateWithLegsToo(now);
 		trip.setState(newState);
 		if (log.isDebugEnabled()) {
 			log.debug(String.format("Trip SM %s --> %s: %s", oldState, newState, trip.toStringCompact()));
@@ -218,9 +218,11 @@ public class TripMonitor {
     		log.warn(String.format("Trip %s: State is set back from %s --> %s", trip.getId(), oldState, newState));
     	}
 		// Execute the delayed actions.
-		for (Command action : actions) {
-			action.execute();
-		}
+//		for (Command action : actions) {
+//			action.execute();
+//		}
+		TripMonitorEvent event = TripMonitorEvent.TIME_TO_CHECK;
+		Instant nextTimeout = null; 
 		switch (newState) {
 		case PLANNING:
 			break;
@@ -228,109 +230,60 @@ public class TripMonitor {
 			// What happens if the state remains in booking? Is that possible?
 			break;
 		case SCHEDULED:
-			if (trip.getItinerary().getDepartureTime().minus(PRE_DEPARTING_PERIOD).isAfter(now)) {
-				setupTimer(trip, TripMonitorEvent.TIME_TO_PREPARE, 
-						trip.getItinerary().getDepartureTime().minus(Leg.DEPARTING_PERIOD));
-			} else {
-				cancelTripTimer(trip);
+			if (now.plus(PRE_DEPARTING_PERIOD).isAfter(trip.getItinerary().getDepartureTime())) {
+				nextTimeout = trip.getItinerary().getDepartureTime().minus(Leg.DEPARTING_PERIOD);
 			}
 			break;
 		case DEPARTING:
-			setupTimer(trip, TripMonitorEvent.TIME_TO_DEPART, trip.getItinerary().getDepartureTime());
+			nextTimeout = trip.getItinerary().getDepartureTime();
 			break;
 		case IN_TRANSIT:
-			setupTimer(trip, TripMonitorEvent.TIME_TO_ARRIVE, trip.getItinerary().getArrivalTime());
+			nextTimeout = trip.getItinerary().getArrivalTime();
 			break;
 		case ARRIVING:
-			if (trip.getItinerary().isConfirmationRequested()) {
-				setupTimer(trip, TripMonitorEvent.TIME_TO_VALIDATE, 
-						trip.getItinerary().getArrivalTime().plus(VALIDATION_DELAY));
-			} else {
-				setupTimer(trip, TripMonitorEvent.TIME_TO_COMPLETE, trip.getItinerary().getArrivalTime().plus(Leg.ARRIVING_PERIOD));
-			}
+			Duration nextCheckDuration = trip.getItinerary().isConfirmationRequested() ? VALIDATION_DELAY : Leg.ARRIVING_PERIOD;   
+			nextTimeout = trip.getItinerary().getArrivalTime().plus(nextCheckDuration);
 			break;
 		case VALIDATING:
-			int nrRemindersLeft = MAX_REMINDERS;
+			// In this state we wait for: 
+			// 1. the driver to confirm the passenger's presence on the ride  
+			// 2. the passenger to confirm his own presence at the trip
+			// 3. the payment decision by the Overseer
 			if (oldState != TripState.VALIDATING) {
 				// Probably from arriving or from completed. Start or restart the validation, from now.
 				trip.setValidationExpirationTime(now.plus(VALIDATION_INTERVAL.multipliedBy(1 + MAX_REMINDERS)));
 				trip.setValidationReminderTime(now.plus(VALIDATION_INTERVAL));
-				//FIXME The reminder should be a persistent timer firing an event.
+				nextTimeout = trip.getValidationReminderTime(); 
 			} else {
-		    	Duration d = Duration.between(clockDao.now(), trip.getValidationExpirationTime());
-		    	if (d.isNegative()) {
-		    		d = Duration.ZERO;		    		
-		    	}
-		    	nrRemindersLeft = Math.toIntExact(d.dividedBy(VALIDATION_INTERVAL));
-		    	Duration upToNextTime = d.minus(VALIDATION_INTERVAL.multipliedBy(nrRemindersLeft)); 
-		    	if (!upToNextTime.isZero()) {
-		    		trip.setValidationReminderTime(now.plus(upToNextTime));
-		    	}
+				if (trip.getItinerary().isPassengerConfirmationPending() && now.isAfter(trip.getValidationReminderTime())) {
+					trip.setValidationReminderTime(now.plus(VALIDATION_INTERVAL));
+					nextTimeout = trip.getValidationReminderTime();
+					event = TripMonitorEvent.TIME_TO_SEND_VALIDATION_REMINDER;
+				}
+				if (now.isAfter(trip.getValidationExpirationTime())) {
+		        	trip.setValidationExpirationTime(now.plus(VALIDATION_INTERVAL));
+					nextTimeout = trip.getValidationExpirationTime();
+					event = TripMonitorEvent.TIME_TO_FINISH_VALIDATION;
+					// Trigger an asynchronous evaluation, use a separate event (processed only after a successful commit of the current update)
+		        	EventFireWrapper.fire(tripValidationEvent, new TripValidationEvent(trip.getTripRef(), true));
+				}
 			}
-			setupTimer(trip, nrRemindersLeft > 0 ? TripMonitorEvent.TIME_TO_VALIDATE_REMINDER : TripMonitorEvent.TIME_TO_COMPLETE, 
-					trip.getValidationReminderTime());
 			break;
 		case COMPLETED:
 			// Just to be sure
-       		cancelTripTimer(trip);
+       		cancelTripTimers(trip);
 			break;
 		case CANCELLED:
-       		cancelTripTimer(trip);
+       		cancelTripTimers(trip);
 			break;
 		}
 		// Inform the observers
-    	EventFireWrapper.fire(tripStateUpdatedEvent, new TripStateUpdatedEvent(oldState, trip));
+		EventFireWrapper.fire(tripEvent, new TripEvent(trip, event, oldState, newState));
+		if (nextTimeout != null) {
+			setupTimer(trip, nextTimeout);
+		}
     }
 
-    public static class TripInfo implements Serializable {
-		private static final long serialVersionUID = -2715209888482006490L;
-		public TripMonitorEvent event;
-    	public Long tripId;
-    	public TripInfo(TripMonitorEvent anEvent, Long aTripId) {
-    		this.event = anEvent;
-    		this.tripId = aTripId;
-    	}
-    	
-		@Override
-		public String toString() {
-			return String.format("TripInfo [%s %s]", event, tripId);
-		}
-    }
-    
-	private void handleTripMonitorEvent(Trip trip, TripMonitorEvent event) throws BusinessException {
-		if (trip.getState() == TripState.CANCELLED) {
-			log.warn("Cannot monitor, trip has been canceled: " + trip.getId());
-			return;
-		}
-		updateTripStateMachine(trip);
-		switch (event) {
-		case TIME_TO_CHECK:
-			break;
-		case TIME_TO_PREPARE:
-			break;
-		case TIME_TO_DEPART:
-			break;
-		case TIME_TO_ARRIVE:
-			break;
-		case TIME_TO_VALIDATE:
-			break;
-		case TIME_TO_VALIDATE_REMINDER:
-			break;
-		case TIME_TO_COMPLETE:
-			if (trip.getState() == TripState.VALIDATING) {
-				EventFireWrapper.fire(tripValidationExpiredEvent, new TripValidationExpiredEvent(trip));
-			}
-			break;
-		default:
-			log.warn("Don't know how to handle event: " + event);
-			break;
-		}
-		EventFireWrapper.fire(tripEvent, new TripEvent(event, trip));
-		// The state machine is evaluated without regarding the event!
-		// The timer is set by a state machine action
-		updateTripStateMachine(trip);
-	}
-	
     @Timeout
 	public void onTimeout(Timer timer) {
 		try {
@@ -344,7 +297,7 @@ public class TripMonitor {
 				log.debug(String.format("onTimeout: Received trip event: %s", tripInfo.toString()));
 			}
 			Trip trip = getTrip(tripInfo.tripId);
-			handleTripMonitorEvent(trip, tripInfo.event);
+			updateTripStateMachine(trip);
 		} catch (BusinessException ex) {
 			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
 			log.info("Rollback status after exception: " + sessionContext.getRollbackOnly()); 
@@ -360,11 +313,10 @@ public class TripMonitor {
      * @param tripId the ride involved
      */
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-    public void handleTripEvent(TripMonitorEvent event, Long tripId) {
+    public void handleTripEvent(Long tripId) {
 		try {
-			// Find all rides that depart before the indicated time (the plus is the ramp-up)
 			Trip trip = getTrip(tripId);
-			handleTripMonitorEvent(trip, event);
+			updateTripStateMachine(trip);
 		} catch (BusinessException ex) {
 			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
 			log.info("Rollback status after exception: " + sessionContext.getRollbackOnly()); 
@@ -373,23 +325,27 @@ public class TripMonitor {
 		}
     }
 
-    @Schedule(info = "Collect due trips", hour = "*/1", minute = "0", second = "0", persistent = false /* non-critical job */)
+    @Schedule(info = "Collect due trips", hour = "*/1", minute = "1", second = "30", persistent = false /* non-critical job */)
 	public void checkForDueTrips() {
+    	//FIXME Change the algorithm such that there is just one time calling the state machine. Then there are no concurrency issues.
+    	//      Would that help? If there is already a timer running, it has no use to run a schedule timer for that trip.
 		// Get all trips that need monitoring and have a departure time within a certain window
 		try {
 			// Find all trips that depart before the indicated time (the plus is the ramp-up)
 			List<Long> tripIds = tripDao.findTripsToMonitor(clockDao.now().plus(PRE_DEPARTING_PERIOD));
 			for (Long tripId : tripIds) {
-				sessionContext.getBusinessObject(this.getClass()).handleTripEvent(TripMonitorEvent.TIME_TO_CHECK, tripId);
+				// FIXME if not an active timer for this trip, then check it to see we need one.
+				// If so then only set the timer, do not update the state.
+				sessionContext.getBusinessObject(this.getClass()).handleTripEvent(tripId);
 			}
 		} catch (Exception ex) {
 			log.error(String.format("Error handling timeout: %s", ex.toString()));
 		}
 	}
 
-	private void setupTimer(Trip trip, TripMonitorEvent event, Instant expirationTime) {
+	private void setupTimer(Trip trip, Instant expirationTime) {
 		if (log.isDebugEnabled()) {
-			log.debug(String.format("setupTimer %s %s %s", trip.getTripRef(), event, expirationTime));
+			log.debug(String.format("setupTimer %s %s", trip.getTripRef(), expirationTime));
 		}
 		Collection<Timer> timers = getActiveTimers(trip);
 		if (timers.size() > 1) {
@@ -399,63 +355,45 @@ public class TripMonitor {
 		Optional<Timer> tm = timers.stream().findFirst();
 		if (tm.isPresent()) {
 			Timer tmr = tm.get();
-			if ((((TripInfo) tmr.getInfo()).event != event 
-					|| !validEjbTimer.test(tmr)
-					|| !tmr.getNextTimeout().toInstant().equals(expirationTime))) {
+			if (!validEjbTimer.test(tmr) || !tmr.getNextTimeout().toInstant().equals(expirationTime)) {
 				log.debug("Canceling timer: " + tmr.getInfo());
-				tmr.cancel();
+				cancelTimer(tmr);
 				tm = Optional.empty();
 			}
 		}
 		if (tm.isEmpty()) {
-			timerService.createSingleActionTimer(Date.from(expirationTime), 
-					new TimerConfig(new TripInfo(event, trip.getId()), false));
+			timerService.createTimer(Date.from(expirationTime), new TripInfo(trip.getId()));
 		}
 	}
 
+    private void cancelTimer(Timer tm) {
+		try {
+			tm.cancel();
+		} catch (Exception ex) {
+			log.error(String.format("Error canceling timer: %s", ex.toString()));
+		}
+    }
+
     private Collection<Timer> getActiveTimers(Trip trip) {
     	Collection<Timer> timers = timerService.getTimers();
+    	// Remove the timers that are not used with TripInfo
     	timers.removeIf(tm -> !(tm.getInfo() instanceof TripInfo && ((TripInfo)tm.getInfo()).tripId.equals(trip.getId())));
-//    	if (log.isDebugEnabled() && timers.size() < 2) {
-//    		log.debug(String.format("getActiveTimers: %d timers in total active for this EJB", timers.size()));
-//    	}
-    	if (timers.size() >= 2) {
-    		log.warn(String.format("getActiveTimers: %d timers active for trip %s", timers.size(), trip.getId()));
+    	if (timers.size() > TripMonitorEvent.values().length) {
+    		log.warn(String.format("getActiveTimers: %d timers active for trip %s!", timers.size(), trip.getId()));
     	}
     	return timers;
     }
     
-	private void cancelTripTimer(Trip trip) {
+	private void cancelTripTimers(Trip trip) {
     	// Find all timers related to this trip and cancel them
-		getActiveTimers(trip).forEach(tm -> tm.cancel());
+		getActiveTimers(trip).forEach(tm -> cancelTimer(tm));
 	}
 
-//    private Optional<Timer> getActiveTimer(Trip trip) {
-//    	return getActiveTimers(trip).stream().findFirst();
-//    }
-
-//    private void checkToStartMonitoring(Trip trip) {
-//		if (trip.getState() == TripState.CANCELLED) {
-//			log.warn("Cannot monitor, trip has been canceled: " + trip.getId());
-//			return;
-//		}
-//   		Duration timeLeftToDeparture = Duration.between(Instant.now(), trip.getItinerary().getDepartureTime());
-//		if (log.isDebugEnabled()) {
-//			log.debug(String.format("Trip %s is scheduled, time left to departure is %s", trip.getId(), timeLeftToDeparture.toString()));
-//		}
-//    	if (! trip.isMonitored() && timeLeftToDeparture.compareTo(PRE_DEPARTING_PERIOD) < 0) {
-//    		if (log.isDebugEnabled()) {
-//    			log.debug("Start monitoring trip " + trip.getId());
-//    		}
-//    		trip.setMonitored(true);
-//    		// Should we generate multiple timer events and let the state machine decide what to do?
-//    		// Tested. Result: Timer events are received in random order, not in the order created.
-//    		// Workaround: Set the next timer successively in each event handler
-//    		timerService.createTimer(Date.from(trip.getItinerary().getDepartureTime().minus(Leg.DEPARTING_PERIOD)), 
-//    				new TripInfo(TripMonitorEvent.TIME_TO_PREPARE, trip.getId()));
-//    	}
-//    }
-
+	private void cancelTripTimer(Trip trip, TripMonitorEvent event) {
+		Collection<Timer> timers = getActiveTimers(trip);
+		timers.forEach(tm -> cancelTimer(tm));
+	}
+	
 	private List<TripInfo> listAllTripMonitorTimers() {
     	// Find all timers related to the trip manager
     	Collection<Timer> timers = timerService.getTimers();
@@ -465,7 +403,7 @@ public class TripMonitor {
     	invalidTimers.stream()
     		.forEach(tm -> {
     			log.info(String.format("Cancelling invalid trip timer: %s", tm.getInfo()));
-    			tm.cancel();
+    			cancelTimer(tm);
     		});
     	timers.removeAll(invalidTimers);
     	timers.removeIf(tm -> !(tm.getInfo() instanceof TripInfo));
@@ -484,54 +422,22 @@ public class TripMonitor {
 	}
 	
 	/**
-	 * Create a map to revive the monitor. Use the event that would cause the favourable transition.
-	 * Note that only trips that are monitored are considered, e.g. SCHEDULED AND monitored = true. 
-	 */
-//	private static Map<TripState, TripMonitorEvent> tripStateToMonitorRevivalEvent = Map.ofEntries(
-//			new AbstractMap.SimpleEntry<>(TripState.SCHEDULED, TripMonitorEvent.TIME_TO_PREPARE_MONITORING),
-//			new AbstractMap.SimpleEntry<>(TripState.DEPARTING, TripMonitorEvent.TIME_TO_PREPARE),
-//			new AbstractMap.SimpleEntry<>(TripState.IN_TRANSIT, TripMonitorEvent.TIME_TO_DEPART),
-//			new AbstractMap.SimpleEntry<>(TripState.ARRIVING, TripMonitorEvent.TIME_TO_ARRIVE),
-//			new AbstractMap.SimpleEntry<>(TripState.VALIDATING, TripMonitorEvent.TIME_TO_VALIDATE),
-//			new AbstractMap.SimpleEntry<>(TripState.COMPLETED, TripMonitorEvent.TIME_TO_COMPLETE)
-//		);
-	
-	/**
 	 * Revive the trip monitors that have been crashed due due to some unrecoverable errors.
+	 * This call is made on startup of the application only.
+	 * Not used anymore, only for logging the active timers now.
 	 */
 	public void reviveTripMonitors() {
-//		List<TripInfo> tripInfos = 
 		listAllTripMonitorTimers();
-		checkForDueTrips();
-//		
-//		Set<Long> timedTripIds = tripInfos.stream()
-//				.map(ti -> ti.tripId)
-//				.collect(Collectors.toSet());
-//		List<Trip> monitoredTrips = tripDao.findMonitoredTrips();
-//		monitoredTrips.removeIf(t -> timedTripIds.contains(t.getId()));
-//		if (monitoredTrips.isEmpty()) {
-//			log.info("All required trip monitors are in place");
-//		} else {
-//			log.warn(String.format("There are %d trips without active monitoring, fixing now...", monitoredTrips.size()));
-//			for (Trip trip : monitoredTrips) {
-//				TripMonitorEvent event = tripStateToMonitorRevivalEvent.get(trip.getState());
-//				if (event == null) {
-//					log.warn(String.format("Trip %s state is %s, no suitable revival event found", trip.getId(), trip.getState()));
-//					// First check what is really needed before switching off the monitor 
-//					// trip.setMonitored(false);
-//				} else {
-//					try {
-//						TripInfo ti = new TripInfo(event, trip.getId());
-//						tripDao.detach(trip);
-//						handleTimeout(ti);
-//					} catch (BusinessException ex) {
-//						log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
-//					} catch (Exception ex) {
-//						log.error(String.format("Error reviving trip monitor: %s", ex.toString()));
-//					}
-//				}
-//			}
-//		}
+//		checkForDueTrips();
 	}
 	
+    /**
+     * Listener for evaluating the trip. Only evaluate after a successful transaction, otherwise it has no use.
+     * @param event
+     * @throws BusinessException
+     */
+    public void onTripEvaluation(@Observes(during = TransactionPhase.AFTER_SUCCESS) TripEvaluatedEvent event) {
+    	setupTimer(event.getTrip(), clockDao.now().plusSeconds(1));
+    }
+    
 }

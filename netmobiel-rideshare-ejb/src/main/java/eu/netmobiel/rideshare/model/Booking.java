@@ -575,6 +575,10 @@ public class Booking extends ReferableObject implements Serializable {
 		this.paymentId = paymentId;
 	}
 
+	public boolean isConfirmationPending() {
+		return this.state == BookingState.CONFIRMED && hasFare() && this.confirmed == null;  
+	}
+
 	public boolean isPaymentDue() {
 		return this.state == BookingState.CONFIRMED && hasFare() && this.paymentState == null;  
 	}

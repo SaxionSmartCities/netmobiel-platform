@@ -1,19 +1,20 @@
 package eu.netmobiel.planner.service;
 
 import java.time.Instant;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 
-import javax.annotation.Resource;
-import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
-import javax.ejb.TimerService;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.event.TripValidationEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -24,13 +25,15 @@ import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.PaymentState;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.util.Command;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.here.search.HereSearchClient;
 import eu.netmobiel.planner.event.BookingCancelledEvent;
+import eu.netmobiel.planner.event.BookingConfirmedEvent;
+import eu.netmobiel.planner.event.BookingRequestedEvent;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
-import eu.netmobiel.planner.event.TripConfirmedEvent;
 import eu.netmobiel.planner.event.TripUnconfirmedEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
@@ -42,14 +45,18 @@ import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.repository.ItineraryDao;
 import eu.netmobiel.planner.repository.TripDao;
 
+/**
+ * Manager of the trips. This EJB contains mostly the presentation layer facing methods for CRUD operations on Trip objects. A few methods are 
+ * callbacks from other EJBs to update specific parts of a trip.
+ * 
+ * @author Jaap Reitsma
+ *
+ */
 @Stateless
 @Logging
 public class TripManager {
 	public static final Integer MAX_RESULTS = 10; 
 	
-    @Resource
-	protected SessionContext sessionContext;
-
     @Inject
 	private HereSearchClient hereSearchClient;
 	
@@ -62,12 +69,15 @@ public class TripManager {
     @Inject
     private ItineraryDao itineraryDao;
     
-    @Resource
-    private TimerService timerService;
-
     @Inject
     private TripMonitor tripMonitor;
     
+    @Inject
+    private Event<BookingRequestedEvent> bookingRequestedEvent;
+
+    @Inject
+    private Event<BookingConfirmedEvent> bookingConfirmedEvent;
+
     @Inject
     private Event<BookingCancelledEvent> bookingCancelledEvent;
 
@@ -75,8 +85,8 @@ public class TripManager {
     private Event<ShoutOutResolvedEvent> shoutOutResolvedEvent;
 
     @Inject
-    private Event<TripConfirmedEvent> tripConfirmedEvent;
-
+    private Event<TripValidationEvent> tripValidationEvent;
+    
     @Inject
     private Event<TripUnconfirmedEvent> tripUnconfirmedEvent;
 
@@ -139,6 +149,7 @@ public class TripManager {
     			.orElseThrow(() -> new NotFoundException("No such itinerary: " + trip.getItineraryRef()));
     	trip.setItinerary(it);
     	trip.setState(TripState.PLANNING);
+    	trip.propagateTripStateDown();
     	// Load trip plan (lazy loaded, only plan itself)
     	TripPlan plan = it.getTripPlan();
     	if (plan == null) {
@@ -160,6 +171,27 @@ public class TripManager {
     		// The trip must have a database identity!
     		EventFireWrapper.fire(shoutOutResolvedEvent, new ShoutOutResolvedEvent(trip));
     	}
+
+    	// Should we do any booking actions? Try to do them here in a single transaction
+    	List<Command> actions = new ArrayList<>();
+   		for (Leg leg : trip.getItinerary().getLegs()) {
+	    	// Check for bookingID set. If so than it was a shout-out and we need to convert the PROPOSAL to a CONFIRMED booking
+	    	if (leg.getBookingId() != null) {
+	    		// This must be a proposed booking from a shout-out. Confirm it. Add a trip reference.
+		    	// Check for bookingID set. If so than it was a shout-out and we need to convert the PROPOSAL to a CONFIRMED booking
+	    		actions.add(() -> EventFireWrapper.fire(bookingConfirmedEvent, new BookingConfirmedEvent(trip, leg)));
+	    	} else if (leg.isBookingRequired()) {
+   	    		// Ok, we need to take additional steps before the leg can be scheduled. Start a booking procedure.
+   				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
+   				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
+   				actions.add(() -> EventFireWrapper.fire(bookingRequestedEvent, new BookingRequestedEvent(trip, leg)));
+	    	} else {
+   	    		// If no booking is required then no further action is required.
+	    	}
+       	}
+		for (Command action : actions) {
+			action.execute();
+		}
     	tripMonitor.updateTripStateMachine(trip);
     	return trip.getId();
     }
@@ -189,7 +221,8 @@ public class TripManager {
     	}
     	leg.setBookingId(bookingRef);
     	leg.setBookingConfirmed(bookingConfirmed);
-    	tripMonitor.evaluateStateMachineDelayed(trip);
+    	// We don't update the state here. Might be necessary to trigger the passengers side
+//    	tripMonitor.updateTripStateMachine(trip);
     }
 
     /**
@@ -241,7 +274,12 @@ public class TripManager {
     			.orElseThrow(() -> new NotFoundException("No such trip: " + id));
     	return tripdb;
     }
-    
+
+    public Trip getTrip(String tripRef) throws NotFoundException, BadRequestException {
+    	return  tripDao.loadGraph(UrnHelper.getId(Trip.URN_PREFIX, tripRef), Trip.MY_LEGS_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
+    }
+
     /**
      * Retrieves a trip by its itinerary. All details are retrieved.
      * @param itineraryId
@@ -336,8 +374,7 @@ public class TripManager {
      * @throws BusinessException 
      */
     public void confirmTrip(Long tripId, Boolean confirmationValue, ConfirmationReasonType reason, boolean overrideResponse) throws BusinessException {
-    	Trip tripdb = tripDao.fetchGraph(tripId, Trip.MY_LEGS_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such trip: " + tripId));
+    	Trip tripdb = getTrip(tripId);
     	if (confirmationValue == null) {
     		throw new BadRequestException("An empty confirmation value is not allowed");
     	}
@@ -357,8 +394,9 @@ public class TripManager {
 	            	leg.setConfirmationReason(reason);
         		}
         	}
-        	EventFireWrapper.fire(tripConfirmedEvent, new TripConfirmedEvent(tripdb));
         	tripMonitor.updateTripStateMachine(tripdb);
+        	// Perhaps the validation is complete now? Evaluate it (asynchronous)
+        	EventFireWrapper.fire(tripValidationEvent, new TripValidationEvent(tripdb.getTripRef(), false));
     	}
     }
 
@@ -373,9 +411,13 @@ public class TripManager {
      * @throws BusinessException
      */
     public void unconfirmTrip(Long tripId) throws BusinessException {
-    	Trip tripdb = tripDao.fetchGraph(tripId, Trip.MY_LEGS_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such trip: " + tripId));
-    	if (tripdb.getState() != TripState.COMPLETED && tripdb.getState() != TripState.VALIDATING) { 
+    	Trip tripdb = getTrip(tripId);
+    	for (Leg leg: tripdb.getItinerary().findLegsToConfirm()) {
+        	if (leg.getPaymentState() != PaymentState.CANCELLED) {
+        		throw new RemoveException("You have not cancelled payment, therefore you cannot roll back the validation: " + tripdb.getTripRef());
+        	}
+    	}
+    	if (tripdb.getState() != TripState.COMPLETED) { 
     		// No use to set this flag when the trip has not been finished or cancelled physically and administratively)
        		throw new BadRequestException("Unexpected state for revoking a confirmation: " + tripId + " " + tripdb.getState());
     	}
@@ -384,128 +426,15 @@ public class TripManager {
     	if (!validatable) {
        		throw new BadRequestException("Trip does not require validation: " + tripdb.getTripRef());
     	}
-    	// Update the leg state
-    	tripdb.getItinerary().getLegs().forEach(lg -> {
-        	lg.setConfirmed(null);
-        	lg.setConfirmationReason(null);
-    	});
+
     	// Reverse the global effects of the previous confirmation (all in one transaction)
     	EventFireWrapper.fire(tripUnconfirmedEvent, new TripUnconfirmedEvent(tripdb));
-    	tripMonitor.updateTripStateMachine(tripdb);
 	}
 
     /**
-     * Sets the confirmation flag on each leg in the trip. The method is called by the Overseer.  
-     * @param tripRef the trip reference to update.
-     * @param bookingRef the reference to the booking 
-     * @param confirmationValue the answer of the traveller.
-     * @param reason the reason for the given confirmation. This is an API 
-     * @param overrideResponse If true then skip the check whether an answer was already available.
-     * @throws BusinessException 
+     * Search for a trip that have no postal code assigned to departure or arrival location.
+     * @return
      */
-    public Trip confirmTripByTransportProvider(String tripRef, String bookingRef, 
-    		Boolean confirmationValue, ConfirmationReasonType reason, boolean overrideResponse) throws BusinessException {
-    	Trip tripdb = tripDao.fetchGraph(UrnHelper.getId(Trip.URN_PREFIX, tripRef), Trip.MY_LEGS_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
-    	if (confirmationValue == null) {
-    		throw new BadRequestException("An empty confirmation value is not allowed");
-    	}
-    	// A confirmation from a transport provider can arrive even the trip is still in transit.
-    	if (tripdb.getState() != TripState.COMPLETED) { 
-    		// No use to set this flag when the trip has already been finished physically and administratively)
-        	if (tripdb.getState() != TripState.IN_TRANSIT && tripdb.getState() != TripState.ARRIVING && tripdb.getState() != TripState.VALIDATING) {
-        		throw new BadRequestException("Unexpected state for a confirmation: " + tripRef + " " + tripdb.getState());
-        	}
-        	if (bookingRef != null && tripdb.getItinerary().findLegByBookingId(bookingRef).isEmpty()) {
-        		throw new IllegalArgumentException("No such booking on trip: " + tripRef + " " + bookingRef);
-        	}
-        	for (Leg leg : tripdb.getItinerary().getLegs()) {
-        		if (leg.isConfirmationByProviderRequested() && (bookingRef == null || bookingRef.equals(leg.getBookingId()))) {
-                	if (!overrideResponse && leg.getConfirmedByProvider() != null) {
-                		throw new BadRequestException("Leg has already a confirmation value by provider: " + leg.getId());
-                	}
-                	leg.setConfirmedByProvider(confirmationValue);
-                	leg.setConfirmationReasonByProvider(reason);
-        		}
-        	}
-        	tripMonitor.evaluateStateMachineDelayed(tripdb);
-    	}
-    	return tripdb;
-    }
-
-    /**
-     * Clears the confirmation flag on the providers leg. This method is called by the Overseer.
-     * @param tripRef the trip reference to update.
-     * @param bookingRef the reference to the booking 
-     * @throws BusinessException 
-     */
-    public Trip unconfirmTripByTransportProvider(String tripRef, String bookingRef) throws BusinessException {
-    	Trip tripdb = tripDao.fetchGraph(UrnHelper.getId(Trip.URN_PREFIX, tripRef), Trip.MY_LEGS_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such trip: " + tripRef));
-    	if (tripdb.getState() != TripState.COMPLETED && tripdb.getState() != TripState.VALIDATING) { 
-    		// No use to set this flag when the trip has not been finished or cancelled physically and administratively)
-       		throw new BadRequestException("Unexpected state for revoking a confirmation: " + tripRef + " " + tripdb.getState());
-    	}
-    	// Did this trip require validation anyway?
-    	boolean validatable = tripdb.getItinerary().isConfirmationRequested();
-    	if (!validatable) {
-       		throw new BadRequestException("Trip does not require validation: " + tripdb.getTripRef());
-    	}
-    	// A unconfirmation from a transport provider can arrive even the trip is still in transit, but the leg should be validating of completed
-    	// For now we don't care
-    	Optional<Leg> providerLeg = tripdb.getItinerary().findLegByBookingId(bookingRef);
-    	if (providerLeg.isEmpty()) {
-    		throw new IllegalArgumentException("No such booking on trip: " + tripRef + " " + bookingRef);
-    	}
-    	Leg leg = providerLeg.get();
-    	leg.setConfirmedByProvider(null);
-    	leg.setConfirmationReasonByProvider(null);
-    	tripMonitor.evaluateStateMachineDelayed(tripdb);
-    	return tripdb;
-    }
-
-    /**
-     * Updates the payment state of the leg. This method called from the Overseer on various moments of the process.
-     * @param trip
-     * @param leg
-     * @param newState
-     * @param paymentReference
-     * @throws BusinessException
-     */
-	public void updateLegPaymentState(Trip trip, Leg leg, PaymentState newState, String paymentReference) throws BusinessException {
-		Trip tripdb = trip; 
-		if (!tripDao.contains(trip)) {
-			tripdb = tripDao.fetchGraph(trip.getId(), Trip.DETAILED_ENTITY_GRAPH)
-					.orElseThrow(() -> new IllegalArgumentException("No such trip: " + trip.getId()));
-
-		}
-		Leg legdb = tripdb.getItinerary().getLegs().stream()
-				.filter(lg -> lg.getId().equals(leg.getId()))
-				.findFirst()
-				.orElseThrow(() -> new IllegalStateException("Expected to find leg " + leg.getId() + "in trip " + trip.getId()));
-		/**
-		 * X = invalid (should never happen)
-		 * 
-		 * Previous ---> Next ----> Action
-		 * null			null		X
-		 * null			Reserve		Normal operation
-		 * null			Cancel		X
-		 * null			Paid		X
-		 * Reserve		Reserve		X
-		 * Reserve		Cancel		Completed
-		 * Reserve		Paid		Completed
-		 * Paid			Reserve		Re-validating
-		 * Paid			Cancel		X
-		 * Paid			Paid		X
-		 * Cancel		Reserve		Re-validating
-		 * Cancel		Cancel		X
-		 * Cancel		Paid		X
-		 */
-		legdb.setPaymentState(newState);
-		legdb.setPaymentId(paymentReference);
-		// No need to update the trip state yet, it will be done by one of the confirmation call (passenger or driver)
-	}
-
 	public Optional<GeoLocation> findNextMissingPostalCode() {
 		Optional<Trip> t = tripDao.findFirstTripWithoutPostalCode();
 		GeoLocation loc = null;
@@ -519,6 +448,13 @@ public class TripManager {
 		return Optional.ofNullable(loc);
 	}
 
+    /**
+     * Assigns the given postal code to all trips with the same GeoLocations.
+     * This is a mainenance method, not intended for use by the presentation layer. 
+     * @param location the geolocation 
+     * @param postalCode the postal code to assign
+     * @return the number of trips altered.
+     */
 	public int assignPostalCode(GeoLocation location, String postalCode) {
 		int affectedRows = 0;
 		// Now assign all rides with same departure location to this postal code
@@ -526,6 +462,85 @@ public class TripManager {
 		// And assign all rides with same arrival location to same postal code
 		affectedRows += tripDao.updateArrivalPostalCode(location, postalCode);
 		return affectedRows;
+	}
+
+	/**********************************************/
+	/**********   CALLBACK METHODS  ***************/
+	/**********************************************/
+	
+    /**
+     * Sets the provider confirmation flag on each leg in the trip. The method is called by the Overseer.  
+     * @param tripRef the trip reference to update.
+     * @param bookingRef the reference to the booking 
+     * @param confirmationValue the answer of the traveller.
+     * @param reason the reason for the given confirmation. This is an API 
+     * @param overrideResponse If true then skip the check whether an answer was already available.
+     * @throws BusinessException 
+     */
+    @TransactionAttribute(TransactionAttributeType.MANDATORY)
+    public void afterConfirmTripByTransportProvider(String tripRef, String bookingRef, 
+    		Boolean confirmationValue, ConfirmationReasonType reason, boolean overrideResponse) throws BusinessException {
+    	Trip tripdb = getTrip(tripRef);
+    	if (confirmationValue == null) {
+    		throw new BadRequestException("An empty confirmation value is not allowed: " + tripRef);
+    	}
+    	if (bookingRef == null) {
+    		throw new BadRequestException("Transport provider must pass a valid booking reference: " + tripRef);
+    	}
+    	// A confirmation from a transport provider can arrive even the passenger trip is still in transit. The passenger's leg should already 
+    	// be in validating state.
+    	if (tripdb.getState() != TripState.COMPLETED) { 
+    		// No use to set this flag when the trip has already been finished physically and administratively)
+        	Optional<Leg> optBookedLeg = tripdb.getItinerary().findLegByBookingId(bookingRef);
+        	if (optBookedLeg.isEmpty()) {
+        		log.warn("No such booking on trip: " + tripRef + " " + bookingRef);
+        	} else {
+        		Leg leg = optBookedLeg.get(); 
+            	if (!overrideResponse && leg.getConfirmedByProvider() != null) {
+            		log.warn("Leg has already a confirmation value by provider: " + leg.getId());
+            	} else {
+                	leg.setConfirmedByProvider(confirmationValue);
+                	leg.setConfirmationReasonByProvider(reason);
+                	// The trip state is not altered 
+            	}
+        	}
+    	}
+    }
+
+    /**
+     * Clears the confirmation flags on this trip. This method is called by the Overseer.
+     * @param tripRef the trip reference to update.
+     * @throws BusinessException 
+     */
+    @TransactionAttribute(TransactionAttributeType.MANDATORY)
+    public void resetValidation(Trip tripdb) throws BusinessException {
+    	if (tripdb.getState() != TripState.COMPLETED && tripdb.getState() != TripState.VALIDATING) { 
+    		// No use to set this flag when the trip has not been finished or cancelled physically and administratively)
+       		throw new BadRequestException("Unexpected state for revoking a confirmation: " + tripdb.getTripRef()+ " " + tripdb.getState());
+    	}
+    	tripdb.getItinerary().findLegsToConfirm().forEach(leg -> {
+    		leg.setConfirmed(null);
+    		leg.setConfirmationReason(null);
+    		leg.setConfirmedByProvider(null);
+    		leg.setConfirmationReasonByProvider(null);
+    		leg.setState(TripState.ARRIVING);
+    	});
+    	tripMonitor.restartValidation(tripdb);
+    }
+
+    /**
+     * Updates the payment state of the leg. This method called from the Overseer on various moments of the process.
+     * @param trip
+     * @param leg
+     * @param newState
+     * @param paymentReference
+     * @throws BusinessException
+     */
+    @TransactionAttribute(TransactionAttributeType.MANDATORY)
+	public void updateLegPaymentState(Trip trip, Leg leg, PaymentState newState, String paymentReference) throws BusinessException {
+		leg.setPaymentState(newState);
+		leg.setPaymentId(paymentReference);
+		// No need to update the trip state yet, it will be done by one of the confirmation call (passenger or driver)
 	}
 
 }

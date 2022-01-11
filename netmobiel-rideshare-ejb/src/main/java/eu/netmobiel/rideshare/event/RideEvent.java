@@ -6,6 +6,7 @@ import javax.validation.constraints.NotNull;
 
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideMonitorEvent;
+import eu.netmobiel.rideshare.model.RideState;
 
 
 /**
@@ -14,33 +15,44 @@ import eu.netmobiel.rideshare.model.RideMonitorEvent;
  * @author Jaap Reitsma
  *
  */
-public class RideEvent implements Serializable {
+public class RideEvent extends BasicRideEvent implements Serializable {
 
 	private static final long serialVersionUID = 8837457274309434137L;
-	/**
-     * The ride.
-     */
-    @NotNull
-    private Ride ride;
-    
-    @NotNull
+
+	@NotNull
     private RideMonitorEvent event;
 
-    public RideEvent(RideMonitorEvent anEvent, Ride aRide) {
+    @NotNull
+    private RideState oldState;
+
+    @NotNull
+    private RideState newState;
+    
+    public RideEvent(Ride aRide, RideMonitorEvent anEvent, RideState anOldState, RideState aNewState) {
+    	super(aRide);
     	this.event = anEvent;
-    	this.ride = aRide;
+    	this.oldState = anOldState;
+    	this.newState = aNewState;
     }
 
 	public RideMonitorEvent getEvent() {
 		return event;
 	}
 
-	public Ride getRide() {
-		return ride;
+	public RideState getOldState() {
+		return oldState;
 	}
 
+	public RideState getNewState() {
+		return newState;
+	}
+
+	public boolean isTransitionTo(RideState state) {
+		return oldState != state && newState == state;
+	}
+	
 	@Override
 	public String toString() {
-		return String.format("RideEvent %s %s in %s ]", ride.getUrn(), event, ride.getState());
+		return String.format("RideEvent [%s %s in %s --> %s]", getRide().getId(), event, oldState, newState);
 	}
 }

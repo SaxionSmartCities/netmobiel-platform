@@ -6,6 +6,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
@@ -19,10 +21,12 @@ import eu.netmobiel.commons.annotation.Updated;
 import eu.netmobiel.commons.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.commons.event.TripConfirmedByProviderEvent;
 import eu.netmobiel.commons.event.TripUnconfirmedByProviderEvent;
+import eu.netmobiel.commons.event.TripValidationEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
@@ -74,6 +78,9 @@ public class BookingManager {
 
 	@Inject
     private Event<TripUnconfirmedByProviderEvent> transportProviderUnconfirmedEvent;
+
+    @Inject
+    private Event<TripValidationEvent> tripValidationEvent;
 
     /**
      * Search for bookings.
@@ -181,7 +188,7 @@ public class BookingManager {
     	return bookingdb;
     }
 
-    private Booking getShallowBooking(String bookingRef)  throws NotFoundException, BadRequestException {
+    public Booking getShallowBooking(String bookingRef)  throws NotFoundException, BadRequestException {
     	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
     	return bookingDao.loadGraph(bookingId, Booking.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
@@ -210,29 +217,6 @@ public class BookingManager {
     		// Allow a notification to be sent to the driver
 			EventFireWrapper.fire(bookingRemovedEvent, b);
     	}
-    }
-
-    /**
-     * Observes the (soft) removal of rides and handles the cancellation of the attached bookings. 
-     * Booking that are already cancelled are ignored. The initiator of the removal of the booking is assumed 
-     * to be the driver, because only the driver can remove a ride. 
-     * The scenario where an administrator removes a ride is not fully supported.
-     * @param ride the ride being removed. The ride is already marked as (soft) deleted.
-     * @throws BusinessException 
-     */
-    public void onRideRemoved(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Ride ride) throws BusinessException {
-    	List<Booking> bookingsToCancel = ride.getBookings().stream()
-    	.filter(b -> ! b.isDeleted())
-    	.collect(Collectors.toList());
-    	for (Booking b : bookingsToCancel) {
-    		b.markAsCancelled(ride.getCancelReason(), true);	
-   			// The driver has cancelled the ride. 
-   			// The Trip Manager has to know about it.
-			BookingCancelledFromProviderEvent bce = new BookingCancelledFromProviderEvent(b.getUrn(), 
-					b.getPassenger(), ride.getCancelReason(), true);
-			// For now use a synchronous removal
-			EventFireWrapper.fire(bookingCancelledEvent, bce);
-    	};
     }
 
     /**
@@ -283,15 +267,17 @@ public class BookingManager {
 	    	}
 	    	b.setConfirmed(confirmationValue);
 	    	b.setConfirmationReason(reason);
-    		EventFireWrapper.fire(transportProviderConfirmedEvent, 
-    				new TripConfirmedByProviderEvent(b.getUrn(), b.getPassengerTripRef(), confirmationValue, reason));
+			// Inform the Overseer to pass on the information to the trip manager. 
+			EventFireWrapper.fire(transportProviderConfirmedEvent, new TripConfirmedByProviderEvent(b.getUrn(), b.getPassengerTripRef(), confirmationValue, reason));
+        	// Perhaps the validation is complete now? Evaluate it (asynchronous) after this transaction has finished.
+        	EventFireWrapper.fire(tripValidationEvent, new TripValidationEvent(b.getPassengerTripRef(), false));
     	}
     }
 
     /**
      * Unconfirms (revokes confirmation) a ride and restores the state of a ride as if the validation has just started.
      * This method is called by the driver through the API.
-     * The unconfirm is intended to roll-back a cancel, charge or dispute situation. The confirmation can still be altered when 
+     * The unconfirm of the provider is intended to roll-back a charge situation. The confirmation can still be altered when 
      * the payment decision is not made yet. The driver cannot uncancel a fare, only a charge.
      * @param rideId the ride to unconfirm.
      * @throws BusinessException
@@ -302,52 +288,72 @@ public class BookingManager {
     	if (b.getState() != BookingState.CONFIRMED) {
     		throw new BadRequestException("The booking is not confirmed at all! " + bookingId);
     	}
-    	if (b.getRide().getState() != RideState.COMPLETED && b.getRide().getState() != RideState.VALIDATING) { 
+    	if (b.getPaymentState() != PaymentState.PAID) {
+    		throw new RemoveException("You have not been paid, therefore you cannot roll back the validation: " + bookingId);
+    	}
+    	if (b.getRide().getState() != RideState.COMPLETED) { 
     		// Not allowed when the ride has not been finished or cancelled physically and administratively)
        		throw new BadRequestException("Unexpected ride state for revoking a confirmation: " + b.getRide().getUrn() + " " + b.getRide().getState());
     	}
-    	b.setConfirmed(null);
-    	b.setConfirmationReason(null);
-    	// Inform the Overseer
+    	// Inform the Overseer to roll back validation
+    	// Synchronous, as we can only roll back if the payment is rolled back successfully
 		EventFireWrapper.fire(transportProviderUnconfirmedEvent, new TripUnconfirmedByProviderEvent(b.getUrn(), b.getPassengerTripRef()));
-		rideMonitor.restartValidation(b.getRide());
     }
     
+	/**********************************************/
+	/**********   CALLBACK METHODS  ***************/
+	/**********************************************/
+	
+    /**
+     * Observes the (soft) removal of rides and handles the cancellation of the attached bookings. 
+     * Booking that are already cancelled are ignored. The initiator of the removal of the booking is assumed 
+     * to be the driver, because only the driver can remove a ride. 
+     * The scenario where an administrator removes a ride is not fully supported.
+     * @param ride the ride being removed. The ride is already marked as (soft) deleted.
+     * @throws BusinessException 
+     */
+    public void onRideRemoved(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Ride ride) throws BusinessException {
+    	List<Booking> bookingsToCancel = ride.getBookings().stream()
+    	.filter(b -> ! b.isDeleted())
+    	.collect(Collectors.toList());
+    	for (Booking b : bookingsToCancel) {
+    		b.markAsCancelled(ride.getCancelReason(), true);	
+   			// The driver has cancelled the ride. 
+   			// The Trip Manager has to know about it.
+			BookingCancelledFromProviderEvent bce = new BookingCancelledFromProviderEvent(b.getUrn(), 
+					b.getPassenger(), ride.getCancelReason(), true);
+			// For now use a synchronous removal
+			EventFireWrapper.fire(bookingCancelledEvent, bce);
+    	};
+    }
+
     /**
      * Signals the settlement of the booking fare. This method is called from the Overseer.
-     * @param rideRef the ride involved
      * @param bookingRef the booking involved.
+     * @param paymentState
      * @throws BusinessException
      */
-    public void informBookingFareSettled(String rideRef, String bookingRef, PaymentState paymentState, String paymentId) throws BusinessException {
-    	Booking bookingdb = getShallowBooking(bookingRef);
-    	bookingdb.setPaymentState(paymentState);
-    	bookingdb.setPaymentId(paymentId);
-		rideMonitor.evaluateStateMachineDelayed(bookingdb.getRide());
+    @TransactionAttribute(TransactionAttributeType.MANDATORY)
+    public void updatePaymentState(Booking booking, PaymentState paymentState, String paymentId) throws BusinessException {
+    	booking.setPaymentState(paymentState);
+    	booking.setPaymentId(paymentId);
     }
 
     /**
-     * Signals the reset of the booking fare payment. No update of ride state necessary yet. 
-     * Will be done later.
-     * @param rideRef the ride involved
-     * @param bookingRef the booking involved.
-     * @throws BusinessException
-     */
-    public void informBookingFareReset(String rideRef, String bookingRef) throws BusinessException {
-    	Booking bookingdb = getShallowBooking(bookingRef);
-    	bookingdb.setPaymentState(null);
-    	bookingdb.setPaymentId(null);
-    }
-
-    /**
-     * Restart the validation, as if the validation of the booking was not yet started.
+     * Restart the validation, as if the validation of the booking was not yet started. 
+     * The payment is already rolled back.
+     * This call is used by the Overseer in case either party unconfirms the validation.  
      * @param bookingRef the booking to revalidate.
      * @throws BusinessException 
      */
-    public void restartValidation(String bookingRef) throws BusinessException {
-    	Booking bookingdb = getShallowBooking(bookingRef);
-		rideMonitor.restartValidation(bookingdb.getRide());
+    @TransactionAttribute(TransactionAttributeType.MANDATORY)
+    public void resetValidation(Booking bdb) throws BusinessException {
+    	bdb.setConfirmed(null);
+    	bdb.setConfirmationReason(null);
+    	if (bdb.getPaymentState() != null && bdb.getPaymentState() != PaymentState.DISPUTED) {
+    		log.warn("Expected booking payment state to be cleared: " + bdb.getUrn());
+    	}
+		rideMonitor.restartValidation(bdb.getRide());
     }
-
 
 }

@@ -16,11 +16,12 @@ import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.ejb.Timeout;
 import javax.ejb.Timer;
-import javax.ejb.TimerConfig;
 import javax.ejb.TimerService;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
+import javax.enterprise.event.Observes;
+import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -33,8 +34,8 @@ import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.ValidEjbTimer;
+import eu.netmobiel.rideshare.event.RideEvaluatedEvent;
 import eu.netmobiel.rideshare.event.RideEvent;
-import eu.netmobiel.rideshare.event.RideStateUpdatedEvent;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideMonitorEvent;
 import eu.netmobiel.rideshare.model.RideState;
@@ -49,9 +50,6 @@ import eu.netmobiel.rideshare.repository.RideDao;
  * a single event that might be missed because of some reason. Also, a restart of the application should 
  * start a fresh situation.   
  *
- * To prevent nasty recursions, an observer method will not directly call the update state machine method, but instead
- * set a timer that immediately expires. 
- * 
  * @author Jaap Reitsma
  *
  */
@@ -63,20 +61,20 @@ public class RideMonitor {
 	 */
 	private static final Duration VALIDATION_DELAY = Duration.ofMinutes(15);
 	/**
+	 * The maximum number of reminders to sent during validation.
+	 */
+	private static final int MAX_REMINDERS = 2;
+	
+	/**
 	 * The duration of the validation interval (before sending the next reminder).
 	 */
 //	private static final Duration VALIDATION_INTERVAL = Duration.ofDays(2);
-	private static final Duration VALIDATION_INTERVAL = Duration.ofMinutes(10);
+	private static final Duration VALIDATION_INTERVAL = Duration.ofMinutes(2);
 	/**
 	 * The duration of the pre-departing period in which the monitoring should start or have started.
 	 */
 	private static final Duration PRE_DEPARTING_PERIOD = Ride.DEPARTING_PERIOD.plus(Duration.ofHours(2));
 
-	/**
-	 * The maximum number of reminders to sent during validation.
-	 */
-	private static final int MAX_REMINDERS = 2;
-	
 	@Inject
     private Logger log;
 
@@ -100,8 +98,6 @@ public class RideMonitor {
 
     @Inject
     private Event<RideEvent> rideEvent;
-    @Inject
-    private Event<RideStateUpdatedEvent> rideStateUpdatedEvent;
 
     private final static ValidEjbTimer validEjbTimer = new ValidEjbTimer();
     
@@ -118,35 +114,31 @@ public class RideMonitor {
     }
 
     /**
-     * Start a timer to check the state machine.
-     * TODO: Does this timer interfere with the other timers? A timer event might get lost because of the deletion of a timer?
-     * @param ride the ride to check
+     * Reset the state to arriving as if the ride was just finished. Update the state of the ride. 
+     * @param ride
+     * @throws BusinessException
      */
-    public void evaluateStateMachineDelayed(Ride ride) {
-		setupTimer(ride, RideMonitorEvent.TIME_TO_CHECK, clockDao.now());
-    }
-    
+    @TransactionAttribute(TransactionAttributeType.MANDATORY)
     public void restartValidation(Ride ride) throws BusinessException {
     	if (ride.getState().isPostTravelState() ) {
     		// The fare was uncancelled or refunded, any way, the ride needs validation again
-    		// Use the timer to decouple to assure no recursion occurs
+    		// Force a restart from the arriving state
+    		cancelRideTimers(ride);
     		ride.setState(RideState.ARRIVING);
-    		setupTimer(ride, RideMonitorEvent.TIME_TO_VALIDATE, clockDao.now());
+    		updateRideStateMachine(ride);
     	}
     }
 
     public static class RideInfo implements Serializable {
 		private static final long serialVersionUID = -2715209888482006490L;
-		public RideMonitorEvent event;
     	public Long rideId;
-    	public RideInfo(RideMonitorEvent anEvent, Long aRideId) {
-    		this.event = anEvent;
+    	public RideInfo(Long aRideId) {
     		this.rideId = aRideId;
     	}
     	
 		@Override
 		public String toString() {
-			return String.format("RideInfo [%s %s]", event, rideId);
+			return String.format("RideInfo [%s]", rideId);
 		}
     }
     
@@ -167,93 +159,70 @@ public class RideMonitor {
     	if (newState.ordinal() < oldState.ordinal()) {
     		log.warn(String.format("Ride %s: State is set back from %s --> %s", ride.getId(), oldState, newState));
     	}
+		RideMonitorEvent event = RideMonitorEvent.TIME_TO_CHECK;
+		Instant nextTimeout = null; 
 		switch (newState) {
 		case SCHEDULED:
-			if (ride.getDepartureTime().minus(PRE_DEPARTING_PERIOD).isAfter(now)) {
-				setupTimer(ride, RideMonitorEvent.TIME_TO_PREPARE, 
-						ride.getDepartureTime().minus(Ride.DEPARTING_PERIOD));
-			} else {
-				cancelRideTimer(ride);
+//			log.info("Departure time: " + ride.getDepartureTime());
+//			log.info("Departure time minus period: " + ride.getDepartureTime().minus(PRE_DEPARTING_PERIOD));
+//			log.info("Now: " + now);
+//			log.info("isAfter(now): " + ride.getDepartureTime().minus(PRE_DEPARTING_PERIOD).isAfter(now));
+			if (now.plus(PRE_DEPARTING_PERIOD).isAfter(ride.getDepartureTime())) {
+				nextTimeout = ride.getDepartureTime().minus(Ride.DEPARTING_PERIOD);
 			}
 			break;
 		case DEPARTING:
-			setupTimer(ride, RideMonitorEvent.TIME_TO_DEPART, ride.getDepartureTime());
+			nextTimeout =  ride.getDepartureTime();
 			break;
 		case IN_TRANSIT:
-			setupTimer(ride, RideMonitorEvent.TIME_TO_ARRIVE, ride.getArrivalTime());
+			nextTimeout = ride.getArrivalTime();
 			break;
 		case ARRIVING:
-			if (ride.isPaymentDue()) {
-				setupTimer(ride, RideMonitorEvent.TIME_TO_VALIDATE, 
-						ride.getArrivalTime().plus(VALIDATION_DELAY));
-			} else {
-				setupTimer(ride, RideMonitorEvent.TIME_TO_COMPLETE, ride.getArrivalTime().plus(Ride.ARRIVING_PERIOD));
-			}
+			Duration nextCheckDuration = ride.isPaymentDue() ? VALIDATION_DELAY : Ride.ARRIVING_PERIOD;   
+			nextTimeout =  ride.getArrivalTime().plus(nextCheckDuration);
 			break;
 		case VALIDATING:
-			int nrRemindersLeft = MAX_REMINDERS;
+			// In this state we wait for: 
+			// 1. the driver to confirm the passenger's presence on the ride, set a reminder message timer  
+			// 2. the payment decision by the Overseer
+			// Note: the ride monitor does not handle expiration of the validation time, the trip monitor takes care  of that.
+			//        the validation reminder could also be sent by the trip monitor. Decide (and change) later. 
 			if (oldState != RideState.VALIDATING) {
 				// Probably from arriving or from completed. Start or restart the validation, from now.
 				ride.setValidationExpirationTime(now.plus(VALIDATION_INTERVAL.multipliedBy(1 + MAX_REMINDERS)));
 				ride.setValidationReminderTime(now.plus(VALIDATION_INTERVAL));
+				nextTimeout = ride.getValidationReminderTime(); 
 			} else {
-		    	Duration d = Duration.between(clockDao.now(), ride.getValidationExpirationTime());
-		    	if (d.isNegative()) {
-		    		d = Duration.ZERO;		    		
-		    	}
-		    	nrRemindersLeft = Math.toIntExact(d.dividedBy(VALIDATION_INTERVAL));
-		    	Duration upToNextTime = d.minus(VALIDATION_INTERVAL.multipliedBy(nrRemindersLeft)); 
-		    	if (!upToNextTime.isZero()) {
-					ride.setValidationReminderTime(now.plus(upToNextTime));
-		    	}
+				if (ride.isConfirmationPending() &&	now.isAfter(ride.getValidationReminderTime())) {
+					// The ride timer only causes reminders, but no expiration. 
+					ride.setValidationReminderTime(now.plus(VALIDATION_INTERVAL));
+					nextTimeout = ride.getValidationReminderTime();
+					event = RideMonitorEvent.TIME_TO_SEND_VALIDATION_REMINDER;
+				}
 			}
-			setupTimer(ride, nrRemindersLeft > 0 ? RideMonitorEvent.TIME_TO_VALIDATE_REMINDER : RideMonitorEvent.TIME_TO_COMPLETE, 
-					ride.getValidationReminderTime());
 			break;
 		case COMPLETED:
-			// Just to be sure
-       		cancelRideTimer(ride);
+       		cancelRideTimers(ride);
 			break;
 		case CANCELLED:
-       		cancelRideTimer(ride);
+       		cancelRideTimers(ride);
 			break;
 		}
 		// Inform the observers
-    	EventFireWrapper.fire(rideStateUpdatedEvent, new RideStateUpdatedEvent(oldState, ride));
-    }
-
-	private void handleRideMonitorEvent(Ride ride, RideMonitorEvent event) throws BusinessException {
-		if (log.isDebugEnabled()) {
-			log.debug("Received ride event: " + event.toString());
+		EventFireWrapper.fire(rideEvent, new RideEvent(ride, event, oldState, newState));
+		if (nextTimeout != null) {
+			setupTimer(ride, nextTimeout);
 		}
-		switch (event) {
-		case TIME_TO_CHECK:
-			break;
-		case TIME_TO_PREPARE:
-			break;
-		case TIME_TO_DEPART:
-			break;
-		case TIME_TO_ARRIVE:
-			break;
-		case TIME_TO_VALIDATE:
-			break;
-		case TIME_TO_VALIDATE_REMINDER:
-			break;
-		case TIME_TO_COMPLETE:
-			if (ride.getState() == RideState.VALIDATING) {
-				// OK time to finish up, that is up to the trip.
-			}
-			break;
-		default:
-			log.warn("Don't know how to handle event: " + event);
-			break;
-		}
-		EventFireWrapper.fire(rideEvent, new RideEvent(event, ride));
-		// The state machine is evaluated without regarding the event!
-		// The timer is set by a state machine action
-		updateRideStateMachine(ride);
 	}
 
+	/**
+	 * A timeout occurred. The timeou-out itself is not very significant, it is only a way of working to check whether 
+	 * something should be done. The state machine determines what is actually to be done.
+	 * Note that the timeout-out can be delayed in case of a system down time etc.
+	 * To prevent unnecessary messages to the end-user, the chosen principle is to jump to the right state, instead of clicking
+	 * to the next logical state (departing, in transit, arriving etc). 
+	 * @param timer
+	 */
 	@Timeout
 	public void onTimeout(Timer timer) {
 		try {
@@ -267,7 +236,7 @@ public class RideMonitor {
 				log.debug(String.format("onTimeout: Received ride event: %s", rideInfo.toString()));
 			}
 			Ride ride = getRide(rideInfo.rideId);
-			handleRideMonitorEvent(ride, rideInfo.event);
+			updateRideStateMachine(ride);
 		} catch (BusinessException ex) {
 			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
 			log.info("Rollback status after exception: " + sessionContext.getRollbackOnly()); 
@@ -283,36 +252,36 @@ public class RideMonitor {
      * @param rideId the ride involved
      */
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-    public void handleRideEvent(RideMonitorEvent event, Long rideId) {
+    public void handleRideEvent(Long rideId) {
 		try {
-			// Find all rides that depart before the indicated time (the plus is the ramp-up)
 			Ride ride = getRide(rideId);
-			handleRideMonitorEvent(ride, event);
+			updateRideStateMachine(ride);
 		} catch (BusinessException ex) {
 			log.error(String.join("\n\t", ExceptionUtil.unwindException(ex)));
 			log.info("Rollback status after exception: " + sessionContext.getRollbackOnly()); 
 		} catch (Exception ex) {
-			log.error(String.format("Error updating ride state nachine: %s", ex.toString()));
+			log.error(String.format("Error updating ride state machine: %s", ex.toString()));
 		}
     }
 
-    @Schedule(info = "Collect due rides", hour = "*/1", minute = "0", second = "0", persistent = false /* non-critical job */)
+    @Schedule(info = "Collect due rides", hour = "*/1", minute = "0", second = "30", persistent = false /* non-critical job */)
 	public void checkForDueRides() {
 		// Get all rides that need monitoring and have a departure time within a certain window
 		try {
 			// Find all rides that depart before the indicated time (the plus is the ramp-up)
+			//TODO check only rides that have no timer set yet
 			List<Long> rideIds = rideDao.findRidesToMonitor(clockDao.now().plus(PRE_DEPARTING_PERIOD));
 			for (Long rideId : rideIds) {
-				sessionContext.getBusinessObject(this.getClass()).handleRideEvent(RideMonitorEvent.TIME_TO_CHECK, rideId);
+				sessionContext.getBusinessObject(this.getClass()).handleRideEvent(rideId);
 			}
 		} catch (Exception ex) {
 			log.error(String.format("Error handling timeout: %s", ex.toString()));
 		}
 	}
 
-	private void setupTimer(Ride ride, RideMonitorEvent event, Instant expirationTime) {
+	private void setupTimer(Ride ride, Instant expirationTime) {
 		if (log.isDebugEnabled()) {
-			log.debug(String.format("setupTimer %s %s %s", ride.getUrn(), event, expirationTime));
+			log.debug(String.format("setupTimer %s %s", ride.getUrn(), expirationTime));
 		}
 		Collection<Timer> timers = getActiveTimers(ride);
 		if (timers.size() > 1) {
@@ -322,35 +291,41 @@ public class RideMonitor {
 		Optional<Timer> tm = timers.stream().findFirst();
 		if (tm.isPresent()) {
 			Timer tmr = tm.get();
-			if ((((RideInfo) tmr.getInfo()).event != event 
-					|| !validEjbTimer.test(tmr)
-					|| !tmr.getNextTimeout().toInstant().equals(expirationTime))) {
+			if (!validEjbTimer.test(tmr) || !tmr.getNextTimeout().toInstant().equals(expirationTime)) {
 				log.debug("Canceling timer: " + tmr.getInfo());
-				tmr.cancel();
+				cancelTimer(tmr);
 				tm = Optional.empty();
 			}
 		}
 		if (tm.isEmpty()) {
-			timerService.createSingleActionTimer(Date.from(expirationTime), 
-					new TimerConfig(new RideInfo(event, ride.getId()), false));
+			timerService.createTimer(Date.from(expirationTime), new RideInfo(ride.getId())); 
 		}
 	}
 
     private Collection<Timer> getActiveTimers(Ride ride) {
     	Collection<Timer> timers = timerService.getTimers();
+    	// Remove the timers that are not used with RideInfo
     	timers.removeIf(tm -> !(tm.getInfo() instanceof RideInfo && ((RideInfo)tm.getInfo()).rideId.equals(ride.getId())));
-//    	if (log.isDebugEnabled() && timers.size() < 2) {
+//    	if (log.isDebugEnabled()) {
 //    		log.debug(String.format("getActiveTimers: %d timers in total active for this EJB", timers.size()));
 //    	}
-    	if (timers.size() >= 2) {
+    	if (timers.size() > 1) {
     		log.warn(String.format("getActiveTimers: %d timers active for ride %s!", timers.size(), ride.getId()));
     	}
     	return timers;
     }
     
-	private void cancelRideTimer(Ride ride) {
+    private void cancelTimer(Timer tm) {
+		try {
+			tm.cancel();
+		} catch (Exception ex) {
+			log.error(String.format("Error canceling timer: %s", ex.toString()));
+		}
+    }
+
+    private void cancelRideTimers(Ride ride) {
     	// Find all timers related to this ride and cancel them
-		getActiveTimers(ride).forEach(tm -> tm.cancel());
+		getActiveTimers(ride).forEach(tm -> cancelTimer(tm));
 	}
 
 	private List<RideInfo> listAllRideMonitorTimers() {
@@ -362,7 +337,7 @@ public class RideMonitor {
     	invalidTimers.stream()
     		.forEach(tm -> {
     			log.info(String.format("Cancelling invalid ride timer: %s", tm.getInfo()));
-    			tm.cancel();
+    			cancelTimer(tm);
     		});
     	timers.removeAll(invalidTimers);
     	timers.removeIf(tm -> !(tm.getInfo() instanceof RideInfo));
@@ -382,12 +357,19 @@ public class RideMonitor {
 	
 	/**
 	 * Revive the ride monitors that have been down after system restart.
-	 * TODO: Some timer events might get missed:, like the reminder. 
-	 * Either use a persistent one-shot timer, or check at startup whether some event might be missed.
+	 * Not used anymore, only for logging the active timers now.
 	 */
 	public void reviveRideMonitors() {
 		listAllRideMonitorTimers();
-		checkForDueRides();
+//		checkForDueRides();
 	}
 
+    /**
+     * Listener for evaluating the trip. Only evaluate after a successful transaction, otherwise it has no use.
+     * @param event
+     * @throws BusinessException
+     */
+    public void onRideEvaluation(@Observes(during = TransactionPhase.AFTER_SUCCESS) RideEvaluatedEvent event) {
+    	setupTimer(event.getRide(), clockDao.now().plusSeconds(1));
+    }
 }

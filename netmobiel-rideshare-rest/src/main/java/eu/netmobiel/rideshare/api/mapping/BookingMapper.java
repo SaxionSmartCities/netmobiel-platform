@@ -81,11 +81,7 @@ public abstract class BookingMapper {
     @ValueMapping(target = "UNKNOWN", source = MappingConstants.ANY_REMAINING)
     public abstract ConfirmationReasonType map(ConfirmationReasonEnum source);
     
-    @ValueMapping(target = MappingConstants.NULL, source = "UNKNOWN")
-    @ValueMapping(target = MappingConstants.NULL, source = "DISPUTED")
-    public abstract ConfirmationReasonEnum map(ConfirmationReasonType source);
-
-    // For a driver's view, the payment of a booking is cancelled or paid for. 
+    // For a driver's view, the payment of a booking is cancelled or paid for (or disputed). 
     // A reservation is only visible for the passenger and not relevant for the driver. 
     @ValueMapping(target = MappingConstants.NULL, source = "RESERVED")
     public abstract PaymentStateEnum map(PaymentState source);

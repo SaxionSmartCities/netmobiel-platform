@@ -389,6 +389,13 @@ public class Itinerary implements Serializable {
 				.isPresent();
 	}
 
+	public boolean isPassengerConfirmationPending() {
+		// The passenger confirmation is pending when the passenger has not answered for all relevant legs.
+		return getLegs().stream()
+				.filter(leg -> leg.isConfirmationRequested() && leg.getConfirmed() == null) 
+				.findFirst()
+				.isPresent();
+	}
 	public boolean isWalkOnly() {
 		// Walk only if no legs with other traverse modes are found
 		return !getLegs().stream()

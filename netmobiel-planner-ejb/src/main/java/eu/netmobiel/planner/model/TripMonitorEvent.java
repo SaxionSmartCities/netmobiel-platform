@@ -12,28 +12,11 @@ public enum TripMonitorEvent {
 	 */
 	TIME_TO_CHECK,
 	/**
-	 * It is time to prepare for the trip. Inform the passenger about the upcoming departure. 
-	 */
-	TIME_TO_PREPARE,
-	/**
-	 * The trip has started.
-	 */
-	TIME_TO_DEPART,
-	/**
-	 * The passenger should have arrived by now (no active monitoring of the position of the passenger, only-time based).
-	 */
-	TIME_TO_ARRIVE,
-	/**
-	 * The passenger is now at the destination location for some time, send an invitation for a confirmation (only if requested, e.g. for rideshare) 
-	 */
-	TIME_TO_VALIDATE,
-	/**
 	 * The timer to send a validation reminder has expired. 
 	 */
-	TIME_TO_VALIDATE_REMINDER,
+	TIME_TO_SEND_VALIDATION_REMINDER,
 	/**
-	 * It is time to complete the trip and terminate the monitoring.
+	 * The timer to finish the validation. 
 	 */
-	TIME_TO_COMPLETE
-
+	TIME_TO_FINISH_VALIDATION,
 }

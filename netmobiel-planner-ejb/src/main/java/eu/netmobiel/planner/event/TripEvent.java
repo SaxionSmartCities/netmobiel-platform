@@ -6,6 +6,7 @@ import javax.validation.constraints.NotNull;
 
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripMonitorEvent;
+import eu.netmobiel.planner.model.TripState;
 
 
 /**
@@ -21,17 +22,37 @@ public class TripEvent extends BasicTripEvent implements Serializable {
     @NotNull
     private TripMonitorEvent event;
 
-    public TripEvent(TripMonitorEvent anEvent, Trip aTrip) {
+    @NotNull
+    private TripState oldState;
+
+    @NotNull
+    private TripState newState;
+    
+    public TripEvent(Trip aTrip, TripMonitorEvent anEvent, TripState anOldState, TripState aNewState) {
     	super(aTrip);
     	this.event = anEvent;
+    	this.oldState = anOldState;
+    	this.newState = aNewState;
     }
 
 	public TripMonitorEvent getEvent() {
 		return event;
 	}
 
+	public TripState getOldState() {
+		return oldState;
+	}
+
+	public TripState getNewState() {
+		return newState;
+	}
+
+	public boolean isTransitionTo(TripState state) {
+		return oldState != state && newState == state;
+	}
+	
 	@Override
 	public String toString() {
-		return String.format("RideEvent %s %s in %s ]", getTrip().getTripRef(), event, getTrip().getState());
+		return String.format("TripEvent [%s %s in %s --> %s]", getTrip().getId(), event, oldState, newState);
 	}
 }

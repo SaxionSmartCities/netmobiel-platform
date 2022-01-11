@@ -750,14 +750,14 @@ public class Trip implements Serializable {
 //   	}
    	
    	/**
-     * Assigns the current trip state to all legs, if any.   
+     * Assigns the trip state to the trip and to all legs, if any.   
      */
-//   	public void propagateTripStateDown() {
-//   		if (getItinerary() == null || getItinerary().getLegs() == null) {
-//   			return;
-//   		}
-//   		getItinerary().getLegs().forEach(lg -> lg.setState(getState()));
-//   	}
+   	public void propagateTripStateDown() {
+   		if (getItinerary() == null || getItinerary().getLegs() == null) {
+   			return;
+   		}
+   		getItinerary().getLegs().forEach(lg -> lg.setState(getState()));
+   	}
 
    	public Set<String> getAgencies() {
     	Set<String> ags = new LinkedHashSet<>();

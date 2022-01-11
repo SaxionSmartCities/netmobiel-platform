@@ -706,16 +706,6 @@ public class RideManager {
     	}
     }
 
-    public void onStaleItinerary(@Observes(during = TransactionPhase.IN_PROGRESS) @Updated Ride ride) throws BadRequestException {
-		if (ride.isDeleted()) {
-			log.debug("Ride is already deleted, ignoring update itinerary request: " + ride.getUrn());
-		} else {
-			rideItineraryHelper.updateRideItinerary(ride);
-			rideMonitor.evaluateStateMachineDelayed(ride);
-			
-		}
-    }
-
 	public Optional<GeoLocation> findNextMissingPostalCode() {
 		Optional<Ride> r = rideDao.findFirstRideWithoutPostalCode();
 		GeoLocation loc = null;
@@ -740,5 +730,18 @@ public class RideManager {
 		affectedRows += rideTemplateDao.updateArrivalPostalCode(location, postalCode);
 		return affectedRows;
 	}
+
+	/**********************************************/
+	/**********   CALLBACK METHODS  ***************/
+	/**********************************************/
+	
+    public void onStaleItinerary(@Observes(during = TransactionPhase.IN_PROGRESS) @Updated Ride ride) throws BusinessException {
+		if (ride.isDeleted()) {
+			log.debug("Ride is already deleted, ignoring update itinerary request: " + ride.getUrn());
+		} else {
+			rideItineraryHelper.updateRideItinerary(ride);
+			rideMonitor.updateRideStateMachine(ride);
+		}
+    }
 
 }
