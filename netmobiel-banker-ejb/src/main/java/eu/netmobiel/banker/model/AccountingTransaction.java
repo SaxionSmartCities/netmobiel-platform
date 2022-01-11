@@ -6,6 +6,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.CascadeType;
@@ -253,6 +254,16 @@ public class AccountingTransaction  implements Serializable {
 
 	}
 	
+    public AccountingEntry findByEntryType(AccountingEntryType type) {
+    	List<AccountingEntry> entries = getAccountingEntries().stream()
+    			.filter(e -> e.getEntryType() == type)
+    			.collect(Collectors.toList());
+    	if (entries.size() != 1) {
+    		throw new IllegalStateException("No support for multiple entries of the same type in a transaction: " + getId());
+    	}
+    	return entries.get(0);
+    }
+
     public AccountingEntry lookupByEntryAccount(String ncan) {
     	List<AccountingEntry> rs_entries = getAccountingEntries();
     	AccountingEntry entry = rs_entries.stream()

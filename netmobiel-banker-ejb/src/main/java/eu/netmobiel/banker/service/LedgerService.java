@@ -21,6 +21,7 @@ import eu.netmobiel.banker.exception.OverdrawnException;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.AccountingEntry;
+import eu.netmobiel.banker.model.AccountingEntryType;
 import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.BankerUser;
@@ -247,6 +248,22 @@ public class LedgerService {
     	return tr.getTransactionRef();
     }
 
+    /**
+     * Reverses an earlier release by reserving the same amount again.
+     * @param releaseId the earlier release transaction
+     * @return
+     * @throws BadRequestException
+     * @throws BalanceInsufficientException
+     */
+    public String unrelease(String releaseId) throws BadRequestException, BalanceInsufficientException {
+    	Long releaseTid = UrnHelper.getId(AccountingTransaction.URN_PREFIX, releaseId);
+    	AccountingTransaction release = accountingTransactionDao.find(releaseTid).orElseThrow(() -> new IllegalArgumentException("No such transaction: " + releaseId));
+    	AccountingEntry originator = release.findByEntryType(AccountingEntryType.CREDIT);
+    	AccountingTransaction tr = reserve(originator.getAccount(), originator.getAmount(), 
+    			OffsetDateTime.now(), "REVERSED: " + release.getDescription(), release.getContext());
+    	return tr.getTransactionRef();
+    }
+
     public String charge(NetMobielUser nmbeneficiary, String reservationId, int actualAmount) throws BalanceInsufficientException, OverdrawnException, BadRequestException {
     	BankerUser beneficiary = lookupUser(nmbeneficiary)
     			.orElseThrow(() -> new BalanceInsufficientException("Beneficiary has no account, nothing to transfer to: " + nmbeneficiary.getManagedIdentity()));
@@ -258,6 +275,29 @@ public class LedgerService {
     	AccountingEntry userEntry = release.lookupByCounterParty(ACC_REF_RESERVATIONS);
     	AccountingTransaction charge_tr = transfer(userEntry.getAccount(), beneficiary.getPersonalAccount(), actualAmount, OffsetDateTime.now(), release.getDescription(), release.getContext());
     	return charge_tr.getTransactionRef();
+    }
+
+    /**
+     * Reverses an earlier charge. 
+     * @param chargeId the charge in question
+     * @return the reservation id of the original benefactor (which is now the beneficiary of the uncharge).
+     * @throws BalanceInsufficientException
+     * @throws OverdrawnException
+     * @throws BadRequestException
+     */
+    public String uncharge(String chargeId) throws BalanceInsufficientException, OverdrawnException, BadRequestException {
+    	Long chargeTid = UrnHelper.getId(AccountingTransaction.URN_PREFIX, chargeId);
+    	AccountingTransaction charge = accountingTransactionDao.find(chargeTid).orElseThrow(() -> new IllegalArgumentException("No such transaction: " + chargeId));
+    	AccountingEntry originator = charge.findByEntryType(AccountingEntryType.DEBIT);
+    	AccountingEntry beneficiary = charge.findByEntryType(AccountingEntryType.CREDIT);
+
+    	@SuppressWarnings("unused")
+		AccountingTransaction unchargeTrs = transfer(beneficiary.getAccount(), originator.getAccount(), beneficiary.getAmount(), 
+    			OffsetDateTime.now(), "REVERSED: " + charge.getDescription(), charge.getContext());
+
+    	AccountingTransaction reservationTrs = reserve(originator.getAccount(), originator.getAmount(), 
+    			OffsetDateTime.now(), "REVERSED: " + charge.getDescription(), charge.getContext());
+    	return reservationTrs.getTransactionRef();
     }
 
     /**
