@@ -1173,140 +1173,6 @@ components:
         daysOfWeek: 62
         horizon: 2019-12-31
         timeZone: Europe/Amsterdam
-    Booking:
-      description: A booking of a ride by a passenger.
-      required:
-      - pickup
-      - dropOff
-      - state
-      type: object
-      properties:
-        arrivalTime:
-          format: date-time
-          description: 'The (desired) time of arrival, formatted according ISO 8601. '
-          type: string
-        departureTime:
-          format: date-time
-          description: 'The (desired) time of departure, formatted according ISO 8601. '
-          type: string
-        pickup:
-          $ref: '#/components/schemas/Location'
-          description: The pickup location of the passenger.
-        dropOff:
-          $ref: '#/components/schemas/Location'
-          description: The drop-off location of the passenger.
-        state:
-          description: (Read-only). The state of the booking.
-          enum:
-          - New
-          - Proposed
-          - Requested
-          - Confirmed
-          - Cancelled
-          type: string
-        cancelReason:
-          description: If the booking was cancelled, the reason why. Optional field.
-          type: string
-        cancelledByDriver:
-          description: If set this flag indicates the driver has cancelled the ride,
-            thereby also cancelling the bookings.
-          type: boolean
-        passengerRef:
-          description: 'The passenger who wants to join the ride. The format is a
-            URN: urn:nb:rs:user:<id> or a keycloak urn.'
-          type: string
-        passenger:
-          $ref: '#/components/schemas/User'
-          description: The passenger who booked the ride. The information is included
-            to avoid a lookup.
-        nrSeats:
-          description: The number of seats requested for this booking. Default is
-            1.
-          type: integer
-        bookingRef:
-          description: The booking reference URN.
-          type: string
-        legs:
-          description: The legs and stops involved in the booking. Only present in
-            full detail when a booking is listed. As part of a ride only the leg reference
-            is present.
-          type: array
-          items:
-            $ref: '#/components/schemas/Leg'
-        ride:
-          $ref: '#/components/schemas/Ride'
-          description: A short description of the ride, including the car and the
-            driver's name.
-        passengerTripRef:
-          description: "The reference (a planner URN) to the passenger's trip. The\
-            \ refrence is used when interaction is needed with the planner, e.g. in\
-            \ case of updating or cancelling a booking on initiative from the rideshare\
-            \ service side. In case of a shout-out, the \nbooking is provisionary.\
-            \ Use `passengerTripPlanRef` to find the shout-out plan."
-          type: string
-        passengerTripPlanRef:
-          description: |-
-            The reference to the passenger's (shout-out) trip plan (a planner URN).
-            This field is used to refer to the plan of the passenger asking for transport.
-          type: string
-        confirmed:
-          description: (Read-only) If true then the driver has indeed executed the
-            scheduled ride. If false then the driver has not driven this ride. If
-            unspecified then it is unclear.
-          type: boolean
-        confirmationReason:
-          description: |-
-            The reason for the given (negative) confirmation value.
-             - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
-             - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
-             - `NO_SHOW`: The passenger did not show up
-             - `NO_TRIP`: The ride did not take place at all.
-          enum:
-          - TRIP_NOT_NEEDED
-          - FOUND_OTHER_TRANSPORT
-          - NO_SHOW
-          - NO_TRIP
-          - DISPUTED
-          - UNKNOWN
-          type: string
-        paymentState:
-          description: The payment state of the booking. If `CANCELLED`, the payment
-            was cancelled because the booking was not effectuated, or the driver did
-            not confirm the ride.
-          enum:
-          - CANCELLED
-          - PAID
-          - DISPUTED
-          type: string
-        paymentId:
-          description: The urn to the payment transaction. Only present when the payment
-            state equals `PAID`.
-          type: string
-        fareInCredits:
-          description: The fare the driver will receive for the ride with this passenger.
-          type: number
-      example:
-        departureTime: 2020-05-27T10:00:00Z
-        arrivalTime: 2020-05-27T10:45:00Z
-        dropOff:
-          label: Station Zutphen
-          latitude: 52.145119
-          longitude: 6.192722
-        id: 1
-        nrSeats: 1
-        passenger:
-          familyName: Otto
-          givenName: Otto
-          id: 2
-          managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
-        pickup:
-          label: Station Enschede
-          latitude: 52.221609
-          longitude: 6.887536
-        state: CONFIRMED
-        legRefs:
-        - urn:nb:rs:leg:54
-        passengerTripRef: urn:nb:pl:trip:568
     Ride:
       description: A Ride object specifies a ride with a car by a driver on a certain.
         The retour can be specified as well.
@@ -1471,6 +1337,160 @@ components:
           latitude: 51.987757
           longitude: 6.564012
         templateRef: urn:nb:rs:ridetemplate:43
+    Booking:
+      description: A booking of a ride by a passenger.
+      required:
+      - pickup
+      - dropOff
+      - state
+      type: object
+      properties:
+        arrivalTime:
+          format: date-time
+          description: 'The (desired) time of arrival, formatted according ISO 8601. '
+          type: string
+        departureTime:
+          format: date-time
+          description: 'The (desired) time of departure, formatted according ISO 8601. '
+          type: string
+        pickup:
+          $ref: '#/components/schemas/Location'
+          description: The pickup location of the passenger.
+        dropOff:
+          $ref: '#/components/schemas/Location'
+          description: The drop-off location of the passenger.
+        state:
+          description: (Read-only). The state of the booking.
+          enum:
+          - New
+          - Proposed
+          - Requested
+          - Confirmed
+          - Cancelled
+          type: string
+        cancelReason:
+          description: If the booking was cancelled, the reason why. Optional field.
+          type: string
+        cancelledByDriver:
+          description: If set this flag indicates the driver has cancelled the ride,
+            thereby also cancelling the bookings.
+          type: boolean
+        passengerRef:
+          description: 'The passenger who wants to join the ride. The format is a
+            URN: urn:nb:rs:user:<id> or a keycloak urn.'
+          type: string
+        passenger:
+          $ref: '#/components/schemas/User'
+          description: The passenger who booked the ride. The information is included
+            to avoid a lookup.
+        nrSeats:
+          description: The number of seats requested for this booking. Default is
+            1.
+          type: integer
+        bookingRef:
+          description: The booking reference URN.
+          type: string
+        legs:
+          description: The legs and stops involved in the booking. Only present in
+            full detail when a booking is listed. As part of a ride only the leg reference
+            is present.
+          type: array
+          items:
+            $ref: '#/components/schemas/Leg'
+        ride:
+          $ref: '#/components/schemas/Ride'
+          description: A short description of the ride, including the car and the
+            driver's name.
+        passengerTripRef:
+          description: "The reference (a planner URN) to the passenger's trip. The\
+            \ refrence is used when interaction is needed with the planner, e.g. in\
+            \ case of updating or cancelling a booking on initiative from the rideshare\
+            \ service side. In case of a shout-out, the \nbooking is provisionary.\
+            \ Use `passengerTripPlanRef` to find the shout-out plan."
+          type: string
+        passengerTripPlanRef:
+          description: |-
+            The reference to the passenger's (shout-out) trip plan (a planner URN).
+            This field is used to refer to the plan of the passenger asking for transport.
+          type: string
+        confirmed:
+          description: (Read-only) If true then the driver has indeed executed the
+            scheduled ride. If false then the driver has not driven this ride. If
+            unspecified then the driver has not answered yet.
+          type: boolean
+        confirmationReason:
+          description: |-
+            Read-only: The reason for the given (negative) confirmation value.
+             - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
+             - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
+             - `NO_SHOW`: The passenger did not show up
+             - `NO_TRIP`: The ride did not take place at all.
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          - NO_TRIP
+          - DISPUTED
+          - UNKNOWN
+          type: string
+        confirmedByPassenger:
+          description: (Read-only) If true then the passenger has indicated to be
+            on the ride. If false then the passenger was not present on the ride.
+            If unspecified then the passenger has not answered yet.
+          type: boolean
+        confirmationReasonByPassenger:
+          description: |-
+            Read-only: The reason for the given (negative) confirmation value by the passenger.
+             - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
+             - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
+             - `NO_SHOW`: The passenger did not show up
+             - `NO_TRIP`: The ride did not take place at all.
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          - NO_TRIP
+          - DISPUTED
+          - UNKNOWN
+          type: string
+        paymentState:
+          description: The payment state of the booking. If `CANCELLED`, the payment
+            was cancelled because the booking was not effectuated, or the driver did
+            not confirm the ride.
+          enum:
+          - CANCELLED
+          - PAID
+          - DISPUTED
+          type: string
+        paymentId:
+          description: The urn to the payment transaction. Only present when the payment
+            state equals `PAID`.
+          type: string
+        fareInCredits:
+          description: The fare the driver will receive for the ride with this passenger.
+          type: number
+      example:
+        departureTime: 2020-05-27T10:00:00Z
+        arrivalTime: 2020-05-27T10:45:00Z
+        dropOff:
+          label: Station Zutphen
+          latitude: 52.145119
+          longitude: 6.192722
+        id: 1
+        nrSeats: 1
+        passenger:
+          familyName: Otto
+          givenName: Otto
+          id: 2
+          managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+        pickup:
+          label: Station Enschede
+          latitude: 52.221609
+          longitude: 6.887536
+        state: CONFIRMED
+        legRefs:
+        - urn:nb:rs:leg:54
+        passengerTripRef: urn:nb:pl:trip:568
   responses:
     InternalServerError:
       content:
