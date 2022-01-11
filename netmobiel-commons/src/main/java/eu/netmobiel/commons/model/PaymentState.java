@@ -8,17 +8,24 @@ package eu.netmobiel.commons.model;
  */
 public enum PaymentState {
 	/**
-	 * The fare for the leg has been reserved. The transaction refers to the reservation.
+	 * The fare for the leg has been reserved. The transaction refers to the reservation 
+	 * (in case of benefactor).
 	 */
 	RESERVED("R"),
 	/**
-	 * The fare has been paid to the transport provider. The transaction refers to the final payment.  
+	 * The fare has been paid to the transport provider. The transaction refers to the final payment 
+	 * (in case of beneficiary).  
 	 */
 	PAID("P"),
 	/**
-	 * The trip has been cancelled. The transaction refers to the release.
+	 * The trip has been cancelled. The transaction refers to the release (in case of benefactor).
 	 */
-	CANCELLED("C");
+	CANCELLED("C"),
+	/**
+	 * The passenger ('no') and the driver ('yes') do not agree, the payment is disputed. This state is 
+	 * only used at the side of the beneficiary.
+	 */
+	DISPUTED("D");
 
 	private String code;
 	 
