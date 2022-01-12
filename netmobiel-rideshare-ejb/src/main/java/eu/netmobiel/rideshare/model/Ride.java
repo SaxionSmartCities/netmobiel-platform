@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.CascadeType;
@@ -33,6 +34,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.SqlResultSetMapping;
 import javax.persistence.SqlResultSetMappings;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.Version;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
@@ -264,6 +266,13 @@ public class Ride extends RideBase implements Serializable {
     @Column(name = "validation_exp_time")
     private Instant validationExpirationTime;
 
+    /**
+     * If set the state will switch to CANCELLED with the next call to nextState().
+     * Careful: Transient variable.
+     */
+    @Transient
+    private boolean cancelRequested;
+    
     @Override
     public Long getId() {
 		return id;
@@ -391,6 +400,10 @@ public class Ride extends RideBase implements Serializable {
 		this.validationExpirationTime = validationExpirationTime;
 	}
 
+	public void cancel() {
+		this.cancelRequested = true;
+	}
+
 	/**
 	 * Returns true if the specified ride overlaps in time with this ride.
 	 * @param r the ride to compare.
@@ -448,10 +461,14 @@ public class Ride extends RideBase implements Serializable {
 
     public boolean hasActiveBooking() {
     	return getBookings().stream()
-    			.filter(b -> b.getState() == BookingState.PROPOSED || 
-    						 b.getState() == BookingState.REQUESTED || 
-    						 b.getState() == BookingState.CONFIRMED)
+    			.filter(b -> b.getState() != BookingState.CANCELLED)
     			.findAny().isPresent();
+    }
+
+    public List<Booking> getActiveBookings() {
+    	return getBookings().stream()
+    			.filter(b -> b.getState() != BookingState.CANCELLED)
+    			.collect(Collectors.toList());
     }
 
     public Optional<Booking> getConfirmedBooking() {
@@ -479,7 +496,6 @@ public class Ride extends RideBase implements Serializable {
 	}
 
     public RideState nextState(Instant referenceTime) {
-    	RideState next = state;
     	if (state == null) {
     		state = RideState.SCHEDULED;
     	}
@@ -488,8 +504,10 @@ public class Ride extends RideBase implements Serializable {
     		// The completed is not so final as it looks.
     		return state;
     	}
-    	next = state;
-    	if (!getArrivalTime().plus(ARRIVING_PERIOD).isAfter(referenceTime)) {
+    	RideState next = state;
+    	if (cancelRequested) {
+    		next = RideState.CANCELLED;
+    	} else if (!getArrivalTime().plus(ARRIVING_PERIOD).isAfter(referenceTime)) {
     		if (isPaymentDue()) {
         		next = RideState.VALIDATING;
         	} else {
