@@ -214,7 +214,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 				.setParameter("id", UrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
-		assertFalse(b.isDeleted());
+		assertFalse(b.isCancelled());
 		flush();
 		// Reset all the counters.
 		eventListenerHelper.reset();
@@ -232,7 +232,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 				.setParameter("id", UrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
-		assertTrue(b.isDeleted());
+		assertTrue(b.isCancelled());
 		assertFalse(Boolean.TRUE.equals(b.getCancelledByDriver()));
 		assertEquals(reason, b.getCancelReason());
 		
@@ -252,7 +252,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 				.setParameter("id", UrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
-		assertTrue(b.isDeleted());
+		assertTrue(b.isCancelled());
 		assertFalse(Boolean.TRUE.equals(b.getCancelledByDriver()));
 		assertEquals(reason, b.getCancelReason());
 		
@@ -272,7 +272,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 				.setParameter("id", UrnHelper.getId(Booking.URN_PREFIX, bookingRef))
 				.getSingleResult();
 		assertNotNull(b);
-		assertTrue(b.isDeleted());
+		assertTrue(b.isCancelled());
 		assertTrue(Boolean.TRUE.equals(b.getCancelledByDriver()));
 		assertEquals(reason, b.getCancelReason());
 		

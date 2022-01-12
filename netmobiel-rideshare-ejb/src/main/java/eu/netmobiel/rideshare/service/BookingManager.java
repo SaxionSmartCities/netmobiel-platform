@@ -155,7 +155,7 @@ public class BookingManager {
 		}
     	RideshareUser passenger = userDao.findByManagedIdentity(traveller.getManagedIdentity())
 				.orElseGet(() -> userDao.save(new RideshareUser(traveller)));
-    	if (ride.getBookings().stream().filter(b -> !b.isDeleted()).collect(Collectors.counting()) > 0) {
+    	if (ride.getBookings().stream().filter(b -> !b.isCancelled()).collect(Collectors.counting()) > 0) {
     		throw new CreateException(String.format("Ride %s has already a booking", ride.getId()));
     	}
     	if (ride.getDriver().equals(passenger)) {
@@ -339,9 +339,7 @@ public class BookingManager {
      * @throws BusinessException 
      */
     public void onRideRemoved(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Ride ride) throws BusinessException {
-    	List<Booking> bookingsToCancel = ride.getBookings().stream()
-    	.filter(b -> ! b.isDeleted())
-    	.collect(Collectors.toList());
+    	List<Booking> bookingsToCancel = ride.getActiveBookings();
     	for (Booking b : bookingsToCancel) {
     		b.markAsCancelled(ride.getCancelReason(), true);	
    			// The driver has cancelled the ride. 

@@ -512,7 +512,7 @@ public class Booking extends ReferableObject implements Serializable {
 		return passengerRef;
 	}
 
-	public boolean isDeleted() {
+	public boolean isCancelled() {
 		return getState() == BookingState.CANCELLED;
 	}
 	public List<Leg> getLegs() {
