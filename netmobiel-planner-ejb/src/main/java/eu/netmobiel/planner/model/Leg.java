@@ -728,7 +728,7 @@ public class Leg implements Serializable {
 		return Boolean.FALSE.equals(confirmed);
 	}
 
-	public boolean isConfirmationDisputed() {
+	public boolean isDisputed() {
 		return isConfirmedByProvider() && isDenied();
 	}
 	

@@ -166,18 +166,29 @@ public class RideItineraryHelper {
     		if (booking.getState() != BookingState.CONFIRMED && booking.getState() != BookingState.PROPOSED) {
     			continue;
     		}
-    		Leg start = ride.getLegs().stream()
+    		Leg pickup = ride.getLegs().stream()
     				.filter(leg -> closenessFilter.test(leg.getFrom().getLocation(), booking.getPickup()))
     				.findFirst()
     				.orElseThrow(() -> new IllegalStateException("Cannot find first leg for booking"));
-    		Leg last = ride.getLegs().stream()
+    		Leg dropOff = ride.getLegs().stream()
     				.filter(leg -> closenessFilter.test(leg.getTo().getLocation(), booking.getDropOff()))
     				.findFirst()
     				.orElseThrow(() -> new IllegalStateException("Cannot find last leg for booking"));
-    		// Get the start, the end and everything in between and add them to the booking 
+    		// Get the start, the end and everything in between and add them to the booking
+//    		log.info("Booking: " + booking.toString());
+//    		log.info("Pickup leg: " + pickup.toString());
+//    		log.info("Pickup leg index: " + ride.getLegs().indexOf(pickup));
+//    		log.info("Drop-off leg: " + dropOff.toString());
+//    		log.info("Drop-off leg index: " + ride.getLegs().indexOf(dropOff));
 			ride.getLegs()
-				.subList(ride.getLegs().indexOf(start), ride.getLegs().indexOf(last) + 1)
-				.forEach(leg -> leg.getBookings().add(booking));
+				.subList(ride.getLegs().indexOf(pickup), ride.getLegs().indexOf(dropOff) + 1)
+				.forEach(leg -> leg.addBooking(booking));
+//			ride.getLegs()
+//			.forEach(leg -> log.info(String.format("Leg %s Bookings %s", leg.getId(), 
+//					String.join(", ", leg.getBookings()
+//							.stream()
+//							.map(b -> b.getId().toString())
+//							.collect(Collectors.toList())))));
 		}
     	int distance = newLegs.stream().collect(Collectors.summingInt(Leg::getDistance));
     	ride.setDistance(distance);

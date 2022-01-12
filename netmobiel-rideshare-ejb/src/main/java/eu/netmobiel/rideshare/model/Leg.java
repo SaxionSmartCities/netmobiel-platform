@@ -100,6 +100,7 @@ public class Leg extends ReferableObject implements Serializable {
 
     /**
      * The legs this booking is involved in.
+     * This is the owner side where the insertions and deletions are made.
      */
     @ManyToMany(cascade = { CascadeType.PERSIST, CascadeType.MERGE }, fetch = FetchType.LAZY)
     @JoinTable(
@@ -229,6 +230,16 @@ public class Leg extends ReferableObject implements Serializable {
 
 	public void setBookings(List<Booking> bookings) {
 		this.bookings = bookings;
+	}
+
+	public void addBooking(Booking b) {
+		getBookings().add(b);
+		b.getLegs().add(this);
+	}
+
+	public void removeBooking(Booking b) {
+		getBookings().remove(b);
+		b.getLegs().remove(this);
 	}
 
 	/**
