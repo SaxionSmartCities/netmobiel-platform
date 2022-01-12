@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
+import javax.ejb.Asynchronous;
 import javax.ejb.NoSuchObjectLocalException;
 import javax.ejb.Schedule;
 import javax.ejb.SessionContext;
@@ -20,8 +21,6 @@ import javax.ejb.TimerService;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
-import javax.enterprise.event.Observes;
-import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -34,7 +33,6 @@ import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.ValidEjbTimer;
-import eu.netmobiel.rideshare.event.RideEvaluatedEvent;
 import eu.netmobiel.rideshare.event.RideEvent;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideMonitorEvent;
@@ -252,7 +250,7 @@ public class RideMonitor {
      * @param rideId the ride involved
      */
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-    public void handleRideEvent(Long rideId) {
+    public void updateStateMachine(Long rideId) {
 		try {
 			Ride ride = getRide(rideId);
 			updateRideStateMachine(ride);
@@ -264,6 +262,15 @@ public class RideMonitor {
 		}
     }
 
+    /**
+     * Updates the state machine asynchronously.
+     * @param rideId
+     */
+    @Asynchronous
+    public void updateStateMachineAsync(Long rideId) {
+    	updateStateMachine(rideId);
+    }
+
     @Schedule(info = "Collect due rides", hour = "*/1", minute = "0", second = "30", persistent = false /* non-critical job */)
 	public void checkForDueRides() {
 		// Get all rides that need monitoring and have a departure time within a certain window
@@ -272,7 +279,7 @@ public class RideMonitor {
 			//TODO check only rides that have no timer set yet
 			List<Long> rideIds = rideDao.findRidesToMonitor(clockDao.now().plus(PRE_DEPARTING_PERIOD));
 			for (Long rideId : rideIds) {
-				sessionContext.getBusinessObject(this.getClass()).handleRideEvent(rideId);
+				sessionContext.getBusinessObject(this.getClass()).updateStateMachine(rideId);
 			}
 		} catch (Exception ex) {
 			log.error(String.format("Error handling timeout: %s", ex.toString()));
@@ -292,7 +299,7 @@ public class RideMonitor {
 		if (tm.isPresent()) {
 			Timer tmr = tm.get();
 			if (!validEjbTimer.test(tmr) || !tmr.getNextTimeout().toInstant().equals(expirationTime)) {
-				log.debug("Canceling timer: " + tmr.getInfo());
+//				log.debug("Canceling timer: " + tmr.getInfo());
 				cancelTimer(tmr);
 				tm = Optional.empty();
 			}
@@ -364,12 +371,4 @@ public class RideMonitor {
 //		checkForDueRides();
 	}
 
-    /**
-     * Listener for evaluating the trip. Only evaluate after a successful transaction, otherwise it has no use.
-     * @param event
-     * @throws BusinessException
-     */
-    public void onRideEvaluation(@Observes(during = TransactionPhase.AFTER_SUCCESS) RideEvaluatedEvent event) {
-    	setupTimer(event.getRide(), clockDao.now().plusSeconds(1));
-    }
 }

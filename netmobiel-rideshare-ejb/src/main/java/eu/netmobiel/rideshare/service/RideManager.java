@@ -38,6 +38,7 @@ import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.here.search.HereSearchClient;
+import eu.netmobiel.rideshare.event.RideEvaluatedEvent;
 import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Car;
@@ -744,4 +745,12 @@ public class RideManager {
 		}
     }
 
+    /**
+     * Listener for evaluating the trip. Only evaluate after a successful transaction, otherwise it has no use.
+     * @param event
+     * @throws BusinessException
+     */
+    public void onRideEvaluation(@Observes(during = TransactionPhase.AFTER_SUCCESS) RideEvaluatedEvent event) {
+    	rideMonitor.updateStateMachineAsync(event.getRide().getId());
+    }
 }

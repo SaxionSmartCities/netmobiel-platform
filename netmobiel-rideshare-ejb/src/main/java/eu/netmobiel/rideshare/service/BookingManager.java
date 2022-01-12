@@ -43,6 +43,13 @@ import eu.netmobiel.rideshare.repository.BookingDao;
 import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.repository.RideshareUserDao;
 
+/**
+ * FIXME: Some parts of the booking must be stored by the planner, i.o. the rideshare. In particular all validation stuff should
+ * be maintained by the planner. In that case we can also take of properread access for passenger as well as driver to the 
+ * booking. That booking would then have a reference to the rideshare booking (i.e. a provider reference).
+ * @author Jaap Reitsma
+ *
+ */
 @Stateless
 @Logging
 public class BookingManager {
@@ -244,7 +251,7 @@ public class BookingManager {
     }
 
     /**
-     * Sets the confirmation flag on the ride and sends a event to inform that the provider has confirmed the ride.
+     * Sets the driver's confirmation flag on the booking and sends a event to inform that the provider has confirmed the ride.
      * @param rideId the ride to update.
      * @throws BusinessException 
      */
@@ -272,6 +279,25 @@ public class BookingManager {
         	// Perhaps the validation is complete now? Evaluate it (asynchronous) after this transaction has finished.
         	EventFireWrapper.fire(tripValidationEvent, new TripValidationEvent(b.getPassengerTripRef(), false));
     	}
+    }
+
+    /**
+     * Replicates the passenger's confirmation flag on the booking. No further action required, that is handled by the passenger's side.
+     * @param rideId the ride to update.
+     * @throws BusinessException 
+     */
+    public void confirmTravellingByPassenger(String bookingRef, Boolean confirmationValue, ConfirmationReasonType reason) throws BusinessException {
+    	if (confirmationValue == null) {
+    		throw new BadRequestException("An empty confirmation value is not allowed: " + bookingRef);
+    	}
+    	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
+    	Booking b = bookingDao.find(bookingId)
+    			.orElseThrow(() -> new NotFoundException("No such booking: " + bookingId));
+    	if (b.getState() != BookingState.CONFIRMED) {
+    		throw new BadRequestException("The booking is not in state confirmed! " + bookingRef);
+    	}
+    	b.setConfirmedByPassenger(confirmationValue);
+    	b.setConfirmationReasonByPassenger(reason);
     }
 
     /**
@@ -350,6 +376,8 @@ public class BookingManager {
     public void resetValidation(Booking bdb) throws BusinessException {
     	bdb.setConfirmed(null);
     	bdb.setConfirmationReason(null);
+    	bdb.setConfirmedByPassenger(null);
+    	bdb.setConfirmationReasonByPassenger(null);
     	if (bdb.getPaymentState() != null && bdb.getPaymentState() != PaymentState.DISPUTED) {
     		log.warn("Expected booking payment state to be cleared: " + bdb.getUrn());
     	}

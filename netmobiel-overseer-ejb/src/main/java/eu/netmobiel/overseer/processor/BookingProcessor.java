@@ -29,6 +29,7 @@ import eu.netmobiel.planner.event.BookingCancelledEvent;
 import eu.netmobiel.planner.event.BookingConfirmedEvent;
 import eu.netmobiel.planner.event.BookingProposalRejectedEvent;
 import eu.netmobiel.planner.event.BookingRequestedEvent;
+import eu.netmobiel.planner.event.TripConfirmedEvent;
 import eu.netmobiel.planner.event.TripUnconfirmedEvent;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Trip;
@@ -166,6 +167,7 @@ public class BookingProcessor {
     	Long bid = UrnHelper.getId(Booking.URN_PREFIX, event.getLeg().getBookingId());
 		bookingManager.confirmBooking(bid, event.getTrip().getTripRef(), event.getLeg().getFareInCredits());
 		paymentProcessor.reserveFare(event.getTrip(), event.getLeg());
+    	event.getLeg().setBookingConfirmed(true);
     }
 
     /**
@@ -281,6 +283,18 @@ public class BookingProcessor {
   		// The trip manager checks the state for reasonable values
 		tripManager.afterConfirmTripByTransportProvider(event.getTravellerTripRef(), event.getBookingRef(), 
 				event.getConfirmationByTransportProvider(), event.getConfirmationReason(), true);
+    }
+
+    /** 
+     * Handle the event where the passenger confirms (or denies) the trip. 
+     * @param event
+     * @throws BusinessException 
+     */
+    public void onPassengerConfirmation(@Observes(during = TransactionPhase.IN_PROGRESS) TripConfirmedEvent event) 
+    		throws BusinessException {
+  		// The booking manager checks the state for reasonable values
+    	Leg leg = event.getLeg();
+		bookingManager.confirmTravellingByPassenger(leg.getBookingId(), leg.getConfirmed(), leg.getConfirmationReason()); 
     }
 
     private void resetValidationAtBothSides(Trip trip) throws BusinessException {

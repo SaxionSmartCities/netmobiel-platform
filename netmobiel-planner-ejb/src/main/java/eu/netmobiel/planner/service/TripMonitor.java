@@ -10,6 +10,7 @@ import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
+import javax.ejb.Asynchronous;
 import javax.ejb.NoSuchObjectLocalException;
 import javax.ejb.Schedule;
 import javax.ejb.SessionContext;
@@ -20,8 +21,6 @@ import javax.ejb.TimerService;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
-import javax.enterprise.event.Observes;
-import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -34,7 +33,6 @@ import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.ValidEjbTimer;
-import eu.netmobiel.planner.event.TripEvaluatedEvent;
 import eu.netmobiel.planner.event.TripEvent;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.Trip;
@@ -313,7 +311,7 @@ public class TripMonitor {
      * @param tripId the ride involved
      */
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-    public void handleTripEvent(Long tripId) {
+    public void updateStateMachine(Long tripId) {
 		try {
 			Trip trip = getTrip(tripId);
 			updateTripStateMachine(trip);
@@ -323,6 +321,15 @@ public class TripMonitor {
 		} catch (Exception ex) {
 			log.error(String.format("Error updating trip state nachine: %s", ex.toString()));
 		}
+    }
+
+    /**
+     * Updates the state machine asynchronously.
+     * @param tripId
+     */
+    @Asynchronous
+    public void updateStateMachineAsync(Long tripId) {
+    	updateStateMachine(tripId);
     }
 
     @Schedule(info = "Collect due trips", hour = "*/1", minute = "1", second = "30", persistent = false /* non-critical job */)
@@ -336,7 +343,7 @@ public class TripMonitor {
 			for (Long tripId : tripIds) {
 				// FIXME if not an active timer for this trip, then check it to see we need one.
 				// If so then only set the timer, do not update the state.
-				sessionContext.getBusinessObject(this.getClass()).handleTripEvent(tripId);
+				sessionContext.getBusinessObject(this.getClass()).updateStateMachine(tripId);
 			}
 		} catch (Exception ex) {
 			log.error(String.format("Error handling timeout: %s", ex.toString()));
@@ -356,7 +363,7 @@ public class TripMonitor {
 		if (tm.isPresent()) {
 			Timer tmr = tm.get();
 			if (!validEjbTimer.test(tmr) || !tmr.getNextTimeout().toInstant().equals(expirationTime)) {
-				log.debug("Canceling timer: " + tmr.getInfo());
+//				log.debug("Canceling timer: " + tmr.getInfo());
 				cancelTimer(tmr);
 				tm = Optional.empty();
 			}
@@ -431,13 +438,4 @@ public class TripMonitor {
 //		checkForDueTrips();
 	}
 	
-    /**
-     * Listener for evaluating the trip. Only evaluate after a successful transaction, otherwise it has no use.
-     * @param event
-     * @throws BusinessException
-     */
-    public void onTripEvaluation(@Observes(during = TransactionPhase.AFTER_SUCCESS) TripEvaluatedEvent event) {
-    	setupTimer(event.getTrip(), clockDao.now().plusSeconds(1));
-    }
-    
 }

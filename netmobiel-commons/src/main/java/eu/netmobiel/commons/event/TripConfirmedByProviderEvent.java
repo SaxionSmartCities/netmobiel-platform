@@ -31,9 +31,7 @@ public class TripConfirmedByProviderEvent implements Serializable {
     private Boolean confirmationByTransportProvider;
     
     private ConfirmationReasonType confirmationReason;
-    /**
-     * No-args constructor.
-     */
+
     public TripConfirmedByProviderEvent(String bookingRef, String travellerTripRef, 
     		Boolean confirmationValue, ConfirmationReasonType confirmationReason) {
     	this.bookingRef = bookingRef;

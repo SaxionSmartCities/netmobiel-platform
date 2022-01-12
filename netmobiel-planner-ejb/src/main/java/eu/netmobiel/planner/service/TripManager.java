@@ -10,6 +10,8 @@ import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
+import javax.enterprise.event.Observes;
+import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -30,10 +32,13 @@ import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.here.search.HereSearchClient;
+import eu.netmobiel.planner.event.BookingAssignedEvent;
 import eu.netmobiel.planner.event.BookingCancelledEvent;
 import eu.netmobiel.planner.event.BookingConfirmedEvent;
 import eu.netmobiel.planner.event.BookingRequestedEvent;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
+import eu.netmobiel.planner.event.TripConfirmedEvent;
+import eu.netmobiel.planner.event.TripEvaluatedEvent;
 import eu.netmobiel.planner.event.TripUnconfirmedEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
@@ -88,7 +93,13 @@ public class TripManager {
     private Event<TripValidationEvent> tripValidationEvent;
     
     @Inject
+    private Event<TripConfirmedEvent> tripConfirmedEvent;
+
+    @Inject
     private Event<TripUnconfirmedEvent> tripUnconfirmedEvent;
+
+    @Inject
+    private Event<BookingAssignedEvent> bookingAssignedEvent;
 
     /**
      * List all trips owned by the specified user. Soft deleted trips are omitted.
@@ -165,15 +176,16 @@ public class TripManager {
         trip.setArrivalPostalCode(hereSearchClient.getPostalCode6(trip.getTo()));
         tripDao.save(trip);
        	tripDao.flush();
+    	List<Command> actions = new ArrayList<>();
     	if (plan.getPlanType() == PlanType.SHOUT_OUT) {
     		// it was a shout-out plan. It is being resolved now. 
     		// Use the event to adjust the context of the message thread from trip plan to trip.
     		// The trip must have a database identity!
+    		// Make it synchronous, just to be sure the conversation 
     		EventFireWrapper.fire(shoutOutResolvedEvent, new ShoutOutResolvedEvent(trip));
     	}
 
     	// Should we do any booking actions? Try to do them here in a single transaction
-    	List<Command> actions = new ArrayList<>();
    		for (Leg leg : trip.getItinerary().getLegs()) {
 	    	// Check for bookingID set. If so than it was a shout-out and we need to convert the PROPOSAL to a CONFIRMED booking
 	    	if (leg.getBookingId() != null) {
@@ -189,42 +201,17 @@ public class TripManager {
    	    		// If no booking is required then no further action is required.
 	    	}
        	}
+   		// Update the state before doing any booking stuff
+    	tripMonitor.updateTripStateMachine(trip);
 		for (Command action : actions) {
 			action.execute();
 		}
-    	tripMonitor.updateTripStateMachine(trip);
+		// Booking might have been completed now
+    	// tripMonitor.updateTripStateMachine(trip);
     	return trip.getId();
     }
 
     
-    /**
-     * Assign a booking reference to the leg with the specified transport provider tripId. This method
-     * is called from the Overseer.  
-     * @param tripRef The traveller trip reference, i.e. our  trip reference.
-     * @param transportProviderTripRef The transport provider's trip reference, i.e. their trip. 
-     * @param bookingRef The booking reference at the transport provider.
-     * @param bookingConfirmed If true the booking is already confirmed.
-     * @throws BusinessException 
-     */
-    public void assignBookingReference(String tripRef, String transportProviderTripRef, String bookingRef, boolean bookingConfirmed) throws BusinessException {
-    	Trip trip = tripDao.find(UrnHelper.getId(Trip.URN_PREFIX, tripRef))
-    			.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripRef));
-    	Leg leg = trip.getItinerary().findLegByTripId(transportProviderTripRef)
-    			.orElseThrow(() -> new IllegalArgumentException("No such leg with tripId " + transportProviderTripRef));
-    	if (trip.getState() != TripState.BOOKING) {
-    		throw new UpdateException(String.format("Unexpected trip state %s, expected BOOKING; cannot assign booking %s to trip %s", 
-    				trip.getState().toString(), bookingRef, tripRef));
-    	}
-    	if (!leg.getTripId().equals(transportProviderTripRef)) {
-    		throw new UpdateException(String.format("Unexpected leg tripId %s, expected %s; cannot assign booking %s to trip %s", 
-    				leg.getTripId(), transportProviderTripRef, bookingRef, tripRef));
-    	}
-    	leg.setBookingId(bookingRef);
-    	leg.setBookingConfirmed(bookingConfirmed);
-    	// We don't update the state here. Might be necessary to trigger the passengers side
-//    	tripMonitor.updateTripStateMachine(trip);
-    }
-
     /**
      * Cancels the booked leg on trip and updates the state. This method is called in response to a cancellation from the transport provider.
      * This call is intended to update the trip state only.
@@ -392,9 +379,10 @@ public class TripManager {
 	            	}
 	            	leg.setConfirmed(confirmationValue);
 	            	leg.setConfirmationReason(reason);
+	            	EventFireWrapper.fire(tripConfirmedEvent, new TripConfirmedEvent(tripdb, leg));
         		}
         	}
-        	tripMonitor.updateTripStateMachine(tripdb);
+        	// The trip state is not changed
         	// Perhaps the validation is complete now? Evaluate it (asynchronous)
         	EventFireWrapper.fire(tripValidationEvent, new TripValidationEvent(tripdb.getTripRef(), false));
     	}
@@ -468,6 +456,33 @@ public class TripManager {
 	/**********   CALLBACK METHODS  ***************/
 	/**********************************************/
 	
+    /**
+     * Assign a booking reference to the leg with the specified transport provider tripId. This method
+     * is called from the Overseer.  
+     * @param tripRef The traveller trip reference, i.e. our  trip reference.
+     * @param transportProviderTripRef The transport provider's trip reference, i.e. their trip. 
+     * @param bookingRef The booking reference at the transport provider.
+     * @param bookingConfirmed If true the booking is already confirmed.
+     * @throws BusinessException 
+     */
+    public void assignBookingReference(String tripRef, String transportProviderTripRef, String bookingRef, boolean bookingConfirmed) throws BusinessException {
+    	Trip trip = tripDao.find(UrnHelper.getId(Trip.URN_PREFIX, tripRef))
+    			.orElseThrow(() -> new IllegalArgumentException("No such trip: " + tripRef));
+    	Leg leg = trip.getItinerary().findLegByTripId(transportProviderTripRef)
+    			.orElseThrow(() -> new IllegalArgumentException("No such leg with tripId " + transportProviderTripRef));
+    	if (trip.getState() != TripState.BOOKING) {
+    		throw new UpdateException(String.format("Unexpected trip state %s, expected BOOKING; cannot assign booking %s to trip %s", 
+    				trip.getState().toString(), bookingRef, tripRef));
+    	}
+    	if (!leg.getTripId().equals(transportProviderTripRef)) {
+    		throw new UpdateException(String.format("Unexpected leg tripId %s, expected %s; cannot assign booking %s to trip %s", 
+    				leg.getTripId(), transportProviderTripRef, bookingRef, tripRef));
+    	}
+    	leg.setBookingId(bookingRef);
+    	leg.setBookingConfirmed(bookingConfirmed);
+    	EventFireWrapper.fire(bookingAssignedEvent, new BookingAssignedEvent(trip, leg));    
+    }
+
     /**
      * Sets the provider confirmation flag on each leg in the trip. The method is called by the Overseer.  
      * @param tripRef the trip reference to update.
@@ -543,4 +558,21 @@ public class TripManager {
 		// No need to update the trip state yet, it will be done by one of the confirmation call (passenger or driver)
 	}
 
+    /**
+     * Listener for evaluating the trip. Only evaluate after a successful transaction, otherwise it has no use.
+     * @param event
+     * @throws BusinessException
+     */
+    public void onTripEvaluation(@Observes(during = TransactionPhase.AFTER_SUCCESS) TripEvaluatedEvent event) {
+    	tripMonitor.updateStateMachine(event.getTrip().getId());
+    }
+    
+    /**
+     * Listener for completing a booking. Only executed after a successful transaction, otherwise it has no use.
+     * @param event
+     * @throws BusinessException
+     */
+    public void onBookingAssigned(@Observes(during = TransactionPhase.AFTER_SUCCESS) BookingAssignedEvent event) {
+    	tripMonitor.updateStateMachine(event.getTrip().getId());
+    }
 }

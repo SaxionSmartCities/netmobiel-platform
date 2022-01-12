@@ -352,8 +352,7 @@ public class Booking extends ReferableObject implements Serializable {
     private String passengerTripRef;
 
     /**
-     * If true then the ride is confirmed by the driver, i.e. all bookings are confirmed.
-     * This flag should sit at the booking.
+     * If true then the ride for this booking is confirmed by the driver.
      */
     @Column(name = "confirmed")
     private Boolean confirmed;
@@ -363,6 +362,18 @@ public class Booking extends ReferableObject implements Serializable {
      */
     @Column(name = "conf_reason", length = 3)
     private ConfirmationReasonType confirmationReason;
+
+    /**
+     * If true then the ride with this booking is confirmed by the passenger.
+     */
+    @Column(name = "confirmed_by_passenger")
+    private Boolean confirmedByPassenger;
+    
+    /**
+     * The reason of the (negative) confirmation of the passenger's trip (from the perspective of the passenger).
+     */
+    @Column(name = "conf_reason_by_passenger", length = 3)
+    private ConfirmationReasonType confirmationReasonByPassenger;
 
     /**
      * The costs of this booking in NetMobiel credits.
@@ -547,6 +558,22 @@ public class Booking extends ReferableObject implements Serializable {
 		this.confirmationReason = confirmationReason;
 	}
 
+	public Boolean getConfirmedByPassenger() {
+		return confirmedByPassenger;
+	}
+
+	public void setConfirmedByPassenger(Boolean confirmedByPassenger) {
+		this.confirmedByPassenger = confirmedByPassenger;
+	}
+
+	public ConfirmationReasonType getConfirmationReasonByPassenger() {
+		return confirmationReasonByPassenger;
+	}
+
+	public void setConfirmationReasonByPassenger(ConfirmationReasonType confirmationReasonByPassenger) {
+		this.confirmationReasonByPassenger = confirmationReasonByPassenger;
+	}
+
 	public Integer getFareInCredits() {
 		return fareInCredits;
 	}
@@ -576,7 +603,7 @@ public class Booking extends ReferableObject implements Serializable {
 	}
 
 	public boolean isConfirmationPending() {
-		return this.state == BookingState.CONFIRMED && hasFare() && this.confirmed == null;  
+		return this.state == BookingState.CONFIRMED && hasFare() && this.confirmed == null ;  
 	}
 
 	public boolean isPaymentDue() {
