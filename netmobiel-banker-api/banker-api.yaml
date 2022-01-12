@@ -455,7 +455,7 @@ paths:
               schema:
                 $ref: '#/components/schemas/Page'
           description: 'Success response. The results contains a pages result of `User`entities,
-            the `donatedAmount` atrtribute is defined. '
+            the `donatedAmount` attribute is defined. '
       operationId: reportGenerosity
       summary: Report generosity of users.
       description: Creates a list of users with the amount of credits each user has
@@ -1805,6 +1805,10 @@ components:
           $ref: '#/components/schemas/Account'
           description: The account. Only present when statements for multiple accounts
             are present.
+        rollback:
+          description: Read-only. If set then this statement concerns a rollback of
+            a payment or release transaction.
+          type: boolean
       example:
         account:
           ncan: PLA-51
