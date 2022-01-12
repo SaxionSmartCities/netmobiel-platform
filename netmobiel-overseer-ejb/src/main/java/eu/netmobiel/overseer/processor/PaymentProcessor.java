@@ -259,6 +259,7 @@ public class PaymentProcessor {
 		/**
 		 * Defaults: traveller confirms the trip, provider denies the trip.
 		 * If both have answered we can complete the trip, otherwise we have to wait for the expiration of the validation period.
+		 * We prefer explit answers because we also like to receive a review of each party.
 		 * Trav /Driver	Yes			No 			?
 		 *  Yes			Pay			Release		Release
 		 *  No			Dispute		Release		Release

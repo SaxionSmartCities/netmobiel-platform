@@ -657,12 +657,14 @@ public class RideManager {
     		if (hard) {
 	    		// Remove the ride from the listing
 	    		ridedb.setDeleted(true);
+	    		// No state changes.
     		}
     	} else if (! ridedb.getState().isPreTravelState()) {
     		// travelling, validating
     		throw new RemoveException(String.format("Cannot cancel ride %s; state %s forbids", ridedb.getId(), ridedb.getState()));
     	} else {
 	    	if (ridedb.getBookings().size() > 0) {
+	    		// Some booking connected (maybe even cancelled). Keep the ride in the database.
 	    		if (reason != null && !reason.isBlank()) {
 	    			ridedb.setCancelReason(reason.trim());
 	    		}
@@ -672,6 +674,7 @@ public class RideManager {
 		    		// Remove the ride from the listing
 		    		ridedb.setDeleted(true);
 	    		}
+	    		ridedb.cancel();
 	    		rideMonitor.updateRideStateMachine(ridedb);
 			} else {
 				rideDao.remove(ridedb);
@@ -693,7 +696,7 @@ public class RideManager {
      */
     public void removeRide(Long rideId, final String reason, RideScope scope, boolean hard) throws BusinessException {
     	Ride ridedb = rideDao.find(rideId)
-    			.orElseThrow(NotFoundException::new);
+    			.orElseThrow(() -> new NotFoundException("No such ride: " + rideId));
     	removeRide(ridedb, reason, hard);
     	if (ridedb.getRideTemplate() != null) {
     		// Recurrent ride
