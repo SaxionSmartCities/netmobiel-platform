@@ -105,6 +105,13 @@ public class AccountingTransaction  implements Serializable {
     @OneToMany(mappedBy = "transaction", cascade = CascadeType.PERSIST)
     private List<AccountingEntry> accountingEntries;
 
+    /**
+     * If set to true this is a rollback of an earlier transaction (with the same context).
+     * Used to indicate to the involved users that this concerns a special transaction. 
+     */
+	@Column(name = "is_rollback", nullable = false)
+    private boolean rollback;
+
     public AccountingTransaction() {
         this.accountingEntries = new ArrayList<>();
     }
@@ -179,6 +186,10 @@ public class AccountingTransaction  implements Serializable {
 		this.transactionType = transactionType;
 	}
 
+	public boolean isRollback() {
+		return rollback;
+	}
+
 	public Ledger getLedger() {
 		return ledger;
 	}
@@ -216,6 +227,11 @@ public class AccountingTransaction  implements Serializable {
 			}
 		}
 		
+		public AccountingTransaction.Builder rollback(boolean isRollback) {
+			this.transaction.rollback = isRollback;
+			return this;
+		}
+
 		public AccountingTransaction.Builder debit(Balance balance, int amount, Account counterparty) throws BalanceInsufficientException {
 			expectNotFinished();
 			addAccountingEntry(balance.getAccount(), counterparty, new AccountingEntry(AccountingEntryType.DEBIT, amount));

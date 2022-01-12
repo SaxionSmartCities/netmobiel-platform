@@ -154,8 +154,11 @@ public class LedgerService {
      * @param when the time of this financial fact.
      * @param description the description in the journal.
      * @param reference the contextual reference to a system object in the form of a urn.
+     * @param rollback if set then the transfer is a rollback
+     * @return the persisted transaction object
      */
-    public AccountingTransaction transfer(Account originator, Account beneficiary, int amount, OffsetDateTime when, String description, String reference) throws BalanceInsufficientException {
+    public AccountingTransaction transfer(Account originator, Account beneficiary, int amount, OffsetDateTime when, 
+    		String description, String reference, boolean rollback) throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
     	Balance originatorBalance = balanceDao.findByLedgerAndAccount(ledger, originator);  
@@ -164,6 +167,7 @@ public class LedgerService {
     	expect(beneficiaryBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
     			.createTransaction(TransactionType.PAYMENT, description, reference, when.toInstant(), Instant.now())
+    			.rollback(rollback)
     			.debit(originatorBalance, amount, beneficiaryBalance.getAccount())
 				.credit(beneficiaryBalance, amount, originatorBalance.getAccount())
     			.build();
@@ -178,8 +182,10 @@ public class LedgerService {
      * @param when the time of this financial fact.
      * @param description the description in the journal.
      * @param reference the contextual reference to a system object in the form of a urn.
+     * @param rollback if set then the transfer is a rollback
+     * @return the persisted transaction object
      */
-    public AccountingTransaction reserve(Account acc, int amount, OffsetDateTime when, String description, String reference) throws BalanceInsufficientException {
+    public AccountingTransaction reserve(Account acc, int amount, OffsetDateTime when, String description, String reference, boolean rollback) throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
     	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
@@ -188,6 +194,7 @@ public class LedgerService {
     	expect(rb.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
     			.createTransaction(TransactionType.RESERVATION, description, reference, when.toInstant(), Instant.now())
+    			.rollback(rollback)
     			.debit(userBalance, amount, rb.getAccount())
 				.credit(rb, amount, userBalance.getAccount())
     			.build();
@@ -236,13 +243,26 @@ public class LedgerService {
     	return tr;
     }
 
+    /**
+     * Reserves an amount of credits from a Netmobiel user for a yet to be delivered service. 
+     * @param nmuser the netmobiel user to be charged
+     * @param amount the amount of credits
+     * @param description the description in the journal.
+     * @param reference the contextual reference to a system object in the form of a urn.
+     * @return the transaction urn
+     */
     public String reserve(NetMobielUser nmuser, int amount, String description, String reference) throws BalanceInsufficientException {
     	BankerUser user = lookupUser(nmuser)
     			.orElseThrow(() -> new BalanceInsufficientException("User has no deposits made yet: " + nmuser.getManagedIdentity()));
-    	AccountingTransaction tr = reserve(user.getPersonalAccount(), amount, OffsetDateTime.now(), description, reference);
+    	AccountingTransaction tr = reserve(user.getPersonalAccount(), amount, OffsetDateTime.now(), description, reference, false);
     	return tr.getTransactionRef();
     }
 
+    /**
+     * Releases a previous reservation. 
+     * @param reservationId the earlier reservation transaction
+     * @return the transaction urn
+     */
     public String release(String reservationId) throws BadRequestException {
     	AccountingTransaction tr = release(reservationId, OffsetDateTime.now());
     	return tr.getTransactionRef();
@@ -250,8 +270,8 @@ public class LedgerService {
 
     /**
      * Reverses an earlier release by reserving the same amount again.
-     * @param releaseId the earlier release transaction
-     * @return
+     * @param releaseId the earlier release transaction urn
+     * @return the persisted transaction
      * @throws BadRequestException
      * @throws BalanceInsufficientException
      */
@@ -260,10 +280,19 @@ public class LedgerService {
     	AccountingTransaction release = accountingTransactionDao.find(releaseTid).orElseThrow(() -> new IllegalArgumentException("No such transaction: " + releaseId));
     	AccountingEntry originator = release.findByEntryType(AccountingEntryType.CREDIT);
     	AccountingTransaction tr = reserve(originator.getAccount(), originator.getAmount(), 
-    			OffsetDateTime.now(), "REVERSED: " + release.getDescription(), release.getContext());
+    			OffsetDateTime.now(), release.getDescription(), release.getContext(), true);
     	return tr.getTransactionRef();
     }
 
+    /**
+     * Reserves an amount of credits from a Netmobiel user for a yet to be delivered service. 
+     * @param nmbeneficiary the netmobiel user to benefit.
+     * @param reservationId the earlier reservation transaction urn
+     * @param actualAmount the amount of credits to charge. Must be less or equal to the reserved amount. 
+     * @return the persisted transfer transaction
+     * @throws BadRequestException
+     * @throws BalanceInsufficientException
+     */
     public String charge(NetMobielUser nmbeneficiary, String reservationId, int actualAmount) throws BalanceInsufficientException, OverdrawnException, BadRequestException {
     	BankerUser beneficiary = lookupUser(nmbeneficiary)
     			.orElseThrow(() -> new BalanceInsufficientException("Beneficiary has no account, nothing to transfer to: " + nmbeneficiary.getManagedIdentity()));
@@ -273,7 +302,8 @@ public class LedgerService {
     		throw new OverdrawnException("Charge exceeds reservation: " + reservationId + " " + overspent);
     	}
     	AccountingEntry userEntry = release.lookupByCounterParty(ACC_REF_RESERVATIONS);
-    	AccountingTransaction charge_tr = transfer(userEntry.getAccount(), beneficiary.getPersonalAccount(), actualAmount, OffsetDateTime.now(), release.getDescription(), release.getContext());
+    	AccountingTransaction charge_tr = transfer(userEntry.getAccount(), beneficiary.getPersonalAccount(), 
+    			actualAmount, OffsetDateTime.now(), release.getDescription(), release.getContext(), false);
     	return charge_tr.getTransactionRef();
     }
 
@@ -293,10 +323,10 @@ public class LedgerService {
 
     	@SuppressWarnings("unused")
 		AccountingTransaction unchargeTrs = transfer(beneficiary.getAccount(), originator.getAccount(), beneficiary.getAmount(), 
-    			OffsetDateTime.now(), "REVERSED: " + charge.getDescription(), charge.getContext());
+    			OffsetDateTime.now(), charge.getDescription(), charge.getContext(), true);
 
     	AccountingTransaction reservationTrs = reserve(originator.getAccount(), originator.getAmount(), 
-    			OffsetDateTime.now(), "REVERSED: " + charge.getDescription(), charge.getContext());
+    			OffsetDateTime.now(), charge.getDescription(), charge.getContext(), true);
     	return reservationTrs.getTransactionRef();
     }
 
@@ -517,7 +547,7 @@ public class LedgerService {
      */
     public void onNewSettlementOrder(final @Observes(during = TransactionPhase.IN_PROGRESS) @Created SettlementOrder order) throws BalanceInsufficientException {
     	transfer(order.getOriginator(), order.getBeneficiary(), order.getAmount(), 
-    			order.getEntryTime().atOffset(ZoneOffset.UTC), order.getDescription(), order.getContext());
+    			order.getEntryTime().atOffset(ZoneOffset.UTC), order.getDescription(), order.getContext(), false);
     }
     
     /**

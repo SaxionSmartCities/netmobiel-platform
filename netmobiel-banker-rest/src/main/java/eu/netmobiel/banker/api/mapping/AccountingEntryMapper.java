@@ -28,6 +28,7 @@ public interface AccountingEntryMapper {
 	@Mapping(target = "description", source = "transaction.description")
 	@Mapping(target = "transactionType", source = "transaction.transactionType")
 	@Mapping(target = "context", source = "transaction.context")
+	@Mapping(target = "rollback", source = "transaction.rollback")
 	@Mapping(target = "counterparty", source = "counterparty", qualifiedBy = { AccountMapperQualifier.class, AccountMinimal.class } )
 	@Mapping(target = "account", source = "account", qualifiedBy = { AccountMapperQualifier.class, AccountMinimal.class } )
 	@AccountingEntryAccount
@@ -39,6 +40,7 @@ public interface AccountingEntryMapper {
 	@Mapping(target = "description", source = "transaction.description")
 	@Mapping(target = "transactionType", source = "transaction.transactionType")
 	@Mapping(target = "context", source = "transaction.context")
+	@Mapping(target = "rollback", source = "transaction.rollback")
 	@Mapping(target = "counterparty", source = "counterparty", qualifiedBy = { AccountMapperQualifier.class, AccountMinimal.class } )
 	@Mapping(target = "account", ignore = true )
 	@AccountingEntryShallow

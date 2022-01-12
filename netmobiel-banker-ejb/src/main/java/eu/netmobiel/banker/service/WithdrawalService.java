@@ -147,7 +147,7 @@ public class WithdrawalService {
     	// Assure PostPersist is called.
     	withdrawalRequestDao.flush();
     	// Save the request first, otherwise we cannot insert the reference in the transaction. 
-    	AccountingTransaction tr = ledgerService.reserve(acc, amountCredits, now, description, wr.getUrn());
+    	AccountingTransaction tr = ledgerService.reserve(acc, amountCredits, now, description, wr.getUrn(), false);
     	wr.setTransaction(tr);
     	return wr.getId();
     }
