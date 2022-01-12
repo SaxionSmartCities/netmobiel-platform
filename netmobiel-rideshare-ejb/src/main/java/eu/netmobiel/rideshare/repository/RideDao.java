@@ -152,7 +152,8 @@ public class RideDao extends AbstractDao<Ride, Long> {
     			"r.nrSeatsAvailable >= :nrSeatsRequested and " +
     			"(r.deleted is null or r.deleted = false) and " +
     			"(:maxBookings is null or (select cast(count(b) as java.lang.Integer) from r.bookings b where b.state <> eu.netmobiel.rideshare.model.BookingState.CANCELLED) < :maxBookings) and " +
-    			"(:traveller is null or r.driver != :traveller) ";
+    			"(:traveller is null or r.driver != :traveller) and " +
+    			"r.state = :state";
     	TypedQuery<Long> tq = null;
     	if (maxResults == 0) {
     		// Only request the possible number of results
@@ -170,7 +171,8 @@ public class RideDao extends AbstractDao<Ride, Long> {
 			.setParameter("nrSeatsRequested", nrSeatsRequested)
 			.setParameter("lenient", lenient)
     		.setParameter("maxBookings", maxBookings)
-    		.setParameter("traveller", traveller);
+    		.setParameter("traveller", traveller)
+    		.setParameter("state", RideState.SCHEDULED);
         Long totalCount = null;
         List<Long> results = Collections.emptyList();
         if (maxResults == 0) {
