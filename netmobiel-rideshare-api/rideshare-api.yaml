@@ -1460,7 +1460,6 @@ components:
           enum:
           - CANCELLED
           - PAID
-          - DISPUTED
           type: string
         paymentId:
           description: The urn to the payment transaction. Only present when the payment
