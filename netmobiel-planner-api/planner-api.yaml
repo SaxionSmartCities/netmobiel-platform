@@ -1528,7 +1528,6 @@ components:
           description: 'The state of the (credit) payment for the leg. '
           enum:
           - RESERVED
-          - RELEASED
           - PAID
           - CANCELLED
           type: string
