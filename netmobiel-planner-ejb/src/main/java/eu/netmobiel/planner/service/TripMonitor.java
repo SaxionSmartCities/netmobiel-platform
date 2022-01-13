@@ -65,8 +65,8 @@ public class TripMonitor {
 	/**
 	 * The maximum duration of the first confirmation period.
 	 */
-//	private static final Duration VALIDATION_INTERVAL = Duration.ofDays(2);
-	private static final Duration VALIDATION_INTERVAL = Duration.ofMinutes(2).plus(Duration.ofSeconds(10));
+	private static final Duration VALIDATION_INTERVAL = Duration.ofDays(2);
+//	private static final Duration VALIDATION_INTERVAL = Duration.ofMinutes(2).plus(Duration.ofSeconds(10));
 	/**
 	 * The duration of the pre-departing period in which the monitoring should start or have started.
 	 */

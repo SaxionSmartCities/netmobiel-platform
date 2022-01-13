@@ -66,8 +66,8 @@ public class RideMonitor {
 	/**
 	 * The duration of the validation interval (before sending the next reminder).
 	 */
-//	private static final Duration VALIDATION_INTERVAL = Duration.ofDays(2);
-	private static final Duration VALIDATION_INTERVAL = Duration.ofMinutes(2);
+	private static final Duration VALIDATION_INTERVAL = Duration.ofDays(2);
+//	private static final Duration VALIDATION_INTERVAL = Duration.ofMinutes(2);
 	/**
 	 * The duration of the pre-departing period in which the monitoring should start or have started.
 	 */
