@@ -96,4 +96,10 @@ public class BookingDao extends AbstractDao<Booking, Long> {
         return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
+    public List<Booking> findActiveBookingsWithoutLegs() {
+    	TypedQuery<Booking> tq = em.createQuery("from Booking b where b.state <> :cancelledState and b.legs is empty", Booking.class)
+    			.setParameter("cancelledState", BookingState.CANCELLED);
+    	return tq.getResultList();
+    }
+
 }

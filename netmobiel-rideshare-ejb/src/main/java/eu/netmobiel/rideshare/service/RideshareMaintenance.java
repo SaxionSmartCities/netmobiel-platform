@@ -52,6 +52,7 @@ public class RideshareMaintenance {
 		log.info("Starting up the Rideshare, doing some maintenance tasks");
 		rideMonitor.reviveRideMonitors();
 		schedulePostalCodeGeocoding();
+		rideManager.fixMissingBookedLegs();
 	}
 	
 	private static class GeocodingTimerInfo implements Serializable {

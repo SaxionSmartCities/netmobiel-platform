@@ -7,6 +7,7 @@ import java.time.format.DateTimeFormatter;
 import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 import javax.ejb.Schedule;
@@ -735,9 +736,9 @@ public class RideManager {
 		return affectedRows;
 	}
 
-	/**********************************************/
-	/**********   CALLBACK METHODS  ***************/
-	/**********************************************/
+	/*********************************************/
+	/**********  CALLBACK METHODS  ***************/
+	/*********************************************/
 	
     public void onStaleItinerary(@Observes(during = TransactionPhase.IN_PROGRESS) @Updated Ride ride) throws BusinessException {
 		if (ride.isDeleted()) {
@@ -756,4 +757,33 @@ public class RideManager {
     public void onRideEvaluation(@Observes(during = TransactionPhase.AFTER_SUCCESS) RideEvaluatedEvent event) {
     	rideMonitor.updateStateMachineAsync(event.getRide().getId());
     }
+
+	/************************************************/
+	/**********  MAINTENANCE METHODS  ***************/
+	/************************************************/
+	
+    /**
+	 * Repairs the faulty booked legs table where it seems necessary.
+	 * This method is called at startup of the application as sanity check.
+	 */
+	public void fixMissingBookedLegs() {
+		// Find all confirmed bookings without legs
+		List<Booking> bookings = bookingDao.findActiveBookingsWithoutLegs();
+		if (bookings.isEmpty()) {
+			log.info("Found NO bookings without legs.");	
+		} else {
+			log.info("Found bookings without legs: " + String.join(", ", bookings.stream()
+								.map(b -> b.getId().toString())
+								.collect(Collectors.toList())));
+			for (Booking booking : bookings) {
+				Ride r = rideDao.loadGraph(booking.getRide().getId(), Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH).orElse(null);
+				try {
+					rideItineraryHelper.updateBookedLegs(r);
+				} catch (Exception ex) {
+					log.error(String.format("Ride r %s: %s", r.getId(), ex.toString()));
+				}
+			}
+		}
+	}
+	
 }

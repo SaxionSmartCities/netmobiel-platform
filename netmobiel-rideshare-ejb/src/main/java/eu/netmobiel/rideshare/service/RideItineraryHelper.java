@@ -157,8 +157,33 @@ public class RideItineraryHelper {
 		}
     	
     	// Compute the leg - booking relationship
-    	// For each booking: Determine the first leg and the last leg, then add intermediate legs.
-    	// In case of a single booking there is always just one leg. 
+    	updateBookedLegs(ride);
+
+    	int distance = newLegs.stream().collect(Collectors.summingInt(Leg::getDistance));
+    	ride.setDistance(distance);
+    	// Old cars don't have the CO2 emission specification
+    	if (ride.getCar().getCo2Emission() != null) {
+    		ride.setCO2Emission(Math.toIntExact(Math.round(ride.getDistance() * ride.getCar().getCo2Emission() / 1000.0)));
+    	}
+    	// Set the correct departure/arrival time
+    	if (ride.isArrivalTimePinned()) {
+    		Stop departureStop = newLegs.get(0).getFrom();
+    		ride.setDepartureTime(departureStop.getDepartureTime());
+    	} else {
+    		Stop arrivalStop = newLegs.get(newLegs.size() - 1).getTo();
+    		ride.setArrivalTime(arrivalStop.getArrivalTime());
+    	}
+    	if (log.isDebugEnabled()) {
+    		log.debug("Updated itinerary: " + ride.toString());
+    	}
+    }
+
+    /**
+     * Compute the leg - booking relationship. For each booking: Determine the first leg and the last leg, 
+     * then add intermediate legs. In case of a single booking there is always just one leg.
+     * @param ride the ride in question, must be in persistence context.
+     */
+    public void updateBookedLegs(Ride ride) {
     	ClosenessFilter closenessFilter = new ClosenessFilter(MAX_BOOKING_LOCATION_SHIFT);
     	List<Booking> bookings = bookingDao.findByRide(ride);
     	for (Booking booking : bookings) {
@@ -190,24 +215,5 @@ public class RideItineraryHelper {
 //							.map(b -> b.getId().toString())
 //							.collect(Collectors.toList())))));
 		}
-    	int distance = newLegs.stream().collect(Collectors.summingInt(Leg::getDistance));
-    	ride.setDistance(distance);
-    	// Old cars don't have the CO2 emission specification
-    	if (ride.getCar().getCo2Emission() != null) {
-    		ride.setCO2Emission(Math.toIntExact(Math.round(ride.getDistance() * ride.getCar().getCo2Emission() / 1000.0)));
-    	}
-    	// Set the correct departure/arrival time
-    	if (ride.isArrivalTimePinned()) {
-    		Stop departureStop = newLegs.get(0).getFrom();
-    		ride.setDepartureTime(departureStop.getDepartureTime());
-    	} else {
-    		Stop arrivalStop = newLegs.get(newLegs.size() - 1).getTo();
-    		ride.setArrivalTime(arrivalStop.getArrivalTime());
-    	}
-    	if (log.isDebugEnabled()) {
-    		log.debug("Updated itinerary: " + ride.toString());
-    	}
     }
-
-
 }
