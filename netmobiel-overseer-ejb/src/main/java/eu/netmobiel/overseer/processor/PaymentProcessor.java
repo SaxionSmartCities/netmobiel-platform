@@ -179,7 +179,7 @@ public class PaymentProcessor {
     }
 
     /**
-     * Mark the booking fare as disputed (in the booking only). 
+     * Mark the booking fare as disputed. To be designed.
      * @param trip
      * @param leg
      * @param booking
@@ -189,7 +189,6 @@ public class PaymentProcessor {
     	assertLegHasFareInCredits(leg);
     	assertLegPaymentState(leg, PaymentState.RESERVED);
     	assertBookingPaymentState(booking, null);
-		bookingManager.updatePaymentState(booking, PaymentState.DISPUTED, null);
     }
 
     /**
