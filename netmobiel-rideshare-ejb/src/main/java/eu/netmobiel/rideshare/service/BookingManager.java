@@ -376,8 +376,8 @@ public class BookingManager {
     	bdb.setConfirmationReason(null);
     	bdb.setConfirmedByPassenger(null);
     	bdb.setConfirmationReasonByPassenger(null);
-    	if (bdb.getPaymentState() != null && bdb.getPaymentState() != PaymentState.DISPUTED) {
-    		log.warn("Expected booking payment state to be cleared: " + bdb.getUrn());
+    	if (bdb.getPaymentState() != null) {
+    		log.warn("Expected booking payment state to be cleared already: " + bdb.getUrn());
     	}
 		rideMonitor.restartValidation(bdb.getRide());
     }

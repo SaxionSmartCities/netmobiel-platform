@@ -20,12 +20,7 @@ public enum PaymentState {
 	/**
 	 * The trip has been cancelled. The transaction refers to the release (in case of benefactor).
 	 */
-	CANCELLED("C"),
-	/**
-	 * The passenger ('no') and the driver ('yes') do not agree, the payment is disputed. This state is 
-	 * only used at the side of the beneficiary.
-	 */
-	DISPUTED("D");
+	CANCELLED("C");
 
 	private String code;
 	 

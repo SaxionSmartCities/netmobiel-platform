@@ -225,21 +225,6 @@ public class PaymentProcessor {
 		bookingManager.updatePaymentState(booking, null, null);
     }
 
-//    /**
-//     * Reverses the earlier dispute setting by clearing this state from the booking.
-//     * The leg is not touched.
-//     * @param trip
-//     * @param leg
-//     * @param booking
-//     * @throws BusinessException
-//     */
-//    private void undisputeFare(Trip trip, Leg leg, Booking booking) throws BusinessException {
-//    	assertLegHasFareInCredits(leg);
-//    	assertLegPaymentState(leg, PaymentState.RESERVED);
-//    	assertBookingPaymentState(booking, PaymentState.DISPUTED);
-//		bookingManager.updatePaymentState(booking, null, null);
-//    }
-
     /**
      * Evaluates the current state of trip. If enough information is provided a payment is made or cancelled.
      * In case of a dispute the payment state remains as is.
@@ -331,24 +316,6 @@ public class PaymentProcessor {
 			}
 		}
     }
-
-//    /**
-//     * Handle the revocation of the confirmation if disputed. The disputed state is only at the driver.
-//     * 
-//     * @param tripId the trip to consider
-//     * @throws BusinessException
-//     */
-//    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
-//    public void revokeDisputedTripConfirmation(String tripId) throws BusinessException {
-//    	Trip trip = tripManager.getTrip(UrnHelper.getId(Trip.URN_PREFIX, tripId));
-//   		for (Leg leg : trip.getItinerary().findLegsToConfirm()) {
-//			Booking booking = bookingManager.getShallowBooking(leg.getBookingId());
-//			if (booking.getPaymentState() == PaymentState.DISPUTED) {
-//				undisputeFare(trip, leg, booking);
-//				resetConfirmation(leg, booking);
-//			}
-//		}
-//    }
 
     private static final String SUBJECT = "Verschil van mening over rit";
     private static final String BODY = 

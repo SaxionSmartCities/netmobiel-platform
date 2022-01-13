@@ -46,7 +46,6 @@ public interface LegMapper {
     // GuideStep <--> GuideStep
     eu.netmobiel.planner.api.model.GuideStep map(GuideStep source );
 
-    @ValueMapping(target = MappingConstants.NULL, source = "DISPUTED")
     public abstract PaymentStateEnum map(PaymentState source);
     
     // Translation of the confirmation reason (used in confirmTrip)
