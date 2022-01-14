@@ -48,7 +48,6 @@ public interface TripMapper {
     @Mapping(target = "to", ignore = true)
     @Mapping(target = "traveller", ignore = true)
     @Mapping(target = "tripRef", ignore = true)
-    @Mapping(target = "monitored", ignore = true)
     @Mapping(target = "agencies", ignore = true)
     @Mapping(target = "arrivalPostalCode", ignore = true)
     @Mapping(target = "departurePostalCode", ignore = true)

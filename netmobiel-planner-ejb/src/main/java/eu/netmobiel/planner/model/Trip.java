@@ -408,12 +408,6 @@ public class Trip implements Serializable {
     private boolean arrivalTimeIsPinned;
 
     /**
-     * If true then the trip is being monitored by the trip monitor.
-     */
-    @Column(name = "monitored", nullable = false)
-    private boolean monitored;
-
-    /**
      * If true then the trip (in fact the booking of one of the legs) was cancelled by the mobility provider.
      */
     @Column(name = "cancelled_by_provider")
@@ -569,14 +563,6 @@ public class Trip implements Serializable {
 
 	public void setArrivalTimeIsPinned(boolean arrivalTimeIsPinned) {
 		this.arrivalTimeIsPinned = arrivalTimeIsPinned;
-	}
-
-	public boolean isMonitored() {
-		return monitored;
-	}
-
-	public void setMonitored(boolean monitored) {
-		this.monitored = monitored;
 	}
 
 	public Boolean getCancelledByProvider() {
