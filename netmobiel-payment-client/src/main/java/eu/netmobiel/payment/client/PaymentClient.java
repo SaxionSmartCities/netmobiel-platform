@@ -102,6 +102,12 @@ public class PaymentClient {
         try (Response response = target.request()
                 .header(HttpHeaders.AUTHORIZATION, authorizationValue)
                 .get()) {
+	        if (response.getStatusInfo() == Response.Status.NOT_FOUND) {
+	        	throw new NotFoundException("No such payment link: " + id);
+	        }
+	        if (response.getStatusInfo() != Response.Status.OK) {
+	        	throw new WebApplicationException("Error retrieving payment link: " + id, response.getStatus());
+	        }
         	link = response.readEntity(PaymentLink.class);
         }
         return link;
