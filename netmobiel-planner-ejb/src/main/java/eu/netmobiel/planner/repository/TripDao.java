@@ -94,17 +94,6 @@ public class TripDao extends AbstractDao<Trip, Long> {
         return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
-//    public List<Trip> findMonitorableTrips(Instant departureBefore) {
-//    	List<Trip> trips = em.createQuery(
-//    			"from Trip t " + 
-//    			"where state = :state and monitored = false and t.itinerary.departureTime < :departureTime " +
-//    			"order by t.itinerary.departureTime asc", Trip.class)
-//    			.setParameter("state", TripState.SCHEDULED)
-//    			.setParameter("departureTime", departureBefore)
-//    			.getResultList();
-//    	return trips; 
-//    }
-
 	public List<Long> findTripsToMonitor(Instant departureBefore) {
 		List<Long> trips = em
 				.createQuery("select t.id from Trip t "
@@ -116,17 +105,6 @@ public class TripDao extends AbstractDao<Trip, Long> {
 				.getResultList();
 		return trips;
 	}
-
-//    /**
-//     * Find all trips that are monitored right now, according to their monitor status.
-//     * @return A list of trips with the monitor flag set.
-//     */
-//    public List<Trip> findMonitoredTrips() {
-//    	List<Trip> trips = em.createQuery(
-//    			"from Trip t where monitored = true order by t.itinerary.departureTime asc", Trip.class)
-//    			.getResultList();
-//    	return trips; 
-//    }
 
     public Optional<Long> findTripIdByItineraryId(Long itineraryId) {
     	Long tripId = null;
