@@ -71,6 +71,7 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 	            .addClass(RideMonitor.class)
 	            .addClass(IdentityHelper.class)
 	            .addClass(EventListenerHelper.class)
+	            .addClass(RideMonitor.class)
 	            .addClass(RideManager.class);
 //   		System.out.println(archive.toString(true));
 		return archive;
@@ -286,23 +287,20 @@ public class RideManagerIT extends RideshareIntegrationTestBase {
 		b.setState(BookingState.CONFIRMED);
 		em.persist(b);
 		flush();
+
+		eventListenerHelper.reset();
 		rideManager.removeRide(rideId, null, null, true);
 		Long count = em.createQuery("select count(r) from Ride r where r.id = :id and r.deleted = true", Long.class)
 				.setParameter("id", rideId)
 				.getSingleResult();
 		assertEquals(1L, count.longValue());
-		eventListenerHelper.reset();
-		// Test starts here
-		flush();
-//		try {
-//			expectFailure();
-//			rideManager.removeRide(rideId, null, null, true);
-//			fail("Expected a SoftRemovedException");
-//		} catch (Exception ex) {
-//			assertTrue(ex instanceof SoftRemovedException);
-//		}
-		rideManager.removeRide(rideId, null, null, true);
 		assertEquals(1, eventListenerHelper.getRideRemovedEventCount());
+		flush();
+
+		// Check removing a removed ride
+		eventListenerHelper.reset();
+		rideManager.removeRide(rideId, null, null, true);
+		assertEquals(0, eventListenerHelper.getRideRemovedEventCount());
     }
     
     public Long createRecurrentRides(int nrRides) throws Exception {

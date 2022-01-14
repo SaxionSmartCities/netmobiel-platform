@@ -56,6 +56,7 @@ public class BookingManagerIT extends RideshareIntegrationTestBase {
 	            .addPackage(RideEvent.class.getPackage())
 	            .addClass(EventListenerHelper.class)
 	            .addClass(RideItineraryHelper.class)
+	            .addClass(RideMonitor.class)
 	            .addClass(BookingManager.class);
 //   		System.out.println(archive.toString(true));
 		return archive;

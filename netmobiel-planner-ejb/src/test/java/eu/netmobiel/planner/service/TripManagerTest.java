@@ -8,6 +8,7 @@ import java.util.Optional;
 import javax.ejb.SessionContext;
 import javax.ejb.TimerService;
 import javax.enterprise.event.Event;
+import javax.inject.Inject;
 
 import org.junit.After;
 import org.junit.Before;
@@ -15,6 +16,7 @@ import org.junit.Test;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
+import eu.netmobiel.commons.event.TripValidationEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -23,6 +25,7 @@ import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.repository.ClockDao;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.here.search.HereSearchClient;
+import eu.netmobiel.planner.event.BookingAssignedEvent;
 import eu.netmobiel.planner.event.BookingCancelledEvent;
 import eu.netmobiel.planner.event.BookingConfirmedEvent;
 import eu.netmobiel.planner.event.BookingRequestedEvent;
@@ -80,13 +83,16 @@ public class TripManagerTest {
     private Event<ShoutOutResolvedEvent> shoutOutResolvedEvent;
 
     @Injectable
-    private Event<TripStateUpdatedEvent> tripStateUpdatedEvent;
+    private Event<TripValidationEvent> tripValidationEvent;
 
     @Injectable
     private Event<TripConfirmedEvent> tripConfirmedEvent;
 
     @Injectable
     private Event<TripUnconfirmedEvent> tripUnconfirmedEvent;
+
+    @Injectable
+    private Event<BookingAssignedEvent> bookingAssignedEvent;
 
     @Injectable
     private SessionContext context;
