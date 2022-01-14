@@ -66,8 +66,8 @@ public class PaymentClientIT {
     private Logger log;
 
     private static String lastPaymentLinkId;
-    private static final String wellknownOrderId = "4bf9f6fa-eb1d-4737-aebb-836328f91c7f";
-    private static final String wellknownPaymentLinkId = "a76dcc53-0362-409b-b35a-c664b88d174b";
+    private static final String wellknownOrderId = "ff3235d7-0f3e-4029-baaf-881ee36f2280";
+    private static final String wellknownPaymentLinkId = "727a4c83-e486-4b6e-8066-8754b424ff79";
     
     @Test
     @InSequence(1)
@@ -127,8 +127,8 @@ public class PaymentClientIT {
 			PaymentOrder order = paymentClient.getPaymentOrder(wellknownOrderId);
 		    assertNotNull(order);
 		    log.debug(order.toString());
-		    assertEquals(order.id, wellknownOrderId);
-		    assertEquals(order.relatedPaymentLinkId, wellknownPaymentLinkId);
+		    assertEquals(wellknownOrderId, order.id);
+		    assertEquals(wellknownPaymentLinkId, order.relatedPaymentLinkId);
     	} catch (Exception ex) {
     		log.error("Failed to retrieve payment order - " + ex.toString(), ex);
     		fail("Failed to retrieve payment order");
