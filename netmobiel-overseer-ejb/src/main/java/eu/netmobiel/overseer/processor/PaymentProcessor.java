@@ -108,7 +108,7 @@ public class PaymentProcessor {
     }
 
 	private static void assertBookingPaymentState(Booking booking, PaymentState expectedState) {
-		if (booking.getPaymentState() != expectedState) {
+		if (booking.getPaymentState() != null && booking.getPaymentState() != expectedState) {
 			throw new IllegalStateException("Unexpected booking payment state: " + 
 					booking.getUrn() + " " + booking.getPaymentState() + " " + booking.getPaymentId());
 		}
