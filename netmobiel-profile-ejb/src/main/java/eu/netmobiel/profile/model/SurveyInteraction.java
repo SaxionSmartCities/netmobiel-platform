@@ -94,7 +94,7 @@ public class SurveyInteraction implements Serializable {
 		this.id = new SurveyInteractionId(survey, profile);
 		this.triggerTime = triggerTime;
 		this.invitationTime = invitationTime;
-		this.invitationCount = 1;
+		this.invitationCount = 0;
 		this.redirectCount = 0;
 	}
 
