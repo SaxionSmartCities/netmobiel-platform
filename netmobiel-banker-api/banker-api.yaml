@@ -1791,6 +1791,7 @@ components:
           - DEPOSIT
           - WITHDRAWAL
           - PAYMENT
+          - REFUND
           - RESERVATION
           - RELEASE
           type: string
