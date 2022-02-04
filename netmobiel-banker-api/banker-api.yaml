@@ -1950,49 +1950,6 @@ components:
           type: string
       example:
         status: COMPLETED
-    User:
-      description: 'A user in the message service. '
-      required:
-      - managedIdentity
-      - givenName
-      - familyName
-      - credits
-      type: object
-      properties:
-        id:
-          format: int64
-          description: 'The unique user id. If referenced use the URN notation: urn:nb:bn:user:<id>'
-          type: integer
-        managedIdentity:
-          description: The user is as known by the IDM (Keycloak). The format is determined
-            by the IDM.
-          type: string
-        givenName:
-          description: The first name of the driver.
-          type: string
-        familyName:
-          description: The family name of the driver.
-          type: string
-        email:
-          description: The email address of the user.
-          type: string
-        donatedCredits:
-          description: Donated amount of credits. The attribute is defined only as
-            part of the generosity report. The value depends on the filter parameters
-            of the report.
-          type: integer
-        personalAccount:
-          $ref: '#/components/schemas/Account'
-          description: The personal NetMobiel account for the user.
-      example:
-        familyName: Normalverbraucher
-        givenName: Otto
-        id: 2
-        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
-        personalAccount:
-          credits: 10
-          iban: NL02ABNA0123456789,
-          ibanHolder: Jan Smit
     Account:
       description: A credits account in NetMobiel.
       required:
@@ -2025,12 +1982,20 @@ components:
             The balance is only present after specific queries.
             This is a read-only property.
           type: integer
+        purpose:
+          description: The purpose of the account.
+          enum:
+          - SYSTEM
+          - CURRENT
+          - PREMIUM
+          type: string
       example:
         name: Jantje NB Smit
         ncan: PLA-1234567890
         id: 2
         iban: NL02ABNA0123456789,
         ibanHolder: Jan Smit
+        purpose: CURRENT
     Balance:
       title: Root Type for Balance
       description: A representation of the balance of an account.
@@ -2330,6 +2295,53 @@ components:
         status: REQUESTED
         account:
           name: Smit, Jan
+          iban: NL02ABNA0123456789,
+          ibanHolder: Jan Smit
+    User:
+      description: 'A user in the message service. '
+      required:
+      - managedIdentity
+      - givenName
+      - familyName
+      - credits
+      type: object
+      properties:
+        id:
+          format: int64
+          description: 'The unique user id. If referenced use the URN notation: urn:nb:bn:user:<id>'
+          type: integer
+        managedIdentity:
+          description: The user is as known by the IDM (Keycloak). The format is determined
+            by the IDM.
+          type: string
+        givenName:
+          description: The first name of the driver.
+          type: string
+        familyName:
+          description: The family name of the driver.
+          type: string
+        email:
+          description: The email address of the user.
+          type: string
+        donatedCredits:
+          description: Donated amount of credits. The attribute is defined only as
+            part of the generosity report. The value depends on the filter parameters
+            of the report.
+          type: integer
+        personalAccount:
+          $ref: '#/components/schemas/Account'
+          description: The personal (current) NetMobiel account for the user.
+        premiumAccount:
+          $ref: '#/components/schemas/Account'
+          description: The premium NetMobiel account for the user. Premium credits
+            are saved in this account.
+      example:
+        familyName: Normalverbraucher
+        givenName: Otto
+        id: 2
+        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+        personalAccount:
+          credits: 10
           iban: NL02ABNA0123456789,
           ibanHolder: Jan Smit
   responses:
