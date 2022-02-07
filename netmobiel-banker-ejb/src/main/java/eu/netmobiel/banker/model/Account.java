@@ -110,33 +110,43 @@ public class Account implements Serializable {
      */
     @Transient
     private Balance actualBalance;
-    
+
+    /**
+     * The IBAN account to transfer to in case of a withdrawal.
+     */
     @IBANBankAccount
 	@Size(max = 48)
     @Column(name = "iban")
     private String iban;
 
+    /**
+     * The name of the IBAN account holder
+     */
 	@Size(max = 96)
     @Column(name = "iban_holder")
     private String ibanHolder;
 
+    /**
+     * The account purpose type.
+     */
+	@NotNull
+    @Column(name = "purpose", length = 1)
+    private AccountPurposeType purpose;
+	
 	public Account() {
 		// Constructor
     }
 
-    public static Account newInstant(String aReference, String aName, AccountType aType) {
-    	Account acc = new Account();
-    	acc.ncan = aReference;
-    	acc.name = aName;
-    	acc.accountType = aType;
-        return newInstant(aReference, aName, aType, null);
+    public static Account newInstant(String aReference, String aName, AccountType aType, AccountPurposeType aPurpose) {
+        return newInstant(aReference, aName, aType, aPurpose, null);
     }
 
-    public static Account newInstant(String aReference, String aName, AccountType aType, Instant aCreatedTime) {
+    public static Account newInstant(String aReference, String aName, AccountType aType, AccountPurposeType aPurpose, Instant aCreatedTime) {
     	Account acc = new Account();
     	acc.ncan = aReference;
     	acc.name = aName;
     	acc.accountType = aType;
+    	acc.purpose = aPurpose;
     	acc.createdTime = aCreatedTime;
         return acc;
     }
@@ -237,6 +247,14 @@ public class Account implements Serializable {
 		this.ibanHolder = ibanHolder;
 	}
 
+	public AccountPurposeType getPurpose() {
+		return purpose;
+	}
+
+	public void setPurpose(AccountPurposeType purpose) {
+		this.purpose = purpose;
+	}
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(ncan);
@@ -256,7 +274,7 @@ public class Account implements Serializable {
 
     @Override
 	public String toString() {
-		return String.format("Account [%s %s %s %s]", id, StringUtils.abbreviate(ncan, 11), name, accountType);
+		return String.format("Account [%s %s %s %s %s]", id, StringUtils.abbreviate(ncan, 11), name, accountType, purpose);
 	}
 
 }

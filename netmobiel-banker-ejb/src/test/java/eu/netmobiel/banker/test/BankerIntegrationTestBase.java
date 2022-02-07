@@ -22,6 +22,7 @@ import eu.netmobiel.banker.Resources;
 import eu.netmobiel.banker.annotation.BankerDatabase;
 import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.model.Account;
+import eu.netmobiel.banker.model.AccountPurposeType;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.BankerUser;
@@ -218,7 +219,7 @@ public abstract class BankerIntegrationTestBase {
 	protected void prepareBasicLedger() {
         ledger = Fixture.createLedger("ledger-1", "2020-01-01T01:00:00Z", null);
         em.persist(ledger);
-    	bankingReserve = Account.newInstant("banking-reserve", "De Kluis", AccountType.ASSET, Instant.parse("2020-07-01T00:00:00Z"));
+    	bankingReserve = Account.newInstant("banking-reserve", "De Kluis", AccountType.ASSET, AccountPurposeType.SYSTEM, Instant.parse("2020-07-01T00:00:00Z"));
         em.persist(bankingReserve);
     	account1 = Fixture.createLiabilityAccount("PLA-1", "account 1", Instant.parse("2020-07-01T00:00:00Z"));
     	account2 = Fixture.createLiabilityAccount("PLA-2", "account 2", Instant.parse("2020-09-01T00:00:00Z")); 

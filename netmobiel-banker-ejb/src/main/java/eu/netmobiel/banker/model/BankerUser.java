@@ -26,7 +26,9 @@ import eu.netmobiel.commons.model.User;
 	@NamedEntityGraph(
 			name = BankerUser.GRAPH_WITH_ACCOUNT, 
 			attributeNodes = { 
-					@NamedAttributeNode(value = "personalAccount", subgraph = "subgraph.account")
+					@NamedAttributeNode(value = "managedIdentity"),
+					@NamedAttributeNode(value = "personalAccount", subgraph = "subgraph.account"),
+					@NamedAttributeNode(value = "premiumAccount", subgraph = "subgraph.account")
 			}, subgraphs = {
 					@NamedSubgraph(
 							name = "subgraph.account",
@@ -49,7 +51,8 @@ import eu.netmobiel.commons.model.User;
 // You cannot have a table called 'user' in postgres, it is a reserved keyword
 @Table(name = "bn_user", uniqueConstraints = {
 	    @UniqueConstraint(name = "cs_managed_identity_unique", columnNames = { "managed_identity" }),
-	    @UniqueConstraint(name = "cs_personal_account_unique", columnNames = { "personal_account" })
+	    @UniqueConstraint(name = "cs_personal_account_unique", columnNames = { "personal_account" }),
+	    @UniqueConstraint(name = "cs_premium_account_unique", columnNames = { "premium_account" })
 })
 @Vetoed
 @SequenceGenerator(name = "user_sg", sequenceName = "user_id_seq", allocationSize = 1, initialValue = 50)
@@ -65,6 +68,7 @@ public class BankerUser extends User {
 
 	/**
 	 * The personal account of a user. The foreign key definition avoids issues with testing because of the sequence of deleting tables.
+	 * This is the running or current account.
 	 */
     @OneToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "personal_account", 
@@ -72,6 +76,18 @@ public class BankerUser extends User {
     		    foreignKeyDefinition = "FOREIGN KEY (personal_account) REFERENCES account (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE SET NULL")
 	)
     private Account personalAccount;
+
+	/**
+	 * The premium account of a user. The foreign key definition avoids issues with testing because of the sequence of deleting tables.
+	 * The premium account tracks the incentive-based transactions. Premium credits can be spend to selected goods and services or are
+	 * transferred to the current account as a reward for certain behaviour..  
+	 */
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "premium_account", 
+    		    foreignKey = @ForeignKey(name = "user_premium_account_fk",
+    		    foreignKeyDefinition = "FOREIGN KEY (premium_account) REFERENCES account (id) MATCH SIMPLE ON UPDATE NO ACTION ON DELETE SET NULL")
+	)
+    private Account premiumAccount;
 
     /**
      * The total amount of donated credits. The value depends on the precise question.
@@ -116,6 +132,14 @@ public class BankerUser extends User {
 
 	public void setPersonalAccount(Account personalAccount) {
 		this.personalAccount = personalAccount;
+	}
+
+	public Account getPremiumAccount() {
+		return premiumAccount;
+	}
+
+	public void setPremiumAccount(Account premiumAccount) {
+		this.premiumAccount = premiumAccount;
 	}
 
 	public Integer getDonatedCredits() {

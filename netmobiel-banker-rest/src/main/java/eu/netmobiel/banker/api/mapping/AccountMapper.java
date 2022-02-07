@@ -26,6 +26,7 @@ public interface AccountMapper {
 	@Mapping(target = "ibanHolder", ignore = true)
 //	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "ncan", ignore = true)
+	@Mapping(target = "purpose", ignore = true)
 	@AccountMinimal
 	eu.netmobiel.banker.api.model.Account mapMinimal(Account acc);
 
@@ -42,5 +43,6 @@ public interface AccountMapper {
 	@Mapping(target = "createdTime", ignore = true)
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "ncan", ignore = true)
+	@Mapping(target = "purpose", ignore = true)
 	Account map(eu.netmobiel.banker.api.model.Account acc);
 }

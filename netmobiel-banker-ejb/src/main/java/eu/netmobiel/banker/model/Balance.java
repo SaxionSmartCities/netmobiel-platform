@@ -28,6 +28,8 @@ import eu.netmobiel.banker.exception.BalanceInsufficientException;
  * If accounting entries are inserted between older entries the balance remains correct after correction, because it shows 
  * the balance at the end of the period (as opposed to a cumulative balance after each transaction). 
  * 
+ * The balance is protected with a version number against modification out of order (optimistic lock).
+ * 
  * @author Jaap Reitsma
  *
  */

@@ -11,6 +11,7 @@ import org.keycloak.KeycloakSecurityContext;
 import org.keycloak.representations.AccessToken;
 
 import eu.netmobiel.banker.model.Account;
+import eu.netmobiel.banker.model.AccountPurposeType;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.AccountingTransaction;
 import eu.netmobiel.banker.model.BankerUser;
@@ -84,7 +85,7 @@ public class Fixture {
     }
 
     public static Account createLiabilityAccount(String ncan, String name, Instant creationTime) {
-    	return Account.newInstant(ncan, name, AccountType.LIABILITY, creationTime);
+    	return Account.newInstant(ncan, name, AccountType.LIABILITY, AccountPurposeType.CURRENT, creationTime);
     }
 
 	public static Charity createCharity(Account account, String name, String description, int donatedAmount, int goalAmount, GeoLocation location, String imageUrl) {

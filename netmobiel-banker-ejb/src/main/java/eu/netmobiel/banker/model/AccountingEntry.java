@@ -8,14 +8,18 @@ import javax.persistence.Column;
 import javax.persistence.ColumnResult;
 import javax.persistence.ConstructorResult;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.ForeignKey;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
+import javax.persistence.NamedAttributeNode;
+import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedNativeQueries;
 import javax.persistence.NamedNativeQuery;
+import javax.persistence.NamedSubgraph;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.SqlResultSetMapping;
 import javax.persistence.SqlResultSetMappings;
@@ -153,6 +157,21 @@ import eu.netmobiel.commons.report.NumericReportValue;
 			)
 		),
 })
+@NamedEntityGraph(
+		// Only users involved in a role can view the roles and the accounts.
+		name = AccountingEntry.STATEMENT_ENTITY_GRAPH, 
+		attributeNodes = { 
+			@NamedAttributeNode(value = "transaction", subgraph = "subgraph.transaction"),		
+			@NamedAttributeNode(value = "counterparty")
+		}, subgraphs = {
+				@NamedSubgraph(
+						name = "subgraph.transaction",
+						attributeNodes = {
+								@NamedAttributeNode(value = "ledger")
+						}
+				)
+		}
+)
 
 @Entity
 @Table(name = "accounting_entry", uniqueConstraints = {
@@ -185,6 +204,9 @@ public class AccountingEntry implements Serializable {
 	public static final String IMC_8_DEPOSITED_CREDITS = IMP_7_DEPOSITED_CREDITS;
 	public static final String IMC_9_WITHDRAWN_CREDITS = IMP_8_WITHDRAWN_CREDITS;
 	public static final String IMC_10_RIDES_REVIEWED_COUNT = "ListReviewedRidesCount";
+
+	public static final String STATEMENT_ENTITY_GRAPH = "accounting_entry-statement-graph";
+
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "accounting_entry_sg")
     private Long id;
@@ -193,15 +215,17 @@ public class AccountingEntry implements Serializable {
 	 * The account involved in the entry. Once saved in the database it cannot be changed.
 	 */
 	@NotNull
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "account", foreignKey = @ForeignKey(name = "accounting_entry_account_fk"))
     private Account account;
 
     /**
      * The counterparty in any transfer.
+     * FIXME This attribute does not belong in the entry. The other entry (or entries) in a transaction are the counterparty.
+     * It is now included only as a convenience for generating statements. From a modelling view, it is not correct.
      */
 	@NotNull
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "counterparty", foreignKey = @ForeignKey(name = "accounting_entry_counterparty_fk"))
     private Account counterparty;
 
@@ -223,18 +247,25 @@ public class AccountingEntry implements Serializable {
      * The transaction this entry belongs to.
      */
     @NotNull
-	@ManyToOne
+	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "transaction", foreignKey = @ForeignKey(name = "accounting_entry_transaction_fk"))
     private AccountingTransaction transaction;
 	
+    /**
+	 * The purpose of the transaction.
+	 */
+    @Column(name = "purpose", nullable = false, length = 2)
+    private TransactionType purpose;
+    
     public AccountingEntry() {
     	
     }
     
-    public AccountingEntry(AccountingEntryType entryType, int amount) {
+    public AccountingEntry(AccountingEntryType entryType, int amount, TransactionType purpose) {
         assert amount != 0 : "Amount of accounting entry must be nonzero";
         this.entryType = entryType;
         this.amount = amount;
+        this.purpose = purpose;
     }
 
 	public Long getId() {
@@ -285,11 +316,18 @@ public class AccountingEntry implements Serializable {
 		this.entryType = entryType;
 	}
 
+	public TransactionType getPurpose() {
+		return purpose;
+	}
+
+	public void setPurpose(TransactionType purpose) {
+		this.purpose = purpose;
+	}
+
 	@Override
 	public String toString() {
-		return String.format("AccountingEntry [%s, %s, %s, %s, '%s', %s, %s ]", id,
-				account.getNcan(), amount, entryType, transaction.getDescription(), 
-				DateTimeFormatter.ISO_INSTANT.format(transaction.getAccountingTime()), 
+		return String.format("AccountingEntry [%s, %s, %s, %s, %s, '%s', %s ]", id,
+				account.getNcan(), amount, entryType, purpose, transaction.getDescription(), 
 				DateTimeFormatter.ISO_INSTANT.format(transaction.getTransactionTime()));
 	}
     

@@ -56,7 +56,10 @@ import eu.netmobiel.rideshare.service.BookingManager;
 @Logging
 @RunAs("system") 
 public class PaymentProcessor {
-	
+	/**
+	 * The amount of premium credits that might be used to pay for a fare.
+	 */
+	private static final int FARE_MAXIMUM_PREMIUM_PERCENTAGE = 100; 
     @SuppressWarnings("unused")
 	@Inject
     private PublisherService publisherService;
@@ -135,7 +138,7 @@ public class PaymentProcessor {
     public void reserveFare(Trip trip, Leg leg) throws BusinessException {
     	assertLegHasFareInCredits(leg);
 		String reservationId = ledgerService.reserve(trip.getTraveller(), 
-				leg.getFareInCredits(), textHelper.createDescriptionText(leg), leg.getLegRef());
+				leg.getFareInCredits(), FARE_MAXIMUM_PREMIUM_PERCENTAGE, textHelper.createDescriptionText(leg), leg.getLegRef());
 		tripManager.updateLegPaymentState(trip, leg, PaymentState.RESERVED, reservationId);
     }
 
@@ -154,7 +157,7 @@ public class PaymentProcessor {
     	assertLegHasFareInCredits(leg);
     	assertLegPaymentState(leg, PaymentState.RESERVED);
     	assertBookingPaymentState(booking, null);
-		String releaseId = ledgerService.release(leg.getPaymentId());
+		String releaseId = ledgerService.cancel(leg.getPaymentId());
 		tripManager.updateLegPaymentState(trip, leg, PaymentState.CANCELLED, releaseId);
 		bookingManager.updatePaymentState(booking, PaymentState.CANCELLED, null);
     }
@@ -173,7 +176,7 @@ public class PaymentProcessor {
     	assertLegHasFareInCredits(leg);
     	assertLegPaymentState(leg, PaymentState.RESERVED);
     	assertBookingPaymentState(booking, null);
-		String chargeId = ledgerService.charge(resolveDriverId(leg), leg.getPaymentId(), leg.getFareInCredits());
+		String chargeId = ledgerService.charge(resolveDriverId(leg), leg.getPaymentId());
 		tripManager.updateLegPaymentState(trip, leg, PaymentState.PAID, chargeId);
 		bookingManager.updatePaymentState(booking, PaymentState.PAID, chargeId);
     }
@@ -193,6 +196,8 @@ public class PaymentProcessor {
 
     /**
      * Reverses the earlier cancel of a fare by reserving the fare again on expense of the passenger.
+     * It cannot be a real reversal, because the premium credits might already have spent on other travels.
+     * However, that is not a an issue. Note that this call establishes a new transaction conversation.
      * The payment state of the booking is cleared.
      * @param trip
      * @param leg
@@ -203,14 +208,20 @@ public class PaymentProcessor {
     	assertLegHasFareInCredits(leg);
     	assertLegPaymentState(leg, PaymentState.CANCELLED);
     	assertBookingPaymentState(booking, PaymentState.CANCELLED);
-		// Reserve the fare again
-		String reservationId = ledgerService.unrelease(leg.getPaymentId());
-		tripManager.updateLegPaymentState(trip, leg, PaymentState.RESERVED, reservationId);
+		// Clear the booking payment details
 		bookingManager.updatePaymentState(booking, null, null);
+		// Uncancel (i.e. reserve again) the fare, this start a new transaction conversation. 
+		// In the statement overview the entry is marked as a rollback.
+		String reservationId = ledgerService.uncancel(leg.getPaymentId(), FARE_MAXIMUM_PREMIUM_PERCENTAGE);
+		tripManager.updateLegPaymentState(trip, leg, PaymentState.RESERVED, reservationId);
     }
 
     /**
-     * Reverses the earlier payment of a fare by reserving the fare again on expense of the driver.
+     * Reverses the earlier payment of a fare by refunding the fare on expense of the driver and 
+     * reserving the same amount at the passenger's side.
+     * Because the payment may have been made with premium credits, the resultig transaction is still part
+     * of the existing transaction conversation. The head of this conversation contains the original reservation and
+     * knows the origin of the credits involved.
      * @param trip
      * @param leg
      * @param booking

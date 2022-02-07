@@ -10,6 +10,7 @@ import java.util.function.Predicate;
 import javax.enterprise.inject.Vetoed;
 import javax.persistence.Column;
 import javax.persistence.Entity;
+import javax.persistence.FetchType;
 import javax.persistence.GeneratedValue;
 import javax.persistence.GenerationType;
 import javax.persistence.Id;
@@ -68,13 +69,13 @@ public class Ledger  implements Serializable {
 	/**
 	 * The list of transactions. Transactions are never removed.
 	 */
-	@OneToMany(mappedBy = "ledger")
+	@OneToMany(mappedBy = "ledger", fetch = FetchType.LAZY)
     private List<AccountingTransaction> transactions;
 
 	/**
 	 * The list of balances. Each account is coupled to the ledger through a balance.
 	 */
-	@OneToMany(mappedBy = "ledger")
+	@OneToMany(mappedBy = "ledger", fetch = FetchType.LAZY)
     private List<Balance> balances;
 
 	public Long getId() {
@@ -131,8 +132,20 @@ public class Ledger  implements Serializable {
 		this.balances = balances;
 	}
 	
-	public AccountingTransaction.Builder createTransaction(TransactionType type, String description, String reference, Instant accountingTime, Instant transactionTime) {
-		return AccountingTransaction.newTransaction(this, type, description, reference, accountingTime, transactionTime);
+	public AccountingTransaction.Builder createStartTransaction(String description, 
+			String context, Instant accountingTime, Instant transactionTime) {
+		return AccountingTransaction.newTransaction(this, null, description, context, accountingTime, transactionTime);
+	}
+
+	public AccountingTransaction.Builder createFollowUpTransaction(AccountingTransaction theHead, 
+			String description, String context, Instant accountingTime, Instant transactionTime) {
+		return AccountingTransaction.newTransaction(this, theHead, description, context, accountingTime, transactionTime);
+	}
+
+	public AccountingTransaction.Builder createFollowUpTransaction(AccountingTransaction theHead, 
+			Instant accountingTime, Instant transactionTime) {
+		return AccountingTransaction.newTransaction(this, theHead, 
+				theHead.getDescription(), theHead.getContext(), accountingTime, transactionTime);
 	}
 
 	/**

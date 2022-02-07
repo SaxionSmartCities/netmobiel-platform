@@ -147,6 +147,7 @@ public class WithdrawalService {
     	// Assure PostPersist is called.
     	withdrawalRequestDao.flush();
     	// Save the request first, otherwise we cannot insert the reference in the transaction. 
+    	// Regular reserve, you cannot reserve premium credits for withdrawal
     	AccountingTransaction tr = ledgerService.reserve(acc, amountCredits, now, description, wr.getUrn(), false);
     	wr.setTransaction(tr);
     	return wr.getId();
@@ -180,9 +181,9 @@ public class WithdrawalService {
 			throw new BadRequestException(String.format("Withdrawal request has already reached final state: %d %s", withdrawalId, wrdb.getStatus()));
 		}
     	OffsetDateTime now = OffsetDateTime.now();
-		AccountingTransaction tr_r = ledgerService.release(wrdb.getTransaction(), now);
     	try {
-    		AccountingTransaction tr_w = ledgerService.withdraw(wrdb.getAccount(), wrdb.getAmountCredits(), now, tr_r.getDescription(), tr_r.getContext());
+    		// Withdraw the earlier reserved amount of credits
+    		AccountingTransaction tr_w = ledgerService.withdraw(wrdb.getTransaction(), now);
     		wrdb.setTransaction(tr_w);
     		wrdb.setStatus(PaymentStatus.COMPLETED);
     		wrdb.setModificationTime(now.toInstant());
@@ -235,7 +236,7 @@ public class WithdrawalService {
 			throw new EJBAccessException("Withdrawal request is already being processed: " + wr.getId());
 		}
     	OffsetDateTime now = OffsetDateTime.now();
-		AccountingTransaction tr_r = ledgerService.release(wr.getTransaction(), now);
+		AccountingTransaction tr_r = ledgerService.cancel(wr.getTransaction(), now);
 		wr.setTransaction(tr_r);
 		wr.setStatus(PaymentStatus.CANCELLED);
 		wr.setModificationTime(now.toInstant());

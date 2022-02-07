@@ -15,6 +15,7 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.banker.model.AccountPurposeType;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Ledger;
@@ -69,8 +70,12 @@ public class BankerStartupService {
     		OffsetDateTime odt = OffsetDateTime.of(Instant.now().atOffset(ZoneOffset.UTC).getYear(), 1, 1, 0, 0, 0, 0, ZoneOffset.UTC);
     		ledgerService.createLedger(odt.toInstant());
     	}
-   		ledgerService.prepareAccount(LedgerService.ACC_REF_BANKING_RESERVE, LedgerService.ACC_NAME_BANKING_RESERVE, AccountType.ASSET);
-   		ledgerService.prepareAccount(LedgerService.ACC_REF_RESERVATIONS, LedgerService.ACC_NAME_RESERVATIONS, AccountType.LIABILITY);
+   		ledgerService.prepareAccount(LedgerService.ACC_REF_BANKING_RESERVE, 
+   				LedgerService.ACC_NAME_BANKING_RESERVE, AccountType.ASSET, AccountPurposeType.SYSTEM);
+   		ledgerService.prepareAccount(LedgerService.ACC_REF_RESERVATIONS, 
+   				LedgerService.ACC_NAME_RESERVATIONS, AccountType.LIABILITY, AccountPurposeType.SYSTEM);
+   		ledgerService.prepareAccount(LedgerService.ACC_REF_PREMIUMS, 
+   				LedgerService.ACC_NAME_PREMIUMS, AccountType.LIABILITY, AccountPurposeType.SYSTEM);
     }
 
     /**
@@ -83,6 +88,17 @@ public class BankerStartupService {
 		for (BankerUser user: usersWithoutAccount) {
 			logger.info("Assigning a personal account to: " + user.getName());
 	    	ledgerService.addPersonalAccount(user);
+	    	// Cannot use following construct: Reentrant call not allowed in a postconstruct
+	    	// If wanted, then call this method from the Overseer.
+			// context.getBusinessObject(BankerStartupService.class).addPersonalAccount(user);
+		}
+
+    	usersWithoutAccount = bankerUserDao.findUsersWithoutPremiumAccount();
+		logger.info("Bankerusers without a premium account: #" + usersWithoutAccount.size());
+		// For each user: Add the account
+		for (BankerUser user: usersWithoutAccount) {
+			logger.info("Assigning a premium account to: " + user.getName());
+	    	ledgerService.addPremiumAccount(user);
 	    	// Cannot use following construct: Reentrant call not allowed in a postconstruct
 	    	// If wanted, then call this method from the Overseer.
 			// context.getBusinessObject(BankerStartupService.class).addPersonalAccount(user);

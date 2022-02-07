@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.banker.filter.DonationFilter;
 import eu.netmobiel.banker.model.Account;
+import eu.netmobiel.banker.model.AccountPurposeType;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
@@ -71,13 +72,13 @@ public class DonationDaoIT  extends BankerIntegrationTestBase {
         passenger1 = Fixture.createUser(loginContextPassenger);
 		em.persist(passenger1);
 		
-		account1 = Account.newInstant("PAL-1", "Account 1", AccountType.LIABILITY, Instant.parse("2020-07-01T00:00:00Z"));
+		account1 = Account.newInstant("PAL-1", "Account 1", AccountType.LIABILITY, AccountPurposeType.CURRENT, Instant.parse("2020-07-01T00:00:00Z"));
 		em.persist(account1);
-    	account2 = Account.newInstant("PLA-2", "Account 2", AccountType.LIABILITY, Instant.parse("2020-09-01T00:00:00Z"));
+    	account2 = Account.newInstant("PLA-2", "Account 2", AccountType.LIABILITY, AccountPurposeType.CURRENT, Instant.parse("2020-09-01T00:00:00Z"));
     	em.persist(account2);
-    	account3 = Account.newInstant("PLA-3", "Account 3", AccountType.LIABILITY, Instant.parse("2020-09-15T00:00:00Z"));
+    	account3 = Account.newInstant("PLA-3", "Account 3", AccountType.LIABILITY, AccountPurposeType.CURRENT, Instant.parse("2020-09-15T00:00:00Z"));
     	em.persist(account3);
-    	account4 = Account.newInstant("PLA-4", "Account 4 closed", AccountType.LIABILITY, Instant.parse("2020-07-01T00:00:00Z"));
+    	account4 = Account.newInstant("PLA-4", "Account 4 closed", AccountType.LIABILITY, AccountPurposeType.CURRENT, Instant.parse("2020-07-01T00:00:00Z"));
     	account4.setClosedTime(Instant.parse("2020-07-31T00:00:00Z"));
     	em.persist(account4);
     	

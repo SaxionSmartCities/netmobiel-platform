@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
 import eu.netmobiel.banker.model.Account;
+import eu.netmobiel.banker.model.AccountPurposeType;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.test.BankerIntegrationTestBase;
 import eu.netmobiel.commons.model.PagedResult;
@@ -51,7 +52,7 @@ public class AccountDaoIT extends BankerIntegrationTestBase {
     
     @Test
     public void saveAccount() {
-		Account account = Account.newInstant("account-1", "Acc 1", AccountType.LIABILITY);
+		Account account = Account.newInstant("account-1", "Acc 1", AccountType.LIABILITY, AccountPurposeType.CURRENT);
     	accountDao.save(account);
     	List<Account> actual = accountDao.findAll();
     	assertNotNull(actual);
@@ -62,7 +63,7 @@ public class AccountDaoIT extends BankerIntegrationTestBase {
     @Test
     public void findByReference() {
     	final String accref = "account-1"; 
-		Account account= Account.newInstant(accref, "U1", AccountType.LIABILITY);
+		Account account= Account.newInstant(accref, "U1", AccountType.LIABILITY, AccountPurposeType.CURRENT);
     	accountDao.save(account);
     	Account actual = accountDao.findByAccountNumber(accref).orElse(null);
     	assertNotNull(actual);
@@ -83,8 +84,8 @@ public class AccountDaoIT extends BankerIntegrationTestBase {
     	String name2 = "Account 2";
     	final String accref1 = "account-1"; 
     	final String accref2 = "account-2"; 
-    	accountDao.save(Account.newInstant(accref1, name1, AccountType.LIABILITY));
-    	accountDao.save(Account.newInstant(accref2, name2, AccountType.LIABILITY));
+    	accountDao.save(Account.newInstant(accref1, name1, AccountType.LIABILITY, AccountPurposeType.CURRENT));
+    	accountDao.save(Account.newInstant(accref2, name2, AccountType.LIABILITY, AccountPurposeType.CURRENT));
     	PagedResult<Long> actual = accountDao.listAccounts(null, 0, 0);
     	assertNotNull(actual);
     	assertEquals(0, actual.getCount());

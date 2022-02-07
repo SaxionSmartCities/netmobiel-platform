@@ -83,7 +83,7 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
     	BankerUser userdb = userDao.loadGraph(id, BankerUser.GRAPH_WITH_ACCOUNT)
     			.orElseThrow(() -> new NotFoundException("No such user: " + id));
     	if (userdb.getPersonalAccount() == null) {
-    		throw new IllegalStateException("BankerUser has no account: " + id);
+    		throw new IllegalStateException("BankerUser has no personal account: " + id);
     	}
     	// Assure changes are not propagated to the database.
     	userDao.detach(userdb);
@@ -92,10 +92,15 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
 		if (!admin && !userdb.getManagedIdentity().equals(caller)) {
 			// Roles and Account are privileged
 			userdb.setPersonalAccount(null);
+			userdb.setPremiumAccount(null);
 		} else {
 			// Add the balance too
 			Balance balance = balanceDao.findActualBalance(userdb.getPersonalAccount());
 			userdb.getPersonalAccount().setActualBalance(balance);
+			if (userdb.getPremiumAccount() != null) {
+				Balance premiumBalance = balanceDao.findActualBalance(userdb.getPremiumAccount());
+				userdb.getPremiumAccount().setActualBalance(premiumBalance);
+			}
 		}
     	return userdb;
     }

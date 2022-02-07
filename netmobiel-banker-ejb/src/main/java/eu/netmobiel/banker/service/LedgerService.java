@@ -19,6 +19,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.exception.OverdrawnException;
 import eu.netmobiel.banker.model.Account;
+import eu.netmobiel.banker.model.AccountPurposeType;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.AccountingEntryType;
@@ -46,8 +47,14 @@ import eu.netmobiel.commons.util.UrnHelper;
 
 /**
  * Stateless bean for the management of the ledger.
- * 
- * TODO: Security
+ * Design decision: A regular user has aq running account as well as a premium account. The premium account is used 
+ * for incentives, to motivate the user into certian desired behaviour with regard to the use of Netmobiel.
+ * We want to show the spending of premium credits explicitly, it must be visible in the statement overview of 
+ * the running account (the default statement view). To show the premium spending in the statement overview there are two choices:
+ * - Show when reserving the travel fee
+ * - Show when charging the travel fee.
+ * For now we use the first option, the advantage for the new traveller with premium credits is the ability to travel without
+ * depositing first (assuming the premium balance is enough).
  * 
  * @author Jaap Reitsma
  *
@@ -58,10 +65,24 @@ import eu.netmobiel.commons.util.UrnHelper;
 @DeclareRoles({ "admin" })
 @PermitAll
 public class LedgerService {
+	/**
+	 * The Asset account for Netmobiel. This account reflects the total amount of credits available in Netmobiel.
+	 */
 	public static final String ACC_REF_BANKING_RESERVE = "banking-reserve";
 	public static final String ACC_NAME_BANKING_RESERVE = "De NetMobiel Kluis";
+	/**
+	 * The Reservation account of netmobiel where all reservations are saved. A reservation amount is in general 
+	 * (i.e., always) reserved and released a single sum, as opposed to released in parts.
+	 * This is a liability account.
+	 */
 	public static final String ACC_REF_RESERVATIONS = "reservations";
 	public static final String ACC_NAME_RESERVATIONS = "NetMobiel Reserveringen";
+	/**
+	 * The central account from where each premium is paid to individual users. 
+	 */
+	public static final String ACC_REF_PREMIUMS = "premiums";
+	public static final String ACC_NAME_PREMIUMS = "NetMobiel Premies";
+	
 	public static final Integer MAX_RESULTS = 10; 
 	public static final int CREDIT_EXCHANGE_RATE = 19;	// 1 credit is x euro cent
 
@@ -91,9 +112,16 @@ public class LedgerService {
     	}
     }
 
+    private static void expect(AccountingTransaction tr, TransactionType purpose, AccountingEntryType entryType) {
+    	@SuppressWarnings("unused")
+		AccountingEntry ae = tr.lookup(purpose, entryType);
+    }
+
     /**
      * A Netmobiel user deposits credits. The balance of the netmobiel credit system grows: the account of the user gets
      * more credits and the banking reserve of Netmobiel is equally increased.
+     * A deposit takes in general place on the running account of a user. The treasurer can opt to deposit credits 
+     * to the premium account of the system, intended to reward users.
      * @param acc the netmobiel account to deposit to. 
      * @param amount the amount of credits
      * @param when the time of this financial fact.
@@ -109,9 +137,9 @@ public class LedgerService {
     	AccountingTransaction tr = null;
 		try {
 			tr = ledger
-					.createTransaction(TransactionType.DEPOSIT, description, reference, when.toInstant(), Instant.now())
-					.debit(brab, amount, userAccountBalance.getAccount())
-					.credit(userAccountBalance, amount, brab.getAccount())
+					.createStartTransaction(description, reference, when.toInstant(), Instant.now())
+					.debit(brab, amount, TransactionType.DEPOSIT, userAccountBalance.getAccount())
+					.credit(userAccountBalance, amount, TransactionType.DEPOSIT, brab.getAccount())
 					.build();
 	    	accountingTransactionDao.save(tr);
 		} catch (BalanceInsufficientException e) {
@@ -123,6 +151,7 @@ public class LedgerService {
     /**
      * A Netmobiel user withdraws credits. The balance of the netmobiel credit system shrinks: the account of the user gets
      * less credits and the banking reserve of Netmobiel is equally decreased.
+     * A withdrawal can only take place on the running account of a user or a charity.
      * @param acc the netmobiel account to withdraw from. 
      * @param amount the amount of credits
      * @param when the time of this financial fact.
@@ -136,9 +165,46 @@ public class LedgerService {
     	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
     	expect(brab.getAccount(), AccountType.ASSET);
     	AccountingTransaction tr = ledger
-    			.createTransaction(TransactionType.WITHDRAWAL, description, reference, when.toInstant(), Instant.now())
-    			.credit(brab, amount, userAccountBalance.getAccount())
-				.debit(userAccountBalance, amount, brab.getAccount())
+    			.createStartTransaction(description, reference, when.toInstant(), Instant.now())
+    			.credit(brab, amount, TransactionType.WITHDRAWAL, userAccountBalance.getAccount())
+				.debit(userAccountBalance, amount, TransactionType.WITHDRAWAL, brab.getAccount())
+    			.build();
+    	accountingTransactionDao.save(tr);
+    	return tr;
+    }
+
+    /**
+     * A Netmobiel user withdraws credits that have been reserved in a previous step. 
+     * The balance of the netmobiel credit system shrinks: the account of the user gets
+     * less credits and the banking reserve of Netmobiel is equally decreased.
+     * A withdrawal can only take place on the running account of a user or a charity.
+     * Note: Netmobiel cannot verify whether the payment to the bank account has really taken place, the treasure
+     * is the proxy in this process.
+     * @param reservation the earlier reservation. 
+     * @param when the accounting time of this financial fact.
+     * @throws NotFoundException 
+     */
+    public AccountingTransaction withdraw(AccountingTransaction reservation, OffsetDateTime when) 
+    		throws BalanceInsufficientException, NotFoundException {
+    	reservation = lookupTransactionWithEntries(reservation.getId());
+    	AccountingTransaction theHead = reservation.getHead() != null ? reservation.getHead() : reservation; 
+    	expect(reservation, TransactionType.RESERVATION, AccountingEntryType.DEBIT);
+		AccountingEntry userAccEntry = reservation.lookup(TransactionType.RESERVATION, AccountingEntryType.DEBIT);
+		final int amount = userAccEntry.getAmount();
+
+		Ledger ledger = ledgerDao.findByDate(when.toInstant());
+    	ledger.expectOpen();
+    	Balance userAccountBalance = balanceDao.findByLedgerAndAccount(ledger, userAccEntry.getAccount());  
+    	Balance brab = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE);  
+    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);
+    	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
+    	expect(brab.getAccount(), AccountType.ASSET);
+    	expect(rb.getAccount(), AccountType.LIABILITY);
+    	AccountingTransaction tr = ledger
+    			.createFollowUpTransaction(theHead, when.toInstant(), Instant.now())
+    	    	.transfer(rb, amount, TransactionType.RELEASE, userAccountBalance)
+    			.credit(brab, amount, TransactionType.WITHDRAWAL, userAccountBalance.getAccount())
+				.debit(userAccountBalance, amount, TransactionType.WITHDRAWAL, brab.getAccount())
     			.build();
     	accountingTransactionDao.save(tr);
     	return tr;
@@ -166,17 +232,87 @@ public class LedgerService {
     	expect(originatorBalance.getAccount(), AccountType.LIABILITY);
     	expect(beneficiaryBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
-    			.createTransaction(TransactionType.PAYMENT, description, reference, when.toInstant(), Instant.now())
+    			.createStartTransaction(description, reference, when.toInstant(), Instant.now())
     			.rollback(rollback)
-    			.debit(originatorBalance, amount, beneficiaryBalance.getAccount())
-				.credit(beneficiaryBalance, amount, originatorBalance.getAccount())
+    			.debit(originatorBalance, amount, TransactionType.PAYMENT, beneficiaryBalance.getAccount())
+				.credit(beneficiaryBalance, amount, TransactionType.PAYMENT, originatorBalance.getAccount())
     			.build();
     	accountingTransactionDao.save(tr);
     	return tr;
     }
 
+	/**
+	 * Create a transaction that reverses this transaction. The opposite accounting entry is created and also the purpose is reversed.
+	 * @param head The head of the conversation
+	 * @param trToReverse the transaction to revere (can be equal to the head)
+	 * @param accountingTime the accounting time
+	 * @param isRollback If true this is a rollback transaction
+	 * @return The reversed transaction, not persisted yet.
+	 * @throws BalanceInsufficientException In case a debit depletes the balance more than allowed.  
+	 */
+	private AccountingTransaction reverse(AccountingTransaction head, AccountingTransaction trToReverse, Instant accountingTime, boolean isRollback) 
+			throws BalanceInsufficientException {
+    	Ledger ledger = ledgerDao.findByDate(accountingTime);
+    	ledger.expectOpen();
+		AccountingTransaction.Builder trb =	ledger
+				.createFollowUpTransaction(head, accountingTime, Instant.now())
+				.rollback(isRollback);
+		for (AccountingEntry entry : trToReverse.getAccountingEntries()) {
+	    	Balance originatorBalance = balanceDao.findByLedgerAndAccount(ledger, entry.getAccount());
+	    	TransactionType reversedPurpose = entry.getPurpose().reverse();
+			if (entry.getEntryType() == AccountingEntryType.CREDIT) {
+				trb.debit(originatorBalance, entry.getAmount(), reversedPurpose, entry.getCounterparty());
+			} else {
+				trb.credit(originatorBalance, entry.getAmount(), reversedPurpose, entry.getCounterparty());
+			}
+		}
+		return trb.build();
+	}
+	
+
     /**
-     * Reserves an amount of credits from one Netmobiel user for a yet to be delivered service. 
+     * Reserves an amount of credits from one Netmobiel user for a yet to be delivered service. The reservation will try to reserve
+     * some premium credits first, and the remaining part from the regular account. This method starts a new transaction conversation. 
+     * @param acc the netmobiel account that will be charged
+     * @param amount the amount of credits
+     * @param premiumAcc the premium account that might be charged
+     * @param maxPremiumPercentage The maximum amount in percentage to take from the premium account. Zero means nothing and
+     * 							100 means everything, if the balance allows for.
+     * @param when the time of this financial fact.
+     * @param description the description in the journal.
+     * @param reference the contextual reference to a system object in the form of a urn.
+     * @param rollback if set then the transfer is a rollback
+     * @return the persisted transaction object
+     */
+    public AccountingTransaction reserve(Account acc, int amount, Account premiumAcc, int maxPremiumPercentage, 
+    		OffsetDateTime when, String description, String reference, boolean rollback) throws BalanceInsufficientException {
+    	Ledger ledger = ledgerDao.findByDate(when.toInstant());
+    	ledger.expectOpen();
+    	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
+    	Balance premiumBalance = null;
+    	int premiumAmount = 0;
+    	if (maxPremiumPercentage > 0 && premiumAcc != null) {
+    		premiumBalance = balanceDao.findByLedgerAndAccount(ledger, premiumAcc);
+    		premiumAmount = Math.min(Math.round((amount * maxPremiumPercentage) / 100.0f), premiumBalance.getEndAmount());
+    	}
+    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);  
+    	expect(userBalance.getAccount(), AccountType.LIABILITY);
+    	expect(rb.getAccount(), AccountType.LIABILITY);
+    	AccountingTransaction.Builder trb = ledger
+    			.createStartTransaction(description, reference, when.toInstant(), Instant.now())
+    			.rollback(rollback);
+    	if (premiumBalance != null && premiumAmount > 0) {
+        	expect(premiumBalance.getAccount(), AccountType.LIABILITY);
+			trb.transfer(premiumBalance, premiumAmount, TransactionType.RELEASE, userBalance);
+    	}
+    	AccountingTransaction tr = trb.transfer(userBalance, amount, TransactionType.RESERVATION, rb).build();
+    	accountingTransactionDao.save(tr);
+    	return tr;
+    }
+
+    /**
+     * Reserves an amount of credits from one Netmobiel user for a yet to be delivered service. The reservation will use 
+     * the regular account only. This method starts a new transaction conversation. 
      * @param acc the netmobiel account that will be charged
      * @param amount the amount of credits
      * @param when the time of this financial fact.
@@ -185,149 +321,167 @@ public class LedgerService {
      * @param rollback if set then the transfer is a rollback
      * @return the persisted transaction object
      */
-    public AccountingTransaction reserve(Account acc, int amount, OffsetDateTime when, String description, String reference, boolean rollback) throws BalanceInsufficientException {
-    	Ledger ledger = ledgerDao.findByDate(when.toInstant());
-    	ledger.expectOpen();
-    	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
-    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);  
-    	expect(userBalance.getAccount(), AccountType.LIABILITY);
-    	expect(rb.getAccount(), AccountType.LIABILITY);
-    	AccountingTransaction tr = ledger
-    			.createTransaction(TransactionType.RESERVATION, description, reference, when.toInstant(), Instant.now())
-    			.rollback(rollback)
-    			.debit(userBalance, amount, rb.getAccount())
-				.credit(rb, amount, userBalance.getAccount())
-    			.build();
-    	accountingTransactionDao.save(tr);
-    	return tr;
+    public AccountingTransaction reserve(Account acc, int amount, OffsetDateTime when, 
+    		String description, String reference, boolean rollback) throws BalanceInsufficientException {
+    	return reserve(acc, amount, null, 0, when, description, reference, rollback);
+    }
+
+    private AccountingTransaction lookupTransactionWithEntries(Long tid) throws NotFoundException {
+    	return accountingTransactionDao.loadGraph(tid, AccountingTransaction.ENTRIES_ENTITY_GRAPH)
+    			.orElseThrow(() -> new IllegalArgumentException("No such transaction: " + tid)); 
+    }
+    
+    /**
+     * Reserves an amount of credits from a Netmobiel user for a yet to be delivered service. 
+     * @param nmuser the netmobiel user to be charged
+     * @param amount the amount of credits
+     * @param maxPremiumPercentage The maximum amount in percentage to take from the premium account. Zero means nothing and
+     * 							100 means everything, if the balance allows for.
+     * @param description the description in the journal.
+     * @param reference the contextual reference to a system object in the form of a urn.
+     * @return the transaction urn
+     */
+    public String reserve(NetMobielUser nmuser, int amount, int maxPremiumPercentage, String description, String reference) throws BalanceInsufficientException {
+    	BankerUser user = lookupUser(nmuser)
+    			.orElseThrow(() -> new BalanceInsufficientException("User has no deposits made yet: " + nmuser.getManagedIdentity()));
+    	AccountingTransaction tr = reserve(user.getPersonalAccount(), amount, user.getPremiumAccount(), 
+    			maxPremiumPercentage, OffsetDateTime.now(), description, reference, false);
+    	return tr.getTransactionRef();
     }
 
     /**
-     * Releases a previous reservation. A new transaction will be added to nullify the reservation.
-     * @param transactionRef the reference to the previously made reservation.  
+     * Cancels a previous reservation. A new transaction will be added to nullify the reservation.
+     * The earlier reservation may have used premium credits. The only transaction with knowledge about the use of premium credits is the very first
+     * transaction of the conversation. Use that one to release the credits to the proper account.
+     * Note that a release is only possible if there are still credits reserved by the transaction conversation. We need to verify that. 
+     * @param reservation the reference to the previously made reservation (or refund).  
      * @param when the timestamp of the release.
      * @return the transaction  
-     * @throws BadRequestException 
+     * @throws NotFoundException 
      */
-    public AccountingTransaction release(String transactionRef, OffsetDateTime when) throws BadRequestException {
-    	Long tid = UrnHelper.getId(AccountingTransaction.URN_PREFIX, transactionRef);
-    	AccountingTransaction reservation = accountingTransactionDao.find(tid).orElseThrow(() -> new IllegalArgumentException("No such transaction: " + transactionRef));
-    	return release(reservation, when);
-    }
-
-    /**
-     * Releases a previous reservation. A new transaction will be added to nullify the reservation.
-     * @param transactionRef the reference to the previously made reservation.  
-     * @param when the timestamp of the release.
-     * @return the transaction  
-     */
-    public AccountingTransaction release(AccountingTransaction reservation, OffsetDateTime when) {
-    	Ledger ledger = reservation.getLedger();
-    	ledger.expectOpen();
-    	AccountingEntry userEntry = reservation.lookupByCounterParty(ACC_REF_RESERVATIONS);
-    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);  
-    	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, userEntry.getAccount());  
-    	expect(rb.getAccount(), AccountType.LIABILITY);
-    	expect(userBalance.getAccount(), AccountType.LIABILITY);
+    public AccountingTransaction cancel(AccountingTransaction reservation, OffsetDateTime when) throws NotFoundException {
+    	AccountingTransaction headReservation; 
+    	if (reservation.getHead() != null) {
+    		headReservation = lookupTransactionWithEntries(reservation.getHead().getId());
+    	} else {
+    		headReservation = lookupTransactionWithEntries(reservation.getId()); 
+    	}
+    	expect(headReservation, TransactionType.RESERVATION, AccountingEntryType.DEBIT);
     	AccountingTransaction tr = null;
     	try {
-        	tr = ledger
-        			.createTransaction(TransactionType.RELEASE, reservation.getDescription(), reservation.getContext(), when.toInstant(), Instant.now())
-        			.credit(userBalance, userEntry.getAmount(), rb.getAccount())
-    				.debit(rb, userEntry.getAmount(), userEntry.getAccount())
-        			.build();
+    		// A cancel always uses the initial reservation! This is a regular operation (and not a rollback)
+        	tr = reverse(headReservation, headReservation, when.toInstant(), false); 
         	accountingTransactionDao.save(tr);
 		} catch (BalanceInsufficientException e) {
-			throw new IllegalStateException("Reservation account should not be empty", e);
+			throw new IllegalStateException("Panic: Reservation account should never be empty", e);
 		}
     	return tr;
     }
 
     /**
-     * Reserves an amount of credits from a Netmobiel user for a yet to be delivered service. 
-     * @param nmuser the netmobiel user to be charged
-     * @param amount the amount of credits
-     * @param description the description in the journal.
-     * @param reference the contextual reference to a system object in the form of a urn.
-     * @return the transaction urn
+     * Releases a previous reservation. A new transaction will be added to nullify the reservation.
+     * The provided transaction is used to retrieve the start of the transaction conversation. Only the head contains the original 
+     * reservation and knows the origin of the credits. 
+     * @param transactionRef the reference to the previously made reservation.  
+     * @param when the timestamp of the release.
+     * @return the transaction, but only the flat object.  
+     * @throws BadRequestException 
+     * @throws NotFoundException 
      */
-    public String reserve(NetMobielUser nmuser, int amount, String description, String reference) throws BalanceInsufficientException {
-    	BankerUser user = lookupUser(nmuser)
-    			.orElseThrow(() -> new BalanceInsufficientException("User has no deposits made yet: " + nmuser.getManagedIdentity()));
-    	AccountingTransaction tr = reserve(user.getPersonalAccount(), amount, OffsetDateTime.now(), description, reference, false);
-    	return tr.getTransactionRef();
+    public AccountingTransaction cancel(String transactionRef, OffsetDateTime when) throws BadRequestException, NotFoundException {
+    	Long tid = UrnHelper.getId(AccountingTransaction.URN_PREFIX, transactionRef);
+    	AccountingTransaction reservation = accountingTransactionDao.find(tid).orElseThrow(() -> new IllegalArgumentException("No such transaction: " + transactionRef));
+    	return cancel(reservation, when);
     }
 
     /**
      * Releases a previous reservation. 
      * @param reservationId the earlier reservation transaction
      * @return the transaction urn
+     * @throws NotFoundException 
+     * @throws BadRequestException 
      */
-    public String release(String reservationId) throws BadRequestException {
-    	AccountingTransaction tr = release(reservationId, OffsetDateTime.now());
+    public String cancel(String reservationId) throws NotFoundException, BadRequestException {
+    	AccountingTransaction tr = cancel(reservationId, OffsetDateTime.now());
     	return tr.getTransactionRef();
     }
 
     /**
-     * Reverses an earlier release by reserving the same amount again.
+     * Reverses (kind of) an earlier cancel by reserving the same amount again. Mark the entry as a rollback.
+     * This will start a new transaction conversation.
      * @param releaseId the earlier release transaction urn
      * @return the persisted transaction
      * @throws BadRequestException
      * @throws BalanceInsufficientException
+     * @throws NotFoundException 
      */
-    public String unrelease(String releaseId) throws BadRequestException, BalanceInsufficientException {
+    public String uncancel(String releaseId, int maxPremiumPercentage) throws BadRequestException, BalanceInsufficientException, NotFoundException {
     	Long releaseTid = UrnHelper.getId(AccountingTransaction.URN_PREFIX, releaseId);
-    	AccountingTransaction release = accountingTransactionDao.find(releaseTid).orElseThrow(() -> new IllegalArgumentException("No such transaction: " + releaseId));
-    	AccountingEntry originator = release.findByEntryType(AccountingEntryType.CREDIT);
-    	AccountingTransaction tr = reserve(originator.getAccount(), originator.getAmount(), 
+    	AccountingTransaction release = lookupTransactionWithEntries(releaseTid);
+    	expect(release, TransactionType.RELEASE, AccountingEntryType.CREDIT);
+    	AccountingEntry userEntry = release.lookup(TransactionType.RELEASE, AccountingEntryType.CREDIT);
+    	BankerUser user = userDao.findByPersonalAccount(userEntry.getAccount())
+    			.orElseThrow(() -> new NotFoundException("No such user with personal account: " + userEntry.getAccount()));
+    	AccountingTransaction tr = reserve(user.getPersonalAccount(), userEntry.getAmount(), user.getPremiumAccount(), maxPremiumPercentage, 
     			OffsetDateTime.now(), release.getDescription(), release.getContext(), true);
     	return tr.getTransactionRef();
     }
 
     /**
-     * Reserves an amount of credits from a Netmobiel user for a yet to be delivered service. 
-     * @param nmbeneficiary the netmobiel user to benefit.
-     * @param reservationId the earlier reservation transaction urn
-     * @param actualAmount the amount of credits to charge. Must be less or equal to the reserved amount. 
+     * Charges an amount of credits from a Netmobiel user, using an earlier reserved fare for a service. 
+     * @param nmbeneficiary the netmobiel user to pay the reserved amount of credits.
+     * @param reservationId the earlier reservation transaction urn (could also be an reversed transaction).
      * @return the persisted transfer transaction
      * @throws BadRequestException
      * @throws BalanceInsufficientException
+     * @throws NotFoundException 
      */
-    public String charge(NetMobielUser nmbeneficiary, String reservationId, int actualAmount) throws BalanceInsufficientException, OverdrawnException, BadRequestException {
+    public String charge(NetMobielUser nmbeneficiary, String reservationId) 
+    		throws BalanceInsufficientException, OverdrawnException, BadRequestException, NotFoundException {
+    	OffsetDateTime when = OffsetDateTime.now();
     	BankerUser beneficiary = lookupUser(nmbeneficiary)
     			.orElseThrow(() -> new BalanceInsufficientException("Beneficiary has no account, nothing to transfer to: " + nmbeneficiary.getManagedIdentity()));
-    	AccountingTransaction release = release(reservationId, OffsetDateTime.now());
-    	int overspent = actualAmount - release.getAccountingEntries().get(0).getAmount(); 
-    	if (overspent > 0) {
-    		throw new OverdrawnException("Charge exceeds reservation: " + reservationId + " " + overspent);
+    	Long tid = UrnHelper.getId(AccountingTransaction.URN_PREFIX, reservationId);
+    	AccountingTransaction reservation = lookupTransactionWithEntries(tid);
+		AccountingEntry userAccEntry = reservation.lookup(TransactionType.RESERVATION, AccountingEntryType.DEBIT);
+		// The conversation head is the head of the previous transaction , or the reservation itself. 
+		AccountingTransaction head = reservation.getHead() != null ? reservation.getHead() : reservation;
+		Ledger ledger = ledgerDao.findByDate(when.toInstant());
+    	ledger.expectOpen();
+    	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, userAccEntry.getAccount());  
+    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);
+    	Balance beneficiaryBalance = balanceDao.findByLedgerAndAccount(ledger, beneficiary.getPersonalAccount());  
+    	if (rb.getId().equals(userBalance.getId())) {
+    		throw new IllegalStateException("Panic: Expected to find a user debit reservation entry in reservation: " + reservationId);
     	}
-    	AccountingEntry userEntry = release.lookupByCounterParty(ACC_REF_RESERVATIONS);
-    	AccountingTransaction charge_tr = transfer(userEntry.getAccount(), beneficiary.getPersonalAccount(), 
-    			actualAmount, OffsetDateTime.now(), release.getDescription(), release.getContext(), false);
-    	return charge_tr.getTransactionRef();
+    	AccountingTransaction tr = ledger
+    			.createFollowUpTransaction(head, when.toInstant(), Instant.now())
+    	    	.transfer(rb, userAccEntry.getAmount(), TransactionType.RELEASE, userBalance)
+    	    	.transfer(userBalance, userAccEntry.getAmount(), TransactionType.PAYMENT, beneficiaryBalance)
+    	    	.build();
+    	accountingTransactionDao.save(tr);
+    	return tr.getTransactionRef();
     }
 
     /**
-     * Reverses an earlier charge. 
+     * Reverses an earlier charge, i.e., a refund. 
      * @param chargeId the charge in question
-     * @return the reservation id of the original benefactor (which is now the beneficiary of the uncharge).
+     * @return the transaction reference of this transaction (which includes a reservation).
      * @throws BalanceInsufficientException
      * @throws OverdrawnException
      * @throws BadRequestException
+     * @throws NotFoundException 
      */
-    public String uncharge(String chargeId) throws BalanceInsufficientException, OverdrawnException, BadRequestException {
+    public String uncharge(String chargeId) 
+    		throws BalanceInsufficientException, BadRequestException, NotFoundException {
     	Long chargeTid = UrnHelper.getId(AccountingTransaction.URN_PREFIX, chargeId);
-    	AccountingTransaction charge = accountingTransactionDao.find(chargeTid).orElseThrow(() -> new IllegalArgumentException("No such transaction: " + chargeId));
-    	AccountingEntry originator = charge.findByEntryType(AccountingEntryType.DEBIT);
-    	AccountingEntry beneficiary = charge.findByEntryType(AccountingEntryType.CREDIT);
-
-    	@SuppressWarnings("unused")
-		AccountingTransaction unchargeTrs = transfer(beneficiary.getAccount(), originator.getAccount(), beneficiary.getAmount(), 
-    			OffsetDateTime.now(), charge.getDescription(), charge.getContext(), true);
-
-    	AccountingTransaction reservationTrs = reserve(originator.getAccount(), originator.getAmount(), 
-    			OffsetDateTime.now(), charge.getDescription(), charge.getContext(), true);
-    	return reservationTrs.getTransactionRef();
+    	AccountingTransaction charge = lookupTransactionWithEntries(chargeTid);
+    	expect(charge, TransactionType.PAYMENT, AccountingEntryType.DEBIT);
+    	expect(charge, TransactionType.RELEASE, AccountingEntryType.DEBIT);
+    	// Mark the transaction as a rollback
+    	AccountingTransaction tr = reverse(charge.getHead(), charge, Instant.now(), true); 
+       	accountingTransactionDao.save(tr);
+    	return tr.getTransactionRef();
     }
 
     /**
@@ -337,6 +491,7 @@ public class LedgerService {
      * the new ledger. 
      * @param newStartPeriod
      */
+    //TODO finish implementation
     public void closeLedger(OffsetDateTime newStartPeriod) {
     	// Find the active ledger
     	@SuppressWarnings("unused")
@@ -430,7 +585,7 @@ public class LedgerService {
     	if (maxResults > 0) {
     		// Get the actual data
     		PagedResult<Long> ids = accountingEntryDao.listAccountingEntries(accountReference, since, until, maxResults, offset);
-    		results = accountingEntryDao.loadGraphs(ids.getData(), null, AccountingEntry::getId);
+    		results = accountingEntryDao.loadGraphs(ids.getData(), AccountingEntry.STATEMENT_ENTITY_GRAPH, AccountingEntry::getId);
     	}
     	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());
     }
@@ -450,10 +605,10 @@ public class LedgerService {
      * @param type the account type.
      * @return the account  
      */
-    public Account createAccount(String reference, String name, AccountType type) {
+    public Account createAccount(String reference, String name, AccountType type, AccountPurposeType purpose) {
     	Instant now = Instant.now();
     	Ledger ledger = ledgerDao.findByDate(now);
-    	Account acc = Account.newInstant(reference, name, type);
+    	Account acc = Account.newInstant(reference, name, type, purpose);
     	accountDao.save(acc);
     	Balance bal = new Balance(ledger, acc, 0);
     	balanceDao.save(bal);
@@ -498,16 +653,28 @@ public class LedgerService {
      * @param type the account type.
      * @return the account  
      */
-    public void prepareAccount(String ncan, String name, AccountType type) {
+    public void prepareAccount(String ncan, String name, AccountType type, AccountPurposeType purpose) {
     	if (accountDao.findByAccountNumber(ncan).isEmpty()) {
-    		createAccount(ncan, name, type);
+    		createAccount(ncan, name, type, purpose);
     	}
     }
 
     private Optional<BankerUser> lookupUser(NetMobielUser user) {
     	return Optional.ofNullable(userDao.findByManagedIdentity(user.getManagedIdentity()).orElse(null));
     }
-    
+
+    private Account createAccount(BankerUser dbUser, String suffix, AccountPurposeType purpose) {
+		if (! userDao.contains(dbUser)) {
+			throw new IllegalStateException("User should be in persistence context");
+		}
+		// Create a personal liability account. 
+		String accRef = createNewAccountNumber("PLA");
+		String accName = String.format("%s %s", dbUser.getName(), suffix).trim();
+		if (accName.isEmpty()) {
+			accName = accRef;
+		}
+		return createAccount(accRef, accName, AccountType.LIABILITY, purpose);
+    }
     /**
      * Adds a personal account to a new user. The ledger service must create and assign a personal monetary account.
      * @param dbUser the new user account. The user record. It must be persistent already.
@@ -516,17 +683,20 @@ public class LedgerService {
     	if (dbUser.getPersonalAccount() != null) {
 			throw new IllegalStateException("Not a new user, personal account exists already");
     	}    		
-		if (! userDao.contains(dbUser)) {
-			throw new IllegalStateException("User should be in persistence context");
-		}
-		// Create a personal liability account. The reference id is directly related to the user primary key.
-		String accRef = createNewAccountNumber("PLA");
-		String accName = String.format("%s %s", dbUser.getGivenName() != null ? dbUser.getGivenName() : "", dbUser.getFamilyName() != null ? dbUser.getFamilyName() : "").trim();
-		if (accName.isEmpty()) {
-			accName = accRef;
-		}
-		Account acc = createAccount(accRef, accName, AccountType.LIABILITY);
+		Account acc = createAccount(dbUser, "", AccountPurposeType.CURRENT);
 		dbUser.setPersonalAccount(acc);
+    }
+
+    /**
+     * Adds a premium account to a new user. The ledger service must create and assign a premium monetary account.
+     * @param dbUser the new user account. The user record. It must be persistent already.
+     */
+    public void addPremiumAccount(BankerUser dbUser) {
+    	if (dbUser.getPremiumAccount() != null) {
+			throw new IllegalStateException("Not a new user, premium account exists already");
+    	}    		
+		Account acc = createAccount(dbUser, "(Premie)", AccountPurposeType.PREMIUM);
+		dbUser.setPremiumAccount(acc);
     }
 
     /**
@@ -535,6 +705,7 @@ public class LedgerService {
      */
     public void onNewUser(final @Observes(during = TransactionPhase.IN_PROGRESS) @Created BankerUser dbUser) {
     	addPersonalAccount(dbUser);
+    	addPremiumAccount(dbUser);
     }
     
     public AccountingEntry getAccountingEntry(Long entryId) throws NotFoundException {
@@ -557,7 +728,7 @@ public class LedgerService {
     public void onNewCharity(final @Observes(during = TransactionPhase.IN_PROGRESS) @Created Charity charity) {
 		// Create a charity liability account.
 		String accRef = createNewAccountNumber("CLA");
-		Account acc = createAccount(accRef, charity.getName(), AccountType.LIABILITY);
+		Account acc = createAccount(accRef, charity.getName(), AccountType.LIABILITY, AccountPurposeType.CURRENT);
 		charity.setAccount(acc);
     }
 

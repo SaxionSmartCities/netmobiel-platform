@@ -24,9 +24,11 @@ public interface UserMapper {
 
 	@UserCreditDetails
 	@Mapping(target = "personalAccount", source = "personalAccount", qualifiedBy = { AccountMapperQualifier.class, AccountAll.class })
+	@Mapping(target = "premiumAccount", source = "premiumAccount", qualifiedBy = { AccountMapperQualifier.class, AccountAll.class })
 	eu.netmobiel.banker.api.model.User map(BankerUser source);
 
 	@Mapping(target = "personalAccount", ignore = true)
+	@Mapping(target = "premiumAccount", ignore = true)
 	@UserOnlyDetails
 	eu.netmobiel.banker.api.model.User mapUserOnly(BankerUser source);
 }
