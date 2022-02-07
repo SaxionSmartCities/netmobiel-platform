@@ -7,6 +7,7 @@ import javax.annotation.PostConstruct;
 import javax.annotation.PreDestroy;
 import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
+import javax.inject.Inject;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.client.Entity;
@@ -17,6 +18,7 @@ import javax.ws.rs.core.Response;
 
 import org.jboss.resteasy.client.jaxrs.ResteasyClient;
 import org.jboss.resteasy.client.jaxrs.ResteasyClientBuilder;
+import org.slf4j.Logger;
 
 import eu.netmobiel.payment.client.model.PaymentError;
 import eu.netmobiel.payment.client.model.PaymentLink;
@@ -48,7 +50,10 @@ public class PaymentClient {
 
     private String authorizationValue;
 
-    @PostConstruct
+	@Inject
+    private Logger log;
+
+	@PostConstruct
     public void createClient() {
         webClient = new ResteasyClientBuilder()
                 .connectionPoolSize(200)
@@ -77,6 +82,7 @@ public class PaymentClient {
                 .header(HttpHeaders.AUTHORIZATION, authorizationValue)
                 .post(Entity.entity(input, MediaType.APPLICATION_JSON))) {
 	        if (response.getStatusInfo() != Response.Status.CREATED) {
+	        	log.error("Payment client error: " + response.getStatusInfo());
 	        	PaymentError error = response.readEntity(PaymentError.class);
 	        	throw new WebApplicationException("Cannot create payment link: " + error.toString(), response.getStatus());
 	        }
