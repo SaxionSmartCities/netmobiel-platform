@@ -255,6 +255,9 @@ public class CharitiesResource implements CharitiesApi {
 				filter = new DonationFilter(location, radius, Boolean.TRUE.equals(omitInactive), null, since, until, sortBy, sortDir, false);
 			}
 			filter.setSortBy(sortBy, DonationSortBy.DONORS, new DonationSortBy[] { DonationSortBy.DONORS });
+			if (filter.getSortDir() == null) {
+				filter.setSortDir(SortDirection.DESC);
+			}
 			Cursor cursor = new Cursor(maxResults, offset);
 	    	PagedResult<Charity> results = charityManager.reportCharityPopularityTopN(filter, cursor);
 			rsp = Response.ok(pageMapper.mapCharities(results)).build();

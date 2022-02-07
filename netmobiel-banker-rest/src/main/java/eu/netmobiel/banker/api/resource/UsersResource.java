@@ -38,6 +38,7 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.UrnHelper;
 
@@ -171,6 +172,9 @@ public class UsersResource implements UsersApi {
 				filter = new DonationFilter(location, radius, Boolean.TRUE.equals(omitInactive), null, since, until, sortBy, sortDir, false);
 			}
 			filter.setSortBy(sortBy, DonationSortBy.AMOUNT, new DonationSortBy[] { DonationSortBy.AMOUNT });
+			if (filter.getSortDir() == null) {
+				filter.setSortDir(SortDirection.DESC);
+			}
 			Cursor cursor = new Cursor(maxResults, offset);
 	    	PagedResult<BankerUser> results = charityManager.reportDonorGenerousityTopN(filter, cursor);
 			rsp = Response.ok(pageMapper.mapUsersWithoutPersonalCredit(results)).build();
