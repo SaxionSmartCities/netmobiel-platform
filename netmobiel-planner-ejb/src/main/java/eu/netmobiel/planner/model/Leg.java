@@ -271,7 +271,8 @@ public class Leg implements Serializable {
     private PaymentState paymentState;
 
     /**
-     * The urn of the payment. Can refer to the reservation, the release or the final transfer. 
+     * The urn of the payment. Can refer to the reservation, the release or the final transfer. Or even a refund.
+     * So, it point to the last transaction for this leg. A refund results in a reservation anyway. 
      */
     @Column(name = "payment_id", length = 32)
     private String paymentId = null;
