@@ -71,6 +71,12 @@ public class Reward extends ReferableObject {
     private Instant rewardTime;
 
     /**
+     * The time of the cancellation of a reward.
+     */
+    @Column(name = "cancel_time")
+    private Instant cancelTime;
+
+	/**
      * Reference to the incentive.
      */
     @ManyToOne(fetch = FetchType.LAZY)
@@ -145,6 +151,14 @@ public class Reward extends ReferableObject {
 
 	public void setRewardTime(Instant rewardTime) {
 		this.rewardTime = rewardTime;
+	}
+
+	public Instant getCancelTime() {
+		return cancelTime;
+	}
+
+	public void setCancelTime(Instant cancelTime) {
+		this.cancelTime = cancelTime;
 	}
 
 	public Incentive getIncentive() {

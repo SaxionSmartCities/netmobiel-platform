@@ -756,6 +756,7 @@ public class LedgerService {
     /**
      * Pay a user an amount of premium credits. The credits are first paid to the current account and then 
      * reserved on the premium account for spending on selected activities.
+     * A reward could have a cancelled transaction attached, verify.
      * @param reward
      * @param when
      * @param statementText the text to appear on the statement.
@@ -776,13 +777,24 @@ public class LedgerService {
     	expect(personalBalance.getAccount(), AccountType.LIABILITY);
     	expect(maecenasBalance.getAccount(), AccountType.LIABILITY);
     	expect(personalPremiumBalance.getAccount(), AccountType.LIABILITY);
+    	AccountingTransaction head = null; 
+    	if (reward.getTransaction() != null) {
+        	AccountingTransaction prevTr = lookupTransactionWithEntries(reward.getTransaction().getId());
+    		head = prevTr.getHead() != null ? prevTr.getHead() : prevTr;
+    		if (prevTr.hasEntry(TransactionType.PAYMENT)) {
+    			// Panic! the payment was already made!
+    			throw new IllegalStateException("Duplicate pay-out of reward detected:" + rewarddb.getUrn());
+    		}
+    	}
     	AccountingTransaction tr = ledger
-    			.createStartTransaction(statementText, rewarddb.getUrn(), when.toInstant(), Instant.now())
+    			.createTransaction(statementText, rewarddb.getUrn(), when.toInstant(), Instant.now())
+    			.head(head)
     			.transfer(maecenasBalance, amount, TransactionType.PAYMENT, personalBalance)
 				.transfer(personalBalance, amount, TransactionType.RESERVATION, personalPremiumBalance)
     			.build();
     	accountingTransactionDao.save(tr);
     	rewarddb.setTransaction(tr);
+    	rewarddb.setCancelTime(null);
     }
     
     
@@ -792,15 +804,16 @@ public class LedgerService {
     	}
     	Reward rewarddb = rewardDao.find(reward.getId())
     			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getId()));
-    	AccountingTransaction rewardTr = lookupTransactionWithEntries(reward.getTransaction().getId());
-    	if (rewardTr.hasEntry(TransactionType.PAYMENT)) {
+    	AccountingTransaction lastTransaction = lookupTransactionWithEntries(reward.getTransaction().getId());
+    	if (lastTransaction.hasEntry(TransactionType.PAYMENT)) {
     		// There is a payment made, make a refund
         	// Mark the transaction as a rollback
-        	AccountingTransaction tr = reverse(rewardTr.getHead(), rewardTr, when.toInstant(), true); 
+        	AccountingTransaction tr = reverse(lastTransaction.getHead(), lastTransaction, when.toInstant(), true); 
            	accountingTransactionDao.save(tr);
            	// Save the transaction reference.
         	rewarddb.setTransaction(tr);
+        	rewarddb.setCancelTime(Instant.now());
     	}
-    	// else refund must taken place already, ignore.
+    	// else refund has taken place already, ignore, no reason to panic.
     }
 }

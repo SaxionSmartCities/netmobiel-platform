@@ -148,7 +148,7 @@ public class SurveyManager {
 	 * Reverts a survey interaction for testing purposes. 
 	 * @param managedId The managed id of the owning user.
 	 * @param providerSurveyId the survey ID
-	 * @param scope One of: payment, reward, survey. If a survey is removed, then reward and payment are removed as well. 
+	 * @param scope One of: payment, reward, survey. If a survey (answer) is removed, then reward and payment are removed as well. 
 	 * 				If a reward is removed, then the payment is removed too.
 	 */
 	public void revertSurveyInteraction(String managedId, String providerSurveyId, String scope) throws BusinessException {
@@ -160,16 +160,13 @@ public class SurveyManager {
 		if (! si.isPresent()) {
 			throw new BadRequestException(String.format("No survey interaction %s for user %s", providerSurveyId, managedId));
 		}
-		if (si.get().getSubmitTime() == null && !"survey".equalsIgnoreCase(scope)) {
-			throw new BadRequestException(String.format("Cannot revert survey %s reward/payment, user %s has not submitted yet", providerSurveyId, managedId));
-		}
 		if (si.get().getSubmitTime() != null) {
-			// Revert payment and perhaps reward too. This is a synchronous event. 
+			// Revert payment and perhaps reward too. This is a synchronous event.
 			EventFireWrapper.fire(surveyRemovedEvent, new SurveyRemovalEvent(profile, si.get(), "payment".equalsIgnoreCase(scope)));
-		}
-		if ("survey".equalsIgnoreCase(scope)) {
-			// Remove survey interaction
-			surveyInteractionDao.remove(si.get());
+			if ("survey".equalsIgnoreCase(scope)) {
+				// Ok, the survey answer is removed too 
+				si.get().setSubmitTime(null);
+			}
 		}
 	}
 }

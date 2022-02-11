@@ -273,6 +273,11 @@ public class AccountingTransaction  implements Serializable {
 			return this;
 		}
 
+		public AccountingTransaction.Builder head(AccountingTransaction theHead) {
+			this.transaction.head = theHead;
+			return this;
+		}
+
 		public AccountingTransaction.Builder debit(Balance balance, int amount, TransactionType purpose, Account counterparty) throws BalanceInsufficientException {
 			expectNotFinished();
 			addAccountingEntry(balance.getAccount(), counterparty, new AccountingEntry(AccountingEntryType.DEBIT, amount, purpose));

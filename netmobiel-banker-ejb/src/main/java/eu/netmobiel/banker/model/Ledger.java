@@ -132,6 +132,11 @@ public class Ledger  implements Serializable {
 		this.balances = balances;
 	}
 	
+	public AccountingTransaction.Builder createTransaction(String description, 
+			String context, Instant accountingTime, Instant transactionTime) {
+		return AccountingTransaction.newTransaction(this, null, description, context, accountingTime, transactionTime);
+	}
+
 	public AccountingTransaction.Builder createStartTransaction(String description, 
 			String context, Instant accountingTime, Instant transactionTime) {
 		return AccountingTransaction.newTransaction(this, null, description, context, accountingTime, transactionTime);

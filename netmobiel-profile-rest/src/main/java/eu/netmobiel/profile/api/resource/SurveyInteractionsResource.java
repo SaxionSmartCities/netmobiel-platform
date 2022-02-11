@@ -90,8 +90,8 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 	 * Reverts a survey interaction for testing purposes. 
 	 * @param providerSurveyId the survey ID
 	 * @param userId The user id. If omitted the calling user
-	 * @param scope One of: payment, reward, survey. If a survey is removed, then reward and payment are removed as well. 
-	 * 				If a reward is removed, then the payment is removed too.
+	 * @param scope One of: payment, reward, survey. If a survey (the completion prove) is removed, then reward and payment are removed as well. 
+	 * 				If a reward is removed (cancelled), then the payment is removed (refunded) too.
 	 * @return A 204.
 	 */
 	@SuppressWarnings("resource")

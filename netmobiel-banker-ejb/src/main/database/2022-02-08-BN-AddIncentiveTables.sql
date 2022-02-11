@@ -41,6 +41,7 @@ CREATE TABLE reward (
     id bigint NOT NULL,
     amount integer NOT NULL,
     reward_time timestamp without time zone NOT NULL,
+    cancel_time timestamp without time zone,
     transaction integer,
     recipient integer NOT NULL,
     incentive integer NOT NULL,
