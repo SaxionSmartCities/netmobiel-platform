@@ -12,6 +12,8 @@ import java.util.Set;
 
 import javax.enterprise.context.ApplicationScoped;
 
+import eu.netmobiel.banker.model.Reward;
+import eu.netmobiel.overseer.model.IncentiveCategory;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
@@ -256,32 +258,32 @@ public class TextHelper {
 	}
 
 	public String createDelegatorAccountCreatedText(Profile delegator, Profile initiator) {
-		return MessageFormat.format("U hebt een account bij NetMobiel: {0}. Uw registratie is uitgevoerd door {1}.", 
+		return MessageFormat.format("Je hebt een account bij NetMobiel: {0}. Uw registratie is uitgevoerd door {1}.", 
 				delegator.getNameAndEmail(), 
 				initiator.getNameEmailPhone()
 		);
 	}
 
 	public String createDelegationActivationText(Delegation delegation) {
-		return MessageFormat.format("{0} biedt aan om uw reizen met NetMobiel voor u te beheren. "
-				+ "Uw instemming geeft u door deze persoon desgevraagd de volgende verificatiecode te geven: {1}.", 
+		return MessageFormat.format("{0} biedt aan om je reizen met NetMobiel voor je te beheren. "
+				+ "Je instemming geef je door deze persoon desgevraagd de volgende verificatiecode te geven: {1}.", 
 				delegation.getDelegate().getName(), delegation.getActivationCode());
 	}
 	
 	public String createDelegationConfirmedToDelegatorText(Delegation delegation) {
-		return MessageFormat.format("{0} beheert vanaf nu uw reizen met NetMobiel.", 
+		return MessageFormat.format("{0} beheert vanaf nu je reizen met NetMobiel.", 
 				delegation.getDelegate().getName()
 		);
 	}
 	
 	public String createDelegationConfirmedToDelegateText(Delegation delegation) {
-		return MessageFormat.format("U beheert vanaf nu de reizen van {0} met NetMobiel.", 
+		return MessageFormat.format("Je beheert vanaf nu de reizen van {0} met NetMobiel.", 
 				delegation.getDelegator().getName()
 		);
 	}
 	
 	public String createTransferDelegationToText(Delegation fromDelegation) {
-		return MessageFormat.format("{0} vraagt u om het beheer van de reizen in Netmobiel namens {1} over te nemen. " 
+		return MessageFormat.format("{0} vraagt je om het beheer van de reizen in Netmobiel namens {1} over te nemen. " 
 				+ "Vraag {2} om de via SMS ontvangen activeringscode en vul deze in op het overdrachtsformulier in de app.", 
 				fromDelegation.getDelegate().getName(), 
 				fromDelegation.getDelegator().getName(),
@@ -290,8 +292,35 @@ public class TextHelper {
 	}
 
 	public String createTransferDelegationCompletedText(Delegation fromDelegation, Delegation toDelegation) {
-		return MessageFormat.format("Uw beheer van de reizen in Netmobiel namens {0} is overgedragen aan {1}.", 
+		return MessageFormat.format("Het beheer van de reizen in Netmobiel namens {0} is overgedragen aan {1}.", 
 				fromDelegation.getDelegator().getName(), toDelegation.getDelegate().getName()
 		);
+	}
+	
+    /***************  SURVEY COMPLETION  *************/
+
+	public String createPremiumRewardStatementText(Reward reward) {
+		String subject = null;
+		switch (IncentiveCategory.lookup(reward.getIncentive().getCategory())) {
+		case SURVEY:
+			subject = "het invullen van een enquête";
+			break;
+		case UNKNOWN:
+			subject = "een onbekende activiteit";
+		default:
+			
+		}
+		return MessageFormat.format("Beloning voor {0}", subject); 
+	}
+	
+	public String createPremiumRewardText(Reward reward) {
+		return MessageFormat.format("Je hebt {0} premiecredits verdiend met: {1}", 
+				reward.getAmount(), reward.getIncentive().getDescription() 
+		);
+	}
+	
+	/***************  GENERIC  *************/
+	public String createPersonalGenericTopic() {
+		return "Persoonlijke berichten"; 
 	}
 }

@@ -28,6 +28,7 @@ import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.Ledger;
+import eu.netmobiel.banker.model.Reward;
 import eu.netmobiel.banker.model.SettlementOrder;
 import eu.netmobiel.banker.model.TransactionType;
 import eu.netmobiel.banker.repository.AccountDao;
@@ -36,6 +37,7 @@ import eu.netmobiel.banker.repository.AccountingTransactionDao;
 import eu.netmobiel.banker.repository.BalanceDao;
 import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.repository.LedgerDao;
+import eu.netmobiel.banker.repository.RewardDao;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -102,6 +104,8 @@ public class LedgerService {
     private AccountDao accountDao;
     @Inject
     private BankerUserDao userDao;
+    @Inject
+    private RewardDao rewardDao;
 
     private static void expect(Account account, AccountType type) {
     	if (! Account.isOpen.test(account)) {
@@ -748,5 +752,55 @@ public class LedgerService {
     	}
     	return ncan;
     }
+ 
+    /**
+     * Pay a user an amount of premium credits. The credits are first paid to the current account and then 
+     * reserved on the premium account for spending on selected activities.
+     * @param reward
+     * @param when
+     * @param statementText the text to appear on the statement.
+     * @throws BalanceInsufficientException
+     * @throws NotFoundException
+     */
+    public void rewardWithPremium(Reward reward, OffsetDateTime when, String statementText) throws BalanceInsufficientException, NotFoundException {
+    	Reward rewarddb = rewardDao.find(reward.getId())
+    			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getId()));
+    	BankerUser user = userDao.loadGraph(rewarddb.getRecipient().getId(), BankerUser.GRAPH_WITH_ACCOUNT)  
+    			.orElseThrow(() -> new BalanceInsufficientException("No such user: " + rewarddb.getRecipient().getManagedIdentity()));
+    	int amount = rewarddb.getAmount();
+    	Ledger ledger = ledgerDao.findByDate(when.toInstant());
+    	ledger.expectOpen();
+    	Balance personalBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPersonalAccount());  
+    	Balance maecenasBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_PREMIUMS);  
+    	Balance personalPremiumBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPremiumAccount());
+    	expect(personalBalance.getAccount(), AccountType.LIABILITY);
+    	expect(maecenasBalance.getAccount(), AccountType.LIABILITY);
+    	expect(personalPremiumBalance.getAccount(), AccountType.LIABILITY);
+    	AccountingTransaction tr = ledger
+    			.createStartTransaction(statementText, rewarddb.getUrn(), when.toInstant(), Instant.now())
+    			.transfer(maecenasBalance, amount, TransactionType.PAYMENT, personalBalance)
+				.transfer(personalBalance, amount, TransactionType.RESERVATION, personalPremiumBalance)
+    			.build();
+    	accountingTransactionDao.save(tr);
+    	rewarddb.setTransaction(tr);
+    }
     
+    
+    public void refundRewardWithPremium(Reward reward, OffsetDateTime when) throws BalanceInsufficientException, NotFoundException {
+    	if (reward.getTransaction() == null) {
+    		return;
+    	}
+    	Reward rewarddb = rewardDao.find(reward.getId())
+    			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getId()));
+    	AccountingTransaction rewardTr = lookupTransactionWithEntries(reward.getTransaction().getId());
+    	if (rewardTr.hasEntry(TransactionType.PAYMENT)) {
+    		// There is a payment made, make a refund
+        	// Mark the transaction as a rollback
+        	AccountingTransaction tr = reverse(rewardTr.getHead(), rewardTr, when.toInstant(), true); 
+           	accountingTransactionDao.save(tr);
+           	// Save the transaction reference.
+        	rewarddb.setTransaction(tr);
+    	}
+    	// else refund must taken place already, ignore.
+    }
 }

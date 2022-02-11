@@ -4,14 +4,19 @@ import java.time.Instant;
 import java.util.Optional;
 
 import javax.ejb.Stateless;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
+import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.profile.event.SurveyRemovalEvent;
+import eu.netmobiel.profile.event.SurveyCompletedEvent;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Survey;
 import eu.netmobiel.profile.model.SurveyInteraction;
@@ -37,6 +42,12 @@ public class SurveyManager {
     
     @Inject
     private SurveyInteractionDao surveyInteractionDao;
+
+    @Inject
+    private Event<SurveyCompletedEvent> surveyCompletedEvent;
+
+    @Inject
+    private Event<SurveyRemovalEvent> surveyRemovedEvent;
 
     /**
      * Invites a user (a profile) to take part in a survey (the one being active, at most one) 
@@ -129,5 +140,36 @@ public class SurveyManager {
 			throw new UpdateException(String.format("Survey %s has expired for user %s", providerSurveyId, managedId));
 		}
 		si.get().setSubmitTime(Instant.now());
+		// Mark the completion of the survey to postprocessing services (should use on-success option)
+		surveyCompletedEvent.fire(new SurveyCompletedEvent(profile, si.get()));
+	}
+
+	/**
+	 * Reverts a survey interaction for testing purposes. 
+	 * @param managedId The managed id of the owning user.
+	 * @param providerSurveyId the survey ID
+	 * @param scope One of: payment, reward, survey. If a survey is removed, then reward and payment are removed as well. 
+	 * 				If a reward is removed, then the payment is removed too.
+	 */
+	public void revertSurveyInteraction(String managedId, String providerSurveyId, String scope) throws BusinessException {
+    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
+		Survey survey = surveyDao.findSurveyByProviderReference(providerSurveyId)
+				.orElseThrow(() -> new NotFoundException("No such survey: " + providerSurveyId));
+		Optional<SurveyInteraction> si = surveyInteractionDao.findInteraction(survey, profile);
+		if (! si.isPresent()) {
+			throw new BadRequestException(String.format("No survey interaction %s for user %s", providerSurveyId, managedId));
+		}
+		if (si.get().getSubmitTime() == null && !"survey".equalsIgnoreCase(scope)) {
+			throw new BadRequestException(String.format("Cannot revert survey %s reward/payment, user %s has not submitted yet", providerSurveyId, managedId));
+		}
+		if (si.get().getSubmitTime() != null) {
+			// Revert payment and perhaps reward too. This is a synchronous event. 
+			EventFireWrapper.fire(surveyRemovedEvent, new SurveyRemovalEvent(profile, si.get(), "payment".equalsIgnoreCase(scope)));
+		}
+		if ("survey".equalsIgnoreCase(scope)) {
+			// Remove survey interaction
+			surveyInteractionDao.remove(si.get());
+		}
 	}
 }

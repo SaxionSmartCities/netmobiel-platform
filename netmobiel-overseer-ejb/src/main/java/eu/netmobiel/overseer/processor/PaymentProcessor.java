@@ -1,5 +1,6 @@
 package eu.netmobiel.overseer.processor;
 
+import java.time.OffsetDateTime;
 import java.util.Date;
 import java.util.HashMap;
 import java.util.Map;
@@ -12,6 +13,8 @@ import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
 import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
+import javax.enterprise.event.Observes;
+import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 import javax.mail.MessagingException;
 import javax.mail.Session;
@@ -21,8 +24,12 @@ import javax.mail.internet.MimeMessage;
 import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 
+import eu.netmobiel.banker.exception.BalanceInsufficientException;
+import eu.netmobiel.banker.model.Reward;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.NetMobielModule;
+import eu.netmobiel.commons.annotation.Created;
+import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.SystemException;
@@ -96,7 +103,7 @@ public class PaymentProcessor {
 
     @Inject
     private TextHelper textHelper;
-
+    
     private static void assertLegHasFareInCredits(Leg leg) {
 		if (!leg.hasFareInCredits()) {
 			throw new IllegalArgumentException("Leg has no fare: " + leg.getLegRef());
@@ -368,4 +375,31 @@ public class PaymentProcessor {
         }
 	}
 	
+    /**
+     * Attempt to pay-out a newly created Reward.
+     * @param reward
+     */
+    @Asynchronous
+    public void onNewReward(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Reward reward) {
+    	try {
+	    	ledgerService.rewardWithPremium(reward, OffsetDateTime.now(), textHelper.createPremiumRewardStatementText(reward)); 
+    	} catch (BalanceInsufficientException e) {
+    		logger.warn("Premium balance is insufficient, reward payment is pending: " + reward.getUrn());
+    	} catch (Exception e) {
+    		logger.error("Error in onNewReward: " + e);
+    	}
+    }
+
+    /**
+     * For testing: Handle the disposal of a reward by reverting the payment of the reward.
+     * This method a synchronous.
+     * @param reward
+     * @throws BusinessException
+     */
+    public void onRewardDisposal(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Reward reward) throws BusinessException {
+    	if (reward.getTransaction() != null) {
+    		ledgerService.refundRewardWithPremium(reward, OffsetDateTime.now());
+    	}
+    }
+
 }

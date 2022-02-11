@@ -1,6 +1,7 @@
 package eu.netmobiel.communicator.model;
 
 public enum UserRole {
+	GENERIC("GN"),
 	PASSENGER("PG"),
 	DRIVER("DR"),
 	DELEGATE("DE"),

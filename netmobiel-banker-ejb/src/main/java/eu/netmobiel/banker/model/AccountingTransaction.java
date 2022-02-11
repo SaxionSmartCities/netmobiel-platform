@@ -373,4 +373,10 @@ public class AccountingTransaction  implements Serializable {
     	return entry;
     }
 
+    public boolean hasEntry(TransactionType purpose) {
+    	return getAccountingEntries().stream()
+    			.filter(e -> e.getPurpose() == purpose)
+    			.findFirst()
+    			.isPresent();
+    }
 }
