@@ -842,102 +842,6 @@ paths:
         type: string
       in: path
       required: true
-  /survey-interactions:
-    summary: Path used to manage the list of survey interactions.
-    description: The REST endpoint/path used to list (and indirect to create) zero
-      or more `SurveyInteraction` entities.  This path contains a `GET` operation
-      to perform the list task. There is at most a single combination of survey and
-      profile possible.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SurveyInteraction'
-          description: Successful response - returns an array of `SurveyInteraction`
-            entities.
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: getSurveyInteractions
-      summary: List all surveyinteractions
-      description: "Gets a list of all `SurveyInteraction` entities for the calling\
-        \ user. Expected is at most one entry.\nWhen no query parameters are supplied,\
-        \ the call looks for pending invitations to take\na survey. "
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-  /survey-interactions/{surveyId}/on-submit:
-    summary: Path used to note the completion of a survey by a user.
-    description: Call used to note the completion of a survey as reported by the survey
-      provider.
-    put:
-      responses:
-        "204":
-          description: The record has been updated and the reward has been transferred.
-        "404":
-          $ref: '#/components/responses/NotFound'
-        "410":
-          $ref: '#/components/responses/Gone'
-      operationId: onSubmit
-      summary: Record the submission of an SurveyInteraction
-      description: Records the submission of a `Survey`attached to an existing `SurveyInteraction`.
-        Once set the survey interaction will not be found anymore for this user, as
-        it has been completed.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - name: surveyId
-      description: The survey id used by the survey provider.
-      schema:
-        type: string
-      in: path
-      required: true
-  /survey-interactions/{surveyId}/on-redirect:
-    summary: Note an upcoming redirection of a user to the survey provider.
-    description: Just before the actual redirection this call is made to log the redirection
-      of the user to the survey provider. The intention is to see whether a user encounters
-      difficulties in completing the survey. That might be the case if the redirection
-      count is ofter greater than 1.
-    put:
-      responses:
-        "204":
-          description: The interaction has been updated. The front-end can execute
-            the actual redirection.
-        "404":
-          $ref: '#/components/responses/NotFound'
-        "410":
-          $ref: '#/components/responses/Gone'
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: onRedirect
-      summary: Take notice of a redirection.
-      description: Signals an upcoming redirection.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - name: surveyId
-      description: the survey id used by the survey provider.
-      schema:
-        type: string
-      in: path
-      required: true
   /compliments:
     summary: Path used to manage the list of compliments.
     description: The REST endpoint/path used to list and create zero or more `Compliments`
@@ -1009,6 +913,148 @@ paths:
       schema:
         type: string
       in: header
+  /survey-interactions:
+    summary: Path used to manage the list of survey interactions.
+    description: The REST endpoint/path used to list and create zero or more `SurveyInteraction`
+      entities.  This path contains a `GET` and `POST` operations to perform the list
+      task, resp. the create task. There is at most a single combination of survey
+      and profile possible.
+    get:
+      parameters:
+      - name: surveyId
+        description: Filter the results by the external survey ID.
+        schema:
+          type: string
+        in: query
+      - name: completedToo
+        description: If true then include completed surveys too in the listing.
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SurveyInteraction'
+          description: Successful response - returns an array of `SurveyInteraction`
+            entities.
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: getSurveyInteractions
+      summary: List all surveyinteractions
+      description: "Gets a list of all `SurveyInteraction` entities for the calling\
+        \ user. \nWhen no query parameters are supplied, the call looks for pending\
+        \ invitations to take\na survey. The admin can see `SurveyInteraction` entities\
+        \ of any user."
+    post:
+      responses:
+        "201":
+          description: A new survey interaction is created, the user may complete
+            a survey of some kind.
+        "204":
+          description: 'The system has not seen a trigger to issue a survey interaction. '
+      operationId: createSurveyInteraction
+      summary: Creates a survey interaction
+      description: |-
+        Attempts to create a survey interaction, but only if the conditions are right. Otherwise a 204 will be returned.
+        This call should be issued once in a time, e.g., when logging in.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: profileId
+      description: The user to list or create a survey interaction for. This parameter
+        defaults to `me` for non-admin users. The admin can list all interactions.
+        The `profileId` is the managed identity of the user or `me`  for the calling
+        user.
+      schema:
+        type: string
+      in: query
+  /survey-interactions/{surveyInteractionId}/on-redirect:
+    summary: Note an upcoming redirection of a user to the survey provider.
+    description: Just before the actual redirection this call is made to log the redirection
+      of the user to the survey provider. The intention is to see whether a user encounters
+      difficulties in completing the survey. That might be the case if the redirection
+      count is ofter greater than 1.
+    put:
+      responses:
+        "204":
+          description: The interaction has been updated. The front-end can execute
+            the actual redirection.
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "410":
+          $ref: '#/components/responses/Gone'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: onRedirect
+      summary: Take notice of a redirection.
+      description: Signals an upcoming redirection.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: surveyInteractionId
+      description: The survey interaction id.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: profileId
+      description: The user to update the survey interaction for. This parameter defaults
+        to `me` for non-admin users. The `profileId` is the managed identity of the
+        user.
+      schema:
+        type: string
+      in: query
+  /survey-interactions/{surveyInteractionId}/on-submit:
+    summary: Path used to note the completion of a survey by a user.
+    description: Call used to note the completion of a survey as reported by the survey
+      provider.
+    put:
+      responses:
+        "204":
+          description: The record has been updated and the reward has been transferred.
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "410":
+          $ref: '#/components/responses/Gone'
+      operationId: onSubmit
+      summary: Record the submission of an SurveyInteraction
+      description: Records the submission of a `Survey`attached to an existing `SurveyInteraction`.
+        Once set the survey interaction will not be found anymore for this user, as
+        it has been completed.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: surveyInteractionId
+      description: The survey interaction id.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: profileId
+      description: The user to update the survey interaction for. This parameter defaults
+        to `me` for non-admin users. The `profileId` is the managed identity of the
+        user.
+      schema:
+        type: string
+      in: query
 components:
   schemas:
     SearchPreferences:
