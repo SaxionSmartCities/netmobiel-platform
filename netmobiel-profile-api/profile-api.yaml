@@ -1011,13 +1011,6 @@ paths:
         type: string
       in: path
       required: true
-    - name: profileId
-      description: The user to update the survey interaction for. This parameter defaults
-        to `me` for non-admin users. The `profileId` is the managed identity of the
-        user.
-      schema:
-        type: string
-      in: query
   /survey-interactions/{surveyInteractionId}/on-submit:
     summary: Path used to note the completion of a survey by a user.
     description: Call used to note the completion of a survey as reported by the survey
@@ -1030,6 +1023,9 @@ paths:
           $ref: '#/components/responses/NotFound'
         "410":
           $ref: '#/components/responses/Gone'
+      security:
+      - apikey: []
+        Bearer-only: []
       operationId: onSubmit
       summary: Record the submission of an SurveyInteraction
       description: Records the submission of a `Survey`attached to an existing `SurveyInteraction`.
@@ -1048,13 +1044,72 @@ paths:
         type: string
       in: path
       required: true
-    - name: profileId
-      description: The user to update the survey interaction for. This parameter defaults
-        to `me` for non-admin users. The `profileId` is the managed identity of the
-        user.
+  /survey-interactions/{surveyInteractionId}:
+    summary: Note an upcoming redirection of a user to the survey provider.
+    description: Just before the actual redirection this call is made to log the redirection
+      of the user to the survey provider. The intention is to see whether a user encounters
+      difficulties in completing the survey. That might be the case if the redirection
+      count is ofter greater than 1.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyInteraction'
+          description: Success.
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getSurveyInteraction
+      summary: Get a survey interaction
+      description: Get a specific survey interaction. The admin can read any survey
+        interaction, regular users can only read their own survey interaction.
+    delete:
+      parameters:
+      - name: scope
+        description: |-
+          The extent of the delete operaration, default is `answer`:
+          - payment - Only the payment is reversed;
+          - reward - The reward is cancelled;
+          - answer - The answer is ignored (as if no answer was given yet);
+          - full - the record is removed (after succesfully finishing the foregoing operations).
+        schema:
+          enum:
+          - PAYMENT
+          - REWARD
+          - ANSWER
+          - FULL
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: deleteSurveyInteraction
+      summary: Deletes a part of the survey interaction.
+      description: 'For testing and maintenance purposes: Delete the survey interaction
+        record or a logical thereof. The `scope` parameter determines what to do.'
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
       schema:
         type: string
-      in: query
+      in: header
+    - name: surveyInteractionId
+      description: The survey interaction id.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     SearchPreferences:
