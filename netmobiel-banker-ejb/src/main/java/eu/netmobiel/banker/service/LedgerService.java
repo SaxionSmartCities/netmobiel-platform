@@ -797,8 +797,14 @@ public class LedgerService {
     	rewarddb.setCancelTime(null);
     }
     
-    
-    public void refundRewardWithPremium(Reward reward, OffsetDateTime when) throws BalanceInsufficientException, NotFoundException {
+    /**
+     * Reverse the earlier payment of a reward. This method is added for testing purposes.
+     * @param reward
+     * @param when
+     * @throws BalanceInsufficientException
+     * @throws NotFoundException
+     */
+    public void refundReward(Reward reward, OffsetDateTime when) throws BalanceInsufficientException, NotFoundException {
     	if (reward.getTransaction() == null) {
     		return;
     	}

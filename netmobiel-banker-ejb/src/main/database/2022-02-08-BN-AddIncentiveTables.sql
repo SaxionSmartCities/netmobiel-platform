@@ -7,7 +7,7 @@ CREATE TABLE incentive (
     category character varying(16) NOT NULL,
     description character varying(256) NOT NULL,
     amount integer NOT NULL,
-    external_ref character varying(64),
+    external_ref character varying(64)
 );
 
 
@@ -45,7 +45,7 @@ CREATE TABLE reward (
     transaction integer,
     recipient integer NOT NULL,
     incentive integer NOT NULL,
-    context character varying(32),
+    context character varying(32)
 );
 
 CREATE SEQUENCE public.reward_seq
@@ -62,7 +62,7 @@ ALTER TABLE ONLY public.reward
 ;
 ALTER TABLE ONLY public.reward
     ADD CONSTRAINT reward_transaction_fk FOREIGN KEY (transaction) REFERENCES public.accounting_transaction(id),
-    ADD CONSTRAINT reward_recipient_fk FOREIGN KEY (recipient) REFERENCES public.bn_user(id)
+    ADD CONSTRAINT reward_recipient_fk FOREIGN KEY (recipient) REFERENCES public.bn_user(id),
     ADD CONSTRAINT reward_incentive_fk FOREIGN KEY (incentive) REFERENCES public.incentive(id)
 ;
 

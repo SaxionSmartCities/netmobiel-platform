@@ -40,7 +40,7 @@ import eu.netmobiel.profile.util.ProfileUrnHelper;
 })
 @Entity
 @Table(name = "survey_interaction", uniqueConstraints = {
-	    @UniqueConstraint(name = "cs_survey_interaction_unique", columnNames = { "profile, survey" })
+	    @UniqueConstraint(name = "cs_survey_interaction_unique", columnNames = { "profile", "survey" })
 })
 @Vetoed
 @Access(AccessType.FIELD)

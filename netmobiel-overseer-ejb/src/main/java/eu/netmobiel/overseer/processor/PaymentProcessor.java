@@ -398,7 +398,7 @@ public class PaymentProcessor {
      */
     public void onRewardDisposal(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Reward reward) throws BusinessException {
     	if (reward.getTransaction() != null) {
-    		ledgerService.refundRewardWithPremium(reward, OffsetDateTime.now());
+    		ledgerService.refundReward(reward, OffsetDateTime.now());
     	}
     }
 
