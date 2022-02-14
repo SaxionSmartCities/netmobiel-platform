@@ -949,7 +949,7 @@ paths:
       description: "Gets a list of all `SurveyInteraction` entities for the calling\
         \ user. \nWhen no query parameters are supplied, the call looks for pending\
         \ invitations to take\na survey. The admin can see `SurveyInteraction` entities\
-        \ of any user."
+        \ of any user. \n\nThis call is idempotent."
     post:
       responses:
         "201":
@@ -962,6 +962,8 @@ paths:
       description: |-
         Attempts to create a survey interaction, but only if the conditions are right. Otherwise a 204 will be returned.
         This call should be issued once in a time, e.g., when logging in.
+
+        If the survey is found, but it is not completed yet, it's invitation count is incremented and a 201 is returned, although a new object is not really created. Consider it as a new opportunity.
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
@@ -1068,7 +1070,8 @@ paths:
       operationId: getSurveyInteraction
       summary: Get a survey interaction
       description: Get a specific survey interaction. The admin can read any survey
-        interaction, regular users can only read their own survey interaction.
+        interaction, regular users can only read their own survey interaction. The
+        call is idempotent.
     delete:
       parameters:
       - name: scope
@@ -1348,7 +1351,7 @@ components:
           description: The given name of the user.
           type: string
         lastName:
-          description: The family nmae of the user.
+          description: The family name of the user.
           type: string
       example:
         id: 5c76c977-2ffd-4100-a8c0-77db7129660d
@@ -1717,6 +1720,10 @@ components:
           format: date-time
           description: The first time the user was redirected to the survey.
           type: string
+        owner:
+          $ref: '#/components/schemas/UserRef'
+          description: The owner of the survey interaction. Present only if calling
+            user is not the owner.
       example:
         survey:
           surveyId: ENQ-1
