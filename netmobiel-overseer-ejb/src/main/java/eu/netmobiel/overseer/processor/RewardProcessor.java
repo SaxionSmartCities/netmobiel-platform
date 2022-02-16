@@ -23,7 +23,9 @@ import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.overseer.model.IncentiveCategory;
 import eu.netmobiel.profile.event.SurveyCompletedEvent;
 import eu.netmobiel.profile.event.SurveyRemovalEvent;
+import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Survey;
+import eu.netmobiel.profile.model.SurveyInteraction;
 
 /**
  * Stateless bean for managing incentives and rewards.
@@ -59,23 +61,24 @@ public class RewardProcessor {
 		try {
 			// Check whether the reward was already handed out. Theoretically, multiple incentives might exists for 
 			// the same fact, so lookup the incentive (the incentive this method is about) first.
-			Survey survey = surveyCompletedEvent.getSurveyInteraction().getSurvey();
+			SurveyInteraction si = surveyCompletedEvent.getSurveyInteraction();
+			Survey survey = si.getSurvey();
+			Profile owner = si.getProfile();  
 			Optional<Incentive> optIncentive = rewardService.lookupIncentive(IncentiveCategory.SURVEY.name(), survey.getSurveyId());
 			if (optIncentive.isEmpty()) {
 				logger.warn("Survey is not coupled to an incentive: " + survey.getSurveyId());
 			} else {
 				Optional<Reward> optReward;
-					optReward = rewardService.lookupRewardByFact(optIncentive.get(), 
-							surveyCompletedEvent.getProfile(), surveyCompletedEvent.getSurveyInteraction().getUrn());
+					optReward = rewardService.lookupRewardByFact(optIncentive.get(), owner, si.getUrn());
 				if (optReward.isPresent()) {
 					logger.info("Reward on survey completion already given: " + optReward.get().getUrn());
 				} else {
 					// Create reward
 					String rewardContext = surveyCompletedEvent.getSurveyInteraction().getUrn();
-					Reward rwd = rewardService.createReward(optIncentive.get(), surveyCompletedEvent.getProfile(), rewardContext);
+					Reward rwd = rewardService.createReward(optIncentive.get(), owner, rewardContext);
 					// Assure the conversation exists
 					Conversation personalConv = publisherService.lookupOrCreateConversation(rwd.getRecipient(), 
-							UserRole.GENERIC, surveyCompletedEvent.getProfile().getUrn(), textHelper.createPersonalGenericTopic(), false);
+							UserRole.GENERIC, owner.getUrn(), textHelper.createPersonalGenericTopic(), false);
 					publisherService.addConversationContext(personalConv, rwd.getUrn());
 					String messageText = textHelper.createPremiumRewardText(rwd);
 			    	Message msg = new Message();

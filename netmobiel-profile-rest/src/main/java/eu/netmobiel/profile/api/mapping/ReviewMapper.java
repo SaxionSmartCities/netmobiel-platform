@@ -2,13 +2,12 @@ package eu.netmobiel.profile.api.mapping;
 
 import java.util.List;
 
-import org.mapstruct.BeanMapping;
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
-import eu.netmobiel.profile.model.Profile;
+import eu.netmobiel.profile.api.mapping.annotation.ProfileMapperQualifier;
 import eu.netmobiel.profile.model.Review;
 
 /**
@@ -18,24 +17,15 @@ import eu.netmobiel.profile.model.Review;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
-	uses = { GeometryMapper.class, JavaTimeMapper.class })
+	uses = { GeometryMapper.class, JavaTimeMapper.class, ProfileMapper.class })
 public abstract class ReviewMapper {
 
 	public abstract List<eu.netmobiel.profile.api.model.Review> map(List<Review> source);
 //	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Review> source);
-
-	// Domain --> API
-	@Mapping(target = "id", source = "managedIdentity")
-	@Mapping(target = "firstName", source = "givenName")
-	@Mapping(target = "lastName", source = "familyName")
-	public abstract eu.netmobiel.profile.api.model.UserRef map(Profile source);
-
-	@BeanMapping(ignoreByDefault = true)
-	@InheritInverseConfiguration
-	public abstract Profile map(eu.netmobiel.profile.api.model.UserRef source);
-
 	
 	// Domain --> API
+	@Mapping(target = "receiver", source = "receiver", qualifiedBy = { ProfileMapperQualifier.class } )
+	@Mapping(target = "sender", source = "sender", qualifiedBy = { ProfileMapperQualifier.class } )
 	public abstract eu.netmobiel.profile.api.model.Review map(Review source);
 
 	// API --> Domain

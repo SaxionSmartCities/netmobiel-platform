@@ -74,7 +74,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	public Response getProfile(String xDelegator, String profileId, Boolean _public) {
     	Response rsp = null;
 		try {
-			// Only admin and effective owner can view the full profile, other see the public profile.
+			// Only admin and effective owner can view the full profile, others see the public profile.
 			String mid = resolveIdentity(xDelegator, profileId);
 			// The profile is always completely initialized, but may only be filled in part,
 			// depending on the privileges of the caller.

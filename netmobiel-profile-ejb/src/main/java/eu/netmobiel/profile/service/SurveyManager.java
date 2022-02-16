@@ -1,6 +1,7 @@
 package eu.netmobiel.profile.service;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import javax.ejb.Stateless;
@@ -13,6 +14,8 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
+import eu.netmobiel.commons.filter.Cursor;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.event.SurveyRemovalEvent;
@@ -20,6 +23,7 @@ import eu.netmobiel.profile.event.SurveyCompletedEvent;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Survey;
 import eu.netmobiel.profile.model.SurveyInteraction;
+import eu.netmobiel.profile.model.SurveyScope;
 import eu.netmobiel.profile.repository.ProfileDao;
 import eu.netmobiel.profile.repository.SurveyDao;
 import eu.netmobiel.profile.repository.SurveyInteractionDao;
@@ -30,7 +34,9 @@ import eu.netmobiel.profile.repository.SurveyInteractionDao;
 @Stateless
 @Logging
 public class SurveyManager {
-    @SuppressWarnings("unused")
+	public static final Integer MAX_RESULTS = 10; 
+
+	@SuppressWarnings("unused")
 	@Inject
     private Logger logger;
 
@@ -48,6 +54,29 @@ public class SurveyManager {
 
     @Inject
     private Event<SurveyRemovalEvent> surveyRemovedEvent;
+
+    
+    /**
+     * List the survey interaction according the criteria. 
+     * @param managedId the managed id of the user for whom to list the survey interactions. 
+     * @param surveyId the provider ID of the survey interaction to lookup.
+     * @param completedToo If true then return also interactions that have been completed.
+     * @param cursor the max results and offset. 
+     * @return A paged list of survey interactions.
+     * @throws BadRequestException 
+     */
+	public PagedResult<SurveyInteraction> listSurveyInteractions(String managedId, String surveyId, boolean completedToo, Cursor cursor) 
+			throws NotFoundException, BadRequestException {
+    	cursor.validate(MAX_RESULTS, 0);
+    	PagedResult<Long> prs = surveyInteractionDao.listSurveyInteractions(managedId, surveyId, completedToo, Cursor.COUNTING_CURSOR);
+    	List<SurveyInteraction> results = null;
+    	if (prs.getTotalCount() > 0 && !cursor.isCountingQuery()) {
+    		// Get the actual data
+    		PagedResult<Long> pids = surveyInteractionDao.listSurveyInteractions(managedId, surveyId, completedToo, cursor);
+    		results = surveyInteractionDao.loadGraphs(pids.getData(), SurveyInteraction.SURVEY_PROFILE_ENTITY_GRAPH, SurveyInteraction::getId);
+    	}
+    	return new PagedResult<>(results, cursor, prs.getTotalCount());
+	}
 
     /**
      * Invites a user (a profile) to take part in a survey (the one being active, at most one) 
@@ -85,6 +114,17 @@ public class SurveyManager {
 		return si;
 	}
 
+    /**
+     * Returns the survey interaction with the specified id. 
+     * @param id the od of the survey interaction.
+     * @return the survey interaction object.
+     * @throws NotFoundException when the object does not exist.
+     */
+	public SurveyInteraction getSurveyInteraction(Long id) throws NotFoundException {
+		return surveyInteractionDao.loadGraph(id, SurveyInteraction.SURVEY_PROFILE_ENTITY_GRAPH)
+				.orElseThrow(() -> new NotFoundException("No such surveyInteraction: " + id));
+	}
+
 	/**
 	 * Marks the survey interaction of the specified profile and survey for a redirection.
 	 * @param managedId the calling profile.
@@ -93,26 +133,20 @@ public class SurveyManager {
 	 * @throws UpdateException if the interaction was already completed or when there is no preceding invitation.
 	 * @throws BadRequestException when the user has not been invited yet (can this ever happen?).
 	 */
-	public void onSurveyRedirect(String managedId, String providerSurveyId) throws NotFoundException, UpdateException, BadRequestException {
-    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-		Survey survey = surveyDao.findSurveyByProviderReference(providerSurveyId)
-				.orElseThrow(() -> new NotFoundException("No such survey: " + providerSurveyId));
-		// Check whether the survey has already been taken
-		Optional<SurveyInteraction> si = surveyInteractionDao.findInteraction(survey, profile);
-		if (! si.isPresent()) {
-			throw new BadRequestException(String.format("Cannot set submit time of %s, first invite user %s", providerSurveyId, managedId));
+	public void onSurveyRedirect(Long surveyInteractionId) throws NotFoundException, UpdateException, BadRequestException {
+		SurveyInteraction si = getSurveyInteraction(surveyInteractionId);
+		if (si.getSubmitTime() != null) {
+			throw new UpdateException(String.format("Survey %s has already been submitted by %s", 
+					si.getSurvey().getSurveyId(), si.getProfile().getManagedIdentity()));
 		}
-		if (si.get().getSubmitTime() != null) {
-			throw new UpdateException(String.format("Survey %s has already been submitted by user %s", providerSurveyId, managedId));
+		if (si.isExpired()) {
+			throw new UpdateException(String.format("Survey %s has expired for user %s", 
+					si.getSurvey().getSurveyId(), si.getProfile().getManagedIdentity()));
 		}
-		if (si.get().isExpired()) {
-			throw new UpdateException(String.format("Survey %s has expired for user %s", providerSurveyId, managedId));
+		if (si.getRedirectTime() == null) {
+			si.setRedirectTime(Instant.now());
 		}
-		if (si.get().getRedirectTime() == null) {
-			si.get().setRedirectTime(Instant.now());
-		}
-		si.get().incrementRedirectCount();
+		si.incrementRedirectCount();
 	}
 
 	/**
@@ -123,50 +157,39 @@ public class SurveyManager {
 	 * @throws UpdateException if the interaction was already completed or when there is no preceding invitation.
 	 * @throws BadRequestException if called without prior invitation.
 	 */
-	public void onSurveySubmitted(String managedId, String providerSurveyId) throws NotFoundException, UpdateException, BadRequestException {
-    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-		Survey survey = surveyDao.findSurveyByProviderReference(providerSurveyId)
-				.orElseThrow(() -> new NotFoundException("No such survey: " + providerSurveyId));
-			// Check whether the survey has already been taken
-		Optional<SurveyInteraction> si = surveyInteractionDao.findInteraction(survey, profile);
-		if (! si.isPresent()) {
-			throw new BadRequestException(String.format("Cannot set submit time of %s, first invite user %s", providerSurveyId, managedId));
+	public void onSurveySubmitted(Long surveyInteractionId) throws NotFoundException, UpdateException, BadRequestException {
+		SurveyInteraction si = getSurveyInteraction(surveyInteractionId);
+		if (si.getSubmitTime() != null) {
+			throw new UpdateException(String.format("Survey %s has already been submitted by %s", 
+					si.getSurvey().getSurveyId(), si.getProfile().getManagedIdentity()));
 		}
-		if (si.get().getSubmitTime() != null) {
-			throw new UpdateException(String.format("Survey %s has already been submitted by %s", providerSurveyId, managedId));
+		if (si.isExpired()) {
+			throw new UpdateException(String.format("Survey %s has expired for user %s", 
+					si.getSurvey().getSurveyId(), si.getProfile().getManagedIdentity()));
 		}
-		if (si.get().isExpired()) {
-			throw new UpdateException(String.format("Survey %s has expired for user %s", providerSurveyId, managedId));
-		}
-		si.get().setSubmitTime(Instant.now());
+		si.setSubmitTime(Instant.now());
 		// Mark the completion of the survey to postprocessing services (should use on-success option)
-		surveyCompletedEvent.fire(new SurveyCompletedEvent(profile, si.get()));
+		surveyCompletedEvent.fire(new SurveyCompletedEvent(si));
 	}
 
 	/**
-	 * Reverts a survey interaction for testing purposes. 
-	 * @param managedId The managed id of the owning user.
-	 * @param providerSurveyId the survey ID
-	 * @param scope One of: payment, reward, survey. If a survey (answer) is removed, then reward and payment are removed as well. 
-	 * 				If a reward is removed, then the payment is removed too.
+	 * Reverts asurvey interaction for testing purposes. The security is already checked at this stage. 
+	 * @param surveyProviderId the survey interaction id.
+	 * @param scope The extent to cancel. This has  cascading effect. Cancelling a survey means removal of the 
+	 * 			interaction record and this removal of the answer, canceling of the reward and refunding the payment.
 	 */
-	public void revertSurveyInteraction(String managedId, String providerSurveyId, String scope) throws BusinessException {
-    	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-		Survey survey = surveyDao.findSurveyByProviderReference(providerSurveyId)
-				.orElseThrow(() -> new NotFoundException("No such survey: " + providerSurveyId));
-		Optional<SurveyInteraction> si = surveyInteractionDao.findInteraction(survey, profile);
-		if (! si.isPresent()) {
-			throw new BadRequestException(String.format("No survey interaction %s for user %s", providerSurveyId, managedId));
-		}
-		if (si.get().getSubmitTime() != null) {
+	public void revertSurveyInteraction(Long surveyInteractionId, SurveyScope scope) throws BusinessException {
+		SurveyInteraction si = getSurveyInteraction(surveyInteractionId);
+		if (si.getSubmitTime() != null) {
 			// Revert payment and perhaps reward too. This is a synchronous event.
-			EventFireWrapper.fire(surveyRemovedEvent, new SurveyRemovalEvent(profile, si.get(), "payment".equalsIgnoreCase(scope)));
-			if ("survey".equalsIgnoreCase(scope)) {
+			EventFireWrapper.fire(surveyRemovedEvent, new SurveyRemovalEvent(si.getProfile(), si, SurveyScope.PAYMENT == scope));
+			if (SurveyScope.ANSWER == scope) {
 				// Ok, the survey answer is removed too 
-				si.get().setSubmitTime(null);
+				si.setSubmitTime(null);
 			}
+		}
+		if (SurveyScope.SURVEY == scope) {
+			surveyInteractionDao.remove(si);
 		}
 	}
 }

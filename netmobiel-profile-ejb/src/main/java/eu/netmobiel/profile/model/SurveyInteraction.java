@@ -37,6 +37,12 @@ import eu.netmobiel.profile.util.ProfileUrnHelper;
 					@NamedAttributeNode(value = "survey"), 
 			} 
 	),
+	@NamedEntityGraph(name = SurveyInteraction.SURVEY_PROFILE_ENTITY_GRAPH, 
+	attributeNodes = { 
+			@NamedAttributeNode(value = "survey"), 
+			@NamedAttributeNode(value = "profile"), 
+	} 
+),
 })
 @Entity
 @Table(name = "survey_interaction", uniqueConstraints = {
@@ -49,6 +55,7 @@ public class SurveyInteraction extends ReferableObject implements Serializable {
 
 	private static final long serialVersionUID = 4640816402401486372L;
 	public static final String SURVEY_ENTITY_GRAPH = "survey-entity-graph";
+	public static final String SURVEY_PROFILE_ENTITY_GRAPH = "survey-profile-entity-graph";
 	// Use a shorter word to stay with 32 characters
 	public static final String URN_PREFIX = ProfileUrnHelper.createUrnPrefix("surveyint");
 

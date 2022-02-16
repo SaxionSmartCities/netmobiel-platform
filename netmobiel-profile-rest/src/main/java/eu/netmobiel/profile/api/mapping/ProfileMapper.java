@@ -49,6 +49,16 @@ public abstract class ProfileMapper {
     public abstract ActingRoleEnum map(UserRole source);
 
 	// Domain --> API
+	@Mapping(target = "id", source = "managedIdentity")
+	@Mapping(target = "firstName", source = "givenName")
+	@Mapping(target = "lastName", source = "familyName")
+	public abstract eu.netmobiel.profile.api.model.UserRef mapToUserRef(Profile source);
+
+	@BeanMapping(ignoreByDefault = true)
+	@InheritInverseConfiguration
+	public abstract Profile mapUserRefToProfile(eu.netmobiel.profile.api.model.UserRef source);
+
+	// Domain --> API
 	@Mapping(target = "firstName", source = "givenName")
 	@Mapping(target = "image", source = "imagePath")
 	@Mapping(target = "lastName", source = "familyName")

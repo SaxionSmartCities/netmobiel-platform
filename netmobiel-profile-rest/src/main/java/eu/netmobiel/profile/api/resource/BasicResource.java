@@ -1,6 +1,9 @@
 package eu.netmobiel.profile.api.resource;
 
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
+
+import com.google.common.base.Objects;
 
 import eu.netmobiel.commons.security.SecurityIdentity;
 
@@ -25,4 +28,22 @@ public class BasicResource {
 		return mid;
     }
 
+    /**
+     * Checks whether the caller has enough privilege to proceed: Only the caller or the admin may proceeed.
+     * @param request the http request.
+     * @param mid the managed identity to check.
+     */
+    protected void allowAdminOrEffectiveUser(HttpServletRequest request, String mid) {
+    	boolean privileged = request.isUserInRole("admin");
+    	if (!privileged && ! Objects.equal(securityIdentity.getEffectivePrincipal().getName(), mid)) {
+    		throw new SecurityException("You have no access rights");
+    	}
+    }
+
+//    protected void allowAdminOrEffectiveUser(HttpServletRequest request, CallingContext<PlannerUser> callingContext, PlannerUser owner) {
+//    	boolean privileged = request.isUserInRole("admin");
+//    	if (!privileged && (owner == null || ! Objects.equal(callingContext.getEffectiveUser().getId(), owner.getId()))) {
+//    		throw new SecurityException("You have no access rights");
+//    	}
+//    }
 }
