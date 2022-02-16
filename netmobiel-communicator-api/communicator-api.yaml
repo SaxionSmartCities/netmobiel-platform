@@ -634,6 +634,7 @@ components:
           - DRIVER
           - DELEGATE
           - DELEGATOR
+          - GENERIC
           type: string
       example:
         id: 12345
