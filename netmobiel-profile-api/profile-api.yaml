@@ -1086,7 +1086,7 @@ paths:
           - PAYMENT
           - REWARD
           - ANSWER
-          - FULL
+          - SURVEY
           type: string
         in: query
       responses:
@@ -1099,7 +1099,8 @@ paths:
       operationId: deleteSurveyInteraction
       summary: Deletes a part of the survey interaction.
       description: 'For testing and maintenance purposes: Delete the survey interaction
-        record or a logical thereof. The `scope` parameter determines what to do.'
+        record or a logical consequence thereof. The `scope` parameter determines
+        what to do.'
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
