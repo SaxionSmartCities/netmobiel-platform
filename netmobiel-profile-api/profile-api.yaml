@@ -1787,26 +1787,6 @@ components:
       - NEATLY
       - NICE_CAR
       type: string
-    Survey:
-      title: Root Type for Survey
-      description: A survey is used to increase the knowledge about the experience
-        of the users about netmobiel.
-      type: object
-      properties:
-        surveyId:
-          description: The identifier of the survey used by the survey provider.
-          type: string
-        displayName:
-          description: The name of the survey to present to the end-user.
-          type: string
-        rewardCredits:
-          format: int32
-          description: The reward the user will receive on completing the survey.
-          type: integer
-      example:
-        surveyId: SV_38g7VCfcJFDB75X
-        displayName: Nulmeting Netmobiel
-        rewardCredits: 40
     SurveyInteraction:
       title: Root Type for SurveyInteraction
       description: The interaction between a user (profile) and a survey. Used to
@@ -1873,6 +1853,44 @@ components:
         expirationTime: 2021-09-06T13:24:00Z
         urn: urn:nb:pf:surveyint:12345
         surveyUrl: https://saxion.eu.qualtrics.com/jfe/form/SV_38g7VCfcJFDB75X?NetmobielID=5fd8defe-848e-4b66-8e6f-8a7d3b7ee485
+    Survey:
+      title: Root Type for Survey
+      description: A survey is used to increase the knowledge about the experience
+        of the users about netmobiel.
+      type: object
+      properties:
+        surveyId:
+          description: The identifier of the survey used by the survey provider.
+          type: string
+        displayName:
+          description: The name of the survey to present to the end-user.
+          type: string
+        rewardCredits:
+          format: int32
+          description: The reward the user will receive on completing the survey.
+          type: integer
+        takeDelayHours:
+          description: The number hours to delay after the trigger time before the
+            survey is offered.
+          type: integer
+        takeIntervalHours:
+          description: "The number of hours the survey is available to the user once\
+            \ eligible for taking the survey. \nIf not set the limit is the end time\
+            \ of the survey."
+          type: integer
+        startTime:
+          format: date-time
+          description: The time where the survey will become availble.
+          type: string
+        endTime:
+          format: date-time
+          description: The time where the survey will end and users are no longer
+            invited to take the survey.
+          type: string
+      example:
+        surveyId: SV_38g7VCfcJFDB75X
+        displayName: Nulmeting Netmobiel
+        rewardCredits: 40
   responses:
     InternalServerError:
       content:
