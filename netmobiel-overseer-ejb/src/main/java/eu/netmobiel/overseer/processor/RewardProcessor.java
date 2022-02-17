@@ -97,14 +97,18 @@ public class RewardProcessor {
 		if (logger.isDebugEnabled()) {
 			logger.debug(String.format("Survey removal (reward or payment): %s", surveyRemovalEvent.getSurveyInteraction().getUrn()));
 		}
-		Survey s = surveyRemovalEvent.getSurveyInteraction().getSurvey();
+		SurveyInteraction si = surveyRemovalEvent.getSurveyInteraction(); 
+		Survey s = si.getSurvey();
 		Optional<Incentive> optIncentive = rewardService.lookupIncentive(IncentiveCategory.SURVEY.name(), s.getSurveyId());
 		if (optIncentive.isEmpty()) {
-			throw new IllegalStateException("Survey is not coupled to an incentive: " + s.getSurveyId());
-		}
-		Optional<Reward> optReward = rewardService.lookupRewardByFact(optIncentive.get(), surveyRemovalEvent.getProfile(), surveyRemovalEvent.getSurveyInteraction().getUrn());
-		if (optReward.isPresent()) {
-			rewardService.withdrawReward(optReward.get(), surveyRemovalEvent.isPaymentOnly());
+			logger.warn("Survey is not coupled to an incentive: " + s.getSurveyId());
+		} else {
+			Optional<Reward> optReward = rewardService.lookupRewardByFact(optIncentive.get(), si.getProfile(), si.getUrn());
+			if (optReward.isPresent()) {
+				rewardService.withdrawReward(optReward.get(), surveyRemovalEvent.isPaymentOnly());
+			} else  {
+				logger.info(String.format("No reward found concerning incentive %s for user %s: ", s.getSurveyId(), si.getProfile().getManagedIdentity()));
+			}
 		}
 		
 	}

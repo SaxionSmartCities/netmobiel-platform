@@ -47,6 +47,7 @@ public class Incentive implements Serializable {
 
 	/**
 	 * An incentive has a category, just to make sure that external reference is really unique, even if it is a very simple identifier. 
+	 * It is not enumerated type, because the categories are opaque for the banker service.
 	 */
 	@Size(max = 16)
 	@NotNull

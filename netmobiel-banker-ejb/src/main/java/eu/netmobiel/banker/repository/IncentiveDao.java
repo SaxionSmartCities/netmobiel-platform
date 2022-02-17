@@ -41,7 +41,7 @@ public class IncentiveDao extends AbstractDao<Incentive, Long> {
 	}
 	
 	public Optional<Incentive> findByReference(String category, String reference) {
-		String q = "from Incentive inc where inc.category = :category and inc.externalReference = reference";
+		String q = "from Incentive inc where inc.category = :category and inc.externalReference = :reference";
 		TypedQuery<Incentive> tq = em.createQuery(q, Incentive.class);
 		tq.setParameter("category", category);
 		tq.setParameter("reference", reference);

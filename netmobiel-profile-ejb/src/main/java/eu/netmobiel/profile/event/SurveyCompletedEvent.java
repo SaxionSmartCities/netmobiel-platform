@@ -11,16 +11,10 @@ import eu.netmobiel.profile.model.SurveyInteraction;
  * @author Jaap Reitsma
  *
  */
-public class SurveyCompletedEvent implements Serializable {
-	private static final long serialVersionUID = -7901427588482490251L;
-	private SurveyInteraction surveyInteraction;
-	
+public class SurveyCompletedEvent extends SurveyEvent implements Serializable {
+	private static final long serialVersionUID = -7420478775206484689L;
+
 	public SurveyCompletedEvent(SurveyInteraction surveyInteraction) {
-		this.surveyInteraction = surveyInteraction;
+		super(surveyInteraction);
 	}
-
-	public SurveyInteraction getSurveyInteraction() {
-		return surveyInteraction;
-	}
-
 }

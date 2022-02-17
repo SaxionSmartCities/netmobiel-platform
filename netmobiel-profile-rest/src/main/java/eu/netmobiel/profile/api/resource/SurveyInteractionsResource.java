@@ -9,11 +9,9 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.Response.Status;
 import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
-import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -61,6 +59,9 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 	public Response createSurveyInteraction(String xDelegator, String profileId) {
 		Response rsp = null;
 		try {
+			if (profileId == null) {
+				profileId = "me";
+			}
 			String mid  = resolveIdentity(xDelegator, profileId);
 			allowAdminOrEffectiveUser(request, mid);
 			Optional<SurveyInteraction> sopt = surveyManager.inviteToSurvey(mid);
@@ -99,7 +100,6 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 	 * @param scope One of: payment, reward, answer, survey. If a piece is removed, all derives pieces are removed or cancelled as well. 
 	 * @return A 204.
 	 */
-	@SuppressWarnings("resource")
 	@Override
     public Response deleteSurveyInteraction(String xDelegator, String surveyInteractionId, String scope) {
 		Response rsp = null;
@@ -114,15 +114,12 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 			// Ok, we are allowed to proceed
 			surveyManager.revertSurveyInteraction(sid, surveyScope);
 			rsp = Response.noContent().build();
-		} catch (UpdateException e) {
-			rsp = Response.status(Status.GONE).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rsp;
 	}
 
-	@SuppressWarnings("resource")
 	@Override
 	public Response onRedirect(String xDelegator, String surveyInteractionId) {
 		Response rsp = null;
@@ -134,15 +131,12 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
-		} catch (UpdateException e) {
-			rsp = Response.status(Status.GONE).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rsp;
 	}
 
-	@SuppressWarnings("resource")
 	@Override
 	public Response onSubmit(String xDelegator, String surveyInteractionId) {
 		Response rsp = null;
@@ -152,8 +146,6 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 			allowAdminOrEffectiveUser(request, si.getProfile().getManagedIdentity());
 			surveyManager.onSurveySubmitted(sid);
 			rsp = Response.noContent().build();
-		} catch (UpdateException e) {
-			rsp = Response.status(Status.GONE).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}

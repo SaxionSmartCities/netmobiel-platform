@@ -1,5 +1,6 @@
 package eu.netmobiel.profile.repository;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
@@ -56,6 +57,7 @@ public class SurveyInteractionDao extends AbstractDao<SurveyInteraction, Long> {
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<SurveyInteraction> root = cq.from(SurveyInteraction.class);
         List<Predicate> predicates = new ArrayList<>();
+        Instant now = Instant.now();
         if (managedId != null) {
         	predicates.add(cb.equal(root.get(SurveyInteraction_.profile).get(User_.managedIdentity), managedId));
         }
@@ -65,6 +67,11 @@ public class SurveyInteractionDao extends AbstractDao<SurveyInteraction, Long> {
         if (!completedToo) {
         	// If the submit time is set, the then there is (should be) a rewarding process active or starting soon.
         	predicates.add(cb.isNull(root.get(SurveyInteraction_.submitTime)));
+        	// If the end time is set, then the end time should be somewhere after now 
+        	predicates.add(cb.or(
+        			cb.isNull(root.get(SurveyInteraction_.survey).get(Survey_.endTime)),
+        			cb.greaterThan(root.get(SurveyInteraction_.survey).get(Survey_.endTime), now))
+        	);
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;

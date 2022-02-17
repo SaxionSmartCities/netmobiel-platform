@@ -2,36 +2,26 @@ package eu.netmobiel.profile.event;
 
 import java.io.Serializable;
 
-import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.SurveyInteraction;
 
 /**
  * This event is issued when a survey is removed (and subsequently a reward or payment is withdrawn/reversed). 
- * It is for testing purposes to test multiple scenarios.
+ * The provided survey interaction must be complete, 
+ * including the profile and the survey objects.  
+
+ * TGhe event is meant to ease the testing of multiple scenarios.
  * 
  * @author Jaap Reitsma
  *
  */
-public class SurveyRemovalEvent implements Serializable {
-	private static final long serialVersionUID = -758586385194229611L;
-
-	private Profile profile;
-	private SurveyInteraction surveyInteraction;
+public class SurveyRemovalEvent extends SurveyEvent implements Serializable {
+	private static final long serialVersionUID = -207888621286042374L;
 	private boolean paymentOnly = false;
 	
-	public SurveyRemovalEvent(Profile user, SurveyInteraction surveyInteraction, boolean onlyThePayment) {
-		this.profile = user;
-		this.surveyInteraction = surveyInteraction;
+	public SurveyRemovalEvent(SurveyInteraction surveyInteraction, boolean onlyThePayment) {
+		super(surveyInteraction);
     	this.paymentOnly = onlyThePayment;
     }
-
-	public Profile getProfile() {
-		return profile;
-	}
-
-	public SurveyInteraction getSurveyInteraction() {
-		return surveyInteraction;
-	}
 
 	public boolean isPaymentOnly() {
 		return paymentOnly;

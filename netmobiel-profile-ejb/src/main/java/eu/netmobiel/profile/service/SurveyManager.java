@@ -78,8 +78,9 @@ public class SurveyManager {
     	return new PagedResult<>(results, cursor, prs.getTotalCount());
 	}
 
-    /**
-     * Invites a user (a profile) to take part in a survey (the one being active, at most one) 
+	/**
+     * Invites a user (a profile) to take part in a survey (the one being active, at most one). The invitation does not yet contain the url, use
+     * the method getSurveyInteraction to retrieve the survey url.
      * @param managedId the profile asking the question.
      * @return An Optional with a survey interaction record. The survey itself is attached as well.
      * @throws NotFoundException when the profile does not exist.
@@ -106,8 +107,6 @@ public class SurveyManager {
 				si = Optional.empty();
 			} else {
 				si.get().incrementInvitationCount();
-				survey.get().setProviderUrl(String.format("https://saxion.eu.qualtrics.com/jfe/form/%s?NetmobielID=%s", 
-						survey.get().getSurveyId(), managedId));
 			}
 		}
 		// Because the survey was also fetched, the survey attached to the interaction is available to the REST layer
@@ -121,8 +120,11 @@ public class SurveyManager {
      * @throws NotFoundException when the object does not exist.
      */
 	public SurveyInteraction getSurveyInteraction(Long id) throws NotFoundException {
-		return surveyInteractionDao.loadGraph(id, SurveyInteraction.SURVEY_PROFILE_ENTITY_GRAPH)
+		SurveyInteraction si = surveyInteractionDao.loadGraph(id, SurveyInteraction.SURVEY_PROFILE_ENTITY_GRAPH)
 				.orElseThrow(() -> new NotFoundException("No such surveyInteraction: " + id));
+		si.setSurveyUrl(String.format("https://saxion.eu.qualtrics.com/jfe/form/%s?NetmobielID=%s", 
+				si.getSurvey().getSurveyId(), si.getProfile().getManagedIdentity()));
+		return si;
 	}
 
 	/**
@@ -138,6 +140,10 @@ public class SurveyManager {
 		if (si.getSubmitTime() != null) {
 			throw new UpdateException(String.format("Survey %s has already been submitted by %s", 
 					si.getSurvey().getSurveyId(), si.getProfile().getManagedIdentity()));
+		}
+		if (si.getInvitationTime() == null) {
+			throw new BadRequestException(String.format("User %s has never been invited for Survey %s", 
+					si.getProfile().getManagedIdentity(), si.getSurvey().getSurveyId()));
 		}
 		if (si.isExpired()) {
 			throw new UpdateException(String.format("Survey %s has expired for user %s", 
@@ -163,6 +169,14 @@ public class SurveyManager {
 			throw new UpdateException(String.format("Survey %s has already been submitted by %s", 
 					si.getSurvey().getSurveyId(), si.getProfile().getManagedIdentity()));
 		}
+		if (si.getInvitationTime() == null) {
+			throw new BadRequestException(String.format("User %s has never been invited for Survey %s", 
+					si.getProfile().getManagedIdentity(), si.getSurvey().getSurveyId()));
+		}
+		if (si.getRedirectTime() == null) {
+			throw new BadRequestException(String.format("User %s has never been redirected to Survey %s", 
+					si.getProfile().getManagedIdentity(), si.getSurvey().getSurveyId()));
+		}
 		if (si.isExpired()) {
 			throw new UpdateException(String.format("Survey %s has expired for user %s", 
 					si.getSurvey().getSurveyId(), si.getProfile().getManagedIdentity()));
@@ -173,7 +187,7 @@ public class SurveyManager {
 	}
 
 	/**
-	 * Reverts asurvey interaction for testing purposes. The security is already checked at this stage. 
+	 * Reverts a survey interaction for testing purposes. The security is already checked at this stage. 
 	 * @param surveyProviderId the survey interaction id.
 	 * @param scope The extent to cancel. This has  cascading effect. Cancelling a survey means removal of the 
 	 * 			interaction record and this removal of the answer, canceling of the reward and refunding the payment.
@@ -182,7 +196,7 @@ public class SurveyManager {
 		SurveyInteraction si = getSurveyInteraction(surveyInteractionId);
 		if (si.getSubmitTime() != null) {
 			// Revert payment and perhaps reward too. This is a synchronous event.
-			EventFireWrapper.fire(surveyRemovedEvent, new SurveyRemovalEvent(si.getProfile(), si, SurveyScope.PAYMENT == scope));
+			EventFireWrapper.fire(surveyRemovedEvent, new SurveyRemovalEvent(si, SurveyScope.PAYMENT == scope));
 			if (SurveyScope.ANSWER == scope) {
 				// Ok, the survey answer is removed too 
 				si.setSubmitTime(null);

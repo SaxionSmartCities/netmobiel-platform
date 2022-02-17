@@ -819,7 +819,10 @@ public class LedgerService {
            	// Save the transaction reference.
         	rewarddb.setTransaction(tr);
         	rewarddb.setCancelTime(Instant.now());
+			log.info(String.format("Payment for reward %s refunded in transaction %s: ", reward.getUrn(), tr.getTransactionRef()));
+    	} else {
+        	// else refund has taken place already, ignore, no reason to panic.
+			log.info(String.format("No payment to refund for reward %s: ", reward.getUrn()));
     	}
-    	// else refund has taken place already, ignore, no reason to panic.
     }
 }

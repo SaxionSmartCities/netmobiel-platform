@@ -20,6 +20,7 @@ import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
+import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 
@@ -123,6 +124,13 @@ public class SurveyInteraction extends ReferableObject implements Serializable {
 	@ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name= "profile", foreignKey = @ForeignKey(name = "survey_interaction_profile_fk"))
 	private Profile profile;
+
+	/**
+	 * The url of the survey provider to take the survey. Might contain profile specific details. 
+	 * Only present on request.
+	 */
+	@Transient
+	private String surveyUrl;
 
 	public SurveyInteraction() {
 		this(null, null, null, Instant.now());
@@ -246,6 +254,14 @@ public class SurveyInteraction extends ReferableObject implements Serializable {
 
 	public void setProfile(Profile profile) {
 		this.profile = profile;
+	}
+
+	public String getSurveyUrl() {
+		return surveyUrl;
+	}
+
+	public void setSurveyUrl(String surveyUrl) {
+		this.surveyUrl = surveyUrl;
 	}
 
 }

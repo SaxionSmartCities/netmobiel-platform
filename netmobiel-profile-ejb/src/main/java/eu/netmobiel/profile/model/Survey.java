@@ -14,7 +14,6 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PositiveOrZero;
@@ -97,13 +96,6 @@ public class Survey implements Serializable {
 	private Integer takeIntervalHours;
 
 	/**
-	 * The url of the provider to take the survey. 
-	 * Only present on request.
-	 */
-	@Transient
-	private String providerUrl;
-
-	/**
 	 * The amount of credits to receive on completing the survey.
 	 */
 	@PositiveOrZero
@@ -172,14 +164,6 @@ public class Survey implements Serializable {
 
 	public void setTakeIntervalHours(Integer takeIntervalHours) {
 		this.takeIntervalHours = takeIntervalHours;
-	}
-
-	public String getProviderUrl() {
-		return providerUrl;
-	}
-
-	public void setProviderUrl(String providerUrl) {
-		this.providerUrl = providerUrl;
 	}
 
 	public Integer getRewardCredits() {
