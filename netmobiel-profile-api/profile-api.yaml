@@ -1003,9 +1003,10 @@ paths:
         Bearer-only: []
       operationId: getSurveyInteraction
       summary: Get a survey interaction
-      description: Get a specific survey interaction. The admin can read any survey
-        interaction, regular users can only read their own survey interaction. The
-        call is idempotent.
+      description: "Get a specific survey interaction. The admin can read any survey\
+        \ interaction, regular users can only read their own survey interaction. The\
+        \ call is idempotent.\n\nThis getter returns the url of the survey too, required\
+        \ to direct the user to the proper site for taking the survey.. "
     delete:
       parameters:
       - name: scope
@@ -1062,7 +1063,8 @@ paths:
           type: string
         in: query
       - name: completedToo
-        description: If true then include completed surveys too in the listing.
+        description: If true then include completed and expired surveys too in the
+          listing.
         schema:
           type: boolean
         in: query
@@ -1675,7 +1677,8 @@ components:
           description: The name of the survey to present to the end-user.
           type: string
         providerUrl:
-          description: The url to redirect the end-user to for taking the survey.
+          description: "The url to redirect the end-user to for taking the survey.\
+            \ The url is returned by the \ninteraction getter."
           type: string
         rewardCredits:
           format: int32
@@ -1735,6 +1738,9 @@ components:
           $ref: '#/components/schemas/UserRef'
           description: The owner of the survey interaction. Present only if calling
             user is not the owner.
+        urn:
+          description: Urn of the survey interaction.
+          type: string
       example:
         survey:
           surveyId: ENQ-1
@@ -1744,6 +1750,7 @@ components:
         redirectCount: 1
         submitTime: 2021-09-01T12:14:00Z
         expirationTime: 2021-09-06T13:24:00Z
+        urn: urn:nb:pf:surveyint:12345
     Review:
       title: Root Type for Review
       description: A review for a user.
