@@ -1664,93 +1664,6 @@ components:
         activationCodeSentTime: 2021-02-25T10:05:23Z
         activationCode: "123456"
         id: 1234
-    Survey:
-      title: Root Type for Survey
-      description: A survey is used to increase the knowledge about the experience
-        of the users about netmobiel.
-      type: object
-      properties:
-        surveyId:
-          description: The identifier of the survey used by the survey provider.
-          type: string
-        displayName:
-          description: The name of the survey to present to the end-user.
-          type: string
-        providerUrl:
-          description: "The url to redirect the end-user to for taking the survey.\
-            \ The url is returned by the \ninteraction getter."
-          type: string
-        rewardCredits:
-          format: int32
-          description: The reward the user will receive on completing the survey.
-          type: integer
-      example:
-        surveyId: SV_38g7VCfcJFDB75X
-        displayName: Nulmeting Netmobiel
-        providerUrl: https://saxion.eu.qualtrics.com/jfe/form/SV_38g7VCfcJFDB75X?NetmobielID=5fd8defe-848e-4b66-8e6f-8a7d3b7ee485
-        rewardCredits: 40
-    SurveyInteraction:
-      title: Root Type for SurveyInteraction
-      description: The interaction between a user (profile) and a survey. Used to
-        guide the survey process. All attributes are read-only.
-      required:
-      - survey
-      - invitationCount
-      - invitationTime
-      - redirectCount
-      type: object
-      properties:
-        survey:
-          $ref: '#/components/schemas/Survey'
-          description: Details of the survey.
-          properties:
-            id:
-              type: string
-        invitationTime:
-          format: date-time
-          description: The first time the invitation is displayed to the user.
-          type: string
-        invitationCount:
-          format: int32
-          description: 'The (estimated) number of times the invitation is displayed
-            to the user. '
-          type: integer
-        submitTime:
-          format: date-time
-          description: The time the survey provider reported the submitting of a survey
-            by this user.
-          type: string
-        expirationTime:
-          format: date-time
-          description: |-
-            The expiration time after which the survey can no longer be taken by this user. The expiration time is relative to the trigger time.
-            If not set, there is no expiration.
-          type: string
-        redirectCount:
-          format: int32
-          description: The number of times the user has been redirected to the survey.
-          type: integer
-        redirectTime:
-          format: date-time
-          description: The first time the user was redirected to the survey.
-          type: string
-        owner:
-          $ref: '#/components/schemas/UserRef'
-          description: The owner of the survey interaction. Present only if calling
-            user is not the owner.
-        urn:
-          description: Urn of the survey interaction.
-          type: string
-      example:
-        survey:
-          surveyId: ENQ-1
-        invitationTime: 2021-08-31T13:24:00Z
-        invitationCount: 3
-        redirectTime: 2021-09-01T11:58:00Z
-        redirectCount: 1
-        submitTime: 2021-09-01T12:14:00Z
-        expirationTime: 2021-09-06T13:24:00Z
-        urn: urn:nb:pf:surveyint:12345
     Review:
       title: Root Type for Review
       description: A review for a user.
@@ -1874,6 +1787,92 @@ components:
       - NEATLY
       - NICE_CAR
       type: string
+    Survey:
+      title: Root Type for Survey
+      description: A survey is used to increase the knowledge about the experience
+        of the users about netmobiel.
+      type: object
+      properties:
+        surveyId:
+          description: The identifier of the survey used by the survey provider.
+          type: string
+        displayName:
+          description: The name of the survey to present to the end-user.
+          type: string
+        rewardCredits:
+          format: int32
+          description: The reward the user will receive on completing the survey.
+          type: integer
+      example:
+        surveyId: SV_38g7VCfcJFDB75X
+        displayName: Nulmeting Netmobiel
+        rewardCredits: 40
+    SurveyInteraction:
+      title: Root Type for SurveyInteraction
+      description: The interaction between a user (profile) and a survey. Used to
+        guide the survey process. All attributes are read-only.
+      required:
+      - survey
+      - invitationCount
+      - invitationTime
+      - redirectCount
+      type: object
+      properties:
+        survey:
+          $ref: '#/components/schemas/Survey'
+          description: Details of the survey.
+          properties:
+            id:
+              type: string
+        invitationTime:
+          format: date-time
+          description: The first time the invitation is displayed to the user.
+          type: string
+        invitationCount:
+          format: int32
+          description: 'The (estimated) number of times the invitation is displayed
+            to the user. '
+          type: integer
+        submitTime:
+          format: date-time
+          description: The time the survey provider reported the submitting of a survey
+            by this user.
+          type: string
+        expirationTime:
+          format: date-time
+          description: |-
+            The expiration time after which the survey can no longer be taken by this user. The expiration time is relative to the trigger time.
+            If not set, there is no expiration.
+          type: string
+        redirectCount:
+          format: int32
+          description: The number of times the user has been redirected to the survey.
+          type: integer
+        redirectTime:
+          format: date-time
+          description: The first time the user was redirected to the survey.
+          type: string
+        owner:
+          $ref: '#/components/schemas/UserRef'
+          description: The owner of the survey interaction. Present only if calling
+            user is not the owner.
+        urn:
+          description: Urn of the survey interaction.
+          type: string
+        surveyUrl:
+          description: The url to redirect the end-user to for taking the survey.
+          type: string
+      example:
+        survey:
+          surveyId: ENQ-1
+        invitationTime: 2021-08-31T13:24:00Z
+        invitationCount: 3
+        redirectTime: 2021-09-01T11:58:00Z
+        redirectCount: 1
+        submitTime: 2021-09-01T12:14:00Z
+        expirationTime: 2021-09-06T13:24:00Z
+        urn: urn:nb:pf:surveyint:12345
+        surveyUrl: https://saxion.eu.qualtrics.com/jfe/form/SV_38g7VCfcJFDB75X?NetmobielID=5fd8defe-848e-4b66-8e6f-8a7d3b7ee485
   responses:
     InternalServerError:
       content:
