@@ -16,7 +16,6 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
-import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 /**
  * Definition of a survey. A survey has (optionally) a limited period of time is which it can be taken. 
@@ -96,11 +95,11 @@ public class Survey implements Serializable {
 	private Integer takeIntervalHours;
 
 	/**
-	 * The amount of credits to receive on completing the survey.
+	 * An survey has optionally an incentive attached. 
 	 */
-	@PositiveOrZero
-	@Column(name = "reward_credits")
-	private Integer rewardCredits;
+	@Size(max = 16)
+	@Column(name = "incentive_code")
+    private String incentiveCode;
 
 	public Long getId() {
 		return id;
@@ -166,12 +165,12 @@ public class Survey implements Serializable {
 		this.takeIntervalHours = takeIntervalHours;
 	}
 
-	public Integer getRewardCredits() {
-		return rewardCredits;
+	public String getIncentiveCode() {
+		return incentiveCode;
 	}
 
-	public void setRewardCredits(Integer rewardCredits) {
-		this.rewardCredits = rewardCredits;
+	public void setIncentiveCode(String incentiveCode) {
+		this.incentiveCode = incentiveCode;
 	}
 
 	@Override

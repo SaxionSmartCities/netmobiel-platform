@@ -40,15 +40,4 @@ public class IncentiveDao extends AbstractDao<Incentive, Long> {
 		return Optional.ofNullable(results.isEmpty() ? null : results.get(0));
 	}
 	
-	public Optional<Incentive> findByReference(String category, String reference) {
-		String q = "from Incentive inc where inc.category = :category and inc.externalReference = :reference";
-		TypedQuery<Incentive> tq = em.createQuery(q, Incentive.class);
-		tq.setParameter("category", category);
-		tq.setParameter("reference", reference);
-		List<Incentive> results = tq.getResultList();
-		if (results.size() > 1) {
-			throw new IllegalStateException("Multiple incentives with same reference: " + category + ", " + reference);
-		}
-		return Optional.ofNullable(results.isEmpty() ? null : results.get(0));
-	}
 }

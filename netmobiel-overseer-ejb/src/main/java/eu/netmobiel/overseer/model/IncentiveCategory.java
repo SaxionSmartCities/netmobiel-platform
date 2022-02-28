@@ -7,7 +7,6 @@ public enum IncentiveCategory {
 	UNKNOWN;
 
 	public static IncentiveCategory lookup(String value) {
-		IncentiveCategory.valueOf(value);
 	    return Stream.of(IncentiveCategory.values())
 	            .filter(c -> c.name().equals(value))
 	            .findFirst()

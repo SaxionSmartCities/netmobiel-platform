@@ -23,3 +23,8 @@ ALTER TABLE ONLY public.survey_interaction
 ALTER TABLE ONLY public.survey_interaction
     ADD CONSTRAINT cs_survey_interaction_unique UNIQUE (profile, survey);
 
+ALTER TABLE public.survey
+    ADD COLUMN incentive_code character varying(16),
+    DROP COLUMN amount
+;
+

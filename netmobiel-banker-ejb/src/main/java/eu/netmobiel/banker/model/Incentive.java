@@ -24,8 +24,7 @@ import javax.validation.constraints.Size;
  */
 @Entity
 @Table(name = "incentive", uniqueConstraints = {
-	    @UniqueConstraint(name = "cs_incentive_code_unique", columnNames = { "code" }),
-	    @UniqueConstraint(name = "cs_incentive_reference_unique", columnNames = { "category", "external_ref" })
+	    @UniqueConstraint(name = "cs_incentive_code_unique", columnNames = { "code" })
 })
 @Vetoed
 @SequenceGenerator(name = "incentive_sg", sequenceName = "incentive_seq", allocationSize = 1, initialValue = 50)
@@ -38,7 +37,8 @@ public class Incentive implements Serializable {
     private Long id;
 
 	/**
-	 * An incentive has a short code as (internal) reference to an incentive. 
+	 * An incentive has a short code as (internal) reference to an incentive. The code is direct or indirect  
+	 * attached to the trigger object. Example code: 'survey-0' to indicate the first survey offered. 
 	 */
 	@Size(max = 16)
 	@NotNull
@@ -46,8 +46,8 @@ public class Incentive implements Serializable {
     private String code;
 
 	/**
-	 * An incentive has a category, just to make sure that external reference is really unique, even if it is a very simple identifier. 
-	 * It is not enumerated type, because the categories are opaque for the banker service.
+	 * An incentive has a category, just to make up some sensible text in the reward or subsequent transaction. 
+	 * It is not an enumerated type, because the categories are opaque for the banker service.
 	 */
 	@Size(max = 16)
 	@NotNull
@@ -63,22 +63,12 @@ public class Incentive implements Serializable {
     private String description;
 
     /**
-     * The amount to reward
+     * The amount to reward.
      */
     @Column(name = "amount")
     @NotNull
     @PositiveOrZero
     private int amount;
-
-	/**
-     * The external reference to the object or behaviour that will be rewarded. In case of a survey is this 
-     * for example the (external) survey ID. This reference is especially useful in case of multiple 
-     * occurrences, e.g., when a follow-up survey might be rewarded as well (with its own incentive). 
-     * Not all incentives have an external reference.  
-     */
-	@Size(max = 64)
-    @Column(name = "external_ref")
-    private String externalReference;
 
     public Incentive() {
 		// Constructor
@@ -122,14 +112,6 @@ public class Incentive implements Serializable {
 
 	public void setAmount(int amount) {
 		this.amount = amount;
-	}
-
-	public String getExternalReference() {
-		return externalReference;
-	}
-
-	public void setExternalReference(String externalReference) {
-		this.externalReference = externalReference;
 	}
 
 	@Override

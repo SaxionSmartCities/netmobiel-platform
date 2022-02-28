@@ -7,7 +7,6 @@ CREATE TABLE incentive (
     category character varying(16) NOT NULL,
     description character varying(256) NOT NULL,
     amount integer NOT NULL,
-    external_ref character varying(64)
 );
 
 
@@ -29,11 +28,6 @@ ALTER TABLE ONLY public.incentive
     ADD CONSTRAINT cs_incentive_code_unique UNIQUE (code)
 ;
 
--- Category and external reference make an incentive unique
-ALTER TABLE ONLY public.incentive
-    ADD CONSTRAINT cs_incentive_reference_unique UNIQUE (category, external_ref)
-;
-
 GRANT DELETE, INSERT, SELECT, UPDATE ON TABLE public.incentive TO banker;
 
 -- Reward - the realization of an incentive for a specific user 
@@ -45,7 +39,7 @@ CREATE TABLE reward (
     transaction integer,
     recipient integer NOT NULL,
     incentive integer NOT NULL,
-    context character varying(32)
+    fact_context character varying(32)
 );
 
 CREATE SEQUENCE public.reward_seq

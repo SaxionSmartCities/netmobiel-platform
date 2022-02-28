@@ -27,4 +27,9 @@ public class SurveyRemovalEvent extends SurveyEvent implements Serializable {
 		return paymentOnly;
 	}
 
+	@Override
+	public String toString() {
+		return String.format("SurveyRemovalEvent [%s, paymentOnly %s]", getSurveyInteraction().getUrn(), paymentOnly);
+	}
+
 }

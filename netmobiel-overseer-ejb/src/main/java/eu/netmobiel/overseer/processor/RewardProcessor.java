@@ -20,7 +20,6 @@ import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.service.PublisherService;
-import eu.netmobiel.overseer.model.IncentiveCategory;
 import eu.netmobiel.profile.event.SurveyCompletedEvent;
 import eu.netmobiel.profile.event.SurveyRemovalEvent;
 import eu.netmobiel.profile.model.Profile;
@@ -56,7 +55,7 @@ public class RewardProcessor {
 	@Asynchronous
 	public void onSurveyCompleted(@Observes(during = TransactionPhase.AFTER_SUCCESS) SurveyCompletedEvent surveyCompletedEvent) {
 		if (logger.isDebugEnabled()) {
-			logger.debug(String.format("Survey completed: %s", surveyCompletedEvent.getSurveyInteraction().getUrn()));
+			logger.debug(String.format("Survey completed: %s", surveyCompletedEvent.toString()));
 		}
 		try {
 			// Check whether the reward was already handed out. Theoretically, multiple incentives might exists for 
@@ -64,9 +63,9 @@ public class RewardProcessor {
 			SurveyInteraction si = surveyCompletedEvent.getSurveyInteraction();
 			Survey survey = si.getSurvey();
 			Profile owner = si.getProfile();  
-			Optional<Incentive> optIncentive = rewardService.lookupIncentive(IncentiveCategory.SURVEY.name(), survey.getSurveyId());
+			Optional<Incentive> optIncentive = rewardService.lookupIncentive(survey.getIncentiveCode());
 			if (optIncentive.isEmpty()) {
-				logger.warn("Survey is not coupled to an incentive: " + survey.getSurveyId());
+				logger.warn(String.format("Incentive %s not found for survey %s", survey.getIncentiveCode(), survey.getSurveyId()));
 			} else {
 				Optional<Reward> optReward;
 					optReward = rewardService.lookupRewardByFact(optIncentive.get(), owner, si.getUrn());
@@ -82,6 +81,7 @@ public class RewardProcessor {
 					publisherService.addConversationContext(personalConv, rwd.getUrn());
 					String messageText = textHelper.createPremiumRewardText(rwd);
 			    	Message msg = new Message();
+					msg.setContext(rwd.getUrn());
 					msg.setDeliveryMode(DeliveryMode.ALL);
 					msg.addRecipient(personalConv, rwd.getUrn());
 					msg.setBody(messageText);
@@ -94,20 +94,21 @@ public class RewardProcessor {
     }
 
 	public void onSurveyRemoval(@Observes(during = TransactionPhase.IN_PROGRESS) SurveyRemovalEvent surveyRemovalEvent) throws NotFoundException {
-		if (logger.isDebugEnabled()) {
-			logger.debug(String.format("Survey removal (reward or payment): %s", surveyRemovalEvent.getSurveyInteraction().getUrn()));
-		}
 		SurveyInteraction si = surveyRemovalEvent.getSurveyInteraction(); 
+		if (logger.isDebugEnabled()) {
+			logger.debug(String.format("Survey removal: %s", surveyRemovalEvent.toString()));
+		}
 		Survey s = si.getSurvey();
-		Optional<Incentive> optIncentive = rewardService.lookupIncentive(IncentiveCategory.SURVEY.name(), s.getSurveyId());
+		Optional<Incentive> optIncentive = rewardService.lookupIncentive(s.getIncentiveCode());
 		if (optIncentive.isEmpty()) {
-			logger.warn("Survey is not coupled to an incentive: " + s.getSurveyId());
+			logger.warn(String.format("Incentive %s not found for survey %s", s.getIncentiveCode(), s.getSurveyId()));
 		} else {
 			Optional<Reward> optReward = rewardService.lookupRewardByFact(optIncentive.get(), si.getProfile(), si.getUrn());
 			if (optReward.isPresent()) {
 				rewardService.withdrawReward(optReward.get(), surveyRemovalEvent.isPaymentOnly());
 			} else  {
-				logger.info(String.format("No reward found concerning incentive %s for user %s: ", s.getSurveyId(), si.getProfile().getManagedIdentity()));
+				logger.info(String.format("No reward found concerning incentive %s (for survey %s) for user %s: ", 
+						s.getIncentiveCode(), s.getSurveyId(), si.getProfile().getManagedIdentity()));
 			}
 		}
 		

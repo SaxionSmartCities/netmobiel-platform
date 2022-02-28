@@ -17,4 +17,8 @@ public class SurveyCompletedEvent extends SurveyEvent implements Serializable {
 	public SurveyCompletedEvent(SurveyInteraction surveyInteraction) {
 		super(surveyInteraction);
 	}
+	@Override
+	public String toString() {
+		return String.format("SurveyCompletedEvent [%s]", getSurveyInteraction().getUrn());
+	}
 }

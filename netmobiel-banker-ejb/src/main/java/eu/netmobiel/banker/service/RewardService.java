@@ -68,8 +68,8 @@ public class RewardService {
     	return reward;
     }
 
-    public Optional<Incentive> lookupIncentive(String category, String externalReference) {
-    	return incentiveDao.findByReference(category, externalReference);
+    public Optional<Incentive> lookupIncentive(String incentiveCode) {
+    	return incentiveCode == null ? Optional.empty() : incentiveDao.findByCode(incentiveCode);
     }
     
     public Optional<Reward> lookupRewardByFact(Incentive incentive, NetMobielUser recipient, String fact) throws NotFoundException {

@@ -32,7 +32,7 @@ public class RewardDao extends AbstractDao<Reward, Long> {
 	}
 
 	public Optional<Reward> findByFact(Incentive incentive, BankerUser recipient, String factContext) {
-		String q = "from Reward rwd where rwd.incentive = :incentive and rwd.recfipient = recipient and rwd.factContext = factContext";
+		String q = "from Reward rwd where rwd.incentive = :incentive and rwd.recipient = :recipient and rwd.factContext = :factContext";
 		TypedQuery<Reward> tq = em.createQuery(q, Reward.class);
 		tq.setParameter("incentive", incentive);
 		tq.setParameter("recipient", recipient);

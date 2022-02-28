@@ -303,7 +303,7 @@ public class TextHelper {
 		String subject = null;
 		switch (IncentiveCategory.lookup(reward.getIncentive().getCategory())) {
 		case SURVEY:
-			subject = "het invullen van een enquête";
+			subject = "het invullen van de enquête";
 			break;
 		case UNKNOWN:
 			subject = "een onbekende activiteit";
