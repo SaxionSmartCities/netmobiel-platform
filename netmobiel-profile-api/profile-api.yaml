@@ -1884,9 +1884,8 @@ components:
             key to the incentive and the amount of credits involved.
           type: string
         incentiveCode:
-          format: int32
           description: The reward the user will receive on completing the survey.
-          type: integer
+          type: string
       example:
         surveyId: SV_38g7VCfcJFDB75X
         displayName: Nulmeting Netmobiel
