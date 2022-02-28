@@ -1865,10 +1865,6 @@ components:
         displayName:
           description: The name of the survey to present to the end-user.
           type: string
-        rewardCredits:
-          format: int32
-          description: The reward the user will receive on completing the survey.
-          type: integer
         takeDelayHours:
           description: The number hours to delay after the trigger time before the
             survey is offered.
@@ -1884,13 +1880,17 @@ components:
           type: string
         endTime:
           format: date-time
-          description: The time where the survey will end and users are no longer
-            invited to take the survey.
+          description: The optional incentive code for this survey. This code is the
+            key to the incentive and the amount of credits involved.
           type: string
+        incentiveCode:
+          format: int32
+          description: The reward the user will receive on completing the survey.
+          type: integer
       example:
         surveyId: SV_38g7VCfcJFDB75X
         displayName: Nulmeting Netmobiel
-        rewardCredits: 40
+        incentiveCode: survey-0
   responses:
     InternalServerError:
       content:
