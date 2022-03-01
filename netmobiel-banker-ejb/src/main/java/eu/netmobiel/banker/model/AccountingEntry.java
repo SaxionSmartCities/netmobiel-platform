@@ -49,7 +49,7 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "join accounting_transaction t on t.id = e.transaction "
 	        		+ "join account a on a.id = e.account "
 	        		+ "join bn_user u on u.personal_account = a.id "
-	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'PY' "
+	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and e.purpose = 'PY' "
 	        		+ " and e.entry_type = 'C' "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
@@ -64,7 +64,7 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "join accounting_transaction t on t.id = e.transaction "
 	        		+ "join account a on a.id = e.account "
 	        		+ "join bn_user u on u.personal_account = a.id "
-	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'PY' "
+	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and e.purpose = 'PY' "
 	        		+ " and e.entry_type = 'D' "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
@@ -79,7 +79,7 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "join accounting_transaction t on t.id = e.transaction "
 	        		+ "join account a on a.id = e.account "
 	        		+ "join bn_user u on u.personal_account = a.id "
-	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'PY' "
+	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and e.purpose = 'PY' "
 	        		+ " and e.entry_type = 'D' and t.context like 'urn:nb:pn:leg:%' "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
@@ -94,7 +94,7 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "join accounting_transaction t on t.id = e.transaction "
 	        		+ "join account a on a.id = e.account "
 	        		+ "join bn_user u on u.personal_account = a.id "
-	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'PY' "
+	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and e.purpose = 'PY' "
 	        		+ " and e.entry_type = 'D' and t.context like 'urn:nb:bn:donation:%' "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
@@ -109,7 +109,8 @@ import eu.netmobiel.commons.report.NumericReportValue;
         		+ "join accounting_transaction t on t.id = e.transaction "
         		+ "join account a on a.id = e.account "
         		+ "join bn_user u on u.personal_account = a.id "
-        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'DP' "
+        		+ "where t.transaction_time >= ? and t.transaction_time < ? and e.purpose = 'DP' "
+        		+ " and e.entry_type = 'C' "
         		+ "group by u.managed_identity, year, month "
         		+ "order by u.managed_identity, year, month",
         resultSetMapping = AccountingEntry.BN_ACC_ENTRY_USER_YEAR_MONTH_COUNT_MAPPING),
@@ -123,7 +124,8 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "join accounting_transaction t on t.id = e.transaction "
 	        		+ "join account a on a.id = e.account "
 	        		+ "join bn_user u on u.personal_account = a.id "
-	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'WD' "
+	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and e.purpose = 'WD' "
+	        		+ " and e.entry_type = 'D' "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = AccountingEntry.BN_ACC_ENTRY_USER_YEAR_MONTH_COUNT_MAPPING),
@@ -137,7 +139,7 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "join accounting_transaction t on t.id = e.transaction "
 	        		+ "join account a on a.id = e.account "
 	        		+ "join bn_user u on u.personal_account = a.id "
-	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and t.transaction_type = 'PY' "
+	        		+ "where t.transaction_time >= ? and t.transaction_time < ? and e.purpose = 'PY' "
 	        		+ " and e.entry_type = 'C' and t.context like 'urn:nb:pn:leg:%' "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
