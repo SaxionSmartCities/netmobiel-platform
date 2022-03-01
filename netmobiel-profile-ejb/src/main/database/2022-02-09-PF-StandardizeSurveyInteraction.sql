@@ -25,6 +25,6 @@ ALTER TABLE ONLY public.survey_interaction
 
 ALTER TABLE public.survey
     ADD COLUMN incentive_code character varying(16),
-    DROP COLUMN amount
+    DROP COLUMN reward_credits
 ;
 

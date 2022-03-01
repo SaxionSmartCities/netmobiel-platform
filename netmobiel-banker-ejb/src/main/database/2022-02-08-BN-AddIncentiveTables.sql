@@ -6,7 +6,7 @@ CREATE TABLE incentive (
     code character varying(16) NOT NULL,
     category character varying(16) NOT NULL,
     description character varying(256) NOT NULL,
-    amount integer NOT NULL,
+    amount integer NOT NULL
 );
 
 
