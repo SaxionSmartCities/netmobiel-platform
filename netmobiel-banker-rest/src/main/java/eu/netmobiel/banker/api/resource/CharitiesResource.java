@@ -20,6 +20,8 @@ import eu.netmobiel.banker.api.mapping.AccountMapper;
 import eu.netmobiel.banker.api.mapping.CharityMapper;
 import eu.netmobiel.banker.api.mapping.DonationMapper;
 import eu.netmobiel.banker.api.mapping.PageMapper;
+import eu.netmobiel.banker.api.model.ImageResponse;
+import eu.netmobiel.banker.api.model.ImageUploadRequest;
 import eu.netmobiel.banker.filter.DonationFilter;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountingEntry;
@@ -40,6 +42,7 @@ import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.commons.util.ImageHelper;
 import eu.netmobiel.commons.util.UrnHelper;
 
 @RequestScoped
@@ -72,7 +75,7 @@ public class CharitiesResource implements CharitiesApi {
 	@Context
 	private HttpServletRequest request;
 
-    protected BankerUser resolveUserReference(String userId, boolean createIfNeeded) throws NotFoundException, eu.netmobiel.commons.exception.BadRequestException {
+    private BankerUser resolveUserReference(String userId, boolean createIfNeeded) throws NotFoundException, eu.netmobiel.commons.exception.BadRequestException {
 		BankerUser user = null;
 		if ("me".equals(userId)) {
 			user = createIfNeeded ? userManager.findOrRegisterCallingUser() : userManager.findCallingUser();
@@ -160,6 +163,36 @@ public class CharitiesResource implements CharitiesApi {
 		return Response.noContent().build();
 	}
 
+	@Override
+	public Response getCharityImage(String charityId) {
+    	Response rsp = null;
+		try {
+        	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
+        	Charity charity = charityManager.getCharity(cid);
+        	ImageResponse ir = new ImageResponse();
+        	ir.setImage(charity.getImageUrl());
+			rsp = Response.ok(ir).build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response uploadImage(String charityId, ImageUploadRequest imageUploadRequest) {
+		Response rsp = null;
+		try {
+			ImageHelper.DecodedImage di = ImageHelper.decodeImage(imageUploadRequest.getImage(), new String[] { "jpg", "png" });
+			Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
+			String imageUrl = charityManager.uploadCharityImage(cid, di.filetype, di.decodedImage);
+        	ImageResponse ir = new ImageResponse();
+        	ir.setImage(imageUrl);
+			rsp = Response.ok(ir).build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
 	
 	/*======================================   CHARITY FINANCIAL   ==========================================*/
 	
@@ -356,4 +389,5 @@ public class CharitiesResource implements CharitiesApi {
 		}
 		return Response.noContent().build();
 	}
+
 }

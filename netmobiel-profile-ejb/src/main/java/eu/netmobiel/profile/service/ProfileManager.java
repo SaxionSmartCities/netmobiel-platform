@@ -8,6 +8,7 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -60,8 +61,8 @@ public class ProfileManager {
 	@Resource
     private SessionContext sessionContext;
 
-	@Resource(lookup = "java:global/profileService/imageFolder")
-	private String profileServiceImageFolder;
+	@Resource(lookup = "java:global/imageService/imageFolder")
+	private String imageServiceImageFolder;
 	
 	@Inject
     private Logger logger;
@@ -346,12 +347,13 @@ public class ProfileManager {
     	profileDao.remove(profile);
     }
 
-	public void uploadImage(String managedId, String mimetype, String filename, byte[] image) throws NotFoundException, UpdateException {
+	public void uploadImage(String managedId, String filetype, byte[] image) throws NotFoundException, UpdateException {
     	Profile profile = profileDao.findByManagedIdentity(managedId, null)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
+		String filename = Instant.now().toEpochMilli() + "." + filetype;
     	String folder = profile.getManagedIdentity().substring(0, 2);
     	Path newFile = Path.of(folder, filename); 
-    	Path newPath = Paths.get(profileServiceImageFolder).resolve(newFile);
+    	Path newPath = Paths.get(imageServiceImageFolder).resolve(newFile);
     	Path oldFile = null;
     	if (profile.getImagePath() != null) {
     		String[] parts = profile.getImagePath().split("/");
@@ -363,7 +365,7 @@ public class ProfileManager {
 			Files.createDirectories(newPath.getParent());
 			Files.write(newPath, image, StandardOpenOption.CREATE_NEW);
 	    	if (oldFile != null) {
-	    		Files.deleteIfExists(Paths.get(profileServiceImageFolder).resolve(oldFile));
+	    		Files.deleteIfExists(Paths.get(imageServiceImageFolder).resolve(oldFile));
 	    	}
 			profile.setImagePath(String.format("%s/%s", URLEncoder.encode(folder, StandardCharsets.UTF_8), URLEncoder.encode(filename, StandardCharsets.UTF_8)));
 		} catch (IOException e) {

@@ -1,7 +1,5 @@
 package eu.netmobiel.profile.api.resource;
 
-import java.time.Instant;
-import java.util.Base64;
 import java.util.Collections;
 
 import javax.enterprise.context.RequestScoped;
@@ -16,6 +14,7 @@ import javax.ws.rs.core.UriBuilder;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.util.ImageHelper;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.ProfilesApi;
 import eu.netmobiel.profile.api.mapping.PlaceMapper;
@@ -192,37 +191,15 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	public Response uploadImage(String xDelegator, String profileId, ImageUploadRequest imageUploadRequest) {
 		Response rsp = null;
 		try {
+			ImageHelper.DecodedImage di = ImageHelper.decodeImage(imageUploadRequest.getImage(), new String[] { "jpg", "png" });
+
 			String mid = resolveIdentity(xDelegator, profileId);
 			String me = securityIdentity.getEffectivePrincipal().getName();
 			final boolean privileged = request.isUserInRole("admin"); 
 			if (! privileged && ! me.equals(profileId)) {
 				throw new SecurityException("You have no privilege to update the image of a profile owned by someone else");
 			}
-			// See https://developer.mozilla.org/en-US/docs/Web/API/FileReader/readAsDataURL
-			// This is how the client passes the image
-			// Format: data:image/*;base64,
-			final String prefix = "data:";
-			String data = imageUploadRequest.getImage();
-			if (data == null || ! data.startsWith(prefix)) {
-				throw new BadRequestException("Uploaded image data must be a data url");
-			}
-			String[] parts = data.substring(prefix.length()).split(",");
-			String spec[] = parts[0].split(";");
-			String mimetype = spec[0];
-			if (!mimetype.startsWith("image/")) {
-				throw new BadRequestException("Uploaded file does not have an image mimetype: " + mimetype);
-			}
-			String filetype = mimetype.substring(mimetype.indexOf("/") + 1);
-			if (!"png".equals(filetype) && !"jpg".equals(filetype)) {
-				throw new BadRequestException("Uploaded image must be png or jpg; not supported " + mimetype);
-			}
-			String encoding = spec.length > 1 ? spec[1] : null;
-			if (encoding == null || !encoding.equals("base64")) {
-				throw new BadRequestException("Uploaded image encoding not supported: " + encoding);
-			}
-			byte[] decodedImage = Base64.getDecoder().decode(parts[1]);
-			String filename = Instant.now().toEpochMilli() + "." + filetype;
-	    	profileManager.uploadImage(mid, mimetype, filename, decodedImage);
+	    	profileManager.uploadImage(mid, di.filetype, di.decodedImage);
         	Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
         	ProfileResponse prsp = new ProfileResponse();
         	prsp.setProfiles(Collections.singletonList(profileMapper.mapComplete(profile)));

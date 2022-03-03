@@ -1,5 +1,13 @@
 package eu.netmobiel.banker.service;
 
+import java.io.IOException;
+import java.net.URLDecoder;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
+import java.nio.file.Files;
+import java.nio.file.Path;
+import java.nio.file.Paths;
+import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.util.Collections;
 import java.util.List;
@@ -29,6 +37,7 @@ import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
@@ -65,6 +74,9 @@ public class CharityManager {
     @Resource
 	private SessionContext sessionContext;
 
+	@Resource(lookup = "java:global/imageService/imageFolder")
+	private String imageServiceImageFolder;
+	
     /**
 	 * Lists the charities according the criteria specified by the parameters.
 	 * @param now parameter used to manipulate the current time for this method. If null then the actual system time is taken. 
@@ -119,13 +131,35 @@ public class CharityManager {
     	return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
-    protected boolean userHasRoleOnCharity(BankerUser user, Charity ch, CharityUserRoleType role) {
+    static private boolean userHasRoleOnCharity(BankerUser user, Charity ch, CharityUserRoleType role) {
 		return ch.getRoles().stream()
 				.filter(r -> r.getUser().equals(user) && (role == null || role == r.getRole()))
 				.findFirst()
 				.isPresent();
     }
+
+    private void checkAccessRightsForCreate(BankerUser user) {
+		boolean admin = sessionContext.isCallerInRole("admin");
+		boolean treasurer = sessionContext.isCallerInRole("treasurer");
+		if (!admin && !treasurer) {
+			throw new EJBAccessException("You have no privilege to create a charity");
+		}
+    }
+
+    private void checkAccessRightsForWrite(BankerUser user, Charity charity) {
+		boolean admin = sessionContext.isCallerInRole("admin");
+		boolean treasurer = sessionContext.isCallerInRole("treasurer");
+		if (!admin && !treasurer && !userHasRoleOnCharity(user, charity, CharityUserRoleType.MANAGER)) {
+			throw new EJBAccessException("Write access to charity not allowed");
+		}
+    }
     
+    private boolean hasFullAccessRightsForRead(BankerUser user, Charity charity) {
+		boolean admin = sessionContext.isCallerInRole("admin");
+		boolean treasurer = sessionContext.isCallerInRole("treasurer");
+		return admin || treasurer || userHasRoleOnCharity(user, charity, null);
+    }
+
     /**
      * Retrieves a charity, including the roles. Anyone can read a charity, given the id. The amount of details depends on the caller.
      * @param id the charity id
@@ -142,8 +176,7 @@ public class CharityManager {
 		BankerUser me = userDao.findByManagedIdentity(caller)
 				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
     	charityDao.detach(charitydb);
-		boolean admin = sessionContext.isCallerInRole("admin");
-		if (!admin && !userHasRoleOnCharity(me, charitydb, null)) {
+		if (!hasFullAccessRightsForRead(me, charitydb)) {
 			// Roles and Account are privileged
 			charitydb.getRoles().clear();
 			charitydb.setAccount(null);
@@ -168,10 +201,7 @@ public class CharityManager {
     	String caller = sessionContext.getCallerPrincipal().getName();
 		BankerUser me = userDao.findByManagedIdentity(caller)
 				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
-		boolean admin = sessionContext.isCallerInRole("admin");
-		if (!admin && !userHasRoleOnCharity(me, charitydb, CharityUserRoleType.MANAGER)) {
-    		throw new EJBAccessException("Write access to charity account not allowed");
-		}
+    	checkAccessRightsForWrite(me, charitydb);
     	Account accdb = charitydb.getAccount();
     	// Set only specific attributes
     	accdb.setIban(acc.getIban());
@@ -186,14 +216,17 @@ public class CharityManager {
     	if (charity.getCampaignEndTime() != null && charity.getCampaignEndTime().isBefore(charity.getCampaignStartTime())) {
     		throw new BadRequestException("Constraint violation: 'campaignEndTime' must be later than 'campaignStartTime'.");
     	}
-    	if (!lenient && (charity.getDescription() == null || charity.getDescription().trim().isEmpty())) {
-    		throw new BadRequestException("Constraint violation: 'description' must be non-empty.");
-    	}
+//    	if (!lenient && (charity.getDescription() == null || charity.getDescription().isBlank())) {
+//    		throw new BadRequestException("Constraint violation: 'description' must be non-empty.");
+//    	}
     	if (!lenient && charity.getGoalAmount() == null) {
     		throw new BadRequestException("Constraint violation: 'goalAmount' must be greater than 0.");
     	}
     	if (!lenient && charity.getLocation() == null) {
     		throw new BadRequestException("Constraint violation: 'location' must be set.");
+    	}
+    	if (!lenient && (charity.getName() == null || charity.getName().isBlank())) {
+    		throw new BadRequestException("Constraint violation: 'name' must be set.");
     	}
     }
     
@@ -210,15 +243,17 @@ public class CharityManager {
     	// Synchronous event to create an account
     	BankerUser userdb = userDao.find(user.getId())
     			.orElseThrow(() -> new NotFoundException("No such user: " + user.getId()));
+    	checkAccessRightsForCreate(userdb);
     	charityCreatedEvent.fire(charity);
-    	charity.addUserRole(userdb, CharityUserRoleType.MANAGER);
+    	// Only admin and treasurer can create. Need endpoint to add managers.
+//		charity.addUserRole(userdb, CharityUserRoleType.MANAGER);
     	charityDao.save(charity);
     	return charity.getId();
     }
 
     /**
-     * Updates some charity attributes. The following attributes can be modified: campaignStartTime,
-     * campaignEndTime, description, goalAmount, location, imageUrl, name. If campaignEndTime is set, 
+     * Updates some charity attributes. The following attributes can be modified: account name, campaignStartTime,
+     * campaignEndTime, description, goalAmount, location, name. If campaignEndTime is set, 
      * then campaignEndTime must also be set.
      * @param id the charity id.
      * @param charity the partial charity with the attributes to update. 
@@ -227,10 +262,14 @@ public class CharityManager {
      */
     public void updateCharity(Long id, Charity charity)  throws NotFoundException, BadRequestException {
     	validateCharityInput(charity, true);
-    	Charity charitydb = charityDao.loadGraph(id, Charity.SHALLOW_ENTITY_GRAPH)
+    	Charity charitydb = charityDao.loadGraph(id, Charity.ACCOUNT_ROLES_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such charity: " + id));
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
+    	checkAccessRightsForWrite(me, charitydb);
     	// Only copy those fields that are allowed to be updated.
-    	if (charity.getAccount().getName() != null) {
+    	if (charity.getAccount() != null && charity.getAccount().getName() != null) {
     		charitydb.getAccount().setName(charity.getAccount().getName());
     	}
     	if (charity.getCampaignStartTime() != null) {
@@ -243,23 +282,64 @@ public class CharityManager {
     	if (charity.getGoalAmount() != null) {
     		charitydb.setGoalAmount(charity.getGoalAmount());
     	}
-    	if (charity.getImageUrl() != null) {
-    		charitydb.setImageUrl(charity.getImageUrl());
-    	}
     	if (charity.getLocation() != null) {
     		charitydb.setLocation(charity.getLocation());
     	}
+    	if (charity.getName() != null) {
+    		charitydb.setName(charity.getName());
+    	}
     }
 
-    /**
-     * Retrieves a charity. Anyone can read a charity, given the id. The amount of details depends on the caller.
-     * @param id the charity id
-     * @return a charity object
-     * @throws NotFoundException No matching charity found.
-     */
-    public void stopCampaigning(Long id) throws NotFoundException {
+	public String uploadCharityImage(Long id, String filetype, byte[] image) throws NotFoundException, UpdateException {
     	Charity charitydb = charityDao.loadGraph(id, Charity.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such charity: " + id));
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
+    	checkAccessRightsForWrite(me, charitydb);
+
+    	// Note: use a timestamp in the filename to defeat the caching of the browser
+		String filename = String.format("ch-%d-%d.%s", id, Instant.now().toEpochMilli(), filetype);
+    	String folder = Long.toHexString(id % 256);
+    	Path newFile = Path.of(folder, filename); 
+    	Path newPath = Paths.get(imageServiceImageFolder).resolve(newFile);
+    	Path oldFile = null;
+    	if (charitydb.getImageUrl() != null) {
+    		String[] parts = charitydb.getImageUrl().split("/");
+    		String oldFolder = URLDecoder.decode(parts[0], StandardCharsets.UTF_8);
+    		String oldFilename = URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
+    		oldFile = Path.of(oldFolder, oldFilename);
+    	}
+		try {
+			Files.createDirectories(newPath.getParent());
+			Files.write(newPath, image, StandardOpenOption.CREATE_NEW);
+	    	if (oldFile != null) {
+	    		Files.deleteIfExists(Paths.get(imageServiceImageFolder).resolve(oldFile));
+	    	}
+			charitydb.setImageUrl(String.format("%s/%s", URLEncoder.encode(folder, StandardCharsets.UTF_8), URLEncoder.encode(filename, StandardCharsets.UTF_8)));
+		} catch (IOException e) {
+			throw new UpdateException("Error writing or replacing image " + newPath , e);
+		}
+		return charitydb.getImageUrl();
+	}
+	
+    /**
+     * Stops the campaigning of a charity. You must have sufficient privileges.
+     * @param id the charity id
+     * @throws NotFoundException No matching charity found.
+     * @throws BadRequestException 
+     */
+    public void stopCampaigning(Long id) throws NotFoundException, BadRequestException {
+    	Charity charitydb = charityDao.loadGraph(id, Charity.SHALLOW_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such charity: " + id));
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
+    	checkAccessRightsForWrite(me, charitydb);
+    	Instant now = Instant.now();
+    	if (charitydb.getCampaignEndTime() != null && now.isBefore(charitydb.getCampaignEndTime())) {
+    		throw new BadRequestException("It is not allowed to move the campagning end from the past to now");
+    	}
     	charitydb.setCampaignEndTime(Instant.now());
     }
 
