@@ -42,7 +42,6 @@ public interface CharityMapper {
 	
 	// API --> Domain
 	@Mapping(target = "id", ignore = true)
-//	@Mapping(target = "reference", ignore = true)
 	@Mapping(target = "roles", ignore = true)
 	@Mapping(target = "donatedAmount", ignore = true)
 	@Mapping(target = "account", ignore = true)
