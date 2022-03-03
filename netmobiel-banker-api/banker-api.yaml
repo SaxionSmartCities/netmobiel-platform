@@ -1651,6 +1651,46 @@ paths:
         type: string
       in: path
       required: true
+  /charities/{charityId}/image:
+    summary: Manages the charity image.
+    description: Manage the image of the charity.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+          description: The relative path to the image or an empty string if none available.
+      operationId: getCharityImage
+      summary: Get the image path.
+      description: Gets the path to the charity image.
+    put:
+      requestBody:
+        description: The charity image to upload.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageUploadRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+          description: The updated profile.
+      operationId: uploadImage
+      summary: Uploads an image
+      description: Uploads an image. The previous image is removed. The path to the
+        image is saved in the charity object.
+    parameters:
+    - name: charityId
+      description: The unique charity id.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
@@ -2108,6 +2148,9 @@ components:
           $ref: '#/components/schemas/Account'
           description: The NetMobiel account for the charity. This attribute is only
             visible for users having a role in the charity or the admin.
+        urn:
+          description: The unique charity refrence as an urn.
+          type: string
       example:
         name: Rozentuin Zieuwent
         location:
@@ -2134,6 +2177,8 @@ components:
             familyName: Oude Zijlink
             managedIdentity: 1234-5678-aabb
             id: 1034
+        id: 453
+        urn: urn:nb:bn:charity:453
     PaymentBatch:
       title: Root Type for PaymentBatch
       description: 'A `PaymentBatch` is a collection of `WithdrawalRequest` objects
@@ -2344,6 +2389,24 @@ components:
           credits: 10
           iban: NL02ABNA0123456789,
           ibanHolder: Jan Smit
+    ImageResponse:
+      title: Root Type for ImageResponse
+      description: The response to a request for an image.
+      type: object
+      properties:
+        image:
+          type: string
+      example:
+        image: /images/ab/cdef.png
+    ImageUploadRequest:
+      description: The request for uploading an image.
+      required:
+      - image
+      type: object
+      properties:
+        image:
+          description: The image data encoded in base64.
+          type: string
   responses:
     InternalServerError:
       content:
