@@ -491,16 +491,16 @@ paths:
               $ref: '#/components/schemas/Charity'
         required: true
       responses:
-        "202":
-          description: Successful response.
         "404":
           $ref: '#/components/responses/NotFound'
+        "204":
+          description: Successfull update.
       operationId: updateCharity
       summary: Update a Charity
       description: "Updates an existing `Charity`. Only the following fields can be\
         \ updated: \n - campaignStartTime\n - campaignEndTIme\n - description\n -\
-        \ name\n - location\n - goalAmount\n - imageUrl\n\nOnly the admin role or\
-        \ the Charity Manager can make changes."
+        \ name\n - location\n - goalAmount\n - imageUrl\n\nOnly the admin or treasurer\
+        \ role or the Charity Manager can make changes."
     delete:
       responses:
         "204":
@@ -511,7 +511,7 @@ paths:
       summary: Closes a Charity
       description: Stops the campaigning of the `Charity`. A `Charity` is never deleted.
         The charity gets as campaign end time the time of the request assigned. Only
-        the admin or the Charity Manager can modify a Charity.
+        the admin, treasurer or the Charity Manager can modify a Charity.
     parameters:
     - name: charityId
       description: A unique identifier for a `Charity`. Allowed are the database id
@@ -819,7 +819,7 @@ paths:
       summary: Get the charity account.
       description: Gets the details of a single instance of a `Account`, including
         the current amount of credits owned (i.e., the actual balance). The actual
-        amount is only visible to the manager and to the administrator.
+        amount is only visible to the manager, admin role and treasurer role.
     put:
       requestBody:
         description: Specify name, iban and ibanHolder. Other fields are ignored.
@@ -1682,8 +1682,20 @@ paths:
           description: The updated profile.
       operationId: uploadImage
       summary: Uploads an image
-      description: Uploads an image. The previous image is removed. The path to the
-        image is saved in the charity object.
+      description: |-
+        Uploads an image. The previous image is removed. The path to the image is saved in the charity object. The image file name has the uploadtime encoded in the filename  to defeat caching by the broswer.
+
+        Only an admin role, treasurer role or Charity Manager can update the image.
+    delete:
+      responses:
+        "204":
+          description: Successful operation.
+      operationId: removeImage
+      summary: Removes the image.
+      description: |-
+        Removes the image of the charity. If no image is present the call has no effect.
+
+        Only an admin role, treasurer role or Charity Manager can remove the image.
     parameters:
     - name: charityId
       description: The unique charity id.
