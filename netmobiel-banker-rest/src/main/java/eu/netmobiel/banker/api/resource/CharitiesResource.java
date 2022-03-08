@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.api.resource;
 
+import java.net.URI;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
@@ -13,7 +14,6 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.banker.api.CharitiesApi;
 import eu.netmobiel.banker.api.mapping.AccountMapper;
@@ -108,8 +108,9 @@ public class CharitiesResource implements CharitiesApi {
 		try {
 			BankerUser user = userManager.findOrRegisterCallingUser();
 			Charity dch = charityMapper.map(charity);
-			String newCharityId = UrnHelper.createUrn(Charity.URN_PREFIX, charityManager.createCharity(user, dch));
-			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newCharityId)).build();
+			final String newCharityId = UrnHelper.createUrn(Charity.URN_PREFIX, charityManager.createCharity(user, dch));
+			final String urn = UrnHelper.createUrn(Charity.URN_PREFIX, newCharityId);
+			rsp = Response.created(URI.create(urn)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (Exception e) {
@@ -194,6 +195,19 @@ public class CharitiesResource implements CharitiesApi {
 		return rsp;
 	}
 	
+	@Override
+	public Response removeImage(String charityId) {
+		Response rsp = null;
+		try {
+			Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
+			charityManager.removeCharityImage(cid);
+			rsp = Response.noContent().build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
 	/*======================================   CHARITY FINANCIAL   ==========================================*/
 	
 	
@@ -224,15 +238,13 @@ public class CharitiesResource implements CharitiesApi {
 	public Response postDonation(String charityId, eu.netmobiel.banker.api.model.Donation donation) {
 		Response rsp = null;
 		try {
-        	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
-			BankerUser user = userManager.findOrRegisterCallingUser();
-			Donation domainDonation = donationMapper.map(donation);
-			Long donationId = charityManager.donate(user, cid, domainDonation);
-			// This is the correct method to create a location header.
-			// The fromPath(resource, method) uses only the path of the method, it omits the resource.
-			rsp = Response.created(UriBuilder.fromResource(CharitiesApi.class)
-					.path(CharitiesApi.class.getMethod("getDonation", String.class, String.class)).build(cid, donationId)).build();
-		} catch (BusinessException | NoSuchMethodException ex) {
+        	final Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
+        	final BankerUser user = userManager.findOrRegisterCallingUser();
+        	final Donation domainDonation = donationMapper.map(donation);
+        	final Long donationId = charityManager.donate(user, cid, domainDonation);
+        	final String urn = UrnHelper.createUrn(Donation.URN_PREFIX, donationId);
+			rsp = Response.created(URI.create(urn)).build();
+		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
 		return rsp;
@@ -322,7 +334,7 @@ public class CharitiesResource implements CharitiesApi {
 			}
 			Long id = withdrawalService.createWithdrawalRequest(charity.getAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
 			String wrid = UrnHelper.createUrn(WithdrawalRequest.URN_PREFIX, id);
-			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(wrid)).build();
+			rsp = Response.created(URI.create(wrid)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}

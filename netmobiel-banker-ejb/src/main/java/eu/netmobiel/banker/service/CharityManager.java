@@ -22,12 +22,14 @@ import javax.inject.Inject;
 
 import eu.netmobiel.banker.filter.DonationFilter;
 import eu.netmobiel.banker.model.Account;
+import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.model.CharityUserRoleType;
 import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.model.SettlementOrder;
+import eu.netmobiel.banker.repository.BalanceDao;
 import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.repository.CharityDao;
 import eu.netmobiel.banker.repository.DonationDao;
@@ -37,6 +39,7 @@ import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
@@ -64,6 +67,9 @@ public class CharityManager {
 	
 	@Inject
 	private BankerUserDao userDao;
+
+    @Inject
+    private BalanceDao balanceDao;
 
 	@Inject @Created
     private Event<Charity> charityCreatedEvent;
@@ -180,6 +186,10 @@ public class CharityManager {
 			// Roles and Account are privileged
 			charitydb.getRoles().clear();
 			charitydb.setAccount(null);
+		} else {
+			// Add the balance too
+			Balance balance = balanceDao.findActualBalance(charitydb.getAccount());
+			charitydb.getAccount().setActualBalance(balance);
 		}
     	return charitydb;
     }
@@ -323,7 +333,29 @@ public class CharityManager {
 		return charitydb.getImageUrl();
 	}
 	
-    /**
+	public void removeCharityImage(Long id) throws NotFoundException, RemoveException {
+    	Charity charitydb = charityDao.loadGraph(id, Charity.SHALLOW_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such charity: " + id));
+    	String caller = sessionContext.getCallerPrincipal().getName();
+		BankerUser me = userDao.findByManagedIdentity(caller)
+				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
+    	checkAccessRightsForWrite(me, charitydb);
+
+		try {
+	    	if (charitydb.getImageUrl() != null) {
+	    		String[] parts = charitydb.getImageUrl().split("/");
+	    		String oldFolder = URLDecoder.decode(parts[0], StandardCharsets.UTF_8);
+	    		String oldFilename = URLDecoder.decode(parts[1], StandardCharsets.UTF_8);
+	    		Path oldFile = Path.of(oldFolder, oldFilename);
+	    		Files.deleteIfExists(Paths.get(imageServiceImageFolder).resolve(oldFile));
+				charitydb.setImageUrl(null);
+	    	}
+		} catch (IOException e) {
+			throw new RemoveException("Error removing image " + charitydb.getImageUrl(), e);
+		}
+	}
+	
+	/**
      * Stops the campaigning of a charity. You must have sufficient privileges.
      * @param id the charity id
      * @throws NotFoundException No matching charity found.
