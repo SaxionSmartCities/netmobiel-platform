@@ -1703,6 +1703,57 @@ paths:
         type: string
       in: path
       required: true
+  /accounts:
+    summary: Path used to manage the list of accounts.
+    description: "The REST endpoint/path used to list `Account` entities.  This path\
+      \ contains a `GET` operation to perform the list task. This endpoint cannot\
+      \ be used to create an account. Accounts are created automatically by the system\
+      \ when requried, or are predefined.\n\nOnly users with the role `admin` or `treasurer`\
+      \ are allowed to use this endpoint. "
+    get:
+      parameters:
+      - name: accountName
+        description: 'The account name to search for. Use the wildcard character ''*''
+          to match any string. '
+        schema:
+          type: string
+        in: query
+      - name: purpose
+        description: The purpose of an account. Use one of SYSTEM (predefined system
+          accounts), CURRENT (regular accounts), PREMIUM (premium accounts).
+        schema:
+          enum:
+          - SYSTEM
+          - CURRENT
+          - PREMIUM
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `Account` entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listAccounts
+      summary: List Account requests.
+      description: |
+        Gets a list of `Account` entities matching the criteria. The objects are sorted by account name ascending.
 components:
   schemas:
     Error:
