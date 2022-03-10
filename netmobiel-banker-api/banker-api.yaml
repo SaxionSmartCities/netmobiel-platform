@@ -853,7 +853,7 @@ paths:
     summary: Manage an NetMobiel account.
     description: "The REST endpoint/path used to manage an `Account`. This path contains\
       \ a `GET` and a `PUT` operation to perform the get resp. put task. \n\nOnly\
-      \ users with the role `admin` are allowed to use this endpoint. "
+      \ users with the role `admin` or `treasurer` are allowed to use this endpoint. "
     get:
       responses:
         "200":
@@ -1034,7 +1034,7 @@ paths:
       security:
       - Bearer-only: []
         apikey: []
-      operationId: createDeposit
+      operationId: createPersonalDeposit
       summary: Create a Deposit
       description: Creates a new `DepositRequest`. The call returns a `PaymentLink`,
         containing a url to a payment page. The client should redirect a browser to
@@ -1754,6 +1754,45 @@ paths:
       summary: List Account requests.
       description: |
         Gets a list of `Account` entities matching the criteria. The objects are sorted by account name ascending.
+  /accounts/{accountId}/deposits:
+    summary: Path used to manage deposits to any account.
+    description: "The REST endpoint/path used to create zero or more `DepositRequest`\
+      \ entities.  This path contains a `POST` operation to perform the create task.\n\
+      \nOnly users with the role `admin` or `treasurer` are allowed to use this endpoint. "
+    post:
+      requestBody:
+        description: A new `Deposit` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentLink'
+          description: Successful response.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: createDeposit
+      summary: Create a Deposit
+      description: Creates a new `DepositRequest`. The call returns a `PaymentLink`,
+        containing a url to a payment page. The client should redirect a browser to
+        the payment page url. The payment is converted into credits, the credits are
+        added to the referenced account.
+    parameters:
+    - name: accountId
+      description: The account id to use. Specify a banker account id, or an account
+        urn.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
