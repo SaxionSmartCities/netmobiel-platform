@@ -459,9 +459,9 @@ paths:
       operationId: reportGenerosity
       summary: Report generosity of users.
       description: Creates a list of users with the amount of credits each user has
-        donated. The total amount is summed after fitlering the indiviaduial donations
+        donated. The total amount is summed after filtering the individual donations
         according the filter parameters. Anonymous donations are never included in
-        the report.
+        the report, even those by the calling user are ignored.
   /charities/{charityId}:
     summary: Path used to manage a single Charity.
     description: The REST endpoint/path used to get, update, and delete single instances
@@ -594,7 +594,9 @@ paths:
           $ref: '#/components/responses/NotFound'
       operationId: listDonationsForCharity
       summary: List the donations.
-      description: Lists the donations for a specific charity.
+      description: "Lists the donations for a specific charity.\n\nThe donor of an\
+        \ anonymous donation is hidden if the anonymous flag is true, unless:\n* the\
+        \ caller has the admin role\n* the caller is the anoymous donor\n \n"
     post:
       requestBody:
         description: The donation to the charity.
