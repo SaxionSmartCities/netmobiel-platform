@@ -65,6 +65,9 @@
 		<role-name>delegate</role-name>
 	</security-role>
 	<security-role>
+		<role-name>treasurer</role-name>
+	</security-role>
+	<security-role>
 		<role-name>*</role-name>
 	</security-role>
 </web-app>
