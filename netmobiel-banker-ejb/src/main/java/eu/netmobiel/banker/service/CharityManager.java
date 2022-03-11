@@ -447,7 +447,7 @@ public class CharityManager {
     	// An anonymous donation is listed, but without the user, unless the admin is asking for it.
     	if (includeUserData) {
     		String me = sessionContext.getCallerPrincipal().getName();
-    		boolean admin = sessionContext.isCallerInRole("admin");
+    		boolean admin = sessionContext.isCallerInRole("admin") ;
     		if (! admin) {
     			results.stream()
     				.filter(d -> d.isAnonymous() && !d.getUser().getManagedIdentity().equals(me))

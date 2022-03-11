@@ -5,6 +5,7 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import javax.annotation.security.DeclareRoles;
 import javax.annotation.security.PermitAll;
@@ -64,7 +65,7 @@ import eu.netmobiel.commons.util.UrnHelper;
 		
 @Stateless
 @Logging
-@DeclareRoles({ "admin" })
+@DeclareRoles({ "admin", "treasurer" })
 @PermitAll
 public class LedgerService {
 	/**
@@ -535,21 +536,64 @@ public class LedgerService {
     	return new PagedResult<>(results, maxResults, offset, totalCount);
     }
     
-    public PagedResult<Account> listAccounts(Integer maxResults, Integer offset) {
+	/**
+	 * Lists the accounts. Filter optionally by criteria.
+	 * @param accountName the account name, use '%' for any substring and '_' for any character match. Use '\' to 
+	 * 					escape the special characters.  
+	 * @param purpose the account purpose type
+	 * @param maxResults The maximum results to query. If set to 0 the total number of results is fetched.
+	 * @param offset The zero-based paging offset 
+	 * @return a paged result of account objects, sorted by account name ascending
+	 */
+    public PagedResult<Account> listAccounts(String accountName, AccountPurposeType purpose, Integer maxResults, Integer offset) {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
         if (offset == null) {
         	offset = 0;
         }
-    	PagedResult<Long> prs = accountDao.listAccounts(null, 0, offset);
+    	PagedResult<Long> prs = accountDao.listAccounts(accountName, purpose, null, 0, offset);
     	List<Account> results = null;
     	if (maxResults > 0) {
     		// Get the actual data
-    		PagedResult<Long> mids = accountDao.listAccounts(null, maxResults, offset);
+    		PagedResult<Long> mids = accountDao.listAccounts(accountName, purpose, null, maxResults, offset);
     		results = accountDao.loadGraphs(mids.getData(), null, Account::getId);
     	}
     	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());
+    }
+
+	/**
+	 * Lists accounts with their balance. Filter optionally by account criteria. 
+	 * @param accountName the account name, use '%' for any substring and '_' for any character match. Use '\' to 
+	 * 					escape the special characters.  
+	 * @param purpose the account purpose type
+	 * @param ledgerTime the ledger time. Omit for the actual ledger.
+	 * @param maxResults The maximum results to query. If set to 0 the total number of results is fetched.
+	 * @param offset The zero-based paging offset 
+	 * @return a paged result of account objects, sorted by account name ascending
+	 */
+    public PagedResult<Account> listAccountsWithBalance(String accountName, AccountPurposeType purpose, 
+    		OffsetDateTime ledgerTime, Integer maxResults, Integer offset) {
+        if (maxResults == null) {
+        	maxResults = MAX_RESULTS;
+        }
+        if (offset == null) {
+        	offset = 0;
+        }
+        if (ledgerTime == null) {
+        	ledgerTime = OffsetDateTime.now();
+        }
+		Ledger ledger = ledgerDao.findByDate(ledgerTime.toInstant());
+    	PagedResult<Long> prs = balanceDao.listBalances(accountName, purpose, null, ledger, 0, offset);
+    	List<Account> accounts = null;
+    	if (maxResults > 0) {
+    		// Get the actual data
+    		PagedResult<Long> ids = balanceDao.listBalances(accountName, purpose, null, ledger, maxResults, offset);
+    		List<Balance> results = balanceDao.loadGraphs(ids.getData(), null, Balance::getId);
+        	results.forEach(b -> b.getAccount().setActualBalance(b));
+        	accounts = results.stream().map(b -> b.getAccount()).collect(Collectors.toList());
+    	}
+    	return new PagedResult<>(accounts, maxResults, offset, prs.getTotalCount());
     }
 
     public PagedResult<Balance> listBalances(Account acc, OffsetDateTime period, Integer maxResults, Integer offset) {
@@ -626,7 +670,7 @@ public class LedgerService {
      * @return
      * @throws NotFoundException
      */
-    @RolesAllowed({ "admin" })
+    @RolesAllowed({ "admin", "treasurer" })
     public Account getAccount(Long id) throws NotFoundException {
     	Account acc = accountDao.find(id)
     			.orElseThrow(() -> new NotFoundException("No such Account: " + id));

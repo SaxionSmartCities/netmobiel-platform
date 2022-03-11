@@ -86,14 +86,14 @@ public class AccountDaoIT extends BankerIntegrationTestBase {
     	final String accref2 = "account-2"; 
     	accountDao.save(Account.newInstant(accref1, name1, AccountType.LIABILITY, AccountPurposeType.CURRENT));
     	accountDao.save(Account.newInstant(accref2, name2, AccountType.LIABILITY, AccountPurposeType.CURRENT));
-    	PagedResult<Long> actual = accountDao.listAccounts(null, 0, 0);
+    	PagedResult<Long> actual = accountDao.listAccounts(null, null, null, 0, 0);
     	assertNotNull(actual);
     	assertEquals(0, actual.getCount());
     	assertEquals(0, actual.getData().size());
     	assertEquals(2, actual.getTotalCount().intValue());
 
     
-    	actual = accountDao.listAccounts(null, 1, 0);
+    	actual = accountDao.listAccounts(null, null, null, 1, 0);
     	assertNotNull(actual);
     	assertEquals(1, actual.getCount());
     	assertEquals(1, actual.getData().size());
@@ -102,7 +102,7 @@ public class AccountDaoIT extends BankerIntegrationTestBase {
     	// sorting by ref asc
     	assertEquals(accref1, accounts.get(0).getNcan());
 
-    	actual = accountDao.listAccounts(null, 1, 1);
+    	actual = accountDao.listAccounts(null, null, null, 1, 1);
     	assertNotNull(actual);
     	assertEquals(1, actual.getCount());
     	assertEquals(1, actual.getData().size());
@@ -111,20 +111,20 @@ public class AccountDaoIT extends BankerIntegrationTestBase {
     	// sorting by id asc
     	assertEquals(accref2, accounts.get(0).getNcan());
 
-    	actual = accountDao.listAccounts(AccountType.LIABILITY, 0, 0);
+    	actual = accountDao.listAccounts(null, null, AccountType.LIABILITY, 0, 0);
     	assertNotNull(actual);
     	assertEquals(0, actual.getCount());
     	assertEquals(0, actual.getData().size());
     	assertEquals(2, actual.getTotalCount().intValue());
 
-    	actual = accountDao.listAccounts(AccountType.LIABILITY, 10, 0);
+    	actual = accountDao.listAccounts(null, null, AccountType.LIABILITY, 10, 0);
     	assertNotNull(actual);
     	assertEquals(2, actual.getCount());
     	accounts = accountDao.loadGraphs(actual.getData(), null, Account::getId);
     	// sorting by ref asc
     	assertEquals(accref1, accounts.get(0).getNcan());
 
-    	actual = accountDao.listAccounts(AccountType.ASSET, 0, 0);
+    	actual = accountDao.listAccounts(null, null, AccountType.ASSET, 0, 0);
     	assertNotNull(actual);
     	assertEquals(0, actual.getCount());
     	assertEquals(0, actual.getData().size());

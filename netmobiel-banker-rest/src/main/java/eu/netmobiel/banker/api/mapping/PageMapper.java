@@ -4,6 +4,8 @@ import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import eu.netmobiel.banker.api.mapping.annotation.AccountAll;
+import eu.netmobiel.banker.api.mapping.annotation.AccountMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.AccountingEntryAccount;
 import eu.netmobiel.banker.api.mapping.annotation.AccountingEntryMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.AccountingEntryShallow;
@@ -21,6 +23,7 @@ import eu.netmobiel.banker.api.mapping.annotation.UserMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.UserOnlyDetails;
 import eu.netmobiel.banker.api.mapping.annotation.WithdrawalRequestMapperQualifier;
 import eu.netmobiel.banker.api.mapping.annotation.WithdrawalRequestPaymentBatch;
+import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
@@ -40,6 +43,9 @@ import eu.netmobiel.commons.model.PagedResult;
 		uses = { AccountingEntryMapper.class, CharityMapper.class, UserMapper.class, DonationMapper.class, 
 				PaymentBatchMapper.class, WithdrawalRequestMapper.class, AccountMapper.class })
 public interface PageMapper {
+	@Mapping(target = "data", source = "data", qualifiedBy = { AccountMapperQualifier.class, AccountAll.class } )
+	eu.netmobiel.banker.api.model.Page mapAccountsAll(PagedResult<Account> source);
+
 	@Mapping(target = "data", source = "data", qualifiedBy = { AccountingEntryMapperQualifier.class, AccountingEntryShallow.class } )
 	eu.netmobiel.banker.api.model.Page mapAccountingEntriesShallow(PagedResult<AccountingEntry> source);
 

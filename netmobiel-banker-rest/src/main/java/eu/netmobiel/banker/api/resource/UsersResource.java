@@ -93,7 +93,7 @@ public class UsersResource implements UsersApi {
     }
 
     @Override
-	public Response createDeposit(String xDelegator, String userId, eu.netmobiel.banker.api.model.DepositRequest deposit) {
+	public Response createPersonalDeposit(String xDelegator, String userId, eu.netmobiel.banker.api.model.DepositRequest deposit) {
 		Response rsp = null;
 		try {
 			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);

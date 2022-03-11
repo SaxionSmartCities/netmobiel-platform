@@ -17,6 +17,7 @@ import javax.persistence.criteria.Root;
 
 import eu.netmobiel.banker.annotation.BankerDatabase;
 import eu.netmobiel.banker.model.Account;
+import eu.netmobiel.banker.model.AccountPurposeType;
 import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.Account_;
 import eu.netmobiel.commons.model.PagedResult;
@@ -51,16 +52,25 @@ public class AccountDao extends AbstractDao<Account, Long> {
 	
 	/**
 	 * Lists the accounts. Filter optionally by holder. 
+	 * @param accountName the account name, use '%' for any substring and '_' for any character match. Use '\' to 
+	 * 					escape the special characters.  
+	 * @param purpose the account purpose type
 	 * @param type The account type or null for any type.
 	 * @param maxResults The maximum results to query. If set to 0 the total number of results is fetched.
 	 * @param offset The zero-based paging offset 
-	 * @return a paged result of accounts.
+	 * @return a paged result of account identifiers, sorted by account name ascending
 	 */
-    public PagedResult<Long> listAccounts(AccountType type, Integer maxResults, Integer offset) {
+    public PagedResult<Long> listAccounts(String accountName, AccountPurposeType purpose, AccountType type, Integer maxResults, Integer offset) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Account> account = cq.from(Account.class);
         List<Predicate> predicates = new ArrayList<>();
+        if (accountName != null) {
+            predicates.add(cb.like(cb.lower(account.get(Account_.name)), accountName.toLowerCase(), '\\'));
+        }
+        if (purpose != null) {
+            predicates.add(cb.equal(account.get(Account_.purpose), purpose));
+        }
         if (type != null) {
             Predicate predType = cb.equal(account.get(Account_.accountType), type);
             predicates.add(predType);
@@ -73,7 +83,7 @@ public class AccountDao extends AbstractDao<Account, Long> {
           totalCount = em.createQuery(cq).getSingleResult();
         } else {
 	        cq.select(account.get(Account_.id));
-	        cq.orderBy(cb.asc(account.get(Account_.id)));
+	        cq.orderBy(cb.asc(account.get(Account_.name)));
 	        TypedQuery<Long> tq = em.createQuery(cq);
 			tq.setFirstResult(offset);
 			tq.setMaxResults(maxResults);

@@ -13,12 +13,15 @@ import javax.persistence.NonUniqueResultException;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.validation.constraints.NotNull;
 
 import eu.netmobiel.banker.annotation.BankerDatabase;
 import eu.netmobiel.banker.model.Account;
+import eu.netmobiel.banker.model.AccountPurposeType;
+import eu.netmobiel.banker.model.AccountType;
 import eu.netmobiel.banker.model.Account_;
 import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.Balance_;
@@ -92,4 +95,49 @@ public class BalanceDao extends AbstractDao<Balance, Long> {
         return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
+	/**
+	 * Lists the balances by filtering their accounts. 
+	 * @param accountName the account name, use '%' for any substring and '_' for any character match. Use '\' to 
+	 * 					escape the special characters.  
+	 * @param purpose the account purpose type
+	 * @param type The account type or null for any type.
+	 * @param ledger The ledger to look for. Cannot be null.
+	 * @param maxResults The maximum results to query. If set to 0 the total number of results is fetched.
+	 * @param offset The zero-based paging offset 
+	 * @return a paged result of account identifiers, sorted by account name ascending
+	 */
+    public PagedResult<Long> listBalances(String accountName, AccountPurposeType purpose, AccountType type, @NotNull Ledger ledger, Integer maxResults, Integer offset) {
+    	CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<Balance> root = cq.from(Balance.class);
+        List<Predicate> predicates = new ArrayList<>();
+        Path<Account> account = root.get(Balance_.account);
+        predicates.add(cb.equal(root.get(Balance_.ledger), ledger));
+        if (accountName != null) {
+            predicates.add(cb.like(cb.lower(account.get(Account_.name)), accountName.toLowerCase(), '\\'));
+        }
+        if (purpose != null) {
+            predicates.add(cb.equal(account.get(Account_.purpose), purpose));
+        }
+        if (type != null) {
+            Predicate predType = cb.equal(account.get(Account_.accountType), type);
+            predicates.add(predType);
+        }
+        cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
+        Long totalCount = null;
+        List<Long> results = Collections.emptyList();
+        if (maxResults == 0) {
+          cq.select(cb.count(root.get(Balance_.id)));
+          totalCount = em.createQuery(cq).getSingleResult();
+        } else {
+	        cq.select(root.get(Balance_.id));
+	        cq.orderBy(cb.asc(account.get(Account_.name)));
+	        TypedQuery<Long> tq = em.createQuery(cq);
+			tq.setFirstResult(offset);
+			tq.setMaxResults(maxResults);
+			results = tq.getResultList();
+        }
+        return new PagedResult<>(results, maxResults, offset, totalCount);
+    }
+	
 }
