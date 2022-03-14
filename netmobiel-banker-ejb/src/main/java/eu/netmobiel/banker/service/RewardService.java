@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.service;
 
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Resource;
@@ -18,8 +19,11 @@ import eu.netmobiel.banker.repository.IncentiveDao;
 import eu.netmobiel.banker.repository.RewardDao;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.NetMobielUser;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.Logging;
 
 /**
@@ -83,6 +87,24 @@ public class RewardService {
        			.orElseThrow(() -> new NotFoundException("No such reward: " + id));
     }
     
+    /**
+     * Lists the pending rewards, sorted from old to new ascending
+     * @param cursor the cursor 
+     * @return A paged list of pending rewards
+     * @throws BadRequestException
+     */
+    public PagedResult<Reward> listPendingRewards(Cursor cursor) throws BadRequestException {
+    	cursor.validate(MAX_RESULTS, MAX_RESULTS);
+    	PagedResult<Long> rwds = rewardDao.listPendingRewards(Cursor.COUNTING_CURSOR);
+    	List<Reward> results = null;
+    	if (!cursor.isCountingQuery() && rwds.getTotalCount() > 0) {
+    		// Get the actual data
+    		PagedResult<Long> rids = rewardDao.listPendingRewards(cursor);
+    		results = rewardDao.loadGraphs(rids.getData(), null, Reward::getId);
+    	}
+    	return new PagedResult<>(results, cursor, rwds.getTotalCount());
+    }
+
     /**
      * Reverse the payment and optionally remove the reward.
      * @param reward

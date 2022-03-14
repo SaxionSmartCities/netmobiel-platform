@@ -273,7 +273,8 @@ public abstract class AbstractDao<T, ID> {
         return getEntityManager().createQuery(query).getSingleResult();
     }
 
-    private CriteriaQuery<Long> createCountQuery(final CriteriaBuilder cb, final CriteriaQuery<?> criteria, final Root<T> root, Expression<?> countExpression, boolean countDistinct) {
+    private CriteriaQuery<Long> createCountQuery(final CriteriaBuilder cb, final CriteriaQuery<?> criteria, 
+    		final Root<T> root, Expression<?> countExpression, boolean countDistinct) {
 
         final CriteriaQuery<Long> countQuery = cb.createQuery(Long.class);
         final Root<?> countRoot = countQuery.from(root.getJavaType());

@@ -147,7 +147,7 @@ public class Ledger  implements Serializable {
 		return AccountingTransaction.newTransaction(this, theHead, description, context, accountingTime, transactionTime);
 	}
 
-	public AccountingTransaction.Builder createFollowUpTransaction(AccountingTransaction theHead, 
+	public AccountingTransaction.Builder createFollowUpTransactionFromHead(AccountingTransaction theHead, 
 			Instant accountingTime, Instant transactionTime) {
 		return AccountingTransaction.newTransaction(this, theHead, 
 				theHead.getDescription(), theHead.getContext(), accountingTime, transactionTime);

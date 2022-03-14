@@ -3,17 +3,22 @@ package eu.netmobiel.banker.service;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
+import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 import java.util.Optional;
 import java.util.stream.Collectors;
 
+import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
+import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
+import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
 
@@ -89,11 +94,13 @@ public class LedgerService {
 	public static final Integer MAX_RESULTS = 10; 
 	public static final int CREDIT_EXCHANGE_RATE = 19;	// 1 credit is x euro cent
 
-    @SuppressWarnings("unused")
 	@Inject
     private Logger log;
 
-	@Inject
+    @Resource
+	protected SessionContext sessionContext;
+
+    @Inject
     private LedgerDao ledgerDao;
     @Inject
     private AccountingTransactionDao accountingTransactionDao;
@@ -206,7 +213,7 @@ public class LedgerService {
     	expect(brab.getAccount(), AccountType.ASSET);
     	expect(rb.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
-    			.createFollowUpTransaction(theHead, when.toInstant(), Instant.now())
+    			.createFollowUpTransactionFromHead(theHead, when.toInstant(), Instant.now())
     	    	.transfer(rb, amount, TransactionType.RELEASE, userAccountBalance)
     			.credit(brab, amount, TransactionType.WITHDRAWAL, userAccountBalance.getAccount())
 				.debit(userAccountBalance, amount, TransactionType.WITHDRAWAL, brab.getAccount())
@@ -255,14 +262,17 @@ public class LedgerService {
 	 * @return The reversed transaction, not persisted yet.
 	 * @throws BalanceInsufficientException In case a debit depletes the balance more than allowed.  
 	 */
-	private AccountingTransaction reverse(AccountingTransaction head, AccountingTransaction trToReverse, Instant accountingTime, boolean isRollback) 
+	private AccountingTransaction reverse(@NotNull AccountingTransaction head, AccountingTransaction trToReverse, Instant accountingTime, boolean isRollback) 
 			throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(accountingTime);
     	ledger.expectOpen();
 		AccountingTransaction.Builder trb =	ledger
-				.createFollowUpTransaction(head, accountingTime, Instant.now())
+				.createFollowUpTransactionFromHead(head, accountingTime, Instant.now())
 				.rollback(isRollback);
-		for (AccountingEntry entry : trToReverse.getAccountingEntries()) {
+		// Iterate the transactions also in opposite sequence
+		ArrayList<AccountingEntry> reversedEntries = new ArrayList<>(trToReverse.getAccountingEntries());
+		Collections.reverse(reversedEntries);
+		for (AccountingEntry entry : reversedEntries) {
 	    	Balance originatorBalance = balanceDao.findByLedgerAndAccount(ledger, entry.getAccount());
 	    	TransactionType reversedPurpose = entry.getPurpose().reverse();
 			if (entry.getEntryType() == AccountingEntryType.CREDIT) {
@@ -345,10 +355,11 @@ public class LedgerService {
      * @param description the description in the journal.
      * @param reference the contextual reference to a system object in the form of a urn.
      * @return the transaction urn
+     * @throws BalanceInsufficientException 
      */
-    public String reserve(NetMobielUser nmuser, int amount, int maxPremiumPercentage, String description, String reference) throws BalanceInsufficientException {
+    public String reserve(NetMobielUser nmuser, int amount, int maxPremiumPercentage, String description, String reference) throws NotFoundException, BalanceInsufficientException {
     	BankerUser user = lookupUser(nmuser)
-    			.orElseThrow(() -> new BalanceInsufficientException("User has no deposits made yet: " + nmuser.getManagedIdentity()));
+    			.orElseThrow(() -> new NotFoundException("No such user: " + nmuser.getManagedIdentity()));
     	AccountingTransaction tr = reserve(user.getPersonalAccount(), amount, user.getPremiumAccount(), 
     			maxPremiumPercentage, OffsetDateTime.now(), description, reference, false);
     	return tr.getTransactionRef();
@@ -445,7 +456,7 @@ public class LedgerService {
     		throws BalanceInsufficientException, OverdrawnException, BadRequestException, NotFoundException {
     	OffsetDateTime when = OffsetDateTime.now();
     	BankerUser beneficiary = lookupUser(nmbeneficiary)
-    			.orElseThrow(() -> new BalanceInsufficientException("Beneficiary has no account, nothing to transfer to: " + nmbeneficiary.getManagedIdentity()));
+    			.orElseThrow(() -> new NotFoundException("Beneficiary has no account: " + nmbeneficiary.getManagedIdentity()));
     	Long tid = UrnHelper.getId(AccountingTransaction.URN_PREFIX, reservationId);
     	AccountingTransaction reservation = lookupTransactionWithEntries(tid);
 		AccountingEntry userAccEntry = reservation.lookup(TransactionType.RESERVATION, AccountingEntryType.DEBIT);
@@ -460,7 +471,7 @@ public class LedgerService {
     		throw new IllegalStateException("Panic: Expected to find a user debit reservation entry in reservation: " + reservationId);
     	}
     	AccountingTransaction tr = ledger
-    			.createFollowUpTransaction(head, when.toInstant(), Instant.now())
+    			.createFollowUpTransactionFromHead(head, when.toInstant(), Instant.now())
     	    	.transfer(rb, userAccEntry.getAmount(), TransactionType.RELEASE, userBalance)
     	    	.transfer(userBalance, userAccEntry.getAmount(), TransactionType.PAYMENT, beneficiaryBalance)
     	    	.build();
@@ -484,7 +495,8 @@ public class LedgerService {
     	expect(charge, TransactionType.PAYMENT, AccountingEntryType.DEBIT);
     	expect(charge, TransactionType.RELEASE, AccountingEntryType.DEBIT);
     	// Mark the transaction as a rollback
-    	AccountingTransaction tr = reverse(charge.getHead(), charge, Instant.now(), true); 
+    	AccountingTransaction theHead = charge.getHead() != null ? charge.getHead() : charge; 
+    	AccountingTransaction tr = reverse(theHead, charge, Instant.now(), true); 
        	accountingTransactionDao.save(tr);
     	return tr.getTransactionRef();
     }
@@ -528,7 +540,7 @@ public class LedgerService {
         }
     	List<Ledger> results = null;
 		Long totalCount = ledgerDao.listLedgers(0, offset).getTotalCount();
-    	if (maxResults > 0) {
+    	if (maxResults > 0 && totalCount > 0) {
     		// Get the actual data
     		PagedResult<Long> lids = ledgerDao.listLedgers(maxResults, offset);
     		results = ledgerDao.loadGraphs(lids.getData(), null, Ledger::getId);
@@ -554,7 +566,7 @@ public class LedgerService {
         }
     	PagedResult<Long> prs = accountDao.listAccounts(accountName, purpose, null, 0, offset);
     	List<Account> results = null;
-    	if (maxResults > 0) {
+    	if (maxResults > 0 && prs.getTotalCount() > 0) {
     		// Get the actual data
     		PagedResult<Long> mids = accountDao.listAccounts(accountName, purpose, null, maxResults, offset);
     		results = accountDao.loadGraphs(mids.getData(), null, Account::getId);
@@ -586,7 +598,7 @@ public class LedgerService {
 		Ledger ledger = ledgerDao.findByDate(ledgerTime.toInstant());
     	PagedResult<Long> prs = balanceDao.listBalances(accountName, purpose, null, ledger, 0, offset);
     	List<Account> accounts = null;
-    	if (maxResults > 0) {
+    	if (maxResults > 0 && prs.getTotalCount() > 0) {
     		// Get the actual data
     		PagedResult<Long> ids = balanceDao.listBalances(accountName, purpose, null, ledger, maxResults, offset);
     		List<Balance> results = balanceDao.loadGraphs(ids.getData(), null, Balance::getId);
@@ -609,7 +621,7 @@ public class LedgerService {
 		Ledger ledger = ledgerDao.findByDate(period.toInstant());
     	PagedResult<Long> prs = balanceDao.listBalances(acc, ledger, 0, offset);
     	List<Balance> results = null;
-    	if (maxResults > 0) {
+    	if (maxResults > 0 && prs.getTotalCount() > 0) {
     		// Get the actual data
     		PagedResult<Long> ids = balanceDao.listBalances(acc, ledger, maxResults, offset);
     		results = balanceDao.loadGraphs(ids.getData(), null, Balance::getId);
@@ -630,7 +642,7 @@ public class LedgerService {
         }
     	PagedResult<Long> prs = accountingEntryDao.listAccountingEntries(accountReference, since, until, 0, offset);
     	List<AccountingEntry> results = null;
-    	if (maxResults > 0) {
+    	if (maxResults > 0 && prs.getTotalCount() > 0) {
     		// Get the actual data
     		PagedResult<Long> ids = accountingEntryDao.listAccountingEntries(accountReference, since, until, maxResults, offset);
     		results = accountingEntryDao.loadGraphs(ids.getData(), AccountingEntry.STATEMENT_ENTITY_GRAPH, AccountingEntry::getId);
@@ -830,6 +842,7 @@ public class LedgerService {
     			throw new IllegalStateException("Duplicate pay-out of reward detected:" + rewarddb.getUrn());
     		}
     	}
+    	// The system premium is paid to the personal account and then reserved on the premium account of that user.
     	AccountingTransaction tr = ledger
     			.createTransaction(statementText, rewarddb.getUrn(), when.toInstant(), Instant.now())
     			.head(head)
@@ -858,7 +871,8 @@ public class LedgerService {
     	if (lastTransaction.hasEntry(TransactionType.PAYMENT)) {
     		// There is a payment made, make a refund
         	// Mark the transaction as a rollback
-        	AccountingTransaction tr = reverse(lastTransaction.getHead(), lastTransaction, when.toInstant(), true); 
+        	AccountingTransaction theHead = lastTransaction.getHead() != null ? lastTransaction.getHead() : lastTransaction; 
+        	AccountingTransaction tr = reverse(theHead, lastTransaction, when.toInstant(), true); 
            	accountingTransactionDao.save(tr);
            	// Save the transaction reference.
         	rewarddb.setTransaction(tr);
@@ -868,5 +882,18 @@ public class LedgerService {
         	// else refund has taken place already, ignore, no reason to panic.
 			log.info(String.format("No payment to refund for reward %s: ", reward.getUrn()));
     	}
+    }
+
+    /** 
+     * Checks whether there are at least some premium credits to pay for rewards.
+     *  
+     * @param amount
+     * @return
+     */
+    public boolean fiatForPremiumBalance(int amount) {
+    	OffsetDateTime when = OffsetDateTime.now();
+    	Ledger ledger = ledgerDao.findByDate(when.toInstant());
+    	Balance maecenasBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_PREMIUMS);
+    	return maecenasBalance.getEndAmount() >= amount;
     }
 }

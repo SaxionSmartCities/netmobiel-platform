@@ -8,6 +8,7 @@ import java.util.Map;
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
 import javax.ejb.Asynchronous;
+import javax.ejb.Schedule;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.ejb.TransactionAttribute;
@@ -27,14 +28,17 @@ import org.slf4j.Logger;
 import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.model.Reward;
 import eu.netmobiel.banker.service.LedgerService;
+import eu.netmobiel.banker.service.RewardService;
 import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.SystemException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.NetMobielUserImpl;
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.PaymentState;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -73,6 +77,9 @@ public class PaymentProcessor {
 
     @Inject
     private LedgerService ledgerService;
+
+    @Inject
+    private RewardService rewardService;
 
     @Inject
     private BookingManager bookingManager;
@@ -401,5 +408,39 @@ public class PaymentProcessor {
     		ledgerService.refundReward(reward, OffsetDateTime.now());
     	}
     }
+
+    /**
+     * Check whether a reward could not be paid because there was insufficient balance on the system premium account.
+     * How can we detect that case? When the transaction is null, it is certainly pending. What if it was cancelled? 
+     * Is then a new reward created or is the old one paid again? 
+     * OK. A reward is actually removed when it is withdrawn. So when a reward is still there, it must be paid when 
+     * there is no transaction or when cancelTime is set. Withdrawal of rewards is now only for testing.
+     * 
+     * The method is placed here because we need the text for the accounting statement.
+     */
+    @Schedule(info = "Reward check", hour = "*/1", minute = "15", second = "0", persistent = false /* non-critical job */)
+	public void resolvePendingRewardPayments() {
+		try {
+	    	Cursor cursor = new Cursor(10, 0);
+	    	OffsetDateTime when = OffsetDateTime.now();
+			PagedResult<Reward> pendingRewards = rewardService.listPendingRewards(cursor);
+			if (! pendingRewards.getData().isEmpty()) {
+				if (ledgerService.fiatForPremiumBalance(pendingRewards.getData().get(0).getAmount())) {
+					// OK, at least the first can be processed. Go!	
+		    		for (Reward reward: pendingRewards.getData()) {
+				    	ledgerService.rewardWithPremium(reward, when, textHelper.createPremiumRewardStatementText(reward)); 
+					}
+					// Note: There is a potential danger that one bad reward will block processing of all others.
+		    		// 		 For now we take that risk.
+				} else {
+		    		logger.warn("Premium balance is insufficient, rewards are pending payment");
+				}
+			}
+    	} catch (BalanceInsufficientException e) {
+    		logger.warn("Premium balance is insufficient, reward(s) payment remains pending");
+    	} catch (Exception ex) {
+			logger.error("Error processing pending rewards", ex);
+    	}
+	}
 
 }
