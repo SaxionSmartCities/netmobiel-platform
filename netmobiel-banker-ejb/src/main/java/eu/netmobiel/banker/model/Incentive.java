@@ -16,6 +16,9 @@ import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 
+import eu.netmobiel.banker.util.BankerUrnHelper;
+import eu.netmobiel.commons.model.ReferableObject;
+
 /**
  * Definition of an incentive.
  *  
@@ -28,9 +31,10 @@ import javax.validation.constraints.Size;
 })
 @Vetoed
 @SequenceGenerator(name = "incentive_sg", sequenceName = "incentive_seq", allocationSize = 1, initialValue = 50)
-public class Incentive implements Serializable {
+public class Incentive extends ReferableObject implements Serializable {
 	
 	private static final long serialVersionUID = 1285808506461012273L;
+	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(Incentive.class);
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "incentive_sg")
@@ -86,17 +90,23 @@ public class Incentive implements Serializable {
     private boolean redemption;
     
     /**
-     * If set, the maximum amount to redeem in case of redeemable rewards.
+     * If set, the maximum amount to pay in any case.
      */
-    @Column(name = "max_redemption")
+    @Column(name = "max_amount")
     @PositiveOrZero
-    private Integer maxRedemption;
+    private Integer maxAmount;
+
+	@Override
+	public String getUrnPrefix() {
+		return URN_PREFIX;
+	}
 
     public Incentive() {
 		// Constructor
     }
 
-    public Long getId() {
+    @Override
+	public Long getId() {
 		return id;
 	}
 
@@ -148,16 +158,21 @@ public class Incentive implements Serializable {
 		return redemption;
 	}
 
-	public Integer getMaxRedemption() {
-		return maxRedemption;
+	public void setRedemption(boolean redemption) {
+		this.redemption = redemption;
 	}
 
-	public void setMaxRedemption(Integer maxRedemption) {
-		this.maxRedemption = maxRedemption;
+	public Integer getMaxAmount() {
+		return maxAmount;
+	}
+
+	public void setMaxAmount(Integer maxAmount) {
+		this.maxAmount = maxAmount;
 	}
 
 	/**
-	 * Calculate the floor value of the relative reward.
+	 * Calculate the amount to reward, given a yield (that might be null).
+	 * Only relative rewards are calculated from the yield.
 	 * @param turnover
 	 * @return
 	 */
@@ -168,10 +183,10 @@ public class Incentive implements Serializable {
 				throw new IllegalStateException("Specify the yield for a relative incentive!");
 			}
 			reward = Math.floorDiv(getAmount() * yield, 100);
-			if (getMaxRedemption() != null) {
-				// Cap the reward, if necessary
-				reward = Math.min(getMaxRedemption(), reward);
-			}
+		}
+		if (getMaxAmount() != null) {
+			// Cap the reward, if necessary
+			reward = Math.min(getMaxAmount(), reward);
 		}
 		return reward;
 	}
