@@ -1795,6 +1795,152 @@ paths:
         type: string
       in: path
       required: true
+  /rewards/{rewardId}:
+    summary: Path used to manage a single Reward.
+    description: "The REST endpoint/path used to get and delete single instances of\
+      \ an `Reward`.  This path contains `GET` and `DELETE` operations used to perform\
+      \ the get and delete tasks, respectively.\n\nOnly users with the role `admin`\
+      \ or `treasurer` are allowed to use this endpoint. "
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reward'
+          description: Successful response - returns a single `Reward`.
+      operationId: getReward
+      summary: Get a Reward
+      description: Gets the details of a single instance of a `Reward`.
+    delete:
+      parameters:
+      - name: hard
+        description: 'If true then  try to remove the reward from the database. Default:
+          false.'
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deleteReward
+      summary: Delete a Reward
+      description: Deletes an existing `Reward`. The financial transaction is reversed.
+        If that is not possible, then the deletion will fail.
+    parameters:
+    - name: rewardId
+      description: A unique identifier for a `Reward`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /incentives:
+    summary: Path used to manage the list of incentives.
+    description: "The REST endpoint/path used to list `Incentive` entities.  This\
+      \ path contains a `GET` operation to perform the list task.\n\nOnly users with\
+      \ the role `admin` or `treasurer` are allowed to use this endpoint. "
+    get:
+      parameters:
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `Incentive` entities.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getIncentives
+      summary: List All incentives
+      description: Gets a list of all `Incentive` entities.
+  /rewards:
+    summary: Path used to manage the list of rewards.
+    description: "The REST endpoint/path used to list  `Reward` entities.  This path\
+      \ contains a `GET` operation to perform the list task.\n\nOnly users with the\
+      \ role `admin` or `treasurer` are allowed to use this endpoint. "
+    get:
+      parameters:
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `Reward` entities.
+      operationId: getRewards
+      summary: List All rewards
+      description: Gets a list of all `Reward` entities.
+  /users/{userId}/rewards:
+    summary: Path used to manage the list of rewards of a user.
+    description: The REST endpoint/path used to list zero or more `Reward` entities.  This
+      path contains a `GET` operation to perform the list task. A Reward reports on
+      reward assigned to the user.
+    get:
+      parameters:
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Statement` entities.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: listUserRewards
+      summary: List Reward entries.
+      description: "Gets a paged list of  `Reward` entities. The rewards are sorted\
+        \ on rewarding time descending.\n\nThe administrator can request rewards owned\
+        \ by any user. \n"
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
@@ -2511,6 +2657,138 @@ components:
         image:
           description: The image data encoded in base64.
           type: string
+    Incentive:
+      title: Root Type for Incentive
+      description: Definition of the reward intended as stimulus for certain behaviour.
+      type: object
+      properties:
+        id:
+          description: The id of the incentive.
+          type: string
+        urn:
+          description: The URN of the incentive.
+          type: string
+        code:
+          description: "An incentive has a short code as (internal) reference to an\
+            \ incentive. The code is direct or indirect  \nattached to the trigger\
+            \ object. Example code: 'survey-0' to indicate the first survey offered."
+          type: string
+        category:
+          description: The category of the incentives. Currently defined are SURVEY
+            and CARPOOL.
+          type: string
+        description:
+          description: The description of the incentive. The text is displayed in
+            the reward overview.
+          type: string
+        amount:
+          description: The amount of credits involved (relative is false) or the percentage
+            of credits (relative is true) to assign related to some yield value. The
+            ride fare is an example of such a yield value.
+          type: string
+        relative:
+          description: If true then the amount to reward is calculated relative to
+            some yield value, like the fare of a ride. The amount field is then interpreted
+            as a percentage.
+          type: boolean
+        maxAmount:
+          description: When relative is true, the maximum amount to reward.
+          type: string
+        redemption:
+          description: |-
+            If true the reward is a redemption type of award, meaning that the user rewarded by converting the specified amount of premium credits into freeely spendable credits. If redemption is false, then the user is rewarded with premium credits.
+
+            Redemption-type rewards are issued only when the user has a positive balance of premium credits at the time of the reward trigger.
+
+            Premium credits are paid when the application has a positive premium balance. If not, the payment remains pending.
+          type: boolean
+      example:
+        id: "2578"
+        urn: urn:nb:nb:incentive:2578
+        code: survey-0
+        category: SURVEY
+        description: Stimulus voor invullen van de nulmeting
+        amount: "10"
+        relative: false
+        redemption: false
+    Reward:
+      title: Root Type for Reward
+      description: 'The actual reward for something in the application. A reward is
+        either a premium amount of credits or as a redemption of currently owned premium
+        credits. '
+      required:
+      - incentive
+      - id
+      - factContext
+      - amount
+      - recipient
+      - rewardTime
+      type: object
+      properties:
+        id:
+          format: int32
+          description: The identifier of the reward.
+          type: integer
+        urn:
+          description: The URN of the reward.
+          type: string
+        amount:
+          format: int32
+          description: The actual amount of credits rewarded, either as new premium
+            credits or as redeemed credits.
+          type: integer
+        rewardTime:
+          format: date-time
+          description: The date and time the reward was issued.
+          type: string
+        cancelTime:
+          description: If the reward is cancelled, the cancel time.
+          type: string
+        incentive:
+          $ref: '#/components/schemas/Incentive'
+          description: The incentive on which the reward is based.
+          properties:
+            id:
+              format: int32
+              type: integer
+        recipient:
+          $ref: '#/components/schemas/User'
+          description: The recipient of the reward.
+          properties:
+            givenName:
+              type: string
+            familyName:
+              type: string
+            managedIdentity:
+              type: string
+        transactionRef:
+          description: If set, the accounting transaction referring to the actual
+            payment.
+          type: string
+        factContext:
+          description: The context of the reward, a reference to the system object
+            that caused the issue of reward.
+          type: string
+      example:
+        id: 612
+        urn: urn:nb:bn:reward:612
+        amount: 10
+        rewardTime: 2022-03-16T11:04:34Z
+        incentive:
+          id: "2578"
+          urn: urn:nb:nb:incentive:2578
+          code: survey-0
+          category: SURVEY
+          description: Stimulus voor invullen van de nulmeting
+          amount: "10"
+          relative: false
+          redemption: false
+        recipient:
+          givenName: Hein
+          familyName: Hogendorp
+          managedIdentity: aabbccdd-1234-5678-90abcdef1234
+        transactionRef: urn:nb:bn:transaction:63
+        factContext: urn:nb:pf:surveyint:52
   responses:
     InternalServerError:
       content:
