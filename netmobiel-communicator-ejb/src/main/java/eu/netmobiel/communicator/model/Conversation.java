@@ -116,7 +116,7 @@ public class Conversation extends ReferableObject implements Serializable {
     @CollectionTable(name = "conversation_context", joinColumns = { 
     	@JoinColumn(name = "conversation", foreignKey = @ForeignKey(name = "conversation_context_conversation_fk")) 
     })
-    @Column(name = "context", length = 32)
+    @Column(name = "context", length = 64)
     @OrderBy("ASC")
     @JoinColumn(name = "conversation")	// This definition is required by OnDelete, just a copy of the same column in @CollectionTable 
     @OnDelete(action = OnDeleteAction.CASCADE)
