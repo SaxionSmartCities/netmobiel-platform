@@ -823,7 +823,7 @@ public class LedgerService {
     	Reward rewarddb = rewardDao.find(reward.getId())
     			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getId()));
     	BankerUser user = userDao.loadGraph(rewarddb.getRecipient().getId(), BankerUser.GRAPH_WITH_ACCOUNT)  
-    			.orElseThrow(() -> new BalanceInsufficientException("No such user: " + rewarddb.getRecipient().getManagedIdentity()));
+    			.orElseThrow(() -> new NotFoundException("No such user: " + rewarddb.getRecipient().getManagedIdentity()));
     	int amount = rewarddb.getAmount();
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
@@ -854,6 +854,57 @@ public class LedgerService {
     	rewarddb.setCancelTime(null);
     }
     
+    /**
+     * Pay a user an amount of premium credits. The credits are first paid to the current account and then 
+     * reserved on the premium account for spending on selected activities.
+     * A reward could have a cancelled transaction attached, verify.
+     * @param reward
+     * @param when
+     * @param statementText the text to appear on the statement.
+     * @throws BalanceInsufficientException
+     * @throws NotFoundException
+     */
+    public void rewardWithRedemption(Reward reward, OffsetDateTime when, String statementText) throws BalanceInsufficientException, NotFoundException {
+    	Reward rewarddb = rewardDao.find(reward.getId())
+    			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getId()));
+    	BankerUser user = userDao.loadGraph(rewarddb.getRecipient().getId(), BankerUser.GRAPH_WITH_ACCOUNT)  
+    			.orElseThrow(() -> new NotFoundException("No such user: " + rewarddb.getRecipient().getManagedIdentity()));
+    	Ledger ledger = ledgerDao.findByDate(when.toInstant());
+    	ledger.expectOpen();
+    	Balance personalBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPersonalAccount());  
+    	Balance personalPremiumBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPremiumAccount());
+    	expect(personalBalance.getAccount(), AccountType.LIABILITY);
+    	expect(personalPremiumBalance.getAccount(), AccountType.LIABILITY);
+    	// With redemption you can only redeem what is yours and as far as it goes!
+    	int actualAmount = Math.min(rewarddb.getAmount(), personalPremiumBalance.getEndAmount());
+    	if (actualAmount > 0) {
+    		// There is still some left
+        	AccountingTransaction head = null; 
+        	if (rewarddb.getTransaction() != null) {
+            	AccountingTransaction prevTr = lookupTransactionWithEntries(rewarddb.getTransaction().getId());
+        		head = prevTr.getHead() != null ? prevTr.getHead() : prevTr;
+        		if (prevTr.hasEntry(TransactionType.PAYMENT)) {
+        			// Panic! the payment was already made!
+        			throw new IllegalStateException("Duplicate pay-out of reward detected:" + rewarddb.getUrn());
+        		}
+        	}
+        	// The personal premium is release to the personal account.
+        	AccountingTransaction tr = ledger
+        			.createTransaction(statementText, rewarddb.getUrn(), when.toInstant(), Instant.now())
+        			.head(head)
+        			.transfer(personalPremiumBalance, actualAmount, TransactionType.RELEASE, personalBalance)
+        			.build();
+        	accountingTransactionDao.save(tr);
+        	rewarddb.setTransaction(tr);
+        	rewarddb.setCancelTime(null);
+        	if (actualAmount != rewarddb.getAmount()) {
+        		rewarddb.setAmount(actualAmount);
+        	}
+    	} else {
+    		throw new BalanceInsufficientException("There is no premium to redeem!");
+    	}
+    }
+
     /**
      * Reverse the earlier payment of a reward. This method is added for testing purposes.
      * @param reward
@@ -896,4 +947,20 @@ public class LedgerService {
     	Balance maecenasBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_PREMIUMS);
     	return maecenasBalance.getEndAmount() >= amount;
     }
+
+    /**
+     * Checks whether there is premium left to redeem. No guarantee, but just a check to avoid the creation of reward when there is 
+     * nothing to redeem.
+     * @param recipient the recipient of the reward, i.e., the person being rewarded. 
+     * @return if true then there is something to redeem (at least 1 premium credit).
+     * @throws NotFoundException 
+     */
+    public boolean canRedeemSome(NetMobielUser recipient) throws NotFoundException {
+    	BankerUser rcp = userDao.findByManagedIdentity(recipient.getManagedIdentity())
+    			.orElseThrow(() -> new NotFoundException("No such user: " + recipient.getManagedIdentity()));
+    	Ledger ledger = ledgerDao.findByDate(Instant.now());
+    	Balance personalPremiumBalance = balanceDao.findByLedgerAndAccount(ledger, rcp.getPremiumAccount());
+    	return personalPremiumBalance.getEndAmount() > 0;
+    }
+    
 }

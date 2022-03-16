@@ -297,11 +297,14 @@ public class TextHelper {
 		);
 	}
 	
-    /***************  SURVEY COMPLETION  *************/
+    /***************  REWARDS  *************/
 
-	public String createPremiumRewardStatementText(Reward reward) {
+	public String createRewardStatementText(Reward reward) {
 		String subject = null;
 		switch (IncentiveCategory.lookup(reward.getIncentive().getCategory())) {
+		case CARPOOL:
+			subject = "het meenemen van een passagier";
+			break;
 		case SURVEY:
 			subject = "het invullen van de enquête";
 			break;
@@ -319,6 +322,12 @@ public class TextHelper {
 		);
 	}
 	
+	public String createRedemptionRewardText(Reward reward) {
+		return MessageFormat.format("Je hebt {0} credits verzilverd met: {1}", 
+				reward.getAmount(), reward.getIncentive().getDescription() 
+		);
+	}
+
 	/***************  GENERIC  *************/
 	public String createPersonalGenericTopic() {
 		return "Persoonlijke berichten"; 

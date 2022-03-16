@@ -12,19 +12,18 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.banker.model.Incentive;
 import eu.netmobiel.banker.model.Reward;
+import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.banker.service.RewardService;
+import eu.netmobiel.commons.event.RewardEvent;
+import eu.netmobiel.commons.event.RewardRollbackEvent;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.service.PublisherService;
-import eu.netmobiel.profile.event.SurveyCompletedEvent;
-import eu.netmobiel.profile.event.SurveyRemovalEvent;
-import eu.netmobiel.profile.model.Profile;
-import eu.netmobiel.profile.model.Survey;
-import eu.netmobiel.profile.model.SurveyInteraction;
 
 /**
  * Stateless bean for managing incentives and rewards.
@@ -39,6 +38,9 @@ public class RewardProcessor {
     private Logger logger;
     
 	@Inject
+	private LedgerService ledgerService;
+	
+	@Inject
 	private RewardService rewardService;
 	
     @Inject
@@ -48,44 +50,60 @@ public class RewardProcessor {
     private TextHelper textHelper;
     
     /**
-     * Processes a SurveyCompletedEvent: Create a reward (if not issued yet) and attempt to start a ledger transaction.
-     * There is no fallback in this method. There is general catch-all 
-     * @param surveyCompletedEvent the event.
+     * Sends a message concerning the reward to the personal conversation. That conversation is attached to the managed identity of 
+     * the user and acts as container for all personal (non-trip/ride) messages. 
+     * @param reward
+     * @throws BusinessException
+     */
+    private void sendPersonalMessage(Reward reward) throws BusinessException {
+		// Assure the conversation exists
+    	NetMobielUser owner = reward.getRecipient();
+		Conversation personalConv = publisherService.lookupOrCreateConversation(owner, 
+				UserRole.GENERIC, owner.getKeyCloakUrn(), textHelper.createPersonalGenericTopic(), false);
+		publisherService.addConversationContext(personalConv, reward.getUrn());
+    	Message msg = new Message();
+		msg.setContext(reward.getUrn());
+		msg.setDeliveryMode(DeliveryMode.ALL);
+		msg.addRecipient(personalConv, reward.getUrn());
+		if (reward.getIncentive().isRedemption()) { 
+			msg.setBody(textHelper.createRedemptionRewardText(reward));
+		} else {
+			msg.setBody(textHelper.createPremiumRewardText(reward));
+		}
+		publisherService.publish(msg);
+    }
+
+    /**
+     * Processes a RewardEvent: Create a reward (if not issued yet) and attempt to start a ledger transaction.
+     * This operation is asynchrnous as there is no use to let the caller wait for the result.
+     * @param rewardEvent the event to process.
      */
 	@Asynchronous
-	public void onSurveyCompleted(@Observes(during = TransactionPhase.AFTER_SUCCESS) SurveyCompletedEvent surveyCompletedEvent) {
+	public void onNewReward(@Observes(during = TransactionPhase.AFTER_SUCCESS) RewardEvent rewardEvent) {
 		if (logger.isDebugEnabled()) {
-			logger.debug(String.format("Survey completed: %s", surveyCompletedEvent.toString()));
+			logger.debug(String.format("New reward: %s", rewardEvent.toString()));
 		}
 		try {
+			final var code = rewardEvent.getIncentiveCode();
 			// Check whether the reward was already handed out. Theoretically, multiple incentives might exists for 
 			// the same fact, so lookup the incentive (the incentive this method is about) first.
-			SurveyInteraction si = surveyCompletedEvent.getSurveyInteraction();
-			Survey survey = si.getSurvey();
-			Profile owner = si.getProfile();  
-			Optional<Incentive> optIncentive = rewardService.lookupIncentive(survey.getIncentiveCode());
+			Optional<Incentive> optIncentive = rewardService.lookupIncentive(code);
 			if (optIncentive.isEmpty()) {
-				logger.warn(String.format("Incentive %s not found for survey %s", survey.getIncentiveCode(), survey.getSurveyId()));
+				logger.warn(String.format("No such incentive: %s", code));
 			} else {
-				Optional<Reward> optReward;
-					optReward = rewardService.lookupRewardByFact(optIncentive.get(), owner, si.getUrn());
-				if (optReward.isPresent()) {
-					logger.info("Reward on survey completion already given: " + optReward.get().getUrn());
-				} else {
-					// Create reward
-					String rewardContext = surveyCompletedEvent.getSurveyInteraction().getUrn();
-					Reward rwd = rewardService.createReward(optIncentive.get(), owner, rewardContext);
-					// Assure the conversation exists
-					Conversation personalConv = publisherService.lookupOrCreateConversation(rwd.getRecipient(), 
-							UserRole.GENERIC, owner.getUrn(), textHelper.createPersonalGenericTopic(), false);
-					publisherService.addConversationContext(personalConv, rwd.getUrn());
-					String messageText = textHelper.createPremiumRewardText(rwd);
-			    	Message msg = new Message();
-					msg.setContext(rwd.getUrn());
-					msg.setDeliveryMode(DeliveryMode.ALL);
-					msg.addRecipient(personalConv, rwd.getUrn());
-					msg.setBody(messageText);
-					publisherService.publish(msg);
+				final var incentive = optIncentive.get();
+				final var recipient = rewardEvent.getRecipient(); 
+				if (!incentive.isRedemption() || ledgerService.canRedeemSome(recipient)) {
+					// The reward is absolute or there is some premium left to redeem
+					final var fact = rewardEvent.getFactContext(); 
+					Optional<Reward> optReward = rewardService.lookupRewardByFact(incentive, recipient, fact);
+					if (optReward.isPresent()) {
+						logger.info(String.format("Reward on ride fare concerning %s already given: %s", fact, optReward.get().getUrn()));
+					} else {
+						// Create reward
+						Reward rwd = rewardService.createReward(optIncentive.get(), recipient, fact, rewardEvent.getYield());
+						sendPersonalMessage(rwd);
+					}
 				}
 			}
 		} catch (BusinessException e) {
@@ -93,22 +111,28 @@ public class RewardProcessor {
 		}
     }
 
-	public void onSurveyRemoval(@Observes(during = TransactionPhase.IN_PROGRESS) SurveyRemovalEvent surveyRemovalEvent) throws NotFoundException {
-		SurveyInteraction si = surveyRemovalEvent.getSurveyInteraction(); 
+	/**
+	 * Performs a rollback of an earlier reward. This is an in-progress operation to assure consistency. 
+	 * @param rewardRollbackEvent the reward to rollback
+	 * @throws NotFoundException
+	 */
+	public void onRewardRollback(@Observes(during = TransactionPhase.IN_PROGRESS) RewardRollbackEvent rewardRollbackEvent) throws NotFoundException {
 		if (logger.isDebugEnabled()) {
-			logger.debug(String.format("Survey removal: %s", surveyRemovalEvent.toString()));
+			logger.debug("Reward rollback: " + rewardRollbackEvent.toString());
 		}
-		Survey s = si.getSurvey();
-		Optional<Incentive> optIncentive = rewardService.lookupIncentive(s.getIncentiveCode());
+		final var code = rewardRollbackEvent.getIncentiveCode();
+		Optional<Incentive> optIncentive = rewardService.lookupIncentive(code);
 		if (optIncentive.isEmpty()) {
-			logger.warn(String.format("Incentive %s not found for survey %s", s.getIncentiveCode(), s.getSurveyId()));
+			logger.warn("No such incentive: " + code);
 		} else {
-			Optional<Reward> optReward = rewardService.lookupRewardByFact(optIncentive.get(), si.getProfile(), si.getUrn());
+			final var incentive = optIncentive.get();
+			final var recipient = rewardRollbackEvent.getRecipient(); 
+			final var fact = rewardRollbackEvent.getFactContext(); 
+			Optional<Reward> optReward = rewardService.lookupRewardByFact(incentive, recipient, fact);
 			if (optReward.isPresent()) {
-				rewardService.withdrawReward(optReward.get(), surveyRemovalEvent.isPaymentOnly());
+				rewardService.withdrawReward(optReward.get(), rewardRollbackEvent.isPaymentOnly());
 			} else  {
-				logger.info(String.format("No reward found concerning incentive %s (for survey %s) for user %s: ", 
-						s.getIncentiveCode(), s.getSurveyId(), si.getProfile().getManagedIdentity()));
+				logger.warn("No reward found to rollback: " + rewardRollbackEvent.toString());
 			}
 		}
 		

@@ -127,7 +127,7 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 			Long sid = UrnHelper.getId(SurveyInteraction.URN_PREFIX, surveyInteractionId);
 			SurveyInteraction si = surveyManager.getSurveyInteraction(sid);
 			allowAdminOrEffectiveUser(request, si.getProfile().getManagedIdentity());
-			surveyManager.onSurveyRedirect(sid);
+			surveyManager.markSurveyRedirect(sid);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -144,7 +144,7 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 			Long sid = UrnHelper.getId(SurveyInteraction.URN_PREFIX, surveyInteractionId);
 			SurveyInteraction si = surveyManager.getSurveyInteraction(sid);
 			allowAdminOrEffectiveUser(request, si.getProfile().getManagedIdentity());
-			surveyManager.onSurveySubmitted(sid);
+			surveyManager.markSurveySubmitted(sid);
 			rsp = Response.noContent().build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);

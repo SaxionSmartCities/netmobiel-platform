@@ -10,6 +10,8 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.event.RewardEvent;
+import eu.netmobiel.commons.event.RewardRollbackEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -18,8 +20,6 @@ import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.profile.event.SurveyRemovalEvent;
-import eu.netmobiel.profile.event.SurveyCompletedEvent;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Survey;
 import eu.netmobiel.profile.model.SurveyInteraction;
@@ -50,10 +50,10 @@ public class SurveyManager {
     private SurveyInteractionDao surveyInteractionDao;
 
     @Inject
-    private Event<SurveyCompletedEvent> surveyCompletedEvent;
+    private Event<RewardEvent> rewardEvent;
 
     @Inject
-    private Event<SurveyRemovalEvent> surveyRemovedEvent;
+    private Event<RewardRollbackEvent> rewardRollbackEvent;
 
     
     /**
@@ -135,7 +135,7 @@ public class SurveyManager {
 	 * @throws UpdateException if the interaction was already completed or when there is no preceding invitation.
 	 * @throws BadRequestException when the user has not been invited yet (can this ever happen?).
 	 */
-	public void onSurveyRedirect(Long surveyInteractionId) throws NotFoundException, UpdateException, BadRequestException {
+	public void markSurveyRedirect(Long surveyInteractionId) throws NotFoundException, UpdateException, BadRequestException {
 		SurveyInteraction si = getSurveyInteraction(surveyInteractionId);
 		if (si.getSubmitTime() != null) {
 			throw new UpdateException(String.format("Survey %s has already been submitted by %s", 
@@ -163,7 +163,7 @@ public class SurveyManager {
 	 * @throws UpdateException if the interaction was already completed or when there is no preceding invitation.
 	 * @throws BadRequestException if called without prior invitation.
 	 */
-	public void onSurveySubmitted(Long surveyInteractionId) throws NotFoundException, UpdateException, BadRequestException {
+	public void markSurveySubmitted(Long surveyInteractionId) throws NotFoundException, UpdateException, BadRequestException {
 		SurveyInteraction si = getSurveyInteraction(surveyInteractionId);
 		if (si.getSubmitTime() != null) {
 			throw new UpdateException(String.format("Survey %s has already been submitted by %s", 
@@ -183,7 +183,7 @@ public class SurveyManager {
 		}
 		si.setSubmitTime(Instant.now());
 		// Mark the completion of the survey to postprocessing services (should use on-success option)
-		surveyCompletedEvent.fire(new SurveyCompletedEvent(si));
+		rewardEvent.fire(createRewardEvent(si));
 	}
 
 	/**
@@ -196,7 +196,7 @@ public class SurveyManager {
 		SurveyInteraction si = getSurveyInteraction(surveyInteractionId);
 		if (si.getSubmitTime() != null) {
 			// Revert payment and perhaps reward too. This is a synchronous event.
-			EventFireWrapper.fire(surveyRemovedEvent, new SurveyRemovalEvent(si, SurveyScope.PAYMENT == scope));
+			EventFireWrapper.fire(rewardRollbackEvent, createRewardRollbackEvent(si, SurveyScope.PAYMENT == scope));
 			if (SurveyScope.ANSWER == scope) {
 				// Ok, the survey answer is removed too 
 				si.setSubmitTime(null);
@@ -205,5 +205,13 @@ public class SurveyManager {
 		if (SurveyScope.SURVEY == scope) {
 			surveyInteractionDao.remove(si);
 		}
+	}
+	
+	private static RewardEvent createRewardEvent(SurveyInteraction si) {
+		return new RewardEvent(si.getSurvey().getIncentiveCode(), si.getProfile(), si.getUrn()); 
+	}
+	
+	private static RewardRollbackEvent createRewardRollbackEvent(SurveyInteraction si, boolean paymentOnly) {
+		return new RewardRollbackEvent(si.getSurvey().getIncentiveCode(), si.getProfile(), si.getUrn(), paymentOnly); 
 	}
 }

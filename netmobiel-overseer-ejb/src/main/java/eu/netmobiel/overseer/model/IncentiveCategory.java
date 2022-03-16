@@ -3,6 +3,7 @@ package eu.netmobiel.overseer.model;
 import java.util.stream.Stream;
 
 public enum IncentiveCategory {
+	CARPOOL,
 	SURVEY,
 	UNKNOWN;
 

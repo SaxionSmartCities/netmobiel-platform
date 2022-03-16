@@ -62,10 +62,11 @@ public class RewardService {
     @Inject @Removed
 	private Event<Reward> rewardRemovedEvent;
 
-    public Reward createReward(Incentive incentive, NetMobielUser recipient, String fact) throws NotFoundException {
+    public Reward createReward(Incentive incentive, NetMobielUser recipient, String fact, Integer yield) throws NotFoundException {
     	BankerUser rcp = userDao.findByManagedIdentity(recipient.getManagedIdentity())
     			.orElseThrow(() -> new NotFoundException("No such user: " + recipient.getManagedIdentity()));
-    	Reward reward = new Reward(incentive, rcp, fact, incentive.getAmount());
+    	int rewardAmount = incentive.calculateAmountToReward(yield);
+    	Reward reward = new Reward(incentive, rcp, fact, rewardAmount);
     	rewardDao.save(reward);
 		// Inform other parties of the creation the new reward.
 		rewardCreatedEvent.fire(reward);
@@ -88,7 +89,7 @@ public class RewardService {
     }
     
     /**
-     * Lists the pending rewards, sorted from old to new ascending
+     * Lists the pending rewards, sorted from old to new ascending. Redeemable rewards are never pending.  
      * @param cursor the cursor 
      * @return A paged list of pending rewards
      * @throws BadRequestException

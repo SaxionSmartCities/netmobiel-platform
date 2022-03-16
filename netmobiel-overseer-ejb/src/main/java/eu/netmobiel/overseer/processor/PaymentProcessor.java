@@ -32,6 +32,8 @@ import eu.netmobiel.banker.service.RewardService;
 import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
+import eu.netmobiel.commons.event.RewardEvent;
+import eu.netmobiel.commons.event.RewardRollbackEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.SystemException;
@@ -70,8 +72,13 @@ public class PaymentProcessor {
 	/**
 	 * The amount of premium credits that might be used to pay for a fare.
 	 */
-	private static final int FARE_MAXIMUM_PREMIUM_PERCENTAGE = 100; 
-    @SuppressWarnings("unused")
+	private static final int FARE_MAXIMUM_PREMIUM_PERCENTAGE = 100;
+	/**
+	 * The incentive code for the payment of a completed ride.
+	 */
+	public static final String SHARED_RIDE_COMPLETED_CODE = "shared-ride-completed";
+
+	@SuppressWarnings("unused")
 	@Inject
     private PublisherService publisherService;
 
@@ -93,6 +100,12 @@ public class PaymentProcessor {
     @Inject
     private Event<RideEvaluatedEvent> rideEvaluatedEvent;
 
+    @Inject
+    private Event<RewardEvent> rewardEvent;
+
+    @Inject
+    private Event<RewardRollbackEvent> rewardRollbackEvent;
+    
     @Resource
     private SessionContext context;
 
@@ -193,6 +206,9 @@ public class PaymentProcessor {
 		String chargeId = ledgerService.charge(resolveDriverId(leg), leg.getPaymentId());
 		tripManager.updateLegPaymentState(trip, leg, PaymentState.PAID, chargeId);
 		bookingManager.updatePaymentState(booking, PaymentState.PAID, chargeId);
+		// Fire a rideshare fare completed event
+		rewardEvent.fire(new RewardEvent(SHARED_RIDE_COMPLETED_CODE, booking.getRide().getDriver(), 
+				booking.getUrn(), booking.getFareInCredits()));
     }
 
     /**
@@ -202,7 +218,7 @@ public class PaymentProcessor {
      * @param booking
      * @throws BusinessException
      */
-    private void disputeFare(Trip trip, Leg leg, Booking booking) throws BusinessException {
+    private static void disputeFare(Trip trip, Leg leg, Booking booking) throws BusinessException {
     	assertLegHasFareInCredits(leg);
     	assertLegPaymentState(leg, PaymentState.RESERVED);
     	assertBookingPaymentState(booking, null);
@@ -233,7 +249,7 @@ public class PaymentProcessor {
     /**
      * Reverses the earlier payment of a fare by refunding the fare on expense of the driver and 
      * reserving the same amount at the passenger's side.
-     * Because the payment may have been made with premium credits, the resultig transaction is still part
+     * Because the payment may have been made with premium credits, the resulting transaction is still part
      * of the existing transaction conversation. The head of this conversation contains the original reservation and
      * knows the origin of the credits involved.
      * @param trip
@@ -245,6 +261,7 @@ public class PaymentProcessor {
     	assertLegHasFareInCredits(leg);
     	assertLegPaymentState(leg, PaymentState.PAID);
     	assertBookingPaymentState(booking, PaymentState.PAID);
+		rewardRollbackEvent.fire(new RewardRollbackEvent(SHARED_RIDE_COMPLETED_CODE, booking.getRide().getDriver(), booking.getUrn(), false));
 		String reservationId = ledgerService.uncharge(booking.getPaymentId());
 		tripManager.updateLegPaymentState(trip, leg, PaymentState.RESERVED, reservationId);
 		bookingManager.updatePaymentState(booking, null, null);
@@ -389,7 +406,11 @@ public class PaymentProcessor {
     @Asynchronous
     public void onNewReward(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Reward reward) {
     	try {
-	    	ledgerService.rewardWithPremium(reward, OffsetDateTime.now(), textHelper.createPremiumRewardStatementText(reward)); 
+    		if (reward.getIncentive().isRedemption()) {
+    			ledgerService.rewardWithRedemption(reward, OffsetDateTime.now(), textHelper.createRewardStatementText(reward));
+    		} else {
+    			ledgerService.rewardWithPremium(reward, OffsetDateTime.now(), textHelper.createRewardStatementText(reward));
+    		}
     	} catch (BalanceInsufficientException e) {
     		logger.warn("Premium balance is insufficient, reward payment is pending: " + reward.getUrn());
     	} catch (Exception e) {
@@ -417,6 +438,8 @@ public class PaymentProcessor {
      * there is no transaction or when cancelTime is set. Withdrawal of rewards is now only for testing.
      * 
      * The method is placed here because we need the text for the accounting statement.
+     * 
+     * Note: redeemable rewards are never pending.
      */
     @Schedule(info = "Reward check", hour = "*/1", minute = "15", second = "0", persistent = false /* non-critical job */)
 	public void resolvePendingRewardPayments() {
@@ -428,7 +451,7 @@ public class PaymentProcessor {
 				if (ledgerService.fiatForPremiumBalance(pendingRewards.getData().get(0).getAmount())) {
 					// OK, at least the first can be processed. Go!	
 		    		for (Reward reward: pendingRewards.getData()) {
-				    	ledgerService.rewardWithPremium(reward, when, textHelper.createPremiumRewardStatementText(reward)); 
+				    	ledgerService.rewardWithPremium(reward, when, textHelper.createRewardStatementText(reward)); 
 					}
 					// Note: There is a potential danger that one bad reward will block processing of all others.
 		    		// 		 For now we take that risk.

@@ -70,6 +70,28 @@ public class Incentive implements Serializable {
     @PositiveOrZero
     private int amount;
 
+    /**
+     * Is this incentive amount the absolute value of the reward or a relative percentage value?
+     * The value is floored after calculation.
+     */
+    @Column(name = "relative")
+    @NotNull
+    private boolean relative;
+
+    /**
+     * Is the incentive intended as a payment of premium credits or is it a redemption of premium credits?
+     */
+    @Column(name = "redemption")
+    @NotNull
+    private boolean redemption;
+    
+    /**
+     * If set, the maximum amount to redeem in case of redeemable rewards.
+     */
+    @Column(name = "max_redemption")
+    @PositiveOrZero
+    private Integer maxRedemption;
+
     public Incentive() {
 		// Constructor
     }
@@ -114,6 +136,46 @@ public class Incentive implements Serializable {
 		this.amount = amount;
 	}
 
+	public boolean isRelative() {
+		return relative;
+	}
+
+	public void setRelative(boolean relative) {
+		this.relative = relative;
+	}
+
+	public boolean isRedemption() {
+		return redemption;
+	}
+
+	public Integer getMaxRedemption() {
+		return maxRedemption;
+	}
+
+	public void setMaxRedemption(Integer maxRedemption) {
+		this.maxRedemption = maxRedemption;
+	}
+
+	/**
+	 * Calculate the floor value of the relative reward.
+	 * @param turnover
+	 * @return
+	 */
+	public int calculateAmountToReward(Integer yield) {
+		int reward = getAmount();
+		if (isRelative()) {
+			if (yield == null) {
+				throw new IllegalStateException("Specify the yield for a relative incentive!");
+			}
+			reward = Math.floorDiv(getAmount() * yield, 100);
+			if (getMaxRedemption() != null) {
+				// Cap the reward, if necessary
+				reward = Math.min(getMaxRedemption(), reward);
+			}
+		}
+		return reward;
+	}
+	
 	@Override
 	public int hashCode() {
 		return Objects.hash(code);
