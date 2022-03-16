@@ -164,7 +164,7 @@ public class Leg implements Serializable {
     /**
      * In case of rideshare: the ID of the driver (a urn)
      */
-    @Column(name = "driver_id", length = 32)
+    @Column(name = "driver_id", length = 64)
     private String driverId;
     
     /**
