@@ -2722,7 +2722,7 @@ components:
 
             Premium credits are paid when the application has a positive premium balance. If not, the payment remains pending.
           type: boolean
-        disabledTime:
+        disableTime:
           format: date-time
           description: The time the incentive was disabled. Not set with active incentives.
           type: string
