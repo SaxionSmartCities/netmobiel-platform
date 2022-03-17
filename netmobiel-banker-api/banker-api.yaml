@@ -1820,6 +1820,11 @@ paths:
         schema:
           type: boolean
         in: query
+      - name: paymentOnly
+        description: If set then reverse only the payment, if paid at all.
+        schema:
+          type: boolean
+        in: query
       responses:
         "204":
           description: Successful response.
