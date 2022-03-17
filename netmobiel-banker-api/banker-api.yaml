@@ -2723,6 +2723,7 @@ components:
       - amount
       - recipient
       - rewardTime
+      - paidOut
       type: object
       properties:
         id:
@@ -2769,6 +2770,9 @@ components:
           description: The context of the reward, a reference to the system object
             that caused the issue of reward.
           type: string
+        paidOut:
+          description: Flag signalling the payout status of the reward.
+          type: boolean
       example:
         id: 612
         urn: urn:nb:bn:reward:612
@@ -2789,6 +2793,7 @@ components:
           managedIdentity: aabbccdd-1234-5678-90abcdef1234
         transactionRef: urn:nb:bn:transaction:63
         factContext: urn:nb:pf:surveyint:52
+        paidOut: true
   responses:
     InternalServerError:
       content:
