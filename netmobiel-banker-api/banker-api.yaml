@@ -1876,6 +1876,11 @@ paths:
       \ role `admin` or `treasurer` are allowed to use this endpoint. "
     get:
       parameters:
+      - name: cancelledToo
+        description: If true then list also the cancelled rewards.
+        schema:
+          type: boolean
+        in: query
       - name: maxResults
         description: 'Paging: The maximum number of results per page. Default is 10.'
         schema:
@@ -1903,6 +1908,11 @@ paths:
       reward assigned to the user.
     get:
       parameters:
+      - name: cancelledToo
+        description: If true then list also the cancelled rewards.
+        schema:
+          type: boolean
+        in: query
       - name: maxResults
         description: 'Paging: The maximum number of results per page. Default is 10.'
         schema:
