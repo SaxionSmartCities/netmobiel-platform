@@ -1839,36 +1839,6 @@ paths:
         type: string
       in: path
       required: true
-  /incentives:
-    summary: Path used to manage the list of incentives.
-    description: "The REST endpoint/path used to list `Incentive` entities.  This\
-      \ path contains a `GET` operation to perform the list task.\n\nOnly users with\
-      \ the role `admin` or `treasurer` are allowed to use this endpoint. "
-    get:
-      parameters:
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a `Page` of `Incentive` entities.
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: getIncentives
-      summary: List All incentives
-      description: Gets a list of all `Incentive` entities.
   /rewards:
     summary: Path used to manage the list of rewards.
     description: "The REST endpoint/path used to list  `Reward` entities.  This path\
@@ -1956,6 +1926,41 @@ paths:
         type: string
       in: path
       required: true
+  /incentives:
+    summary: Path used to manage the list of incentives.
+    description: "The REST endpoint/path used to list `Incentive` entities.  This\
+      \ path contains a `GET` operation to perform the list task.\n\nOnly users with\
+      \ the role `admin` or `treasurer` are allowed to use this endpoint. "
+    get:
+      parameters:
+      - name: disabledToo
+        description: If set then list also the disable incentives.
+        schema:
+          type: boolean
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `Incentive` entities.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getIncentives
+      summary: List All incentives
+      description: Gets a list of all `Incentive` entities.
 components:
   schemas:
     Error:
@@ -2717,6 +2722,10 @@ components:
 
             Premium credits are paid when the application has a positive premium balance. If not, the payment remains pending.
           type: boolean
+        disabledTime:
+          format: date-time
+          description: The time the incentive was disabled. Not set with active incentives.
+          type: string
       example:
         id: "2578"
         urn: urn:nb:nb:incentive:2578
