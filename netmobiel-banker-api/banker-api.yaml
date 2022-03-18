@@ -1861,6 +1861,12 @@ paths:
         schema:
           type: integer
         in: query
+      - name: pending
+        description: 'Return only rewards pending payment. Default: false.'
+        schema:
+          type: boolean
+        in: query
+        required: false
       responses:
         "200":
           content:
