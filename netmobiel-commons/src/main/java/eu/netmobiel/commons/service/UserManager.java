@@ -242,23 +242,23 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     protected abstract Optional<String> resolveUrnPrefix(NetMobielModule module);
 
     public Optional<T> resolveUrn(String userRef) throws BadRequestException {
-    	T user = null;
+    	Optional<T> user = null;
     	if (UrnHelper.isUrn(userRef)) {
         	NetMobielModule module = NetMobielModule.getEnum(UrnHelper.getService(userRef));
     	    if (module == NetMobielModule.KEYCLOAK) {
     		    String managedIdentity = UrnHelper.getSuffix(userRef);
-    		    user = getUserDao().findByManagedIdentity(managedIdentity).orElseGet(() -> createUser(managedIdentity));
+    		    user = getUserDao().findByManagedIdentity(managedIdentity);
     	    } else {
     	    	String urnPrefix = resolveUrnPrefix(module)
     	    			.orElseThrow(() -> new IllegalArgumentException("Urn not supported: " + userRef));
     			Long did = UrnHelper.getId(urnPrefix, userRef);
-        		user = getUserDao().find(did).orElse(null);
+        		user = getUserDao().find(did);
     	    }
     	} else {
 			Long did = UrnHelper.getId(userRef);
-    		user = getUserDao().find(did).orElse(null);
+    		user = getUserDao().find(did);
     	}
-    	return Optional.ofNullable(user);
+    	return user;
     }
 
 	public void throwRuntimeException() {
