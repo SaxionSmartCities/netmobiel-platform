@@ -1978,8 +1978,9 @@ paths:
           - REDEMPTION
           type: string
         in: query
-      - name: cancelledToo
-        description: 'If true then list also the cancelled rewards. Default: false.'
+      - name: cancelled
+        description: 'If set then list the rewards according the cancelled status.
+          Default: not set.'
         schema:
           type: boolean
         in: query
