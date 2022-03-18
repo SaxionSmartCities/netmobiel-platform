@@ -1,6 +1,7 @@
 package eu.netmobiel.banker.model;
 
 import java.io.Serializable;
+import java.time.Instant;
 import java.util.Objects;
 
 import javax.enterprise.inject.Vetoed;
@@ -96,6 +97,12 @@ public class Incentive extends ReferableObject implements Serializable {
     @PositiveOrZero
     private Integer maxAmount;
 
+    /**
+     * The time of the disabling of the incentive.
+     */
+    @Column(name = "disable_time")
+    private Instant disableTime;
+
 	@Override
 	public String getUrnPrefix() {
 		return URN_PREFIX;
@@ -168,6 +175,14 @@ public class Incentive extends ReferableObject implements Serializable {
 
 	public void setMaxAmount(Integer maxAmount) {
 		this.maxAmount = maxAmount;
+	}
+
+	public Instant getDisableTime() {
+		return disableTime;
+	}
+
+	public void setDisableTime(Instant disableTime) {
+		this.disableTime = disableTime;
 	}
 
 	/**

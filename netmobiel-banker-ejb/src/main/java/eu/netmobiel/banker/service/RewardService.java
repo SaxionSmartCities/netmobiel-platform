@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.service;
 
+import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
 
@@ -11,19 +12,23 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.banker.filter.RewardFilter;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Incentive;
 import eu.netmobiel.banker.model.Reward;
+import eu.netmobiel.banker.model.RewardType;
 import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.repository.IncentiveDao;
 import eu.netmobiel.banker.repository.RewardDao;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
+import eu.netmobiel.commons.annotation.Updated;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.Logging;
 
 /**
@@ -59,9 +64,62 @@ public class RewardService {
     @Inject @Created
 	private Event<Reward> rewardCreatedEvent;
 	
+    @Inject @Updated
+	private Event<Reward> rewardUpdatedEvent;
+	
     @Inject @Removed
 	private Event<Reward> rewardRemovedEvent;
 
+    /**
+     * Lists the incentives, sorted from new to old descending.  
+     * @param cursor the cursor 
+     * @return A paged list of incentives
+     * @throws BadRequestException
+     */
+    public PagedResult<Incentive> listIncentives(boolean disabledToo, Cursor cursor) throws BadRequestException {
+    	cursor.validate(MAX_RESULTS, 0);
+    	Long totalCount = incentiveDao.listIncentives(disabledToo, Cursor.COUNTING_CURSOR).getTotalCount();
+    	List<Incentive> results = null;
+    	if (!cursor.isCountingQuery() && totalCount > 0) {
+    		// Get the actual data
+    		PagedResult<Long> ids = incentiveDao.listIncentives(disabledToo, cursor);
+    		results = incentiveDao.loadGraphs(ids.getData(), null, Incentive::getId);
+    	}
+    	return new PagedResult<>(results, cursor, totalCount);
+    }
+
+    /**
+     * Lists the rewards, sorted from new to old descending.
+     * Security is handled in the rest layer.
+     * @param graphName the entity graph to use for retrieval.
+     * @param user the user for whom to retrieve the rewards
+     * @param cancelledToo If true then include cancelled rewards in the listing    
+     * @param cursor the cursor 
+     * @return A paged list of incentives
+     * @throws BadRequestException
+     */
+    public PagedResult<Reward> listRewards(String graphName, RewardFilter filter, Cursor cursor) throws BadRequestException {
+    	filter.validate();
+    	cursor.validate(MAX_RESULTS, 0);
+    	Long totalCount = rewardDao.listRewards(filter, Cursor.COUNTING_CURSOR).getTotalCount();
+    	List<Reward> results = null;
+    	if (!cursor.isCountingQuery() && totalCount > 0) {
+    		// Get the actual data
+    		PagedResult<Long> ids = rewardDao.listRewards(filter, cursor);
+    		results = rewardDao.loadGraphs(ids.getData(), graphName, Reward::getId);
+    	}
+    	return new PagedResult<>(results, cursor, totalCount);
+    }
+
+    /**
+     * Create a reward. This method is called by the system. 
+     * @param incentive
+     * @param recipient
+     * @param fact
+     * @param yield
+     * @return
+     * @throws NotFoundException
+     */
     public Reward createReward(Incentive incentive, NetMobielUser recipient, String fact, Integer yield) throws NotFoundException {
     	BankerUser rcp = userDao.findByManagedIdentity(recipient.getManagedIdentity())
     			.orElseThrow(() -> new NotFoundException("No such user: " + recipient.getManagedIdentity()));
@@ -71,6 +129,29 @@ public class RewardService {
 		// Inform other parties of the creation the new reward.
 		rewardCreatedEvent.fire(reward);
     	return reward;
+    }
+
+    /**
+     * Create a reward. This method is called by the system. 
+     * @param incentive
+     * @param recipient
+     * @param fact
+     * @param yield
+     * @return
+     * @throws NotFoundException
+     */
+    public Reward restoreReward(Reward reward, Integer yield) throws NotFoundException {
+    	Reward rewarddb = rewardDao.loadGraph(reward.getId(), Reward.GRAPH_WITH_INCENTIVE_AND_RECIPIENT)
+    			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getUrn()));
+    	if (rewarddb.getCancelTime() == null) {
+    		throw new IllegalStateException("Cannot restore a non-cancelled reward: " + rewarddb.getUrn());
+    	}
+    	int rewardAmount = rewarddb.getIncentive().calculateAmountToReward(yield);
+    	rewarddb.setAmount(rewardAmount);
+    	rewarddb.setCancelTime(null);
+ 		// Inform other parties of the creation the updated reward.
+		rewardUpdatedEvent.fire(rewarddb);
+    	return rewarddb;
     }
 
     public Optional<Incentive> lookupIncentive(String incentiveCode) {
@@ -89,36 +170,45 @@ public class RewardService {
     }
     
     /**
-     * Lists the pending rewards, sorted from old to new ascending. Redeemable rewards are never pending.  
+     * Lists the pending rewards, sorted from old to new ascending. Redeemable rewards are never pending.
+     * This method is called by the system.  
      * @param cursor the cursor 
      * @return A paged list of pending rewards
      * @throws BadRequestException
      */
     public PagedResult<Reward> listPendingRewards(Cursor cursor) throws BadRequestException {
-    	cursor.validate(MAX_RESULTS, MAX_RESULTS);
-    	PagedResult<Long> rwds = rewardDao.listPendingRewards(Cursor.COUNTING_CURSOR);
-    	List<Reward> results = null;
-    	if (!cursor.isCountingQuery() && rwds.getTotalCount() > 0) {
-    		// Get the actual data
-    		PagedResult<Long> rids = rewardDao.listPendingRewards(cursor);
-    		results = rewardDao.loadGraphs(rids.getData(), null, Reward::getId);
-    	}
-    	return new PagedResult<>(results, cursor, rwds.getTotalCount());
+    	RewardFilter filter = new RewardFilter();
+        // Redemption type rewards can never be pending. They should not be in the database anyway if not payable at all.
+        filter.setRewardType(RewardType.PREMIUM);
+        // A cancelled reward can never be pending payment
+        filter.setCancelled(false); 
+        // A paid-out reward is certainly not pending payment
+        filter.setPaid(false);
+        // The oldest are paid first
+        filter.setSortDir(SortDirection.ASC);
+        // Only the reward object itself are needed
+    	return listRewards(null, filter, cursor);
     }
 
     /**
      * Reverse the payment and optionally remove the reward.
      * @param reward
-     * @param paymentOnly
+     * @param hard if true then remove the reward from the database. Note that the reward context in transaction and conversation becomes dangling in that case. 
+     * @param paymentOnly if true then reverse payment only. If false, the reward is cancelled. Irrelevant if hard is set.
      * @throws NotFoundException 
      */
-	public void withdrawReward(Reward reward, boolean paymentOnly) throws NotFoundException {
-		rewardRemovedEvent.fire(reward);
-		if (!paymentOnly) {
-			Reward rdb = rewardDao.find(reward.getId(), null)
-	       			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getId()));
-			rewardDao.remove(rdb);
+	public void removeReward(Long rid, boolean hard, boolean paymentOnly) throws NotFoundException {
+		Reward rdb = rewardDao.loadGraph(rid, null)
+       			.orElseThrow(() -> new NotFoundException("No such reward: " + rid));
+		if (rdb.getCancelTime() == null) {
+			rewardRemovedEvent.fire(rdb);
+			if (!paymentOnly) {
+				rdb.setCancelTime(Instant.now());
+			}		
 		}
+		if (hard) {
+			rewardDao.remove(rdb);
+		} 
 	}
 
 }

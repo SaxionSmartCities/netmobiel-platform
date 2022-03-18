@@ -75,7 +75,7 @@ public class RewardProcessor {
 
     /**
      * Processes a RewardEvent: Create a reward (if not issued yet) and attempt to start a ledger transaction.
-     * This operation is asynchrnous as there is no use to let the caller wait for the result.
+     * This operation is asynchronous as there is no use to let the caller wait for the result.
      * @param rewardEvent the event to process.
      */
 	@Asynchronous
@@ -92,17 +92,27 @@ public class RewardProcessor {
 				logger.warn(String.format("No such incentive: %s", code));
 			} else {
 				final var incentive = optIncentive.get();
-				final var recipient = rewardEvent.getRecipient(); 
-				if (!incentive.isRedemption() || ledgerService.canRedeemSome(recipient)) {
+				final var recipient = rewardEvent.getRecipient();
+				if (incentive.getDisableTime() != null) {
+					logger.warn(String.format("No reward, incentive %s is disabled since %s", code, incentive.getDisableTime().toString()));
+				} else if (!incentive.isRedemption() || ledgerService.canRedeemSome(recipient)) {
 					// The reward is absolute or there is some premium left to redeem
 					final var fact = rewardEvent.getFactContext(); 
 					Optional<Reward> optReward = rewardService.lookupRewardByFact(incentive, recipient, fact);
-					if (optReward.isPresent()) {
-						logger.info(String.format("Reward on ride fare concerning %s already given: %s", fact, optReward.get().getUrn()));
-					} else {
+					Reward reward = null;
+					if (optReward.isEmpty()) {
 						// Create reward
-						Reward rwd = rewardService.createReward(optIncentive.get(), recipient, fact, rewardEvent.getYield());
-						sendPersonalMessage(rwd);
+						reward = rewardService.createReward(optIncentive.get(), recipient, fact, rewardEvent.getYield());
+					} else if (optReward.get().getCancelTime() == null) {
+							// Only disabled rewards can be restored
+							logger.info(String.format("Reward on ride fare concerning %s already given: %s", fact, optReward.get().getUrn()));
+					} else {
+						// Ok, restore the original reward
+						reward = rewardService.restoreReward(reward, rewardEvent.getYield());
+					}
+					// Send a message as notification
+					if (reward != null) {
+						sendPersonalMessage(reward);
 					}
 				}
 			}
@@ -113,6 +123,7 @@ public class RewardProcessor {
 
 	/**
 	 * Performs a rollback of an earlier reward. This is an in-progress operation to assure consistency. 
+	 * A reward can be rolled back even if disabled, for now.
 	 * @param rewardRollbackEvent the reward to rollback
 	 * @throws NotFoundException
 	 */
@@ -130,7 +141,8 @@ public class RewardProcessor {
 			final var fact = rewardRollbackEvent.getFactContext(); 
 			Optional<Reward> optReward = rewardService.lookupRewardByFact(incentive, recipient, fact);
 			if (optReward.isPresent()) {
-				rewardService.withdrawReward(optReward.get(), rewardRollbackEvent.isPaymentOnly());
+				// Always a soft remove
+				rewardService.removeReward(optReward.get().getId(), false, rewardRollbackEvent.isPaymentOnly());
 			} else  {
 				logger.warn("No reward found to rollback: " + rewardRollbackEvent.toString());
 			}

@@ -852,6 +852,7 @@ public class LedgerService {
     	accountingTransactionDao.save(tr);
     	rewarddb.setTransaction(tr);
     	rewarddb.setCancelTime(null);
+    	rewarddb.setPaidOut(true);
     }
     
     /**
@@ -897,6 +898,8 @@ public class LedgerService {
         	accountingTransactionDao.save(tr);
         	rewarddb.setTransaction(tr);
         	rewarddb.setCancelTime(null);
+        	rewarddb.setPaidOut(true);
+        	// If the left-over is not equal to the intended amount, well, then make it look intentional! 
         	if (actualAmount != rewarddb.getAmount()) {
         		rewarddb.setAmount(actualAmount);
         	}
@@ -906,7 +909,8 @@ public class LedgerService {
     }
 
     /**
-     * Reverse the earlier payment of a reward. This method is added for testing purposes.
+     * Reverse the earlier payment of a reward. This method is primarily added for testing purposes, 
+     * but might also be helpful in case of service actions.
      * @param reward
      * @param when
      * @throws BalanceInsufficientException
@@ -927,7 +931,7 @@ public class LedgerService {
            	accountingTransactionDao.save(tr);
            	// Save the transaction reference.
         	rewarddb.setTransaction(tr);
-        	rewarddb.setCancelTime(Instant.now());
+        	rewarddb.setPaidOut(false);
 			log.info(String.format("Payment for reward %s refunded in transaction %s: ", reward.getUrn(), tr.getTransactionRef()));
     	} else {
         	// else refund has taken place already, ignore, no reason to panic.

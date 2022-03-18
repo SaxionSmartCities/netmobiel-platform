@@ -45,6 +45,22 @@
 	</security-constraint>
 	<security-constraint>
 		<web-resource-collection>
+			<web-resource-name>Admin, treasurer resources</web-resource-name>
+			<url-pattern>/api/accounts/*</url-pattern>
+			<url-pattern>/api/incentives/*</url-pattern>
+			<url-pattern>/api/payment-batches/*</url-pattern>
+			<url-pattern>/api/rewards/*</url-pattern>
+			<url-pattern>/api/withdrawals/*</url-pattern>
+		</web-resource-collection>
+		<auth-constraint>
+			<role-name>admin</role-name>
+			<role-name>treasurer</role-name>
+		</auth-constraint>
+		<!-- <user-data-constraint> <transport-guarantee>CONFIDENTIAL</transport-guarantee> 
+			</user-data-constraint> -->
+	</security-constraint>
+	<security-constraint>
+		<web-resource-collection>
 			<web-resource-name>All other resources</web-resource-name>
 			<url-pattern>/api/*</url-pattern>
 		</web-resource-collection>

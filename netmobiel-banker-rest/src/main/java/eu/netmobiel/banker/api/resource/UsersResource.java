@@ -21,17 +21,20 @@ import eu.netmobiel.banker.api.mapping.PageMapper;
 import eu.netmobiel.banker.api.mapping.UserMapper;
 import eu.netmobiel.banker.api.model.PaymentLink;
 import eu.netmobiel.banker.filter.DonationFilter;
+import eu.netmobiel.banker.filter.RewardFilter;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.banker.model.PaymentStatus;
+import eu.netmobiel.banker.model.Reward;
 import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
 import eu.netmobiel.banker.service.DepositService;
 import eu.netmobiel.banker.service.LedgerService;
+import eu.netmobiel.banker.service.RewardService;
 import eu.netmobiel.banker.service.WithdrawalService;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -72,7 +75,10 @@ public class UsersResource implements UsersApi {
 	@Inject
     private CharityManager charityManager;
 
-    @Inject
+	@Inject
+    private RewardService rewardService;
+
+	@Inject
 	private SecurityIdentity securityIdentity;
 
 	@Context
@@ -195,7 +201,7 @@ public class UsersResource implements UsersApi {
 			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
 			BankerUser user = resolveUserReference(userId, context);
 	    	PagedResult<Donation> results = charityManager.reportMostRecentDistinctDonations(user, cursor);
-			rsp = Response.ok(pageMapper.mapDonationWithCharity(results)).build();
+			rsp = Response.ok(pageMapper.mapDonationsWithCharity(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
@@ -293,4 +299,23 @@ public class UsersResource implements UsersApi {
 		}
 		return Response.noContent().build();
 	}
+
+	@Override
+	public Response listUserRewards(String xDelegator, String userId, Boolean cancelled, String sortDir, Integer maxResults, Integer offset) {
+		Response rsp = null;
+		try {
+			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			BankerUser user = resolveUserReference(userId, context);
+			RewardFilter filter = new RewardFilter(user, cancelled, sortDir);
+			Cursor cursor = new Cursor(maxResults, offset);
+	    	PagedResult<Reward> results = rewardService.listRewards(Reward.GRAPH_WITH_INCENTIVE, filter, cursor);
+			rsp = Response.ok(pageMapper.mapRewardsShallow(results)).build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		}
+		return rsp;
+	}
+
 }

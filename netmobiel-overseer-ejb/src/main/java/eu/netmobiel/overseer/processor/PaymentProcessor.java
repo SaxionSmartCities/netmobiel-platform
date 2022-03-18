@@ -32,6 +32,7 @@ import eu.netmobiel.banker.service.RewardService;
 import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Removed;
+import eu.netmobiel.commons.annotation.Updated;
 import eu.netmobiel.commons.event.RewardEvent;
 import eu.netmobiel.commons.event.RewardRollbackEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
@@ -404,7 +405,7 @@ public class PaymentProcessor {
      * @param reward
      */
     @Asynchronous
-    public void onNewReward(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Reward reward) {
+    public void onNewOrUpdatedReward(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created @Updated Reward reward) {
     	try {
     		if (reward.getIncentive().isRedemption()) {
     			ledgerService.rewardWithRedemption(reward, OffsetDateTime.now(), textHelper.createRewardStatementText(reward));
@@ -425,7 +426,7 @@ public class PaymentProcessor {
      * @throws BusinessException
      */
     public void onRewardDisposal(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Reward reward) throws BusinessException {
-    	if (reward.getTransaction() != null) {
+    	if (reward.getTransaction() != null && reward.isPaidOut()) {
     		ledgerService.refundReward(reward, OffsetDateTime.now());
     	}
     }

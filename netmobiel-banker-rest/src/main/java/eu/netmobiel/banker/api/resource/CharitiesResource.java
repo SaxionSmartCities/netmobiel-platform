@@ -277,7 +277,7 @@ public class CharitiesResource implements CharitiesApi {
 			Cursor cursor = new Cursor(maxResults, offset);
 			// Include user data in result
 	    	PagedResult<Donation> results = charityManager.listDonations(filter, cursor, true);
-			rsp = Response.ok(pageMapper.mapDonationWithUser(results)).build();
+			rsp = Response.ok(pageMapper.mapDonationsWithUser(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {

@@ -23,6 +23,7 @@ import javax.validation.constraints.Size;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.model.ReferableObject;
+import eu.netmobiel.commons.util.UrnHelper;
 
 /**
  * A reward is the realization of an incentive. The actual credits involved are issued in a transaction.
@@ -32,10 +33,16 @@ import eu.netmobiel.commons.model.ReferableObject;
  *
  */
 @NamedEntityGraph(
-		// Only users involved in a role can view the roles and the accounts.
 		name = Reward.GRAPH_WITH_INCENTIVE, 
 		attributeNodes = { 
 			@NamedAttributeNode(value = "incentive"),		
+		}
+)
+@NamedEntityGraph(
+		name = Reward.GRAPH_WITH_INCENTIVE_AND_RECIPIENT, 
+		attributeNodes = { 
+			@NamedAttributeNode(value = "incentive"),		
+			@NamedAttributeNode(value = "recipient"),		
 		}
 )
 
@@ -50,6 +57,7 @@ public class Reward extends ReferableObject {
 
 	public static final String URN_PREFIX = BankerUrnHelper.createUrnPrefix(Reward.class);
 	public static final String GRAPH_WITH_INCENTIVE = "graph-with-incentive";
+	public static final String GRAPH_WITH_INCENTIVE_AND_RECIPIENT = "graph-with-incentive-and-recipient";
 
 	@Id
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "reward_sg")
@@ -98,6 +106,14 @@ public class Reward extends ReferableObject {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "transaction", foreignKey = @ForeignKey(name = "reward_transaction_fk"))
     private AccountingTransaction transaction;
+
+    /**
+     * Is the reward indeed paid? Could also be checked with the latest transaction, but that is more trouble checking.
+     * Theoretically an inconsistency might occur, let's rely on ACID properties.
+     */
+    @Column(name = "paid_out")
+    @NotNull
+    private boolean paidOut;
 
     /**
      * The URN of the fact that is the source of the reward being issued. For a survey it is the urn 
@@ -183,6 +199,19 @@ public class Reward extends ReferableObject {
 
 	public void setTransaction(AccountingTransaction transaction) {
 		this.transaction = transaction;
+	}
+
+	public String getTransactionRef() {
+		// Retrieve the id without triggering the loading of the transaction
+		return this.transaction == null ? null : UrnHelper.createUrn(AccountingTransaction.URN_PREFIX, transaction.getId());
+	}
+
+	public boolean isPaidOut() {
+		return paidOut;
+	}
+
+	public void setPaidOut(boolean paidOut) {
+		this.paidOut = paidOut;
 	}
 
 	public String getFactContext() {
