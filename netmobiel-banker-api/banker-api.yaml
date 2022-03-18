@@ -1937,7 +1937,8 @@ paths:
     get:
       parameters:
       - name: user
-        description: The urn or id of a specific usewr to list the rewards of.
+        description: 'The urn or id of a specific user to list the rewards of. Default:
+          Not set.'
         schema:
           type: string
         in: query
@@ -1945,7 +1946,7 @@ paths:
           Format:
             value: 2019-11-30T12:00:00+01:00
         name: since
-        description: The creation date at which to start the listing. Default is not
+        description: The reward date at which to start the listing. Default is not
           set.
         schema:
           format: date-time
@@ -1955,22 +1956,22 @@ paths:
           Format:
             value: 2019-12-15T14:00:00+01:00
         name: until
-        description: The creation date and later not to include in the listing of
-          charities. The `until` date must be after the `since` parameter. Default
-          is not set.
+        description: The reward date and later not to include in the listing of rewards.
+          The `until` date must be after the `since` parameter. Default is not set.
         schema:
           format: date-time
           type: string
         in: query
-      - name: pending
-        description: 'Return only rewards pending payment. Default: false.'
+      - name: paid
+        description: 'If set then filter rewards on the payment status. Default: not
+          set.'
         schema:
           type: boolean
         in: query
         required: false
       - name: type
-        description: Flag for limiting the list to a certain type of reward. Supported
-          are PREMIUM, REDEMPTION.
+        description: 'Flag for limiting the list to a certain type of reward. Supported
+          are PREMIUM, REDEMPTION. Default: Not set.'
         schema:
           enum:
           - PREMIUM
@@ -1978,7 +1979,7 @@ paths:
           type: string
         in: query
       - name: cancelledToo
-        description: If true then list also the cancelled rewards.
+        description: 'If true then list also the cancelled rewards. Default: false.'
         schema:
           type: boolean
         in: query
