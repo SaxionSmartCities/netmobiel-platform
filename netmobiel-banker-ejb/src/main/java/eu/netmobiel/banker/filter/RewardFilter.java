@@ -88,7 +88,7 @@ public class RewardFilter extends PeriodFilter {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append(super.toString());
+		builder.append("RewardFilter[");
 		if (user != null) {
 			builder.append("user=");
 			builder.append(user);
@@ -107,8 +107,10 @@ public class RewardFilter extends PeriodFilter {
 		if (paid != null) {
 			builder.append("pending=");
 			builder.append(paid);
-			builder.append("]");
+			builder.append(", ");
 		}
+		builder.append(super.toString());
+		builder.append("]");
 		return builder.toString();
 	}
 
