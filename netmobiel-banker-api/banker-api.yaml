@@ -1839,44 +1839,6 @@ paths:
         type: string
       in: path
       required: true
-  /rewards:
-    summary: Path used to manage the list of rewards.
-    description: "The REST endpoint/path used to list  `Reward` entities.  This path\
-      \ contains a `GET` operation to perform the list task.\n\nOnly users with the\
-      \ role `admin` or `treasurer` are allowed to use this endpoint. "
-    get:
-      parameters:
-      - name: cancelledToo
-        description: If true then list also the cancelled rewards.
-        schema:
-          type: boolean
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      - name: pending
-        description: 'Return only rewards pending payment. Default: false.'
-        schema:
-          type: boolean
-        in: query
-        required: false
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a `Page` of `Reward` entities.
-      operationId: getRewards
-      summary: List All rewards
-      description: Gets a list of all `Reward` entities.
   /users/{userId}/rewards:
     summary: Path used to manage the list of rewards of a user.
     description: The REST endpoint/path used to list zero or more `Reward` entities.  This
@@ -1967,6 +1929,89 @@ paths:
       operationId: getIncentives
       summary: List All incentives
       description: Gets a list of all `Incentive` entities.
+  /rewards:
+    summary: Path used to manage the list of rewards.
+    description: "The REST endpoint/path used to list  `Reward` entities.  This path\
+      \ contains a `GET` operation to perform the list task.\n\nOnly users with the\
+      \ role `admin` or `treasurer` are allowed to use this endpoint. "
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing of
+          charities. The `until` date must be after the `since` parameter. Default
+          is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: pending
+        description: 'Return only rewards pending payment. Default: false.'
+        schema:
+          type: boolean
+        in: query
+        required: false
+      - name: paid
+        description: 'Flag to signal paid rewards only. Default: false'
+        schema:
+          type: boolean
+        in: query
+      - name: type
+        description: Flag for limiting the list to a certain type of reward. Supported
+          are PREMIUM, REDEMPTION.
+        schema:
+          enum:
+          - PREMIUM
+          - REDEMPTION
+          type: string
+        in: query
+      - name: cancelledToo
+        description: If true then list also the cancelled rewards.
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting based on reward time. Choose either\
+          \ \nascending (ASC) or descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `Reward` entities.
+      operationId: getRewards
+      summary: List All rewards
+      description: Gets a list of all `Reward` entities.
 components:
   schemas:
     Error:
