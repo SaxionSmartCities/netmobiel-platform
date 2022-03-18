@@ -1839,61 +1839,6 @@ paths:
         type: string
       in: path
       required: true
-  /users/{userId}/rewards:
-    summary: Path used to manage the list of rewards of a user.
-    description: The REST endpoint/path used to list zero or more `Reward` entities.  This
-      path contains a `GET` operation to perform the list task. A Reward reports on
-      reward assigned to the user.
-    get:
-      parameters:
-      - name: cancelled
-        description: If set then filter rewards according the cancelled status.
-        schema:
-          type: boolean
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a `Page` with `Statement` entities.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: listUserRewards
-      summary: List Reward entries.
-      description: "Gets a paged list of  `Reward` entities. The rewards are sorted\
-        \ on rewarding time descending.\n\nThe administrator can request rewards owned\
-        \ by any user. \n"
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - name: userId
-      description: |-
-        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
-
-        Using a userid other than your own (or me) requires admin privilege.
-      schema:
-        type: string
-      in: path
-      required: true
   /incentives:
     summary: Path used to manage the list of incentives.
     description: "The REST endpoint/path used to list `Incentive` entities.  This\
@@ -2014,6 +1959,71 @@ paths:
       operationId: getRewards
       summary: List All rewards
       description: Gets a list of all `Reward` entities.
+  /users/{userId}/rewards:
+    summary: Path used to manage the list of rewards of a user.
+    description: The REST endpoint/path used to list zero or more `Reward` entities.  This
+      path contains a `GET` operation to perform the list task. A Reward reports on
+      reward assigned to the user.
+    get:
+      parameters:
+      - name: cancelled
+        description: If set then filter rewards according the cancelled status.
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting based on reward time. Choose either\
+          \ \nascending (ASC) or descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Statement` entities.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: listUserRewards
+      summary: List Reward entries.
+      description: "Gets a paged list of  `Reward` entities. The rewards are sorted\
+        \ on rewarding time descending.\n\nThe administrator can request rewards owned\
+        \ by any user. \n"
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
