@@ -1968,11 +1968,6 @@ paths:
           type: boolean
         in: query
         required: false
-      - name: paid
-        description: 'Flag to signal paid rewards only. Default: false'
-        schema:
-          type: boolean
-        in: query
       - name: type
         description: Flag for limiting the list to a certain type of reward. Supported
           are PREMIUM, REDEMPTION.
