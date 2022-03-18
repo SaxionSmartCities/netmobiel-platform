@@ -1846,8 +1846,8 @@ paths:
       reward assigned to the user.
     get:
       parameters:
-      - name: cancelledToo
-        description: If true then list also the cancelled rewards.
+      - name: cancelled
+        description: If set then filter rewards according the cancelled status.
         schema:
           type: boolean
         in: query
