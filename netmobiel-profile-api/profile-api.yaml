@@ -967,10 +967,7 @@ paths:
 
           Note that in all cases the reward, if any, is reverted too.
         schema:
-          enum:
-          - ANSWER
-          - SURVEY
-          type: string
+          type: boolean
         in: query
       responses:
         "204":
