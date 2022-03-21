@@ -18,7 +18,6 @@ import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.SurveyInteractionsApi;
 import eu.netmobiel.profile.api.mapping.SurveyMapper;
 import eu.netmobiel.profile.model.SurveyInteraction;
-import eu.netmobiel.profile.model.SurveyScope;
 import eu.netmobiel.profile.service.SurveyManager;
 
 @RequestScoped
@@ -101,18 +100,14 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 	 * @return A 204.
 	 */
 	@Override
-    public Response deleteSurveyInteraction(String xDelegator, String surveyInteractionId, String scope) {
+    public Response deleteSurveyInteraction(String xDelegator, String surveyInteractionId, Boolean hard) {
 		Response rsp = null;
 		try {
 			Long sid = UrnHelper.getId(SurveyInteraction.URN_PREFIX, surveyInteractionId);
-			SurveyScope surveyScope = SurveyScope.ANSWER; 
-			if (scope != null) {
-				surveyScope = SurveyScope.valueOf(scope.toUpperCase());
-			}
 			SurveyInteraction si = surveyManager.getSurveyInteraction(sid);
 			allowAdminOrEffectiveUser(request, si.getProfile().getManagedIdentity());
 			// Ok, we are allowed to proceed
-			surveyManager.revertSurveyInteraction(sid, surveyScope);
+			surveyManager.revertSurveyInteraction(sid, Boolean.TRUE.equals(hard));
 			rsp = Response.noContent().build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);

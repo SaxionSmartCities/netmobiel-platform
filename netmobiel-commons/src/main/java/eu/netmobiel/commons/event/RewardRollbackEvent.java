@@ -15,6 +15,10 @@ public class RewardRollbackEvent extends RewardBaseEvent implements Serializable
 	private static final long serialVersionUID = -207888621286042374L;
 	private boolean paymentOnly = false;
 	
+	public RewardRollbackEvent(String aCode, NetMobielUser aRecipient, String aFactContext) {
+		this(aCode, aRecipient, aFactContext, false);
+    }
+
 	public RewardRollbackEvent(String aCode, NetMobielUser aRecipient, String aFactContext, boolean onlyThePayment) {
 		super(aCode, aRecipient, aFactContext);
     	this.paymentOnly = onlyThePayment;

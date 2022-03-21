@@ -23,7 +23,6 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Survey;
 import eu.netmobiel.profile.model.SurveyInteraction;
-import eu.netmobiel.profile.model.SurveyScope;
 import eu.netmobiel.profile.repository.ProfileDao;
 import eu.netmobiel.profile.repository.SurveyDao;
 import eu.netmobiel.profile.repository.SurveyInteractionDao;
@@ -189,20 +188,16 @@ public class SurveyManager {
 	/**
 	 * Reverts a survey interaction for testing purposes. The security is already checked at this stage. 
 	 * @param surveyProviderId the survey interaction id.
-	 * @param scope The extent to cancel. This has  cascading effect. Cancelling a survey means removal of the 
-	 * 			interaction record and this removal of the answer, canceling of the reward and refunding the payment.
+	 * @param hard If true then remove the object from the database. Default false.
 	 */
-	public void revertSurveyInteraction(Long surveyInteractionId, SurveyScope scope) throws BusinessException {
+	public void revertSurveyInteraction(Long surveyInteractionId, boolean hard) throws BusinessException {
 		SurveyInteraction si = getSurveyInteraction(surveyInteractionId);
 		if (si.getSubmitTime() != null) {
-			// Revert payment and perhaps reward too. This is a synchronous event.
-			EventFireWrapper.fire(rewardRollbackEvent, createRewardRollbackEvent(si, SurveyScope.PAYMENT == scope));
-			if (SurveyScope.ANSWER == scope) {
-				// Ok, the survey answer is removed too 
-				si.setSubmitTime(null);
-			}
+			// Revert reward (and payment). This is a synchronous event.
+			EventFireWrapper.fire(rewardRollbackEvent, createRewardRollbackEvent(si));
+			si.setSubmitTime(null);
 		}
-		if (SurveyScope.SURVEY == scope) {
+		if (hard) {
 			surveyInteractionDao.remove(si);
 		}
 	}
@@ -211,7 +206,7 @@ public class SurveyManager {
 		return new RewardEvent(si.getSurvey().getIncentiveCode(), si.getProfile(), si.getUrn()); 
 	}
 	
-	private static RewardRollbackEvent createRewardRollbackEvent(SurveyInteraction si, boolean paymentOnly) {
-		return new RewardRollbackEvent(si.getSurvey().getIncentiveCode(), si.getProfile(), si.getUrn(), paymentOnly); 
+	private static RewardRollbackEvent createRewardRollbackEvent(SurveyInteraction si) {
+		return new RewardRollbackEvent(si.getSurvey().getIncentiveCode(), si.getProfile(), si.getUrn()); 
 	}
 }
