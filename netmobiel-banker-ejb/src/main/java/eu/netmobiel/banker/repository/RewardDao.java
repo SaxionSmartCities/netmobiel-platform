@@ -63,43 +63,6 @@ public class RewardDao extends AbstractDao<Reward, Long> {
 	}
 
     /**
-     * Lists payment pending rewards according specific criteria. 
-     * Rewards are not necessarily removed when withdrawn. When only the payment is cancelled (primarily for testing), the paidOut flag is reset.
-     * The automatic payment will pickup the payment-pending rewards with this call.
-     * Rewards involving redemption of premium are not considered pending. If they exists, they might be paid or not, but if not,
-     * that will not happen anymore, because they are only paid when if there are enough premium credits in the balance at the exact moment of the reward.
-     * @param cursor The position and size of the result set. 
-     * @return A list of reward IDs pending payment, in ascending order.
-     */
-    public PagedResult<Long> listPendingRewards(Cursor cursor) throws BadRequestException {
-    	CriteriaBuilder cb = em.getCriteriaBuilder();
-        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
-        Root<Reward> root = cq.from(Reward.class);
-        List<Predicate> predicates = new ArrayList<>();
-        // Redemption type rewards can never be pending. They should not be in the list anyway if not payable at all.
-        predicates.add(cb.isFalse(root.get(Reward_.incentive).get(Incentive_.redemption)));
-        // A cancelled reward can never be pending payment
-        predicates.add(cb.isNull(root.get(Reward_.cancelTime))); 
-        // A paid-out reward is certainly not pending payment
-        predicates.add(cb.isFalse(root.get(Reward_.paidOut)));
-        cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
-        Long totalCount = null;
-        List<Long> results = Collections.emptyList();
-        if (cursor.isCountingQuery()) {
-    		cq.select(cb.count(root.get(Reward_.id)));
-            totalCount = em.createQuery(cq).getSingleResult();
-        } else {
-            cq.select(root.get(Reward_.id));
-            cq.orderBy(cb.asc(root.get(Reward_.id))); 
-            TypedQuery<Long> tq = em.createQuery(cq);
-    		tq.setFirstResult(cursor.getOffset());
-    		tq.setMaxResults(cursor.getMaxResults());
-			results = tq.getResultList();
-        }
-        return new PagedResult<>(results, cursor, totalCount);
-    }
-
-    /**
      * Lists rewards according specific criteria. 
      * @param cursor The position and size of the result set. 
      * @return A list of reward IDs pending payment, in ascending order.
@@ -151,9 +114,8 @@ public class RewardDao extends AbstractDao<Reward, Long> {
             totalCount = em.createQuery(cq).getSingleResult();
         } else {
             cq.select(root.get(Reward_.id));
-            Expression<Long> orderExpr = root.get(Reward_.id);
+            Expression<Instant> orderExpr = root.get(Reward_.cancelTime);
             cq.orderBy((filter.getSortDir() == SortDirection.ASC) ? cb.asc(orderExpr) : cb.desc(orderExpr)); 
-            cq.orderBy(cb.asc(root.get(Reward_.id))); 
             TypedQuery<Long> tq = em.createQuery(cq);
     		tq.setFirstResult(cursor.getOffset());
     		tq.setMaxResults(cursor.getMaxResults());
