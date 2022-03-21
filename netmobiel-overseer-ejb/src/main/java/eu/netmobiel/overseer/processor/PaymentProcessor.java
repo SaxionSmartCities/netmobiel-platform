@@ -65,7 +65,7 @@ public class PaymentProcessor {
 	/**
 	 * The incentive code for the payment of a completed ride.
 	 */
-	public static final String SHARED_RIDE_COMPLETED_CODE = "shared-ride-completed";
+	public static final String SHARED_RIDE_COMPLETED_CODE = "shared-ride-done";
 
 	@SuppressWarnings("unused")
 	@Inject
