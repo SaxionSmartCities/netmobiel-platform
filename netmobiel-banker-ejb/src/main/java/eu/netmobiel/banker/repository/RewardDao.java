@@ -114,7 +114,7 @@ public class RewardDao extends AbstractDao<Reward, Long> {
             totalCount = em.createQuery(cq).getSingleResult();
         } else {
             cq.select(root.get(Reward_.id));
-            Expression<Instant> orderExpr = root.get(Reward_.cancelTime);
+            Expression<Instant> orderExpr = root.get(Reward_.rewardTime);
             cq.orderBy((filter.getSortDir() == SortDirection.ASC) ? cb.asc(orderExpr) : cb.desc(orderExpr)); 
             TypedQuery<Long> tq = em.createQuery(cq);
     		tq.setFirstResult(cursor.getOffset());
