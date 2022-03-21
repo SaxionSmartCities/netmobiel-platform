@@ -17,6 +17,7 @@ import javax.persistence.NamedEntityGraph;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
+import javax.persistence.Version;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
@@ -63,6 +64,13 @@ public class Reward extends ReferableObject {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "reward_sg")
     private Long id;
 
+	/**
+	 * Record version for optimistic locking, just in case.
+	 */
+	@Version
+	@Column(name = "version")
+	private int version;
+	
     /**
      * The amount to receive.
      */

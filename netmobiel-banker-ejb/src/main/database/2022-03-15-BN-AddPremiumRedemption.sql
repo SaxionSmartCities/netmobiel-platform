@@ -12,7 +12,10 @@ ALTER TABLE public.incentive
 ;
 
 ALTER TABLE public.reward
-	-- if true the reward ispaid with premium credits or a redemption.
-    ADD paid_out boolean NOT NULL DEFAULT false
+	-- if true the reward is paid with premium credits or a redemption.
+    ADD paid_out boolean NOT NULL DEFAULT false,
+    ADD COLUMN version integer NOT NULL DEFAULT 1
 ;
+
 UPDATE public.reward SET paid_out = true WHERE transaction is not null; 
+
