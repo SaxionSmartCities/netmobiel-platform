@@ -440,54 +440,6 @@ paths:
         type: string
       in: path
       required: true
-  /profiles/{profileId}/image:
-    summary: Manages the profile image.
-    description: Manage the profile image of the user of this profile. When a call
-      a made by someone with the delegate role, the effective user will be the user
-      specified in the X-Delegator header.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/ImageResponse'
-          description: The relative path to the image or an empty string if none available.
-      operationId: getProfileImage
-      summary: Get the image path.
-      description: Gets the path to the profile image.
-    put:
-      requestBody:
-        description: The image to upload.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/ImageUploadRequest'
-        required: true
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Profile'
-          description: The updated profile.
-      operationId: uploadImage
-      summary: Uploads an image
-      description: Uploads an image. The previous image is removed. The path to the
-        image is saved in the profile.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - name: profileId
-      description: The unique profile id.
-      schema:
-        type: string
-      in: path
-      required: true
   /profiles/{profileId}/places:
     summary: Path used to manage the list of places (favorite locations) for an profile.
     description: The REST endpoint/path used to list and create zero or more `Place`
@@ -1009,17 +961,13 @@ paths:
         \ to direct the user to the proper site for taking the survey.. "
     delete:
       parameters:
-      - name: scope
+      - name: hard
         description: |-
-          The extent of the delete operaration, default is `answer`:
-          - payment - Only the payment is reversed;
-          - reward - The reward is cancelled;
-          - answer - The answer is ignored (as if no answer was given yet);
-          - full - the record is removed (after succesfully finishing the foregoing operations).
+          If true then remove the object altogether for this user, otherwise reset the submitted status only. Default: false.
+
+          Note that in all cases the reward, if any, is reverted too.
         schema:
           enum:
-          - PAYMENT
-          - REWARD
           - ANSWER
           - SURVEY
           type: string
@@ -1126,6 +1074,54 @@ paths:
       schema:
         type: string
       in: query
+  /profiles/{profileId}/image:
+    summary: Manages the profile image.
+    description: Manage the profile image of the user of this profile. When a call
+      a made by someone with the delegate role, the effective user will be the user
+      specified in the X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+          description: The relative path to the image or an empty string if none available.
+      operationId: getProfileImage
+      summary: Get the image path.
+      description: Gets the path to the profile image.
+    put:
+      requestBody:
+        description: The image to upload.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageUploadRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: The updated profile.
+      operationId: uploadImage
+      summary: Uploads an image
+      description: Uploads an image. The previous image is removed. The path to the
+        image is saved in the profile.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: profileId
+      description: The unique profile id.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     SearchPreferences:
