@@ -13,7 +13,6 @@ import java.util.Set;
 import javax.enterprise.context.ApplicationScoped;
 
 import eu.netmobiel.banker.model.Reward;
-import eu.netmobiel.overseer.model.IncentiveCategory;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
@@ -299,23 +298,6 @@ public class TextHelper {
 	
     /***************  REWARDS  *************/
 
-	public String createRewardStatementText(Reward reward) {
-		String subject = null;
-		switch (IncentiveCategory.lookup(reward.getIncentive().getCategory())) {
-		case CARPOOL:
-			subject = "het meenemen van een passagier";
-			break;
-		case SURVEY:
-			subject = "het invullen van de enquête";
-			break;
-		case UNKNOWN:
-			subject = "een onbekende activiteit";
-		default:
-			
-		}
-		return MessageFormat.format("Beloning voor {0}", subject); 
-	}
-	
 	public String createPremiumRewardText(Reward reward) {
 		return MessageFormat.format("Je hebt {0} premiecredits verdiend met: {1}", 
 				reward.getAmount(), reward.getIncentive().getDescription() 

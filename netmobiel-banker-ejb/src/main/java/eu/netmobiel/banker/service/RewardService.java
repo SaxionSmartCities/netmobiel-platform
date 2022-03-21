@@ -16,7 +16,6 @@ import eu.netmobiel.banker.filter.RewardFilter;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Incentive;
 import eu.netmobiel.banker.model.Reward;
-import eu.netmobiel.banker.model.RewardType;
 import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.repository.IncentiveDao;
 import eu.netmobiel.banker.repository.RewardDao;
@@ -28,7 +27,6 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.Logging;
 
 /**
@@ -148,6 +146,7 @@ public class RewardService {
     	}
     	int rewardAmount = rewarddb.getIncentive().calculateAmountToReward(yield);
     	rewarddb.setAmount(rewardAmount);
+    	rewarddb.setRewardTime(Instant.now());
     	rewarddb.setCancelTime(null);
  		// Inform other parties of the creation the updated reward.
 		rewardUpdatedEvent.fire(rewarddb);
@@ -169,27 +168,6 @@ public class RewardService {
        			.orElseThrow(() -> new NotFoundException("No such reward: " + id));
     }
     
-    /**
-     * Lists the pending rewards, sorted from old to new ascending. Redeemable rewards are never pending.
-     * This method is called by the system.  
-     * @param cursor the cursor 
-     * @return A paged list of pending rewards
-     * @throws BadRequestException
-     */
-    public PagedResult<Reward> listPendingRewards(Cursor cursor) throws BadRequestException {
-    	RewardFilter filter = new RewardFilter();
-        // Redemption type rewards can never be pending. They should not be in the database anyway if not payable at all.
-        filter.setRewardType(RewardType.PREMIUM);
-        // A cancelled reward can never be pending payment
-        filter.setCancelled(false); 
-        // A paid-out reward is certainly not pending payment
-        filter.setPaid(false);
-        // The oldest are paid first
-        filter.setSortDir(SortDirection.ASC);
-        // Only the reward object itself are needed
-    	return listRewards(null, filter, cursor);
-    }
-
     /**
      * Reverse the payment and optionally remove the reward.
      * @param reward

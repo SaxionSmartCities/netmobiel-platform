@@ -103,12 +103,16 @@ public class RewardProcessor {
 					if (optReward.isEmpty()) {
 						// Create reward
 						reward = rewardService.createReward(optIncentive.get(), recipient, fact, rewardEvent.getYield());
-					} else if (optReward.get().getCancelTime() == null) {
+					} else {
+						// Reward already exists
+						reward = optReward.get();
+						if (reward.getCancelTime() == null) {
 							// Only disabled rewards can be restored
 							logger.info(String.format("Reward on ride fare concerning %s already given: %s", fact, optReward.get().getUrn()));
-					} else {
-						// Ok, restore the original reward
-						reward = rewardService.restoreReward(reward, rewardEvent.getYield());
+						} else {
+							// Ok, restore the original reward
+							reward = rewardService.restoreReward(reward, rewardEvent.getYield());
+						}
 					}
 					// Send a message as notification
 					if (reward != null) {

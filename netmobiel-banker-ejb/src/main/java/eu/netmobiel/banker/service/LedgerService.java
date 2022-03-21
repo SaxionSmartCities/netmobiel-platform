@@ -13,8 +13,12 @@ import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
 import javax.annotation.security.PermitAll;
 import javax.annotation.security.RolesAllowed;
+import javax.ejb.Asynchronous;
+import javax.ejb.Schedule;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
@@ -24,6 +28,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.banker.exception.BalanceInsufficientException;
 import eu.netmobiel.banker.exception.OverdrawnException;
+import eu.netmobiel.banker.filter.RewardFilter;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountPurposeType;
 import eu.netmobiel.banker.model.AccountType;
@@ -35,6 +40,7 @@ import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.Ledger;
 import eu.netmobiel.banker.model.Reward;
+import eu.netmobiel.banker.model.RewardType;
 import eu.netmobiel.banker.model.SettlementOrder;
 import eu.netmobiel.banker.model.TransactionType;
 import eu.netmobiel.banker.repository.AccountDao;
@@ -45,10 +51,15 @@ import eu.netmobiel.banker.repository.BankerUserDao;
 import eu.netmobiel.banker.repository.LedgerDao;
 import eu.netmobiel.banker.repository.RewardDao;
 import eu.netmobiel.commons.annotation.Created;
+import eu.netmobiel.commons.annotation.Removed;
+import eu.netmobiel.commons.annotation.Updated;
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.TokenGenerator;
 import eu.netmobiel.commons.util.UrnHelper;
@@ -819,8 +830,8 @@ public class LedgerService {
      * @throws BalanceInsufficientException
      * @throws NotFoundException
      */
-    public void rewardWithPremium(Reward reward, OffsetDateTime when, String statementText) throws BalanceInsufficientException, NotFoundException {
-    	Reward rewarddb = rewardDao.find(reward.getId())
+    public void rewardWithPremium(Reward reward, OffsetDateTime when) throws BalanceInsufficientException, NotFoundException {
+    	Reward rewarddb = rewardDao.loadGraph(reward.getId(), Reward.GRAPH_WITH_INCENTIVE_AND_RECIPIENT)
     			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getId()));
     	BankerUser user = userDao.loadGraph(rewarddb.getRecipient().getId(), BankerUser.GRAPH_WITH_ACCOUNT)  
     			.orElseThrow(() -> new NotFoundException("No such user: " + rewarddb.getRecipient().getManagedIdentity()));
@@ -834,8 +845,8 @@ public class LedgerService {
     	expect(maecenasBalance.getAccount(), AccountType.LIABILITY);
     	expect(personalPremiumBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction head = null; 
-    	if (reward.getTransaction() != null) {
-        	AccountingTransaction prevTr = lookupTransactionWithEntries(reward.getTransaction().getId());
+    	if (rewarddb.getTransaction() != null) {
+        	AccountingTransaction prevTr = lookupTransactionWithEntries(rewarddb.getTransaction().getId());
     		head = prevTr.getHead() != null ? prevTr.getHead() : prevTr;
     		if (prevTr.hasEntry(TransactionType.PAYMENT)) {
     			// Panic! the payment was already made!
@@ -844,7 +855,7 @@ public class LedgerService {
     	}
     	// The system premium is paid to the personal account and then reserved on the premium account of that user.
     	AccountingTransaction tr = ledger
-    			.createTransaction(statementText, rewarddb.getUrn(), when.toInstant(), Instant.now())
+    			.createTransaction(rewarddb.getIncentive().getDescription(), rewarddb.getUrn(), when.toInstant(), Instant.now())
     			.head(head)
     			.transfer(maecenasBalance, amount, TransactionType.PAYMENT, personalBalance)
 				.transfer(personalBalance, amount, TransactionType.RESERVATION, personalPremiumBalance)
@@ -865,8 +876,8 @@ public class LedgerService {
      * @throws BalanceInsufficientException
      * @throws NotFoundException
      */
-    public void rewardWithRedemption(Reward reward, OffsetDateTime when, String statementText) throws BalanceInsufficientException, NotFoundException {
-    	Reward rewarddb = rewardDao.find(reward.getId())
+    public void rewardWithRedemption(Reward reward, OffsetDateTime when) throws BalanceInsufficientException, NotFoundException {
+    	Reward rewarddb = rewardDao.loadGraph(reward.getId(), Reward.GRAPH_WITH_INCENTIVE_AND_RECIPIENT)
     			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getId()));
     	BankerUser user = userDao.loadGraph(rewarddb.getRecipient().getId(), BankerUser.GRAPH_WITH_ACCOUNT)  
     			.orElseThrow(() -> new NotFoundException("No such user: " + rewarddb.getRecipient().getManagedIdentity()));
@@ -891,7 +902,7 @@ public class LedgerService {
         	}
         	// The personal premium is release to the personal account.
         	AccountingTransaction tr = ledger
-        			.createTransaction(statementText, rewarddb.getUrn(), when.toInstant(), Instant.now())
+        			.createTransaction(rewarddb.getIncentive().getDescription(), rewarddb.getUrn(), when.toInstant(), Instant.now())
         			.head(head)
         			.transfer(personalPremiumBalance, actualAmount, TransactionType.RELEASE, personalBalance)
         			.build();
@@ -967,4 +978,107 @@ public class LedgerService {
     	return personalPremiumBalance.getEndAmount() > 0;
     }
     
+    /**
+     * Attempt to pay-out a newly created Reward.
+     * @param reward
+     */
+    @Asynchronous
+    public void onNewOrUpdatedReward(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created @Updated Reward reward) {
+    	try {
+    		if (reward.getIncentive().isRedemption()) {
+    			rewardWithRedemption(reward, OffsetDateTime.now());
+    		} else {
+    			rewardWithPremium(reward, OffsetDateTime.now());
+    		}
+    	} catch (BalanceInsufficientException e) {
+    		log.warn("Premium balance is insufficient, reward payment is pending: " + reward.getUrn());
+    	} catch (Exception e) {
+    		log.error("Error in onNewReward: " + e);
+    	}
+    }
+
+    /**
+     * For testing: Handle the disposal of a reward by reverting the payment of the reward.
+     * This method a synchronous.
+     * @param reward
+     * @throws BusinessException
+     */
+    public void onRewardDisposal(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Reward reward) throws BusinessException {
+    	if (reward.getTransaction() != null && reward.isPaidOut()) {
+    		refundReward(reward, OffsetDateTime.now());
+    	}
+    }
+
+    /**
+     * Lists the pending rewards, sorted from old to new ascending. Redeemable rewards are never pending.
+     * This method is called by the system.  
+     * @param cursor the cursor 
+     * @return A paged list of pending rewards
+     * @throws BadRequestException
+     */
+    private PagedResult<Long> listPendingRewards(Cursor cursor) throws BadRequestException {
+    	RewardFilter filter = new RewardFilter();
+        // Redemption type rewards can never be pending. They should not be in the database anyway if not payable at all.
+        filter.setRewardType(RewardType.PREMIUM);
+        // A cancelled reward can never be pending payment
+        filter.setCancelled(false); 
+        // A paid-out reward is certainly not pending payment
+        filter.setPaid(false);
+        // The oldest are paid first
+        filter.setSortDir(SortDirection.ASC);
+        // Only the reward object itself are needed
+        filter.validate();
+        cursor.validate(MAX_RESULTS, 0);
+    	return rewardDao.listRewards(filter, cursor);
+    }
+
+    /**
+     * Attempt to pay out a reward. Because all our application exceptions trigger a rollback, this call is executed in its own 
+     * transaction.  
+     * @param reward
+     * @return
+     */
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public boolean attemptToPayoutReward(Reward reward) {
+    	boolean paid = false;
+    	try {
+        	Reward rewarddb = rewardDao.find(reward.getId())
+        			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getId()));
+			if (fiatForPremiumBalance(rewarddb.getAmount())) {
+		    	rewardWithPremium(reward, OffsetDateTime.now());
+		    	paid = true;
+			}
+    	} catch (BalanceInsufficientException e) {
+    		log.warn("Premium balance is insufficient, reward(s) payment remains pending");
+    	} catch (NotFoundException e) {
+    		log.warn(e.toString());
+		}
+    	return paid;
+    }
+    /**
+     * Check for unpaid rewards and attempt to pay them. 
+     * 
+     * Note: redeemable rewards are never pending.
+     */
+    @Schedule(info = "Reward check", hour = "*/1", minute = "15", second = "0", persistent = false /* non-critical job */)
+	public void resolvePendingRewardPayments() {
+		try {
+			long totalCount = listPendingRewards(Cursor.COUNTING_CURSOR).getTotalCount();
+	    	Cursor cursor = new Cursor(10, 0);
+			PagedResult<Long> pendingRewardIds = listPendingRewards(cursor);
+    		for (Long rewardId: pendingRewardIds.getData()) {
+    			boolean paid = sessionContext.getBusinessObject(LedgerService.class).attemptToPayoutReward(rewardDao.getReference(rewardId));
+    			if (!paid) {
+    				break;
+    			}
+				totalCount--;
+			}
+    		if (totalCount > 0) {
+    			log.info(String.format("Payment of %d reward(s) pending", totalCount));
+    		}
+    	} catch (Exception ex) {
+			log.error("Error processing pending rewards", ex);
+    	}
+	}
+
 }
