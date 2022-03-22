@@ -189,11 +189,12 @@ public class PaymentProcessor {
     	assertLegHasFareInCredits(leg);
     	assertLegPaymentState(leg, PaymentState.RESERVED);
     	assertBookingPaymentState(booking, null);
-		String chargeId = ledgerService.charge(resolveDriverId(leg), leg.getPaymentId());
+    	final NetMobielUser driver = resolveDriverId(leg);
+		final String chargeId = ledgerService.charge(driver, leg.getPaymentId());
 		tripManager.updateLegPaymentState(trip, leg, PaymentState.PAID, chargeId);
 		bookingManager.updatePaymentState(booking, PaymentState.PAID, chargeId);
-		// Fire a rideshare fare completed event
-		rewardEvent.fire(new RewardEvent(SHARED_RIDE_COMPLETED_CODE, booking.getRide().getDriver(), 
+		// Fire a rideshare fare completed event, use the resolved driver to prevent lazy initialization exception
+		rewardEvent.fire(new RewardEvent(SHARED_RIDE_COMPLETED_CODE, driver, 
 				booking.getUrn(), booking.getFareInCredits()));
     }
 
@@ -247,7 +248,9 @@ public class PaymentProcessor {
     	assertLegHasFareInCredits(leg);
     	assertLegPaymentState(leg, PaymentState.PAID);
     	assertBookingPaymentState(booking, PaymentState.PAID);
-		rewardRollbackEvent.fire(new RewardRollbackEvent(SHARED_RIDE_COMPLETED_CODE, booking.getRide().getDriver(), booking.getUrn(), false));
+		// Use the resolved driver to prevent lazy initialization exception
+    	final NetMobielUser driver = resolveDriverId(leg);
+		rewardRollbackEvent.fire(new RewardRollbackEvent(SHARED_RIDE_COMPLETED_CODE, driver, booking.getUrn(), false));
 		String reservationId = ledgerService.uncharge(booking.getPaymentId());
 		tripManager.updateLegPaymentState(trip, leg, PaymentState.RESERVED, reservationId);
 		bookingManager.updatePaymentState(booking, null, null);

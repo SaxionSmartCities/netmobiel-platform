@@ -40,7 +40,6 @@ import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.Ledger;
 import eu.netmobiel.banker.model.Reward;
-import eu.netmobiel.banker.model.RewardType;
 import eu.netmobiel.banker.model.SettlementOrder;
 import eu.netmobiel.banker.model.TransactionType;
 import eu.netmobiel.banker.repository.AccountDao;
@@ -983,7 +982,20 @@ public class LedgerService {
      * @param reward
      */
     @Asynchronous
-    public void onNewOrUpdatedReward(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created @Updated Reward reward) {
+    public void onNewReward(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Reward reward) {
+    	onNewOrUpdatedReward(reward);
+    }
+
+    /**
+     * Attempt to pay-out a restored Reward.
+     * @param reward
+     */
+    @Asynchronous
+    public void onUpdatedReward(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Updated Reward reward) {
+    	onNewOrUpdatedReward(reward);
+    }
+
+    private void onNewOrUpdatedReward(Reward reward) {
     	try {
     		if (reward.getIncentive().isRedemption()) {
     			rewardWithRedemption(reward, OffsetDateTime.now());
@@ -1010,7 +1022,8 @@ public class LedgerService {
     }
 
     /**
-     * Lists the pending rewards, sorted from old to new ascending. Redeemable rewards are never pending.
+     * Lists the pending rewards, sorted from old to new ascending. Redeemable rewards are normally never pending, but once they are assigned,
+     * they are nevertheless paid out.
      * This method is called by the system.  
      * @param cursor the cursor 
      * @return A paged list of pending rewards
@@ -1018,9 +1031,10 @@ public class LedgerService {
      */
     private PagedResult<Long> listPendingRewards(Cursor cursor) throws BadRequestException {
     	RewardFilter filter = new RewardFilter();
-        // Redemption type rewards can never be pending. They should not be in the database anyway if not payable at all.
-        filter.setRewardType(RewardType.PREMIUM);
-        // A cancelled reward can never be pending payment
+        // Redemption type rewards should normally not be be pending, but before the reward is issued a balance check is done
+    	// A reward is only created if there is at least some credits to earn.
+
+    	// A cancelled reward can never be pending payment
         filter.setCancelled(false); 
         // A paid-out reward is certainly not pending payment
         filter.setPaid(false);
