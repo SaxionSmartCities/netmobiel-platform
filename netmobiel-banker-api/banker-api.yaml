@@ -2743,11 +2743,19 @@ components:
     Incentive:
       title: Root Type for Incentive
       description: Definition of the reward intended as stimulus for certain behaviour.
+      required:
+      - amount
+      - id
+      - category
+      - code
+      - redemption
+      - relative
+      - urn
       type: object
       properties:
         id:
           description: The id of the incentive.
-          type: string
+          type: integer
         urn:
           description: The URN of the incentive.
           type: string
@@ -2768,7 +2776,7 @@ components:
           description: The amount of credits involved (relative is false) or the percentage
             of credits (relative is true) to assign related to some yield value. The
             ride fare is an example of such a yield value.
-          type: string
+          type: integer
         relative:
           description: If true then the amount to reward is calculated relative to
             some yield value, like the fare of a ride. The amount field is then interpreted
@@ -2776,10 +2784,10 @@ components:
           type: boolean
         maxAmount:
           description: When relative is true, the maximum amount to reward.
-          type: string
+          type: integer
         redemption:
           description: |-
-            If true the reward is a redemption type of award, meaning that the user rewarded by converting the specified amount of premium credits into freeely spendable credits. If redemption is false, then the user is rewarded with premium credits.
+            If true the reward is a redemption type of award, meaning that the user rewarded by converting the specified amount of premium credits into freely spendable credits. If redemption is false, then the user is rewarded with premium credits.
 
             Redemption-type rewards are issued only when the user has a positive balance of premium credits at the time of the reward trigger.
 
@@ -2811,6 +2819,7 @@ components:
       - recipient
       - rewardTime
       - paidOut
+      - urn
       type: object
       properties:
         id:
