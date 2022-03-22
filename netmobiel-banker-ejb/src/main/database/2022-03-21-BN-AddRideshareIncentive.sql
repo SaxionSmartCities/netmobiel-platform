@@ -4,6 +4,6 @@
 -- The code is hardcoded in the Overseer PaymentProcessor.
 
 INSERT INTO incentive (id, code, category, description, amount, max_amount, redemption, relative)
-	VALUES (nextval('incentive_seq'), 'shared-ride-done', 'CARPOOL', 'Meenemen van een passagier', 50, 20, TRUE, TRUE)
+	VALUES (nextval('incentive_seq'), 'shared-ride-done', 'CARPOOL', 'Meenemen van een passagier', 50, 15, TRUE, TRUE)
 ;
 
