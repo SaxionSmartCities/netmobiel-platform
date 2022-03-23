@@ -345,10 +345,8 @@ public class CharityManager {
 				.orElseThrow(() -> new NotFoundException("No such user: " + caller));
     	checkAccessRightsForWrite(me, charitydb);
     	Instant now = Instant.now();
-    	if (charitydb.getCampaignEndTime() != null && now.isBefore(charitydb.getCampaignEndTime())) {
-    		throw new BadRequestException("It is not allowed to move the campagning end from the past to now");
-    	}
-    	if (charitydb.getCampaignEndTime() == null) {
+    	if (charitydb.getCampaignEndTime() == null || now.isBefore(charitydb.getCampaignEndTime())) {
+    		// Set the date if not set yet, move to now if it was set to some future date.
         	charitydb.setCampaignEndTime(Instant.now());
     	}
     	charitydb.setDeleted(delete);

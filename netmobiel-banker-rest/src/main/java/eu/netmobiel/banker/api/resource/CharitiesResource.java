@@ -111,8 +111,8 @@ public class CharitiesResource implements CharitiesApi {
 		try {
 			BankerUser user = userManager.findOrRegisterCallingUser();
 			Charity dch = charityMapper.map(charity);
-			final String newCharityId = UrnHelper.createUrn(Charity.URN_PREFIX, charityManager.createCharity(user, dch));
-			final String urn = UrnHelper.createUrn(Charity.URN_PREFIX, newCharityId);
+			final Long charityId = charityManager.createCharity(user, dch);
+			final String urn = UrnHelper.createUrn(Charity.URN_PREFIX, charityId);
 			rsp = Response.created(URI.create(urn)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
