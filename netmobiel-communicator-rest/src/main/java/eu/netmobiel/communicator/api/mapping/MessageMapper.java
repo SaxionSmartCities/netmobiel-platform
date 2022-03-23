@@ -28,7 +28,7 @@ public abstract class MessageMapper {
 	public abstract Message map(eu.netmobiel.communicator.api.model.Message source);
 
 	@AfterMapping
-    protected void AttachEnvelopesToMessage(eu.netmobiel.communicator.api.model.Message source, @MappingTarget Message target) {
+    protected void attachEnvelopesToMessage(eu.netmobiel.communicator.api.model.Message source, @MappingTarget Message target) {
 		// Assure the envelopes have an association with the Message.
 		target.getEnvelopes().forEach(env -> env.setMessage(target));
 	}
