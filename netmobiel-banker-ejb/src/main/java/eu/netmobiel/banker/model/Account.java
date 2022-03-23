@@ -26,7 +26,6 @@ import org.apache.commons.lang3.StringUtils;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.banker.validator.IBANBankAccount;
-import nl.garvelink.iban.IBAN;
 
 /**
  * Formal record that represents, in words, money or other unit of measurement, certain resources, claims to such 
@@ -233,8 +232,11 @@ public class Account implements Serializable {
 	}
 
 	public void setIban(String ibanValue) {
+		// Should the IBAN be stored in the pretty format? 
+		// Decision: No, that is up to the GUI. Store it in the database without spaces.
 		if (ibanValue != null) {
-			ibanValue = IBAN.toPretty(ibanValue);
+//			ibanValue = IBAN.toPretty(ibanValue);
+			ibanValue = ibanValue.replace(" ", "");
 		}
 		this.iban = ibanValue;
 	}
