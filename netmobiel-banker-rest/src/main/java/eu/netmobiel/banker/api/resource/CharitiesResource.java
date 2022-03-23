@@ -22,12 +22,12 @@ import eu.netmobiel.banker.api.mapping.DonationMapper;
 import eu.netmobiel.banker.api.mapping.PageMapper;
 import eu.netmobiel.banker.api.model.ImageResponse;
 import eu.netmobiel.banker.api.model.ImageUploadRequest;
+import eu.netmobiel.banker.filter.CharityFilter;
 import eu.netmobiel.banker.filter.DonationFilter;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountingEntry;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
-import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.model.CharityUserRoleType;
 import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.model.DonationSortBy;
@@ -39,7 +39,6 @@ import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.banker.service.WithdrawalService;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
-import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.ImageHelper;
@@ -87,13 +86,17 @@ public class CharitiesResource implements CharitiesApi {
 		return user;
     }
 
+    private boolean isAdminView() {
+    	return request.isUserInRole("admin") || request.isUserInRole("treasurer"); 
+    }
+    
 	@Override
 	public Response getCharity(String charityId) {
     	Response rsp = null;
 		try {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
         	Charity charity = charityManager.getCharity(cid);
-			boolean adminView = request.isUserInRole("admin");
+			boolean adminView = isAdminView();
 			rsp = Response.ok(adminView ? charityMapper.mapWithRolesAndAccount(charity) : charityMapper.mapWithoutRoles(charity)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
@@ -120,18 +123,15 @@ public class CharitiesResource implements CharitiesApi {
 	}
 
 	@Override
-	public Response listCharities(String location, Integer radius, OffsetDateTime since, OffsetDateTime until, Boolean closedToo,
-			String sortBy, String sortDir, Integer maxResults, Integer offset) {
-		Instant si = since != null ? since.toInstant() : null;
-		Instant ui = until != null ? until.toInstant() : null;
+	public Response listCharities(String location, Integer radius, OffsetDateTime since, OffsetDateTime until, 
+			Boolean closedToo, Boolean deletedToo,String sortBy, String sortDir, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		try {
-			SortDirection sortDirEnum = sortDir == null ? SortDirection.ASC : SortDirection.valueOf(sortDir);
-			CharitySortBy sortByEnum = sortBy == null ? CharitySortBy.NAME : CharitySortBy.valueOf(sortBy);
-			GeoLocation centerLocation = location == null ? null : GeoLocation.fromString(location);
-			boolean adminView = request.isUserInRole("admin");
-	    	PagedResult<Charity> results = charityManager.findCharities(null, centerLocation, 
-	    			radius, si, ui, closedToo, sortByEnum, sortDirEnum, adminView, maxResults, offset);
+			CharityFilter filter = new CharityFilter(location, radius, since, until, 
+					Boolean.TRUE.equals(closedToo), Boolean.TRUE.equals(deletedToo), sortBy, sortDir);
+			Cursor cursor = new Cursor(maxResults, offset);
+			boolean adminView = isAdminView();
+	    	PagedResult<Charity> results = charityManager.listCharities(null, adminView, filter, cursor);
 			rsp = Response.ok(adminView ? pageMapper.mapCharitiesWithRoleAndBalance(results) : pageMapper.mapCharities(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -154,10 +154,11 @@ public class CharitiesResource implements CharitiesApi {
 	}
 
 	@Override
-	public Response closeCharity(String charityId) {
+	public Response closeCharity(String charityId, Boolean delete) {
 		try {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
-			charityManager.stopCampaigning(cid);
+			charityManager.stopCampaigning(cid, Boolean.TRUE.equals(delete));
+			
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -324,13 +325,13 @@ public class CharitiesResource implements CharitiesApi {
 	    	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
 			Charity charity = charityManager.getCharity(cid);
 			// Is this user allowed to do the withdrawal?
-			boolean privileged = request.isUserInRole("admin");
+			boolean privileged = isAdminView();
 			boolean canWithdraw = charity.getRoles() != null && charity.getRoles().stream()
 				.filter(r -> r.getUser().equals(user) && r.getRole() == CharityUserRoleType.MANAGER)
 				.findFirst()
 				.isPresent();
 			if (! canWithdraw && ! privileged) {
-				throw new ForbiddenException(String.format("User %d is not a manager of charity %d and not an admin", user.getId(), cid));
+				throw new ForbiddenException(String.format("User %d is not a manager of charity %d and not an admin or treasurer", user.getId(), cid));
 			}
 			Long id = withdrawalService.createWithdrawalRequest(charity.getAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
 			String wrid = UrnHelper.createUrn(WithdrawalRequest.URN_PREFIX, id);

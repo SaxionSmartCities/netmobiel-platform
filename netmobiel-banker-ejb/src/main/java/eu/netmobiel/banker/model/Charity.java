@@ -29,6 +29,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
+import javax.persistence.Version;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
@@ -123,6 +124,13 @@ public class Charity extends ReferableObject {
     private Long id;
 
 	/**
+	 * Record version for optimistic locking.
+	 */
+	@Version
+	@Column(name = "version")
+	private int version;
+	
+	/**
      * The charity display name.
      */
 	@Size(max = CHARITY_NAME_MAX_LENGTH)
@@ -193,6 +201,13 @@ public class Charity extends ReferableObject {
      */
     @Column(name = "campaign_end_time", nullable = true)
     private Instant campaignEndTime;
+
+    /**
+     * Is the charity deleted? A deleted charity does not appear in the regular view anymore.
+     */
+    @Column(name = "deleted")
+    @NotNull
+    private boolean deleted;
 
     /**
      * The number of donors attributing to this charity. Only defined by the popularity report. 
@@ -318,7 +333,15 @@ public class Charity extends ReferableObject {
         }
     }
 
-    public Integer getDonorCount() {
+    public boolean isDeleted() {
+		return deleted;
+	}
+
+	public void setDeleted(boolean deleted) {
+		this.deleted = deleted;
+	}
+
+	public Integer getDonorCount() {
 		return donorCount;
 	}
 

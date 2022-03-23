@@ -20,12 +20,12 @@ import javax.ejb.Stateless;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
+import eu.netmobiel.banker.filter.CharityFilter;
 import eu.netmobiel.banker.filter.DonationFilter;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.Balance;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
-import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.model.CharityUserRoleType;
 import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.model.SettlementOrder;
@@ -42,9 +42,7 @@ import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
-import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 
@@ -85,56 +83,33 @@ public class CharityManager {
 	
     /**
 	 * Lists the charities according the criteria specified by the parameters.
+	 * Default sort is name, default order direction is ascending. The date used for the selection is the campaign start.
 	 * @param now parameter used to manipulate the current time for this method. If null then the actual system time is taken. 
-	 * @param location The center point of the search area
-	 * @param radius The radius (in meter) of the circular search area.
-	 * @param since only lists charities that start campaigning after this date..  
-	 * @param until limit the search to charities having started campaigning before this date.
-	 * @param inactiveToo include also charities that are not active in the selected period (i.e., outside campaigning period). 
-	 * @param sortBy Sort by name, (campaign start) date or distance. 
-	 * @param sortDir Sort ascending or descending.
 	 * @param adminView if true then include the users having a role with regard to the charity.
-	 * @param maxResults The maximum number of results, Default is 10.
-	 * @param offset The zero-based offset in the search result. 
+	 * @param filter the filter parameters
+	 * @param cursor the cursor  
 	 * @return A Page object with Charity objects. 
 	 * @throws BadRequestException
 	 */
-    public PagedResult<Charity> findCharities(Instant now, GeoLocation location, Integer radius, Instant since, Instant until, Boolean inactiveToo, 
-    		CharitySortBy sortBy, SortDirection sortDir, boolean adminView, Integer maxResults, Integer offset) throws BadRequestException {
+    public PagedResult<Charity> listCharities(Instant now, boolean adminView, CharityFilter filter, Cursor cursor) throws BadRequestException {
     	if (now == null) {
     		now = Instant.now();
     	}
-    	if (until != null && since != null && !until.isAfter(since)) {
-    		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
-    	}
-    	if (maxResults != null && maxResults > 100) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
-    	}
-    	if (maxResults != null && maxResults < 0) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' >= 0.");
-    	}
-    	if (offset != null && offset < 0) {
-    		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
-    	}
-        if (maxResults == null) {
-        	maxResults = MAX_RESULTS;
-        }
-        if (offset == null) {
-        	offset = 0;
-        }
+    	filter.validate();
+    	cursor.validate(MAX_RESULTS, 0);
         List<Charity> results = Collections.emptyList();
         Long totalCount = 0L;
-		PagedResult<Long> prs = charityDao.findCharities(now, location, radius, since, until, inactiveToo, sortBy, sortDir, 0, 0);
+		PagedResult<Long> prs = charityDao.findCharities(now, filter, Cursor.COUNTING_CURSOR);
 		totalCount = prs.getTotalCount();
-    	if (totalCount > 0 && maxResults > 0) {
+    	if (totalCount > 0 && cursor.getMaxResults() > 0) {
     		// Get the actual data
-    		PagedResult<Long> charityIds = charityDao.findCharities(now, location, radius, since, until, inactiveToo, sortBy, sortDir, maxResults, offset);
+    		PagedResult<Long> charityIds = charityDao.findCharities(now, filter, cursor);
     		if (charityIds.getData().size() > 0) {
     			String graph = adminView ? Charity.ROLES_ENTITY_GRAPH : Charity.SHALLOW_ENTITY_GRAPH;
     			results = charityDao.loadGraphs(charityIds.getData(), graph, Charity::getId);
     		}
     	}
-    	return new PagedResult<>(results, maxResults, offset, totalCount);
+    	return new PagedResult<>(results, cursor, totalCount);
     }
 
     static private boolean userHasRoleOnCharity(BankerUser user, Charity ch, CharityUserRoleType role) {
@@ -358,10 +333,11 @@ public class CharityManager {
 	/**
      * Stops the campaigning of a charity. You must have sufficient privileges.
      * @param id the charity id
+     * @param delete If true then soft delete the charity.
      * @throws NotFoundException No matching charity found.
      * @throws BadRequestException 
      */
-    public void stopCampaigning(Long id) throws NotFoundException, BadRequestException {
+    public void stopCampaigning(Long id, boolean delete) throws NotFoundException, BadRequestException {
     	Charity charitydb = charityDao.loadGraph(id, Charity.SHALLOW_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such charity: " + id));
     	String caller = sessionContext.getCallerPrincipal().getName();
@@ -372,7 +348,10 @@ public class CharityManager {
     	if (charitydb.getCampaignEndTime() != null && now.isBefore(charitydb.getCampaignEndTime())) {
     		throw new BadRequestException("It is not allowed to move the campagning end from the past to now");
     	}
-    	charitydb.setCampaignEndTime(Instant.now());
+    	if (charitydb.getCampaignEndTime() == null) {
+        	charitydb.setCampaignEndTime(Instant.now());
+    	}
+    	charitydb.setDeleted(delete);
     }
 
     /**

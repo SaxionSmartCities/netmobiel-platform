@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
+import eu.netmobiel.banker.filter.CharityFilter;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.CharitySortBy;
 import eu.netmobiel.banker.model.Charity_;
@@ -25,6 +26,7 @@ import eu.netmobiel.banker.test.BankerIntegrationTestBase;
 import eu.netmobiel.banker.test.Fixture;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
@@ -155,48 +157,64 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     public void listCharities() throws BusinessException {
     	prepareCharities();
     	Instant now = Instant.parse("2020-09-25T12:00:00Z");
-    	
+    	Cursor cursor = new Cursor(10, 0); 
     	// Search any
-    	PagedResult<Long> actual = charityDao.findCharities(now, null, null, null, null, null, null, null, 0, 0);
+    	CharityFilter filter = new CharityFilter();
+    	filter.validate();
+    	PagedResult<Long> actual = charityDao.findCharities(now, filter, cursor);
     	assertNotNull(actual);
     	dump("non closed", charityDao.loadGraphs(actual.getData(), Charity.SHALLOW_ENTITY_GRAPH, Charity::getId));
     	assertEquals(3, actual.getTotalCount().intValue());
 
     	// Search location
-    	actual = charityDao.findCharities(now, Fixture.placeZieuwent, 1000, null, null, null, null, null, 10, 0);
+    	filter = new CharityFilter();
+    	filter.setLocation(Fixture.placeZieuwent);
+    	filter.setRadius(1000);
+    	filter.validate();
+    	actual = charityDao.findCharities(now, filter, cursor);
     	assertNotNull(actual);
     	dump("nearby Zieuwent", charityDao.loadGraphs(actual.getData(), Charity.SHALLOW_ENTITY_GRAPH, Charity::getId));
     	assertEquals(1, actual.getCount());
     	assertEquals(charity3.getId(), actual.getData().get(0));
-    	actual = charityDao.findCharities(now, Fixture.placeZieuwent, 50000, null, null, null, null, null, 10, 0);
+    	filter.setRadius(50000);
+    	actual = charityDao.findCharities(now, filter, cursor);
     	dump("all around Zieuwent", charityDao.loadGraphs(actual.getData(), Charity.SHALLOW_ENTITY_GRAPH, Charity::getId));
     	assertEquals(3, actual.getCount());
 
     	// Since 
-    	Instant since = Instant.parse("2020-09-10T00:00:00Z");
-    	actual = charityDao.findCharities(now, null, null, since, null, null, null, null, 10, 0);
+    	filter = new CharityFilter();
+    	filter.setSince(Instant.parse("2020-09-10T00:00:00Z"));
+    	filter.validate();
+    	actual = charityDao.findCharities(now, filter, cursor);
     	assertNotNull(actual);
-    	dump("Start after " + since, charityDao.loadGraphs(actual.getData(), Charity.SHALLOW_ENTITY_GRAPH, Charity::getId));
+    	dump("Start after " + filter.getSince(), charityDao.loadGraphs(actual.getData(), Charity.SHALLOW_ENTITY_GRAPH, Charity::getId));
     	assertEquals(1, actual.getCount());
     	assertTrue(actual.getData().contains(charity3.getId()));
 
     	// Until 
-    	Instant until = Instant.parse("2020-09-10T00:00:00Z");
-    	actual = charityDao.findCharities(now, null, null, null, until, null, null, null, 10, 0);
+    	filter = new CharityFilter();
+    	filter.setUntil(Instant.parse("2020-09-10T00:00:00Z"));
+    	filter.validate();
+    	actual = charityDao.findCharities(now, filter, cursor);
     	assertNotNull(actual);
-    	dump("Started before " + until, charityDao.loadGraphs(actual.getData(), Charity.SHALLOW_ENTITY_GRAPH, Charity::getId));
+    	dump("Started before " + filter.getUntil(), charityDao.loadGraphs(actual.getData(), Charity.SHALLOW_ENTITY_GRAPH, Charity::getId));
     	assertEquals(2, actual.getCount());
     	assertTrue(actual.getData().contains(charity1.getId()));
     	assertTrue(actual.getData().contains(charity2.getId()));
 
     	// Closed too - false
-    	actual = charityDao.findCharities(now, null, null, null, null, false, null, null, 10, 0);
+    	filter = new CharityFilter();
+    	filter.setInactiveToo(false);
+    	filter.validate();
+    	actual = charityDao.findCharities(now, filter, cursor);
     	assertNotNull(actual);
     	dump("Active", charityDao.loadGraphs(actual.getData(), Charity.SHALLOW_ENTITY_GRAPH, Charity::getId));
     	assertEquals(3, actual.getCount());
     	
     	// Closed too - true
-    	actual = charityDao.findCharities(now, null, null, null, null, true, null, null, 10, 0);
+    	filter = new CharityFilter();
+    	filter.setInactiveToo(true);
+    	filter.validate();
     	assertNotNull(actual);
     	dump("All", charityDao.loadGraphs(actual.getData(), Charity.SHALLOW_ENTITY_GRAPH, Charity::getId));
     	assertEquals(4, actual.getCount());
@@ -207,8 +225,11 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     public void listCharities_verifyOrder() throws BusinessException {
     	prepareCharities();
     	Instant now = Instant.parse("2020-09-25T12:00:00Z");
+    	Cursor cursor = new Cursor(10, 0); 
 
-    	PagedResult<Long> actual = charityDao.findCharities(now, null, null, null, null, null, null, null, 10, 0);
+    	CharityFilter filter = new CharityFilter();
+    	filter.validate();
+    	PagedResult<Long> actual = charityDao.findCharities(now, filter, cursor);
     	assertNotNull(actual);
     	assertEquals(3, actual.getCount());
     	// Default order is by name ascending
@@ -216,22 +237,39 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     	assertEquals(charity2.getId(), actual.getData().get(1));
     	assertEquals(charity3.getId(), actual.getData().get(2));
 
-    	actual = charityDao.findCharities(now, null, null, null, null, null, null, SortDirection.DESC, 10, 0);
+    	filter = new CharityFilter();
+    	filter.setSortDir(SortDirection.DESC);
+    	filter.validate();
+    	actual = charityDao.findCharities(now, filter, cursor);
     	assertEquals(charity3.getId(), actual.getData().get(0));
     	assertEquals(charity2.getId(), actual.getData().get(1));
     	assertEquals(charity1.getId(), actual.getData().get(2));
 
-    	actual = charityDao.findCharities(now, null, null, null, null, null, CharitySortBy.DATE, SortDirection.ASC, 10, 0);
+    	filter = new CharityFilter();
+    	filter.setSortBy(CharitySortBy.DATE);
+    	filter.setSortDir(SortDirection.ASC);
+    	filter.validate();
+    	actual = charityDao.findCharities(now, filter, cursor);
     	assertEquals(charity1.getId(), actual.getData().get(0));
     	assertEquals(charity2.getId(), actual.getData().get(1));
     	assertEquals(charity3.getId(), actual.getData().get(2));
 
-    	actual = charityDao.findCharities(now, Fixture.placeZieuwent, 50000, null, null, null, CharitySortBy.DISTANCE, SortDirection.ASC, 10, 0);
+    	filter = new CharityFilter();
+    	filter.setLocation(Fixture.placeZieuwent);
+    	filter.setRadius(50000);
+    	filter.setSortBy(CharitySortBy.DISTANCE);
+    	filter.setSortDir(SortDirection.ASC);
+    	filter.validate();
+    	actual = charityDao.findCharities(now, filter, cursor);
     	assertEquals(charity3.getId(), actual.getData().get(0));
     	assertEquals(charity1.getId(), actual.getData().get(1));
     	assertEquals(charity2.getId(), actual.getData().get(2));
 
-    	actual = charityDao.findCharities(now, null, null, null, null, null, CharitySortBy.SCORE, SortDirection.DESC, 10, 0);
+    	filter = new CharityFilter();
+    	filter.setSortBy(CharitySortBy.SCORE);
+    	filter.setSortDir(SortDirection.DESC);
+    	filter.validate();
+    	actual = charityDao.findCharities(now, filter, cursor);
     	dump("sort by score desc", charityDao.loadGraphs(actual.getData(), Charity.SHALLOW_ENTITY_GRAPH, Charity::getId));
     	assertEquals(charity3.getId(), actual.getData().get(0));
     	assertEquals(charity1.getId(), actual.getData().get(1));
@@ -240,7 +278,11 @@ public class CharityDaoIT  extends BankerIntegrationTestBase {
     
     @Test(expected = BadRequestException.class)
     public void listCharities_OrderDistanceNoLocation() throws Exception {
-    	charityDao.findCharities(Instant.now(), null, null, null, null, null, CharitySortBy.DISTANCE, null, 10, 0);
+    	Cursor cursor = new Cursor(10, 0); 
+    	CharityFilter filter = new CharityFilter();
+    	filter.setSortBy(CharitySortBy.DISTANCE);
+    	filter.validate();
+    	charityDao.findCharities(Instant.now(), filter, cursor);
 		fail("Expected bad request");
     }
 
