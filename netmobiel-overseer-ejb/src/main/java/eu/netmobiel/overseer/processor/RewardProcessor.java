@@ -2,7 +2,9 @@ package eu.netmobiel.overseer.processor;
 
 import java.util.Optional;
 
+import javax.annotation.Resource;
 import javax.ejb.Asynchronous;
+import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
@@ -49,6 +51,9 @@ public class RewardProcessor {
     @Inject
     private TextHelper textHelper;
     
+    @Resource
+	private SessionContext sessionContext;
+
     /**
      * Sends a message concerning the reward to the personal conversation. That conversation is attached to the managed identity of 
      * the user and acts as container for all personal (non-trip/ride) messages. 
@@ -73,6 +78,44 @@ public class RewardProcessor {
 		publisherService.publish(msg);
     }
 
+    public void handleNewReward(RewardEvent rewardEvent) throws BusinessException {
+		final var code = rewardEvent.getIncentiveCode();
+		// Check whether the reward was already handed out. Theoretically, multiple incentives might exists for 
+		// the same fact, so lookup the incentive (the incentive this method is about) first.
+		Optional<Incentive> optIncentive = rewardService.lookupIncentive(code);
+		if (optIncentive.isEmpty()) {
+			logger.warn(String.format("No such incentive: %s", code));
+		} else {
+			final var incentive = optIncentive.get();
+			final var recipient = rewardEvent.getRecipient();
+			if (incentive.getDisableTime() != null) {
+				logger.warn(String.format("No reward, incentive %s is disabled since %s", code, incentive.getDisableTime().toString()));
+			} else if (!incentive.isRedemption() || ledgerService.canRedeemSome(recipient)) {
+				// The reward is absolute or there is some premium left to redeem
+				final var fact = rewardEvent.getFactContext(); 
+				Optional<Reward> optReward = rewardService.lookupRewardByFact(incentive, recipient, fact);
+				Reward reward = null;
+				if (optReward.isEmpty()) {
+					// Create reward
+					reward = rewardService.createReward(optIncentive.get(), recipient, fact, rewardEvent.getYield());
+				} else {
+					// Reward already exists
+					reward = optReward.get();
+					if (reward.getCancelTime() == null) {
+						// Only disabled rewards can be restored
+						logger.info(String.format("Reward on ride fare concerning %s already given: %s", fact, optReward.get().getUrn()));
+					} else {
+						// Ok, restore the original reward
+						reward = rewardService.restoreReward(reward, rewardEvent.getYield());
+					}
+				}
+				// Send a message as notification
+				if (reward != null) {
+					sendPersonalMessage(reward);
+				}
+			}
+		}
+    }
     /**
      * Processes a RewardEvent: Create a reward (if not issued yet) and attempt to start a ledger transaction.
      * This operation is asynchronous as there is no use to let the caller wait for the result.
@@ -84,44 +127,10 @@ public class RewardProcessor {
 			logger.debug(String.format("New reward: %s", rewardEvent.toString()));
 		}
 		try {
-			final var code = rewardEvent.getIncentiveCode();
-			// Check whether the reward was already handed out. Theoretically, multiple incentives might exists for 
-			// the same fact, so lookup the incentive (the incentive this method is about) first.
-			Optional<Incentive> optIncentive = rewardService.lookupIncentive(code);
-			if (optIncentive.isEmpty()) {
-				logger.warn(String.format("No such incentive: %s", code));
-			} else {
-				final var incentive = optIncentive.get();
-				final var recipient = rewardEvent.getRecipient();
-				if (incentive.getDisableTime() != null) {
-					logger.warn(String.format("No reward, incentive %s is disabled since %s", code, incentive.getDisableTime().toString()));
-				} else if (!incentive.isRedemption() || ledgerService.canRedeemSome(recipient)) {
-					// The reward is absolute or there is some premium left to redeem
-					final var fact = rewardEvent.getFactContext(); 
-					Optional<Reward> optReward = rewardService.lookupRewardByFact(incentive, recipient, fact);
-					Reward reward = null;
-					if (optReward.isEmpty()) {
-						// Create reward
-						reward = rewardService.createReward(optIncentive.get(), recipient, fact, rewardEvent.getYield());
-					} else {
-						// Reward already exists
-						reward = optReward.get();
-						if (reward.getCancelTime() == null) {
-							// Only disabled rewards can be restored
-							logger.info(String.format("Reward on ride fare concerning %s already given: %s", fact, optReward.get().getUrn()));
-						} else {
-							// Ok, restore the original reward
-							reward = rewardService.restoreReward(reward, rewardEvent.getYield());
-						}
-					}
-					// Send a message as notification
-					if (reward != null) {
-						sendPersonalMessage(reward);
-					}
-				}
-			}
+			// Force start of transaction
+			sessionContext.getBusinessObject(RewardProcessor.class).handleNewReward(rewardEvent);
 		} catch (BusinessException e) {
-			logger.error("Error in onSurveyCompleted: " + e);
+			logger.error("Error in onNewReward: " + e);
 		}
     }
 

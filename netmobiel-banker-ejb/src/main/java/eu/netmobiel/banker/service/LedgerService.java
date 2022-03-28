@@ -108,7 +108,7 @@ public class LedgerService {
     private Logger log;
 
     @Resource
-	protected SessionContext sessionContext;
+	private SessionContext sessionContext;
 
     @Inject
     private LedgerDao ledgerDao;
@@ -995,17 +995,23 @@ public class LedgerService {
     	onNewOrUpdatedReward(reward);
     }
 
+    /**
+     * Handles the case of a new reward. 
+     * NOTE: This call is made without transaction!! Use the session context to invoke the bean and start a new transaction.
+     * @param reward
+     */
     private void onNewOrUpdatedReward(Reward reward) {
     	try {
+    		var when = OffsetDateTime.now();
     		if (reward.getIncentive().isRedemption()) {
-    			rewardWithRedemption(reward, OffsetDateTime.now());
+    	    	sessionContext.getBusinessObject(LedgerService.class).rewardWithRedemption(reward, when);
     		} else {
-    			rewardWithPremium(reward, OffsetDateTime.now());
+    	    	sessionContext.getBusinessObject(LedgerService.class).rewardWithPremium(reward, when);
     		}
     	} catch (BalanceInsufficientException e) {
     		log.warn("Premium balance is insufficient, reward payment is pending: " + reward.getUrn());
     	} catch (Exception e) {
-    		log.error("Error in onNewReward: " + e);
+    		log.error("Error in onNewOrUpdatedReward: " + e);
     	}
     }
 

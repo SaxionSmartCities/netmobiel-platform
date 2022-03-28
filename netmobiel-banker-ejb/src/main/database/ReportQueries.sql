@@ -13,4 +13,9 @@ order by e.id asc
 select e.*, t.transaction_time, t.is_rollback from accounting_transaction t join accounting_entry e on e.transaction = t.id where 
 exists (select tt.id from accounting_transaction tt WHERE tt.context = t.context AND tt.id <> t.id AND
 		abs(EXTRACT(EPOCH FROM (t.transaction_time - tt.transaction_time))) < 1) 
-order by e.id asc 
+order by e.id asc
+
+-- Balance Sanity check
+-- the following two should report the same value
+SELECT sum(end_amount) FROM public.balance b join account a on a.id = b.account where a.account_type= 'L'
+SELECT sum(end_amount) FROM public.balance b join account a on a.id = b.account where a.account_type= 'A'
