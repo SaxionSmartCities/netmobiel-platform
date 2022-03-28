@@ -1,5 +1,9 @@
 package eu.netmobiel.banker.api.resource;
 
+import java.time.Instant;
+import java.time.OffsetDateTime;
+
+import javax.ejb.EJBAccessException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
@@ -12,6 +16,8 @@ import eu.netmobiel.banker.api.mapping.PageMapper;
 import eu.netmobiel.banker.api.model.PaymentLink;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountPurposeType;
+import eu.netmobiel.banker.model.AccountingEntry;
+import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.service.DepositService;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.exception.BusinessException;
@@ -83,6 +89,22 @@ public class AccountsResource implements AccountsApi {
 			PaymentLink plink = new PaymentLink();
 			plink.setPaymentUrl(paymentUrl);
 			rsp = Response.ok(plink).build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response listAccountStatements(String accountId, OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
+		Instant si = since != null ? since.toInstant() : null;
+		Instant ui = until != null ? until.toInstant() : null;
+		Response rsp = null;
+		try {
+        	Long accid = UrnHelper.getId(Account.URN_PREFIX, accountId);
+        	Account acc = ledgerService.getAccount(accid);
+			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(acc.getNcan(), si, ui, maxResults, offset); 
+			rsp = Response.ok(pageMapper.mapAccountingEntriesShallow(result)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
