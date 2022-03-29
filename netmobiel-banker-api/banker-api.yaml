@@ -524,31 +524,6 @@ paths:
         type: string
       in: path
       required: true
-  /payment-batches/{paymentBatchId}/settled:
-    summary: Settle the batch.
-    description: "Simple call the notify the settlement of the batch, i.e. the settlement\
-      \ of all individual withdrawal requests in the batch.\n\nOnly users with the\
-      \ role `admin` or `treasurer` are allowed to use this endpoint. "
-    put:
-      responses:
-        "204":
-          description: The batch is settled.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: settlePaymentBatch
-      summary: Settles the batch.
-      description: Settle all withdrawal requests in the batch, i.e. confirm the withdrawal
-        requests have been processed by the treasurer of NetMobiel.
-    parameters:
-    - name: paymentBatchId
-      description: The unique id of the batch.
-      schema:
-        type: string
-      in: path
-      required: true
   /payment-batches:
     summary: Path used to manage the list of paymentbatches.
     description: "The REST endpoint/path used to list and create zero or more `PaymentBatch`\
@@ -623,7 +598,9 @@ paths:
         apikey: []
       operationId: createPaymentBatch
       summary: Create a PaymentBatch
-      description: Creates a new instance of a `PaymentBatch`.
+      description: "Creates a new instance of a `PaymentBatch` by collecting all `WithdrawalRequests`\
+        \ with status `REQUESTED`. \nOnce added each  `WithdrawalRequest` is assigned\
+        \ the status `ACTIVE`."
   /payment-batches/{paymentBatchId}:
     summary: Path used to manage a single PaymentBatch.
     description: "The REST endpoint/path used to get, and delete single instances\
@@ -643,11 +620,9 @@ paths:
           type: string
         in: query
       - name: forceUniqueId
-        description: "Optional, SEPA only. If set to true, the batch id is guaranteed\
-          \ to be unique. Default false.\nA SEPA batch file is not accepted if the\
-          \ messageId (batchId) already exists. The payment batch order id is used\
-          \ as the SEPA messageId. The feature is used to protect you paying the same\
-          \ bill twice. \n"
+        description: |
+          Optional, SEPA only. If set to true, the batch id is guaranteed to be unique. Default false.
+          A SEPA batch file is not accepted if the messageId (batchId) already exists. The payment batch order id is used as the SEPA messageId. The feature is used to protect you paying the same bill twice, so think twice before forcing a unique id (that would lift the protection).
         schema:
           type: boolean
         in: query
@@ -667,7 +642,37 @@ paths:
         apikey: []
       operationId: getPaymentBatch
       summary: Get a PaymentBatch
-      description: Gets the details of a single instance of a `PaymentBatch`.
+      description: |
+        Gets the details of a single instance of a `PaymentBatch`. Two formats are supported:
+        * JSON: the default (and standard) json format.
+        * PAIN.001: The format for a SEPA PAIN Credit Transfer XML document.
+
+        Note: When PAIN.001 is selected, only the `ACTIVE` withdrawal requests are present in the PAIN file.
+    put:
+      requestBody:
+        description: Provide an array of withdrawal requests with only the id and
+          the status set.
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '#/components/schemas/WithdrawalRequest'
+        required: true
+      responses:
+        "204":
+          description: Success response.
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: updatePaymentBatch
+      summary: Updates the status of the batch.
+      description: "Updates the payment batch by updating each provided withdrawal\
+        \ status. The old status must be `ACTIVE`. The new status must be one of `COMPLETED`\
+        \ or `CANCELLED`. Each withdrawal might have a reason set. All other fields\
+        \ are ignored. \n\nThe status of the batch itself is automatically set to\
+        \ `COMPLETED` when all withdrawals have reached a final state or is set to\
+        \ `CANCELLED` when all withdrawals have status `CANCELLED`."
     delete:
       parameters:
       - name: reason
@@ -2612,7 +2617,7 @@ components:
             familyName:
               type: string
         id:
-          description: Database if of the batch.
+          description: Database id of the batch.
           type: integer
         orderReference:
           description: A short unique code for the batch, for external reference.
@@ -2643,13 +2648,15 @@ components:
           type: string
         originatorIban:
           description: The IBAN of the originator account, that is the bank account
-            held by the Stichting NetMobiel.
+            held by the Stichting NetMobiel. It is a copy because it reflects the
+            IBAN at the time the batch was generated.
           type: string
         originatorAccountRef:
           description: A reference to the originator's account.
           type: string
         originatorIbanHolder:
-          description: The name of the originator account holder.
+          description: The name of the originator account holder. A copy as it reflects
+            the name at the time the batch was generated.
           type: string
       example:
         creationTime: 2020-10-20T12:00:00Z
@@ -2670,9 +2677,7 @@ components:
         \ the number between request time and completion time. The processing may\
         \ take several \ndays due to the human effort needed to process the payment\
         \ batch at the bank."
-      required:
-      - amountCredits
-      - description
+      required: []
       type: object
       properties:
         account:
