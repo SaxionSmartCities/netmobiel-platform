@@ -2658,6 +2658,16 @@ components:
           description: The name of the originator account holder. A copy as it reflects
             the name at the time the batch was generated.
           type: string
+        nrRequests:
+          description: The number of `WithDrawal` requests in the batch.
+          type: integer
+        amountRequestedEurocents:
+          description: The total amount  requested in eurocents.
+          type: integer
+        amountSettledEurocents:
+          description: The total amount settled in eurocents. This is the total amount
+            actually transferred by the bank.
+          type: integer
       example:
         creationTime: 2020-10-20T12:00:00Z
         completionTime: 2020-10-26T14:25:00Z
