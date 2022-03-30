@@ -2104,6 +2104,40 @@ paths:
         type: string
       in: path
       required: true
+  /payment-batches/{paymentBatchId}/mail-pain:
+    summary: Mail the PAIN Credit Transfer file to the caller
+    description: "The REST endpoint/path used to create and mail a PAIN Credit Transfer\
+      \ file. This path contains a `POST` operation used to perform the create task.\n\
+      \nOnly users with the role `admin` or `treasurer` are allowed to use this endpoint. "
+    post:
+      parameters:
+      - name: forceUniqueId
+        description: |
+          Optional, SEPA only. If set to true, the batch id is guaranteed to be unique. Default false.
+          A SEPA batch file is not accepted if the messageId (batchId) already exists. The payment batch order id is used as the SEPA messageId. The feature is used to protect you paying the same bill twice, so think twice before forcing a unique id (that would lift the protection).
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "201":
+          description: Success response. The mail has been sent to the caller's email
+            address.
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: mailPaymentBatchAsPAINFile
+      summary: Mail a PAIN file.
+      description: |
+        Mail a `PaymentBatch` as a PAIN.001 formatted SEPA PAIN Credit Transfer XML document.
+
+        Only the `ACTIVE` withdrawal requests are present in the PAIN file.
+    parameters:
+    - name: paymentBatchId
+      description: A unique identifier for a `PaymentBatch`.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
