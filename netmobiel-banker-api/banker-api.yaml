@@ -2125,9 +2125,9 @@ paths:
           type: boolean
         in: query
       responses:
-        "201":
+        "204":
           description: Success response. The mail has been sent to the caller's email
-            address.
+            address. No reference is available to the mail just sent.
       security:
       - Bearer-only: []
         apikey: []
