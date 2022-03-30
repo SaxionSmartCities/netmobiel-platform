@@ -2118,6 +2118,12 @@ paths:
         schema:
           type: boolean
         in: query
+      - name: pendingOnly
+        description: 'If set then include only pending withdrawals in the batch. Default:
+          true'
+        schema:
+          type: boolean
+        in: query
       responses:
         "201":
           description: Success response. The mail has been sent to the caller's email
