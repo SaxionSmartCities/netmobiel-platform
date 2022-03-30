@@ -655,9 +655,7 @@ paths:
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '#/components/schemas/WithdrawalRequest'
+              $ref: '#/components/schemas/PaymentBatch'
         required: true
       responses:
         "204":
@@ -668,11 +666,12 @@ paths:
       operationId: updatePaymentBatch
       summary: Updates the status of the batch.
       description: "Updates the payment batch by updating each provided withdrawal\
-        \ status. The old status must be `ACTIVE`. The new status must be one of `COMPLETED`\
-        \ or `CANCELLED`. Each withdrawal might have a reason set. All other fields\
-        \ are ignored. \n\nThe status of the batch itself is automatically set to\
-        \ `COMPLETED` when all withdrawals have reached a final state or is set to\
-        \ `CANCELLED` when all withdrawals have status `CANCELLED`."
+        \ status. The old status must be `ACTIVE`. All fields of the payment batch\
+        \ are ignored except for the withdrawal array. Each withdrawal might have\
+        \ a reason set and of course its identifier. All other fields are ignored.\
+        \ \n\nThe status of the batch itself is automatically set to `COMPLETED` when\
+        \ all withdrawals have reached a final state or is set to `CANCELLED` when\
+        \ all withdrawals have status `CANCELLED`.\n"
     delete:
       parameters:
       - name: reason
