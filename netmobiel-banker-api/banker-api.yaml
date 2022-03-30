@@ -2622,9 +2622,6 @@ components:
         orderReference:
           description: A short unique code for the batch, for external reference.
           type: string
-        count:
-          description: The number of withdrawal requests in the batch.
-          type: integer
         modifiedBy:
           $ref: '#/components/schemas/User'
           description: The user that modified the batch.
@@ -2668,7 +2665,12 @@ components:
           description: The total amount settled in eurocents. This is the total amount
             actually transferred by the bank.
           type: integer
+        reason:
+          description: The reason for the current status.
+          type: string
       example:
+        amountRequestedEurocents: 560
+        amountSettledEurocents: 250
         creationTime: 2020-10-20T12:00:00Z
         completionTime: 2020-10-26T14:25:00Z
         orderReference: NMPB-20301-354
@@ -2676,9 +2678,12 @@ components:
         status: ACTIVE
         createdBy:
           familyName: Pietersen
-        clearedBy:
+        modifiedBy:
           familyName: Pietersen,
-        count: 5
+        nrRequests: 5
+        originatorIbanHolder: Stichting Netmobiel
+        originatorIban: NL57ASNB0123456789
+        originatorAccountRef: urn:nb:bn:account:5463
     WithdrawalRequest:
       title: Root Type for Deposit
       description: "Object for making a withdrawal from the Netmobiel credit system,\
