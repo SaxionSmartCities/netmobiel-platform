@@ -2487,6 +2487,14 @@ components:
           - CURRENT
           - PREMIUM
           type: string
+        type:
+          description: "The type of the account. Must be one of `ASSET` or `LIABILITY`.\n\
+            \nCredit of a `LIABILITY` increases the balance. Debit of a `LIABILITY`\
+            \ decreases the balance.  \nFor an `ASSET` it is the other way around.\n"
+          enum:
+          - ASSET
+          - LIABILITY
+          type: string
       example:
         name: Jantje NB Smit
         ncan: PLA-1234567890
@@ -2494,6 +2502,7 @@ components:
         iban: NL02ABNA0123456789,
         ibanHolder: Jan Smit
         purpose: CURRENT
+        type: LIABILITY
     Balance:
       title: Root Type for Balance
       description: A representation of the balance of an account.
