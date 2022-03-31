@@ -3,7 +3,6 @@ package eu.netmobiel.banker.api.resource;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
-import javax.ejb.EJBAccessException;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 import javax.ws.rs.BadRequestException;
@@ -17,7 +16,6 @@ import eu.netmobiel.banker.api.model.PaymentLink;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountPurposeType;
 import eu.netmobiel.banker.model.AccountingEntry;
-import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.service.DepositService;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.exception.BusinessException;

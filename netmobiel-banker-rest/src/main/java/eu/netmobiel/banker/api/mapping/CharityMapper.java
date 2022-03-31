@@ -45,6 +45,7 @@ public interface CharityMapper {
 	@Mapping(target = "roles", ignore = true)
 	@Mapping(target = "donatedAmount", ignore = true)
 	@Mapping(target = "account", ignore = true)
+	@Mapping(target = "deleted", ignore = true)
 	Charity map(eu.netmobiel.banker.api.model.Charity source);
 
 }
