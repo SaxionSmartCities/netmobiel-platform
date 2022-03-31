@@ -2042,68 +2042,6 @@ paths:
       operationId: createCharity
       summary: Create a Charity
       description: Creates a new instance of a `Charity`.
-  /accounts/{accountId}/statements/:
-    summary: Path used to manage the list of statements for an account.
-    description: "The REST endpoint/path used to list zero or more `Statement` entities.\
-      \  This path contains a `GET` operation to perform the list task. A Statement\
-      \ reports on a credit transaction for this account.\n\nOnly users with the role\
-      \ `admin` or `treasurer` are allowed to use this endpoint. "
-    get:
-      parameters:
-      - examples:
-          Format:
-            value: 2019-11-30T12:00:00+01:00
-        name: since
-        description: The maximum lookback date of the listing. Default is not set.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-12-15T14:00:00+01:00
-        name: until
-        description: 'The date of the latest entry to retrieve. The `until` date must
-          be after the `since` parameter. Default is not set, meaning all entries
-          from now and before. '
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a `Page` with `Statement` entities.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: listAccountStatements
-      summary: List Statement entries.
-      description: |
-        Gets a paged list of  `Statement` entities. The statements are sorted on accounting time descending.
-    parameters:
-    - name: accountId
-      description: The account id to use. Specify a banker account id, or an account
-        urn.
-      schema:
-        type: string
-      in: path
-      required: true
   /payment-batches/{paymentBatchId}/mail-pain:
     summary: Mail the PAIN Credit Transfer file to the caller
     description: "The REST endpoint/path used to create and mail a PAIN Credit Transfer\
@@ -2140,6 +2078,73 @@ paths:
     parameters:
     - name: paymentBatchId
       description: A unique identifier for a `PaymentBatch`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /accounts/{accountId}/statements/:
+    summary: Path used to manage the list of statements for an account.
+    description: "The REST endpoint/path used to list zero or more `Statement` entities.\
+      \  This path contains a `GET` operation to perform the list task. A Statement\
+      \ reports on a credit transaction for this account.\n\nOnly users with the role\
+      \ `admin` or `treasurer` are allowed to use this endpoint. "
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The maximum lookback date of the listing. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: 'The date of the latest entry to retrieve. The `until` date must
+          be after the `since` parameter. Default is not set, meaning all entries
+          from now and before. '
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: purpose
+        description: Filter the statements by transaction type.
+        schema:
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Statement` entities.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: listAccountStatements
+      summary: List Statement entries.
+      description: |
+        Gets a paged list of  `Statement` entities. The statements are sorted on accounting time descending.
+    parameters:
+    - name: accountId
+      description: The account id to use. Specify a banker account id, or an account
+        urn.
       schema:
         type: string
       in: path
