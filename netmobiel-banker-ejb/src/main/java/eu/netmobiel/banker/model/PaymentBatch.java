@@ -1,8 +1,8 @@
 package eu.netmobiel.banker.model;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.LinkedHashSet;
 import java.util.Set;
 
@@ -22,11 +22,14 @@ import javax.persistence.NamedEntityGraph;
 import javax.persistence.NamedEntityGraphs;
 import javax.persistence.NamedSubgraph;
 import javax.persistence.OneToMany;
+import javax.persistence.OrderBy;
 import javax.persistence.PostPersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
-import javax.persistence.Transient;
+import javax.persistence.Version;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
+import javax.validation.constraints.PositiveOrZero;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.banker.util.BankerUrnHelper;
@@ -82,7 +85,14 @@ public class PaymentBatch extends ReferableObject {
     private Long id;
 
 	/**
-	 * The order reference to be used by treasurer.
+	 * Record version for optimistic locking.
+	 */
+	@Version
+	@Column(name = "version")
+	private int version;
+	
+	/**
+	 * The order reference to be used by treasurer. Can be null because the record ID is in the order refrence.
 	 */
 	@Size(max = ORDER_REFERENCE_MAX_LENGTH)
     @Basic(fetch = FetchType.LAZY)
@@ -93,6 +103,7 @@ public class PaymentBatch extends ReferableObject {
      * The withdrawal requests in the batch.
      */
 	@OneToMany(mappedBy = "paymentBatch", fetch = FetchType.LAZY)
+	@OrderBy("id ASC")
 	private Set<WithdrawalRequest> withdrawalRequests = new LinkedHashSet<>();
 
 	/**
@@ -127,12 +138,6 @@ public class PaymentBatch extends ReferableObject {
     @Column(name = "modification_time")
     private Instant modificationTime;
 
-    /**
-     * The number of withdrawal requests in this batch. Only filled in the list query.
-     */
-    @Transient
-    private Integer count;
-    
 	/**
 	 * The status of the batch.
 	 */
@@ -152,9 +157,10 @@ public class PaymentBatch extends ReferableObject {
     private Account originatorAccount;
 
 	/**
-	 * The originator IBAN number. This is copied at the time of the creation of the paymnet batch to prevent change of bank 
+	 * The originator IBAN number. This is copied at the time of the creation of the payment batch to prevent change of bank 
 	 * account during processing of the batch or afterwards (i.e. don't change the history). 
 	 */
+	@NotNull
     @IBANBankAccount
 	@Size(max = 48)
     @Column(name = "originator_iban")
@@ -163,11 +169,36 @@ public class PaymentBatch extends ReferableObject {
 	/**
 	 * The holder of the originator's IBAN account. A copy, see IBAN comment.
 	 */
+	@NotNull
 	@Size(max = 96)
     @Column(name = "originator_iban_holder")
     private String originatorIbanHolder;
 
-    @Override
+    /**
+     * The number of withdrawal requests in this batch. 
+     */
+	@PositiveOrZero
+	@NotNull
+	@Column(name = "nr_requests")
+    private int nrRequests;
+    
+	/**
+	 * The requested amount of eurocents in this batch.
+	 */
+	@Column(name = "amount_requested_eurocents")
+	@NotNull
+	@Positive
+	private int amountRequestedEurocents;
+
+	/**
+	 * The settled amount of eurocents in this batch.
+	 */
+	@Column(name = "amount_settled_eurocents")
+	@NotNull
+	@PositiveOrZero
+	private int amountSettledEurocents;
+
+	@Override
 	public Long getId() {
 		return id;
 	}
@@ -177,11 +208,14 @@ public class PaymentBatch extends ReferableObject {
 	}
 
 	/**
-	 * Generates an order reference based on date (year and day-of-year) and ID. Example: NMPB-20294-50  
+	 * Generates an order reference based on date (year and day-of-year) and ID. Example: P20294-50  
 	 */
 	@PostPersist
 	public void defineOrderReference() {
-		this.orderReference = String.format("NMPB-%s-%d", DateTimeFormatter.ofPattern("yyD").format(creationTime.atOffset(ZoneOffset.UTC)), id);
+		OffsetDateTime date = creationTime.atOffset(ZoneOffset.UTC);
+		int dayOfYear = date.getDayOfYear();
+		int year = date.getYear() % 100;
+		this.orderReference = String.format("P%02d%03d-%d", year, dayOfYear, id);
 	}
 
 	public String getOrderReference() {
@@ -239,13 +273,6 @@ public class PaymentBatch extends ReferableObject {
         withdrawalRequests.add(request);
     }
  
-	public Integer getCount() {
-		return count;
-	}
-
-	public void setCount(Integer count) {
-		this.count = count;
-	}
 
 	public PaymentStatus getStatus() {
 		return status;
@@ -289,6 +316,30 @@ public class PaymentBatch extends ReferableObject {
 
 	public void setOriginatorIbanHolder(String originatorIbanHolder) {
 		this.originatorIbanHolder = originatorIbanHolder;
+	}
+
+	public int getNrRequests() {
+		return nrRequests;
+	}
+
+	public void setNrRequests(int nrRequests) {
+		this.nrRequests = nrRequests;
+	}
+
+	public int getAmountRequestedEurocents() {
+		return amountRequestedEurocents;
+	}
+
+	public void setAmountRequestedEurocents(int amountRequestedEurocents) {
+		this.amountRequestedEurocents = amountRequestedEurocents;
+	}
+
+	public int getAmountSettledEurocents() {
+		return amountSettledEurocents;
+	}
+
+	public void setAmountSettledEurocents(int amountSettledEurocents) {
+		this.amountSettledEurocents = amountSettledEurocents;
 	}
 
 	/**

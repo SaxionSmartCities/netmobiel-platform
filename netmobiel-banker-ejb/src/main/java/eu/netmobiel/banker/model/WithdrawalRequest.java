@@ -1,8 +1,8 @@
 package eu.netmobiel.banker.model;
 
 import java.time.Instant;
+import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
-import java.time.format.DateTimeFormatter;
 import java.util.Objects;
 
 import javax.enterprise.inject.Vetoed;
@@ -22,6 +22,7 @@ import javax.persistence.PostPersist;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
+import javax.persistence.Version;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
@@ -66,7 +67,14 @@ public class WithdrawalRequest extends ReferableObject {
     private Long id;
 
 	/**
-	 * The amount of credits to deposit
+	 * Record version for optimistic locking.
+	 */
+	@Version
+	@Column(name = "version")
+	private int version;
+	
+	/**
+	 * The amount of credits to withdraw
 	 */
 	@Column(name = "amount_credits")
 	@NotNull
@@ -74,7 +82,7 @@ public class WithdrawalRequest extends ReferableObject {
 	private int amountCredits;
 
 	/**
-	 * The amount of eurocents to pay for the desired amount of credits.
+	 * The amount of eurocents that will be paid for the credits.
 	 */
 	@Column(name = "amount_eurocents")
 	@NotNull
@@ -90,7 +98,7 @@ public class WithdrawalRequest extends ReferableObject {
 	private String description;
 
 	/**
-	 * The order reference to be used by treasurer.
+	 * The order reference to be used by treasurer. Can be null because we want the record id in the order reference.
 	 */
 	@Size(max = ORDER_REFERENCE_MAX_LENGTH)
     @Column(name = "order_reference")
@@ -123,6 +131,7 @@ public class WithdrawalRequest extends ReferableObject {
 	/**
      * The settling of the request is confirmed by a specific user.
      */
+	@NotNull
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "modified_by", nullable = true, foreignKey = @ForeignKey(name = "withdrawal_modified_by_fk"))
     private BankerUser modifiedBy;
@@ -167,6 +176,7 @@ public class WithdrawalRequest extends ReferableObject {
 	 */
     @IBANBankAccount
 	@Size(max = 48)
+	@NotNull
     @Column(name = "iban")
     private String iban;
 
@@ -174,6 +184,7 @@ public class WithdrawalRequest extends ReferableObject {
 	 * The holder of the IBAN. A copy, see IBAN comment.
 	 */
 	@Size(max = 96)
+	@NotNull
     @Column(name = "iban_holder")
     private String ibanHolder;
 
@@ -187,11 +198,14 @@ public class WithdrawalRequest extends ReferableObject {
 	}
 
 	/**
-	 * Generates an order reference based on date (year and day-of-year) and ID. Example: NMWR-20294-50  
+	 * Generates an order reference based on date (year and day-of-year) and ID. Example: W20294-50  
 	 */
 	@PostPersist
 	public void defineOrderReference() {
-		this.orderReference = String.format("NMWR-%s-%d", DateTimeFormatter.ofPattern("yyD").format(creationTime.atOffset(ZoneOffset.UTC)), id);
+		OffsetDateTime date = creationTime.atOffset(ZoneOffset.UTC);
+		int dayOfYear = date.getDayOfYear();
+		int year = date.getYear() % 100;
+		this.orderReference = String.format("W%02d%03d-%d", year, dayOfYear, id);
 	}
 	
 	public String getOrderReference() {

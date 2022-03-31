@@ -293,7 +293,7 @@ public class UsersResource implements UsersApi {
 			BankerUser user = resolveUserReference(userId, context);
         	Account acc = userManager.getPersonalAccount(user.getId());
 	    	Long wrid = UrnHelper.getId(WithdrawalRequest.URN_PREFIX, withdrawalRequestId);
-			withdrawalService.cancelWithdrawalRequest(acc, wrid);
+			withdrawalService.cancelWithdrawalRequest(acc, wrid, reason);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

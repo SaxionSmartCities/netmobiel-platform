@@ -1,5 +1,8 @@
 package eu.netmobiel.banker.api.mapping;
 
+import java.util.List;
+
+import org.mapstruct.BeanMapping;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
@@ -38,4 +41,12 @@ public interface WithdrawalRequestMapper {
 	@WithdrawalRequestPaymentBatch
 	eu.netmobiel.banker.api.model.WithdrawalRequest mapWithPaymentBatch(WithdrawalRequest source);
 
+	// API --> Domain (update status)
+	@BeanMapping(ignoreByDefault = true)
+	@Mapping(target = "id", source = "id")
+	@Mapping(target = "status", source = "status")
+	@Mapping(target = "reason", source = "reason")
+	WithdrawalRequest mapShallow(eu.netmobiel.banker.api.model.WithdrawalRequest source);
+
+	List<WithdrawalRequest> mapShallow(List<eu.netmobiel.banker.api.model.WithdrawalRequest> source);
 }

@@ -2,21 +2,42 @@ package eu.netmobiel.banker.api.resource;
 
 import java.math.BigDecimal;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
+import java.time.format.DateTimeFormatter;
 import java.util.ArrayList;
+import java.util.Date;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 
+import javax.activation.DataHandler;
+import javax.activation.DataSource;
+import javax.annotation.Resource;
 import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
+import javax.mail.BodyPart;
+import javax.mail.MessagingException;
+import javax.mail.Multipart;
+import javax.mail.Session;
+import javax.mail.Transport;
+import javax.mail.internet.MimeBodyPart;
+import javax.mail.internet.MimeMessage;
+import javax.mail.internet.MimeMultipart;
+import javax.mail.util.ByteArrayDataSource;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.UriBuilder;
 
+import org.apache.commons.text.StringSubstitutor;
+
 import eu.netmobiel.banker.api.PaymentBatchesApi;
 import eu.netmobiel.banker.api.mapping.PageMapper;
 import eu.netmobiel.banker.api.mapping.PaymentBatchMapper;
+import eu.netmobiel.banker.api.mapping.WithdrawalRequestMapper;
+import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Charity;
 import eu.netmobiel.banker.model.PaymentBatch;
 import eu.netmobiel.banker.model.PaymentStatus;
@@ -28,6 +49,7 @@ import eu.netmobiel.banker.rest.sepa.SepaTransaction;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.WithdrawalService;
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.UrnHelper;
 
@@ -45,6 +67,12 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 
 	@Inject
 	private PaymentBatchMapper paymentBatchMapper;
+
+	@Inject
+	private WithdrawalRequestMapper withdrawalRequestBatchMapper;
+
+	@Resource(mappedName="java:jboss/mail/NetMobiel")
+    private Session mailSession;	
 
 	@Override
 	public Response createPaymentBatch() {
@@ -84,7 +112,49 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 		return rsp;
 	}
 
-	@Override
+	private static final String SUBJECT = "Netmobiel Credit Transfer File ${dateFormatted}";
+    private static final String BODY = 
+    		  "Beste ${givenName},"
+    		+ "\n\nDeze mail bevat het aangevraagde betalingsbestand van NetMobiel. "
+    		+ "\n\nDe orderreferentie van dit bestand is ${orderReference}."
+    		+ "Verwerk deze bij je bank."
+    		+ "\n\nNa afronding bij de bank moet je in de NetMobiel App vervolgens de betreffende opdrachten goed- of afkeuren, "
+    		+ " zodat de administratie in Netmobiel overeenkomt met de verwerking bij de bank."
+    		+ "\n\nMet vriendelijke groet,\n\nNetMobiel Platform\n";
+    
+    @Override
+    public Response mailPaymentBatchAsPAINFile(String paymentBatchId, Boolean forceUniqueId, Boolean pendingOnly) {
+    	Response rsp = null;
+		try {
+			BankerUser caller = userManager.findCallingUser();
+			if (caller == null || caller.getEmail() == null || caller.getEmail().isBlank()) {
+				throw new BadRequestException("No email known");
+			}
+        	Long pbid = UrnHelper.getId(PaymentBatch.URN_PREFIX, paymentBatchId);
+        	PaymentBatch pb = withdrawalService.getPaymentBatch(pbid);
+   			String ctd = createCreditTransferDocument(pb, !Boolean.FALSE.equals(pendingOnly), Boolean.TRUE.equals(forceUniqueId)).toXml().toString();
+
+   			LocalDateTime now = LocalDateTime.now();
+   			Map<String, String> valuesMap = new HashMap<>();
+   			valuesMap.put("givenName", caller.getGivenName());
+   			valuesMap.put("dateFormatted", now.format(DateTimeFormatter.ofPattern("yyyy-MM-dd HH:mm")));
+   			valuesMap.put("orderReference", pb.getOrderReference());
+
+   			StringSubstitutor substitutor = new StringSubstitutor(valuesMap);
+   			String subject = substitutor.replace(SUBJECT);
+   			String body = substitutor.replace(BODY);
+   			Map<String, String> attachmentMap = new HashMap<>();
+   			String filename = String.format("netmobiel-credit-transfer-%s.xml", now.format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmm")));
+   			attachmentMap.put(filename, ctd);
+   			sendEmail(subject, body, caller.getEmail(), attachmentMap, "text/xml");
+   			rsp = Response.noContent().build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+    }
+
+    @Override
 	public Response listPaymentBatches(OffsetDateTime since, OffsetDateTime until, String status,
 			Integer maxResults, Integer offset) {
 		Instant si = since != null ? since.toInstant() : null;
@@ -102,30 +172,41 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 		return rsp;
 	}
 
+//	@Override
+//	public Response settlePaymentBatch(String paymentBatchId) {
+//		try {
+//        	Long pbid = UrnHelper.getId(Charity.URN_PREFIX, paymentBatchId);
+//        	withdrawalService.settlePaymentBatch(pbid);
+//		} catch (BusinessException ex) {
+//			throw new WebApplicationException(ex);
+//		}
+//		return Response.noContent().build();
+//	}
+
 	@Override
-	public Response settlePaymentBatch(String paymentBatchId) {
+    public Response updatePaymentBatch(String paymentBatchId, eu.netmobiel.banker.api.model.PaymentBatch batch) {
 		try {
         	Long pbid = UrnHelper.getId(Charity.URN_PREFIX, paymentBatchId);
-        	withdrawalService.settlePaymentBatch(pbid);
+        	List<WithdrawalRequest> wrs = withdrawalRequestBatchMapper.mapShallow(batch.getWithdrawalRequests());
+        	withdrawalService.updatePaymentBatch(pbid, wrs);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
 		return Response.noContent().build();
-	}
-
+    }
 
 	@Override
 	public Response cancelPaymentBatch(String paymentBatchId, String reason) {
 		try {
         	Long pbid = UrnHelper.getId(Charity.URN_PREFIX, paymentBatchId);
-        	withdrawalService.cancelPaymentBatch(pbid);
+        	withdrawalService.cancelPaymentBatch(pbid, reason);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
 		return Response.noContent().build();
 	}
 
-	protected SepaCreditTransferDocument createCreditTransferDocument(PaymentBatch pb, boolean pendingOnly, boolean forceUniqueBatchId) {
+	private static SepaCreditTransferDocument createCreditTransferDocument(PaymentBatch pb, boolean pendingOnly, boolean forceUniqueBatchId) {
 		List<SepaTransaction> transactions = new ArrayList<>();
 		for (WithdrawalRequest wr : pb.getWithdrawalRequests()) {
 			if (pendingOnly && wr.getStatus().isFinal()) {
@@ -162,4 +243,33 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 				.build();
 	}
 	
+	private void sendEmail(String subject, String body, String recipient, Map<String, String> attachments, String mimeType) {
+		try {
+            MimeMessage msg = new MimeMessage(mailSession);
+            msg.setRecipients(javax.mail.Message.RecipientType.TO, recipient);
+//        	m.setFrom(reportRecipient);
+            msg.setSentDate(new Date());
+            msg.setSubject(subject);
+            Multipart multipart = new MimeMultipart();
+            // sets the multi-part as e-mail's content
+            msg.setContent(multipart);
+            
+            MimeBodyPart messageBodyPart = new MimeBodyPart();
+            messageBodyPart.setContent(body, "text/plain");
+            multipart.addBodyPart(messageBodyPart);
+    
+            for (Map.Entry<String, String> entry : attachments.entrySet()) {
+                byte[] poiBytes = entry.getValue().getBytes();
+                DataSource dataSource = new ByteArrayDataSource(poiBytes, mimeType);
+                BodyPart attachmentBodyPart = new MimeBodyPart();
+                attachmentBodyPart.setDataHandler(new DataHandler(dataSource));
+                attachmentBodyPart.setFileName(entry.getKey());
+                multipart.addBodyPart(attachmentBodyPart);
+			}
+            
+            Transport.send(msg);
+        } catch (MessagingException e) {
+            throw new SystemException(String.format("Failed to send email on '%s' to %s", subject, recipient), e);
+        }
+	}
 }

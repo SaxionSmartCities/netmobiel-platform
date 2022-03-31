@@ -213,6 +213,11 @@
 		    <artifactId>commons-lang3</artifactId>
 			<scope>provided</scope>
 		</dependency>
+		<dependency>
+			<groupId>com.sun.mail</groupId>
+			<artifactId>javax.mail</artifactId>
+			<scope>provided</scope>
+		</dependency>
 
 		<!-- TEST Dependencies -->
         <dependency>

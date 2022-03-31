@@ -63,7 +63,7 @@ public class WithdrawalsResource implements WithdrawalsApi {
 	public Response cancelWithdrawalRequest(String withdrawalRequestId, String reason) {
 		try {
 	    	Long wrid = UrnHelper.getId(WithdrawalRequest.URN_PREFIX, withdrawalRequestId);
-			withdrawalService.cancelWithdrawalRequest(wrid);
+			withdrawalService.cancelWithdrawalRequest(wrid, reason);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

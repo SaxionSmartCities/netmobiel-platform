@@ -396,7 +396,7 @@ public class CharitiesResource implements CharitiesApi {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
         	Account acc = charityManager.getCharityAccount(cid);
 	    	Long wrid = UrnHelper.getId(WithdrawalRequest.URN_PREFIX, withdrawalRequestId);
-			withdrawalService.cancelWithdrawalRequest(acc, wrid);
+			withdrawalService.cancelWithdrawalRequest(acc, wrid, reason);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
