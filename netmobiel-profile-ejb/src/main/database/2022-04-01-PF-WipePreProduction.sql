@@ -3,8 +3,8 @@
 -- public.survey;
 TRUNCATE public.survey_interaction;
 
-TRUNCATE public.compliment_set;
-TRUNCATE public.compliment;
+TRUNCATE public.compliment_set, public.compliment;
+
 TRUNCATE public.review;
 
 -- Tricky, has setting in Keycloak

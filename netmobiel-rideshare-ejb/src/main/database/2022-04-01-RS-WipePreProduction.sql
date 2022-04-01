@@ -1,11 +1,6 @@
 -- Rideshare: Wipe dynamic data
 
-TRUNCATE public.booked_legs;
-TRUNCATE public.booking;
-TRUNCATE public.ride_template;
-TRUNCATE public.leg;
-TRUNCATE public.stop;
-TRUNCATE public.ride;
+TRUNCATE public.booked_legs, public.booking, public.ride_template, public.leg, public.stop, public.ride;
 
 -- Probably irrelevant, but keep. Has also setting in profile (!)
 -- public.car;

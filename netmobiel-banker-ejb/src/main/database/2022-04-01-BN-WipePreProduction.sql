@@ -1,27 +1,16 @@
 -- Banker: Wipe dynamic data, reset balance, remove iban data from accounts
 
--- CHARITY
+TRUNCATE public.donation, public.reward, public.withdrawal_request, public.deposit_request, public.payment_batch,
+	public.accounting_entry, public.accounting_transaction;
+
 -- public.charity_user_role;
 -- public.charity;
-
-TRUNCATE public.donation;
-
--- INCENTIVE
 -- public.incentive;
-TRUNCATE public.reward;
 
--- DEPOSIT & WTHDRAWAL
-TRUNCATE public.withdrawal_request;
-TRUNCATE public.deposit_request;
-TRUNCATE public.payment_batch;
-
--- BOOKKEEPING
--- public.account
+	-- public.account
 -- Wipe IBAN
 UPDATE public.account SET iban = null, iban_holder = null;
 
-TRUNCATE public.accounting_entry;
-TRUNCATE public.accounting_transaction;
 -- public.balance;
 -- Clear end_amount
 UPDATE public.balance SET start_amount = 0, end_amount = 0;
