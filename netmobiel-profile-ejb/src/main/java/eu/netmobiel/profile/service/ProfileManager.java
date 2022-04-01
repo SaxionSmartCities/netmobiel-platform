@@ -9,6 +9,8 @@ import java.nio.file.Path;
 import java.nio.file.Paths;
 import java.nio.file.StandardOpenOption;
 import java.time.Instant;
+import java.time.LocalDate;
+import java.time.ZoneId;
 import java.util.List;
 import java.util.Optional;
 
@@ -25,6 +27,8 @@ import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.annotation.Updated;
+import eu.netmobiel.commons.event.RewardEvent;
+import eu.netmobiel.commons.event.RewardRollbackEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.DuplicateEntryException;
@@ -57,6 +61,11 @@ import eu.netmobiel.profile.repository.SearchPreferencesDao;
 @DeclareRoles({ "admin", "delegate" })
 public class ProfileManager {
 	public static final Integer MAX_RESULTS = 10; 
+	public static final String INCENTIVE_CATEGORY = "PROFILE"; 
+	public static final String INCENTIVE_CODE_AGE_YOUTH = "profile-youth"; 
+	public static final String INCENTIVE_CODE_PROFILE_PLUS = "profile-plus"; 
+	public static final String INCENTIVE_CODE_STARTER = "profile-starter"; 
+	public static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
 
 	@Resource
     private SessionContext sessionContext;
@@ -82,7 +91,13 @@ public class ProfileManager {
 
     @Inject @Updated
     private Event<NetMobielUser> netMobielUserUpdatedEvent;
-    
+
+    @Inject
+    private Event<RewardEvent> rewardEvent;
+
+    @Inject
+    private Event<RewardRollbackEvent> rewardRollbackEvent;
+
 	public @NotNull PagedResult<Profile> listProfiles(ProfileFilter filter, Cursor cursor) throws BadRequestException {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
@@ -324,8 +339,37 @@ public class ProfileManager {
 		} else {
 			// Ignore, we dont't remove preferences once they are set.
 		}
+		evaluateRewardTriggers(dbprofile, newProfile);
 	}
-	
+
+	private void evaluateRewardTriggers(Profile dbProfile, Profile newProfile) {
+		// Trigger the starter. Should be at creation time but now we have backward compatibility
+		// If at creation time, then after creation of the banker user! And communicatgor user!
+		RewardEvent starter = new RewardEvent(INCENTIVE_CODE_STARTER, dbProfile, dbProfile.getKeyCloakUrn());
+		rewardEvent.fire(starter);
+
+		// Trigger the additional profile info: Only birth date now
+		LocalDate profileCreatedDate = LocalDate.from(dbProfile.getCreationTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))); 
+		Integer age = newProfile.getAgeAt(profileCreatedDate);
+		if (age != null) {
+			RewardEvent plus = new RewardEvent(INCENTIVE_CODE_PROFILE_PLUS, dbProfile, dbProfile.getKeyCloakUrn());
+			rewardEvent.fire(plus);
+		} else {
+			RewardRollbackEvent noPlus = new RewardRollbackEvent(INCENTIVE_CODE_PROFILE_PLUS, dbProfile, dbProfile.getKeyCloakUrn());
+			rewardRollbackEvent.fire(noPlus);
+		}
+		
+		// Trigger on the age at the time of creation of the profile
+		if (age != null && age >= 15 && age <= 25) {
+			RewardEvent youth = new RewardEvent(INCENTIVE_CODE_AGE_YOUTH, dbProfile, dbProfile.getKeyCloakUrn());
+			rewardEvent.fire(youth);
+		} else {
+			RewardRollbackEvent noYouth = new RewardRollbackEvent(INCENTIVE_CODE_AGE_YOUTH, dbProfile, dbProfile.getKeyCloakUrn());
+			rewardRollbackEvent.fire(noYouth);
+		}
+
+	}
+
 	/**
 	 * Removes the profile. The Keycloak account is retained.
 	 * @param managedId

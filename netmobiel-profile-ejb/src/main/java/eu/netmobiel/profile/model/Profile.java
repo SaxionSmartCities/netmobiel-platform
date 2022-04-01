@@ -279,7 +279,11 @@ public class Profile extends User  {
 		if (this.dateOfBirth == null) {
 			return null;
 		}
-		return Period.between(this.dateOfBirth, LocalDate.now()).getYears();
+		return getAgeAt(LocalDate.now());
+	}
+
+	public Integer getAgeAt(LocalDate someDate) {
+		return Period.between(this.dateOfBirth, someDate).getYears();
 	}
 
 	public String getFcmToken() {

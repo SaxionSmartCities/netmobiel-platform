@@ -114,7 +114,7 @@ public class AccountingTransaction  implements Serializable {
 	/**
 	 * The context of the accounting entry. The context is a urn, referring to an object in the system.
 	 */
-	@Column(name = "context", length = 32, nullable = true)
+	@Column(name = "context", length = 64, nullable = true)
 	private String context;
 
 	/**

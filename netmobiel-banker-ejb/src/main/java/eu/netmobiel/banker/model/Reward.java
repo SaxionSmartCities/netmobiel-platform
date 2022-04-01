@@ -127,7 +127,7 @@ public class Reward extends ReferableObject {
      * The URN of the fact that is the source of the reward being issued. For a survey it is the urn 
      * to the survey interaction of a user.
      */
-	@Size(max = 32)
+	@Size(max = 64)
 	@NotNull
     @Column(name = "fact_context")
     private String factContext;
