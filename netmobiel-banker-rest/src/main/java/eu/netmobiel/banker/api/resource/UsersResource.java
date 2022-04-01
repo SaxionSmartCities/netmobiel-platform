@@ -29,6 +29,7 @@ import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.Reward;
+import eu.netmobiel.banker.model.TransactionType;
 import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
@@ -135,10 +136,11 @@ public class UsersResource implements UsersApi {
 		Instant ui = until != null ? until.toInstant() : null;
 		Response rsp = null;
 		try {
+			final TransactionType purpose = null;
 			CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
 			BankerUser user = resolveUserReference(userId, context);
 			user = userManager.getUserWithBalance(user.getId());
-			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getNcan(), si, ui, maxResults, offset); 
+			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(user.getPersonalAccount().getNcan(), si, ui, purpose, maxResults, offset); 
 			rsp = Response.ok(pageMapper.mapAccountingEntriesShallow(result)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);

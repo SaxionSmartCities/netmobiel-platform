@@ -32,6 +32,7 @@ import eu.netmobiel.banker.model.CharityUserRoleType;
 import eu.netmobiel.banker.model.Donation;
 import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.banker.model.PaymentStatus;
+import eu.netmobiel.banker.model.TransactionType;
 import eu.netmobiel.banker.model.WithdrawalRequest;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
@@ -218,12 +219,13 @@ public class CharitiesResource implements CharitiesApi {
 		Instant ui = until != null ? until.toInstant() : null;
 		Response rsp = null;
 		try {
+			final TransactionType purpose = null;
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
 			Charity charity = charityManager.getCharity(cid);
 			if (charity.getAccount() == null) {
 				throw new EJBAccessException("You do not have access to the statements of this charity: " + charityId);
 			}
-			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(charity.getAccount().getNcan(), si, ui, maxResults, offset); 
+			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(charity.getAccount().getNcan(), si, ui, purpose, maxResults, offset); 
 			rsp = Response.ok(pageMapper.mapAccountingEntriesShallow(result)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);

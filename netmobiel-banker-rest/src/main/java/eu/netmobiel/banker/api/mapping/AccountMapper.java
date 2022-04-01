@@ -29,10 +29,12 @@ public abstract class AccountMapper {
 //	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "ncan", ignore = true)
 	@Mapping(target = "purpose", ignore = true)
+	@Mapping(target = "type", ignore = true)
 	@AccountMinimal
 	public abstract eu.netmobiel.banker.api.model.Account mapMinimal(Account acc);
 
 	@Mapping(target = "credits", source = "actualBalance.endAmount")
+	@Mapping(target = "type", source = "accountType")
 //	@Mapping(target = "id", ignore = true)
 	@AccountAll
 	public abstract eu.netmobiel.banker.api.model.Account mapAll(Account acc);

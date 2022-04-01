@@ -104,13 +104,14 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
     	String accref = null;
     	Instant since = null;
     	Instant until = null;
-    	PagedResult<Long> actual = accountingEntryDao.listAccountingEntries(accref, since, until, 0, 0);
+    	TransactionType purpose = null;
+    	PagedResult<Long> actual = accountingEntryDao.listAccountingEntries(accref, since, until, purpose, 0, 0);
     	assertNotNull(actual);
     	assertEquals(0, actual.getCount());
     	assertEquals(0, actual.getData().size());
     	assertEquals(6, actual.getTotalCount().intValue());
     
-    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, 2, 0);
+    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, purpose, 2, 0);
     	assertNotNull(actual);
     	assertEquals(2, actual.getCount());
     	assertEquals(2, actual.getData().size());
@@ -127,7 +128,7 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
 
     	// TEST Account reference
     	accref = account1.getNcan();
-    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, 10, 0);
+    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, purpose, 10, 0);
     	assertNotNull(actual);
     	assertEquals(3, actual.getData().size());
     	entries = accountingEntryDao.loadGraphs(actual.getData(), null, AccountingEntry::getId);
@@ -139,7 +140,7 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
     	// TEST since
     	accref = null;
     	since = Instant.parse("2020-04-09T17:00:00Z");
-    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, 10, 0);
+    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, purpose, 10, 0);
     	assertNotNull(actual);
     	assertEquals(2, actual.getData().size());
     	entries = accountingEntryDao.loadGraphs(actual.getData(), null, AccountingEntry::getId);
@@ -150,7 +151,7 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
     	// TEST until
     	since = null;
     	until = Instant.parse("2020-04-08T17:00:00Z");
-    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, 10, 0);
+    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, purpose, 10, 0);
     	assertNotNull(actual);
     	assertEquals(2, actual.getData().size());
     	entries = accountingEntryDao.loadGraphs(actual.getData(), null, AccountingEntry::getId);
@@ -158,6 +159,23 @@ public class AccountingEntryDaoIT extends BankerIntegrationTestBase {
     	for (AccountingEntry entry : entries) {
     		assertTrue(entry.getTransaction().getAccountingTime().isBefore(until));
 		}
+
+    	// TEST purpose
+    	until = null;
+    	purpose = TransactionType.PAYMENT;
+    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, purpose, 10, 0);
+    	assertNotNull(actual);
+    	assertEquals(6, actual.getData().size());
+    	entries = accountingEntryDao.loadGraphs(actual.getData(), null, AccountingEntry::getId);
+    	dump("listEntries - purpose " + purpose, entries);
+    	for (AccountingEntry entry : entries) {
+    		assertTrue(entry.getPurpose() == purpose);
+		}
+    	
+    	purpose = TransactionType.DEPOSIT;
+    	actual = accountingEntryDao.listAccountingEntries(accref, since, until, purpose, 10, 0);
+    	assertNotNull(actual);
+    	assertEquals(0, actual.getData().size());
     }
 
 }

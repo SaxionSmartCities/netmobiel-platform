@@ -152,16 +152,16 @@ public class LedgerService {
     public AccountingTransaction deposit(Account acc, int amount, OffsetDateTime when, String description, String reference) {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance userAccountBalance = balanceDao.findByLedgerAndAccount(ledger, acc);
-    	Balance brab = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE);  
-    	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
-    	expect(brab.getAccount(), AccountType.ASSET);
+    	Balance liabilityBalance = balanceDao.findByLedgerAndAccount(ledger, acc);
+    	Balance assetBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE);  
+    	expect(liabilityBalance.getAccount(), AccountType.LIABILITY);
+    	expect(assetBalance.getAccount(), AccountType.ASSET);
     	AccountingTransaction tr = null;
 		try {
 			tr = ledger
 					.createStartTransaction(description, reference, when.toInstant(), Instant.now())
-					.debit(brab, amount, TransactionType.DEPOSIT, userAccountBalance.getAccount())
-					.credit(userAccountBalance, amount, TransactionType.DEPOSIT, brab.getAccount())
+					.debit(assetBalance, amount, TransactionType.DEPOSIT, liabilityBalance.getAccount())
+					.credit(liabilityBalance, amount, TransactionType.DEPOSIT, assetBalance.getAccount())
 					.build();
 	    	accountingTransactionDao.save(tr);
 		} catch (BalanceInsufficientException e) {
@@ -182,14 +182,14 @@ public class LedgerService {
     public  AccountingTransaction withdraw(Account acc, int amount, OffsetDateTime when, String description, String reference) throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance userAccountBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
-    	Balance brab = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE);  
-    	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
-    	expect(brab.getAccount(), AccountType.ASSET);
+    	Balance liabilityBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
+    	Balance assetBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE);  
+    	expect(liabilityBalance.getAccount(), AccountType.LIABILITY);
+    	expect(assetBalance.getAccount(), AccountType.ASSET);
     	AccountingTransaction tr = ledger
     			.createStartTransaction(description, reference, when.toInstant(), Instant.now())
-    			.credit(brab, amount, TransactionType.WITHDRAWAL, userAccountBalance.getAccount())
-				.debit(userAccountBalance, amount, TransactionType.WITHDRAWAL, brab.getAccount())
+    			.credit(assetBalance, amount, TransactionType.WITHDRAWAL, liabilityBalance.getAccount())
+				.debit(liabilityBalance, amount, TransactionType.WITHDRAWAL, assetBalance.getAccount())
     			.build();
     	accountingTransactionDao.save(tr);
     	return tr;
@@ -639,7 +639,7 @@ public class LedgerService {
     	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());
     }
 
-    public PagedResult<AccountingEntry> listAccountingEntries(String accountReference, Instant since, Instant until, Integer maxResults, Integer offset) 
+    public PagedResult<AccountingEntry> listAccountingEntries(String accountReference, Instant since, Instant until, TransactionType purpose, Integer maxResults, Integer offset) 
     		throws BadRequestException {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
@@ -650,11 +650,11 @@ public class LedgerService {
         if (since != null && until != null && until.isBefore(since)) {
         	throw new BadRequestException("Until must be after since");
         }
-    	PagedResult<Long> prs = accountingEntryDao.listAccountingEntries(accountReference, since, until, 0, offset);
+    	PagedResult<Long> prs = accountingEntryDao.listAccountingEntries(accountReference, since, until, purpose, 0, offset);
     	List<AccountingEntry> results = null;
     	if (maxResults > 0 && prs.getTotalCount() > 0) {
     		// Get the actual data
-    		PagedResult<Long> ids = accountingEntryDao.listAccountingEntries(accountReference, since, until, maxResults, offset);
+    		PagedResult<Long> ids = accountingEntryDao.listAccountingEntries(accountReference, since, until, purpose, maxResults, offset);
     		results = accountingEntryDao.loadGraphs(ids.getData(), AccountingEntry.STATEMENT_ENTITY_GRAPH, AccountingEntry::getId);
     	}
     	return new PagedResult<>(results, maxResults, offset, prs.getTotalCount());

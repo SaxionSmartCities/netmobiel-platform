@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.api.resource;
 
+import java.net.URI;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
@@ -12,11 +13,13 @@ import javax.ws.rs.core.Response;
 import eu.netmobiel.banker.api.AccountsApi;
 import eu.netmobiel.banker.api.mapping.AccountMapper;
 import eu.netmobiel.banker.api.mapping.PageMapper;
-import eu.netmobiel.banker.api.model.PaymentLink;
 import eu.netmobiel.banker.model.Account;
 import eu.netmobiel.banker.model.AccountPurposeType;
 import eu.netmobiel.banker.model.AccountingEntry;
-import eu.netmobiel.banker.service.DepositService;
+import eu.netmobiel.banker.model.AccountingTransaction;
+import eu.netmobiel.banker.model.BankerUser;
+import eu.netmobiel.banker.model.TransactionType;
+import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.PagedResult;
@@ -29,8 +32,8 @@ public class AccountsResource implements AccountsApi {
     private LedgerService ledgerService;
 	
 	@Inject
-    private DepositService depositService;
-	
+    private BankerUserManager userManager;
+
 	@Inject
 	private AccountMapper accountMapper;
 
@@ -78,33 +81,58 @@ public class AccountsResource implements AccountsApi {
 	}
 
     @Override
-	public Response createDeposit(String accountId, eu.netmobiel.banker.api.model.DepositRequest deposit) {
+	public Response depositToAccount(String accountId, eu.netmobiel.banker.api.model.DepositRequest deposit) {
 		Response rsp = null;
 		try {
         	Long accid = UrnHelper.getId(Account.URN_PREFIX, accountId);
         	Account acc = ledgerService.getAccount(accid);
-			String paymentUrl = depositService.createDepositRequest(acc, deposit.getAmountCredits(), deposit.getDescription(), deposit.getReturnUrl());
-			PaymentLink plink = new PaymentLink();
-			plink.setPaymentUrl(paymentUrl);
-			rsp = Response.ok(plink).build();
+        	// What is the context of this action? It is a manual operation by the user, not induced by objects in the system
+			BankerUser user = userManager.findOrRegisterCallingUser();
+        	final String reference = user.getUrn();
+        	AccountingTransaction tr = ledgerService.deposit(acc, deposit.getAmountCredits(), 
+        			OffsetDateTime.now(), deposit.getDescription(), reference);
+			final String urn = UrnHelper.createUrn(AccountingTransaction.URN_PREFIX, tr.getId());
+			rsp = Response.created(URI.create(urn)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
 		return rsp;
 	}
 
-	@Override
-	public Response listAccountStatements(String accountId, OffsetDateTime since, OffsetDateTime until, Integer maxResults, Integer offset) {
+    @Override
+    public Response withdrawFromAccount(String accountId, eu.netmobiel.banker.api.model.WithdrawalRequest withdrawalRequest) {
+		Response rsp = null;
+		try {
+        	Long accid = UrnHelper.getId(Account.URN_PREFIX, accountId);
+        	Account acc = ledgerService.getAccount(accid);
+        	// What is the context of this action? It is a manual operation by the user, not induced by objects in the system
+			BankerUser user = userManager.findOrRegisterCallingUser();
+        	final String reference = user.getUrn();
+        	AccountingTransaction tr = ledgerService.withdraw(acc, withdrawalRequest.getAmountCredits(), 
+        			OffsetDateTime.now(), withdrawalRequest.getDescription(), reference);
+			final String urn = UrnHelper.createUrn(AccountingTransaction.URN_PREFIX, tr.getId());
+			rsp = Response.created(URI.create(urn)).build();
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+    }
+
+    @Override
+	public Response listAccountStatements(String accountId, OffsetDateTime since, OffsetDateTime until, String purpose, Integer maxResults, Integer offset) {
 		Instant si = since != null ? since.toInstant() : null;
 		Instant ui = until != null ? until.toInstant() : null;
 		Response rsp = null;
 		try {
         	Long accid = UrnHelper.getId(Account.URN_PREFIX, accountId);
         	Account acc = ledgerService.getAccount(accid);
-			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(acc.getNcan(), si, ui, maxResults, offset); 
+        	TransactionType trType = purpose == null ? null : TransactionType.valueOf(purpose);
+			PagedResult<AccountingEntry> result = ledgerService.listAccountingEntries(acc.getNcan(), si, ui, trType, maxResults, offset); 
 			rsp = Response.ok(pageMapper.mapAccountingEntriesShallow(result)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
 		}
 		return rsp;
 	}
