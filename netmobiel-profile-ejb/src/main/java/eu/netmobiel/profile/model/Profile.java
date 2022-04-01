@@ -276,13 +276,13 @@ public class Profile extends User  {
 	}
 
 	public Integer getAge() {
-		if (this.dateOfBirth == null) {
-			return null;
-		}
 		return getAgeAt(LocalDate.now());
 	}
 
 	public Integer getAgeAt(LocalDate someDate) {
+		if (this.dateOfBirth == null) {
+			return null;
+		}
 		return Period.between(this.dateOfBirth, someDate).getYears();
 	}
 
