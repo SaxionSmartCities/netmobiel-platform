@@ -1662,10 +1662,10 @@ paths:
       description: |
         Gets a list of `Account` entities matching the criteria. The objects are sorted by account name ascending.
   /accounts/{accountId}/deposits:
-    summary: Path used to manage deposits to any account.
-    description: "The REST endpoint/path used to create zero or more `DepositRequest`\
-      \ entities.  This path contains a `POST` operation to perform the create task.\n\
-      \nOnly users with the role `admin` or `treasurer` are allowed to use this endpoint. "
+    summary: Path used to manage deposits to any liability account.
+    description: "The REST endpoint/path used to create zero or more `DEPOSIT` transactions.\
+      \ This path contains a `POST` operation to perform the create task.\n\nOnly\
+      \ users with the role `admin` or `treasurer` are allowed to use this endpoint. "
     post:
       requestBody:
         description: A new `Deposit` to be created.
@@ -1686,12 +1686,15 @@ paths:
       security:
       - Bearer-only: []
         apikey: []
-      operationId: createDeposit
-      summary: Create a Deposit
-      description: Creates a new `DepositRequest`. The call returns a `PaymentLink`,
-        containing a url to a payment page. The client should redirect a browser to
-        the payment page url. The payment is converted into credits, the credits are
-        added to the referenced account.
+      operationId: depositToAccount
+      summary: Deposit to an account
+      description: |-
+        Creates a new deposit of credits to referenced account. The account must be a `LIABILITY`account and is thus credited with the requested amount.
+        The banking reserve `ASSET` account is debited with the same amount.
+
+        This endpoint is in particular used to add premium credits.
+
+        Note that credits are created from thin air with this call, there is no hard link with the real world. The treasurer must take care to reserve real money for future pay-out.
     parameters:
     - name: accountId
       description: The account id to use. Specify a banker account id, or an account
@@ -2141,6 +2144,49 @@ paths:
       summary: List Statement entries.
       description: |
         Gets a paged list of  `Statement` entities. The statements are sorted on accounting time descending.
+    parameters:
+    - name: accountId
+      description: The account id to use. Specify a banker account id, or an account
+        urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /accounts/{accountId}/withdrawals:
+    summary: Path used to manage withdrawals from any liability account.
+    description: "The REST endpoint/path used to create zero or more `WITHDRAWAL`\
+      \ transactions.  This path contains a `POST` operation to perform the create\
+      \ task.\n\nOnly users with the role `admin` or `treasurer` are allowed to use\
+      \ this endpoint. "
+    post:
+      requestBody:
+        description: A new `Deposit` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentLink'
+          description: Successful response.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: withdrawFromAccount
+      summary: Withdraw from an account
+      description: |-
+        Withdraw credits from referenced account. The account must be a `LIABILITY`account and is thus debited with the requested amount.
+        The banking reserve `ASSET` account is credited with the same amount.
+
+        This endpoint is in particular used to remove premium credits.
+
+        Note that this call will evaporate credits into thin air, there is no hard link with the real world.
     parameters:
     - name: accountId
       description: The account id to use. Specify a banker account id, or an account
