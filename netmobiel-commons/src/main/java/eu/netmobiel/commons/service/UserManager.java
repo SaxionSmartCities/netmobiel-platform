@@ -234,9 +234,25 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     public void updateUser(Long uid, NetMobielUser user) throws NotFoundException {
     	T usr = getUserDao().find(uid)
     			.orElseThrow(() -> new NotFoundException("No such user: " + uid));
-    	usr.setEmail(user.getEmail());
-    	usr.setFamilyName(user.getFamilyName());
-    	usr.setGivenName(user.getGivenName());
+    	copyUserData(usr, user);
+    }
+
+    private void copyUserData(T dbusr, NetMobielUser nbuser) {
+    	dbusr.setEmail(nbuser.getEmail());
+    	dbusr.setFamilyName(nbuser.getFamilyName());
+    	dbusr.setGivenName(nbuser.getGivenName());
+    }
+    
+    public void registerOrUpdateUser(NetMobielUser nbuser) {
+    	T usr = findOrRegisterUser(nbuser);
+    	copyUserData(usr, nbuser);
+    }
+
+    public void findAndUpdateUser(NetMobielUser nbuser) {
+    	Optional<T> usr = findByManagedIdentity(nbuser.getManagedIdentity());
+    	if (usr.isPresent()) {
+    		copyUserData(usr.get(), nbuser);
+    	}
     }
 
     protected abstract Optional<String> resolveUrnPrefix(NetMobielModule module);

@@ -2,7 +2,6 @@ package eu.netmobiel.overseer.service;
 
 import java.util.ArrayList;
 import java.util.List;
-import java.util.Optional;
 import java.util.Set;
 
 import javax.annotation.PostConstruct;
@@ -14,8 +13,6 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
-import eu.netmobiel.banker.model.BankerUser;
-import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
@@ -25,15 +22,12 @@ import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.filter.MessageFilter;
-import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.Message;
-import eu.netmobiel.communicator.service.CommunicatorUserManager;
 import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.overseer.processor.TextHelper;
-import eu.netmobiel.planner.model.PlannerUser;
+import eu.netmobiel.overseer.processor.UserProcessor;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
-import eu.netmobiel.planner.service.PlannerUserManager;
 import eu.netmobiel.planner.service.TripManager;
 import eu.netmobiel.planner.service.TripPlanManager;
 import eu.netmobiel.profile.filter.ProfileFilter;
@@ -41,9 +35,7 @@ import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.service.ProfileManager;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Ride;
-import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.service.BookingManager;
-import eu.netmobiel.rideshare.service.RideshareUserManager;
 
 /**
  * Singleton startup bean for doing some maintenance on startup of the system.
@@ -73,13 +65,7 @@ public class OverseerMaintenance {
     private TextHelper textHelper;
 
     @Inject
-    private BankerUserManager bankerUserManager;
-    @Inject
-    private CommunicatorUserManager communicatorUserManager;
-    @Inject
-    private PlannerUserManager plannerUserManager;
-    @Inject
-    private RideshareUserManager rideshareUserManager;
+    private UserProcessor userProcessor;
     
 	@PostConstruct
 	@TransactionAttribute(TransactionAttributeType.NEVER)
@@ -93,48 +79,20 @@ public class OverseerMaintenance {
 		try {
 			ProfileFilter filter = new ProfileFilter();
 			Cursor cursor = new Cursor(100, 0);
-			int bupdateCount = 0;
-			int cupdateCount = 0;
-			int pupdateCount = 0;
-			int rsupdateCount = 0;
+			log.info("Start syncing the user data");
+			Long total = null;
 			while (true) {
 				PagedResult<Profile> profiles = profileManager.listProfiles(filter, cursor);
+				total = profiles.getTotalCount();
 				for (Profile p : profiles.getData()) {
-					Optional<BankerUser> buser = bankerUserManager.findByManagedIdentity(p.getManagedIdentity());
-					if (buser.isPresent() && !buser.get().isSame(p)) {
-						// Update banker user
-						bankerUserManager.updateUser(buser.get().getId(), p);
-						bupdateCount++;
-					}
-					buser = null;
-					Optional<CommunicatorUser> cuser = communicatorUserManager.findByManagedIdentity(p.getManagedIdentity());
-					if (cuser.isPresent() && !cuser.get().isSame(p)) {
-						// Update Communicator user
-						communicatorUserManager.updateUser(cuser.get().getId(), p);
-						cupdateCount++;
-					}
-					cuser = null;
-					Optional<PlannerUser> puser = plannerUserManager.findByManagedIdentity(p.getManagedIdentity());
-					if (puser.isPresent() && !puser.get().isSame(p)) {
-						// Update Planner user
-						plannerUserManager.updateUser(puser.get().getId(), p);
-						pupdateCount++;
-					}
-					puser = null;
-					Optional<RideshareUser> rsuser = rideshareUserManager.findByManagedIdentity(p.getManagedIdentity());
-					if (rsuser.isPresent() && !rsuser.get().isSame(p)) {
-						// Update Rideshare user
-						rideshareUserManager.updateUser(rsuser.get().getId(), p);
-						rsupdateCount++;
-					}
-					rsuser = null;
+					userProcessor.syncAllUserDatabases(p, false);
 				}
 				if (profiles.getCount() < cursor.getMaxResults()) {
 					break;
 				}
 				cursor.next();
 			}
-			log.info(String.format("Update userdata: B #%d C #%d P#%d, R#%d", bupdateCount, cupdateCount, pupdateCount, rsupdateCount));
+			log.info("Done syncing the users: #" + total);
 		} catch (BusinessException e) {
 			log.error("Error synchronizing users", e);
 		}

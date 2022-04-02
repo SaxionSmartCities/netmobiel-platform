@@ -26,6 +26,7 @@ import javax.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Updated;
 import eu.netmobiel.commons.event.RewardEvent;
 import eu.netmobiel.commons.event.RewardRollbackEvent;
@@ -89,8 +90,11 @@ public class ProfileManager {
     @Inject
     private Event<DelegatorAccountCreatedEvent> delegatorAccountCreatedEvent;
 
+    @Inject @Created
+    private Event<Profile> profileCreatedEvent;
+
     @Inject @Updated
-    private Event<NetMobielUser> netMobielUserUpdatedEvent;
+    private Event<Profile> profileUpdatedEvent;
 
     @Inject
     private Event<RewardEvent> rewardEvent;
@@ -219,10 +223,13 @@ public class ProfileManager {
 		if (profile.getRidesharePreferences() != null) {
 			ridesharePreferencesDao.save(profile.getRidesharePreferences());				
 		}
+		// Inform others about the profile being created, for syncing the databases of the other services
+    	EventFireWrapper.fire(profileCreatedEvent, profile);
 		// Most potential problems should have happened now, inform participants, if necessary.
 		if (delegatorAccountCreated != null) {
 	    	EventFireWrapper.fire(delegatorAccountCreatedEvent, delegatorAccountCreated);
 		}
+		
 		return profile.getManagedIdentity();
     }
 
@@ -287,13 +294,14 @@ public class ProfileManager {
 		if (! olduser.isPresent()) {
 			throw new NotFoundException("No such user: " + managedId);
 		}
-		if (! newuser.isSame(olduser.get())) {
+		final boolean userNameChanged = ! newuser.isSame(olduser.get());   
+		if (userNameChanged) {
 			// Some attributes differ, update the user in Keycloak.
 			if (logger.isDebugEnabled()) {
 				logger.debug("Update user attributes in Keycloak: " + newuser);
 			}
 			keycloakDao.updateUser(newuser);
-    		EventFireWrapper.fire(netMobielUserUpdatedEvent, newuser);
+    		EventFireWrapper.fire(profileUpdatedEvent, newProfile);
 		}
     	// Assure key attributes are set
     	newProfile.setManagedIdentity(managedId);
@@ -339,6 +347,9 @@ public class ProfileManager {
 		} else {
 			// Ignore, we dont't remove preferences once they are set.
 		}
+		if (userNameChanged) {
+    		EventFireWrapper.fire(profileUpdatedEvent, dbprofile);
+		}		
 		evaluateRewardTriggers(dbprofile, newProfile);
 	}
 
