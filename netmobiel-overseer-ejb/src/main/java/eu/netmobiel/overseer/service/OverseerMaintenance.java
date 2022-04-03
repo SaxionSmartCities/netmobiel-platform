@@ -85,7 +85,7 @@ public class OverseerMaintenance {
 				PagedResult<Profile> profiles = profileManager.listProfiles(filter, cursor);
 				total = profiles.getTotalCount();
 				for (Profile p : profiles.getData()) {
-					userProcessor.syncAllUserDatabases(p, false);
+					userProcessor.syncAllUserDatabases(p);
 				}
 				if (profiles.getCount() < cursor.getMaxResults()) {
 					break;

@@ -37,19 +37,18 @@ public class UserProcessor {
     private RideshareUserManager rideshareUserManager;
     
     public void onUserCreation(@Observes(during = TransactionPhase.IN_PROGRESS) @Created Profile profile) {
-    	syncAllUserDatabases(profile, profile.isDriver());
+    	syncAllUserDatabases(profile);
     }
 
-    public void syncAllUserDatabases(NetMobielUser nbuser, boolean isDriver) {
+    public void syncAllUserDatabases(NetMobielUser nbuser) {
     	bankerUserManager.registerOrUpdateUser(nbuser);
     	communicatorUserManager.registerOrUpdateUser(nbuser);
     	plannerUserManager.registerOrUpdateUser(nbuser);
-    	if (isDriver) {
-        	rideshareUserManager.registerOrUpdateUser(nbuser);
-    	}
+    	// A passenger is also known in the rideshare
+       	rideshareUserManager.registerOrUpdateUser(nbuser);
     }
     
     public void onUserUpdated(@Observes(during = TransactionPhase.IN_PROGRESS) @Updated Profile profile) {
-    	syncAllUserDatabases(profile, profile.isDriver());
+    	syncAllUserDatabases(profile);
     }
 }
