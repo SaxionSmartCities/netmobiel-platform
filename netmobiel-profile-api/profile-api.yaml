@@ -260,186 +260,7 @@ paths:
       - apikey: []
       operationId: createProfile
       summary: Create a profile.
-      description: Creates a new profile
-  /compliments/{complimentId}:
-    summary: Path used to manage a single Compliment.
-    description: The REST endpoint/path used to get, update, and delete single instances
-      of an `Compliment`.  This path contains `GET`, `PUT`, and `DELETE` operations
-      used to perform the get, update, and delete tasks, respectively.   When a call
-      a made by someone with the delegate role, the effective user will  be the user
-      specified in the X-Delegator header.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Compliments'
-          description: Successful response - returns a single `Compliment`.
-      operationId: getCompliment
-      summary: Get a Compliment
-      description: |-
-        Gets the details of a single instance of a `Compliment`. An admin can see any compliment.
-        Non-privileged user can only see compliments received and given.
-    put:
-      requestBody:
-        description: Updated `Compliment` information.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Compliments'
-        required: true
-      responses:
-        "202":
-          description: Successful response.
-      operationId: updateCompliment
-      summary: Update a Compliment
-      description: Updates an existing `Compliment`. The same restrictions as with
-        a creating a compliment apply.
-    delete:
-      responses:
-        "204":
-          description: Successful response.
-      operationId: deleteCompliment
-      summary: Delete a Compliment
-      description: "Deletes an existing `Compliment`. An admin can delete any compliment.\
-        \ Non-privileged (effective) users can only \nremove compliments made by himself."
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - name: complimentId
-      description: A unique identifier for a `Compliment`.
-      schema:
-        type: string
-      in: path
-      required: true
-  /profiles/{profileId}:
-    summary: Path used to manage a single `Profile`.
-    description: The REST endpoint/path used to get, update, and delete a single instance
-      of a `Profile`. This path contains `GET`, `PUT`, and `DELETE` operations used
-      to perform the get, update, and delete tasks, respectively. When a call a made
-      by someone with the delegate role, the effective user will be the user specified
-      in the X-Delegator header.
-    get:
-      parameters:
-      - name: public
-        description: Optional flag to indicate to retrieve only the public details.
-          For admin and the effective owner the flag defaults to false (and can be
-          overridden), for others the flag is fixed to true. Used to force the intended
-          behaviour also for privileged users.
-        schema:
-          type: boolean
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Profile'
-          description: On success the profile is returned. The effective owner and
-            admin get the complete profile. The other users see the public profile.
-        "401":
-          $ref: '#/components/responses/NotAuthorized'
-        "500":
-          description: The profile could not be found.
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: getProfile
-      summary: Retrieves a profile
-      description: |-
-        Retrieves a profile from the database. The amount of information depends on the caller, the profile requested and / or the role of the caller.
-        The admin is always able to see the complete profile. The (effective) owner also sees the whole profile. Other users see the public information.
-    put:
-      requestBody:
-        description: Updated `Profile` information.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Profile'
-        required: true
-      responses:
-        "200":
-          description: Profile updated. The updated profile is returned.
-        "401":
-          $ref: '#/components/responses/NotAuthorized'
-        "500":
-          description: The profile could not be updated.
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: updateProfile
-      summary: Update a Profile
-      description: Updates an existing `Profile`.
-    delete:
-      responses:
-        "200":
-          description: Successful response.
-        "401":
-          $ref: '#/components/responses/NotAuthorized'
-        "500":
-          description: The profile could not be deleted.
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: deleteProfile
-      summary: Delete a Profile
-      description: Deletes an existing `Profile`. Profiles are hard deleted. Admin
-        only for now.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - examples:
-        keycloakId:
-          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
-      name: profileId
-      description: The keycloak managed identity of the user owning the profile.
-      schema:
-        type: string
-      in: path
-      required: true
-  /profiles/{profileId}/fcmToken:
-    summary: Path used to manage a single `Firebase Messaging Token`.
-    description: The REST endpoint/path used to get a single instance of a `Firebase
-      Messaging Token`. This path contains a `GET` operation to perform the get operation.
-      When a call a made by someone with the delegate role, the effective user will
-      be the user specified in the X-Delegator header.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FirebaseTokenResponse'
-          description: Returns a FCM token.
-      operationId: getFcmToken
-      summary: Retrieves a `Firebase Messaging Token`.
-      description: Retrieves a `Firebase Messaging Token` from the profile of a user,
-        given the managed identity of the user.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - examples:
-        keycloakId:
-          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
-      name: profileId
-      description: The keycloak managed identity of the user owning the profile.
-      schema:
-        type: string
-      in: path
-      required: true
+      description: Creates a new profile. The user must already be authenticated.
   /profiles/{profileId}/places:
     summary: Path used to manage the list of places (favorite locations) for an profile.
     description: The REST endpoint/path used to list and create zero or more `Place`
@@ -496,118 +317,6 @@ paths:
         type: string
       in: path
       required: true
-  /profiles/{profileId}/places/{placeId}:
-    summary: Path used to manage a single Place.
-    description: The REST endpoint/path used to get, update, and delete single instances
-      of an `Place`.  This path contains `GET`, `PUT`, and `DELETE` operations used
-      to perform the get, update, and delete tasks, respectively. When a call a made
-      by someone with the delegate role, the effective user will be the user specified
-      in the X-Delegator header.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Place'
-          description: Successful response - returns a single `Place`.
-      operationId: getPlace
-      summary: Get a Place
-      description: Gets the details of a single instance of a `Place`.
-    put:
-      requestBody:
-        description: Updated `Place` information.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Place'
-        required: true
-      responses:
-        "202":
-          description: Successful response.
-      operationId: updatePlace
-      summary: Update a Place
-      description: Updates an existing `Place`.
-    delete:
-      responses:
-        "204":
-          description: Successful response.
-      operationId: deletePlace
-      summary: Delete a Place
-      description: Deletes an existing `Place`.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - name: profileId
-      description: A unique identifier for a `Profile`.
-      schema:
-        type: string
-      in: path
-      required: true
-    - name: placeId
-      description: A unique identifier for an `Place`.
-      schema:
-        type: string
-      in: path
-      required: true
-  /reviews/{reviewId}:
-    summary: Path used to manage a single Review.
-    description: The REST endpoint/path used to get, update, and delete single instances
-      of an `Review`.  This path contains `GET`, `PUT`, and `DELETE` operations used
-      to perform the get, update, and delete tasks, respectively. When a call a made
-      by someone with the delegate role, the effective user will be the user specified
-      in the X-Delegator header.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Review'
-          description: Successful response - returns a single `Review`.
-      operationId: getReview
-      summary: Get a Review
-      description: Gets the details of a single instance of a `Review`.
-    put:
-      requestBody:
-        description: Updated `Review` information.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Review'
-        required: true
-      responses:
-        "202":
-          description: Successful response.
-      operationId: updateReview
-      summary: Update a Review
-      description: Updates an existing `Review`. The same restrictions as with a creating
-        a review apply.
-    delete:
-      responses:
-        "204":
-          description: Successful response.
-      operationId: deleteReview
-      summary: Delete a Review
-      description: "Deletes an existing `Review`. An admin can delete any compliment.\
-        \ Non-privileged (effective) users can only \nremove compliments made by himself."
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - name: reviewId
-      description: A unique identifier for a `Review`.
-      schema:
-        type: string
-      in: path
-      required: true
   /reviews:
     summary: Path used to manage the list of reviews.
     description: The REST endpoint/path used to list and create zero or more `Review`
@@ -636,7 +345,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ReviewResponse'
+                $ref: '#/components/schemas/Page'
           description: Successful response - returns a `Page` with `Review` entities.
       operationId: getReviews
       summary: List reviews
@@ -663,7 +372,8 @@ paths:
       summary: Create a Review
       description: Creates a new instance of a `Review`. An admin can post reviews
         on behalf of anyone about anyone. Non-privileged (effective) users can only
-        post personal reviews about someone. It is an error to review oneself.
+        post personal reviews about someone. It is an error to review oneself. If
+        a review already exists on the subject, then it is updated.
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
@@ -824,8 +534,8 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ComplimentResponse'
-          description: Successful response - returns a `Page` with `Compliment` entities.
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Compliments` entities.
       operationId: getCompliments
       summary: List compliments
       description: "Gets a list of all `Compliments` entities. The admin can list\
@@ -1071,10 +781,159 @@ paths:
       schema:
         type: string
       in: query
-  /profiles/{profileId}/image:
-    summary: Manages the profile image.
-    description: Manage the profile image of the user of this profile. When a call
-      a made by someone with the delegate role, the effective user will be the user
+  /profiles/{profileId}:
+    summary: Path used to manage a single `Profile`.
+    description: The REST endpoint/path used to get, update, and delete a single instance
+      of a `Profile`. This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively. When a call a made
+      by someone with the delegate role, the effective user will be the user specified
+      in the X-Delegator header.
+    get:
+      parameters:
+      - name: public
+        description: Optional flag to indicate to retrieve only the public details.
+          For admin and the effective owner the flag defaults to false (and can be
+          overridden), for others the flag is fixed to true. Used to force the intended
+          behaviour also for privileged users.
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: On success the profile is returned. The effective owner and
+            admin get the complete profile. The other users see the public profile.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "500":
+          description: The profile could not be found.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getProfile
+      summary: Retrieves a profile
+      description: |-
+        Retrieves a profile from the database. The amount of information depends on the caller, the profile requested and / or the role of the caller.
+        The admin is always able to see the complete profile. The (effective) owner also sees the whole profile. Other users see the public information.
+    put:
+      requestBody:
+        description: Updated `Profile` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+        required: true
+      responses:
+        "204":
+          description: Successfull update of the profile.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "500":
+          description: The profile could not be updated.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: updateProfile
+      summary: Update a Profile
+      description: Updates an existing `Profile`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "500":
+          description: The profile could not be deleted.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: deleteProfile
+      summary: Delete a Profile
+      description: Deletes an existing `Profile`. Profiles are hard deleted. Admin
+        only for now.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - examples:
+        keycloakId:
+          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
+      name: profileId
+      description: The keycloak managed identity of the user owning the profile.
+      schema:
+        type: string
+      in: path
+      required: true
+  /profiles/{profileId}/places/{placeId}:
+    summary: Path used to manage a single Place.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Place`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively. When a call a made
+      by someone with the delegate role, the effective user will be the user specified
+      in the X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Place'
+          description: Successful response - returns a single `Place`.
+      operationId: getPlace
+      summary: Get a Place
+      description: Gets the details of a single instance of a `Place`.
+    put:
+      requestBody:
+        description: Updated `Place` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Place'
+        required: true
+      responses:
+        "204":
+          description: Successful response.
+      operationId: updatePlace
+      summary: Update a Place
+      description: Updates an existing `Place`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deletePlace
+      summary: Delete a Place
+      description: Deletes an existing `Place`.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: profileId
+      description: A unique identifier for a `Profile`.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: placeId
+      description: A unique identifier for an `Place`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /compliments/{complimentId}:
+    summary: Path used to manage a single Compliment.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Compliment`.  This path contains `GET`, `PUT`, and `DELETE` operations
+      used to perform the get, update, and delete tasks, respectively.   When a call
+      a made by someone with the delegate role, the effective user will  be the user
       specified in the X-Delegator header.
     get:
       responses:
@@ -1082,11 +941,108 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/ImageResponse'
-          description: The relative path to the image or an empty string if none available.
-      operationId: getProfileImage
-      summary: Get the image path.
-      description: Gets the path to the profile image.
+                $ref: '#/components/schemas/Compliments'
+          description: Successful response - returns a single `Compliment`.
+      operationId: getCompliment
+      summary: Get a Compliment
+      description: |-
+        Gets the details of a single instance of a `Compliment`. An admin can see any compliment.
+        Non-privileged user can only see compliments received and given.
+    put:
+      requestBody:
+        description: Updated `Compliment` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Compliments'
+        required: true
+      responses:
+        "204":
+          description: Successful response.
+      operationId: updateCompliment
+      summary: Update a Compliment
+      description: Updates an existing `Compliment`. The same restrictions as with
+        a creating a compliment apply.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deleteCompliment
+      summary: Delete a Compliment
+      description: "Deletes an existing `Compliment`. An admin can delete any compliment.\
+        \ Non-privileged (effective) users can only \nremove compliments made by himself."
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: complimentId
+      description: A unique identifier for a `Compliment`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /reviews/{reviewId}:
+    summary: Path used to manage a single Review.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Review`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively. When a call a made
+      by someone with the delegate role, the effective user will be the user specified
+      in the X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: Successful response - returns a single `Review`.
+      operationId: getReview
+      summary: Get a Review
+      description: Gets the details of a single instance of a `Review`.
+    put:
+      requestBody:
+        description: Updated `Review` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Review'
+        required: true
+      responses:
+        "204":
+          description: Successful response.
+      operationId: updateReview
+      summary: Update a Review
+      description: Updates an existing `Review`. The same restrictions as with a creating
+        a review apply.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deleteReview
+      summary: Delete a Review
+      description: "Deletes an existing `Review`. An admin can delete any compliment.\
+        \ Non-privileged (effective) users can only \nremove compliments made by himself."
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: reviewId
+      description: A unique identifier for a `Review`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /profiles/{profileId}/image:
+    summary: Manages the profile image.
+    description: Manage the profile image of the user of this profile. When a call
+      a made by someone with the delegate role, the effective user will be the user
+      specified in the X-Delegator header.
     put:
       requestBody:
         description: The image to upload.
@@ -1096,11 +1052,7 @@ paths:
               $ref: '#/components/schemas/ImageUploadRequest'
         required: true
       responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Profile'
+        "204":
           description: The updated profile.
       operationId: uploadImage
       summary: Uploads an image
@@ -1378,26 +1330,6 @@ components:
         complimentTypes:
         - NICE_CAR
         - ON_TIME
-    FirebaseTokenResponse:
-      title: Root Type for FirebaseMessagingToken
-      description: Type of a messaging token.
-      type: object
-      properties:
-        fcmToken:
-          description: The `Firebase Messaing Token` used to send a message to a specific
-            device.
-          type: string
-      example:
-        fcmToken: "1234"
-    ImageResponse:
-      title: Root Type for ImageResponse
-      description: The response to a request for a profile image
-      type: object
-      properties:
-        image:
-          type: string
-      example:
-        image: /images/ab/cdef.png
     ImageUploadRequest:
       description: The request for uploading an image.
       required:
@@ -1459,57 +1391,6 @@ components:
         message: This is a really bad request
         reasonPhrase: Bad Request
         status: 400
-    ProfileResponse:
-      title: Root Type for ProfileResponse
-      description: Old response style for profiles return value.
-      type: object
-      properties:
-        message:
-          type: string
-        success:
-          type: boolean
-        profiles:
-          type: array
-          items:
-            $ref: '#/components/schemas/Profile'
-      example:
-        message: Succes!
-        success: true
-        profiles: []
-    ComplimentResponse:
-      title: Root Type for ProfileResponse
-      description: Old response style for profiles return value.
-      type: object
-      properties:
-        message:
-          type: string
-        success:
-          type: boolean
-        compliments:
-          type: array
-          items:
-            $ref: '#/components/schemas/Compliments'
-      example:
-        message: Succes!
-        success: true
-        compliments: []
-    ReviewResponse:
-      title: Root Type for ProfileResponse
-      description: Old response style for profiles return value.
-      type: object
-      properties:
-        message:
-          type: string
-        success:
-          type: boolean
-        reviews:
-          type: array
-          items:
-            $ref: '#/components/schemas/Review'
-      example:
-        message: Succes!
-        success: true
-        reviews: []
     Place:
       title: Root Type for Address
       description: The address of a user.
