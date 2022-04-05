@@ -7,11 +7,9 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.Comparator;
 import java.util.HashMap;
-import java.util.LinkedHashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
-import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
@@ -150,10 +148,6 @@ public class LedgerService {
     private static void expect(AccountingTransaction tr, TransactionType purpose, AccountingEntryType entryType) {
     	@SuppressWarnings("unused")
 		AccountingEntry ae = tr.lookup(purpose, entryType);
-    }
-
-    static LockModeType lookupLockModeForUpdate(String ncan) {
-    	return SYSTEM_NCAN.contains(ncan) ? LockModeType.PESSIMISTIC_WRITE : LockModeType.OPTIMISTIC_FORCE_INCREMENT;
     }
 
     static void sortAccountsForLocking(List<Account> accounts) {
@@ -994,7 +988,7 @@ public class LedgerService {
     }
 
     /** 
-     * Checks whether there are at least some premium credits to pay for rewards.
+     * Checks whether there are at least some premium credits to pay for rewards. Premium balance is locked!
      *  
      * @param amount
      * @return
@@ -1009,7 +1003,7 @@ public class LedgerService {
 
     /**
      * Checks whether there is premium left to redeem. No guarantee, but just a check to avoid the creation of reward when there is 
-     * nothing to redeem.
+     * nothing to redeem. No locking of the balance entity.
      * @param recipient the recipient of the reward, i.e., the person being rewarded. 
      * @return if true then there is something to redeem (at least 1 premium credit).
      * @throws NotFoundException 
