@@ -45,6 +45,7 @@ import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.messagebird.MessageBird;
 import eu.netmobiel.profile.event.DelegatorAccountCreatedEvent;
 import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Profile;
@@ -87,6 +88,9 @@ public class ProfileManager {
     
     @Inject
     private KeycloakDao keycloakDao;
+
+    @Inject
+    private MessageBird	messageBirdClient;
 
     @Inject
     private Event<DelegatorAccountCreatedEvent> delegatorAccountCreatedEvent;
@@ -318,6 +322,9 @@ public class ProfileManager {
 		Integer age = newProfile.getAgeAt(profileCreatedDate);
 		boolean ageChanged = !Objects.equals(age, prevAge);
 		
+		newProfile.setPhoneNumber(formatPhoneNumber(newProfile.getPhoneNumber(), newProfile.getHomeAddress().getCountryCode()));
+		
+
 		// After the merge the new profile and the dbprofile are the same, they are merged!
 		dbprofile = profileDao.merge(newProfile);
 		// Transient properties are null now: dbprofile.getSearchPreferences, dbprofile.getRidesharePreferences
@@ -459,5 +466,16 @@ public class ProfileManager {
     	}
     	return profileDao.searchShoutOutProfiles(traveller, pickup, dropOff, driverMaxRadiusMeter, driverNeighbouringRadiusMeter);
     }
-    
+
+    private String formatPhoneNumber(String input, String countryCode3) throws BadRequestException {
+    	String result = input;
+    	try {
+    		if (input != null && countryCode3 != null) {
+    			result = messageBirdClient.formatPhoneNumberNational(input, countryCode3);
+    		}
+    	} catch (Exception e) {
+    		throw new BadRequestException(e.getMessage());
+    	}
+		return result;
+    }
 }

@@ -1,7 +1,5 @@
 package eu.netmobiel.profile.api.mapping;
 
-import javax.inject.Inject;
-
 import org.mapstruct.AfterMapping;
 import org.mapstruct.BeanMapping;
 import org.mapstruct.InheritConfiguration;
@@ -14,7 +12,6 @@ import org.mapstruct.ValueMapping;
 
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.messagebird.MessageBird;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileComplete;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileMapperQualifier;
 import eu.netmobiel.profile.api.mapping.annotation.PublicProfile;
@@ -35,9 +32,6 @@ import eu.netmobiel.profile.model.UserRole;
 	uses = { GeometryMapper.class })
 @ProfileMapperQualifier
 public abstract class ProfileMapper {
-    @Inject
-    private MessageBird	messageBirdClient;
-
 	@Mapping(target = "data", source = "data", qualifiedBy = { Shallow.class } )
 	public abstract eu.netmobiel.profile.api.model.Page mapShallow(PagedResult<Profile> source);
 
@@ -136,9 +130,6 @@ public abstract class ProfileMapper {
 			target.getHomeLocation().setLabel(source.getAddress().getLabel());
 		}
 		target.addAddressIfNotExists();
-		if (target.getPhoneNumber() != null) {
-			target.setPhoneNumber(messageBirdClient.formatPhoneNumberNational(target.getPhoneNumber(), target.getHomeAddress().getCountryCode()));
-		}
 	}
 
 	@Mapping(target = "selectedCarRef", source = "defaultCarRef")
