@@ -1,5 +1,6 @@
 package eu.netmobiel.planner.api.resource;
 
+import java.net.URI;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 
@@ -10,7 +11,6 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 
 import org.slf4j.Logger;
 
@@ -73,9 +73,9 @@ public class PlansResource extends PlannerResource implements PlansApi {
     		PlannerUser traveller = context.getEffectiveUser();
 			TripPlan plan = tripPlanMapper.map(tripPlan);
 			Long newPlanId = tripPlanManager.createTripPlan(context.getCallingUser(), traveller, plan, Instant.now());
-			rsp = Response.created(UriBuilder.fromResource(PlansApi.class)
-					.path(PlansApi.class.getMethod("getPlan", String.class, String.class)).build(newPlanId)).build();
-		} catch (BusinessException | NoSuchMethodException e) {
+			String urn = UrnHelper.createUrn(TripPlan.URN_PREFIX, newPlanId);
+			rsp = Response.created(URI.create(urn)).build();
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rsp;

@@ -1,6 +1,6 @@
 package eu.netmobiel.profile.api.resource;
 
-import java.util.Collections;
+import java.net.URI;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
@@ -9,7 +9,6 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
@@ -19,11 +18,8 @@ import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.ProfilesApi;
 import eu.netmobiel.profile.api.mapping.PlaceMapper;
 import eu.netmobiel.profile.api.mapping.ProfileMapper;
-import eu.netmobiel.profile.api.model.FirebaseTokenResponse;
-import eu.netmobiel.profile.api.model.ImageResponse;
 import eu.netmobiel.profile.api.model.ImageUploadRequest;
 import eu.netmobiel.profile.api.model.Page;
-import eu.netmobiel.profile.api.model.ProfileResponse;
 import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Place;
 import eu.netmobiel.profile.model.Profile;
@@ -58,12 +54,12 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 		try {
 			Profile domprof = profileMapper.map(profile);
 			// Role is verified in EJB method
-			String mid = profileManager.createProfile(domprof);
-			rsp = Response.created(UriBuilder.fromResource(ProfilesApi.class)
-					.path(ProfilesApi.class.getMethod("getProfile", String.class, String.class, Boolean.class)).build(mid)).build();
+			Long id = profileManager.createProfile(domprof);
+			String urn = UrnHelper.createUrn(Profile.URN_PREFIX, id);
+			rsp = Response.created(URI.create(urn)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
-		} catch (BusinessException | NoSuchMethodException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rsp;
@@ -89,45 +85,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 				Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
 				apiProfile = profileMapper.mapPublicProfile(profile);
 			}
-        	ProfileResponse prsp = new ProfileResponse();
-        	prsp.setProfiles(Collections.singletonList(apiProfile));
-        	prsp.setMessage("Profile succesfully retrieved");
-        	prsp.setSuccess(true);
-   			rsp = Response.ok(prsp).build();
-		} catch (BusinessException ex) {
-			throw new WebApplicationException(ex);
-		}
-		return rsp;
-	}
-
-	@Override
-	public Response getFcmToken(String xDelegator, String profileId) {
-    	Response rsp = null;
-		try {
-			// Any authenticated user can retrieve the token to send a message  
-			String mid = resolveIdentity(xDelegator, profileId);
-			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
-        	String token = profile.getFcmToken();
-        	FirebaseTokenResponse ftr = new FirebaseTokenResponse();
-        	ftr.setFcmToken(token);
-   			rsp = Response.ok(ftr).build();
-		} catch (BusinessException ex) {
-			throw new WebApplicationException(ex);
-		}
-		return rsp;
-	}
-
-	@Override
-	public Response getProfileImage(String xDelegator, String profileId) {
-    	Response rsp = null;
-		try {
-			// Any authenticated user can retrieve the profuile image  
-			String mid = resolveIdentity(xDelegator, profileId);
-			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
-        	String imagePath = profile.getImagePath();
-        	ImageResponse ir = new ImageResponse();
-        	ir.setImage(imagePath);
-   			rsp = Response.ok(ir).build();
+   			rsp = Response.ok(apiProfile).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -170,17 +128,12 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 			String mid = resolveIdentity(xDelegator, profileId);
 			String me = securityIdentity.getEffectivePrincipal().getName();
 			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && ! me.equals(profileId)) {
+			if (! privileged && !me.equals(mid)) {
 				throw new SecurityException("You have no privilege to update the profile owned by someone else");
 			}
 			Profile domainProfile = profileMapper.map(apiProfile);
 			profileManager.updateProfileByManagedIdentity(mid, domainProfile);
-        	domainProfile = profileManager.getCompleteProfileByManagedIdentity(profileId);
-        	ProfileResponse prsp = new ProfileResponse();
-        	prsp.setProfiles(Collections.singletonList(profileMapper.mapComplete(domainProfile)));
-        	prsp.setMessage("Profile succesfully retrieved");
-        	prsp.setSuccess(true);
-   			rsp = Response.ok(prsp).build();
+   			rsp = Response.noContent().build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -196,16 +149,11 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 			String mid = resolveIdentity(xDelegator, profileId);
 			String me = securityIdentity.getEffectivePrincipal().getName();
 			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && ! me.equals(profileId)) {
+			if (! privileged && ! me.equals(mid)) {
 				throw new SecurityException("You have no privilege to update the image of a profile owned by someone else");
 			}
 	    	profileManager.uploadImage(mid, di.filetype, di.decodedImage);
-        	Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
-        	ProfileResponse prsp = new ProfileResponse();
-        	prsp.setProfiles(Collections.singletonList(profileMapper.mapComplete(profile)));
-        	prsp.setMessage("Profile succesfully retrieved");
-        	prsp.setSuccess(true);
-   			rsp = Response.ok(prsp).build();
+   			rsp = Response.noContent().build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}
@@ -245,11 +193,11 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 			String mid = resolveIdentity(xDelegator, profileId);
 			Place p = placeMapper.mapApiPlace(place);
 	    	Long id = placeManager.createPlace(mid, p);
-			rsp = Response.created(UriBuilder.fromResource(ProfilesApi.class)
-					.path(ProfilesApi.class.getMethod("getPlace", String.class, String.class, String.class)).build(profileId, id)).build();
+	    	String urn = UrnHelper.createUrn(Place.URN_PREFIX, id);
+			rsp = Response.created(URI.create(urn)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
-		} catch (BusinessException | NoSuchMethodException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rsp;

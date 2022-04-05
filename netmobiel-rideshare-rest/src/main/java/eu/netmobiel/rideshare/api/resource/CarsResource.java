@@ -1,5 +1,6 @@
 package eu.netmobiel.rideshare.api.resource;
 
+import java.net.URI;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -9,7 +10,6 @@ import javax.ws.rs.PathParam;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.Status;
-import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
@@ -47,7 +47,7 @@ public class CarsResource implements CarsApi {
 		try {
 			Car car = mapper.map(cardt);
 			String newCarId = UrnHelper.createUrn(Car.URN_PREFIX, userManager.createCar(car));
-			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newCarId)).build();
+			rsp = Response.created(URI.create(newCarId)).build();
 		} catch (CreateException e) {
 			rsp = Response.status(Status.CONFLICT).build();
 		}

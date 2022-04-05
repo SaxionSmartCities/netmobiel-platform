@@ -17,6 +17,9 @@ import javax.persistence.Table;
 import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
+
+import eu.netmobiel.commons.model.ReferableObject;
+import eu.netmobiel.profile.util.ProfileUrnHelper;
 /**
  * Definition of a survey. A survey has (optionally) a limited period of time is which it can be taken. 
  * A survey is ready to be taken after some trigger, currently supported is some trigger date. A survey has a condition 
@@ -33,8 +36,9 @@ import javax.validation.constraints.Size;
 @Vetoed
 @Access(AccessType.FIELD)
 @SequenceGenerator(name = "survey_sg", sequenceName = "survey_id_seq", allocationSize = 1, initialValue = 50)
-public class Survey implements Serializable {
+public class Survey extends ReferableObject implements Serializable {
 	private static final long serialVersionUID = -9153483037541781268L;
+	public static final String URN_PREFIX = ProfileUrnHelper.createUrnPrefix("survey");
 
 	/**
 	 * Primary key.
@@ -101,6 +105,7 @@ public class Survey implements Serializable {
 	@Column(name = "incentive_code")
     private String incentiveCode;
 
+	@Override
 	public Long getId() {
 		return id;
 	}
@@ -109,6 +114,11 @@ public class Survey implements Serializable {
 		this.id = id;
 	}
 
+	@Override
+	public String getUrnPrefix() {
+		return URN_PREFIX;
+	}
+	
 	public String getSurveyId() {
 		return surveyId;
 	}

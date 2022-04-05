@@ -1,5 +1,6 @@
 package eu.netmobiel.profile.api.resource;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.Optional;
 
@@ -11,15 +12,14 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.ReviewsApi;
 import eu.netmobiel.profile.api.mapping.ReviewMapper;
-import eu.netmobiel.profile.api.model.ReviewResponse;
 import eu.netmobiel.profile.filter.ReviewFilter;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Review;
@@ -74,16 +74,15 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 			Long id = null;
 			if (currentReview.isEmpty()) {
 				id = reviewManager.createReview(r); 
-				rspb = Response.created(UriBuilder.fromResource(ReviewsApi.class)
-						.path(ReviewsApi.class.getMethod("getReview", String.class, String.class)).build(id));
 			} else {
 				id = currentReview.get().getId();
 				reviewManager.updateReview(id, r);
-				rspb = Response.noContent();
 			}
+			String urn = UrnHelper.createUrn(Review.URN_PREFIX, id);
+			rspb = Response.created(URI.create(urn));
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
-		} catch (BusinessException | NoSuchMethodException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rspb.build();
@@ -116,23 +115,8 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 			ReviewFilter filter = new ReviewFilter(resolveIdentity(xDelegator, receiverId), resolveIdentity(xDelegator, senderId));
 			filter.setContext(context);
 			// Anyone can see the reviews on somebody
-//			String me = securityIdentity.getEffectivePrincipal().getName();
-//			final boolean privileged = request.isUserInRole("admin"); 
-//			if (! privileged && filter.getReceiver() != null && !filter.getReceiver().equals(me)) {
-//				throw new SecurityException("You have no privilege to list reviews received by someone else");
-//			}
-//			if (! privileged && filter.getSender() != null && !filter.getSender().equals(me)) {
-//				throw new SecurityException("You have no privilege to list reviews sent by someone else");
-//			}
-//			if (! privileged && filter.getReceiver() == null) {
-//				filter.setReceiver(me);
-//			}
 	    	PagedResult<Review> results = reviewManager.listReviews(filter, cursor);
-	    	ReviewResponse rr = new ReviewResponse();
-	    	rr.setReviews(mapper.map(results.getData()));
-	    	rr.setMessage("Success");
-	    	rr.setSuccess(true);
-			rsp = Response.ok(rr).build();
+			rsp = Response.ok(mapper.map(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
@@ -178,22 +162,5 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 		}
 		return rsp;
 	}
-
-//	@Override
-//	public Response getReviewsNewSkool() {
-//		Response rsp = null;
-//		try {
-//			Cursor cursor = new Cursor();
-//			ReviewFilter filter = new ReviewFilter();
-//	    	PagedResult<Review> results = profileManager.listReviews(filter, cursor);
-//			rsp = Response.ok(mapper.map(results)).build();
-//		} catch (IllegalArgumentException e) {
-//			throw new BadRequestException(e);
-//		} catch (BusinessException e) {
-//			throw new WebApplicationException(e);
-//		}
-//		return rsp;
-//		throw new UnsupportedOperationException("Not yet implemented");
-//	}
 
 }

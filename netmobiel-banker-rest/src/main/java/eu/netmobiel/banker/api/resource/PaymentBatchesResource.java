@@ -1,6 +1,7 @@
 package eu.netmobiel.banker.api.resource;
 
 import java.math.BigDecimal;
+import java.net.URI;
 import java.time.Instant;
 import java.time.LocalDateTime;
 import java.time.OffsetDateTime;
@@ -29,7 +30,6 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 
 import org.apache.commons.text.StringSubstitutor;
 
@@ -81,7 +81,7 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 		try {
 			userManager.findOrRegisterCallingUser();
 			String pbid = UrnHelper.createUrn(PaymentBatch.URN_PREFIX, withdrawalService.createPaymentBatch());
-			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(pbid)).build();
+			rsp = Response.created(URI.create(pbid)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (Exception e) {

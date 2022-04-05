@@ -479,4 +479,13 @@ public class Profile extends User  {
 			setActingRole(UserRole.PASSENGER);
 		}
 	}
+	
+	/**
+	 * Is the additional data of the profile completed?
+	 *  
+	 * @return true if all additional data has been completed
+	 */
+	public boolean isProfilePlus() {
+		return getDateOfBirth() != null;
+	}
 }

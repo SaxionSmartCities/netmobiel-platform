@@ -1,5 +1,6 @@
 package eu.netmobiel.rideshare.api.resource;
 
+import java.net.URI;
 import java.time.OffsetDateTime;
 
 import javax.enterprise.context.RequestScoped;
@@ -10,7 +11,6 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
@@ -105,7 +105,7 @@ public class RidesResource extends RideshareResource implements RidesApi {
 			ride.setDriver(driver);
 			// The owner of the ride will be the caller
 			String newRideId = UrnHelper.createUrn(Ride.URN_PREFIX, rideManager.createRide(ride));
-			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newRideId)).build();
+			rsp = Response.created(URI.create(newRideId)).build();
 		} catch (BusinessException e) {
 			throw new BadRequestException("Error creating ride", e);
 		}
@@ -200,8 +200,8 @@ public class RidesResource extends RideshareResource implements RidesApi {
 		try {
 			RideshareUser passenger = userManager.findOrRegisterCallingUser();
         	Booking booking = bookingMapper.map(bookingdt);
-			String newBookingId = bookingManager.createBooking(rideId, passenger, booking);
-			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newBookingId)).build();
+			String newBookingUrn = bookingManager.createBooking(rideId, passenger, booking);
+			rsp = Response.created(URI.create(newBookingUrn)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}

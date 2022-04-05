@@ -1,12 +1,11 @@
 package eu.netmobiel.profile.api.mapping;
 
-import java.util.List;
-
 import org.mapstruct.InheritInverseConfiguration;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
 
+import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.profile.api.mapping.annotation.ProfileMapperQualifier;
 import eu.netmobiel.profile.model.Review;
 
@@ -20,8 +19,7 @@ import eu.netmobiel.profile.model.Review;
 	uses = { GeometryMapper.class, JavaTimeMapper.class, ProfileMapper.class })
 public abstract class ReviewMapper {
 
-	public abstract List<eu.netmobiel.profile.api.model.Review> map(List<Review> source);
-//	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Review> source);
+	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Review> source);
 	
 	// Domain --> API
 	@Mapping(target = "receiver", source = "receiver", qualifiedBy = { ProfileMapperQualifier.class } )

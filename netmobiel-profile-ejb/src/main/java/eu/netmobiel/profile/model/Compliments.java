@@ -32,6 +32,9 @@ import javax.validation.constraints.Size;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import eu.netmobiel.commons.model.ReferableObject;
+import eu.netmobiel.profile.util.ProfileUrnHelper;
+
 @NamedEntityGraphs({
 	@NamedEntityGraph(name = Compliments.LIST_COMPLIMENTS_ENTITY_GRAPH,
 		attributeNodes = {
@@ -47,8 +50,9 @@ import org.hibernate.annotations.OnDeleteAction;
 @Vetoed
 @Access(AccessType.FIELD)
 @SequenceGenerator(name = "compliment_set_sg", sequenceName = "compliment_set_id_seq", allocationSize = 1, initialValue = 50)
-public class Compliments implements Serializable {
+public class Compliments extends ReferableObject implements Serializable {
 	private static final long serialVersionUID = 7052181227403511232L;
+	public static final String URN_PREFIX = ProfileUrnHelper.createUrnPrefix("compliments");
 	public static final String LIST_COMPLIMENTS_ENTITY_GRAPH = "list-compliments-entity-graph";
 
 	@Id
@@ -86,6 +90,7 @@ public class Compliments implements Serializable {
 	@Column(name = "context")
 	private String context;
 
+	@Override
 	public Long getId() {
 		return id;
 	}
@@ -94,6 +99,11 @@ public class Compliments implements Serializable {
 		this.id = id;
 	}
 
+	@Override
+	public String getUrnPrefix() {
+		return URN_PREFIX;
+	}
+	
 	public Instant getPublished() {
 		return published;
 	}
@@ -151,6 +161,4 @@ public class Compliments implements Serializable {
 		return Objects.equals(context, other.context)
 				&& Objects.equals(receiver, other.receiver);
 	}
-	
-	
 }

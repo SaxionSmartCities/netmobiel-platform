@@ -1,5 +1,6 @@
 package eu.netmobiel.communicator.api.resource;
 
+import java.net.URI;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
 
@@ -9,7 +10,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 
 import com.google.common.base.Objects;
 
@@ -70,7 +70,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 			Conversation conversation = conversationMapper.map(apiConversation);
 			conversation.setOwner(traveller);
 			String newConversationId = UrnHelper.createUrn(Conversation.URN_PREFIX, publisherService.createConversation(conversation));
-			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newConversationId)).build();
+			rsp = Response.created(URI.create(newConversationId)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}

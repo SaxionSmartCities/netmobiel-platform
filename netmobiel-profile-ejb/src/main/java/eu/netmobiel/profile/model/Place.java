@@ -22,14 +22,17 @@ import javax.persistence.Table;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.ReferableObject;
+import eu.netmobiel.profile.util.ProfileUrnHelper;
 
 @Entity
 @Table(name = "place")
 @Vetoed
 @Access(AccessType.FIELD)
 @SequenceGenerator(name = "place_sg", sequenceName = "place_id_seq", allocationSize = 1, initialValue = 50)
-public class Place implements Serializable {
+public class Place extends ReferableObject implements Serializable {
 	private static final long serialVersionUID = -1112263880340112338L;
+	public static final String URN_PREFIX = ProfileUrnHelper.createUrnPrefix("place");
 
 	/**
 	 * Primary key.
@@ -90,6 +93,7 @@ public class Place implements Serializable {
 	@Column(name = "name")
 	private String name;
 
+	@Override
 	public Long getId() {
 		return id;
 	}
@@ -98,6 +102,11 @@ public class Place implements Serializable {
 		this.id = id;
 	}
 
+	@Override
+	public String getUrnPrefix() {
+		return URN_PREFIX;
+	}
+	
 	public Profile getProfile() {
 		return profile;
 	}

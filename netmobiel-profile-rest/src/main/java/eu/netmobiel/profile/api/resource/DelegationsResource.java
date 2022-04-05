@@ -1,5 +1,6 @@
 package eu.netmobiel.profile.api.resource;
 
+import java.net.URI;
 import java.time.OffsetDateTime;
 
 import javax.enterprise.context.RequestScoped;
@@ -9,7 +10,6 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
@@ -121,11 +121,11 @@ public class DelegationsResource implements DelegationsApi {
 				}
 			}
 	    	Long id = delegationManager.createDelegation(delegation, request.isUserInRole("admin"));
-			rsp = Response.created(UriBuilder.fromResource(DelegationsApi.class)
-					.path(DelegationsApi.class.getMethod("getDelegation", String.class)).build(id)).build();
+	    	String urn = UrnHelper.createUrn(Delegation.URN_PREFIX, id);
+			rsp = Response.created(URI.create(urn)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
-		} catch (BusinessException | NoSuchMethodException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rsp;
@@ -166,11 +166,11 @@ public class DelegationsResource implements DelegationsApi {
 				throw new BadRequestException("A transfer to the same delegate is not allowed");
 			}
 	    	Long id = delegationManager.transferDelegation(fromDelegation.getId(), toDelegation, request.isUserInRole("admin"));
-			rsp = Response.created(UriBuilder.fromResource(DelegationsApi.class)
-					.path(DelegationsApi.class.getMethod("getDelegation", String.class)).build(id)).build();
+	    	String urn = UrnHelper.createUrn(Delegation.URN_PREFIX, id);
+			rsp = Response.created(URI.create(urn)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
-		} catch (BusinessException | NoSuchMethodException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rsp;

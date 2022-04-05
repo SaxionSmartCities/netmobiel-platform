@@ -31,7 +31,9 @@ import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
+import eu.netmobiel.commons.model.ReferableObject;
 import eu.netmobiel.commons.report.NumericReportValue;
+import eu.netmobiel.profile.util.ProfileUrnHelper;
 
 @NamedNativeQueries({
 	@NamedNativeQuery(
@@ -89,8 +91,9 @@ import eu.netmobiel.commons.report.NumericReportValue;
 @Vetoed
 @Access(AccessType.FIELD)
 @SequenceGenerator(name = "review_sg", sequenceName = "review_id_seq", allocationSize = 1, initialValue = 50)
-public class Review implements Serializable {
+public class Review extends ReferableObject implements Serializable {
 	private static final long serialVersionUID = 7052181227403511232L;
+	public static final String URN_PREFIX = ProfileUrnHelper.createUrnPrefix("review");
 	public static final String LIST_REVIEWS_ENTITY_GRAPH = "list-reviews-entity-graph";
 	public static final String PR_REVIEW_USER_YEAR_MONTH_COUNT_MAPPING = "PRReviewUserYearMonthCountMapping";
 	public static final String IMP_9_TRIPS_REVIEWED_COUNT = "ListTripsReviewedCount";
@@ -126,6 +129,7 @@ public class Review implements Serializable {
 	@Column(name = "context")
 	private String context;
 
+	@Override
 	public Long getId() {
 		return id;
 	}
@@ -134,6 +138,11 @@ public class Review implements Serializable {
 		this.id = id;
 	}
 
+	@Override
+	public String getUrnPrefix() {
+		return URN_PREFIX;
+	}
+	
 	public String getReview() {
 		return review;
 	}

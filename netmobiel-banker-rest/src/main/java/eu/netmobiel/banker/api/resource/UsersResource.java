@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.api.resource;
 
+import java.net.URI;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.function.Predicate;
@@ -12,7 +13,6 @@ import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.banker.api.UsersApi;
 import eu.netmobiel.banker.api.mapping.AccountMapper;
@@ -227,7 +227,7 @@ public class UsersResource implements UsersApi {
 			}
 			Long id = withdrawalService.createWithdrawalRequest(user.getPersonalAccount(), withdrawal.getAmountCredits(), withdrawal.getDescription());
 			String wrid = UrnHelper.createUrn(WithdrawalRequest.URN_PREFIX, id);
-			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(wrid)).build();
+			rsp = Response.created(URI.create(wrid)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}

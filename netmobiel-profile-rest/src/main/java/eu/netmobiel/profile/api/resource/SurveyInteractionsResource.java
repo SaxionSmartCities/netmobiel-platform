@@ -1,5 +1,6 @@
 package eu.netmobiel.profile.api.resource;
 
+import java.net.URI;
 import java.util.Optional;
 
 import javax.enterprise.context.RequestScoped;
@@ -9,7 +10,7 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
+import javax.ws.rs.core.Response.ResponseBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
@@ -53,10 +54,9 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 		return rsp;
 	}
 
-	@SuppressWarnings("resource")
 	@Override
 	public Response createSurveyInteraction(String xDelegator, String profileId) {
-		Response rsp = null;
+		ResponseBuilder rspb = null;
 		try {
 			if (profileId == null) {
 				profileId = "me";
@@ -65,16 +65,16 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 			allowAdminOrEffectiveUser(request, mid);
 			Optional<SurveyInteraction> sopt = surveyManager.inviteToSurvey(mid);
 			if (sopt.isPresent()) {
-				rsp = Response.created(UriBuilder.fromUri(sopt.get().getUrn()).build()).build();
+				rspb = Response.created(URI.create(sopt.get().getUrn()));
 			} else {
-				rsp = Response.noContent().build();
+				rspb = Response.noContent();
 			}
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
-		return rsp;
+		return rspb.build();
 	}
 
 	@Override

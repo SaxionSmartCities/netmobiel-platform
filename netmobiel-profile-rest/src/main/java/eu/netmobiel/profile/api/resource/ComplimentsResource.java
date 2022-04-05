@@ -1,5 +1,6 @@
 package eu.netmobiel.profile.api.resource;
 
+import java.net.URI;
 import java.time.Instant;
 import java.util.List;
 import java.util.Optional;
@@ -14,15 +15,14 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
-import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.ComplimentsApi;
 import eu.netmobiel.profile.api.mapping.ComplimentMapper;
-import eu.netmobiel.profile.api.model.ComplimentResponse;
 import eu.netmobiel.profile.api.model.ComplimentTypesResponse;
 import eu.netmobiel.profile.filter.ComplimentsFilter;
 import eu.netmobiel.profile.model.ComplimentType;
@@ -78,17 +78,16 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 			Optional<Compliments> currentCs = complimentManager.lookupComplimentSet(c.getReceiver().getManagedIdentity(), c.getContext());
 			Long id = null;
 			if (currentCs.isEmpty()) {
-				id = complimentManager.createCompliments(c); 
-				rspb = Response.created(UriBuilder.fromResource(ComplimentsApi.class)
-						.path(ComplimentsApi.class.getMethod("getCompliment", String.class, String.class)).build(id));
+				id = complimentManager.createCompliments(c);
 			} else {
 				id = currentCs.get().getId();
 				complimentManager.updateCompliments(id, c);
-				rspb = Response.noContent();
 			}
+			String urn = UrnHelper.createUrn(Compliments.URN_PREFIX, id);
+			rspb = Response.created(URI.create(urn));
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
-		} catch (BusinessException | NoSuchMethodException e) {
+		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
 		return rspb.build();
@@ -102,23 +101,8 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 			ComplimentsFilter filter = new ComplimentsFilter(resolveIdentity(xDelegator, receiverId), resolveIdentity(xDelegator, senderId));
 			filter.setContext(context);
 			// Anyone can see the compliments for someone
-//			String me = securityIdentity.getEffectivePrincipal().getName();
-//			final boolean privileged = request.isUserInRole("admin"); 
-//			if (! privileged && filter.getReceiver() != null && !filter.getReceiver().equals(me)) {
-//				throw new SecurityException("You have no privilege to list compliments received by someone else");
-//			}
-//			if (! privileged && filter.getSender() != null && !filter.getSender().equals(me)) {
-//				throw new SecurityException("You have no privilege to list compliments sent by someone else");
-//			}
-//			if (! privileged && filter.getReceiver() == null) {
-//				filter.setReceiver(me);
-//			}
 	    	PagedResult<Compliments> results = complimentManager.listCompliments(filter, cursor);
-	    	ComplimentResponse cr = new ComplimentResponse();
-	    	cr.setCompliments(mapper.map(results.getData()));
-	    	cr.setMessage("Success");
-	    	cr.setSuccess(true);
-			rsp = Response.ok(cr).build();
+			rsp = Response.ok(mapper.map(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException e) {
@@ -194,22 +178,5 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 		ctr.getComplimentTypes().addAll(types);
 		return Response.ok(ctr).build();
 	}
-
-//	@Override
-//	public Response getComplimentsNewSkool() {
-//		Response rsp = null;
-//		try {
-//			Cursor cursor = new Cursor();
-//			ComplimentFilter filter = new ComplimentFilter();
-//	    	PagedResult<Compliment> results = profileManager.listCompliments(filter, cursor);
-//			rsp = Response.ok(mapper.map(results)).build();
-//		} catch (IllegalArgumentException e) {
-//			throw new BadRequestException(e);
-//		} catch (BusinessException e) {
-//			throw new WebApplicationException(e);
-//		}
-//		return rsp;
-//		throw new UnsupportedOperationException("Not yet implemented");
-//	}
 
 }

@@ -1,5 +1,6 @@
 package eu.netmobiel.communicator.api.resource;
 
+import java.net.URI;
 import java.time.Instant;
 import java.time.OffsetDateTime;
 import java.util.stream.Stream;
@@ -10,7 +11,6 @@ import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
-import javax.ws.rs.core.UriBuilder;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
@@ -62,7 +62,7 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 				publisherService.informDelegates(sender, "Persoonlijk bericht van " + sender.getName(), DeliveryMode.ALL);
 			}
 			String newMsgUrn = UrnHelper.createUrn(Message.URN_PREFIX, mid);
-			rsp = Response.created(UriBuilder.fromPath("{arg1}").build(newMsgUrn)).build() ;
+			rsp = Response.created(URI.create(newMsgUrn)).build() ;
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
