@@ -5,8 +5,13 @@ import java.time.OffsetDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.Comparator;
+import java.util.HashMap;
+import java.util.LinkedHashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
@@ -22,6 +27,7 @@ import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
+import javax.persistence.LockModeType;
 import javax.validation.constraints.NotNull;
 
 import org.slf4j.Logger;
@@ -74,6 +80,11 @@ import eu.netmobiel.commons.util.UrnHelper;
  * For now we use the first option, the advantage for the new traveller with premium credits is the ability to travel without
  * depositing first (assuming the premium balance is enough).
  * 
+ * The balances are a shared resources for many processes. To prevent too many roll-backs, the system balances are locked with
+ * a pessimistic write. To prevent deadlock, system balances are always locked in the same sequence: 
+ * banking-reserve, reservations, premiums.
+ * 
+ * 
  * @author Jaap Reitsma
  *
  */
@@ -104,6 +115,8 @@ public class LedgerService {
 	public static final Integer MAX_RESULTS = 10; 
 	public static final int CREDIT_EXCHANGE_RATE = 19;	// 1 credit is x euro cent
 
+	public static final List<String> SYSTEM_NCAN = List.of(ACC_REF_BANKING_RESERVE, ACC_REF_RESERVATIONS, ACC_REF_PREMIUMS);
+	
 	@Inject
     private Logger log;
 
@@ -139,6 +152,25 @@ public class LedgerService {
 		AccountingEntry ae = tr.lookup(purpose, entryType);
     }
 
+    static LockModeType lookupLockModeForUpdate(String ncan) {
+    	return SYSTEM_NCAN.contains(ncan) ? LockModeType.PESSIMISTIC_WRITE : LockModeType.OPTIMISTIC_FORCE_INCREMENT;
+    }
+
+    static void sortAccountsForLocking(List<Account> accounts) {
+    	accounts.sort(new Comparator<Account>() {
+			@Override
+			public int compare(Account a1, Account a2) {
+				int cmp = Integer.compare(a1.getPurpose().ordinal(), a2.getPurpose().ordinal());
+				if  (cmp == 0) {
+					if (a1.getPurpose() == AccountPurposeType.SYSTEM) {
+						cmp = Integer.compare(SYSTEM_NCAN.indexOf(a1.getNcan()), SYSTEM_NCAN.indexOf(a2.getNcan()));
+					}
+				}
+				return cmp;
+			}
+		});
+    }
+
     /**
      * A Netmobiel user deposits credits. The balance of the netmobiel credit system grows: the account of the user gets
      * more credits and the banking reserve of Netmobiel is equally increased.
@@ -152,10 +184,10 @@ public class LedgerService {
     public AccountingTransaction deposit(Account acc, int amount, OffsetDateTime when, String description, String reference) {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance liabilityBalance = balanceDao.findByLedgerAndAccount(ledger, acc);
-    	Balance assetBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE);  
-    	expect(liabilityBalance.getAccount(), AccountType.LIABILITY);
+    	Balance assetBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE, LockModeType.PESSIMISTIC_WRITE);  
     	expect(assetBalance.getAccount(), AccountType.ASSET);
+    	Balance liabilityBalance = balanceDao.findByLedgerAndAccount(ledger, acc, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
+    	expect(liabilityBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = null;
 		try {
 			tr = ledger
@@ -182,10 +214,10 @@ public class LedgerService {
     public  AccountingTransaction withdraw(Account acc, int amount, OffsetDateTime when, String description, String reference) throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance liabilityBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
-    	Balance assetBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE);  
-    	expect(liabilityBalance.getAccount(), AccountType.LIABILITY);
+    	Balance assetBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE, LockModeType.PESSIMISTIC_WRITE);  
     	expect(assetBalance.getAccount(), AccountType.ASSET);
+    	Balance liabilityBalance = balanceDao.findByLedgerAndAccount(ledger, acc, LockModeType.OPTIMISTIC_FORCE_INCREMENT);  
+    	expect(liabilityBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
     			.createStartTransaction(description, reference, when.toInstant(), Instant.now())
     			.credit(assetBalance, amount, TransactionType.WITHDRAWAL, liabilityBalance.getAccount())
@@ -216,12 +248,12 @@ public class LedgerService {
 
 		Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance userAccountBalance = balanceDao.findByLedgerAndAccount(ledger, userAccEntry.getAccount());  
-    	Balance brab = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE);  
-    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);
-    	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
+    	Balance brab = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_BANKING_RESERVE, LockModeType.PESSIMISTIC_WRITE);  
     	expect(brab.getAccount(), AccountType.ASSET);
+    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS, LockModeType.PESSIMISTIC_WRITE);
     	expect(rb.getAccount(), AccountType.LIABILITY);
+    	Balance userAccountBalance = balanceDao.findByLedgerAndAccount(ledger, userAccEntry.getAccount(), LockModeType.OPTIMISTIC_FORCE_INCREMENT);  
+    	expect(userAccountBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
     			.createFollowUpTransactionFromHead(theHead, when.toInstant(), Instant.now())
     	    	.transfer(rb, amount, TransactionType.RELEASE, userAccountBalance)
@@ -249,9 +281,9 @@ public class LedgerService {
     		String description, String reference, boolean rollback) throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance originatorBalance = balanceDao.findByLedgerAndAccount(ledger, originator);  
-    	Balance beneficiaryBalance = balanceDao.findByLedgerAndAccount(ledger, beneficiary);
+    	Balance originatorBalance = balanceDao.findByLedgerAndAccount(ledger, originator, LockModeType.OPTIMISTIC_FORCE_INCREMENT);  
     	expect(originatorBalance.getAccount(), AccountType.LIABILITY);
+    	Balance beneficiaryBalance = balanceDao.findByLedgerAndAccount(ledger, beneficiary, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
     	expect(beneficiaryBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction tr = ledger
     			.createStartTransaction(description, reference, when.toInstant(), Instant.now())
@@ -266,7 +298,7 @@ public class LedgerService {
 	/**
 	 * Create a transaction that reverses this transaction. The opposite accounting entry is created and also the purpose is reversed.
 	 * @param head The head of the conversation
-	 * @param trToReverse the transaction to revere (can be equal to the head)
+	 * @param trToReverse the transaction to reverse (can be equal to the head)
 	 * @param accountingTime the accounting time
 	 * @param isRollback If true this is a rollback transaction
 	 * @return The reversed transaction, not persisted yet.
@@ -279,11 +311,23 @@ public class LedgerService {
 		AccountingTransaction.Builder trb =	ledger
 				.createFollowUpTransactionFromHead(head, accountingTime, Instant.now())
 				.rollback(isRollback);
-		// Iterate the transactions also in opposite sequence
+		// The locking of the balances should occur in the proper order: System accounts first
+		List<Account> accounts = trToReverse.getAccountingEntries().stream()
+				.map(ae -> ae.getAccount())
+				.collect(Collectors.toList());
+		sortAccountsForLocking(accounts);
+		Map<Account, Balance> balanceMap = new HashMap<>();
+		accounts.forEach(acc -> {
+			LockModeType type = acc.getPurpose() == AccountPurposeType.SYSTEM ? LockModeType.PESSIMISTIC_WRITE
+					: LockModeType.OPTIMISTIC_FORCE_INCREMENT;
+	    	Balance balance = balanceDao.findByLedgerAndAccount(ledger, acc, type);
+			balanceMap.put(acc, balance);
+		});
+		// Iterate the transactions also in opposite sequence, that is for the logic in the list of statements
 		ArrayList<AccountingEntry> reversedEntries = new ArrayList<>(trToReverse.getAccountingEntries());
 		Collections.reverse(reversedEntries);
 		for (AccountingEntry entry : reversedEntries) {
-	    	Balance originatorBalance = balanceDao.findByLedgerAndAccount(ledger, entry.getAccount());
+	    	Balance originatorBalance = balanceMap.get(entry.getAccount());
 	    	TransactionType reversedPurpose = entry.getPurpose().reverse();
 			if (entry.getEntryType() == AccountingEntryType.CREDIT) {
 				trb.debit(originatorBalance, entry.getAmount(), reversedPurpose, entry.getCounterparty());
@@ -313,21 +357,21 @@ public class LedgerService {
     		OffsetDateTime when, String description, String reference, boolean rollback) throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, acc);  
+    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS, LockModeType.PESSIMISTIC_WRITE);  
+    	expect(rb.getAccount(), AccountType.LIABILITY);
+    	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, acc, LockModeType.OPTIMISTIC_FORCE_INCREMENT);  
+    	expect(userBalance.getAccount(), AccountType.LIABILITY);
     	Balance premiumBalance = null;
     	int premiumAmount = 0;
     	if (maxPremiumPercentage > 0 && premiumAcc != null) {
-    		premiumBalance = balanceDao.findByLedgerAndAccount(ledger, premiumAcc);
+    		premiumBalance = balanceDao.findByLedgerAndAccount(ledger, premiumAcc, LockModeType.OPTIMISTIC_FORCE_INCREMENT);
+        	expect(premiumBalance.getAccount(), AccountType.LIABILITY);
     		premiumAmount = Math.min(Math.round((amount * maxPremiumPercentage) / 100.0f), premiumBalance.getEndAmount());
     	}
-    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);  
-    	expect(userBalance.getAccount(), AccountType.LIABILITY);
-    	expect(rb.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction.Builder trb = ledger
     			.createStartTransaction(description, reference, when.toInstant(), Instant.now())
     			.rollback(rollback);
     	if (premiumBalance != null && premiumAmount > 0) {
-        	expect(premiumBalance.getAccount(), AccountType.LIABILITY);
 			trb.transfer(premiumBalance, premiumAmount, TransactionType.RELEASE, userBalance);
     	}
     	AccountingTransaction tr = trb.transfer(userBalance, amount, TransactionType.RESERVATION, rb).build();
@@ -474,9 +518,9 @@ public class LedgerService {
 		AccountingTransaction head = reservation.getHead() != null ? reservation.getHead() : reservation;
 		Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, userAccEntry.getAccount());  
-    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS);
-    	Balance beneficiaryBalance = balanceDao.findByLedgerAndAccount(ledger, beneficiary.getPersonalAccount());  
+    	Balance rb = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_RESERVATIONS, LockModeType.PESSIMISTIC_WRITE);
+    	Balance userBalance = balanceDao.findByLedgerAndAccount(ledger, userAccEntry.getAccount(), LockModeType.OPTIMISTIC_FORCE_INCREMENT);  
+    	Balance beneficiaryBalance = balanceDao.findByLedgerAndAccount(ledger, beneficiary.getPersonalAccount(), LockModeType.OPTIMISTIC_FORCE_INCREMENT);  
     	if (rb.getId().equals(userBalance.getId())) {
     		throw new IllegalStateException("Panic: Expected to find a user debit reservation entry in reservation: " + reservationId);
     	}
@@ -837,11 +881,11 @@ public class LedgerService {
     	int amount = rewarddb.getAmount();
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance personalBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPersonalAccount());  
-    	Balance maecenasBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_PREMIUMS);  
-    	Balance personalPremiumBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPremiumAccount());
-    	expect(personalBalance.getAccount(), AccountType.LIABILITY);
+    	Balance maecenasBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_PREMIUMS, LockModeType.PESSIMISTIC_WRITE);  
     	expect(maecenasBalance.getAccount(), AccountType.LIABILITY);
+    	Balance personalBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPersonalAccount(), LockModeType.OPTIMISTIC_FORCE_INCREMENT);  
+    	expect(personalBalance.getAccount(), AccountType.LIABILITY);
+    	Balance personalPremiumBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPremiumAccount(), LockModeType.OPTIMISTIC_FORCE_INCREMENT);
     	expect(personalPremiumBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction head = null; 
     	if (rewarddb.getTransaction() != null) {
@@ -882,9 +926,9 @@ public class LedgerService {
     			.orElseThrow(() -> new NotFoundException("No such user: " + rewarddb.getRecipient().getManagedIdentity()));
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
     	ledger.expectOpen();
-    	Balance personalBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPersonalAccount());  
-    	Balance personalPremiumBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPremiumAccount());
+    	Balance personalBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPersonalAccount(), LockModeType.OPTIMISTIC_FORCE_INCREMENT);  
     	expect(personalBalance.getAccount(), AccountType.LIABILITY);
+    	Balance personalPremiumBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPremiumAccount(), LockModeType.OPTIMISTIC_FORCE_INCREMENT);
     	expect(personalPremiumBalance.getAccount(), AccountType.LIABILITY);
     	// With redemption you can only redeem what is yours and as far as it goes!
     	int actualAmount = Math.min(rewarddb.getAmount(), personalPremiumBalance.getEndAmount());
@@ -958,7 +1002,8 @@ public class LedgerService {
     public boolean fiatForPremiumBalance(int amount) {
     	OffsetDateTime when = OffsetDateTime.now();
     	Ledger ledger = ledgerDao.findByDate(when.toInstant());
-    	Balance maecenasBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_PREMIUMS);
+    	// Try to lock the balance, next step is the acrtual transfer
+    	Balance maecenasBalance = balanceDao.findByLedgerAndAccountNumber(ledger, ACC_REF_PREMIUMS, LockModeType.PESSIMISTIC_WRITE);
     	return maecenasBalance.getEndAmount() >= amount;
     }
 
@@ -973,7 +1018,7 @@ public class LedgerService {
     	BankerUser rcp = userDao.findByManagedIdentity(recipient.getManagedIdentity())
     			.orElseThrow(() -> new NotFoundException("No such user: " + recipient.getManagedIdentity()));
     	Ledger ledger = ledgerDao.findByDate(Instant.now());
-    	Balance personalPremiumBalance = balanceDao.findByLedgerAndAccount(ledger, rcp.getPremiumAccount());
+    	Balance personalPremiumBalance = balanceDao.findByLedgerAndAccount(ledger, rcp.getPremiumAccount(), LockModeType.OPTIMISTIC);
     	return personalPremiumBalance.getEndAmount() > 0;
     }
     

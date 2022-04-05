@@ -8,6 +8,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
+import javax.persistence.LockModeType;
 import javax.persistence.NoResultException;
 import javax.persistence.NonUniqueResultException;
 import javax.persistence.TypedQuery;
@@ -46,7 +47,7 @@ public class BalanceDao extends AbstractDao<Balance, Long> {
 	}
 
 	/**
-	 * Finds the balance given an account. This method is to inform the caller about the number of credits in the balance.
+	 * Finds the most recent balance given an account. This method is to inform the caller about the number of credits in the balance.
 	 * A dirty read is no problem.
 	 * @param account the account in question
 	 * @return the balance belonging to the account and the ledger period.
@@ -60,19 +61,41 @@ public class BalanceDao extends AbstractDao<Balance, Long> {
 				.getSingleResult();
 	}
 	
-	public Balance findByLedgerAndAccount(@NotNull Ledger ledger, @NotNull Account account) throws NoResultException, NonUniqueResultException {
+	/**
+	 * Finds the balance given the ledger and the account. The call is in general a preparation for an update, so 
+	 * a lock type is also a parameter.
+	 * @param ledger the ledger to use
+	 * @param account the account
+	 * @param lockMode the lock mode. Use PESSIMISTIC_WRITE to lock the entity for update of intensively used balances (banking reserve etc).
+	 * @return The balance
+	 * @throws NoResultException
+	 * @throws NonUniqueResultException
+	 */
+	public Balance findByLedgerAndAccount(@NotNull Ledger ledger, @NotNull Account account, LockModeType lockMode) throws NoResultException, NonUniqueResultException {
 		String q = "from Balance bal where bal.ledger = :ledger and bal.account = :account";
 		return em.createQuery(q, Balance.class)
 				.setParameter("ledger", ledger)
 				.setParameter("account", account)
+				.setLockMode(lockMode)
 				.getSingleResult();
 	}
 	
-	public Balance findByLedgerAndAccountNumber(@NotNull Ledger ledger, @NotNull String ncan) throws NoResultException, NonUniqueResultException {
+	/**
+	 * Finds the balance given the ledger and the account number. The call is in general a preparation for an update, so 
+	 * a lock type is also a parameter.
+	 * @param ledger the ledger to use
+	 * @param ncan the Netmobiel NetMobiel Credit Account Number
+	 * @param lockMode the lock mode. Use PESSIMISTIC_WRITE to lock the entity for update of intensively used balances (banking reserve etc).
+	 * @return The balance
+	 * @throws NoResultException
+	 * @throws NonUniqueResultException
+	 */
+	public Balance findByLedgerAndAccountNumber(@NotNull Ledger ledger, @NotNull String ncan, LockModeType lockMode) throws NoResultException, NonUniqueResultException {
 		String q = "from Balance bal where bal.ledger = :ledger and bal.account.ncan = :ncan";
 		return em.createQuery(q, Balance.class)
 				.setParameter("ledger", ledger)
 				.setParameter("ncan", ncan)
+				.setLockMode(lockMode)
 				.getSingleResult();
 	}
 	
