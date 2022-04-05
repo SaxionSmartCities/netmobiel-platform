@@ -45,6 +45,14 @@ public class BalanceDao extends AbstractDao<Balance, Long> {
 		return em;
 	}
 
+	/**
+	 * Finds the balance given an account. This method is to inform the caller about the number of credits in the balance.
+	 * A dirty read is no problem.
+	 * @param account the account in question
+	 * @return the balance belonging to the account and the ledger period.
+	 * @throws NoResultException
+	 * @throws NonUniqueResultException
+	 */
 	public Balance findActualBalance(@NotNull Account account) throws NoResultException, NonUniqueResultException {
 		String q = "from Balance bal where bal.ledger.endPeriod is null and bal.account = :account";
 		return em.createQuery(q, Balance.class)
