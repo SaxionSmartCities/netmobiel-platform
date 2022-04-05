@@ -12,6 +12,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
 import java.util.List;
+import java.util.Objects;
 import java.util.Optional;
 
 import javax.annotation.Resource;
@@ -158,10 +159,10 @@ public class ProfileManager {
      * is not his/her personal profile.
      * The profile is connected to a new or existing Keycloak account, with the email address as key. 
      * @param profile the profile to create.
-     * @return A fresh new profile.
+     * @return The id of the new profile object.
      * @throws BusinessException
      */
-    public String createProfile(Profile profile) throws BusinessException {
+    public Long createProfile(Profile profile) throws BusinessException {
     	  // Validate required parameters.
 		if (StringUtils.isAllBlank(profile.getEmail()) || 
 				StringUtils.isAllBlank(profile.getGivenName()) || 
@@ -230,7 +231,7 @@ public class ProfileManager {
 	    	EventFireWrapper.fire(delegatorAccountCreatedEvent, delegatorAccountCreated);
 		}
 		
-		return profile.getManagedIdentity();
+		return profile.getId();
     }
 
     public Profile getCompleteProfileByManagedIdentity(String managedId) throws NotFoundException {
@@ -301,7 +302,6 @@ public class ProfileManager {
 				logger.debug("Update user attributes in Keycloak: " + newuser);
 			}
 			keycloakDao.updateUser(newuser);
-    		EventFireWrapper.fire(profileUpdatedEvent, newProfile);
 		}
     	// Assure key attributes are set
     	newProfile.setManagedIdentity(managedId);
@@ -310,7 +310,15 @@ public class ProfileManager {
 		// Overwrite whatever image path is provided
 		newProfile.setImagePath(dbprofile.getImagePath());
 		newProfile.constrainActualRole();
-
+		
+		// Check for the rewards
+		boolean plusChanged  = dbprofile.isProfilePlus() != newProfile.isProfilePlus();
+		LocalDate profileCreatedDate = LocalDate.from(dbprofile.getCreationTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))); 
+		Integer prevAge = dbprofile.getAgeAt(profileCreatedDate);
+		Integer age = newProfile.getAgeAt(profileCreatedDate);
+		boolean ageChanged = !Objects.equals(age, prevAge);
+		
+		// After the merge the new profile and the dbprofile are the same, they are merged!
 		dbprofile = profileDao.merge(newProfile);
 		// Transient properties are null now: dbprofile.getSearchPreferences, dbprofile.getRidesharePreferences
 		
@@ -350,33 +358,36 @@ public class ProfileManager {
 		if (userNameChanged) {
     		EventFireWrapper.fire(profileUpdatedEvent, dbprofile);
 		}		
-		evaluateRewardTriggers(dbprofile, newProfile);
+		evaluateRewardTriggers(newProfile, plusChanged, ageChanged, age);
 	}
 
-	private void evaluateRewardTriggers(Profile dbProfile, Profile newProfile) {
+	private void evaluateRewardTriggers(Profile profile, boolean plusChanged, boolean ageChanged, Integer age) {
 		// Trigger the starter. Should be at creation time but now we have backward compatibility
-		// If at creation time, then after creation of the banker user! And communicatgor user!
-		RewardEvent starter = new RewardEvent(INCENTIVE_CODE_STARTER, dbProfile, dbProfile.getKeyCloakUrn());
+		// If at creation time, then after creation of the banker user! And communicator user!
+		RewardEvent starter = new RewardEvent(INCENTIVE_CODE_STARTER, profile, profile.getKeyCloakUrn());
 		rewardEvent.fire(starter);
 
-		// Trigger the additional profile info: Only birth date now
-		LocalDate profileCreatedDate = LocalDate.from(dbProfile.getCreationTime().atZone(ZoneId.of(DEFAULT_TIME_ZONE))); 
-		Integer age = newProfile.getAgeAt(profileCreatedDate);
-		if (age != null) {
-			RewardEvent plus = new RewardEvent(INCENTIVE_CODE_PROFILE_PLUS, dbProfile, dbProfile.getKeyCloakUrn());
-			rewardEvent.fire(plus);
-		} else {
-			RewardRollbackEvent noPlus = new RewardRollbackEvent(INCENTIVE_CODE_PROFILE_PLUS, dbProfile, dbProfile.getKeyCloakUrn());
-			rewardRollbackEvent.fire(noPlus);
+		// Trigger the additional profile info if the state has changed
+		if (plusChanged) {
+			if (profile.isProfilePlus()) {
+				RewardEvent plus = new RewardEvent(INCENTIVE_CODE_PROFILE_PLUS, profile, profile.getKeyCloakUrn());
+				rewardEvent.fire(plus);
+			} else {
+				RewardRollbackEvent noPlus = new RewardRollbackEvent(INCENTIVE_CODE_PROFILE_PLUS, profile, profile.getKeyCloakUrn());
+				rewardRollbackEvent.fire(noPlus);
+			}
 		}
 		
-		// Trigger on the age at the time of creation of the profile
-		if (age != null && age >= 15 && age <= 25) {
-			RewardEvent youth = new RewardEvent(INCENTIVE_CODE_AGE_YOUTH, dbProfile, dbProfile.getKeyCloakUrn());
-			rewardEvent.fire(youth);
-		} else {
-			RewardRollbackEvent noYouth = new RewardRollbackEvent(INCENTIVE_CODE_AGE_YOUTH, dbProfile, dbProfile.getKeyCloakUrn());
-			rewardRollbackEvent.fire(noYouth);
+		if (ageChanged) {
+			// Ok, something has changed
+			// Trigger on the age at the time of creation of the profile
+			if (age != null && age >= 15 && age <= 25) {
+				RewardEvent youth = new RewardEvent(INCENTIVE_CODE_AGE_YOUTH, profile, profile.getKeyCloakUrn());
+				rewardEvent.fire(youth);
+			} else {
+				RewardRollbackEvent noYouth = new RewardRollbackEvent(INCENTIVE_CODE_AGE_YOUTH, profile, profile.getKeyCloakUrn());
+				rewardRollbackEvent.fire(noYouth);
+			}
 		}
 
 	}
