@@ -128,12 +128,12 @@ public class Balance  implements Serializable {
 		return modifiedTime;
 	}
 
-	public void debit(int amount) throws BalanceInsufficientException {
+	public void debit(int amount, boolean allowOverdraft) throws BalanceInsufficientException {
 		if (account.getAccountType() == AccountType.ASSET) {
 			endAmount += amount;
 		} else if (account.getAccountType() == AccountType.LIABILITY) {
 			endAmount -= amount;
-			if (endAmount < 0) {
+			if (endAmount < 0 && !allowOverdraft) {
 				throw new BalanceInsufficientException("Balance overdrawn by " + endAmount + " credits");
 			}
 		} else {

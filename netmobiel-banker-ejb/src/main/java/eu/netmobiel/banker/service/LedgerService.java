@@ -295,10 +295,12 @@ public class LedgerService {
 	 * @param trToReverse the transaction to reverse (can be equal to the head)
 	 * @param accountingTime the accounting time
 	 * @param isRollback If true this is a rollback transaction
+	 * @param allowOverdraft if true then allow a negative balance (thus no BalanceInsufficientException will be thrown)
 	 * @return The reversed transaction, not persisted yet.
 	 * @throws BalanceInsufficientException In case a debit depletes the balance more than allowed.  
 	 */
-	private AccountingTransaction reverse(@NotNull AccountingTransaction head, AccountingTransaction trToReverse, Instant accountingTime, boolean isRollback) 
+	private AccountingTransaction reverse(@NotNull AccountingTransaction head, AccountingTransaction trToReverse, 
+			Instant accountingTime, boolean isRollback, boolean allowOverdraft) 
 			throws BalanceInsufficientException {
     	Ledger ledger = ledgerDao.findByDate(accountingTime);
     	ledger.expectOpen();
@@ -324,7 +326,7 @@ public class LedgerService {
 	    	Balance originatorBalance = balanceMap.get(entry.getAccount());
 	    	TransactionType reversedPurpose = entry.getPurpose().reverse();
 			if (entry.getEntryType() == AccountingEntryType.CREDIT) {
-				trb.debit(originatorBalance, entry.getAmount(), reversedPurpose, entry.getCounterparty());
+				trb.debit(originatorBalance, entry.getAmount(), reversedPurpose, entry.getCounterparty(), allowOverdraft);
 			} else {
 				trb.credit(originatorBalance, entry.getAmount(), reversedPurpose, entry.getCounterparty());
 			}
@@ -434,7 +436,7 @@ public class LedgerService {
     	AccountingTransaction tr = null;
     	try {
     		// A cancel always uses the initial reservation! This is a regular operation (and not a rollback)
-        	tr = reverse(headReservation, headReservation, when.toInstant(), false); 
+        	tr = reverse(headReservation, headReservation, when.toInstant(), false, false); 
         	accountingTransactionDao.save(tr);
 		} catch (BalanceInsufficientException e) {
 			throw new IllegalStateException("Panic: Reservation account should never be empty", e);
@@ -544,7 +546,7 @@ public class LedgerService {
     	expect(charge, TransactionType.RELEASE, AccountingEntryType.DEBIT);
     	// Mark the transaction as a rollback
     	AccountingTransaction theHead = charge.getHead() != null ? charge.getHead() : charge; 
-    	AccountingTransaction tr = reverse(theHead, charge, Instant.now(), true); 
+    	AccountingTransaction tr = reverse(theHead, charge, Instant.now(), true, false); 
        	accountingTransactionDao.save(tr);
     	return tr.getTransactionRef();
     }
@@ -882,31 +884,34 @@ public class LedgerService {
     	Balance personalPremiumBalance = balanceDao.findByLedgerAndAccount(ledger, user.getPremiumAccount(), LockModeType.OPTIMISTIC_FORCE_INCREMENT);
     	expect(personalPremiumBalance.getAccount(), AccountType.LIABILITY);
     	AccountingTransaction head = null; 
+    	boolean hasBeenPaid = false;
     	if (rewarddb.getTransaction() != null) {
         	AccountingTransaction prevTr = lookupTransactionWithEntries(rewarddb.getTransaction().getId());
     		head = prevTr.getHead() != null ? prevTr.getHead() : prevTr;
     		if (prevTr.hasEntry(TransactionType.PAYMENT)) {
     			// Panic! the payment was already made!
-    			throw new IllegalStateException("Duplicate pay-out of reward detected:" + rewarddb.getUrn());
+    			hasBeenPaid = true;
+    			log.warn(String.format("Premium reward has already been paid:" + rewarddb.getUrn()));
     		}
     	}
-    	// The system premium is paid to the personal account and then reserved on the premium account of that user.
-    	AccountingTransaction tr = ledger
-    			.createTransaction(rewarddb.getIncentive().getDescription(), rewarddb.getUrn(), when.toInstant(), Instant.now())
-    			.head(head)
-    			.transfer(maecenasBalance, amount, TransactionType.PAYMENT, personalBalance)
-				.transfer(personalBalance, amount, TransactionType.RESERVATION, personalPremiumBalance)
-    			.build();
-    	accountingTransactionDao.save(tr);
-    	rewarddb.setTransaction(tr);
+    	if (!hasBeenPaid) {
+        	// The system premium is paid to the personal account and then reserved on the premium account of that user.
+        	AccountingTransaction tr = ledger
+        			.createTransaction(rewarddb.getIncentive().getDescription(), rewarddb.getUrn(), when.toInstant(), Instant.now())
+        			.head(head)
+        			.transfer(maecenasBalance, amount, TransactionType.PAYMENT, personalBalance)
+    				.transfer(personalBalance, amount, TransactionType.RESERVATION, personalPremiumBalance)
+        			.build();
+        	accountingTransactionDao.save(tr);
+        	rewarddb.setTransaction(tr);
+    	}
     	rewarddb.setCancelTime(null);
     	rewarddb.setPaidOut(true);
     }
     
     /**
-     * Pay a user an amount of premium credits. The credits are first paid to the current account and then 
-     * reserved on the premium account for spending on selected activities.
-     * A reward could have a cancelled transaction attached, verify.
+     * Release an amount of his premium credits to the regular account of the user. 
+     * A reward could have a cancelled transaction attached, verify. 
      * @param reward
      * @param when
      * @param statementText the text to appear on the statement.
@@ -928,23 +933,27 @@ public class LedgerService {
     	int actualAmount = Math.min(rewarddb.getAmount(), personalPremiumBalance.getEndAmount());
     	if (actualAmount > 0) {
     		// There is still some left
-        	AccountingTransaction head = null; 
+        	AccountingTransaction head = null;
+        	boolean hasBeenPaid = false;
         	if (rewarddb.getTransaction() != null) {
             	AccountingTransaction prevTr = lookupTransactionWithEntries(rewarddb.getTransaction().getId());
         		head = prevTr.getHead() != null ? prevTr.getHead() : prevTr;
-        		if (prevTr.hasEntry(TransactionType.PAYMENT)) {
+        		if (prevTr.hasEntry(TransactionType.RELEASE)) {
         			// Panic! the payment was already made!
-        			throw new IllegalStateException("Duplicate pay-out of reward detected:" + rewarddb.getUrn());
+        			hasBeenPaid = true;
+        			log.warn(String.format("Redemption reward has already been paid:" + rewarddb.getUrn()));
         		}
         	}
-        	// The personal premium is release to the personal account.
-        	AccountingTransaction tr = ledger
-        			.createTransaction(rewarddb.getIncentive().getDescription(), rewarddb.getUrn(), when.toInstant(), Instant.now())
-        			.head(head)
-        			.transfer(personalPremiumBalance, actualAmount, TransactionType.RELEASE, personalBalance)
-        			.build();
-        	accountingTransactionDao.save(tr);
-        	rewarddb.setTransaction(tr);
+        	if (!hasBeenPaid) {
+	        	// The personal premium is release to the personal account.
+	        	AccountingTransaction tr = ledger
+	        			.createTransaction(rewarddb.getIncentive().getDescription(), rewarddb.getUrn(), when.toInstant(), Instant.now())
+	        			.head(head)
+	        			.transfer(personalPremiumBalance, actualAmount, TransactionType.RELEASE, personalBalance)
+	        			.build();
+	        	accountingTransactionDao.save(tr);
+	        	rewarddb.setTransaction(tr);
+        	}
         	rewarddb.setCancelTime(null);
         	rewarddb.setPaidOut(true);
         	// If the left-over is not equal to the intended amount, well, then make it look intentional! 
@@ -957,25 +966,29 @@ public class LedgerService {
     }
 
     /**
-     * Reverse the earlier payment of a reward. This method is primarily added for testing purposes, 
-     * but might also be helpful in case of service actions.
-     * @param reward
-     * @param when
-     * @throws BalanceInsufficientException
-     * @throws NotFoundException
+     * Reverse the earlier payment of a reward. Because the premium might already be used, we allow a negative premium balance, but 
+     * only in case of premium rewards. 
+     * @param reward the reward to refund
+     * @param when transaction time.
+     * @throws BalanceInsufficientException if an overdraft occurs on the account. 
+     * @throws NotFoundException if the reward was not found.
      */
     public void refundReward(Reward reward, OffsetDateTime when) throws BalanceInsufficientException, NotFoundException {
     	if (reward.getTransaction() == null) {
+			log.warn(String.format("Reward %s has no transaction, nothing to refund!", reward.getUrn()));
     		return;
     	}
-    	Reward rewarddb = rewardDao.find(reward.getId())
+    	Reward rewarddb = rewardDao.loadGraph(reward.getId(), Reward.GRAPH_WITH_INCENTIVE)
     			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getId()));
+    	final boolean allowOverdraft = !rewarddb.getIncentive().isRedemption();
     	AccountingTransaction lastTransaction = lookupTransactionWithEntries(reward.getTransaction().getId());
-    	if (lastTransaction.hasEntry(TransactionType.PAYMENT)) {
+    	// What should be the previous transaction?
+    	TransactionType expected = reward.getIncentive().isRedemption() ? TransactionType.RELEASE : TransactionType.PAYMENT;
+    	if (lastTransaction.hasEntry(expected)) {
     		// There is a payment made, make a refund
         	// Mark the transaction as a rollback
         	AccountingTransaction theHead = lastTransaction.getHead() != null ? lastTransaction.getHead() : lastTransaction; 
-        	AccountingTransaction tr = reverse(theHead, lastTransaction, when.toInstant(), true); 
+        	AccountingTransaction tr = reverse(theHead, lastTransaction, when.toInstant(), true, allowOverdraft); 
            	accountingTransactionDao.save(tr);
            	// Save the transaction reference.
         	rewarddb.setTransaction(tr);
@@ -983,7 +996,7 @@ public class LedgerService {
 			log.info(String.format("Payment for reward %s refunded in transaction %s: ", reward.getUrn(), tr.getTransactionRef()));
     	} else {
         	// else refund has taken place already, ignore, no reason to panic.
-			log.info(String.format("No payment to refund for reward %s: ", reward.getUrn()));
+			log.warn(String.format("Reward %s has already been refunded in transaction %s", reward.getUrn(), lastTransaction.getTransactionRef()));
     	}
     }
 

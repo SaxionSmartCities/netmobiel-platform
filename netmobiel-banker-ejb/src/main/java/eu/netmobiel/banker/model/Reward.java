@@ -49,7 +49,7 @@ import eu.netmobiel.commons.util.UrnHelper;
 
 @Entity
 @Table(name = "reward", uniqueConstraints = {
-	    @UniqueConstraint(name = "cs_reward_unique", columnNames = { "incentive", "recipient" })
+	    @UniqueConstraint(name = "cs_reward_unique", columnNames = { "incentive", "recipient", "fact_context" })
 })
 @Vetoed
 @SequenceGenerator(name = "reward_sg", sequenceName = "reward_seq", allocationSize = 1, initialValue = 50)

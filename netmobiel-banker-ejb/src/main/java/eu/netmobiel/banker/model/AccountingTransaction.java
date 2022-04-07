@@ -279,12 +279,16 @@ public class AccountingTransaction  implements Serializable {
 		}
 
 		public AccountingTransaction.Builder debit(Balance balance, int amount, TransactionType purpose, Account counterparty) throws BalanceInsufficientException {
-			expectNotFinished();
-			addAccountingEntry(balance.getAccount(), counterparty, new AccountingEntry(AccountingEntryType.DEBIT, amount, purpose));
-			balance.debit(amount);
-			return this;
+			return debit(balance, amount, purpose, counterparty, false);
 		}
 		
+		public AccountingTransaction.Builder debit(Balance balance, int amount, TransactionType purpose, Account counterparty, boolean allowOverdraft) throws BalanceInsufficientException {
+			expectNotFinished();
+			addAccountingEntry(balance.getAccount(), counterparty, new AccountingEntry(AccountingEntryType.DEBIT, amount, purpose));
+			balance.debit(amount, allowOverdraft);
+			return this;
+		}
+
 		public AccountingTransaction.Builder credit(Balance balance, int amount, TransactionType purpose, Account counterparty) throws BalanceInsufficientException {
 			expectNotFinished();
 			addAccountingEntry(balance.getAccount(), counterparty, new AccountingEntry(AccountingEntryType.CREDIT, amount, purpose));
