@@ -25,7 +25,7 @@ import eu.netmobiel.banker.util.BankerUrnHelper;
 import eu.netmobiel.commons.util.UrnHelper;
 
 /**
- * Class to capture a request to deposit credits into the NetMobiel banker system. The DepositRequest is connected to 
+ * Class to capture a request to deposit credits into the Netmobiel banker system. The DepositRequest is connected to 
  * the PaymentLink defined by the payment Provider. 
  * 
  * @author Jaap Reitsma

@@ -6,7 +6,7 @@ import eu.netmobiel.commons.NetMobielModule;
 import eu.netmobiel.commons.util.UrnHelper;
 
 /**
- * Definition of a NetMobiel User.
+ * Definition of a Netmobiel User.
  * @author Jaap Reitsma
  *
  */

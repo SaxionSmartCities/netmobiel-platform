@@ -68,7 +68,7 @@ import eu.netmobiel.rideshare.repository.RideshareUserDao;
 @Logging
 public class RideManager {
 	public static final Integer MAX_RESULTS = 10; 
-	public static final String AGENCY_NAME = "NetMobiel Rideshare Service";
+	public static final String AGENCY_NAME = "Netmobiel Rideshare Service";
 	public static final String AGENCY_ID = "NB:RS";
 	public static final Integer MAX_BOOKINGS = 1;
 	

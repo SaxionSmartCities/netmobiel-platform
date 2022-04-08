@@ -61,7 +61,7 @@ public class Account implements Serializable {
     private String accountRef;
     
 	/**
-	 * An account has a NetMobiel Credit Account Number (NCAN). The account number could be seen as the external 
+	 * An account has a Netmobiel Credit Account Number (NCAN). The account number could be seen as the external 
 	 * identifier of the account, but in practise it is only used for lookup of the system accounts by well-known names.
 	 * The accounts are not exposed to the outside world, so the NCAN is not used by users. 
 	 */

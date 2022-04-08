@@ -376,7 +376,7 @@ public class Booking extends ReferableObject implements Serializable {
     private ConfirmationReasonType confirmationReasonByPassenger;
 
     /**
-     * The costs of this booking in NetMobiel credits.
+     * The costs of this booking in Netmobiel credits.
      * Should this be used in Rideshare
      */
     @Column(name = "fare_credits")

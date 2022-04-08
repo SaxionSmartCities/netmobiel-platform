@@ -1,14 +1,14 @@
 package eu.netmobiel.planner.model;
 
 /**
- * The type of the trip plan created by NetMobiel.
+ * The type of the trip plan created by Netmobiel.
  * 
  * @author Jaap Reitsma
  *
  */
 public enum PlanType {
 	/**
-	 * The regular plan created by the multi-modal planner of NetMobiel 
+	 * The regular plan created by the multi-modal planner of Netmobiel 
 	 */
 	REGULAR("REG"),
 	/**

@@ -54,7 +54,7 @@ public class SepaCreditTransferDocumentTest {
 				);
 		SepaGroupHeader header = new SepaGroupHeader.Builder("Batch-01 0123456789012345678901234567890")
 				.of(transactions)
-				.withInitiatingParty("NetMobiel")
+				.withInitiatingParty("Netmobiel")
 				.build();
 		SepaPaymentInformation payinfo = new SepaPaymentInformation.Builder("Batch-01")
 				.of(transactions)

@@ -259,7 +259,7 @@ public class Leg implements Serializable {
     private PlannerReport plannerReport;
     
     /**
-     * The costs of travelling over this leg in NetMobiel credits.
+     * The costs of travelling over this leg in Netmobiel credits.
      */
     @Column(name = "fare_credits")
     private Integer fareInCredits;

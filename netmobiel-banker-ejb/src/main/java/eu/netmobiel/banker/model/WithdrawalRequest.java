@@ -33,7 +33,7 @@ import eu.netmobiel.commons.model.ReferableObject;
 import eu.netmobiel.commons.util.UrnHelper;
 
 /**
- * Class to capture a request to withdraw credits from the NetMobiel banker system. The WithDrawalRequest is ultimately connected to 
+ * Class to capture a request to withdraw credits from the Netmobiel banker system. The WithDrawalRequest is ultimately connected to 
  * a PaymentBatch for the treasurer to process. 
  * 
  * @author Jaap Reitsma

@@ -3,7 +3,7 @@ package eu.netmobiel.commons.filter;
 import eu.netmobiel.commons.exception.BadRequestException;
 
 /**
- * Generic cursor class for data retrieval in NetMobiel.
+ * Generic cursor class for data retrieval in Netmobiel.
  * 
  * @author Jaap Reitsma
  *

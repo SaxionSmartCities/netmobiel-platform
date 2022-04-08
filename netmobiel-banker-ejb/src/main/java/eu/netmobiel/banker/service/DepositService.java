@@ -147,7 +147,7 @@ public class DepositService {
     			.orElseThrow(() -> new IllegalArgumentException("DepositRequest has gone: dr.getId()"));
     	if (dr_db.getStatus() == PaymentStatus.ACTIVE) {
         	if (plink.status == PaymentLinkStatus.COMPLETED) {
-        		// Transition to COMPLETED, add transaction to deposit credits in the NetMobiel system
+        		// Transition to COMPLETED, add transaction to deposit credits in the Netmobiel system
         		dr_db.setCompletedTime(plink.completed.toInstant());
         		AccountingTransaction tr = ledgerService.deposit(dr_db.getAccount(), dr_db.getAmountCredits(), 
         				dr_db.getCompletedTime().atOffset(ZoneOffset.UTC), dr_db.getDescription(), dr_db.getDepositRequestRef());

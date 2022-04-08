@@ -66,7 +66,7 @@ public class PlannerApplication extends Application {
     public void postConstruct() {
         StringBuilder builder = new StringBuilder();
         builder.append("\n------------------------------------------------");
-        builder.append("\nStarting up NetMobiel Planner REST Service");
+        builder.append("\nStarting up Netmobiel Planner REST Service");
         builder.append("\n\tVersion:  " + version.getVersionString());
         builder.append("\n\tBuilt On: " + version.getVersionDate().toString());
         builder.append("\n\tBuild:    " + version.getVersionInfo());

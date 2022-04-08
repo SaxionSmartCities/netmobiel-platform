@@ -96,19 +96,19 @@ public class LedgerService {
 	 * The Asset account for Netmobiel. This account reflects the total amount of credits available in Netmobiel.
 	 */
 	public static final String ACC_REF_BANKING_RESERVE = "banking-reserve";
-	public static final String ACC_NAME_BANKING_RESERVE = "De NetMobiel Kluis";
+	public static final String ACC_NAME_BANKING_RESERVE = "De Netmobiel Kluis";
 	/**
 	 * The Reservation account of netmobiel where all reservations are saved. A reservation amount is in general 
 	 * (i.e., always) reserved and released a single sum, as opposed to released in parts.
 	 * This is a liability account.
 	 */
 	public static final String ACC_REF_RESERVATIONS = "reservations";
-	public static final String ACC_NAME_RESERVATIONS = "NetMobiel Reserveringen";
+	public static final String ACC_NAME_RESERVATIONS = "Netmobiel Reserveringen";
 	/**
 	 * The central account from where each premium is paid to individual users. 
 	 */
 	public static final String ACC_REF_PREMIUMS = "premiums";
-	public static final String ACC_NAME_PREMIUMS = "NetMobiel Premies";
+	public static final String ACC_NAME_PREMIUMS = "Netmobiel Premies";
 	
 	public static final Integer MAX_RESULTS = 10; 
 	public static final int CREDIT_EXCHANGE_RATE = 19;	// 1 credit is x euro cent

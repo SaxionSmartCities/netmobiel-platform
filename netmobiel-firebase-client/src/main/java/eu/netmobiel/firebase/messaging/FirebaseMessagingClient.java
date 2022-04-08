@@ -37,7 +37,7 @@ import eu.netmobiel.commons.model.NetMobielMessage;
  */
 @ApplicationScoped
 public class FirebaseMessagingClient {
-	public final static String SYSTEM_USER_NAME = "NetMobiel";
+	public final static String SYSTEM_USER_NAME = "Netmobiel";
 	
     @Inject
     private Logger log;

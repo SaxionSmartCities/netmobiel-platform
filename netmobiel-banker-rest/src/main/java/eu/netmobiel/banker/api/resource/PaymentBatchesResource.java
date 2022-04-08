@@ -115,12 +115,12 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 	private static final String SUBJECT = "Netmobiel Credit Transfer File ${dateFormatted}";
     private static final String BODY = 
     		  "Beste ${givenName},"
-    		+ "\n\nDeze mail bevat het aangevraagde betalingsbestand van NetMobiel. "
+    		+ "\n\nDeze mail bevat het aangevraagde betalingsbestand van Netmobiel. "
     		+ "\n\nDe orderreferentie van dit bestand is ${orderReference}."
     		+ "Verwerk deze bij je bank."
-    		+ "\n\nNa afronding bij de bank moet je in de NetMobiel App vervolgens de betreffende opdrachten goed- of afkeuren, "
+    		+ "\n\nNa afronding bij de bank moet je in de Netmobiel App vervolgens de betreffende opdrachten goed- of afkeuren, "
     		+ " zodat de administratie in Netmobiel overeenkomt met de verwerking bij de bank."
-    		+ "\n\nMet vriendelijke groet,\n\nNetMobiel Platform\n";
+    		+ "\n\nMet vriendelijke groet,\n\nNetmobiel Platform\n";
     
     @Override
     public Response mailPaymentBatchAsPAINFile(String paymentBatchId, Boolean forceUniqueId, Boolean pendingOnly) {
@@ -234,7 +234,7 @@ public class PaymentBatchesResource implements PaymentBatchesApi {
 		}
 		SepaGroupHeader header = new SepaGroupHeader.Builder(messageId)
 				.of(transactions)
-				.withInitiatingParty("NetMobiel")
+				.withInitiatingParty("Netmobiel")
 				.build();
 		return new SepaCreditTransferDocument.Builder()
 				.with(header)

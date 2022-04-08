@@ -155,14 +155,14 @@ public class Profile extends User  {
 	private NotificationOptions notificationOptions;
 
 	/**
-	 * The role of this user in NetMobiel.
+	 * The role of this user in Netmobiel.
 	 */
 	@NotNull
 	@Column(name = "user_role", length = 2)
 	private UserRole userRole;
 
 	/**
-	 * The acting role of this user in NetMobiel. Must be Driver or Passenger
+	 * The acting role of this user in Netmobiel. Must be Driver or Passenger
 	 */
 	@NotNull
 	@Column(name = "acting_role", length = 2)

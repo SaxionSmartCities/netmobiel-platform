@@ -89,7 +89,7 @@ public class RDWCarLicenseDao {
     		car.setLicensePlateRaw(plateRaw);
     		car.setLicensePlate(plate.toUpperCase().trim());
     		if (!plateRaw.equals(node.getString("kenteken", null))) {
-    			log.warn(String.format("Inconsistent license plate format: RDW %s vs NetMobiel %s", node.getString("kenteken", null), plateRaw));
+    			log.warn(String.format("Inconsistent license plate format: RDW %s vs Netmobiel %s", node.getString("kenteken", null), plateRaw));
     		}
     		car.setLicensePlateRaw(node.getString("kenteken", null));
             car.setBrand(node.getString("merk", null));

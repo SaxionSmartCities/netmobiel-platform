@@ -84,7 +84,7 @@ public class BalanceDao extends AbstractDao<Balance, Long> {
 	 * Finds the balance given the ledger and the account number. The call is in general a preparation for an update, so 
 	 * a lock type is also a parameter.
 	 * @param ledger the ledger to use
-	 * @param ncan the Netmobiel NetMobiel Credit Account Number
+	 * @param ncan the Netmobiel Credit Account Number
 	 * @param lockMode the lock mode. Use PESSIMISTIC_WRITE to lock the entity for update of intensively used balances (banking reserve etc).
 	 * @return The balance
 	 * @throws NoResultException

@@ -78,7 +78,7 @@ import eu.netmobiel.profile.service.ProfileReportService;
 import eu.netmobiel.rideshare.service.RideshareReportService;
 
 /**
- * Stateless bean for running a report on NetMobiel.
+ * Stateless bean for running a report on Netmobiel.
  *  
  * @author Jaap Reitsma
  *
@@ -130,12 +130,12 @@ public class ReportProcessor {
 
     private static final String SUBJECT = "${subjectPrefix} Netmobiel Rapportage ${reportDate} - ${name}";
     private static final String BODY = 
-    			"Bijgaand de maandelijkse (deel)rapportage van het gebruik van het NetMobiel platform.\n";
+    			"Bijgaand de maandelijkse (deel)rapportage van het gebruik van het Netmobiel platform.\n";
 
     /**
-     * Runs the report on NetMobiel each first day of the month in the morning.
+     * Runs the report on Netmobiel each first day of the month in the morning.
      */
-	@Schedule(info = "Report on NetMobiel", dayOfMonth = "1", hour = "7", minute = "0", second = "0", persistent = true)
+	@Schedule(info = "Report on Netmobiel", dayOfMonth = "1", hour = "7", minute = "0", second = "0", persistent = true)
     public void timedStartReporting() {
 		try {
 			startReport();		

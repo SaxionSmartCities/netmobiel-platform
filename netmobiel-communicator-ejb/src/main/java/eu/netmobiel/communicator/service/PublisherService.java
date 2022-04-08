@@ -284,7 +284,7 @@ public class PublisherService {
 
     /**
      * Finds the conversation by managedIdentity and context. 
-     * @param nbUser NetMobiel user.
+     * @param nbUser Netmobiel user.
      * @param context The context to look for.
      * @return The conversation.
      * @throws NotFoundException If the conversation does not exist.

@@ -171,7 +171,7 @@ public class BookingProcessor {
     }
 
     /**
-     * Signals the removal of a booking through the NetMobiel Planner API during a shout-out.
+     * Signals the removal of a booking through the Netmobiel Planner API during a shout-out.
      * The state must be in PROPOSAL state.
      * 
      * @param event
@@ -182,14 +182,14 @@ public class BookingProcessor {
 		if (event.getLeg().getState() != TripState.PLANNING) {
 			throw new IllegalStateException("Leg is not in planning state: " + event.getLeg().getId() + " " + event.getLeg().getState());
 		}
-    	logger.info(String.format("Booking proposal %s cancelled (from NetMobiel) by passenger because '%s'", 
+    	logger.info(String.format("Booking proposal %s cancelled (from Netmobiel) by passenger because '%s'", 
     			event.getLeg().getBookingId(), event.getCancelReason() != null ? event.getCancelReason() : "---"));
 		// The booking is cancelled through the TripManager or TripPlanManager
 		bookingManager.removeBooking(event.getLeg().getBookingId(), event.getCancelReason(), false, false);
     }
 
     /**
-     * Signals the removal of a booking through the NetMobiel Planner API.
+     * Signals the removal of a booking through the Netmobiel Planner API.
      * 
      * @param event
      * @throws BusinessException 
@@ -199,7 +199,7 @@ public class BookingProcessor {
 		if (event.getLeg().getState() == TripState.CANCELLED) {
 			throw new IllegalStateException("Leg already cancelled: " + event.getLeg().getId());
 		}
-    	logger.info(String.format("Booking %s cancelled (from NetMobiel) by passenger because '%s'", 
+    	logger.info(String.format("Booking %s cancelled (from Netmobiel) by passenger because '%s'", 
     			event.getLeg().getBookingId(), event.getCancelReason() != null ? event.getCancelReason() : "---"));
 		// The booking is cancelled through the TripManager or TripPlanManager
 		if (event.getLeg().hasFareInCredits()) {

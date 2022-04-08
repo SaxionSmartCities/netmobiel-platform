@@ -12,7 +12,7 @@ import javax.validation.Valid;
  * validation (and adaptation) of the input. 
  * 
  * Although the specification allows for multiple payment information blocks, this implementation
- * limits the number to one only. NetMobiel will never use multiple debtor accounts. 
+ * limits the number to one only. Netmobiel will never use multiple debtor accounts. 
  *  
  * @author Jaap Reitsma
  *

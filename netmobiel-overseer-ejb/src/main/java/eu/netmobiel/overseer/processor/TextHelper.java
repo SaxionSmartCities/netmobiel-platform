@@ -257,26 +257,26 @@ public class TextHelper {
 	}
 
 	public String createDelegatorAccountCreatedText(Profile delegator, Profile initiator) {
-		return MessageFormat.format("Je hebt een account bij NetMobiel: {0}. Uw registratie is uitgevoerd door {1}.", 
+		return MessageFormat.format("Je hebt een account bij Netmobiel: {0}. Uw registratie is uitgevoerd door {1}.", 
 				delegator.getNameAndEmail(), 
 				initiator.getNameEmailPhone()
 		);
 	}
 
 	public String createDelegationActivationText(Delegation delegation) {
-		return MessageFormat.format("{0} biedt aan om je reizen met NetMobiel voor je te beheren. "
+		return MessageFormat.format("{0} biedt aan om je reizen met Netmobiel voor je te beheren. "
 				+ "Je instemming geef je door deze persoon desgevraagd de volgende verificatiecode te geven: {1}.", 
 				delegation.getDelegate().getName(), delegation.getActivationCode());
 	}
 	
 	public String createDelegationConfirmedToDelegatorText(Delegation delegation) {
-		return MessageFormat.format("{0} beheert vanaf nu je reizen met NetMobiel.", 
+		return MessageFormat.format("{0} beheert vanaf nu je reizen met Netmobiel.", 
 				delegation.getDelegate().getName()
 		);
 	}
 	
 	public String createDelegationConfirmedToDelegateText(Delegation delegation) {
-		return MessageFormat.format("Je beheert vanaf nu de reizen van {0} met NetMobiel.", 
+		return MessageFormat.format("Je beheert vanaf nu de reizen van {0} met Netmobiel.", 
 				delegation.getDelegator().getName()
 		);
 	}

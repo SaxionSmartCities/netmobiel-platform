@@ -52,7 +52,7 @@ import eu.netmobiel.planner.util.PlannerUrnHelper;
 /**
  * Model of a trip. A trip has an itinerary with legs and stops. A trip is executed by the traveller.
  * In the beginning, a trip may have a plan only, no itinerary. An itinerary is by definition calculated by the 
- * NetMobiel planner. In the very beginning there may be an idea of a trip (spatial displacement), but not yet 
+ * Netmobiel planner. In the very beginning there may be an idea of a trip (spatial displacement), but not yet 
  * how (modality) and when (temporal). This is why a trip has a departure and arrival location itself.
  * A leg is a precise definition of how, when and where. An itinerary is a collection of legs a summarises a few
  * characteristics like duration, distance, waiting time etc. 

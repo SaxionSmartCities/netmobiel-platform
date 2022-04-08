@@ -3,7 +3,7 @@ package eu.netmobiel.commons.model;
 import java.time.Instant;
 
 /**
- * Definition of a message in NetMobiel.
+ * Definition of a message in Netmobiel.
  * 
  * @author Jaap Reitsma
  *

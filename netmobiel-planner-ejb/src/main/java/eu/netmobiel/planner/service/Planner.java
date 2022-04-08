@@ -46,7 +46,7 @@ import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.service.RideManager;
 
 /**
- * The multi-modal planner of NetMobiel. 
+ * The multi-modal planner of Netmobiel. 
  *  
  * @author Jaap Reitsma
  *
@@ -189,7 +189,7 @@ public class Planner {
     /**
      * Calculates an itinerary for a rideshare ride from the driver's departure location to the driver's destination, in between picking up a 
      * passenger and dropping-off the passenger at a different location.
-     * Where should this calculation be done? Is it core NetMobiel, or should the transport provider give the estimation? Probably the latter.
+     * Where should this calculation be done? Is it core Netmobiel, or should the transport provider give the estimation? Probably the latter.
      * For shout-out the planning question should be asked at the rideshare service. Their planner will provide an answer.
      * @param now The time perspective of the call (in regular use always the current time)
      * @param fromPlace The departure location of the driver

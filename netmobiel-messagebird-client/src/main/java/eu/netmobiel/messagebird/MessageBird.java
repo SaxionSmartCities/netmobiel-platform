@@ -45,7 +45,7 @@ import eu.netmobiel.commons.util.Logging;
 @ApplicationScoped
 public class MessageBird {
 
-	private static final String defaultOriginator = "NetMobiel";
+	private static final String defaultOriginator = "Netmobiel";
 	
 	private MessageBirdClient messageBirdClient;
 

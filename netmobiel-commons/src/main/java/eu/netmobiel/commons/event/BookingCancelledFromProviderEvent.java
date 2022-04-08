@@ -35,7 +35,7 @@ public class BookingCancelledFromProviderEvent implements Serializable {
     
     /**
      * If true then the booking was cancelled by the transport driver. This flag is added because in theory 
-     * the traveller can cancel the booking through the NetMobiel client, but also through the provider's client.
+     * the traveller can cancel the booking through the Netmobiel client, but also through the provider's client.
      */
     private boolean cancelledByDriver;
 

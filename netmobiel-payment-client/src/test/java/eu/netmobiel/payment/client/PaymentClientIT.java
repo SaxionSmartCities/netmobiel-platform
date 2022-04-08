@@ -74,9 +74,9 @@ public class PaymentClientIT {
     public void testCreatePaymentLink() {
         PaymentLink options = new PaymentLink();
         options.amount = 99;
-        options.description = "NetMobiel payment provider test";
+        options.description = "Netmobiel payment provider test";
         options.expirationPeriod = Duration.ofMinutes(15);
-        options.merchantOrderId = "NetMobiel-" + DateTimeFormatter.ISO_INSTANT.format(Instant.now());
+        options.merchantOrderId = "Netmobiel-" + DateTimeFormatter.ISO_INSTANT.format(Instant.now());
         options.returnUrl = "https://otp.netmobiel.eu/";
         try {
 	        PaymentLink link = paymentClient.createPaymentLink(options);

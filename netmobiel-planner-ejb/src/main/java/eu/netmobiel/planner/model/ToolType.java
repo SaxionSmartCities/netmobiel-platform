@@ -1,7 +1,7 @@
 package eu.netmobiel.planner.model;
 
 /**
- * The tool types used in NetMobiel for planning.
+ * The tool types used in Netmobiel for planning.
  * 
  * @author Jaap Reitsma
  *
@@ -12,7 +12,7 @@ public enum ToolType {
 	 */
 	OPEN_TRIP_PLANNER("OTP"),
 	/**
-	 * The Rideshare in NetMobiel 
+	 * The Rideshare in Netmobiel 
 	 */
 	NETMOBIEL_RIDESHARE("NRS"),
 	/**

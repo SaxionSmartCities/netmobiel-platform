@@ -94,7 +94,7 @@ public class FirebaseMessagingClientIT {
 
     @Test
     public void testSendMessageRealToken() throws Exception {
-    	NetMobielMessage msg = new TestMessage(1000L, "Dit is een NetMobiel test van Jaap, stuur even appje als je dit ontvangt", Instant.now(), aSender);
+    	NetMobielMessage msg = new TestMessage(1000L, "Dit is een Netmobiel test van Jaap, stuur even appje als je dit ontvangt", Instant.now(), aSender);
     	try {
     		client.send(testFcmToken, msg, !enableRealSendMessage);
     	} catch (SystemException ex) {

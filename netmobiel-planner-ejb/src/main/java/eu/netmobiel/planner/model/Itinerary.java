@@ -170,7 +170,7 @@ public class Itinerary implements Serializable {
 	private TripPlan tripPlan;
 
     /**
-     * The costs of travelling the itinerary in NetMobiel credits. This is the sum of the underlying leg costs.
+     * The costs of travelling the itinerary in Netmobiel credits. This is the sum of the underlying leg costs.
      */
     @Column(name = "fare_credits")
     private Integer fareInCredits;

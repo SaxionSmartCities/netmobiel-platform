@@ -87,7 +87,7 @@ public class Place extends ReferableObject implements Serializable {
 	private String category;
 
 	/**
-	 * The (optional) name of the place (favourite location) for the NetMobiel user. 
+	 * The (optional) name of the place (favourite location) for the Netmobiel user. 
 	 */
 	@Size(max = 64)
 	@Column(name = "name")
