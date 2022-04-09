@@ -212,3 +212,7 @@ join leg lg on lg.itinerary = it.id
 where p.plan_type = 'SHO' and lg.traverse_mode= 'RS'
 order by p.id desc,lg.id desc
 
+-- Analyze Planner errors
+
+SELECT p.id, p.creation_time, p.error_vendor_code, p.execution_time, p.from_label, st_astext(p.from_point), p.to_label, st_astext(p.to_point), st_astext(p.request_geometry) 
+from planner_report p WHERE p.error_vendor_code is not null;
