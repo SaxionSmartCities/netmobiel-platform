@@ -1,6 +1,7 @@
 package eu.netmobiel.profile.api.resource;
 
 import java.net.URI;
+import java.util.Objects;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
@@ -9,8 +10,11 @@ import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
+import javax.ws.rs.core.Response.ResponseBuilder;
+import javax.ws.rs.core.Response.Status;
 
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.ImageHelper;
@@ -18,6 +22,7 @@ import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.ProfilesApi;
 import eu.netmobiel.profile.api.mapping.PlaceMapper;
 import eu.netmobiel.profile.api.mapping.ProfileMapper;
+import eu.netmobiel.profile.api.model.FirebaseToken;
 import eu.netmobiel.profile.api.model.ImageUploadRequest;
 import eu.netmobiel.profile.api.model.Page;
 import eu.netmobiel.profile.filter.ProfileFilter;
@@ -66,8 +71,8 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response getProfile(String xDelegator, String profileId, Boolean _public) {
-    	Response rsp = null;
+	public Response getProfile(String xDelegator, String profileId, Boolean _public, Boolean silent) {
+    	ResponseBuilder rspb = null;
 		try {
 			// Only admin and effective owner can view the full profile, others see the public profile.
 			String mid = resolveIdentity(xDelegator, profileId);
@@ -85,11 +90,15 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 				Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
 				apiProfile = profileMapper.mapPublicProfile(profile);
 			}
-   			rsp = Response.ok(apiProfile).build();
-		} catch (BusinessException ex) {
-			throw new WebApplicationException(ex);
+   			rspb = Response.ok(apiProfile);
+		} catch (NotFoundException ex) {
+			if (Boolean.TRUE.equals(silent)) {
+				rspb = Response.status(Status.NOT_FOUND);
+			} else {
+				throw new WebApplicationException(ex);
+			}
 		}
-		return rsp;
+		return rspb.build();
 	}
 
 	@Override
@@ -184,8 +193,84 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 		return rsp;
 	}
 
+	// =========================   Firebase Messaging Token  =========================
+	
+	@Override
+	public Response getFcmToken(String xDelegator, String profileId) {
+		Response rsp = null;
+		try {
+			// Only admin and effective owner can update the profile
+			String mid = resolveIdentity(xDelegator, profileId);
+			String me = securityIdentity.getEffectivePrincipal().getName();
+			final boolean privileged = request.isUserInRole("admin"); 
+			if (! privileged && !me.equals(mid)) {
+				throw new SecurityException("You have no privilege to update the profile owned by someone else");
+			}
+			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
+			FirebaseToken token = new FirebaseToken();
+			token.setToken(profile.getFcmToken());
+			rsp = Response.ok(token).build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response updateFcmToken(String xDelegator, String profileId, FirebaseToken firebaseToken) {
+		Response rsp = null;
+		try {
+			// Only admin and effective owner can update the profile
+			String mid = resolveIdentity(xDelegator, profileId);
+			String me = securityIdentity.getEffectivePrincipal().getName();
+			final boolean privileged = request.isUserInRole("admin"); 
+			if (! privileged && !me.equals(mid)) {
+				throw new SecurityException("You have no privilege to update the profile owned by someone else");
+			}
+			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
+			if (!Objects.equals(firebaseToken.getToken(), profile.getFcmToken())) {
+				profile.setFcmToken(firebaseToken.getToken());
+				profileManager.updateProfileByManagedIdentity(mid, profile);
+			}
+			rsp = Response.noContent().build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
+	@Override
+	public Response clearFcmToken(String xDelegator, String profileId) {
+		Response rsp = null;
+		try {
+			// Only admin and effective owner can update the profile
+			String mid = resolveIdentity(xDelegator, profileId);
+			String me = securityIdentity.getEffectivePrincipal().getName();
+			final boolean privileged = request.isUserInRole("admin"); 
+			if (! privileged && !me.equals(mid)) {
+				throw new SecurityException("You have no privilege to update the profile owned by someone else");
+			}
+			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
+			if (profile.getFcmToken() != null) {
+				profile.setFcmToken(null);
+				profileManager.updateProfileByManagedIdentity(mid, profile);
+			}
+   			rsp = Response.noContent().build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
 	// =========================   PLACE  =========================
 	
+	// Security is handled by PlaceManager!
 	@Override
 	public Response createPlace(String xDelegator, String profileId, eu.netmobiel.profile.api.model.Place place) {
 		Response rsp = null;
@@ -265,4 +350,5 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 		return rsp;
 	}
 
+	
 }
