@@ -261,6 +261,64 @@ paths:
       operationId: createProfile
       summary: Create a profile.
       description: Creates a new profile. The user must already be authenticated.
+  /profiles/{profileId}/fcmToken:
+    summary: Path used to manage a single `Firebase Messaging Token`.
+    description: The REST endpoint/path used to get, update or delete the `Firebase
+      Messaging Token` of a user. This path contains `GET`, `PUT`, and `DELETE` operations
+      used to perform the get, update, and delete tasks, respectively. When a call
+      a made by someone with the delegate role, the effective user will be the user
+      specified in the X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirebaseToken'
+          description: Returns a FCM token.
+      operationId: getFcmToken
+      summary: Retrieves a `Firebase Messaging Token`.
+      description: Retrieves a `Firebase Messaging Token` from the profile of a user,
+        given the managed identity of the user.
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirebaseToken'
+        required: true
+      responses:
+        "204":
+          description: Success response.
+      operationId: updateFcmToken
+      summary: Updates the `Firebase Messaging Token`token
+      description: Updates a `Firebase Messaging Token` of the user, given the managed
+        identity of the user.
+    delete:
+      responses:
+        "204":
+          description: Success response.
+      operationId: clearFcmToken
+      summary: Clears the Firebase Messaging Token.
+      description: |-
+        Removes the FCM token of the specified user.
+        Clearing a cleared token has no effect.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - examples:
+        keycloakId:
+          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
+      name: profileId
+      description: The keycloak managed identity of the user owning the profile.
+      schema:
+        type: string
+      in: path
+      required: true
   /profiles/{profileId}/places:
     summary: Path used to manage the list of places (favorite locations) for an profile.
     description: The REST endpoint/path used to list and create zero or more `Place`
@@ -396,12 +454,12 @@ paths:
       responses:
         "201":
           description: Successful response.
-        "422":
-          description: The delegation was already activated or cancelled.
         "403":
           description: The activation code did not match, or the activation request
             was issued more than 24 hours ago. Or you just lack the permission to
             perform this operation.
+        "422":
+          description: The delegation was already activated or cancelled.
       operationId: activateDelegation
       summary: Activate a Delegation
       description: Tries to match the activation code. On a match the delegation is
@@ -656,10 +714,10 @@ paths:
               schema:
                 $ref: '#/components/schemas/SurveyInteraction'
           description: Success.
-        "404":
-          $ref: '#/components/responses/NotFound'
         "403":
           $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
       security:
       - apikey: []
         Bearer-only: []
@@ -1771,6 +1829,19 @@ components:
         surveyId: SV_38g7VCfcJFDB75X
         displayName: Nulmeting Netmobiel
         incentiveCode: survey-0
+    FirebaseToken:
+      title: Root Type for FirebaseMessagingToken
+      description: Type of a messaging token.
+      required:
+      - token
+      type: object
+      properties:
+        token:
+          description: The `Firebase Messaging Token` used to send a message to a
+            specific device.
+          type: string
+      example:
+        token: "1234"
   responses:
     InternalServerError:
       content:
