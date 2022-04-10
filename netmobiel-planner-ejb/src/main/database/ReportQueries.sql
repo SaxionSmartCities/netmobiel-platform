@@ -214,5 +214,33 @@ order by p.id desc,lg.id desc
 
 -- Analyze Planner errors
 
-SELECT p.id, p.creation_time, p.error_vendor_code, p.execution_time, p.from_label, st_astext(p.from_point), p.to_label, st_astext(p.to_point), st_astext(p.request_geometry) 
-from planner_report p WHERE p.error_vendor_code is not null;
+SELECT p.id, p.creation_time, p.error_vendor_code, p.execution_time, p.from_label, st_astext(p.from_point), 
+	p.to_label, st_astext(p.to_point), st_astext(p.request_geometry) 
+	from planner_report p WHERE p.error_vendor_code is not null;
+
+-- Check distances in case of TOO_CLOSE with VIA routing
+-- 7415 is the Dutch Rijksdriehoekcoordinaten system, with coordinates in meter. That is easier for reading the distance :-)
+SELECT p.id, p.travel_time, p.from_label, p.from_point, p.to_label, p.to_point, r.traverse_mode, v.label as via_label, v.point as via_point,
+st_distance(ST_Transform(p.from_point, 7415), 
+				   ST_Transform(p.to_point, 7415))	as d_from_to,
+st_distance(ST_Transform(p.from_point, 7415), 
+				   ST_Transform(v.point, 7415))	as d_from_via,
+st_distance(ST_Transform(p.to_point, 7415), 
+				   ST_Transform(v.point, 7415))	as d_via_to
+FROM planner_report p 
+JOIN report_traverse_mode r on r.report_id = p.id 
+JOIN report_via v on v.report_id = p.id
+WHERE p.error_vendor_code = 'TOO_CLOSE'
+
+
+-- Check distances in case of TOO_CLOSE with simple 2-points routing
+SELECT p.id, p.travel_time, p.from_label, p.from_point, p.to_label, p.to_point, r.traverse_mode,
+st_distance(ST_Transform(p.from_point, 7415), 
+				   ST_Transform(p.to_point, 7415))	as d_from_to
+FROM planner_report p 
+JOIN report_traverse_mode r on r.report_id = p.id 
+WHERE p.error_vendor_code = 'TOO_CLOSE' AND NOT EXISTS (select 1 FROM report_via v WHERE v.report_id = p.id)
+
+-- Simple static transformation and calculation
+select st_distance(ST_Transform(st_geomFromText('POINT(6.749130 52.298530)', 4326), 7415), 
+				   ST_Transform(st_geomFromText('POINT(6.748682 52.298512)', 4326), 7415))
