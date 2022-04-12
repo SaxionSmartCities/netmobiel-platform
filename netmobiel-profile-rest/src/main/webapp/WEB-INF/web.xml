@@ -38,6 +38,7 @@
 		<web-resource-collection>
 			<web-resource-name>Public resources</web-resource-name>
 			<url-pattern>/api/tests/*</url-pattern>
+			<url-pattern>/api/version</url-pattern>
 		</web-resource-collection>
 		<!-- confidential is not necessary, the service runs behind a proxy on 
 			a LAN or localhost <user-data-constraint> <transport-guarantee>CONFIDENTIAL</transport-guarantee> 

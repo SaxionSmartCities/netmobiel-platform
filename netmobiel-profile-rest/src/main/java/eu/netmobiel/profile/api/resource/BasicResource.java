@@ -40,10 +40,4 @@ public class BasicResource {
     	}
     }
 
-//    protected void allowAdminOrEffectiveUser(HttpServletRequest request, CallingContext<PlannerUser> callingContext, PlannerUser owner) {
-//    	boolean privileged = request.isUserInRole("admin");
-//    	if (!privileged && (owner == null || ! Objects.equal(callingContext.getEffectiveUser().getId(), owner.getId()))) {
-//    		throw new SecurityException("You have no access rights");
-//    	}
-//    }
 }

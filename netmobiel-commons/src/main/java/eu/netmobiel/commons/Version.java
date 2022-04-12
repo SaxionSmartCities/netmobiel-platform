@@ -22,27 +22,47 @@ import java.time.LocalDateTime;
 import java.util.Properties;
 
 import javax.annotation.PostConstruct;
-import javax.enterprise.context.ApplicationScoped;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
-@ApplicationScoped
+/**
+ * Each REST service has its own version object. Not really necesasary in the current situatoin, but it prepared for a future split-up.
+ * 
+ * @author Jaap Reitsma
+ *
+ */
 public class Version {
 
     @Inject
     private Logger log;
 
     private Properties properties;
+
+    private String versionResourcePath = "version.properties";
+    private ClassLoader classLoader;
+
+    public Version() {
+    	
+    }
     
+    public Version(ClassLoader classLoader, String versionResourcePath) {
+    	this.classLoader = classLoader;
+    	this.versionResourcePath = versionResourcePath;
+    }
+
     @PostConstruct
     public void load() {
+    	ClassLoader loader = this.classLoader != null ? classLoader : Thread.currentThread().getContextClassLoader();
         this.properties = new Properties();
-        try (InputStream input = Version.class.getResourceAsStream("version.properties")) {
+        try (InputStream input = loader.getResourceAsStream(versionResourcePath)) {
             if (input == null) {
-                this.properties.setProperty("version", "Unknown");
-                this.properties.setProperty("date", LocalDateTime.now().toString());
+            	log.warn("No version.properties, loading default properties");
+                this.properties.setProperty("git.build.version", "<Non-Maven Build>");
+                this.properties.setProperty("git.build.time", LocalDateTime.now().toString());
+                this.properties.setProperty("git.commit.id", "<Non-Git Build>");
             } else {
+            	log.debug("Loading version properties");
                 this.properties.load(input);
             }
         } catch (IOException e) {
@@ -51,32 +71,24 @@ public class Version {
     }
 
     /**
-     * @return the versionString
+     * @return the maven version
      */
     public String getVersionString() {
-        return this.properties.getProperty("version", "Unknown");
+        return this.properties.getProperty("git.build.version");
     }
 
     /**
-     * @return the versionDate
+     * @return the git build time
      */
-    public LocalDateTime getVersionDate() {
-        String vds = this.properties.getProperty("date");
-        try {
-            if (vds == null) {
-                return LocalDateTime.now();
-            }
-            return LocalDateTime.parse(vds);
-        } catch (Exception e) {
-            return LocalDateTime.now();
-        }
+    public String getVersionDate() {
+        return this.properties.getProperty("git.build.time");
     }
     
     /**
      * @return the composite "full" version info
      */
-    public String getVersionInfo() {
-        return properties.getProperty("git.commit.id.describe", "<Non-Git Build>");
+    public String getCommitId() {
+        return properties.getProperty("git.commit.id");
     }
     
     /**

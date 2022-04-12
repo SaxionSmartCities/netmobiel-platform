@@ -27,7 +27,6 @@ import javax.ws.rs.core.Application;
 
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.Version;
 import eu.netmobiel.commons.jaxrs.BusinessExceptionMapper;
 import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
 import eu.netmobiel.commons.jaxrs.Jackson2ObjectMapperContextResolver;
@@ -61,7 +60,7 @@ public class RideshareApplication extends Application {
     private Logger log;
 
     @Inject
-    private Version version;
+    private RideshareVersion version;
 
     @PostConstruct
     public void postConstruct() {
@@ -69,8 +68,8 @@ public class RideshareApplication extends Application {
         builder.append("\n------------------------------------------------");
         builder.append("\nStarting up Netmobiel Rideshare REST Service");
         builder.append("\n\tVersion:  " + version.getVersionString());
-        builder.append("\n\tBuilt On: " + version.getVersionDate().toString());
-        builder.append("\n\tBuild:    " + version.getVersionInfo());
+        builder.append("\n\tBuilt On: " + version.getVersionDate());
+        builder.append("\n\tBuild:    " + version.getCommitId());
         builder.append("\n------------------------------------------------");
         log.info(builder.toString());
     }

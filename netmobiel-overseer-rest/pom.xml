@@ -25,6 +25,12 @@
                 <filtering>true</filtering>
             </resource>
         </resources>
+        <plugins>
+			<plugin>
+				<groupId>io.github.git-commit-id</groupId>
+				<artifactId>git-commit-id-maven-plugin</artifactId>
+			</plugin>
+        </plugins>
     </build>
 
     <dependencies>

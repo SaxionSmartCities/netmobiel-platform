@@ -268,6 +268,15 @@ public class ProfileManager {
     	return profile;
     }
 
+    /**
+     * Fetches basic user info given a managed id.
+     * @param managedId the managed id 
+     * @return An Optional with the user.
+     */
+    public Optional<NetMobielUser> getNetMobielUser(String managedId) {
+    	Optional<Profile> p = profileDao.findByManagedIdentity(managedId, Profile.DEFAULT_PROFILE_ENTITY_GRAPH);
+    	return p.isPresent() ? Optional.of(p.get()) : Optional.empty();
+    }
 
     /**
      * Returns the profile without initialization of the search and rideshare preferences. 
