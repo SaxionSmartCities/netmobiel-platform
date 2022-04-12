@@ -856,13 +856,6 @@ paths:
         schema:
           type: boolean
         in: query
-      - name: silent
-        description: "If set to true then the method is used to test whether the profile\
-          \ exists. No error message is given on the server. \n\nThe results are the\
-          \ same, i.e. a 404 when no profile exists, or a 200 if it does."
-        schema:
-          type: boolean
-        in: query
       responses:
         "200":
           content:
@@ -873,8 +866,8 @@ paths:
             admin get the complete profile. The other users see the public profile.
         "401":
           $ref: '#/components/responses/NotAuthorized'
-        "500":
-          description: The profile could not be found.
+        "404":
+          $ref: '#/components/responses/NotFound'
       security:
       - apikey: []
         Bearer-only: []
@@ -1153,6 +1146,43 @@ paths:
       operationId: getVersion
       summary: Return version information.
       description: Return version information and info about the caller.
+  /profiles/{profileId}/status:
+    summary: Path used to verify the existence of a `Profile`.
+    description: 'The REST endpoint/path used to get the status of a `Profile`. This
+      path contains a `GET` operation used to perform the get task. When a call a
+      made by someone with the delegate role, the effective user will be the user
+      specified in the X-Delegator header. '
+    get:
+      responses:
+        "204":
+          description: Success, the profile exists.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getProfileStatus
+      summary: Verifies the existence and accessibility of a profile
+      description: |
+        This call verifies whether a profile exists. No content is returned, only a status.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - examples:
+        keycloakId:
+          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
+      name: profileId
+      description: The keycloak managed identity of the user owning the profile.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     SearchPreferences:
