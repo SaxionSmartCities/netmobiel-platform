@@ -71,7 +71,18 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	}
 
 	@Override
-	public Response getProfile(String xDelegator, String profileId, Boolean _public, Boolean silent) {
+    public Response getProfileStatus(String xDelegator, String profileId) {
+		String mid = resolveIdentity(xDelegator, profileId);
+		if (!request.isUserInRole("admin") && !mid.equals(securityIdentity.getEffectivePrincipal().getName())
+				&& !mid.equals(securityIdentity.getRealUser().getManagedIdentity())) {
+    		throw new SecurityException("You have no access rights");
+		}
+		boolean userExists = profileManager.userExists(mid);
+		return Response.status(userExists ? Status.NO_CONTENT : Status.NOT_FOUND).build();
+    }
+
+    @Override
+	public Response getProfile(String xDelegator, String profileId, Boolean _public) {
     	ResponseBuilder rspb = null;
 		try {
 			// Only admin and effective owner can view the full profile, others see the public profile.
@@ -92,11 +103,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 			}
    			rspb = Response.ok(apiProfile);
 		} catch (NotFoundException ex) {
-			if (Boolean.TRUE.equals(silent)) {
-				rspb = Response.status(Status.NOT_FOUND);
-			} else {
-				throw new WebApplicationException(ex);
-			}
+			throw new WebApplicationException(ex);
 		}
 		return rspb.build();
 	}
@@ -235,31 +242,6 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 				profileManager.updateProfileByManagedIdentity(mid, profile);
 			}
 			rsp = Response.noContent().build();
-		} catch (IllegalArgumentException e) {
-			throw new BadRequestException(e);
-		} catch (BusinessException ex) {
-			throw new WebApplicationException(ex);
-		}
-		return rsp;
-	}
-
-	@Override
-	public Response clearFcmToken(String xDelegator, String profileId) {
-		Response rsp = null;
-		try {
-			// Only admin and effective owner can update the profile
-			String mid = resolveIdentity(xDelegator, profileId);
-			String me = securityIdentity.getEffectivePrincipal().getName();
-			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && !me.equals(mid)) {
-				throw new SecurityException("You have no privilege to update the profile owned by someone else");
-			}
-			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
-			if (profile.getFcmToken() != null) {
-				profile.setFcmToken(null);
-				profileManager.updateProfileByManagedIdentity(mid, profile);
-			}
-   			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
 		} catch (BusinessException ex) {
