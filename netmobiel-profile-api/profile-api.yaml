@@ -292,17 +292,10 @@ paths:
           description: Success response.
       operationId: updateFcmToken
       summary: Updates the `Firebase Messaging Token`token
-      description: Updates a `Firebase Messaging Token` of the user, given the managed
-        identity of the user.
-    delete:
-      responses:
-        "204":
-          description: Success response.
-      operationId: clearFcmToken
-      summary: Clears the Firebase Messaging Token.
       description: |-
-        Removes the FCM token of the specified user.
-        Clearing a cleared token has no effect.
+        Updates a `Firebase Messaging Token` of the user, given the managed identity of the user.
+
+        The token can be `null`, indicating that the FCM token is not available.
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
@@ -1262,10 +1255,6 @@ components:
         searchPreferences:
           $ref: '#/components/schemas/SearchPreferences'
           description: The preferences of a NetMobiel traveller role.
-        fcmToken:
-          description: The registration token for communicating messages through Google
-            Firebase Messaging.
-          type: string
         userRole:
           description: The role of the user in NetMobiel.
           enum:
