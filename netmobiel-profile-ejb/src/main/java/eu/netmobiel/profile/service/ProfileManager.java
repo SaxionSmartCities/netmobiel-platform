@@ -255,6 +255,10 @@ public class ProfileManager {
     	return profile;
     }
 
+    public boolean userExists(String managedId) {
+    	return profileDao.userExists(managedId);
+    }
+    
     /**
      * Returns the profile without initialization of the search and rideshare preferences. 
      * 
