@@ -244,3 +244,6 @@ WHERE p.error_vendor_code = 'TOO_CLOSE' AND NOT EXISTS (select 1 FROM report_via
 -- Simple static transformation and calculation
 select st_distance(ST_Transform(st_geomFromText('POINT(6.749130 52.298530)', 4326), 7415), 
 				   ST_Transform(st_geomFromText('POINT(6.748682 52.298512)', 4326), 7415))
+
+				   
+				   
