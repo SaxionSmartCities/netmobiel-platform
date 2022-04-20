@@ -858,13 +858,6 @@ paths:
           type: string
         in: query
         required: true
-      - name: startTime
-        description: The start time to search. Only trips departing after the `startTime`
-          are listed. If not set then `now` is used.
-        schema:
-          format: date-time
-          type: string
-        in: query
       - name: depArrRadius
         description: the radius (in meter) of the small circle containing at least
           departure or arrival location of the traveller. If omitted a radius of 10
