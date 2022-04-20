@@ -806,6 +806,37 @@ paths:
         type: string
       in: path
       required: true
+  /trips/{tripId}/unconfirm:
+    summary: Path used to reverse the confirmation of a trip.
+    description: |
+      Endpoint used to unconfirm a trip, using a PUT.
+
+      This endpoint supports delegation.
+    put:
+      responses:
+        "204":
+          description: Success response, the trip has been confirmed.
+      operationId: unconfirmTrip
+      summary: Reverses the confirmation of a trip.
+      description: |-
+        Reverses the earlier confirmation given by the traveller. The traveller can only do that in situations where a payment was not made by the traveller.
+
+        The trip state is returned to the `VALIDATE` state, where both driver and passenger have to confirm (or deny) again.
+
+        A 403 is returned when the passenger was actually charged for the trip. The driver must do an unconfirm in that case.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
   /shout-outs:
     summary: Path used to manage the list of trip plans that are active and unfulfilled
       yet.
@@ -850,6 +881,43 @@ paths:
           type: integer
         in: query
         required: false
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: List only shout-outs with a travel time after `since`. If both
+          `since` and `until` are not set, then `now` is used.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The travel time and later not to include in the listing of shout-outs.
+          The `until` date must be after the `since` parameter. Default is not set,
+          meaning all shout-outs (after since).
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: inProgressOnly
+        description: Set this flag to 'true' to include only shout-outs that are unfulfilled
+          yet. Default is true.
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting on travel time. Choose either \nascending\
+          \ (ASC, default) or descending (DESC)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
       - name: maxResults
         description: 'Paging: The maximum number of results per page. Default is 10.'
         schema:
@@ -876,37 +944,6 @@ paths:
         \ a shared ride.\nThis endpoint is intended for drivers to find passengers.\
         \ \n\nBecause a driver can act as a passenger too, shout-outs issued by the\
         \ effective caller are never included."
-  /trips/{tripId}/unconfirm:
-    summary: Path used to reverse the confirmation of a trip.
-    description: |
-      Endpoint used to unconfirm a trip, using a PUT.
-
-      This endpoint supports delegation.
-    put:
-      responses:
-        "204":
-          description: Success response, the trip has been confirmed.
-      operationId: unconfirmTrip
-      summary: Reverses the confirmation of a trip.
-      description: |-
-        Reverses the earlier confirmation given by the traveller. The traveller can only do that in situations where a payment was not made by the traveller.
-
-        The trip state is returned to the `VALIDATE` state, where both driver and passenger have to confirm (or deny) again.
-
-        A 403 is returned when the passenger was actually charged for the trip. The driver must do an unconfirm in that case.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - name: tripId
-      description: A unique identifier for a `Trip`.
-      schema:
-        type: string
-      in: path
-      required: true
 components:
   schemas:
     Error:
