@@ -15,15 +15,15 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.api.PlansApi;
 import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
-import eu.netmobiel.planner.model.PlanType;
+import eu.netmobiel.planner.filter.TripPlanFilter;
 import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.PlannerUserManager;
@@ -98,11 +98,9 @@ public class PlansResource extends PlannerResource implements PlansApi {
 
 	@Override
 	public Response listPlans(String xDelegator, String userRef, String planType, OffsetDateTime since, OffsetDateTime until, 
-			Boolean inProgressOnly, String sortDir, Integer maxResults, Integer offset) {
+			Boolean inProgress, String sortDir, Integer maxResults, Integer offset) {
 	    	Response rsp = null;
 			try {
-				PlanType type = planType == null ? null : PlanType.valueOf(planType);
-				SortDirection sortDirection = sortDir == null ? SortDirection.ASC : SortDirection.valueOf(sortDir);
 				CallingContext<PlannerUser> context = userManager.findCallingContext(securityIdentity);
 		    	PlannerUser traveller = null;
 		    	if (userRef == null) {
@@ -111,11 +109,13 @@ public class PlansResource extends PlannerResource implements PlansApi {
 		    		traveller = userManager.resolveUrn(userRef)
 		    				.orElseThrow(() -> new IllegalStateException("Didn't expect user null from " + userRef));
 		    	}
+		    	TripPlanFilter filter = new TripPlanFilter(traveller, since, until, planType, inProgress, sortDir); 
+				Cursor cursor = new Cursor(maxResults, offset);
 		    	allowAdminOrEffectiveUser(request, context, traveller);
 		    	PagedResult<TripPlan> results = null;
 	        	// Only retrieve if a user exists in the trip service
 		    	if (traveller != null && traveller.getId() != null) {
-		    		results = tripPlanManager.listTripPlans(traveller, type, toInstant(since), toInstant(until), inProgressOnly, sortDirection, maxResults, offset);
+		    		results = tripPlanManager.listTripPlans(filter, cursor);
 		    	} else {
 		    		results = PagedResult.<TripPlan>empty();
 		    	}

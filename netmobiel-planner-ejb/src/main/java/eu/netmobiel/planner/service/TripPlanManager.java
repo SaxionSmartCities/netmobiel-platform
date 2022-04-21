@@ -28,14 +28,16 @@ import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.event.BookingProposalRejectedEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
+import eu.netmobiel.planner.filter.ShoutOutFilter;
+import eu.netmobiel.planner.filter.TripPlanFilter;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlanType;
@@ -335,41 +337,25 @@ public class TripPlanManager {
     }
     
     /**
-     * List all trip plans owned by the specified user. 
+     * List trip plans according the filter criteria.
+     *  
      * @return A list of trips matching the criteria.
      */
-    public PagedResult<TripPlan> listTripPlans(PlannerUser traveller, PlanType planType, Instant since, Instant until, Boolean inProgressOnly, 
-    		SortDirection sortDirection, Integer maxResults, Integer offset) throws BadRequestException {
-    	if (until != null && since != null && !until.isAfter(since)) {
-    		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
-    	}
-    	if (maxResults != null && maxResults > 100) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
-    	}
-    	if (maxResults != null && maxResults < 0) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' >= 0.");
-    	}
-    	if (offset != null && offset < 0) {
-    		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
-    	}
-        if (maxResults == null) {
-        	maxResults = MAX_RESULTS;
-        }
-        if (offset == null) {
-        	offset = 0;
-        }
+    public PagedResult<TripPlan> listTripPlans(TripPlanFilter filter, Cursor cursor) throws BadRequestException {
+    	filter.validate();
+    	cursor.validate(MAX_RESULTS, 0);
         List<TripPlan> results = Collections.emptyList();
         Long totalCount = 0L;
-		PagedResult<Long> prs = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, 0, 0);
+		PagedResult<Long> prs = tripPlanDao.findTripPlans(filter, Cursor.COUNTING_CURSOR);
 		totalCount = prs.getTotalCount();
-    	if (totalCount > 0 && maxResults > 0) {
+    	if (totalCount > 0 && !cursor.isCountingQuery()) {
     		// Get the actual data
-    		PagedResult<Long> tripIds = tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDirection, maxResults, offset);
+    		PagedResult<Long> tripIds = tripPlanDao.findTripPlans(filter, cursor);
     		if (tripIds.getData().size() > 0) {
     			results = tripPlanDao.loadGraphs(tripIds.getData(), TripPlan.DETAILED_ENTITY_GRAPH, TripPlan::getId);
     		}
     	}
-    	return new PagedResult<>(results, maxResults, offset, totalCount);
+    	return new PagedResult<>(results, cursor, totalCount);
     }
 
     /**
@@ -378,36 +364,27 @@ public class TripPlanManager {
      * a circle with radius <code>travelRadius</code> meter. Consider only plans with a travel time beyond now.
      * For a shout-out we have two options: Drive to the nearby departure, then to the drop-off, then back home. The other way around is
      * also feasible. This is why the small circle must include either departure or arrival location!
-     * @param caller the effective user doing the query. The caller will never find his own shout-outs.
-     * @param location the reference location of the driver asking for the trips.
-     * @param startTime the time from where to start the search. 
-     * @param depArrRadius the small circle containing at least departure or arrival location of the traveller.
-     * @param travelRadius the larger circle containing both departure and arrival location of the traveller.
-     * @param maxResults For paging: maximum results.
-     * @param offset For paging: the offset in the results to return.
-     * @return A list of trips matching the parameters.
+     * @param filter The shout-out filter to apply
+     * @param cursor the cursor to apply.
+     * @return A list of shout-outs matching the parameters.
+     * @throws BadRequestException 
      */
-    public PagedResult<TripPlan> findShoutOuts(PlannerUser caller, GeoLocation location, Instant startTime, Integer depArrRadius, 
-    		Integer travelRadius, Integer maxResults, Integer offset) {
-        if (maxResults == null) {
-        	maxResults = MAX_RESULTS;
-        }
-        if (offset == null) {
-        	offset = 0;
-        }
+    public PagedResult<TripPlan> findShoutOuts(ShoutOutFilter filter, Cursor cursor) throws BadRequestException {
         List<TripPlan> results = Collections.emptyList();
         Long totalCount = 0L;
-   		PagedResult<Long> prs = tripPlanDao.findShoutOutPlans(caller, location, startTime, depArrRadius, travelRadius, 0, 0);
+    	filter.validate();
+    	cursor.validate(TripPlanManager.MAX_RESULTS, 0);
+   		PagedResult<Long> prs = tripPlanDao.findShoutOutPlans(filter, Cursor.COUNTING_CURSOR);
 		totalCount = prs.getTotalCount();
-    	if (totalCount > 0 && maxResults > 0) {
+    	if (totalCount > 0 && !cursor.isCountingQuery()) {
     		// Get the actual data
-    		PagedResult<Long> tripIds = tripPlanDao.findShoutOutPlans(caller, location, startTime, depArrRadius, travelRadius, maxResults, offset);
+    		PagedResult<Long> tripIds = tripPlanDao.findShoutOutPlans(filter, cursor);
     		if (tripIds.getData().size() > 0) {
     			// Return the plan and the traveller 
     			results = tripPlanDao.loadGraphs(tripIds.getData(), TripPlan.SHOUT_OUT_ENTITY_GRAPH, TripPlan::getId);
     		}
     	}
-    	return new PagedResult<>(results, maxResults, offset, totalCount);
+    	return new PagedResult<>(results, cursor, totalCount);
     }
 
     /**

@@ -1,6 +1,5 @@
 package eu.netmobiel.planner.repository;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -12,6 +11,7 @@ import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Expression;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 
@@ -19,15 +19,16 @@ import org.slf4j.Logger;
 
 import com.vividsolutions.jts.geom.Polygon;
 
-import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation_;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.planner.annotation.PlannerDatabase;
+import eu.netmobiel.planner.filter.ShoutOutFilter;
+import eu.netmobiel.planner.filter.TripPlanFilter;
 import eu.netmobiel.planner.model.PlanType;
-import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripPlan_;
 
@@ -51,46 +52,52 @@ public class TripPlanDao extends AbstractDao<TripPlan, Long> {
 		return em;
 	}
 
-    public PagedResult<Long> findTripPlans(PlannerUser traveller, PlanType planType, Instant since, Instant until, 
-    		Boolean inProgressOnly, SortDirection sortDirection, Integer maxResults, Integer offset) {
+	/**
+	 * Lists trip plans according the specified criteria.
+	 * @param filter the trip plan filter to apply
+	 * @param cursor the cursor
+	 * @return A list of trip plans.
+	 */
+    public PagedResult<Long> findTripPlans(TripPlanFilter filter, Cursor cursor) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<TripPlan> plan = cq.from(TripPlan.class);
         List<Predicate> predicates = new ArrayList<>();
-        if (traveller != null) {
-        	predicates.add(cb.equal(plan.get(TripPlan_.traveller), traveller));
+        if (filter.getTraveller() != null) {
+        	predicates.add(cb.equal(plan.get(TripPlan_.traveller), filter.getTraveller()));
         }
-        if (planType != null) {
-            predicates.add(cb.equal(plan.get(TripPlan_.planType), planType));
+        if (filter.getPlanType() != null) {
+            predicates.add(cb.equal(plan.get(TripPlan_.planType), filter.getPlanType()));
         }
-        if (since != null) {
-	        predicates.add(cb.greaterThanOrEqualTo(plan.get(TripPlan_.travelTime), since));
+        if (filter.getSince() != null) {
+	        predicates.add(cb.greaterThanOrEqualTo(plan.get(TripPlan_.travelTime), filter.getSince()));
         }        
-        if (until != null) {
-	        predicates.add(cb.lessThan(plan.get(TripPlan_.travelTime), until));
+        if (filter.getUntil() != null) {
+	        predicates.add(cb.lessThan(plan.get(TripPlan_.travelTime), filter.getUntil()));
         }        
-        if (inProgressOnly != null && inProgressOnly.booleanValue()) {
-	        predicates.add(cb.isNull(plan.get(TripPlan_.requestDuration)));
+        if (filter.getInProgress() != null) { 
+    		Expression<?> rd = plan.get(TripPlan_.requestDuration);
+	        predicates.add(filter.getInProgress().booleanValue() ? cb.isNull(rd) : cb.isNotNull(rd));
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;
         List<Long> results = Collections.emptyList();
-        if (maxResults == 0) {
+        if (cursor.isCountingQuery()) {
             cq.select(cb.count(plan.get(TripPlan_.id)));
             totalCount = em.createQuery(cq).getSingleResult();
         } else {
             cq.select(plan.get(TripPlan_.id));
-            if (sortDirection == SortDirection.DESC) {
+            if (filter.getSortDir() == SortDirection.DESC) {
             	cq.orderBy(cb.desc(plan.get(TripPlan_.travelTime)), cb.desc(plan.get(TripPlan_.id)));
             } else {
             	cq.orderBy(cb.asc(plan.get(TripPlan_.travelTime)), cb.asc(plan.get(TripPlan_.id)));
             }
 	        TypedQuery<Long> tq = em.createQuery(cq);
-			tq.setFirstResult(offset);
-			tq.setMaxResults(maxResults);
+			tq.setFirstResult(cursor.getOffset());
+			tq.setMaxResults(cursor.getMaxResults());
 			results = tq.getResultList();
         }
-        return new PagedResult<>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, cursor, totalCount);
     }
 
     /**
@@ -99,30 +106,17 @@ public class TripPlanDao extends AbstractDao<TripPlan, Long> {
      * a circle with radius <code>travelRadius</code> meter. Consider only plans with a travel time beyond now.
      * For a shout-out we have two option: Drive to the nearby departure, then to the drop-off, then back home. The other way around is
      * also feasible. This why the small circle must included either departure or arrival location!
-     * @param caller the effective user doing the query. The caller will never find his own shout-outs.
-     * @param location the reference location of the driver asking for the trips.
-     * @param startTime the time from where to start the search. 
-     * @param depArrRadius the small circle containing at least departure or arrival location of the traveller.
-     * @param travelRadius the larger circle containing both departure and arrival location of the traveller.
-     * @param maxResults For paging: maximum results.
-     * @param offset For paging: the offset in the results to return.
+     * @param filter The shout-out filter to apply
+     * @param cursor the cursor to apply.
      * @return A list of trip plans matching the criteria.
      */
-    public PagedResult<Long> findShoutOutPlans(PlannerUser caller, GeoLocation location, Instant startTime, Integer depArrRadius, Integer travelRadius, Integer maxResults, Integer offset) {
-    	Polygon deparrCircle = EllipseHelper.calculateCircle(location.getPoint(), depArrRadius);
-    	Polygon travelCircle = EllipseHelper.calculateCircle(location.getPoint(), travelRadius);
+    public PagedResult<Long> findShoutOutPlans(ShoutOutFilter filter, Cursor cursor) {
+    	Polygon deparrCircle = EllipseHelper.calculateCircle(filter.getLocation().getPoint(), filter.getDepArrRadius());
+    	Polygon travelCircle = EllipseHelper.calculateCircle(filter.getLocation().getPoint(), filter.getTravelRadius());
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<TripPlan> plan = cq.from(TripPlan.class);
         List<Predicate> predicates = new ArrayList<>();
-        // Only plans not issued by me
-        predicates.add(cb.notEqual(plan.get(TripPlan_.traveller), caller));
-        // Only plans in planning state
-        predicates.add(cb.equal(plan.get(TripPlan_.planType), PlanType.SHOUT_OUT));
-        // Only consider plans that depart after startTime
-        predicates.add(cb.greaterThanOrEqualTo(plan.get(TripPlan_.travelTime), startTime));
-        // Select only the plans that are in progress
-        predicates.add(cb.isNull(plan.get(TripPlan_.requestDuration)));
         // Either departure or arrival location must be within the small circle
         predicates.add(cb.or(
         		cb.isTrue(cb.function("st_within", Boolean.class, plan.get(TripPlan_.from).get(GeoLocation_.point), cb.literal(deparrCircle))),
@@ -133,22 +127,41 @@ public class TripPlanDao extends AbstractDao<TripPlan, Long> {
         		cb.isTrue(cb.function("st_within", Boolean.class, plan.get(TripPlan_.from).get(GeoLocation_.point), cb.literal(travelCircle))),
         		cb.isTrue(cb.function("st_within", Boolean.class, plan.get(TripPlan_.to).get(GeoLocation_.point), cb.literal(travelCircle)))
         ));
+        // Only plans of shout_out type
+        predicates.add(cb.equal(plan.get(TripPlan_.planType), PlanType.SHOUT_OUT));
+        if (filter.getCaller() != null) {
+	        // Only plans not issued by me
+	        predicates.add(cb.notEqual(plan.get(TripPlan_.traveller), filter.getCaller()));
+        }
+        if (filter.getSince() != null) {
+            // Only consider plans that travel after since
+            predicates.add(cb.greaterThanOrEqualTo(plan.get(TripPlan_.travelTime), filter.getSince()));
+        }
+        if (filter.getUntil() != null) {
+            // Only consider plans that travel before until
+            predicates.add(cb.lessThan(plan.get(TripPlan_.travelTime), filter.getUntil()));
+        }
+        if (filter.isInProgressOnly()) {
+	        // Select only the plans that are in progress
+	        predicates.add(cb.isNull(plan.get(TripPlan_.requestDuration)));
+        }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;
         List<Long> results = Collections.emptyList();
-        if (maxResults == 0) {
+        if (cursor.isCountingQuery()) {
             cq.select(cb.count(plan.get(TripPlan_.id)));
             totalCount = em.createQuery(cq).getSingleResult();
         } else {
             cq.select(plan.get(TripPlan_.id));
-            // Order by increasing departure time
-	        cq.orderBy(cb.asc(plan.get(TripPlan_.travelTime)));
+            // Order by travel time according filter
+            Expression<?> orderExpr = plan.get(TripPlan_.travelTime);
+	        cq.orderBy(filter.getSortDir() == SortDirection.ASC ? cb.asc(orderExpr) : cb.desc(orderExpr));
 	        TypedQuery<Long> tq = em.createQuery(cq);
-			tq.setFirstResult(offset);
-			tq.setMaxResults(maxResults);
+			tq.setFirstResult(cursor.getOffset());
+			tq.setMaxResults(cursor.getMaxResults());
 			results = tq.getResultList();
         }
-        return new PagedResult<>(results, maxResults, offset, totalCount);
+        return new PagedResult<>(results, cursor, totalCount);
     }
 
 }

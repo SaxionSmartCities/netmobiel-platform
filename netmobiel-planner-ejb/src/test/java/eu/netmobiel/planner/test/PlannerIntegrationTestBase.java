@@ -20,6 +20,8 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.planner.Resources;
+import eu.netmobiel.planner.event.TravelOfferEvent;
+import eu.netmobiel.planner.filter.ShoutOutFilter;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.repository.converter.PlanTypeConverter;
 import eu.netmobiel.planner.util.PlannerUrnHelper;
@@ -43,6 +45,8 @@ public abstract class PlannerIntegrationTestBase {
             .addPackage(PlannerUrnHelper.class.getPackage())
             .addPackages(true, PlanTypeConverter.class.getPackage())
             .addPackages(true, TripPlan.class.getPackage())
+            .addPackages(true, ShoutOutFilter.class.getPackage())
+            .addPackages(true, TravelOfferEvent.class.getPackage())
             .addPackages(true, Fixture.class.getPackage())
             .addClass(Resources.class)
             .addAsResource("META-INF/test-persistence.xml", "META-INF/persistence.xml")

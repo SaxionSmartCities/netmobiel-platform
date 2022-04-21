@@ -6,6 +6,7 @@ import java.time.Instant;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.OffsetDateTime;
 import java.time.ZoneId;
 import java.time.format.DateTimeFormatter;
 import java.util.Arrays;
@@ -23,12 +24,15 @@ import org.slf4j.LoggerFactory;
 import eu.netmobiel.commons.event.BookingCancelledFromProviderEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.event.BookingProposalRejectedEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
+import eu.netmobiel.planner.filter.ShoutOutFilter;
+import eu.netmobiel.planner.filter.TripPlanFilter;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlanType;
@@ -110,45 +114,50 @@ public class TripPlanManagerTest {
 
 	@Test
 	public void testListTripPlans() {
-		PlanType planType = PlanType.REGULAR;
-		Instant since = Instant.parse("2020-06-24T00:00:00Z");
-		Instant until = Instant.parse("2020-06-25T00:00:00Z");
-		Boolean inProgressOnly = true;
-		SortDirection sortDir = SortDirection.ASC;
-		Integer maxResults = 9;
-		Integer offset = 1;
+    	Cursor cursor = new Cursor(9, 1);
+    	TripPlanFilter filter = new TripPlanFilter();
+    	filter.setNow(Instant.parse("2020-03-20T09:00:00Z"));
+    	filter.setPlanType(PlanType.REGULAR);
+    	filter.setSince(Instant.parse("2020-06-24T00:00:00Z"));
+    	filter.setUntil(Instant.parse("2020-06-25T00:00:00Z"));
+    	filter.setInProgress(true);
+    	filter.setSortDir(SortDirection.ASC);
+    	filter.setTraveller(traveller);
 		new Expectations() {{
-			tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDir, 0, 0);
+			tripPlanDao.findTripPlans(filter, Cursor.COUNTING_CURSOR);
 			result = PagedResult.empty();
 		}};
 		try {
-			tested.listTripPlans(traveller, planType, since, until, inProgressOnly, sortDir, maxResults, offset);
+			filter.validate();
+			tested.listTripPlans(filter, cursor);
 		} catch (BusinessException ex) {
 			fail("Unexpected exception: " + ex);
 		}
 		new Verifications() {{
 			// Verify call to DAO. No results returned, so no second call.
-			tripPlanDao.findTripPlans(traveller, planType, since, until, inProgressOnly, sortDir, 0, 0);
+			tripPlanDao.findTripPlans(filter, Cursor.COUNTING_CURSOR);
 			times = 1;
 		}};
 	}
 
 	@Test
-	public void testListShoutOuts() {
+	public void testListShoutOuts() throws BadRequestException {
 		GeoLocation location = Fixture.placeCentrumDoetinchem;
-		Instant start = Instant.parse("2020-06-24T00:00:00Z");
+		OffsetDateTime start = OffsetDateTime.parse("2020-06-24T00:00:00Z");
 		Integer depArrRadius = 10000;
 		Integer travelRadius = 30000;
 		Integer maxResults = 9;
 		Integer offset = 1;
+    	ShoutOutFilter filter = new ShoutOutFilter(driver, Fixture.placeCentrumDoetinchem.toString(), depArrRadius, travelRadius, start, null, null, null);
+    	Cursor cursor = new Cursor(maxResults, offset);
 		new Expectations() {{
-			tripPlanDao.findShoutOutPlans(driver, location, start, depArrRadius, travelRadius, 0, 0);
+			tripPlanDao.findShoutOutPlans(filter, Cursor.COUNTING_CURSOR);
 			result = PagedResult.empty();
 		}};
-		tested.findShoutOuts(driver, location, start, depArrRadius, travelRadius, maxResults, offset);
+		tested.findShoutOuts(filter, cursor);
 		new Verifications() {{
 			// Verify call to DAO. No results returned, so no second call.
-			tripPlanDao.findShoutOutPlans(driver, location, start, depArrRadius, travelRadius, 0, 0);
+			tripPlanDao.findShoutOutPlans(filter, Cursor.COUNTING_CURSOR);
 			times = 1;
 		}};
 	}

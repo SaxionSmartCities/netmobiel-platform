@@ -1,6 +1,5 @@
 package eu.netmobiel.planner.api.resource;
 
-import java.time.Instant;
 import java.time.OffsetDateTime;
 
 import javax.enterprise.context.RequestScoped;
@@ -12,6 +11,7 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.security.SecurityIdentity;
@@ -19,6 +19,7 @@ import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.api.ShoutOutsApi;
 import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripPlanMapper;
+import eu.netmobiel.planner.filter.ShoutOutFilter;
 import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
@@ -34,8 +35,6 @@ import eu.netmobiel.planner.service.TripPlanManager;
  */
 @RequestScoped
 public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
-	private static final Integer DEFAULT_DEP_ARR_RADIUS = 10000;
-	
 	@SuppressWarnings("unused")
 	@Inject
     private Logger log;
@@ -60,18 +59,19 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
      * Any driver (in fact anyone) can call this method. 
      */
 	@Override
-    public Response listShoutOuts(String location, OffsetDateTime startTime, Integer depArrRadius, 
-    		Integer travelRadius, Integer maxResults, Integer offset) { 
+    public Response listShoutOuts(String location, Integer depArrRadius, Integer travelRadius, 
+    		OffsetDateTime since, OffsetDateTime until, Boolean inProgressOnly, 
+    		String sortDir, Integer maxResults, Integer offset) { 
     	Response rsp = null;
     	if (location == null) {
     		throw new BadRequestException("Missing mandatory parameter: location");
     	}
 		try {
-			Integer smallRadius = depArrRadius != null ? depArrRadius : DEFAULT_DEP_ARR_RADIUS;
 			PlannerUser caller = userManager.findOrRegisterCallingUser();
-			PagedResult<TripPlan> result = tripPlanManager.findShoutOuts(caller, GeoLocation.fromString(location), 
-					startTime != null ? startTime.toInstant() : Instant.now(), 
-					smallRadius, travelRadius != null ? travelRadius : smallRadius, maxResults, offset);
+			ShoutOutFilter filter = new ShoutOutFilter(caller, location, depArrRadius, travelRadius,
+					since, until, inProgressOnly, sortDir);
+			Cursor cursor = new Cursor(maxResults, offset);
+			PagedResult<TripPlan> result = tripPlanManager.findShoutOuts(filter, cursor);
 			rsp = Response.ok(pageMapper.mapShoutOutPlans(result)).build();
 		} catch (Exception e) {
 			throw new WebApplicationException(e);
