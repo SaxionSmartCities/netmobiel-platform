@@ -63,7 +63,7 @@ paths:
       parameters:
       - name: user
         description: |-
-          the user id owning the trip plans. This parameter needs admin powers. The format of the user id is the database id of planner user, or an urn reference. Two formats are allowed:
+          the user id owning the trip plans (the traveller). This parameter needs admin powers. The format of the user id is the database id of planner user, or an urn reference. Two formats are allowed:
           urn:nb:pl:user:{primary-key}
           urn:nb:kc:user:{managed-identity}
         schema:
@@ -98,9 +98,10 @@ paths:
           format: date-time
           type: string
         in: query
-      - name: inProgressOnly
-        description: 'Set this flag to ''true'' if only plans that are still running
-          (that is: active shout-outs) should be returned. Default is false.'
+      - name: inProgress
+        description: "Set this flag to 'true' if only plans that are still running\
+          \ (that is: active shout-outs) should be returned. \nIf set to false all\
+          \ regular and finished shout-outs are returned. Default not set."
         schema:
           type: boolean
         in: query
