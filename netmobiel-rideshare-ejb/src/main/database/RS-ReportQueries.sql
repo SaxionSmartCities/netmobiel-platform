@@ -16,3 +16,17 @@ SELECT r.id, u.email, r.departure_time, r.from_label, ST_AsText(r.from_point) as
 ) TO '/tmp/created_rides.csv'
 WITH (FORMAT CSV, DELIMITER ';', HEADER true);
 	
+-- Aantal boekingen per vertrekdag
+select count(*) as nr_bookings, date_trunc('day', b.departure_time) as day 
+from booking b 
+where b.departure_time > '2022-04-02'
+group by day order by day;
+
+-- Alle ritten en email adres na een bepaalde vertrekdatum
+select r.*, u.email from ride r join rs_user u on u.id = r.driver where r.departure_time > '2022-04-02' order by r.id
+
+-- Aantal ritten per vertrekdag
+select count(*) as nr_rides, date_trunc('day', r.departure_time) as day 
+from ride r
+where r.departure_time > '2022-04-02'
+group by day order by day;
