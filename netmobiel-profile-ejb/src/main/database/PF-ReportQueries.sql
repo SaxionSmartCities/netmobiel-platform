@@ -3,6 +3,10 @@
 SELECT st_astext(p.home_point), p.* from profile p WHERE st_astext(p.home_point) = 'POINT(0 0)'
 
 -- Number of new profiles countend by day
-select count(*) as nr_profiles, date_trunc('day', p.creation_time) as day from profile p group by day order by day;
+select count(*) as nr_profiles, date_trunc('day', p.creation_time) as day 
+from profile p 
+where p.creation_time > '2022-04-02'
+group by day order by day;
 
-select count(*) as nr_profiles, from profile p where p.creation_time > '2022-04-02';
+-- Number of new profiles created after a certain date
+select count(*) as nr_profiles from profile p where p.creation_time > '2022-04-02';
