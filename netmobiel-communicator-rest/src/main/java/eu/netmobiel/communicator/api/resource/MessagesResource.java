@@ -16,7 +16,6 @@ import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.api.MessagesApi;
@@ -71,7 +70,7 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 
 	@Override
 	public Response listMessages(String xDelegator, String participant, String context, 
-			OffsetDateTime since, OffsetDateTime until, String deliveryMode, Integer maxResults, Integer offset) {
+			OffsetDateTime since, OffsetDateTime until, String deliveryMode, String sortDir, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		PagedResult<Message> result = null;
 		try {
@@ -83,9 +82,9 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 				participant = me;
 			}  
 			if (!me.equals(participant) && !request.isUserInRole("admin")) {
-				throw new SecurityException("You don't have the privilege the messages of someone else");
+				throw new SecurityException("You don't have the privilege to list the messages of someone else");
 			}
-			MessageFilter filter = new MessageFilter(participant, since, until, context, SortDirection.DESC.name());
+			MessageFilter filter = new MessageFilter(participant, since, until, context, sortDir);
 			Cursor cursor = new Cursor(maxResults, offset);
 			if (deliveryMode != null && !deliveryMode.isEmpty()) {
 	        	DeliveryMode dm = Stream.of(DeliveryMode.values())

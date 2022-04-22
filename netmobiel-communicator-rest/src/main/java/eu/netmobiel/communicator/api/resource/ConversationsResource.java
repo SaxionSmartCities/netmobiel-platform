@@ -17,7 +17,6 @@ import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.api.ConversationsApi;
@@ -153,7 +152,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 
 	@Override
 	public Response listConversationMessages(String xDelegator, String conversationId, String deliveryMode,
-			Integer maxResults, Integer offset) {
+			String sortDir, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		PagedResult<Message> result = null;
 		try {
@@ -163,7 +162,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
         	allowAdminOrEffectiveUser(request, context, conv.getOwner());
 
-			MessageFilter filter = new MessageFilter(convId, SortDirection.ASC.name());
+			MessageFilter filter = new MessageFilter(convId, sortDir);
 			Cursor cursor = new Cursor(maxResults, offset);
 			if (deliveryMode != null && !deliveryMode.isEmpty()) {
 	        	DeliveryMode dm = Stream.of(DeliveryMode.values())
