@@ -14,120 +14,6 @@ servers:
 - url: https://api.netmobiel.eu/gwapi/acc/communicator
   description: The communicator service visible to the world (acceptance).
 paths:
-  /messages:
-    summary: Path used to manage the list of messages.
-    description: The REST endpoint/path used to list and create zero or more `Message`
-      entities.  This path contains a `GET` and `POST` operation to perform the list
-      and create tasks, respectively. When a call a made by someone with the delegate
-      role, the effective user will be the user specified in the X-Delegator header.
-    get:
-      parameters:
-      - name: participant
-        description: The participant in the messages, i.e. as a recipient or a sender.
-          Use `me` as indicator to retrieve the own messages. Defaults to the effective
-          user when not set, unless the caller is an admin. An admin can list any
-          message. The participant domain is the Keycloak managed identity.
-        schema:
-          type: string
-        in: query
-      - name: context
-        description: The context to filter on. Only allowed if 'groupByConversation'
-          is not set (or false). The context used as a conversation tracker.
-        schema:
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-11-30T12:00:00+01:00
-        name: since
-        description: The date from which to start the listing. Default is beginning
-          of the list. Only allowed when 'groupByConversation' is not set or false.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-12-15T14:00:00+01:00
-        name: until
-        description: The date and after which to limit the list. The `until` date
-          must be after the `since` parameter. Default is not set, meaning all messages
-          from now and before. Only allowed when 'groupByConversation' is not set
-          or false.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: deliveryMode
-        description: "The delivery mode to filter on. Default is MESSAGE. \nThe intention\
-          \ of the flag is to filter on the effective delivery mode. Specify MESSAGE\
-          \ to list only the messages. Specify NOTIFICATION to list the notifications\
-          \ only. To list any message leave the parameter empty or specify ALL. Note\
-          \ that messages sent with deliveryMode ALL will show up with either value. "
-        schema:
-          enum:
-          - MESSAGE
-          - NOTIFICATION
-          - ALL
-          type: string
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns an page with `Message` entities.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      operationId: listMessages
-      summary: List messages
-      description: "Gets a paged list of all `Message` entities according the filter\
-        \ criteria. \nWithout that flag a list of messages complying to the filter\
-        \ criteria are returned.\n\nNote that all messages are returned for a participant:\
-        \ Message received , but also messages sent. Messages sent are always acknowledged.\n\
-        \nThe admin can always see all recipients. non-admin users can only see the\
-        \ other recipients if they are the sender."
-    post:
-      requestBody:
-        description: A new `Message` to be created.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Message'
-        required: true
-      responses:
-        "202":
-          description: Successful response.
-      operationId: sendMessage
-      summary: Create a Message
-      description: "Creates asynchronously a new instance of a `Message`. If the delivery\
-        \ mode includes `NOTIFICATION` then a notification (push) message is sent\
-        \ to each recipient. The sender of the message is the effective user. \n\n\
-        It is (very) important to set the context of the message and the envelope\
-        \ correct, otherwise the conversations of sender and recipient cannot be found\
-        \ and an error is returned. In general the message context reflects the context\
-        \ of the sender, i.e. a `Trip` urn for a passenger. For the receipient, if\
-        \ it is a driver, then the context is a `Booking` or a `Ride`. Thus, context\
-        \ is a system object that has an immediate meaning for a user, and also is\
-        \ owned by that user.\n\n"
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
   /messages/{messageId}/ack:
     summary: Acknowledge the message.
     description: Manages the acknowledgement state of a message for the implied recipient.
@@ -165,67 +51,6 @@ paths:
       in: header
     - name: messageId
       description: The id of the message.
-      schema:
-        type: string
-      in: path
-      required: true
-  /conversations/{conversationId}/messages:
-    summary: Path used to manage the list of messages of a conversation.
-    description: The REST endpoint/path used to list `Message` entities in a conversation.
-      This path contains a `GET` operation to perform the list task. When a call a
-      made by someone with the delegate role, the effective user will be the user
-      specified in the X-Delegator header.
-    get:
-      parameters:
-      - name: deliveryMode
-        description: "The delivery mode to filter on. Default is MESSAGE. \nThe intention\
-          \ of the flag is to filter on the effective delivery mode. Specify MESSAGE\
-          \ to list only the messages. Specify NOTIFICATION to list the notifications\
-          \ only. To list any message leave the parameter empty or specify ALL. "
-        schema:
-          enum:
-          - MESSAGE
-          - NOTIFICATION
-          - ALL
-          type: string
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns an page with `Message` entities
-            that are part of the specified conversation.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      operationId: listConversationMessages
-      summary: List messages in a conversation.
-      description: "Gets a paged list of all `Message` entities in a `Conversation`.\
-        \ \nThe filter criteria are applied. Messages are sorted by `creationTime`\
-        \ ascending.\n\nNote that all messages are returned for a participant: Message\
-        \ received , but also messages sent. Messages sent are implicitly acknowledged.\n\
-        \nThe admin can always see all recipients. non-admin users can only see the\
-        \ other recipients if they are the sender."
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - name: conversationId
-      description: A unique identifier for a `Conversation`.
       schema:
         type: string
       in: path
@@ -409,6 +234,201 @@ paths:
         type: string
       in: path
       required: true
+  /conversations/{conversationId}/messages:
+    summary: Path used to manage the list of messages of a conversation.
+    description: The REST endpoint/path used to list `Message` entities in a conversation.
+      This path contains a `GET` operation to perform the list task. When a call a
+      made by someone with the delegate role, the effective user will be the user
+      specified in the X-Delegator header.
+    get:
+      parameters:
+      - name: deliveryMode
+        description: "The delivery mode to filter on. Default is MESSAGE. \nThe intention\
+          \ of the flag is to filter on the effective delivery mode. Specify MESSAGE\
+          \ to list only the messages. Specify NOTIFICATION to list the notifications\
+          \ only. To list any message leave the parameter empty or specify ALL. "
+        schema:
+          enum:
+          - MESSAGE
+          - NOTIFICATION
+          - ALL
+          type: string
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC) or\
+          \ descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns an page with `Message` entities
+            that are part of the specified conversation.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: listConversationMessages
+      summary: List messages in a conversation.
+      description: "Gets a paged list of all `Message` entities in a `Conversation`.\
+        \ \nThe filter criteria are applied. Messages are sorted by `creationTime`\
+        \ ascending.\n\nNote that all messages are returned for a participant: Message\
+        \ received , but also messages sent. Messages sent are implicitly acknowledged.\n\
+        \nThe admin can always see all recipients. non-admin users can only see the\
+        \ other recipients if they are the sender."
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: conversationId
+      description: A unique identifier for a `Conversation`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /messages:
+    summary: Path used to manage the list of messages.
+    description: The REST endpoint/path used to list and create zero or more `Message`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively. When a call a made by someone with the delegate
+      role, the effective user will be the user specified in the X-Delegator header.
+    get:
+      parameters:
+      - name: participant
+        description: The participant in the messages, i.e. as a recipient or a sender.
+          Use `me` as indicator to retrieve the own messages. Defaults to the effective
+          user when not set, unless the caller is an admin. An admin can list any
+          message. The participant domain is the Keycloak managed identity.
+        schema:
+          type: string
+        in: query
+      - name: context
+        description: The context to filter on. Only allowed if 'groupByConversation'
+          is not set (or false). The context used as a conversation tracker.
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The date from which to start the listing. Default is beginning
+          of the list. Only allowed when 'groupByConversation' is not set or false.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The date and after which to limit the list. The `until` date
+          must be after the `since` parameter. Default is not set, meaning all messages
+          from now and before. Only allowed when 'groupByConversation' is not set
+          or false.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: deliveryMode
+        description: "The delivery mode to filter on. Default is MESSAGE. \nThe intention\
+          \ of the flag is to filter on the effective delivery mode. Specify MESSAGE\
+          \ to list only the messages. Specify NOTIFICATION to list the notifications\
+          \ only. To list any message leave the parameter empty or specify ALL. Note\
+          \ that messages sent with deliveryMode ALL will show up with either value. "
+        schema:
+          enum:
+          - MESSAGE
+          - NOTIFICATION
+          - ALL
+          type: string
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC) or\
+          \ descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns an page with `Message` entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: listMessages
+      summary: List messages
+      description: "Gets a paged list of all `Message` entities according the filter\
+        \ criteria. \nWithout that flag a list of messages complying to the filter\
+        \ criteria are returned.\n\nNote that all messages are returned for a participant:\
+        \ Message received , but also messages sent. Messages sent are always acknowledged.\n\
+        \nThe admin can always see all recipients. non-admin users can only see the\
+        \ other recipients if they are the sender."
+    post:
+      requestBody:
+        description: A new `Message` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+        required: true
+      responses:
+        "202":
+          description: Successful response.
+      operationId: sendMessage
+      summary: Create a Message
+      description: "Creates asynchronously a new instance of a `Message`. If the delivery\
+        \ mode includes `NOTIFICATION` then a notification (push) message is sent\
+        \ to each recipient. The sender of the message is the effective user. \n\n\
+        It is (very) important to set the context of the message and the envelope\
+        \ correct, otherwise the conversations of sender and recipient cannot be found\
+        \ and an error is returned. In general the message context reflects the context\
+        \ of the sender, i.e. a `Trip` urn for a passenger. For the receipient, if\
+        \ it is a driver, then the context is a `Booking` or a `Ride`. Thus, context\
+        \ is a system object that has an immediate meaning for a user, and also is\
+        \ owned by that user.\n\n"
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
 components:
   schemas:
     Error:
