@@ -128,37 +128,35 @@ public class RideFilter extends PeriodFilter {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("RideFilter [");
 		if (driverId != null) {
-			builder.append("driverId=");
+			builder.append("dr=");
 			builder.append(driverId);
-			builder.append(", ");
+			builder.append(" ");
 		}
-		if (driver != null) {
-			builder.append("driver=");
-			builder.append(driver);
-			builder.append(", ");
-		}
+//		if (driver != null) {
+//			builder.append("dr=");
+//			builder.append(driver);
+//			builder.append(" ");
+//		}
 		if (rideState != null) {
-			builder.append("rideState=");
+			builder.append("rs=");
 			builder.append(rideState);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		if (bookingState != null) {
-			builder.append("bookingState=");
+			builder.append("bs=");
 			builder.append(bookingState);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		if (siblingRideId != null) {
-			builder.append("siblingRideId");
+			builder.append("sib");
 			builder.append(siblingRideId);
 			builder.append(", ");
 		}
-		builder.append("deletedToo=");
+		builder.append("dt=");
 		builder.append(deletedToo);
-		builder.append(", ");
+		builder.append(" ");
 		builder.append(super.toString());
-		builder.append("]");
 		return builder.toString();
 	}
 

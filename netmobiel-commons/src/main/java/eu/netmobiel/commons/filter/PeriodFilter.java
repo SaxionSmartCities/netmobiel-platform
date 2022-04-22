@@ -71,12 +71,12 @@ public class PeriodFilter extends BaseFilter {
 		if (since != null) {
 			builder.append("since=");
 			builder.append(DateTimeFormatter.ISO_INSTANT.format(since));
-			builder.append(", ");
+			builder.append(" ");
 		}
-		if (since != null) {
+		if (until != null) {
 			builder.append("until=");
 			builder.append(DateTimeFormatter.ISO_INSTANT.format(until));
-			builder.append(", ");
+			builder.append(" ");
 		}
 		builder.append(super.toString());
 		return builder.toString();

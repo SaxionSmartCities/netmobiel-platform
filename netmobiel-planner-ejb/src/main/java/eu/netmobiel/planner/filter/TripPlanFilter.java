@@ -68,12 +68,12 @@ public class TripPlanFilter extends PeriodFilter {
 		if (planType != null) {
 			builder.append("pt=");
 			builder.append(planType);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		if (inProgress != null) {
 			builder.append("pr=");
 			builder.append(inProgress);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		builder.append(super.toString());
 		return builder.toString();

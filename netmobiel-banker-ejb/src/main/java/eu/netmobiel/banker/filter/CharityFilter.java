@@ -112,8 +112,41 @@ public class CharityFilter extends PeriodFilter {
 	@Override
 	public void validate() throws BadRequestException {
 		super.validate();
+		if ((location != null && radius == null) || (location == null && radius != null)) {
+			throw new BadRequestException("Specify both 'location' and 'radius'");
+		}
     	if (this.sortBy == null) {
     		this.sortBy = CharitySortBy.NAME;
     	}
+	}
+
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		if (location != null && radius != null) {
+			builder.append("loc=");
+			builder.append(location.toString());
+			builder.append(" ");
+			builder.append("rad=");
+			builder.append(radius);
+			builder.append(" ");
+		}
+		if (inactiveToo) {
+			builder.append("iat=");
+			builder.append(inactiveToo);
+			builder.append(" ");
+		}
+		if (deletedToo) {
+			builder.append("det=");
+			builder.append(deletedToo);
+			builder.append(" ");
+		}
+		if (sortBy != null) {
+			builder.append("sb=");
+			builder.append(sortBy);
+			builder.append(" ");
+		}
+		builder.append(super.toString());
+		return builder.toString();
 	}
 }

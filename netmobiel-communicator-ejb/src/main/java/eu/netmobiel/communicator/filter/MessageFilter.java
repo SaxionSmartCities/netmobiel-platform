@@ -91,29 +91,27 @@ public class MessageFilter extends PeriodFilter {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("MessageFilter [");
 		if (conversationId != null) {
-			builder.append("conversationId=");
+			builder.append("ci=");
 			builder.append(conversationId);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		if (participantId != null) {
-			builder.append("participantId=");
+			builder.append("pi=");
 			builder.append(participantId);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		if (deliveryMode != null) {
-			builder.append("deliveryMode=");
+			builder.append("dm=");
 			builder.append(deliveryMode);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		if (context != null) {
-			builder.append("context=");
+			builder.append("cx=");
 			builder.append(context);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		builder.append(super.toString());
-		builder.append("]");
 		return builder.toString();
 	}
 

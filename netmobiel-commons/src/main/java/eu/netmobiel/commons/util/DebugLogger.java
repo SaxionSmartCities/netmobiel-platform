@@ -78,6 +78,7 @@ public class DebugLogger implements Serializable {
 			} catch (Exception ex) {
 				// Probably not initialized, ignore
 				value = "<proxy>";
+//				logger.error("Error getting value", ex);
 			}
 		}
 		return prefix + value;

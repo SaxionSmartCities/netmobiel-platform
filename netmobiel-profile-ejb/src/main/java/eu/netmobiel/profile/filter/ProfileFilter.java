@@ -41,14 +41,14 @@ public class ProfileFilter extends BaseFilter {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		if (text != null) {
-			builder.append("text=");
+			builder.append("t=");
 			builder.append(text);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		if (userRole != null) {
-			builder.append("userRole=");
+			builder.append("ur=");
 			builder.append(userRole);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		builder.append(super.toString());
 		return builder.toString();

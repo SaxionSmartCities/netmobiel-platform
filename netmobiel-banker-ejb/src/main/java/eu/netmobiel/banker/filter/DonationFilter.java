@@ -31,7 +31,7 @@ public class DonationFilter extends PeriodFilter {
 	private boolean omitInactiveCharities;
 
 	/** ==============================
-	 * Selection of a specific user.
+	 * Selection of a specific banker user.
 	 */
 	private Long userId;
 	private BankerUser user;
@@ -173,8 +173,51 @@ public class DonationFilter extends PeriodFilter {
 	@Override
 	public void validate() throws BadRequestException {
 		super.validate();
+		if ((location != null && radius == null) || (location == null && radius != null)) {
+			throw new BadRequestException("Specify both 'location' and 'radius'");
+		}
     	if (this.sortBy == null) {
     		this.sortBy = DonationSortBy.DATE;
     	}
+	}
+	
+	@Override
+	public String toString() {
+		StringBuilder builder = new StringBuilder();
+		if (location != null && radius != null) {
+			builder.append("loc=");
+			builder.append(location.toString());
+			builder.append(" ");
+			builder.append("rad=");
+			builder.append(radius);
+			builder.append(" ");
+		}
+		if (anonymousToo) {
+			builder.append("at=");
+			builder.append(anonymousToo);
+			builder.append(" ");
+		}
+		if (omitInactiveCharities) {
+			builder.append("oic=");
+			builder.append(omitInactiveCharities);
+			builder.append(" ");
+		}
+		if (charityId != null) {
+			builder.append("ci=");
+			builder.append(charityId);
+			builder.append(" ");
+		}
+		if (userId != null) {
+			builder.append("ui=");
+			builder.append(userId);
+			builder.append(" ");
+		}
+		if (sortBy != null) {
+			builder.append("sb=");
+			builder.append(sortBy);
+			builder.append(" ");
+		}
+		builder.append(super.toString());
+		return builder.toString();
 	}
 }

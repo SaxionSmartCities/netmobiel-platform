@@ -96,17 +96,15 @@ public class ShoutOutFilter extends PeriodFilter {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
+		builder.append("loc=");
 		builder.append(location.toString());
-		builder.append(", ");
-		builder.append("dar=");
+		builder.append(" dar=");
 		builder.append(depArrRadius);
-		builder.append(", ");
-		builder.append("tr=");
+		builder.append(" tr=");
 		builder.append(travelRadius);
-		builder.append(", ");
-		builder.append("po=");
+		builder.append(" po=");
 		builder.append(inProgressOnly);
-		builder.append(", ");
+		builder.append(" ");
 		builder.append(super.toString());
 		return builder.toString();
 	}

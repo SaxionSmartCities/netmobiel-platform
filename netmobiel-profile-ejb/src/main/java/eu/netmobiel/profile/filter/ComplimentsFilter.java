@@ -29,11 +29,11 @@ public class ComplimentsFilter extends BiPartyFilter {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("ComplimentFilter [");
-		builder.append(super.toString());
 		if (this.context != null) {
-			builder.append(", ");
 			builder.append("context");
+			builder.append(" ");
 		}
+		builder.append(super.toString());
 		builder.append("]");
 		return builder.toString();
 	}

@@ -88,29 +88,27 @@ public class RewardFilter extends PeriodFilter {
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
-		builder.append("RewardFilter[");
 		if (user != null) {
-			builder.append("user=");
+			builder.append("us=");
 			builder.append(user);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		if (rewardType != null) {
-			builder.append("rewardType=");
+			builder.append("rt=");
 			builder.append(rewardType);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		if (cancelled != null) {
-			builder.append("cancelled=");
+			builder.append("cnc=");
 			builder.append(cancelled);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		if (paid != null) {
-			builder.append("pending=");
+			builder.append("pa=");
 			builder.append(paid);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		builder.append(super.toString());
-		builder.append("]");
 		return builder.toString();
 	}
 

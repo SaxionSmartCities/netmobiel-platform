@@ -39,12 +39,12 @@ public class BiPartyFilter extends BaseFilter {
 		if (receiver != null) {
 			builder.append("receiver=");
 			builder.append(receiver);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		if (sender!= null) {
 			builder.append("sender=");
 			builder.append(sender);
-			builder.append(", ");
+			builder.append(" ");
 		}
 		builder.append(super.toString());
 		return builder.toString();

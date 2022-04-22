@@ -28,11 +28,11 @@ public class ReviewFilter extends BiPartyFilter {
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
 		builder.append("ReviewFilter [");
-		builder.append(super.toString());
 		if (this.context != null) {
-			builder.append(", ");
 			builder.append("context");
+			builder.append(" ");
 		}
+		builder.append(super.toString());
 		builder.append("]");
 		return builder.toString();
 	}
