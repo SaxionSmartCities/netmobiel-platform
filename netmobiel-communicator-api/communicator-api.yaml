@@ -288,10 +288,11 @@ paths:
       summary: List messages in a conversation.
       description: "Gets a paged list of all `Message` entities in a `Conversation`.\
         \ \nThe filter criteria are applied. Messages are sorted by `creationTime`\
-        \ ascending.\n\nNote that all messages are returned for a participant: Message\
-        \ received , but also messages sent. Messages sent are implicitly acknowledged.\n\
-        \nThe admin can always see all recipients. non-admin users can only see the\
-        \ other recipients if they are the sender."
+        \ according the sort direction (default descending).\n\nNote that all messages\
+        \ concern a single participant: Messages received, but also messages sent.\n\
+        \nThe admin can always see all participants of a message exchange. Non-admin\
+        \ users can only see the sender of the message. Non-admin users can also see\
+        \ the recipients of a message if they are the sender."
     parameters:
     - name: X-Delegator
       description: The Keycloak managed identity of a Netmobiel user on whose behalf
@@ -394,11 +395,10 @@ paths:
       operationId: listMessages
       summary: List messages
       description: "Gets a paged list of all `Message` entities according the filter\
-        \ criteria. \nWithout that flag a list of messages complying to the filter\
-        \ criteria are returned.\n\nNote that all messages are returned for a participant:\
-        \ Message received , but also messages sent. Messages sent are always acknowledged.\n\
-        \nThe admin can always see all recipients. non-admin users can only see the\
-        \ other recipients if they are the sender."
+        \ criteria. \n\nNote that the list includes both messages sent and messages\
+        \ received.\n\nThe admin can always see all participants of a message exchange.\
+        \ Non-admin users can only see the sender of the message. Non-admin users\
+        \ can also see the recipients of a message if they are the sender."
     post:
       requestBody:
         description: A new `Message` to be created.
