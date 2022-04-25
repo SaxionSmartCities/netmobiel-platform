@@ -20,7 +20,7 @@ import eu.netmobiel.here.search.api.model.Category;
 import eu.netmobiel.here.search.api.model.OpenSearchAutosuggestResponse;
 
 /**
- * This mapper defines the mapping from the domain Booking to the API Booking as defined by OpenAPI.
+ * This mapper defines the mapping from the HERE autosuggest service OpenSearchAutosuggestResponse to the API Suggestion as defined by OpenAPI.
  * 
  * @author Jaap Reitsma
  *
@@ -29,9 +29,19 @@ import eu.netmobiel.here.search.api.model.OpenSearchAutosuggestResponse;
 public abstract class SuggestionMapper {
 
 	@Mapping(target = "data", source = "items")
-	public abstract eu.netmobiel.geoservice.api.model.SuggestionResponse map(OpenSearchAutosuggestResponse source);
+	@Mapping(target = "totalCount", ignore = true)
+	@Mapping(target = "count", ignore = true)
+	@Mapping(target = "offset", ignore = true)
+	public abstract eu.netmobiel.geoservice.api.model.Page map(OpenSearchAutosuggestResponse source);
 
-	public List<eu.netmobiel.geoservice.api.model.Suggestion> map(List<AutosuggestEntityResultItem> source) {
+	@AfterMapping
+    protected void addCategory(OpenSearchAutosuggestResponse source, @MappingTarget eu.netmobiel.geoservice.api.model.Page target) {
+		target.setOffset(0);
+		target.setCount(target.getData().size());
+		target.setTotalCount(target.getCount());
+	}
+
+	public List<Object> map(List<AutosuggestEntityResultItem> source) {
 		// Only return results with an acceptable result type.
 		return source.stream()
 				.map(item -> map(item))
