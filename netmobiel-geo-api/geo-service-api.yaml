@@ -74,11 +74,14 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/SuggestionResponse'
-          description: Successful response - returns a `SuggestionResponse` with an
-            array of `Suggestion` entities.
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with an array of `Suggestion`
+            entities.
         "400":
           $ref: '#/components/responses/BadRequest'
+      security:
+      - apikey: []
+      - Bearer-only: []
       operationId: getSuggestions
       summary: List geographical suggestions.
       description: Gets a list of geographical `Suggestion` entities, given the parameters.
@@ -237,7 +240,7 @@ components:
         address:
           $ref: '#/components/schemas/Address'
           description: The address of the location. When show=details is set, then
-            the address is as complete as possible, otherwiase only an address oneliner
+            the address is as complete as possible, otherwise only an address oneliner
             is returned in the address label.
       example:
         title: Slingeland Ziekenhuis
@@ -256,16 +259,38 @@ components:
         resultType: place
         id: here:pds:place:528jx7ps-72fef8446ed3031aed91e95fb3f54453
         distance: 16110
-    SuggestionResponse:
+    Page:
       title: Root Type for Page
-      description: The response on a serch for suggestions request.
+      description: A page from a result set. For smaller sets the page contains the
+        complete result set.
       type: object
       properties:
+        totalCount:
+          format: int32
+          description: |-
+            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
+
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
+          type: integer
+        count:
+          format: int32
+          description: The number of items in this page.
+          type: integer
         data:
-          description: An array with the payload.
+          description: An array with the actual payload. The payload depends on the
+            request being made.
           type: array
-          items:
-            $ref: '#/components/schemas/Suggestion'
+          items: {}
+        offset:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
+      example:
+        totalCount: 104
+        offset: 32
+        count: 16
+        data: []
   responses:
     InternalServerError:
       content:
@@ -301,3 +326,7 @@ components:
         the header.'
       name: Api-key
       in: header
+    Bearer-only:
+      scheme: bearer
+      type: http
+      description: You need a valid access token.
