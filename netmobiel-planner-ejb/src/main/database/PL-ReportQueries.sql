@@ -249,7 +249,21 @@ WHERE p.error_vendor_code = 'TOO_CLOSE' AND NOT EXISTS (select 1 FROM report_via
 select st_distance(ST_Transform(st_geomFromText('POINT(6.749130 52.298530)', 4326), 7415), 
 				   ST_Transform(st_geomFromText('POINT(6.748682 52.298512)', 4326), 7415))
 
+-- Aantal trip plan zoekacties				   
+select count(*) as count
+from trip_plan p 
+where p.creation_time > '2022-04-02'
 				   
+-- Aantal shout-outs				   
+select count(*) as count
+from trip_plan p 
+where p.creation_time > '2022-04-02' and p.plan_type = 'SHO'
+
+-- Aantal shout-out oplossingen				   
+select count(*) as count
+from trip_plan p 
+where p.creation_time > '2022-04-02' and p.plan_type = 'SOS'
+
 				   
 -- Number of shout-outs per day since a specific date
 select count(*) as nr_shout_outs, date_trunc('day', p.creation_time) as day 

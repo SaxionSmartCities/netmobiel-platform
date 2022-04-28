@@ -30,3 +30,16 @@ select count(*) as nr_rides, date_trunc('day', r.departure_time) as day
 from ride r
 where r.departure_time > '2022-04-02'
 group by day order by day;
+
+-- Aantal losse ritten
+select count(*) from ride r
+where r.departure_time > '2022-04-02' and ride_template is null;
+
+-- Aantal herhalingen (waaruit ritten worden aangemaakt)
+select count(*) from ride_template rt
+where rt.departure_time > '2022-04-02';
+
+-- Aantal ritten uit herhalingen
+select count(*) from ride r
+where r.departure_time > '2022-04-02' and ride_template is not null;
+
