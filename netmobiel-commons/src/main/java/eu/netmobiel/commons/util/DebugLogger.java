@@ -51,7 +51,7 @@ public class DebugLogger implements Serializable {
 		return ic.proceed();
 	}
 	
-	private static String printValue(Object parm) {
+	private String printValue(Object parm) {
 		String prefix = "";
 		String value;
 		if (parm == null) {
@@ -78,7 +78,7 @@ public class DebugLogger implements Serializable {
 			} catch (Exception ex) {
 				// Probably not initialized, ignore
 				value = "<proxy>";
-//				logger.error("Error getting value", ex);
+				logger.error("Error getting value", ex);
 			}
 		}
 		return prefix + value;
