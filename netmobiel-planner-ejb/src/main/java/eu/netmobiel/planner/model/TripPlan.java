@@ -587,7 +587,7 @@ public class TripPlan implements Serializable {
 				useAsArrivalTime ? "A" : "D", formatTime(travelTime), 
 				formatTime(earliestDepartureTime), formatTime(latestArrivalTime), 
 				from, to, 
-				itineraries.stream().map(i -> i.toString()).collect(Collectors.joining("\n\t")));
+				itineraries == null ? "" : itineraries.stream().map(i -> i.toString()).collect(Collectors.joining("\n\t")));
 	}
 
 	public List<PlannerReport> getPlannerReports() {
