@@ -938,6 +938,41 @@ paths:
         \ a shared ride.\nThis endpoint is intended for drivers to find passengers.\
         \ \n\nBecause a driver can act as a passenger too, shout-outs issued by the\
         \ effective caller are never included."
+  /users/{userId}/report:
+    summary: Path used to report on trip statistics.
+    description: The REST endpoint/path used to get a single instance of a `UserReport`.
+      This path contains a `GET` operation used to perform the get tasks.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserReport'
+          description: Succes response. A `UserReport` is returned.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getUserReport
+      summary: Gets the report on the user.
+      description: Returns the report on the specified user. This report can be called
+        by anyone on anyone, it is part of the public profile.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: A refrence to the user. Allowed are a planner database id, a planner
+        urn, a keycloak urn, or just `me` to refer to the effective user.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
@@ -1710,6 +1745,75 @@ components:
           managedIdentity: 1234-5678-9012
           givenName: Simon
           familiyName: d'Hollosy
+    UserReport:
+      title: Root Type for UserReport
+      description: Report on a few parameters for a specific user.
+      type: object
+      properties:
+        tripsAsDriver:
+          description: A report on the number of trips as a driver, grouped by modality.
+            Theoretically for each modality, in practise only for RIDESHARE.
+          type: array
+          items:
+            type: object
+            properties:
+              modality:
+                type: string
+              count:
+                format: int32
+                type: integer
+        tripsAsPassenger:
+          description: A report on the number of trips made by the user, grouped by
+            modality. Theoretically for each modality, in practise only for RIDESHARE.
+          type: array
+          items:
+            type: object
+            properties:
+              modality:
+                type: string
+              count:
+                format: int32
+                type: integer
+      example:
+        tripsAsDriver:
+        - modality: RIDESHARE
+          count: 10
+        tripsAsPassenger:
+        - modality: RIDESHARE
+          count: 10
+    ModalityCount:
+      title: Root Type for ModalityCount
+      description: Generic type for storing modality name and some report count.
+      required:
+      - modality
+      type: object
+      properties:
+        modality:
+          description: The modality to report about. Many ar epossible, but in practise
+            only RIDESHARE.
+          enum:
+          - AIRPLANE
+          - BICYCLE
+          - BUS
+          - CABLE_CAR
+          - CAR
+          - FERRY
+          - FUNICULAR
+          - GONDOLA
+          - RAIL
+          - RIDESHARE
+          - SUBWAY
+          - TRAM
+          - TRANSIT
+          - WALK
+          type: string
+        count:
+          format: int32
+          description: A report count on some criterium.
+          type: integer
+      example:
+        modality: RIDESHARE
+        count: 10
   responses:
     InternalServerError:
       content:
