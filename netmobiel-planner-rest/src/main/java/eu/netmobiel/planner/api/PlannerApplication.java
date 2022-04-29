@@ -42,6 +42,7 @@ import eu.netmobiel.planner.api.resource.SearchResource;
 import eu.netmobiel.planner.api.resource.ShoutOutsResource;
 import eu.netmobiel.planner.api.resource.TestsResource;
 import eu.netmobiel.planner.api.resource.TripsResource;
+import eu.netmobiel.planner.api.resource.UsersResource;
 
 
 /**
@@ -86,6 +87,7 @@ public class PlannerApplication extends Application {
         resources.add(ShoutOutsResource.class);
         resources.add(TestsResource.class);
         resources.add(TripsResource.class);
+        resources.add(UsersResource.class);
         resources.add(Jackson2ObjectMapperContextResolver.class);
         resources.add(LocalDateParamConverterProvider.class);
         resources.add(OffsetDateTimeParamConverterProvider.class);

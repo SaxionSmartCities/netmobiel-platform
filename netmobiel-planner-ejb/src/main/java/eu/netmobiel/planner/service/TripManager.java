@@ -42,12 +42,14 @@ import eu.netmobiel.planner.event.TripEvaluatedEvent;
 import eu.netmobiel.planner.event.TripUnconfirmedEvent;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
+import eu.netmobiel.planner.model.ModalityUsage;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.repository.ItineraryDao;
+import eu.netmobiel.planner.repository.LegDao;
 import eu.netmobiel.planner.repository.TripDao;
 
 /**
@@ -74,6 +76,9 @@ public class TripManager {
     @Inject
     private ItineraryDao itineraryDao;
     
+    @Inject
+    private LegDao legDao;
+
     @Inject
     private TripMonitor tripMonitor;
     
@@ -450,6 +455,27 @@ public class TripManager {
 		// And assign all rides with same arrival location to same postal code
 		affectedRows += tripDao.updateArrivalPostalCode(location, postalCode);
 		return affectedRows;
+	}
+
+    /**
+     * Report on the usage of the modalities of a user as a passenger. The count is the number of a completed trip in which a modality is used
+     * at least once. A multi-legged trip with a single modality counts as one.
+     * @param user The user to report about
+     * @return A list of ModalityCount objects.
+     */
+	public List<ModalityUsage> reportTripModalityUseAsPassenger(PlannerUser user) throws BusinessException {
+		return legDao.reportModalityUsageAsPassenger(user);
+	}
+
+    /**
+     * Report on the usage of the modalities of a user as a driver. The count is the number of a completed trips in which a modality is used
+     * at least once. A multi-legged trip with a single modality counts as one.
+     * The user is identified as the driver by the keycloak identity in the driverId field of a leg.
+     * @param user The user to report about
+     * @return A list of ModalityCount objects.
+     */
+	public List<ModalityUsage> reportTripModalityUseAsDriver(PlannerUser user) throws BusinessException {
+		return legDao.reportModalityUsageAsDriver(user);
 	}
 
 	/**********************************************/
