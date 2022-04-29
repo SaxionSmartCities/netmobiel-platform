@@ -219,7 +219,7 @@ public class DonationDao extends AbstractDao<Donation, Long> {
     }
 
     /**
-     * Retrieves the total amount donated in to any charity ordered by total amount donated descending 
+     * Retrieves the total amount donated to any charity ordered by total amount donated descending 
      * and by user id descending (late adopters are prioritized). If the totals per charity are needed, then specify
      * a charity as filter criterium.
      * @param filter The donation selection and sorting criteria. Anonymous donations are never included.

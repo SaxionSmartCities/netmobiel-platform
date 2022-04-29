@@ -168,16 +168,21 @@ public class UsersResource implements UsersApi {
 	}
 
 	@Override
-	public Response reportGenerosity(String charity, String location, Integer radius, Boolean omitInactive,
+	public Response reportGenerosity(String user, String charity, String location, Integer radius, Boolean omitInactive,
 			OffsetDateTime since, OffsetDateTime until, String sortBy, String sortDir, Integer maxResults,
 			Integer offset) {
 		Response rsp = null;
 		try {
 			DonationFilter filter;
+			Long userId = null;
+			if (user != null) {
+				CallingContext<BankerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+				userId = resolveUserReference(user, context).getId();
+			}
 			if (charity != null) {
-				filter = new DonationFilter(charity, null, since, until, sortBy, sortDir, false);
+				filter = new DonationFilter(charity, userId, since, until, sortBy, sortDir, false);
 			} else {
-				filter = new DonationFilter(location, radius, Boolean.TRUE.equals(omitInactive), null, since, until, sortBy, sortDir, false);
+				filter = new DonationFilter(location, radius, Boolean.TRUE.equals(omitInactive), userId, since, until, sortBy, sortDir, false);
 			}
 			filter.setSortBy(sortBy, DonationSortBy.AMOUNT, new DonationSortBy[] { DonationSortBy.AMOUNT });
 			if (filter.getSortDir() == null) {
