@@ -10,3 +10,10 @@ group by day order by day;
 
 -- Number of new profiles created after a certain date
 select count(*) as nr_profiles from profile p where p.creation_time > '2022-04-02';
+
+-- Report about the home localities of the users
+SELECT count(*) as count, p.home_locality, p.home_state_code as woonplaats
+	FROM public.profile p
+	WHERE p.creation_time > '2022-04-02'
+	GROUP BY p.home_locality, p.home_state_code
+	ORDER BY count DESC, p.home_locality ASC
