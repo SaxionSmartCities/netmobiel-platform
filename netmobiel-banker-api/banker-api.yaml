@@ -258,103 +258,6 @@ paths:
       summary: Report on the popularity of charities.
       description: Creates a report listing the selected charities with the total
         number of donors during the selected period.
-  /users/generosity:
-    summary: Fetches a report on generosity of the users.
-    description: 'The REST endpoint/path used to create a report on the generosity
-      of users. This path contains a `GET` operation to perform the report task. '
-    get:
-      parameters:
-      - name: charity
-        description: The charity for which to list the donated amount totals. Specify
-          charity id or a charity urn. If set then the value of the parameters `location`,
-          `radius` and `omitInactive` are ignored.
-        schema:
-          type: string
-        in: query
-      - examples:
-          Location:
-            value: 51.987757,6.564012
-        name: location
-        description: A location consisting of a pair of latitude, longitude coordinates
-          acting as the center of a circle to search in for charities. Specify the
-          radius parameter as well. Only donations to  included charities are counted.
-        schema:
-          type: string
-        in: query
-      - name: radius
-        description: The radius in meters of the circle around the location point
-          to find charities in.
-        schema:
-          type: integer
-        in: query
-      - name: omitInactive
-        description: If set to true then omit charities that are no longer campaigning.
-          Default false.
-        schema:
-          type: boolean
-        in: query
-      - examples:
-          Format:
-            value: 2019-11-30T12:00:00+01:00
-        name: since
-        description: The donation date marking the start of the reporting period.
-          Default is not set.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-12-15T14:00:00+01:00
-        name: until
-        description: The donation date to end the reporting period.. The `until` date
-          must be after the `since` parameter. Default is not set.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: sortBy
-        description: The field to sort on. Choose `AMOUNT`, the only option.
-        schema:
-          enum:
-          - AMOUNT
-          type: string
-        in: query
-        required: false
-      - name: sortDir
-        description: "Direction of the sorting. Choose either \nascending (ASC) or\
-          \ descending (DESC, default)."
-        schema:
-          enum:
-          - ASC
-          - DESC
-          type: string
-        in: query
-        required: false
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: 'Success response. The results contains a pages result of `User`entities,
-            the `donatedAmount` attribute is defined. '
-      operationId: reportGenerosity
-      summary: Report generosity of users.
-      description: Creates a list of users with the amount of credits each user has
-        donated. The total amount is summed after filtering the individual donations
-        according the filter parameters. Anonymous donations are never included in
-        the report, even those by the calling user are ignored.
   /charities/{charityId}:
     summary: Path used to manage a single Charity.
     description: The REST endpoint/path used to get, update, and delete single instances
@@ -2189,6 +2092,108 @@ paths:
         type: string
       in: path
       required: true
+  /users/generosity:
+    summary: Fetches a report on generosity of the users.
+    description: 'The REST endpoint/path used to create a report on the generosity
+      of users. This path contains a `GET` operation to perform the report task. '
+    get:
+      parameters:
+      - name: user
+        description: 'The user to report on. '
+        schema:
+          type: string
+        in: query
+      - name: charity
+        description: The charity for which to list the donated amount totals. Specify
+          charity id or a charity urn. If set then the value of the parameters `location`,
+          `radius` and `omitInactive` are ignored.
+        schema:
+          type: string
+        in: query
+      - examples:
+          Location:
+            value: 51.987757,6.564012
+        name: location
+        description: A location consisting of a pair of latitude, longitude coordinates
+          acting as the center of a circle to search in for charities. Specify the
+          radius parameter as well. Only donations to  included charities are counted.
+        schema:
+          type: string
+        in: query
+      - name: radius
+        description: The radius in meters of the circle around the location point
+          to find charities in.
+        schema:
+          type: integer
+        in: query
+      - name: omitInactive
+        description: If set to true then omit charities that are no longer campaigning.
+          Default false.
+        schema:
+          type: boolean
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The donation date marking the start of the reporting period.
+          Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The donation date to end the reporting period.. The `until` date
+          must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: sortBy
+        description: The field to sort on. Choose `AMOUNT`, the only option.
+        schema:
+          enum:
+          - AMOUNT
+          type: string
+        in: query
+        required: false
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC) or\
+          \ descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: 'Success response. The results contains a pages result of `User`entities,
+            the `donatedAmount` attribute is defined. '
+      operationId: reportGenerosity
+      summary: Report generosity of users.
+      description: Creates a list of users with the amount of credits each user has
+        donated. The total amount is summed after filtering the individual donations
+        according the filter parameters. Anonymous donations are never included in
+        the report, even those by the calling user are ignored.
 components:
   schemas:
     Error:
@@ -2214,38 +2219,6 @@ components:
         message: This is a really bad request
         reasonPhrase: Bad Request
         status: 400
-    Page:
-      title: Root Type for Page
-      description: A page from a result set. For smaller sets the page contains the
-        complete result set.
-      type: object
-      properties:
-        totalCount:
-          format: int32
-          description: |-
-            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
-
-            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
-          type: integer
-        count:
-          format: int32
-          description: The number of items in this page.
-          type: integer
-        data:
-          description: An array with the actual payload. The payload depends on the
-            request being made.
-          type: array
-          items: {}
-        offset:
-          format: int32
-          description: The zero-based offset in the result set. Should be equal to
-            the offset passed by the request.
-          type: integer
-      example:
-        totalCount: 104
-        start: 32
-        count: 16
-        data: []
     Settings:
       title: Root Type for Settings
       description: A collection of banking settings.
@@ -3082,6 +3055,38 @@ components:
         transactionRef: urn:nb:bn:transaction:63
         factContext: urn:nb:pf:surveyint:52
         paidOut: true
+    Page:
+      title: Root Type for Page
+      description: A page from a result set. For smaller sets the page contains the
+        complete result set.
+      type: object
+      properties:
+        totalCount:
+          format: int32
+          description: |-
+            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
+
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
+          type: integer
+        count:
+          format: int32
+          description: The number of items in this page.
+          type: integer
+        data:
+          description: An array with the actual payload. The payload depends on the
+            request being made.
+          type: array
+          items: {}
+        offset:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
+      example:
+        totalCount: 104
+        offset: 32
+        count: 16
+        data: []
   responses:
     InternalServerError:
       content:
