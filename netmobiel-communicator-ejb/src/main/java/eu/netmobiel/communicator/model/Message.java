@@ -225,7 +225,7 @@ public class Message extends ReferableObject implements NetMobielMessage, Serial
 	@Override
 	public String toString() {
 		return String.format("Message [%d %s %s %s '%s']", id, 
-				context, deliveryMode, DateTimeFormatter.ISO_INSTANT.format(createdTime), body != null ? body : "");
+				context, deliveryMode, createdTime == null ? "": DateTimeFormatter.ISO_INSTANT.format(createdTime), body != null ? body : "");
 	}
 
 }
