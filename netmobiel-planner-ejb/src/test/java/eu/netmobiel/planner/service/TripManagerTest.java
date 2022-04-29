@@ -40,6 +40,7 @@ import eu.netmobiel.planner.model.Trip;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.repository.ItineraryDao;
+import eu.netmobiel.planner.repository.LegDao;
 import eu.netmobiel.planner.repository.TripDao;
 import eu.netmobiel.planner.repository.TripPlanDao;
 import eu.netmobiel.planner.test.Fixture;
@@ -63,6 +64,9 @@ public class TripManagerTest {
     private TripDao tripDao;
 	@Injectable
     private TripPlanDao tripPlanDao;
+
+	@Injectable
+    private LegDao legDao;
 
 	@Injectable
     private ItineraryDao itineraryDao;
