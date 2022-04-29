@@ -1755,25 +1755,13 @@ components:
             Theoretically for each modality, in practise only for RIDESHARE.
           type: array
           items:
-            type: object
-            properties:
-              modality:
-                type: string
-              count:
-                format: int32
-                type: integer
+            $ref: '#/components/schemas/ModalityCount'
         tripsAsPassenger:
           description: A report on the number of trips made by the user, grouped by
             modality. Theoretically for each modality, in practise only for RIDESHARE.
           type: array
           items:
-            type: object
-            properties:
-              modality:
-                type: string
-              count:
-                format: int32
-                type: integer
+            $ref: '#/components/schemas/ModalityCount'
       example:
         tripsAsDriver:
         - modality: RIDESHARE
