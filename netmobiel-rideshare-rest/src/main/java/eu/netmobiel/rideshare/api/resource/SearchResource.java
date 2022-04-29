@@ -75,7 +75,7 @@ public class SearchResource extends RideshareResource implements SearchApi {
 		try {
 			Instant earliestDeparture = toInstant(fromDate);
 			Instant latestArrival = toInstant(toDate);
-    		rides = rideManager.search(request.getUserPrincipal().getName(), GeoLocation.fromString(fromPlace), 
+    		rides = rideManager.search(null, GeoLocation.fromString(fromPlace), 
     				GeoLocation.fromString(toPlace), earliestDeparture, latestArrival, nrSeats, true, maxResults, offset);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
