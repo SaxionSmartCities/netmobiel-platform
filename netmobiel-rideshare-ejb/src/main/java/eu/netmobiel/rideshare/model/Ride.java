@@ -414,7 +414,7 @@ public class Ride extends RideBase implements Serializable {
 	}
 
     private static String formatTime(Instant instant) {
-    	return DateTimeFormatter.ISO_INSTANT.format(instant);
+    	return instant == null ? "" : DateTimeFormatter.ISO_INSTANT.format(instant);
     }
 
     public void addStop(Stop stop) {
@@ -527,10 +527,10 @@ public class Ride extends RideBase implements Serializable {
 
 	public String toStringCompact() {
 		return String.format("Ride %d %s %s D %s A %s %s %dm from %s to %s",
-				getId(), getDriver().getEmail(), state == null ? "<init>" : state.name(), 
+				getId(), getDriver() == null ? "?": getDriver().getEmail(), state == null ? "<init>" : state.name(), 
 				formatTime(getDepartureTime()), formatTime(getArrivalTime()),
-				Duration.ofSeconds(getDuration()).toString(), getDistance(),
-				getFrom().toString(), getTo().toString());
+				getDuration() == null ? "" : Duration.ofSeconds(getDuration()).toString(), getDistance(),
+				getFrom(), getTo());
 	}
 
     @Override

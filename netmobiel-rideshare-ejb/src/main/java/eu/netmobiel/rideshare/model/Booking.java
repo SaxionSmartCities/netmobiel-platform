@@ -646,7 +646,7 @@ public class Booking extends ReferableObject implements Serializable {
 		return String.format("Booking %s on Ride %s %s %s D %s A %s from %s to %s #%d seat(s)",
 				getId(),
 				getRide() != null ? getRide().getId() : "<null>",
-				getPassenger().getManagedIdentity(), 
+				getPassenger() == null ? "" : getPassenger().getManagedIdentity(), 
 				getState().name(), 
 				DateTimeFormatter.ISO_INSTANT.format(getDepartureTime()), 
 				DateTimeFormatter.ISO_INSTANT.format(getArrivalTime()),
