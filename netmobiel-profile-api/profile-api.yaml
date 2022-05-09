@@ -1874,10 +1874,17 @@ components:
       properties:
         token:
           description: The `Firebase Messaging Token` used to send a message to a
-            specific device.
+            specific device. If `null` the token is not available (anymore).
+          type: string
+        lastUpdate:
+          format: date-time
+          description: Read-only. The timestamp of the last update. This date is also
+            a proxy for the last login of the user. The FCM is updated when returning
+            from the login page.
           type: string
       example:
         token: "1234"
+        lastUpdate: 2022-05-09T10:59:00Z
     Version:
       description: Object telling us about the version of the system, as well as the
         caller.
