@@ -4,6 +4,8 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.Collection;
 import java.util.LinkedHashMap;
 import java.util.Map;
@@ -26,6 +28,8 @@ import com.google.firebase.messaging.Message;
 import com.google.firebase.messaging.MulticastMessage;
 import com.google.firebase.messaging.Notification;
 
+import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.NetMobielMessage;
 
@@ -38,6 +42,10 @@ import eu.netmobiel.commons.model.NetMobielMessage;
 @ApplicationScoped
 public class FirebaseMessagingClient {
 	public final static String SYSTEM_USER_NAME = "Netmobiel";
+	/**
+	 * Maximum lifetime of a Firebase Cloud Messaging Token 
+	 */
+	public static final int MAX_TTL_FCM_TOKEN = 60;
 	
     @Inject
     private Logger log;
@@ -87,6 +95,20 @@ public class FirebaseMessagingClient {
     	client = null;
     }
 
+	/**
+	 * Checks whether the FCM token is probably state. 
+	 * @see https://firebase.google.com/docs/cloud-messaging/manage-tokens
+	 * @return if true don't use this token any more.
+	 */
+	public static boolean isFcmTokenProbablyStale(Instant tokenTimestamp) {
+		boolean stale = false;
+		if (tokenTimestamp != null) {
+			Duration untouched = Duration.between(tokenTimestamp, Instant.now());
+			stale = untouched.toDays() >= MAX_TTL_FCM_TOKEN;
+		}
+		return stale;
+	}
+	
     /**
      * Checks the state of the client. When the client is missing an exception is thrown.
      */
@@ -104,8 +126,9 @@ public class FirebaseMessagingClient {
      * Sends a single message to a recipient.
      * @param firebaseToken the firebase token of the recipient.
      * @param msg The message to send.
+     * @throws NotFoundException 
      */
-    public void send(String firebaseToken, NetMobielMessage msg) {
+    public void send(String firebaseToken, NetMobielMessage msg) throws NotFoundException, BadRequestException {
     	send(firebaseToken, msg, false);
     }
 
@@ -114,13 +137,16 @@ public class FirebaseMessagingClient {
         map.put("messageRef", msg.getUrn());
     	return map;
     }
+
     /**
      * Sends a single message to a recipient.
      * @param firebaseToken the firebase token of the recipient.
      * @param msg The message to send.
      * @param dryRun a boolean indicating whether to perform a dry run (validation only) of the send.
+     * @throws NotFoundException The token was not registered at FCM
+     * @throws BadRequestException 
      */
-    public void send(String firebaseToken, NetMobielMessage msg, boolean dryRun) {
+    public void send(String firebaseToken, NetMobielMessage msg, boolean dryRun) throws NotFoundException, BadRequestException {
     	sanityCheck();
     	if (firebaseToken == null || firebaseToken.isBlank()) {
     		throw new IllegalArgumentException("No FCM token set");
@@ -144,12 +170,18 @@ public class FirebaseMessagingClient {
 				log.debug("Message sent: " + response);
 			}
 		} catch (FirebaseMessagingException e) {
-			throw new SystemException("Failed to send message", e);
+	    	if ("registration-token-not-registered".equals(e.getErrorCode())) {
+	    		throw new NotFoundException("Registration token not registered");
+	    	} else if ("invalid-argument".equals(e.getErrorCode())) {
+	    		throw new BadRequestException("Registration token is invalid");
+	    	}
+			throw new SystemException("Failed to send message, error code " + e.getErrorCode(), e);
 		}
     }
 
     /**
-     * Sends a single message to multiple recipients (at most 500).
+     * Sends a single message to multiple recipients (at most 500). NOT TESTED. Has invalid response, 
+     * should check for fail responses and delete invalid FCM tokens.
      * @param firebaseTokens the firebase tokens of the recipients.
      * @param msg The message to send.
      */
@@ -181,7 +213,7 @@ public class FirebaseMessagingClient {
 				log.debug(String.format("Messages sent: #%d, failed #%d", response.getSuccessCount(), response.getFailureCount()));
 			}
 		} catch (FirebaseMessagingException e) {
-			throw new SystemException("Failed to send batch message", e);
+			throw new SystemException("Failed to send batch message, error code " + e.getErrorCode(), e);
 		}
     }
 
@@ -223,7 +255,7 @@ public class FirebaseMessagingClient {
 				log.debug(String.format("Message sent to topic %s: %s", fcmTopic, response));
 			}
 		} catch (FirebaseMessagingException e) {
-			throw new SystemException("Failed to send topic message", e);
+			throw new SystemException("Failed to send topic message, error code " + e.getErrorCode(), e);
 		}
     }
 }

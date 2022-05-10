@@ -1,7 +1,8 @@
 package eu.netmobiel.profile.api.resource;
 
 import java.net.URI;
-import java.util.Objects;
+import java.time.Instant;
+import java.time.ZoneOffset;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
@@ -216,6 +217,9 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
 			FirebaseToken token = new FirebaseToken();
 			token.setToken(profile.getFcmToken());
+			if (profile.getFcmTokenTimestamp() != null) {
+				token.setLastUpdate(profile.getFcmTokenTimestamp().atOffset(ZoneOffset.UTC));
+			}
 			rsp = Response.ok(token).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -237,10 +241,10 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 				throw new SecurityException("You have no privilege to update the profile owned by someone else");
 			}
 			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
-			if (!Objects.equals(firebaseToken.getToken(), profile.getFcmToken())) {
-				profile.setFcmToken(firebaseToken.getToken());
-				profileManager.updateProfileByManagedIdentity(mid, profile);
-			}
+			// Always update to force update of timestamp of token
+			profile.setFcmToken(firebaseToken.getToken());
+			profile.setFcmTokenTimestamp(Instant.now());
+			profileManager.updateProfileByManagedIdentity(mid, profile);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);

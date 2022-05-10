@@ -56,7 +56,7 @@ public class Profile extends User  {
 	private static final long serialVersionUID = -4237705703151528786L;
 	public static final String URN_PREFIX = ProfileUrnHelper.createUrnPrefix("user");
 	public static final String DEFAULT_PROFILE_ENTITY_GRAPH = "default-profile-entity-graph";
-
+	
 	/**
 	 * Primary key.
 	 */
@@ -133,6 +133,13 @@ public class Profile extends User  {
 	@Size(max = 512)
 	@Column(name = "fcm_token")
 	private String fcmToken;
+
+	/**
+	 * The timestamp of the last update of the FCM token.
+	 * See https://firebase.google.com/docs/cloud-messaging/manage-tokens
+	 */
+	@Column(name = "fcm_token_timestamp")
+	private Instant fcmTokenTimestamp;
 	
 	/**
 	 * The (relative) path to a profile image of the user.
@@ -390,6 +397,14 @@ public class Profile extends User  {
 		this.ridesharePreferences = null;
 	}
 
+	public Instant getFcmTokenTimestamp() {
+		return fcmTokenTimestamp;
+	}
+
+	public void setFcmTokenTimestamp(Instant fcmTokenTimestamp) {
+		this.fcmTokenTimestamp = fcmTokenTimestamp;
+	}
+
 	/**
 	 * Assures that required associations and embedded objects are defined. 
 	 */
@@ -488,4 +503,5 @@ public class Profile extends User  {
 	public boolean isProfilePlus() {
 		return getDateOfBirth() != null;
 	}
+
 }

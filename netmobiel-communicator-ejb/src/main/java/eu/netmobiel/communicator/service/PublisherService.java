@@ -24,6 +24,7 @@ import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.exception.DuplicateEntryException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
+import eu.netmobiel.commons.model.NetMobielMessage;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.ExceptionUtil;
@@ -129,6 +130,35 @@ public class PublisherService {
     }
 
     /**
+     * Notifies the recipient in the specified envelope with the given message.
+     * @param msg the message to send as push notification
+     * @param env the recipient's envelope
+     */
+    private void notifyRecipient(NetMobielMessage msg, Envelope env) {
+		try {
+			Profile profile = profileManager.getFlatProfileByManagedIdentity(env.getRecipient().getManagedIdentity());
+			if ((profile.getFcmToken() == null || profile.getFcmToken().isBlank()) && logger.isDebugEnabled()) {
+				logger.debug(String.format("Cannot send push notification to %s (%s): No FCM token set", 
+						profile.getManagedIdentity(), profile.getName()));
+			} else if (FirebaseMessagingClient.isFcmTokenProbablyStale(profile.getFcmTokenTimestamp())) {
+				logger.warn(String.format("Cannot send push notification to %s: FCM token (%s) is probably stale", profile.getManagedIdentity(), profile.getFcmTokenTimestamp()));
+				profile.setFcmToken(null);
+			} else {
+				try {
+					firebaseMessagingClient.send(profile.getFcmToken(), msg);
+					env.setPushTime(Instant.now());
+				} catch (NotFoundException | BadRequestException ex) {
+					logger.error(String.format("Cannot send push notification to %s: FCM token (%s) is stale or invalid.", profile.getManagedIdentity(), profile.getFcmTokenTimestamp()));
+					profile.setFcmToken(null);
+				}
+			}
+		} catch (Exception ex) {
+			logger.error(String.format("Cannot send push notification to %s: %s", 
+					env.getRecipient().getManagedIdentity(), String.join("\n\t", ExceptionUtil.unwindException(ex))));
+		}
+    }
+    
+    /**
      * Sends a message and/or a notification to the recipients in the message envelopes.
      * The conversations of sender and recipients must already exist!
      * @param sender the sender of the message.
@@ -159,21 +189,7 @@ public class PublisherService {
 				if (env.isSender()) {
 					continue;
 				}
-				try {
-					Profile profile = profileManager.getFlatProfileByManagedIdentity(env.getRecipient().getManagedIdentity());
-					if (profile.getFcmToken() == null || profile.getFcmToken().isBlank()) {
-						logger.warn(String.format("Cannot send push notification to %s (%s): No FCM token set", 
-								profile.getManagedIdentity(), profile.getName()));  
-					} else {
-						//FIXME Should use only the details that are required in the push message as displayed initially. 
-						// Other information is retrieved froom database later on.
-						firebaseMessagingClient.send(profile.getFcmToken(), msg);
-						env.setPushTime(Instant.now());
-					}
-				} catch (Exception ex) {
-					logger.error(String.format("Cannot send push notification to %s: %s", 
-							env.getRecipient().getManagedIdentity(), String.join("\n\t", ExceptionUtil.unwindException(ex))));
-				}
+				notifyRecipient(msg, env);
 			}
 		}
     	return msg.getId();
