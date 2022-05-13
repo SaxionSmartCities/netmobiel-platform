@@ -333,7 +333,7 @@ paths:
             value: 2019-11-30T12:00:00+01:00
         name: since
         description: The date from which to start the listing. Default is beginning
-          of the list. Only allowed when 'groupByConversation' is not set or false.
+          of the list.
         schema:
           format: date-time
           type: string
@@ -342,10 +342,9 @@ paths:
           Format:
             value: 2019-12-15T14:00:00+01:00
         name: until
-        description: The date and after which to limit the list. The `until` date
+        description: 'The date and after which to limit the list. The `until` date
           must be after the `since` parameter. Default is not set, meaning all messages
-          from now and before. Only allowed when 'groupByConversation' is not set
-          or false.
+          from now and before. '
         schema:
           format: date-time
           type: string
@@ -429,6 +428,115 @@ paths:
       schema:
         type: string
       in: header
+  /system-messages/:
+    summary: Path used to manage the list of system messages.
+    description: "The REST endpoint/path used to list and create zero or more `SystemMessage`\
+      \ entities.  This path contains a `GET` and `POST` operation to perform the\
+      \ list and create tasks, respectively. \n\nThe caller must have the `treasurer`\
+      \ or `admin` role."
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: 'The (publication) date from which to start the listing. Default
+          is beginning of the list. '
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The (publication) date where to limit the list. The `until` date
+          must be after the `since` parameter. Default is not set, meaning all messages
+          after since.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: deliveryMode
+        description: "The delivery mode to filter on. Default is MESSAGE. \nThe intention\
+          \ of the flag is to filter on the effective delivery mode. Specify MESSAGE\
+          \ to list only the messages. Specify NOTIFICATION to list the notifications\
+          \ only. To list any message leave the parameter empty or specify ALL. Note\
+          \ that messages sent with deliveryMode ALL will show up with either value. "
+        schema:
+          enum:
+          - MESSAGE
+          - NOTIFICATION
+          - ALL
+          type: string
+        in: query
+      - name: active
+        description: "If set then show only the active messages: The messages that\
+          \ are published and not yet expired.\n\nIf set to false the inverse set\
+          \ is returned. \n\nIf left empty everything is returned."
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC) or\
+          \ descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns an page with `SystemMessage`
+            entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listSystemMessages
+      summary: List system messages
+      description: 'Gets a paged list of all `SystemMessage` entities according the
+        filter criteria. '
+    post:
+      requestBody:
+        description: A new `Message` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Message'
+        required: true
+      responses:
+        "202":
+          description: Successful response.
+      operationId: createSystemMessage
+      summary: Create a Message
+      description: "Creates asynchronously a new instance of a `Message`. If the delivery\
+        \ mode includes `NOTIFICATION` then a notification (push) message is sent\
+        \ to each recipient. The sender of the message is the effective user. \n\n\
+        It is (very) important to set the context of the message and the envelope\
+        \ correct, otherwise the conversations of sender and recipient cannot be found\
+        \ and an error is returned. In general the message context reflects the context\
+        \ of the sender, i.e. a `Trip` urn for a passenger. For the receipient, if\
+        \ it is a driver, then the context is a `Booking` or a `Ride`. Thus, context\
+        \ is a system object that has an immediate meaning for a user, and also is\
+        \ owned by that user.\n\n"
 components:
   schemas:
     Error:
@@ -468,10 +576,13 @@ components:
             \ to convey. \nThis text should be in the right language. \n"
           type: string
         context:
-          description: The object reference to mark the original context of the message
-            from the sender's perspective. This is a urn, uniquely defining the object
-            this message is about. Note that each envelope can have a context too.
-            The context determines to which (sender) conversation the message is assigned.
+          description: The object reference to mark the context of the message. This
+            is a urn, uniquely defining the object this message is about. Note that
+            the sender and each recipient (envelope) can have a context too. The envelope
+            context determines to which conversation the message is assigned for sender
+            and recipient. The context odf each participant is added to resolve the
+            source (or cause) of the message in a unique way, and also to resolve
+            to the right page for the front-end when a message is clicked.
           type: string
         deliveryMode:
           description: "The deliver mode, indicating how the message should be delivered.\n\
@@ -516,14 +627,18 @@ components:
           description: Read-only. The date and time the message was sent. This field
             is set by the message service.
           type: string
+        senderContext:
+          description: The context of the sender of the message.
+          type: string
       example:
         body: Kunnen we iets later vertrekken?
-        context: urn:nb:pn:trip:23
+        context: urn:nb:cs:booking:123
         deliveryMode: MESSAGE
         sender:
           managedIdentity: 71f69345-42e1-4d17-a7c4-7c47178edcd7
           familyName: Normalverbraucher
           givenName: Otto
+        senderContext: urn:nb.pn.trip:74
         envelopes:
         - context: urn:nb:rs:ride:54
           recipient:
@@ -634,7 +749,9 @@ components:
               type: string
         contexts:
           description: A list of one or more contexts assigned to this conversation.
-            Only present when the conversation object is requested.
+            Only present when the conversation object is requested. All envelope contexts
+            are automatically included in the conversations contexts when a message
+            is published.
           type: array
           items:
             type: string
@@ -716,6 +833,56 @@ components:
           givenName: Jaap
           familyName: Reitsma
         conversationRef: urn:nb:cn:conversation:12345
+    SystemMessage:
+      description: 'A text message exchanged between the manager of the app and the
+        users, ie., a system message for all users. '
+      required:
+      - deliveryMode
+      - body
+      - expirationTime
+      - publicationTime
+      type: object
+      properties:
+        body:
+          description: "The payload of the message comprising the actual message text\
+            \ to convey. \nThis text should be in the right language. \n"
+          type: string
+        deliveryMode:
+          description: "The deliver mode, indicating how the message should be delivered.\n\
+            A message delivered in the inbox of each recipient and can be read by\
+            \ the recipient at a later point. \nA notification only message is volatile\
+            \ an is not saved in the inbox of the recipient. For auditing purposes\
+            \ the message is saved in outbox of the sender. Notifications have a limited\
+            \ lifetime (to be specified).\n"
+          enum:
+          - MESSAGE
+          - NOTIFICATION
+          - ALL
+          type: string
+        id:
+          description: 'Read-only. A unique identification for the message. '
+          type: integer
+        creationTime:
+          format: date-time
+          description: 'Read-only. The date and time the message was created. '
+          type: string
+        publicationTime:
+          format: date-time
+          description: Read-only. The date and time the message should become available
+            for the end-users.
+          type: string
+        expirationTime:
+          format: date-time
+          description: Read-only. The date and time the message should become unavailable
+            for the end-users.
+          type: string
+      example:
+        body: Wegens spoedonderhoud is de app niet beschikbaar op zaterdag 30 april
+        deliveryMode: MESSAGE
+        creationTime: 2022-04-28T13:30+02:00
+        publicationTime: 2022-04-28T16:00+02:00
+        expirationTime: 2022-05-01T00:00+02:00
+        id: 4534
   responses:
     InternalServerError:
       content:
