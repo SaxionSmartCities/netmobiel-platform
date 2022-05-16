@@ -105,102 +105,6 @@ paths:
         type: string
       in: path
       required: true
-  /conversations:
-    summary: Path used to manage the list of conversations.
-    description: The REST endpoint/path used to list `Conversation` entities. This
-      path contains a `GET` operation to perform the list task.
-    get:
-      parameters:
-      - name: context
-        description: "The context to look for. Whether or not this retrieves a single\
-          \ result depends a bit on the context.\nIf none found then a conversation\
-          \ with this context has not yet started. \nThe system will have setup a\
-          \ conversation once a relation has been setup between a passenger and a\
-          \ driver."
-        schema:
-          type: string
-        in: query
-      - name: owner
-        description: The owner of the conversation, i.e. as a recipient or as a sender.
-          Default is `me` (the effective user). An admin can list a conversation of
-          anyone. The participant domain is the Keycloak managed identity or a communicator
-          user.
-        schema:
-          type: string
-        in: query
-        required: false
-      - name: since
-        description: Include a conversation when it has a message created at or after
-          this date and time. No default set.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: until
-        description: Include a conversation when it has a message created before this
-          date and time. No default set. The `until` date must be after the `since`
-          parameter.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: select
-        description: |-
-          Determines the contents of the list, based on whether the `archivedTime` of the `Conversation` is set.
-          Default is `CURRENT`.
-        schema:
-          enum:
-          - ACTUAL
-          - ARCHIVED
-          - ALL
-          type: string
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Conversation'
-          description: Successful response - returns an array of `Conversation` entities.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      operationId: listConversations
-      summary: List conversations
-      description: Gets a paged list of `Conversation` entities. The list includes
-        the latest message in each conversation. The most recent message of each conversation
-        is returned.  The list is ordered from recent message to older.
-    post:
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Conversation'
-        required: true
-      responses:
-        "201":
-          description: Succesfull creation of conversation.
-      operationId: createConversation
-      summary: Create a conversation
-      description: Create a conversation for a user. Admin only.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
   /messages/{messageId}:
     summary: Path used to handle a single message.
     description: |-
@@ -323,8 +227,7 @@ paths:
           type: string
         in: query
       - name: context
-        description: The context to filter on. Only allowed if 'groupByConversation'
-          is not set (or false). The context used as a conversation tracker.
+        description: The context to filter on.
         schema:
           type: string
         in: query
@@ -537,6 +440,111 @@ paths:
         \ it is a driver, then the context is a `Booking` or a `Ride`. Thus, context\
         \ is a system object that has an immediate meaning for a user, and also is\
         \ owned by that user.\n\n"
+  /conversations:
+    summary: Path used to manage the list of conversations.
+    description: The REST endpoint/path used to list `Conversation` entities. This
+      path contains a `GET` operation to perform the list task.
+    get:
+      parameters:
+      - name: context
+        description: "The context to look for. Whether or not this retrieves a single\
+          \ result depends a bit on the context.\nIf none found then a conversation\
+          \ with this context has not yet started. \nThe system will have setup a\
+          \ conversation once a relation has been setup between a passenger and a\
+          \ driver.\nIf `autoCreate` is set to true, then the system will attempt\
+          \ to start a fresh conversation."
+        schema:
+          type: string
+        in: query
+      - name: autoCreate
+        description: If set to true and the `context` parameter is set as well, a
+          conversation is started if one was not available yet. Default false.
+        schema:
+          type: boolean
+        in: query
+      - name: owner
+        description: The owner of the conversation, i.e. as a recipient or as a sender.
+          Default is `me` (the effective user). An admin can list a conversation of
+          anyone. The participant domain is the Keycloak managed identity or a communicator
+          user.
+        schema:
+          type: string
+        in: query
+        required: false
+      - name: since
+        description: Include a conversation when it has a message created at or after
+          this date and time. No default set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: until
+        description: Include a conversation when it has a message created before this
+          date and time. No default set. The `until` date must be after the `since`
+          parameter.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: select
+        description: |-
+          Determines the contents of the list, based on whether the `archivedTime` of the `Conversation` is set.
+          Default is `CURRENT`.
+        schema:
+          enum:
+          - ACTUAL
+          - ARCHIVED
+          - ALL
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Conversation'
+          description: Successful response - returns an array of `Conversation` entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: listConversations
+      summary: List conversations
+      description: Gets a paged list of `Conversation` entities. The list includes
+        the latest message in each conversation. The most recent message of each conversation
+        is returned.  The list is ordered from recent message to older.
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Conversation'
+        required: true
+      responses:
+        "201":
+          description: Succesfull creation of conversation.
+      operationId: createConversation
+      summary: Create a conversation
+      description: |-
+        Create a conversation for a user. Base don the context the backend will create a topic.
+        The admin can create a conversation for anyone.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
 components:
   schemas:
     Error:
