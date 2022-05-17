@@ -607,7 +607,7 @@ paths:
       schema:
         type: string
       in: header
-  /conversations/{conversationId}/messages/ack:
+  /conversations/{conversationId}/ack:
     summary: Acknowledge the messages in this conversation.
     description: Manages the acknowledgement state of the messages for the conversation.
       The field 'ackTime' in each envelope represents this time. When a call a made
