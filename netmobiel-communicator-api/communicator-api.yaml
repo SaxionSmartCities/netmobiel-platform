@@ -862,7 +862,8 @@ components:
             type: string
         recentMessage:
           $ref: '#/components/schemas/Message'
-          description: The most recent message in the conversation, if any.
+          description: The most recent message in the conversation, if any. Only present
+            with inbox query.
         conversationRef:
           description: The reference to the conversation.
           type: string
@@ -878,6 +879,10 @@ components:
           - DELEGATOR
           - GENERIC
           type: string
+        unreadCount:
+          description: The number of unread messages. Only valid (filled) when the
+            inbox conversations are requested.
+          type: integer
       example:
         id: 12345
         createdTime: 2021-10-26T12:00:00Z
