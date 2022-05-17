@@ -607,6 +607,41 @@ paths:
       schema:
         type: string
       in: header
+  /conversations/{conversationId}/messages/ack:
+    summary: Acknowledge the messages in this conversation.
+    description: Manages the acknowledgement state of the messages for the conversation.
+      The field 'ackTime' in each envelope represents this time. When a call a made
+      by someone with the delegate role, the effective user will be the user specified
+      in the X-Delegator header.
+    put:
+      responses:
+        "204":
+          description: Succesfull response.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: acknowledgeConversation
+      summary: Acknowledge the messages in the conversation
+      description: |-
+        Assigns a timestamp (now) to the message envelopes of the caller (the effective user) of the conversation. The field 'ackTime' represents this time.
+        A conversation can be acknowleged by the owner and by the admin role.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: conversationId
+      description: A unique identifier for a `Conversation`.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
