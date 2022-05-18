@@ -642,6 +642,87 @@ paths:
         type: string
       in: path
       required: true
+  /users/{userId}:
+    summary: Path used to handle a single user.
+    description: |-
+      The REST endpoint/path used to get single instances of a `User`. This path contains a `GET` operation used to perform the get task.
+      When a call a made by someone with the delegate role, the effective user will be the user specified in the X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: Succesfull response.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getUser
+      summary: Retrieve a specific user
+      description: Retrieves a specific user, including the number of unread messages.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: The id of the user. Use `me` to refer to the effective user.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/fcm-token:
+    summary: Path used to manage a single `Firebase Messaging Token`.
+    description: The REST endpoint/path used to get, update or delete the `Firebase
+      Messaging Token` of a user. This path contains `GET` and `PUT` operations used
+      to perform the get and update tasks, respectively. When a call a made by someone
+      with the delegate role, the effective user will be the user specified in the
+      X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FirebaseToken'
+          description: Returns a FCM token.
+      operationId: getFcmToken
+      summary: Retrieves a `Firebase Messaging Token`.
+      description: Retrieves a `Firebase Messaging Token` from the profile of a user,
+        given the managed identity of the user.
+    put:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/FirebaseToken'
+        required: true
+      responses:
+        "204":
+          description: Success response.
+      operationId: updateFcmToken
+      summary: Updates the `Firebase Messaging Token`token
+      description: |-
+        Updates a `Firebase Messaging Token` of the user, given the managed identity of the user.
+
+        The token can be `null`, indicating that the FCM token is not available.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: The identity of the user. Use `me` to refer to the calling user.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
@@ -809,6 +890,15 @@ components:
         email:
           description: The email address of the user.
           type: string
+        phoneNumber:
+          description: The phone number of the user.
+          type: string
+        countryCode:
+          description: The country code of the user.
+          type: string
+        unreadMessageCount:
+          description: The number of unread (received) messages.
+          type: number
       example:
         familyName: Normalverbraucher
         givenName: Otto
@@ -993,6 +1083,26 @@ components:
         publicationTime: 2022-04-28T16:00+02:00
         expirationTime: 2022-05-01T00:00+02:00
         id: 4534
+    FirebaseToken:
+      title: Root Type for FirebaseMessagingToken
+      description: Type of a messaging token.
+      required:
+      - token
+      type: object
+      properties:
+        token:
+          description: The `Firebase Messaging Token` used to send a message to a
+            specific device. If `null` the token is not available (anymore).
+          type: string
+        lastUpdate:
+          format: date-time
+          description: Read-only. The timestamp of the last update. This date is also
+            a proxy for the last login of the user. The FCM is updated when returning
+            from the login page.
+          type: string
+      example:
+        token: "1234"
+        lastUpdate: 2022-05-09T10:59:00Z
   responses:
     InternalServerError:
       content:
