@@ -38,29 +38,41 @@ UPDATE envelope SET context =
 	 JOIN conversation c ON c.id = cc.conversation 
 	 JOIN envelope e ON e.conversation = c.id
 	 WHERE e.id = envelope.id AND cc.context like '%ride%') 
-WHERE context like '%booking%'	 
+FROM conversation 
+WHERE context like '%booking%' and conversation.id = envelope.conversation and conversation.owner_role = 'DR'
 ;
+
 
 -- Replace driver recipient trip context with ride context 
 UPDATE envelope SET context = 
 	(SELECT DISTINCT cc.context FROM conversation_context cc 
 	 JOIN conversation c ON c.id = cc.conversation 
 	 JOIN envelope e ON e.conversation = c.id
-	 WHERE e.id = envelope.id AND cc.context like '%ride%') 
-FROM conversation c
-WHERE conversation = c.id and context like '%trip:%' and not sender and c.owner_role = 'DR'
+	 WHERE e.id = envelope.id AND cc.context like '%trip%') 
+FROM conversation 
+WHERE context like '%booking%' and conversation.id = envelope.conversation and conversation.owner_role = 'PG'
 ;
 
 ALTER TABLE envelope
 	DROP COLUMN orig_context
 ;
 
+-- Now check whether there are messages that have an envelope context that differs from the messages context and where message context is not a booking
+-- We have to replace the message context with the proper booking. This is a manual job.
+
+UPDATE public.message SET context = 'urn:nb:rs:booking:332' WHERE 
+ exists (select 1 from envelope e join message m on m.id = e.message join conversation c on c.id = e.conversation 
+			where m.id = message.id and c.owner_role = 'DR' and 
+		 (message.context = 'urn:nb:rs:ride:3168' OR (e.context = 'urn:nb:rs:ride:3168' and message.context = 'urn:nb:pn:trip:521')))
+
+
+
 -- CHeck whether there are messages with a context that is not in the conversation context
 SELECT distinct e.id, e.message, e.context as env_context, m.context as msg_context, m.body, e.conversation, e.sender, c.owner, c.topic, c.owner_role
 	FROM public.envelope e
 	JOIN public.message m ON e.message = m.id
 	JOIN public.conversation c ON e.conversation  = c.id
-	WHERE -- m.context like '%booking%' and
+	WHERE m.context like '%booking%' and
 	 not exists (select 1 from public.conversation_context cc where cc.conversation = c.id and cc.context = m.context)
 	ORDER BY e.id ASC;
 
