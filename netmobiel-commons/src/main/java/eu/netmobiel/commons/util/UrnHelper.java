@@ -72,7 +72,7 @@ public class UrnHelper {
 		return value != null && value.startsWith("urn:"); 
 	}
 	
-	public static String getService(String urn) {
+	public static String[] decodeUrn(String urn) {
 		if (!isUrn(urn)) {
 			throw new IllegalArgumentException("Not an urn: " + urn);
 		}
@@ -80,7 +80,22 @@ public class UrnHelper {
 		if (! "nb".equals(parts[1])) {
 			throw new IllegalArgumentException("Not a Netmobiel urn: " + urn);
 		}
-		return parts[2];
+		return parts;
+	}
+
+	public static String getService(String urn) {
+		if (!isUrn(urn)) {
+			throw new IllegalArgumentException("Not an urn: " + urn);
+		}
+		String[] parts = decodeUrn(urn);
+		if (! "nb".equals(parts[1])) {
+			throw new IllegalArgumentException("Not a Netmobiel urn: " + urn);
+		}
+		return decodeUrn(urn)[2];
+	}
+
+	public static String getClazz(String urn) {
+		return decodeUrn(urn)[3];
 	}
 
 	/** 
