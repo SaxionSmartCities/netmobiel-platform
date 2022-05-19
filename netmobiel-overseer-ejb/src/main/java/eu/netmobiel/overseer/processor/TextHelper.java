@@ -82,6 +82,14 @@ public class TextHelper {
 				);
 	}
 	
+	public String createDriverTravelOfferedMessageBody(Ride r) {
+		return "Je hebt aangeboden om te rijden";
+	}
+	
+	public String createPassengerShoutOutResolvedBody() {
+		return "The oproep is ingevuld, eventuele andere aanbiedingen zijn automatisch afgeslagen";
+	}
+	
     /***************  TRIP  *************/
 	
 	public String createPassengerTripTopic(Trip trip) {
@@ -154,6 +162,14 @@ public class TextHelper {
 
 	public String createRideTopic(Ride r) {
 		return MessageFormat.format("Rit op {0} van {1} naar {2}", 
+				formatDate(r.getDepartureTime()),
+				r.getFrom().getLabel(), 
+				r.getTo().getLabel()
+		);
+	}
+
+	public String createTravelOfferTopic(Ride r) {
+		return MessageFormat.format("Aangeboden rit op {0} van {1} naar {2}", 
 				formatDate(r.getDepartureTime()),
 				r.getFrom().getLabel(), 
 				r.getTo().getLabel()
@@ -308,6 +324,16 @@ public class TextHelper {
 		return MessageFormat.format("Je hebt {0} credits verzilverd met: {1}", 
 				reward.getAmount(), reward.getIncentive().getDescription() 
 		);
+	}
+
+	public String createRewardText(Reward reward) {
+		String text = null;
+		if (reward.getIncentive().isRedemption()) {
+			text = createRedemptionRewardText(reward);
+		} else {
+			text = createPremiumRewardText(reward);
+		}
+		return text;
 	}
 
 	/***************  GENERIC  *************/
