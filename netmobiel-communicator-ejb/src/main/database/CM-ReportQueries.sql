@@ -1,3 +1,10 @@
+-- Select including user
+SELECT e.*, m.*, u.email from envelope e 
+join message m on m.id = e.message 
+join conversation c on c.id = e.conversation 
+join cm_user u on c.owner = u.id 
+where m.body like '%zoekt%' order by e.id desc
+
 -- Select envelope and message context
 SELECT e.id, e.message, e.context as env_context, m.context as msg_context, m.body, e.conversation, e.sender, c.owner, c.topic
 	FROM public.envelope e
