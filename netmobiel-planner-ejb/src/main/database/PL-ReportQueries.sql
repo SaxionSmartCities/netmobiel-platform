@@ -253,23 +253,35 @@ select st_distance(ST_Transform(st_geomFromText('POINT(6.749130 52.298530)', 432
 select count(*) as count
 from trip_plan p 
 where p.creation_time > '2022-04-02'
-				   
+			
+-- Number of any searches per day since a specific date
+select count(*) as nr_searches, date_trunc('day', p.creation_time) as day 
+from trip_plan p 
+where p.creation_time > '2022-04-02' --and p.plan_type = 'REG'
+group by day order by day;
+
 -- Aantal shout-outs				   
 select count(*) as count
 from trip_plan p 
 where p.creation_time > '2022-04-02' and p.plan_type = 'SHO'
+
+-- Number of shout-outs per day since a specific date
+select count(*) as nr_shout_outs, date_trunc('day', p.creation_time) as day 
+from trip_plan p 
+where p.creation_time > '2022-04-02' and p.plan_type = 'SHO'
+group by day order by day;
 
 -- Aantal shout-out oplossingen				   
 select count(*) as count
 from trip_plan p 
 where p.creation_time > '2022-04-02' and p.plan_type = 'SOS'
 
-				   
--- Number of shout-outs per day since a specific date
+-- Number of travel offers per day since a specific date
 select count(*) as nr_shout_outs, date_trunc('day', p.creation_time) as day 
 from trip_plan p 
-where p.creation_time > '2022-04-02' and p.plan_type = 'SHO'
+where p.creation_time > '2022-04-02' and p.plan_type = 'SOS'
 group by day order by day;
+
 
 -- Number of shout-outs per day since a specific date that have been fulfilled
 select count(*) as nr_shout_outs, date_trunc('day', p.creation_time) as day 
