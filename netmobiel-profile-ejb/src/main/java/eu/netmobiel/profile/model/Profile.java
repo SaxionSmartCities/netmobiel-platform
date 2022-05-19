@@ -149,7 +149,7 @@ public class Profile extends User  {
 	private String imagePath;
 
 	/**
-	 * The phomne number of the user.
+	 * The phone number of the user.
 	 */
 	@Size(max = 16)
 	@Column(name = "phone_number")
