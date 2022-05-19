@@ -20,7 +20,6 @@ import eu.netmobiel.commons.event.TripValidationEvent;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
-import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.model.UserRole;
@@ -60,6 +59,9 @@ public class BookingProcessor {
     private PublisherService publisherService;
 
     @Inject
+    private DelegationProcessor delegationProcessor; 
+
+    @Inject
     private BookingManager bookingManager;
 
     @Inject
@@ -87,7 +89,7 @@ public class BookingProcessor {
     /**
      * Handler for the case when a traveller requests a booking of a ride. 
      * Autobooking is assumed, so no interaction with the driver is required. Because autoconfirm is enabled, the fare is also reserved
-     * on expense of the passenger. 
+     * at expense of the passenger. 
      *  
      * @param event the booking request
      * @throws BusinessException 
@@ -119,29 +121,40 @@ public class BookingProcessor {
 		}
 		tripManager.assignBookingReference(trip.getTripRef(), leg.getTripId(), bookingRef, autoConfirmed);
 		paymentProcessor.reserveFare(event.getTrip(), event.getLeg());
-		// Inform passenger on booking. This will also start the conversation of the passenger for this ride! 
-		Conversation passengerConv = publisherService.lookupOrCreateConversation(trip.getTraveller(), 
-				UserRole.PASSENGER, trip.getTripRef(), textHelper.createPassengerTripTopic(trip), true);
-    	Message msg = new Message();
-		msg.setContext(bookingRef);
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(passengerConv, trip.getTripRef());
-		msg.setBody(textHelper.createBookingTextForPassenger(b));
+		// Inform passenger on booking. This will also start the conversation of the passenger for this ride!
+		// The passenger's conversation is about the trip
+		// The envelope context for the passenger is the trip? Yes, the booking is owned by the driver.
+		// The message context is the booking
+    	Message msg = Message.create()
+    			.withBody(textHelper.createBookingTextForPassenger(b))
+    			.withContext(bookingRef)
+    			.addEnvelope(trip.getTripRef())
+	    			.withRecipient(trip.getTraveller())
+	    			.withConversationContext(trip.getTripRef())
+	    			.withUserRole(UserRole.PASSENGER)
+	    			.withTopic(textHelper.createPassengerTripTopic(trip))
+	    			.buildConversation()
+    			.buildMessage();
 		publisherService.publish(msg);
+
+		// Where is the message for the delegate?
+		// Not needed, the delegate is already acting as a delegate and will see this message. 
     }
     
     private void informDriverOnBookingChangeConversation(Booking booking, String text) throws BusinessException {
-		// Inform driver on new booking
-    	// Create the ride context, it might not yet exist.
-		// Add the booking context to the ride context
-		Conversation driverConv = publisherService.lookupOrCreateConversation(booking.getRide().getDriver(), 
-				UserRole.DRIVER, booking.getRide().getUrn(), textHelper.createRideTopic(booking.getRide()), true);
-		publisherService.addConversationContext(driverConv, booking.getUrn(), textHelper.createRideTopic(booking.getRide()), true);
-    	Message msg = new Message();
-		msg.setContext(booking.getRide().getUrn());
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(driverConv, booking.getUrn());
-		msg.setBody(text);
+		// Inform driver on booking creation or deletion
+    	// The message is about the booking, the driver's envelope context is the ride.
+    	// The driver's conversation is about the ride
+    	Message msg = Message.create()
+    			.withBody(text)
+    			.withContext(booking.getUrn())
+    			.addEnvelope(booking.getRide().getUrn())
+	    			.withRecipient(booking.getRide().getDriver())
+	    			.withConversationContext(booking.getRide().getUrn())
+	    			.withUserRole(UserRole.DRIVER)
+	    			.withTopic(textHelper.createRideTopic(booking.getRide()))
+	    			.buildConversation()
+    			.buildMessage();
 		publisherService.publish(msg);
     }
 
@@ -242,7 +255,6 @@ public class BookingProcessor {
 		if (event.isCancelledByDriver()) {
 			// Notify the passenger
 			// Find the conversation of the passenger
-			Conversation passengerConv = null;
 			String passengerContext = null;
 			String passengerTopic = null;
 			if (b.getPassengerTripRef() != null) {
@@ -256,16 +268,21 @@ public class BookingProcessor {
 				logger.error("Booking has no reference to trip or tripplan: " + b.getUrn());
 			}
 			if (passengerContext != null) {
-				passengerConv = publisherService.lookupOrCreateConversation(event.getTraveller(), 
-						UserRole.PASSENGER, passengerContext, passengerTopic, true); 
-				Message msg = new Message();
-				msg.setContext(event.getBookingRef());
-				msg.setBody(textHelper.createDriverCancelledBookingText(b));
-				msg.setDeliveryMode(DeliveryMode.ALL);
-				msg.addRecipient(passengerConv, passengerContext);
-				publisherService.publish(msg);
+				// The passenger's conversation (and envelope) is about the trip plan (shout-out) or the trip
+				// The message is about the booking
+		    	Message msg = Message.create()
+		    			.withBody(textHelper.createDriverCancelledBookingText(b))
+		    			.withContext(event.getBookingRef())
+		    			.addEnvelope(passengerContext)
+			    			.withRecipient(event.getTraveller())
+			    			.withConversationContext(passengerContext)
+			    			.withUserRole(UserRole.PASSENGER)
+			    			.withTopic(passengerTopic)
+			    			.buildConversation()
+		    			.buildMessage();
+		    	publisherService.publish(msg);
 				// Inform the delegates, if any. They receive limited information only. The delegate can switch to the delegator view and see the normal messages.
-				publisherService.informDelegates(event.getTraveller(), 
+				delegationProcessor.informDelegates(event.getTraveller(), 
 						textHelper.informDelegateCancelledBookingText(b), DeliveryMode.ALL);
 			}
 		} else {

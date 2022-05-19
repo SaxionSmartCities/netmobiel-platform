@@ -7,16 +7,13 @@ import java.util.stream.Stream;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.api.MessagesApi;
 import eu.netmobiel.communicator.api.mapping.MessageMapper;
@@ -39,27 +36,30 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 	@Inject
     private CommunicatorUserManager userManager;
 
-    @Inject
-	private SecurityIdentity securityIdentity;
-
-	@Context
-	private HttpServletRequest request;
-
     @Override
 	public Response sendMessage(String xDelegator, eu.netmobiel.communicator.api.model.Message msg) {
     	Response rsp = null;
 		try {
 			CallingContext<CommunicatorUser> callingContext = userManager.findOrRegisterCallingContext(securityIdentity);
 			CommunicatorUser sender = callingContext.getEffectiveUser();
-			Message message = mapper.map(msg);
 			if (msg.getSender() != null && !request.isUserInRole("admin")) {
 				throw new SecurityException("You have no privilege to specify a sender");
 			}
-			message.setSender(sender);
-			Long mid = publisherService.chat(sender, message);
-			if (!callingContext.getCallingUser().equals(sender)) {
-				publisherService.informDelegates(sender, "Persoonlijk bericht van " + sender.getName(), DeliveryMode.ALL);
+			Message.MessageBuilder mb = Message.create()
+					.withBody(msg.getBody())
+					.withContext(msg.getContext())
+					// One to one match
+					.withDeliveryMode(DeliveryMode.valueOf(msg.getDeliveryMode().name()))
+					.withSender(msg.getSenderContext(), 
+							msg.getSender() != null ? msg.getSender().getManagedIdentity() : sender.getManagedIdentity());
+			for (eu.netmobiel.communicator.api.model.Envelope env : msg.getEnvelopes()) {
+				mb.addEnvelope(env.getContext())
+					.withRecipient(env.getRecipient().getManagedIdentity())
+					.withConversationContext(env.getContext())
+					.buildConversation();
 			}
+			Message message = mb.buildMessage();
+			Long mid = publisherService.chat(message);
 			String newMsgUrn = UrnHelper.createUrn(Message.URN_PREFIX, mid);
 			rsp = Response.created(URI.create(newMsgUrn)).build() ;
 		} catch (BusinessException e) {
@@ -69,21 +69,14 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 	}
 
 	@Override
-	public Response listMessages(String xDelegator, String participant, String context, 
+	public Response listMessages(String xDelegator, String participantId, String context, 
 			OffsetDateTime since, OffsetDateTime until, String deliveryMode, String sortDir, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		PagedResult<Message> result = null;
 		try {
-			String me = securityIdentity.getEffectivePrincipal().getName();
-			if ("me".equals(participant)) {
-				participant = me;
-			}
-			if (participant == null && !request.isUserInRole("admin")) {
-				participant = me;
-			}  
-			if (!me.equals(participant) && !request.isUserInRole("admin")) {
-				throw new SecurityException("You don't have the privilege to list the messages of someone else");
-			}
+			CallingContext<CommunicatorUser> callingContext = userManager.findOrRegisterCallingContext(securityIdentity);
+			CommunicatorUser participant = resolveUserReference(callingContext, participantId);
+			allowAdminOrEffectiveUser(callingContext, participant);
 			MessageFilter filter = new MessageFilter(participant, since, until, context, sortDir);
 			Cursor cursor = new Cursor(maxResults, offset);
 			if (deliveryMode != null && !deliveryMode.isEmpty()) {
@@ -98,7 +91,7 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 			result = publisherService.listMessages(filter, cursor); 
 			if (!request.isUserInRole("admin")) {
 				for (Message msg : result.getData()) {
-					removeOtherRecipients(me, msg);
+					removeOtherRecipients(participant, msg);
 				}
 			}
 			rsp = Response.ok(mapper.map(result)).build();

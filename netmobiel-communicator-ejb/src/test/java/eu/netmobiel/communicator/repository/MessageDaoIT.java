@@ -20,9 +20,11 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.communicator.filter.MessageFilter;
+import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
@@ -45,7 +47,7 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     @Inject
     private Logger log;
     
-    @SuppressWarnings("unused")
+//    @SuppressWarnings("unused")
 	private void dump(String subject, Collection<Message> messages) {
     	messages.forEach(m -> log.info(subject + ": " + m.toString()));
     }
@@ -53,7 +55,7 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     @Test
     public void saveMessage() {
 		Message message = Fixture.createMessage("Het is tijd om te vertrekken voor Trip P2.1", "Trip P2.1", DeliveryMode.MESSAGE, "2020-02-12T12:00:00Z", null, 
-        		new Envelope("Trip P2.1", convP2_1));
+        		new Envelope(convP2_1));
     	messageDao.save(message);
     	List<Message> actual = em.createQuery("select m from Message m where m.body = :body", Message.class)
         		.setParameter("body", message.getBody())
@@ -63,8 +65,9 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     }
 
     @Test
-    public void listMessages_All() {
+    public void listMessages_All() throws BadRequestException {
     	MessageFilter filter = new MessageFilter();
+    	filter.validate();
     	Cursor cursor = new Cursor(100, 0);
     	PagedResult<Long> messageIds = messageDao.listMessages(filter, cursor);
     	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
@@ -77,8 +80,9 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     }
 
     @Test
-    public void listMessages_AllCount() {
+    public void listMessages_AllCount() throws BadRequestException {
     	MessageFilter filter = new MessageFilter();
+    	filter.validate();
     	Cursor cursor = new Cursor(100, 0);
     	PagedResult<Long> messageIds = messageDao.listMessages(filter, cursor);
     	Long expCount = em.createQuery("select count(m) from Message m", Long.class).getSingleResult();
@@ -89,20 +93,23 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     }
 
     @Test
-    public void listMessages_ByParticipant() {
-    	final String participant = userP1.getManagedIdentity();
+    public void listMessages_ByParticipant() throws BadRequestException {
+    	final CommunicatorUser participant = userP1;
     	MessageFilter filter = new MessageFilter();
-    	filter.setParticipantId(participant);
+    	filter.setParticipant(participant);
+    	filter.validate();
     	Cursor cursor = new Cursor(100, 0);
     	PagedResult<Long> messageIds = messageDao.listMessages(filter, cursor);
     	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), Message.MESSAGE_ENVELOPES_ENTITY_GRAPH, Message::getId);
     	for (Message message : messages) {
 			// The participant is one of the recipients or is the sender of the message
-        	Set<String> recipients = message.getEnvelopes().stream().map(env -> env.getConversation().getOwner().getManagedIdentity()).collect(Collectors.toSet());
+        	Set<CommunicatorUser> recipients = message.getEnvelopes().stream()
+        			.map(env -> env.getConversation().getOwner())
+        			.collect(Collectors.toSet());
         	assertTrue("Must be sender of recipient", recipients.contains(participant));
 		}
     	Long expCount = em.createQuery(
-        		"select count(m) from Message m join m.envelopes env where env.conversation.owner.managedIdentity = :participant",
+        		"select count(m) from Message m join m.envelopes env where env.conversation.owner = :participant",
         		Long.class)
         		.setParameter("participant", participant)
         		.getSingleResult();
@@ -110,15 +117,16 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     }
 
     @Test
-    public void listMessages_Context() {
+    public void listMessages_Context() throws BadRequestException {
     	final String context = convP2_1.getContexts().iterator().next();
     	MessageFilter filter = new MessageFilter();
     	filter.setContext(context);
+    	filter.validate();
     	Cursor cursor = new Cursor(100, 0);
     	PagedResult<Long> messageIds = messageDao.listMessages(filter, cursor);
 //    	List<Message> messages = messageDao.loadGraphs(messageIds.getData(), null, Message::getId);
     	Long expCount = em.createQuery(
-        		"select count(m) from Message m join m.envelopes env where env.context = :context or m.context = :context",
+        		"select count(m) from Message m join m.envelopes env where m.context = :context",
         		Long.class)
         		.setParameter("context", context)
         		.getSingleResult();
@@ -126,11 +134,12 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     }
 
     @Test
-    public void listMessages_Since_Until() {
+    public void listMessages_Since_Until() throws BadRequestException {
     	final Instant since = Instant.parse("2020-02-11T14:24:00Z");
     	final Instant until = since;
     	MessageFilter filter = new MessageFilter();
     	filter.setSince(since);
+    	filter.validate();
     	Cursor cursor = new Cursor(100, 0);
     	PagedResult<Long> sinceMessageIds = messageDao.listMessages(filter, cursor);
     	Long expCountSince = em.createQuery(
@@ -142,6 +151,7 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
 
     	filter = new MessageFilter();
     	filter.setUntil(until);
+    	filter.validate();
     	PagedResult<Long> untilMessageIds = messageDao.listMessages(filter, cursor);
     	Long expCountUntil = em.createQuery(
         		"select count(m) from Message m where m.createdTime < :until",
@@ -158,16 +168,19 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     }
 
     @Test
-    public void listMessages_DeliveryModes() {
+    public void listMessages_DeliveryModes() throws BadRequestException {
     	MessageFilter filter = new MessageFilter();
     	Cursor cursor = new Cursor(100, 0);
     	PagedResult<Long> defaultMessageIds = messageDao.listMessages(filter, cursor);
 
     	filter.setDeliveryMode(DeliveryMode.ALL);
+    	filter.validate();
     	PagedResult<Long> allMessageIds = messageDao.listMessages(filter,cursor);
     	filter.setDeliveryMode(DeliveryMode.MESSAGE);
+    	filter.validate();
     	PagedResult<Long> msgMessageIds = messageDao.listMessages(filter,cursor);
     	filter.setDeliveryMode(DeliveryMode.NOTIFICATION);
+    	filter.validate();
     	PagedResult<Long> notMessageIds = messageDao.listMessages(filter,cursor);
 
     	Long expCountTotal = em.createQuery(
@@ -200,32 +213,32 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
 
 
     @Test
-    public void listConversations_Data() {
+    public void listTopMessagesWithConversations_Data() {
     	log.info("Test lookup of conversations with most recent message");
-    	final String participant = userC1.getManagedIdentity();
-    	PagedResult<Long> archMessageIds = messageDao.listTopMessagesByConversations(null, participant, false, true, 100, 0);
+    	final CommunicatorUser participant = userC1;
+    	PagedResult<Long> archMessageIds = messageDao.listTopMessagesByConversations(null, participant, false, true, null, 100, 0);
     	List<Message> messages = messageDao.loadGraphs(archMessageIds.getData(), Message.MESSAGE_ENVELOPES_ENTITY_GRAPH, Message::getId);
     	dump("Archived Top Messages", messages);
     	Long expArchCount = em.createQuery(
-        		"select count(c) from Conversation c where c.owner.managedIdentity = :participant and c.archivedTime is not null",
+        		"select count(c) from Conversation c where c.owner = :participant and c.archivedTime is not null",
         		Long.class)
         		.setParameter("participant", participant)
         		.getSingleResult();
     	assertTrue("Arch Count > 0", expArchCount > 0);
     	assertEquals("Archived count must match", expArchCount.longValue(), archMessageIds.getCount());
 
-    	PagedResult<Long> actualMessageIds = messageDao.listTopMessagesByConversations(null, participant, true, false, 100, 0);
+    	PagedResult<Long> actualMessageIds = messageDao.listTopMessagesByConversations(null, participant, true, false, null, 100, 0);
     	Long expActualCount = em.createQuery(
-        		"select count(c) from Conversation c where c.owner.managedIdentity = :participant and c.archivedTime is null",
+        		"select count(c) from Conversation c where c.owner = :participant and c.archivedTime is null",
         		Long.class)
         		.setParameter("participant", participant)
         		.getSingleResult();
     	assertTrue("Actual Count > 0", expActualCount > 0);
     	assertEquals("Actual count must match", expActualCount.longValue(), actualMessageIds.getCount());
 
-    	PagedResult<Long> messageIds = messageDao.listTopMessagesByConversations(null, participant, false, false, 100, 0);
+    	PagedResult<Long> messageIds = messageDao.listTopMessagesByConversations(null, participant, false, false, null, 100, 0);
     	Long expCount = em.createQuery(
-        		"select count(c) from Conversation c where c.owner.managedIdentity = :participant",
+        		"select count(c) from Conversation c where c.owner = :participant",
         		Long.class)
         		.setParameter("participant", participant)
         		.getSingleResult();
@@ -235,31 +248,31 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     }
 
     @Test
-    public void listConversations_count() {
+    public void listTopMessagesWithConversations_count() {
     	log.info("Test lookup of conversations with most recent message");
-    	final String participant = userC1.getManagedIdentity();
-    	PagedResult<Long> archMessageIds = messageDao.listTopMessagesByConversations(null, participant, false, true, 0, 0);
+    	final CommunicatorUser participant = userC1;
+    	PagedResult<Long> archMessageIds = messageDao.listTopMessagesByConversations(null, participant, false, true, null, 0, 0);
     	
     	Long expArchCount = em.createQuery(
-        		"select count(c) from Conversation c where c.owner.managedIdentity = :participant and c.archivedTime is not null",
+        		"select count(c) from Conversation c where c.owner = :participant and c.archivedTime is not null",
         		Long.class)
         		.setParameter("participant", participant)
         		.getSingleResult();
     	assertTrue("Arch Count > 0", expArchCount > 0);
     	assertEquals("Archived count must match", expArchCount.longValue(), archMessageIds.getTotalCount().longValue());
 
-    	PagedResult<Long> actualMessageIds = messageDao.listTopMessagesByConversations(null, participant, true, false, 0, 0);
+    	PagedResult<Long> actualMessageIds = messageDao.listTopMessagesByConversations(null, participant, true, false, null, 0, 0);
     	Long expActualCount = em.createQuery(
-        		"select count(c) from Conversation c where c.owner.managedIdentity = :participant and c.archivedTime is null",
+        		"select count(c) from Conversation c where c.owner = :participant and c.archivedTime is null",
         		Long.class)
         		.setParameter("participant", participant)
         		.getSingleResult();
     	assertTrue("Actual Count > 0", expActualCount > 0);
     	assertEquals("Actual count must match", expActualCount.longValue(), actualMessageIds.getTotalCount().longValue());
 
-    	PagedResult<Long> messageIds = messageDao.listTopMessagesByConversations(null, participant, false, false, 0, 0);
+    	PagedResult<Long> messageIds = messageDao.listTopMessagesByConversations(null, participant, false, false, null, 0, 0);
     	Long expCount = em.createQuery(
-        		"select count(c) from Conversation c where c.owner.managedIdentity = :participant",
+        		"select count(c) from Conversation c where c.owner = :participant",
         		Long.class)
         		.setParameter("participant", participant)
         		.getSingleResult();
@@ -268,9 +281,9 @@ public class MessageDaoIT extends CommunicatorIntegrationTestBase {
     	assertEquals("Total count must match", expCount.longValue(), archMessageIds.getTotalCount().longValue() + actualMessageIds.getTotalCount().longValue());
 
     	String context = "Ride C1.1";
-    	PagedResult<Long> contextMessageIds = messageDao.listTopMessagesByConversations(context, participant, false, false, 0, 0);
+    	PagedResult<Long> contextMessageIds = messageDao.listTopMessagesByConversations(context, participant, false, false, null, 0, 0);
     	Long expContextCount = em.createQuery(
-        		"select count(c) from Conversation c where c.owner.managedIdentity = :participant and :context member of c.contexts",
+        		"select count(c) from Conversation c where c.owner = :participant and :context member of c.contexts",
         		Long.class)
         		.setParameter("participant", participant)
         		.setParameter("context", context)

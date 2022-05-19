@@ -5,13 +5,14 @@ import java.time.OffsetDateTime;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.filter.PeriodFilter;
 import eu.netmobiel.commons.model.SortDirection;
+import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.DeliveryMode;
 
 public class MessageFilter extends PeriodFilter {
 	/**
-	 * The managed identity of the sender or recipient of the message.
+	 * The sender or recipient of the message.
 	 */
-	private String participantId;
+	private CommunicatorUser participant;
 
 	/**
 	 * The context of the message (or the envelope)
@@ -40,20 +41,20 @@ public class MessageFilter extends PeriodFilter {
 		this(null, null, null, null, sortDir);
 	}
 	
-	public MessageFilter(String participantId, OffsetDateTime since, OffsetDateTime until, String context, String sortDir) {
-		this.participantId = participantId;
+	public MessageFilter(CommunicatorUser participant, OffsetDateTime since, OffsetDateTime until, String context, String sortDir) {
+		this.participant = participant;
 		this.context = context;
 		setSince(since);
 		setUntil(until);
 		setSortDir(sortDir);
 	}
 	
-	public String getParticipantId() {
-		return participantId;
+	public CommunicatorUser getParticipant() {
+		return participant;
 	}
 
-	public void setParticipantId(String participantId) {
-		this.participantId = participantId;
+	public void setParticipant(CommunicatorUser participant) {
+		this.participant = participant;
 	}
 
 	public String getContext() {
@@ -96,9 +97,9 @@ public class MessageFilter extends PeriodFilter {
 			builder.append(conversationId);
 			builder.append(" ");
 		}
-		if (participantId != null) {
+		if (participant != null) {
 			builder.append("pi=");
-			builder.append(participantId);
+			builder.append(participant);
 			builder.append(" ");
 		}
 		if (deliveryMode != null) {

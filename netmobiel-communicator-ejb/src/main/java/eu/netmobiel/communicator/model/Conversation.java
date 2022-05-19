@@ -3,6 +3,7 @@ package eu.netmobiel.communicator.model;
 import java.io.Serializable;
 import java.time.Instant;
 import java.util.HashSet;
+import java.util.LinkedHashSet;
 import java.util.Set;
 
 import javax.enterprise.inject.Vetoed;
@@ -30,6 +31,7 @@ import org.apache.commons.lang3.StringUtils;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
 
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.ReferableObject;
 import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 
@@ -109,7 +111,7 @@ public class Conversation extends ReferableObject implements Serializable {
     @JoinColumn(name = "owner", foreignKey = @ForeignKey(name = "conversation_owner_fk"))
     private CommunicatorUser owner;
 
-    /**
+   /**
      * The message contexts (of sender or recipient) of messages to bundle in this conversation.
      */
     @ElementCollection(fetch = FetchType.LAZY)
@@ -128,11 +130,17 @@ public class Conversation extends ReferableObject implements Serializable {
     @Transient
     private Message recentMessage;
     
+    /**
+     * The number of unread messages in this conversation. Only valid when requesting the inbox messages.
+     */
+	@Transient
+    private int unreadCount;
+
 	/**
 	 * The effective role of the owner at the time the conversation was created.
 	 * The role is used when the context is ambiguous, like in the case of a shout-out.
 	 */
-//	@NotNull
+	@NotNull
 	@Column(name = "owner_role", length = 2)
 	private UserRole ownerRole;
 
@@ -142,6 +150,10 @@ public class Conversation extends ReferableObject implements Serializable {
 
     public Conversation(String initialContext, String aTopic) {
     	this(null, null, initialContext, aTopic, Instant.now());
+    }
+    
+    public Conversation(CommunicatorUser anOwner, String initialContext) {
+    	this(anOwner, null, initialContext, null);
     }
     
     public Conversation(CommunicatorUser anOwner, UserRole ownerRole) {
@@ -210,7 +222,19 @@ public class Conversation extends ReferableObject implements Serializable {
 	}
 
 	public Set<String> getContexts() {
+		if (contexts == null) {
+			// Maintain order of insertion
+			contexts = new LinkedHashSet<>();
+		}
 		return contexts;
+	}
+
+	/**
+	 * Returns the first context in the linked set.
+	 * @return
+	 */
+	public String getFirstContext() {
+		return getContexts().size() == 0 ? null : getContexts().iterator().next();
 	}
 
 	public void setContexts(Set<String> contexts) {
@@ -233,8 +257,71 @@ public class Conversation extends ReferableObject implements Serializable {
 		this.ownerRole = ownerRole;
 	}
 
+	public int getUnreadCount() {
+		return unreadCount;
+	}
+
+	public void setUnreadCount(int unreadCount) {
+		this.unreadCount = unreadCount;
+	}
+
 	@Override
 	public String toString() {
 		return String.format("%s %s %s", StringUtils.abbreviate(getTopic(), 32), getOwner(), getOwnerRole());
+	}
+	
+	public static class ConversationBuilder {
+		private Conversation conversation;
+		private Message.MessageBuilder messageBuilder;
+
+		public ConversationBuilder(Message.MessageBuilder builder) {
+			messageBuilder = builder;
+			conversation = new Conversation();
+		}
+		
+		public Conversation getConversation() {
+			return conversation;
+		}
+		
+		public ConversationBuilder withRecipient(String aManagedIdentity) {
+			conversation.setOwner(new CommunicatorUser(aManagedIdentity));
+			return this;
+		}
+
+		public ConversationBuilder withRecipient(NetMobielUser aUser) {
+			conversation.setOwner(new CommunicatorUser(aUser));
+			return this;
+		}
+
+		public ConversationBuilder withTopic(String aTopic) {
+			conversation.setTopic(aTopic);
+			return this;
+		}
+
+		public ConversationBuilder withUserRole(UserRole aRole) {
+			conversation.setOwnerRole(aRole);
+			return this;
+		}
+
+		public ConversationBuilder withConversationContext(String aContext) {
+			conversation.getContexts().add(aContext);
+			return this;
+		}
+		
+		public ConversationBuilder withAdditionalContext(String aContext) {
+			conversation.getContexts().add(aContext);
+			return this;
+		}
+
+		public Message.MessageBuilder buildConversation() {
+			if (conversation.getContexts().isEmpty()) {
+				throw new IllegalStateException("Specify a reference context for the conversation lookup or creation");
+			}
+			if (conversation.getOwner() == null) { 
+				throw new IllegalStateException("Specify a conversation owner");
+			}
+			// If no topic or no role is specified, then the conversation is for lookup only
+			return messageBuilder;
+		}
 	}
 }

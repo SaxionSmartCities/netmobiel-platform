@@ -14,6 +14,9 @@ import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.commons.util.UrnHelper;
+import eu.netmobiel.communicator.event.RequestConversationEvent;
+import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
@@ -54,6 +57,9 @@ public class ShoutOutProcessor {
     private PublisherService publisherService;
 
     @Inject
+    private DelegationProcessor delegationProcessor; 
+
+    @Inject
     private ProfileManager profileManager;
 
     @Inject
@@ -74,20 +80,26 @@ public class ShoutOutProcessor {
     private TextHelper textHelper;
     
 //    @Asynchronous
-    public void onShoutOutRequested(@Observes(during = TransactionPhase.IN_PROGRESS) TripPlan event) throws BusinessException {
+    public void onShoutOutRequested(@Observes(during = TransactionPhase.IN_PROGRESS) TripPlan shoutOutPlan) throws BusinessException {
     	// We have a shout-out request
-		List<Profile> profiles = profileManager.searchShoutOutProfiles(event.getTraveller().getManagedIdentity(), event.getFrom(), event.getTo(), DRIVER_MAX_RADIUS_METERS, DRIVER_NEIGHBOURING_RADIUS_METERS);
+    	// Message context is the shout-out (trip plan), recipient's context too.
+    	// Conversation will be new directed at drivers, there is at most one shout-out (trip plan) in a conversation.
+		List<Profile> profiles = profileManager.searchShoutOutProfiles(shoutOutPlan.getTraveller().getManagedIdentity(), 
+				shoutOutPlan.getFrom(), shoutOutPlan.getTo(), DRIVER_MAX_RADIUS_METERS, DRIVER_NEIGHBOURING_RADIUS_METERS);
 		if (! profiles.isEmpty()) {
-			String topic = textHelper.createDriverShoutOutTopic(event);
-			Message msg = new Message();
-			msg.setContext(event.getPlanRef());
-			msg.setBody(textHelper.createDriverShoutOutMessage(event)); 
-			msg.setDeliveryMode(DeliveryMode.ALL);
-			// Start or continue conversation for all recipients with planRef context
-			// The recipients are by definition Drivers (in the conversation)
-			publisherService.lookupOrCreateConversations(profiles, UserRole.DRIVER, event.getPlanRef(), topic, true)
-				.forEach(conversation -> msg.addRecipient(conversation, event.getPlanRef()));
-			// And send the message
+			String topic = textHelper.createDriverShoutOutTopic(shoutOutPlan);
+			Message.MessageBuilder mb = Message.create()
+					.withBody(textHelper.createDriverShoutOutMessage(shoutOutPlan))
+					.withContext(shoutOutPlan.getPlanRef());
+			for (Profile rcp : profiles) {
+				mb.addEnvelope()
+					.withRecipient(rcp)
+	    			.withConversationContext(shoutOutPlan.getPlanRef())
+	    			.withUserRole(UserRole.DRIVER)
+	    			.withTopic(topic)
+					.buildConversation();
+			}
+			Message msg = mb.buildMessage();
 			publisherService.publish(msg);
 		}
     }
@@ -96,8 +108,7 @@ public class ShoutOutProcessor {
      * Handles the TravelOfferEvent. A driver has found an trip plan for himself in which a traveller can take part. 
      * The handler creates a ride for the driver according the trip plan calculated before, adds a booking for the traveller.
      * When is the traveller's itinerary saved?
-     * Note tthat might not yet be a driver's conversation started, because that would be the case only if the driver live's 
-     * close enough near the traveller.
+     * Note there might not yet be a driver's conversation started, e.g., when driver is reacting to shout-out outside the normal driver's shout-out range.
      * @param event
      * @throws BusinessException
      */
@@ -125,14 +136,6 @@ public class ShoutOutProcessor {
     	}
     	rideManager.createRide(r);
 
-    	// Assign additional contexts to the driver's conversation: Ride
-		// This is later on used to bundle messages related to the trip plan
-		NetMobielUser nbUser = identityHelper.resolveUserUrn(event.getDriverRef())
-				.orElseThrow(() -> new IllegalStateException("Unknown driver: " + event.getDriverRef()));
-		// At this moment there might already be conversation already started with the tripplan. If not, then create one.
-		Conversation driverConv = publisherService.lookupOrCreateConversation(nbUser, UserRole.DRIVER, sop.getPlanRef(), textHelper.createDriverShoutOutTopic(sop), true);
-		publisherService.addConversationContext(driverConv, r.getUrn(), textHelper.createRideTopic(r), true);
-    	
     	Booking b = new Booking();
     	b.setDepartureTime(soi.getDepartureTime());
     	b.setArrivalTime(soi.getArrivalTime());
@@ -154,29 +157,49 @@ public class ShoutOutProcessor {
     	b.setPassengerTripPlanRef(sop.getPlanRef());
 		String bookingRef = bookingManager.createBooking(r.getUrn(), sop.getTraveller(), b);
 		tripPlanManager.assignBookingProposalReference(RideManager.AGENCY_ID, soi, r, bookingRef);
-		// Add the booking also to the driver's context. This might also be done by the rideshare
-		// TODO Check who is responsible
-		// Add the booking also as context of the driver
-		publisherService.addConversationContext(driverConv, b.getUrn());
 
-		// Find the conversation of the passenger. There might not yet be a conversation started
-		String passengerTopic = textHelper.createPassengerShoutOutTopic(sop);
-		Conversation passengerConv = publisherService.lookupOrCreateConversation(b.getPassenger(), 
-				UserRole.PASSENGER, sop.getPlanRef(), passengerTopic, true);
-		Message msg = new Message();
-		// The message context is the sender's context, in this case the system
-		msg.setContext(b.getUrn());
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		// The context of the passenger is the plan. The passenger can find the leg by looking for the message context in the plan
-		msg.addRecipient(passengerConv, sop.getPlanRef());
-		msg.setBody(textHelper.createPassengerTravelOfferMessageBody(r));
-		publisherService.publish(msg);
+		// Send a message to the driver get also the booking context in
+		NetMobielUser driver = identityHelper.resolveUserUrn(event.getDriverRef())
+				.orElseThrow(() -> new IllegalStateException("Unknown driver: " + event.getDriverRef()));
+		// At this moment there might already be conversation already started with the trip plan. If not, then create one.
+		
+		// The message context is the booking
+		// Use the ride as context for the driver, could also be the shout-out. 
+		// The topic remains the shout out topic.
+		Message driverMsg = Message.create()
+    			.withBody(textHelper.createDriverTravelOfferedMessageBody(r))
+    			.withContext(b.getUrn())
+    			.withDeliveryMode(DeliveryMode.MESSAGE)	// Only a message, notification to myself is not needed
+    			.addEnvelope(r.getUrn())
+	    			.withRecipient(driver)
+	    			.withConversationContext(sop.getPlanRef())
+	    			.withUserRole(UserRole.DRIVER)
+	    			.withTopic(textHelper.createDriverShoutOutTopic(sop))
+	    			.buildConversation()
+    			.buildMessage();
+		publisherService.publish(driverMsg);
+
+		// Inform the passenger about the new offer
+		// The message context is the booking
+		// Passenger's context is the plan
+    	Message passengerMsg = Message.create()
+    			.withBody(textHelper.createPassengerTravelOfferMessageBody(r))
+    			.withContext(bookingRef)
+    			.addEnvelope(sop.getPlanRef())
+	    			.withRecipient(b.getPassenger())
+	    			.withConversationContext(sop.getPlanRef())
+	    			.withUserRole(UserRole.PASSENGER)
+	    			.withTopic(textHelper.createPassengerShoutOutTopic(sop))
+	    			.buildConversation()
+    			.buildMessage();
+		publisherService.publish(passengerMsg);
 		// Inform the delegates, if any. They receive limited information only. The delegate can switch to the delegator view and see the normal messages.
-		publisherService.informDelegates(b.getPassenger(), textHelper.informDelegateNewTravelOfferText(r), DeliveryMode.ALL);
+		delegationProcessor.informDelegates(b.getPassenger(), textHelper.informDelegateNewTravelOfferText(r), DeliveryMode.ALL);
     }
 
     /**
-     * Handler on the event for resolving an shout-out into an itinerary.
+     * Handler on the event for resolving an shout-out into an itinerary for a trip.
+     * The conversation for the shout-out trip plan is connected to the new trip. 
      * @param event
      * @throws BusinessException
      */
@@ -184,12 +207,46 @@ public class ShoutOutProcessor {
     	TripPlan shoutOutPlan = event.getTrip().getItinerary().getTripPlan();
     	tripPlanManager.resolveShoutOut(shoutOutPlan, event.getTrip().getItinerary());
     	// Add the new trip to the conversation of the passenger
-    	// Just to be sure, create the conversation if not already there.
-		Conversation passengerConv = publisherService.lookupOrCreateConversation(shoutOutPlan.getTraveller(),  
-				UserRole.PASSENGER, shoutOutPlan.getPlanRef(), textHelper.createPassengerShoutOutTopic(shoutOutPlan), true);
-		// Add the trip and adapt the conversation topic
-		publisherService.addConversationContext(passengerConv, event.getTrip().getTripRef(), textHelper.createPassengerTripTopic(event.getTrip()), true);
+    	// The conversation context is the shout-out plan
+    	// The message context is the new trip
+    	// The recipient's context is the new trip too
+    	Message msg = Message.create()
+    			.withBody(textHelper.createPassengerShoutOutResolvedBody())
+    			.withContext(event.getTrip().getTripRef())
+    			.withDeliveryMode(DeliveryMode.MESSAGE)		// No notification needed for myself
+    			.addEnvelope()
+	    			.withRecipient(shoutOutPlan.getTraveller())
+	    			.withConversationContext(shoutOutPlan.getPlanRef())
+	    			.withUserRole(UserRole.PASSENGER)
+	    			.withTopic(textHelper.createPassengerTripTopic(event.getTrip()))
+	    			.buildConversation()
+    			.buildMessage();
+    	publisherService.publish(msg);
     }
 
-
+    /**
+     * The communicator has received a message for a certain conversation, but the conversation has apparently not started yet.
+     * Try to start a conversation, but only if this is about a shout-out (i.e., a trip plan). 
+     * @param event
+     * @throws BusinessException
+     */
+    public void onRequestConversation(@Observes(during = TransactionPhase.IN_PROGRESS) RequestConversationEvent event) throws BusinessException {
+    	if (UrnHelper.getPrefix(event.getContext()).equals(TripPlan.URN_PREFIX)) {
+    		// Ok, it is about a trip plan (shout-out). Get information about this trip plan.
+        	Long sid = UrnHelper.getId(TripPlan.URN_PREFIX, event.getContext());
+        	TripPlan shoutOutPlan = tripPlanManager.getShoutOutPlan(sid);
+        	Conversation c = new Conversation(new CommunicatorUser(event.getUser()), event.getContext());
+        	if (shoutOutPlan.getTraveller().equals(event.getUser())) {
+        		// It is my own shoutout!
+        		c.setOwnerRole(UserRole.PASSENGER);
+    			c.setTopic(textHelper.createPassengerShoutOutTopic(shoutOutPlan));
+        		
+        	} else {
+        		// It is somebody else's shout-out, I am a driver, apparently
+        		c.setOwnerRole(UserRole.DRIVER);
+        		c.setTopic(textHelper.createDriverShoutOutTopic(shoutOutPlan));
+        	}
+        	publisherService.createConversation(c);
+    	}
+    }
 }

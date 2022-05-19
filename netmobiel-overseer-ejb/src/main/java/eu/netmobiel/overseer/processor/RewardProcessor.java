@@ -21,8 +21,6 @@ import eu.netmobiel.commons.event.RewardRollbackEvent;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.NetMobielUser;
-import eu.netmobiel.communicator.model.Conversation;
-import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.service.PublisherService;
@@ -62,19 +60,19 @@ public class RewardProcessor {
      */
     private void sendPersonalMessage(Reward reward) throws BusinessException {
 		// Assure the conversation exists
+    	// The message context is the reward
+    	// The conversation context is the keycloak URN (for personal messages)
     	NetMobielUser owner = reward.getRecipient();
-		Conversation personalConv = publisherService.lookupOrCreateConversation(owner, 
-				UserRole.GENERIC, owner.getKeyCloakUrn(), textHelper.createPersonalGenericTopic(), false);
-		publisherService.addConversationContext(personalConv, reward.getUrn());
-    	Message msg = new Message();
-		msg.setContext(reward.getUrn());
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(personalConv, reward.getUrn());
-		if (reward.getIncentive().isRedemption()) { 
-			msg.setBody(textHelper.createRedemptionRewardText(reward));
-		} else {
-			msg.setBody(textHelper.createPremiumRewardText(reward));
-		}
+    	Message msg = Message.create()
+    			.withBody(textHelper.createRewardText(reward))
+    			.withContext(reward.getUrn())
+    			.addEnvelope()
+	    			.withRecipient(owner)
+	    			.withConversationContext(owner.getKeyCloakUrn())
+	    			.withUserRole(UserRole.GENERIC)
+	    			.withTopic(textHelper.createPersonalGenericTopic())
+	    			.buildConversation()
+    			.buildMessage();
 		publisherService.publish(msg);
     }
 

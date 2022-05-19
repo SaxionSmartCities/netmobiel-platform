@@ -1,9 +1,11 @@
 package eu.netmobiel.overseer.processor;
 
+import java.text.MessageFormat;
 import java.time.Instant;
 
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
+import javax.ejb.Asynchronous;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
@@ -12,11 +14,17 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.filter.Cursor;
+import eu.netmobiel.commons.model.NetMobielUser;
+import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.communicator.model.Conversation;
+import eu.netmobiel.communicator.event.ChatMessageEvent;
 import eu.netmobiel.communicator.model.DeliveryMode;
+import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.service.PublisherService;
@@ -26,7 +34,10 @@ import eu.netmobiel.profile.event.DelegationTransferCompletedEvent;
 import eu.netmobiel.profile.event.DelegationTransferRequestedEvent;
 import eu.netmobiel.profile.event.DelegatorAccountCreatedEvent;
 import eu.netmobiel.profile.event.DelegatorAccountPreparedEvent;
+import eu.netmobiel.profile.filter.DelegationFilter;
 import eu.netmobiel.profile.model.Delegation;
+import eu.netmobiel.profile.model.Profile;
+import eu.netmobiel.profile.service.DelegationManager;
 
 /**
  * Stateless bean for the management of the high-level delegation process, in particular the communication with end users.
@@ -43,6 +54,8 @@ public class DelegationProcessor {
     @Inject
     private PublisherService publisherService;
 
+    @Inject
+    private DelegationManager delegationManager;
 
     @Resource
     private SessionContext context;
@@ -63,7 +76,7 @@ public class DelegationProcessor {
 
     public void onDelegatorAccountCreated(@Observes(during = TransactionPhase.IN_PROGRESS) DelegatorAccountCreatedEvent event) throws BusinessException {
 		String text = textHelper.createDelegatorAccountCreatedText(event.getDelegator(), event.getInitiator());
-		publisherService.sendTextMessage(text, event.getDelegator());
+		publisherService.sendTextMessage(event.getDelegator(), text);
     }
 
    /**
@@ -76,7 +89,7 @@ public class DelegationProcessor {
     	// Inform delegator
     	Delegation delegation = event.getDelegation();
 		String text = textHelper.createDelegationActivationText(delegation);
-		String smsId = publisherService.sendTextMessage(text, delegation.getDelegator());
+		String smsId = publisherService.sendTextMessage(delegation.getDelegator(), text);
 		// Update the information in the delegation object (!) 
 		delegation.setActivationCodeSentTime(Instant.now());
 		delegation.setSmsId(smsId);
@@ -91,17 +104,22 @@ public class DelegationProcessor {
      	Delegation delegation = event.getDelegation();
      	// Inform delegator trough SMS
 		String delegatorText = textHelper.createDelegationConfirmedToDelegatorText(delegation);
- 		String smsId = publisherService.sendTextMessage(delegatorText, delegation.getDelegator());
+ 		String smsId = publisherService.sendTextMessage(delegation.getDelegator(), delegatorText);
 		logger.info(String.format("Activation of delegation %s confirmed in SMS %s", delegation.getId(), smsId));
 
-		// Inform delegate  
-		String topic = textHelper.createDelegationTopic(delegation);
-		Conversation rcp = publisherService.lookupOrCreateConversation(delegation.getDelegate(), UserRole.DELEGATE, delegation.getUrn(), topic, true);
- 		Message msg = new Message();
-		msg.setContext(delegation.getUrn());
-		msg.setBody(textHelper.createDelegationConfirmedToDelegateText(delegation));
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(rcp, delegation.getUrn());
+		// Inform delegate
+		// Delegate's conversation context is the delegation
+		// Message context is the delegation, so is the recipient's context
+    	Message msg = Message.create()
+    			.withBody(textHelper.createDelegationConfirmedToDelegateText(delegation))
+    			.withContext(delegation.getUrn())
+    			.addEnvelope()
+	    			.withRecipient(delegation.getDelegate())
+	    			.withConversationContext(delegation.getUrn())
+	    			.withUserRole(UserRole.DELEGATE)
+	    			.withTopic(textHelper.createDelegationTopic(delegation))
+	    			.buildConversation()
+    			.buildMessage();
 		publisherService.publish(msg);
      }
 
@@ -114,14 +132,18 @@ public class DelegationProcessor {
     public void onDelegationTransferRequested(@Observes(during = TransactionPhase.IN_PROGRESS) DelegationTransferRequestedEvent event) throws BusinessException {
      	Delegation fromDelegation = event.getFrom();
      	Delegation toDelegation = event.getTo();
-		// Inform prospected delegate through push message 
-		String topic = textHelper.createDelegationTopic(toDelegation);
-		Conversation rcp = publisherService.lookupOrCreateConversation(toDelegation.getDelegate(), UserRole.DELEGATE, toDelegation.getUrn(), topic, true);
- 		Message msg = new Message();
-		msg.setContext(toDelegation.getUrn());
-		msg.setBody(textHelper.createTransferDelegationToText(fromDelegation));
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(rcp, toDelegation.getUrn());
+		// Inform prospected delegate through push message
+		// Message context is the prospected delegation, so is the recipient's context
+    	Message msg = Message.create()
+    			.withBody(textHelper.createTransferDelegationToText(fromDelegation))
+    			.withContext(toDelegation.getUrn())
+    			.addEnvelope()
+	    			.withRecipient(toDelegation.getDelegate())
+	    			.withConversationContext(toDelegation.getUrn())
+	    			.withUserRole(UserRole.DELEGATE)
+	    			.withTopic(textHelper.createDelegationTopic(toDelegation))
+	    			.buildConversation()
+    			.buildMessage();
 		publisherService.publish(msg);
     }
 
@@ -136,13 +158,72 @@ public class DelegationProcessor {
      	if (!event.isImmediate()) {
      	}
 		// Inform previous delegate 
-		String topic = textHelper.createDelegationTopic(toDelegation);
-		Conversation rcp = publisherService.lookupOrCreateConversation(fromDelegation.getDelegate(), UserRole.DELEGATE, fromDelegation.getUrn(), topic, true);
- 		Message msg = new Message();
-		msg.setContext(fromDelegation.getUrn());
-		msg.setBody(textHelper.createTransferDelegationCompletedText(fromDelegation, toDelegation));
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(rcp, fromDelegation.getUrn());
+		// Message context is the fromDelegation, so is the recipient's context
+    	Message msg = Message.create()
+    			.withBody(textHelper.createTransferDelegationCompletedText(fromDelegation, toDelegation))
+    			.withContext(fromDelegation.getUrn())
+    			.addEnvelope()
+	    			.withRecipient(fromDelegation.getDelegate())
+	    			.withConversationContext(fromDelegation.getUrn())
+	    			.withUserRole(UserRole.DELEGATE)
+	    			.withTopic(textHelper.createDelegationTopic(toDelegation))
+	    			.buildConversation()
+    			.buildMessage();
 		publisherService.publish(msg);
     }
+    
+    /**
+     * Informs any delegator of the specified user with a message.
+     * @param delegator The person who possibly has his travels managed by someone else.
+     * @param message The message to deliver.
+     * @param deliveryMode the delivery mode: message, notification or both.
+     */
+    @Asynchronous
+    public void informDelegates(NetMobielUser delegator, String message, DeliveryMode deliveryMode) {
+		try {
+			DelegationFilter filter = new DelegationFilter();
+			Cursor cursor = new Cursor(10, 0);
+			filter.setDelegator(new Profile(delegator.getManagedIdentity()));
+			PagedResult<Delegation> delegations = delegationManager.listDelegations(filter, cursor, Delegation.DELEGATE_PROFILE_ENTITY_GRAPH);
+			if (delegations.getTotalCount() > cursor.getMaxResults()) {
+				logger.warn("Too many delegates detected: # > " + cursor.getMaxResults());
+			}
+			if (delegations.getCount() > 0) {
+				String topic = MessageFormat.format("Beheer van reizen van {0}", delegator.getName());
+				Message.MessageBuilder mb = Message.create()
+						.withBody(message)
+						.withContext(delegations.getData().get(0).getDelegatorRef())
+						.withDeliveryMode(deliveryMode);
+				for (Delegation delegation : delegations.getData()) {
+					mb.addEnvelope(delegation.getUrn())
+						.withRecipient(delegation.getDelegate())
+		    			.withConversationContext(delegation.getUrn())
+		    			.withUserRole(UserRole.DELEGATE)
+		    			.withTopic(topic)
+						.buildConversation();
+				}
+				Message msg = mb.buildMessage();
+				publisherService.publish(msg);
+			}
+		} catch (BusinessException ex) {
+			logger.error("Cannot inform delegates: " + String.join("\n\t", ExceptionUtil.unwindException(ex)));
+		}
+    }
+
+    /**
+     * Inform any delegate about the reception of a chat message by the delegator.
+     * @param event the transfer event
+     * @throws BusinessException 
+     */
+    public void onChatMessageCreated(@Observes(during = TransactionPhase.IN_PROGRESS) @Created ChatMessageEvent event) throws BusinessException {
+    	for (Envelope env : event.getChatMessage().getEnvelopes()) {
+    		if (env.isSender()) {
+    			// Delegate would be the sender probably.
+    			continue;
+    		}
+        	context.getBusinessObject(DelegationProcessor.class)
+        	.informDelegates(env.getRecipient(), "Direct bericht van " + event.getChatMessage().getSender().getName(), DeliveryMode.ALL);
+		} 
+	}
+    
 }

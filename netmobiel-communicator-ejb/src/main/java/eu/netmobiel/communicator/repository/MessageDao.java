@@ -19,10 +19,10 @@ import javax.persistence.criteria.Root;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
-import eu.netmobiel.commons.model.User_;
 import eu.netmobiel.commons.repository.AbstractDao;
 import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
 import eu.netmobiel.communicator.filter.MessageFilter;
+import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.Conversation_;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
@@ -64,19 +64,16 @@ public class MessageDao extends AbstractDao<Message, Long> {
             predicates.add(predConversation);
 //	        cq.distinct(true);
         }
-        if (filter.getParticipantId() != null) {
+        if (filter.getParticipant() != null) {
             Join<Message, Envelope> envelope = message.join(Message_.envelopes);
             Predicate predRecipient = cb.equal(envelope.get(Envelope_.conversation)
-            		.get(Conversation_.owner)
-            		.get(User_.managedIdentity), filter.getParticipantId());
+            		.get(Conversation_.owner), filter.getParticipant());
             predicates.add(predRecipient);
 //	        cq.distinct(true);
         }
         if (filter.getContext() != null) {
-            Join<Message, Envelope> envelope = message.join(Message_.envelopes);
-            Predicate envContext = cb.equal(envelope.get(Envelope_.context), filter.getContext());
         	Predicate msgContext = cb.equal(message.get(Message_.context), filter.getContext());
-	        predicates.add(cb.or(envContext, msgContext));
+	        predicates.add(msgContext);
         }        
         if (filter.getSince() != null) {
 	        Predicate predSince = cb.greaterThanOrEqualTo(message.get(Message_.createdTime), filter.getSince());
@@ -115,7 +112,9 @@ public class MessageDao extends AbstractDao<Message, Long> {
 	}
 
 	
-	public PagedResult<Long> listTopMessagesByConversations(String context, String ownerManagedIdentity, boolean actualOnly, boolean archivedOnly, Integer maxResults, Integer offset) {
+	public PagedResult<Long> listTopMessagesByConversations(String context, CommunicatorUser owner, 
+			boolean actualOnly, boolean archivedOnly, SortDirection sortDir, Integer maxResults, Integer offset) {
+		String sort = sortDir != null ? sortDir.name().toLowerCase() : "desc"; 
 		// To write the query below as a criteria query seems impossible, I can't get the selection of a subquery right.
 		String queryString = String.format( 
 				"%s from Envelope e where (e.conversation, e.message.createdTime) in" +
@@ -124,14 +123,14 @@ public class MessageDao extends AbstractDao<Message, Long> {
 				"  group by env.conversation" +
 				" ) %s %s",
 				maxResults == 0 ? "select count(e.message.id)" : "select e.message.id",  
-				ownerManagedIdentity != null ? "and env.conversation.owner.managedIdentity = :participant" : "",
+				owner != null ? "and env.conversation.owner = :participant" : "",
 				context != null ? "and :context member of env.conversation.contexts" : "",
 				actualOnly ? "and e.conversation.archivedTime is null" : (archivedOnly ? "and e.conversation.archivedTime is not null" : ""),
-				maxResults > 0 ? "order by e.message.createdTime desc" : ""
+				maxResults > 0 ? "order by e.message.createdTime " + sort : ""
 		);
 		TypedQuery<Long> query = em.createQuery(queryString, Long.class);
-		if (ownerManagedIdentity != null) {
-			query.setParameter("participant", ownerManagedIdentity);
+		if (owner != null) {
+			query.setParameter("participant", owner);
 		}
 		if (context != null) {
 			query.setParameter("context", context);
@@ -149,112 +148,5 @@ public class MessageDao extends AbstractDao<Message, Long> {
         }
         return new PagedResult<>(results, maxResults, offset, totalCount);
 	}
-
-//	public static class RecentConversationMessage {
-//		private Conversation conversation;
-//		private Instant creationTime;
-//		public Conversation getConversation() {
-//			return conversation;
-//		}
-//		public void setConversation(Conversation conversation) {
-//			this.conversation = conversation;
-//		}
-//		public Instant getCreationTime() {
-//			return creationTime;
-//		}
-//		public void setCreationTime(Instant creationTime) {
-//			this.creationTime = creationTime;
-//		}
-//	}
-//	public PagedResult<Long> listTopMessagesByConversations(String ownerMangedIdentity, boolean actualOnly, boolean archiveOnly, Integer maxResults, Integer offset) {
-//    	CriteriaBuilder cb = em.getCriteriaBuilder();
-//        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
-//        Root<Envelope> envelope = cq.from(Envelope.class);
-//        List<Predicate> predicates = new ArrayList<>();
-//        
-//        if (ownerMangedIdentity != null) {
-//            Predicate predRecipient = cb.equal(envelope.get(Envelope_.conversation)
-//            		.get(Conversation_.owner)
-//            		.get(User_.managedIdentity), ownerMangedIdentity);
-//            predicates.add(predRecipient);
-////	        cq.distinct(true);
-//        }
-//        Subquery<RecentConversationMessage> subquery = cq.subquery(RecentConversationMessage.class);
-//        Root<Envelope> sqenv = subquery.from(Envelope.class);
-//        cb.construct(RecentConversationMessage.class, sqenv.get(Envelope_.conversation), cb.greatest(sqenv.get(Envelope_.message).get(Message_.createdTime))).alias("topMessages");
-//        subquery.select();
-////        subquery.select();
-////        , envelope.get(Envelope_.message).get(Message_.createdTime)
-//        cq.where(cb.in(envelope.get(Envelope_.conversation)).value(subquery));
-//        Long totalCount = null;
-//        List<Long> results = Collections.emptyList();
-//        if (maxResults == 0) {
-//          cq.select(cb.count(envelope.get(Envelope_.message).get(Message_.id)));
-//          totalCount = em.createQuery(cq).getSingleResult();
-//        } else {
-//	        cq.select(envelope.get(Envelope_.message).get(Message_.id));
-//	        cq.orderBy(cb.desc(envelope.get(Envelope_.message).get(Message_.createdTime)));
-//	        TypedQuery<Long> tq = em.createQuery(cq);
-//			tq.setFirstResult(offset);
-//			tq.setMaxResults(maxResults);
-//			results = tq.getResultList();
-//        }
-//        return new PagedResult<>(results, maxResults, offset, totalCount);
-//	}	
-/*
-Get the latest message for each context for recipient A2:
-select distinct m.id, m.body, m.context, m.subject, m.sender, m.created_time from envelope e join message m on m.id = e.message
-where e.recipient = 'recipient A2' and (m.context, m.created_time) in 
-(select mm.context, max(mm.created_time) from envelope e join message mm on mm.id = e.message  
- where e.recipient = 'recipient A2' group by mm.context) order by m.created_time desc
-
- Get the  number of unread messages for each context for recipient A2
-select mm.context, count(*) from envelope e join message mm on mm.id = e.message  
- where e.recipient = 'recipient A2' and e.ack_time is null group by mm.context 
- select mm.context, count(*) from envelope e join message mm on mm.id = e.message  
- where e.recipient = 'recipient A2' and e.ack_time is null group by mm.context
- */
-	
-	/*
-select u.family_name, date_part('year', m.created_time) as year, 
-date_part('month', m.created_time) as month, count(*)
-from message m 
-join envelope e on m.id = e.message
-join cm_user u on u.id = e.recipient
-where m.delivery_mode = 'AL' or m.delivery_mode = 'MS'
-group by u.family_name, date_part('year', m.created_time), date_part('month', m.created_time)
-order by u.family_name, date_part('year', m.created_time), date_part('month', m.created_time)
-	 
-	 */
-
-//    protected List<NumericReportValue> reportMessagesReceived(Instant since, Instant until, Cursor cursor) throws BadRequestException {
-        // This criteria code can work only when registering the date_part function in the dialect.
-        // @see https://thorben-janssen.com/database-functions/
-//    	CriteriaBuilder cb = em.getCriteriaBuilder();
-//        CriteriaQuery<NumericReportValue> cq = cb.createQuery(NumericReportValue.class);
-//        Root<Message> message = cq.from(Message.class);
-//        List<Predicate> predicates = new ArrayList<>();
-//        Join<Message, Envelope> envelope = message.join(Message_.envelopes);
-//        if (since != null) {
-//	        predicates.add(cb.greaterThanOrEqualTo(message.get(Message_.creationTime), since));
-//        }        
-//        if (until != null) {
-//	        predicates.add(cb.lessThan(message.get(Message_.creationTime), until));
-//        }
-//        Predicate predMode = cb.equal(message.get(Message_.deliveryMode), DeliveryMode.MESSAGE);
-//        Predicate predModeAll = cb.equal(message.get(Message_.deliveryMode), DeliveryMode.ALL);
-//        predicates.add(cb.or(predMode, predModeAll));
-//        cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
-//        Expression<Integer> year = cb.function("date_part", Integer.class, cb.literal("year"), message.get(Message_.creationTime));
-//        Expression<Integer> month = cb.function("date_part", Integer.class, cb.literal("month"), message.get(Message_.creationTime));
-//        Path<String> user = envelope.get(Envelope_.recipient).get(CommunicatorUser_.managedIdentity);
-//        cq.groupBy(user, year, month);
-//    	cq.select(cb.construct(NumericReportValue.class, user, year, month, cb.count(message)));
-//        cq.orderBy(cb.asc(user), cb.asc(year), cb.asc(month));
-//        TypedQuery<NumericReportValue> tq = em.createQuery(cq);
-//		tq.setFirstResult(cursor.getOffset());
-//		tq.setMaxResults(cursor.getMaxResults());
-//		return tq.getResultList();
-//    }
 
 }

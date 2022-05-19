@@ -38,6 +38,7 @@ import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
 import eu.netmobiel.communicator.api.resource.ConversationsResource;
 import eu.netmobiel.communicator.api.resource.MessagesResource;
 import eu.netmobiel.communicator.api.resource.TestsResource;
+import eu.netmobiel.communicator.api.resource.UsersResource;
 
 
 /**
@@ -79,6 +80,7 @@ public class CommunicatorApplication extends Application {
         resources.add(ConversationsResource.class);
         resources.add(MessagesResource.class);
         resources.add(TestsResource.class);
+        resources.add(UsersResource.class);
         resources.add(Jackson2ObjectMapperContextResolver.class);
         resources.add(OffsetDateTimeParamConverterProvider.class);
         resources.add(WebApplicationExceptionMapper.class);

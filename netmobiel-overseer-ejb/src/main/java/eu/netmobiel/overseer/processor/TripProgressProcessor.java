@@ -9,7 +9,6 @@ import javax.enterprise.event.TransactionPhase;
 import javax.inject.Inject;
 
 import eu.netmobiel.commons.exception.BusinessException;
-import eu.netmobiel.communicator.model.Conversation;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.model.UserRole;
@@ -37,6 +36,9 @@ import eu.netmobiel.rideshare.model.RideState;
 public class TripProgressProcessor {
     @Inject
     private PublisherService publisherService;
+    
+    @Inject
+    private DelegationProcessor delegationProcessor; 
 
     @Resource
     private SessionContext context;
@@ -89,16 +91,19 @@ public class TripProgressProcessor {
     }
 
 	private void informPassengerTripProgress(Trip trip, String text, String delegateText) throws BusinessException {
-		Conversation passengerConv = publisherService.lookupOrCreateConversation(trip.getTraveller(), 
-				UserRole.PASSENGER, trip.getTripRef(), textHelper.createPassengerTripTopic(trip), true);
-		Message msg = new Message();
-		msg.setContext(trip.getTripRef());
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(passengerConv, trip.getTripRef());
-		msg.setBody(text);
+    	Message msg = Message.create()
+    			.withBody(text)
+    			.withContext(trip.getTripRef())
+    			.addEnvelope()
+	    			.withRecipient(trip.getTraveller())
+	    			.withConversationContext(trip.getTripRef())
+	    			.withUserRole(UserRole.PASSENGER)
+	    			.withTopic(textHelper.createPassengerTripTopic(trip))
+	    			.buildConversation()
+    			.buildMessage();
 		publisherService.publish(msg);
 		// Inform the delegates, if any
-		publisherService.informDelegates(trip.getTraveller(), 
+		delegationProcessor.informDelegates(trip.getTraveller(), 
 				delegateText, 
 				DeliveryMode.ALL);
 	}
@@ -120,30 +125,36 @@ public class TripProgressProcessor {
 		return ride.getConfirmedBooking().orElseThrow(() -> new IllegalStateException("Expected a confirmed booking for ride:" + ride.getId()));
 	}
 	
-	private void informDriverRideProgress(Ride ride, Booking b, String text) throws BusinessException {
-		Conversation driverConv = publisherService.lookupOrCreateConversation(ride.getDriver(), 
-				UserRole.DRIVER, ride.getUrn(), textHelper.createRideTopic(ride), true);
-		Message msg = new Message();
-		msg.setContext(ride.getUrn());
-		msg.setDeliveryMode(DeliveryMode.ALL);
-		msg.addRecipient(driverConv, b.getUrn());
-		msg.setBody(text);
+	private void informDriverBookedRideProgress(Ride ride, Booking b, String text) throws BusinessException {
+		// Conversation context is the ride
+		// Message context is the booking (without booking this message was not sent)
+		// Recipient's context is the ride
+    	Message msg = Message.create()
+    			.withBody(text)
+    			.withContext(b.getUrn())
+    			.addEnvelope(ride.getUrn())
+	    			.withRecipient(ride.getDriver())
+	    			.withConversationContext(ride.getUrn())
+	    			.withUserRole(UserRole.DRIVER)
+	    			.withTopic(textHelper.createRideTopic(ride))
+	    			.buildConversation()
+    			.buildMessage();
 		publisherService.publish(msg);
 	}	
 
 	private void informDriverOnDeparture(Ride ride) throws BusinessException {
 		Booking b = getConfirmedBooking(ride);
-		informDriverRideProgress(ride, b, textHelper.createRideDepartureText(ride, b));
+		informDriverBookedRideProgress(ride, b, textHelper.createRideDepartureText(ride, b));
 	}
 
     private void informDriverOnReview(Ride ride) throws BusinessException {
 		Booking b = getConfirmedBooking(ride);
-		informDriverRideProgress(ride, b, textHelper.createRideReviewRequestText(ride, b));
+		informDriverBookedRideProgress(ride, b, textHelper.createRideReviewRequestText(ride, b));
 	}
 
     private void remindDriverOnReview(Ride ride) throws BusinessException {
 		Booking b = getConfirmedBooking(ride);
-		informDriverRideProgress(ride, b, textHelper.createRideReviewRequestReminderText(ride, b));
+		informDriverBookedRideProgress(ride, b, textHelper.createRideReviewRequestReminderText(ride, b));
 	}
 	
 }

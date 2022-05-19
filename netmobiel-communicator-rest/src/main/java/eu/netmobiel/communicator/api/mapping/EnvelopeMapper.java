@@ -19,14 +19,6 @@ import eu.netmobiel.communicator.model.Envelope;
 	uses = { JavaTimeMapper.class, UserMapper.class })
 public abstract class EnvelopeMapper {
 
-	@Mapping(target = "id", ignore = true)
-	@Mapping(target = "pushTime", ignore = true)
-	@Mapping(target = "ackTime", ignore = true)
-	@Mapping(target = "message", ignore = true)
-	@Mapping(target = "conversation", ignore = true)
-	@Mapping(target = "sender", ignore = true)
-	public abstract Envelope map(eu.netmobiel.communicator.api.model.Envelope source);
-
 	@Mapping(target = "conversationRef", source = "conversation.urn")
 	public abstract eu.netmobiel.communicator.api.model.Envelope map(Envelope source);
 

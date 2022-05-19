@@ -1,16 +1,18 @@
 package eu.netmobiel.communicator.service;
 
-import java.text.MessageFormat;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
-import javax.ejb.Asynchronous;
+import javax.ejb.Schedule;
 import javax.ejb.Stateless;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.persistence.NoResultException;
 import javax.validation.constraints.NotNull;
@@ -18,6 +20,7 @@ import javax.validation.constraints.NotNull;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
@@ -27,8 +30,12 @@ import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.NetMobielMessage;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.communicator.event.ChatMessageEvent;
+import eu.netmobiel.communicator.event.RequestConversationEvent;
+import eu.netmobiel.communicator.filter.ConversationFilter;
 import eu.netmobiel.communicator.filter.MessageFilter;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.Conversation;
@@ -40,13 +47,9 @@ import eu.netmobiel.communicator.repository.CommunicatorUserDao;
 import eu.netmobiel.communicator.repository.ConversationDao;
 import eu.netmobiel.communicator.repository.EnvelopeDao;
 import eu.netmobiel.communicator.repository.MessageDao;
+import eu.netmobiel.communicator.repository.EnvelopeDao.UnreadMessagesCount;
 import eu.netmobiel.firebase.messaging.FirebaseMessagingClient;
 import eu.netmobiel.messagebird.MessageBird;
-import eu.netmobiel.profile.filter.DelegationFilter;
-import eu.netmobiel.profile.model.Delegation;
-import eu.netmobiel.profile.model.Profile;
-import eu.netmobiel.profile.service.DelegationManager;
-import eu.netmobiel.profile.service.ProfileManager;
 
 /**
  * Bean class for Publisher enterprise bean. 
@@ -55,8 +58,11 @@ import eu.netmobiel.profile.service.ProfileManager;
 @Logging
 public class PublisherService {
 	public static final int NOTIFICATION_TTL = 60 * 60 * 1000; // [ms] Expiration time of a notification  
-	public static final Integer MAX_RESULTS = 10; 
-
+	public static final Integer MAX_RESULTS = 10;
+	/**
+	 * Archive conversations if most recent message is older than 30 days from now. 
+	 */
+	public static final int ARCHIVE_DAYS = 30;
     @Inject
     private Logger logger;
 
@@ -73,14 +79,13 @@ public class PublisherService {
     private ConversationDao conversationDao;
 
     @Inject
-    private ProfileManager profileManager;
-    
-    @Inject
-    private DelegationManager delegationManager;
-
-    @Inject
     private MessageBird	messageBirdClient;
 
+    @Inject @Created
+    private Event<ChatMessageEvent> chatMessageCreatedEvent;
+
+    @Inject @Created
+    private Event<RequestConversationEvent> requestConversationEvent;
 //    @Inject
 //    private NotifierService notifierService;
 
@@ -88,12 +93,12 @@ public class PublisherService {
     private FirebaseMessagingClient firebaseMessagingClient;
 
 	private static void validateChatMessage(Message msg) throws CreateException, BadRequestException {
-		validateMessage(msg);
-		// There cannot yet be a sender in the envelopes
-		if (msg.getEnvelopes().stream()
+		// There must be a real sender
+		long nrSenders = msg.getEnvelopes().stream()
 				.filter(env -> env.isSender())
-				.findAny().isPresent()) {
-				throw new BadRequestException("Do not add a sender envelope");
+				.count();
+		if (nrSenders != 1) {
+			throw new BadRequestException("A chat message must have exact one sender");
 		}
     }
  	
@@ -107,26 +112,20 @@ public class PublisherService {
     	if (msg.getEnvelopes() == null || msg.getEnvelopes().isEmpty()) {
     		throw new BadRequestException("Constraint violation: 'envelopes' must be set and contain at least one recipient.");
     	}
-		if (msg.getEnvelopes().stream()
-			.filter(env -> env.getContext() == null && env.getContext().isBlank())
-			.findAny().isPresent()) {
-			throw new BadRequestException("Envelope context cannot be null or blank");
-		}
     }
 
     /**
      * Sends a message and/or a notification to the recipients in the message envelopes.
      * The conversations of sender and recipients must already exist!
-     * @param sender the sender of the message.
      * @param msg the message to send to the recipients in the envelopes
      * @return the message Id.
      * @throws BusinessException 
      */
-    public Long chat(@NotNull CommunicatorUser sender, Message msg) throws BusinessException {
+    public Long chat(Message msg) throws BusinessException {
     	validateChatMessage(msg);
-		Conversation senderConv = lookupConversation(sender, msg.getContext());
-		msg.addSender(senderConv, msg.getContext());
-		return publish(msg);
+		Long msgId = publish(msg);
+		chatMessageCreatedEvent.fire(new ChatMessageEvent(msg));
+		return msgId;
     }
 
     /**
@@ -136,20 +135,20 @@ public class PublisherService {
      */
     private void notifyRecipient(NetMobielMessage msg, Envelope env) {
 		try {
-			Profile profile = profileManager.getFlatProfileByManagedIdentity(env.getRecipient().getManagedIdentity());
-			if ((profile.getFcmToken() == null || profile.getFcmToken().isBlank()) && logger.isDebugEnabled()) {
+			CommunicatorUser user = env.getRecipient();
+			if ((user.getFcmToken() == null || user.getFcmToken().isBlank()) && logger.isDebugEnabled()) {
 				logger.debug(String.format("Cannot send push notification to %s (%s): No FCM token set", 
-						profile.getManagedIdentity(), profile.getName()));
-			} else if (FirebaseMessagingClient.isFcmTokenProbablyStale(profile.getFcmTokenTimestamp())) {
-				logger.warn(String.format("Cannot send push notification to %s: FCM token (%s) is probably stale", profile.getManagedIdentity(), profile.getFcmTokenTimestamp()));
-				profile.setFcmToken(null);
+						user.getManagedIdentity(), user.getName()));
+			} else if (FirebaseMessagingClient.isFcmTokenProbablyStale(user.getFcmTokenTimestamp())) {
+				logger.warn(String.format("Cannot send push notification to %s: FCM token (%s) is probably stale", user.getName(), user.getFcmTokenTimestamp()));
+				user.setFcmToken(null);
 			} else {
 				try {
-					firebaseMessagingClient.send(profile.getFcmToken(), msg);
+					firebaseMessagingClient.send(user.getFcmToken(), msg);
 					env.setPushTime(Instant.now());
 				} catch (NotFoundException | BadRequestException ex) {
-					logger.error(String.format("Cannot send push notification to %s: FCM token (%s) is stale or invalid.", profile.getManagedIdentity(), profile.getFcmTokenTimestamp()));
-					profile.setFcmToken(null);
+					logger.error(String.format("Cannot send push notification to %s: FCM token (%s) is stale or invalid.", user.getManagedIdentity(), user.getFcmTokenTimestamp()));
+					user.setFcmToken(null);
 				}
 			}
 		} catch (Exception ex) {
@@ -168,11 +167,22 @@ public class PublisherService {
      */
     public Long publish(Message msg) throws BusinessException {
 		validateMessage(msg);
-		msg.setCreatedTime(Instant.now());
+		if (msg.getCreatedTime() == null) {
+			msg.setCreatedTime(Instant.now());
+		}
 		// Assure all recipient conversations are present in the database, replace transient instances of users with persistent instances.
 		for (Envelope env : msg.getEnvelopes()) {
-			Conversation rcpConv = lookupConversation(env.getRecipient(), env.getContext());
-			env.setConversation(rcpConv);
+			Conversation conv_in = env.getConversation();
+			Conversation conv_db = lookupOrCreateConversation(conv_in.getOwner(), 
+					conv_in.getOwnerRole(),	conv_in.getFirstContext(), conv_in.getTopic());
+			// Add additional contexts
+			conv_db.getContexts().addAll(conv_in.getContexts());
+			// The context of the envelope is added to the conversation. The message context is the shared context
+			conv_db.getContexts().add(msg.getContext());
+			conv_db.getContexts().add(env.getContext());
+			// New message, so don't archive anymore (if it was archived)
+			conv_db.setArchivedTime(null);
+			env.setConversation(conv_db);
 		}
 		msg.setId(null); 	// Assure it is a new message.
 		// Save message and envelopes in database
@@ -197,30 +207,33 @@ public class PublisherService {
 
     /**
      * Creates a conversation
-     * @param c the conversation. Must already be present in the communicator database.
+     * @param c the conversation. 
      * @return The ID of the conversation just created.
      * @throws BadRequestException In case of bad parameters.
      * @throws DuplicateEntryException When a conversation is found with a matching (context, owner)
+     * @throws NotFoundException 
      */
-    public Long createConversation(Conversation c) throws BadRequestException, DuplicateEntryException {
+    public Long createConversation(Conversation c) throws BadRequestException, DuplicateEntryException, NotFoundException {
     	if (c.getContexts().isEmpty()) {
     		throw new BadRequestException("Specify at least one context");
     	}
-    	if (c.getTopic() == null || c.getTopic().isBlank()) {
-    		throw new BadRequestException("Specify a non-blank topic");
+    	if (c.getOwner() == null) {
+    		throw new BadRequestException("Specify an owner");
     	}
-    	Optional<Conversation> optConv = Optional.empty();
-    	for (String context : c.getContexts()) {
-    		optConv = conversationDao.findByContextAndOwner(context, c.getOwner());
-    		if (!optConv.isPresent()) {
-    			throw new DuplicateEntryException(
-    					String.format("Conversation %d already associated with context %s", 
-    							optConv.get().getId(), context));
-    		}
+    	if (c.getOwner().getId() == null) {
+    		CommunicatorUser usr = userDao.findByManagedIdentity(c.getOwner().getManagedIdentity())
+    				.orElseThrow(() -> new NotFoundException("No such user: " + c.getOwner().getManagedIdentity()));
+    		c.setOwner(usr);
+    	}
+   		Optional<Conversation> optConv = conversationDao.findByContextAndOwner(c.getFirstContext(), c.getOwner());
+		if (optConv.isPresent()) {
+			throw new DuplicateEntryException(
+					String.format("Conversation %s already associated with context %s", 
+							optConv.get().getUrn(), c.getFirstContext()));
 		}
-    	c.setCreatedTime(Instant.now());
-    	c.setArchivedTime(null);
-		return conversationDao.save(c).getId();
+    	Conversation cdb = createConversation(c.getOwner(), c.getOwnerRole(), c.getFirstContext(), c.getTopic());
+    	cdb.getContexts().addAll(c.getContexts());
+		return cdb.getId();
     }
 
     /**
@@ -251,82 +264,53 @@ public class PublisherService {
      * @param topic the subject the conversation is about. Might change during the lifetime of the conversation.
      * @param overwriteTopic if true then overwrite the subject. 
      * @return a conversation object.
+     * @throws NotFoundException 
      */
-    public Conversation lookupOrCreateConversation(CommunicatorUser owner, UserRole ownerRole, String context, String topic, boolean overwriteTopic) {
-		Optional<Conversation> optConv = conversationDao.findByContextAndOwner(context, owner);
+    private Conversation lookupOrCreateConversation(CommunicatorUser owner, UserRole ownerRole, String context, String topic) throws NotFoundException {
+    	CommunicatorUser ownerdb = owner;
+    	if (owner.getId() == null) {
+    		ownerdb = userDao.findByManagedIdentity(owner.getManagedIdentity())
+    				.orElseThrow(() -> new NotFoundException("No such user: " + owner)); 
+    	}
+		Optional<Conversation> optConv = conversationDao.findByContextAndOwner(context, ownerdb);
 		if (optConv.isPresent()) {
-			// Is the equal check really needed?
-			if (overwriteTopic && !Objects.equals(topic, optConv.get().getTopic())) {
+			// Is this optimization needed?
+			if (topic != null && !Objects.equals(topic, optConv.get().getTopic())) {
 				optConv.get().setTopic(topic);
 			}
 		} else {
-			optConv = Optional.of(new Conversation(owner, ownerRole, context, topic));
-			conversationDao.save(optConv.get());
+			optConv = Optional.of(createConversation(ownerdb, ownerRole, context, topic));
 		}
 		return optConv.get();
     }
 
-    public Conversation lookupOrCreateConversation(NetMobielUser owner, UserRole ownerRole, String context, String topic, boolean overwriteTopic) {
-		CommunicatorUser user = userDao.findByManagedIdentity(owner.getManagedIdentity())
-				.orElseGet(() -> userDao.save(new CommunicatorUser(owner)));
-    	return lookupOrCreateConversation(user, ownerRole, context, topic, overwriteTopic);
-    }
-
-    public List<Conversation> lookupOrCreateConversations(List<? extends NetMobielUser> owner, UserRole ownerRole, String context, String topic, boolean overwriteTopic) {
-    	return owner.stream()
-    			.map(usr -> lookupOrCreateConversation(usr, ownerRole, context, topic, overwriteTopic))
-    			.collect(Collectors.toList());
-    }
-
     /**
-     * Finds a conversation by user and context.
-     * @param managedIdentity 
-     * @param contexts
-     * @return
+     * Creates a conversation. If topic or userRole are missing the system is asked to create a conversation.
+     * @param ownerdb the owner of the conversation to look for. Must already exist.
+     * @param ownerRole the role of the owner at the time of creation of the conversation. In general
+     * 		this can be deducted from the context of the operation.
+     * @param context the context to look for. Initial context for a new conversation. 
+     * @param topic the subject the conversation is about. Might change during the lifetime of the conversation.
+     * @param overwriteTopic if true then overwrite the subject. 
+     * @return a conversation object.
+     * @throws NotFoundException 
      */
-    public Optional<Conversation> findConversation(NetMobielUser owner, String context) {
-		return findConversation(owner.getManagedIdentity(), context);
-    }
-
-    /**
-     * Finds a conversation of a user by the managedIdentity and the context.
-     * @param managedIdentity 
-     * @param contexts
-     * @return
-     */
-    public Optional<Conversation> findConversation(String managedIdentity, String context) {
-		return conversationDao.findByContextAndOwner(context, managedIdentity);
-    }
-
-    /**
-     * Finds the conversation by managedIdentity and context. 
-     * @param nbUser Netmobiel user.
-     * @param context The context to look for.
-     * @return The conversation.
-     * @throws NotFoundException If the conversation does not exist.
-     */
-    public Conversation lookupConversation(NetMobielUser nbUser, String context) throws NotFoundException {
-		return conversationDao.findByContextAndOwner(context, nbUser.getManagedIdentity())
-				.orElseThrow(() -> new NotFoundException(String.format("User %s has no conversation for %s", nbUser, context)));
-    }
-
-    /**
-     * Extend the context list of an existing conversation.
-     * @param conversation the (existing) conversation to update
-     * @param context the context to add.
-     * @throws NotFoundException In case the conversation does not exist.
-     */
-    public void addConversationContext(Conversation conversation, String context, String topic, boolean overwriteTopic) throws NotFoundException {
-		Conversation cvdb = conversationDao.loadGraph(conversation.getId(), Conversation.FULL_ENTITY_GRAPH)
-				.orElseThrow(() -> new NotFoundException("No such Conversation: " + conversation.getId()));
-		cvdb.getContexts().add(context);
-		if (overwriteTopic && topic != null) {
-			cvdb.setTopic(topic);
+    private Conversation createConversation(CommunicatorUser ownerdb, UserRole ownerRole, String context, String topic) throws NotFoundException {
+		Optional<Conversation> optConv = Optional.empty();
+		if (topic == null || ownerRole == null) {
+			// Create a new conversation, if possible, by delegating to the system
+			requestConversationEvent.fire(new RequestConversationEvent(context, ownerdb));
+			// Now try to lookup if the event was successfully processed 
+			optConv = conversationDao.findByContextAndOwner(context, ownerdb);
+			if (optConv.isEmpty()) {
+				throw new NotFoundException(String.format("User %s has no conversation established for %s", ownerdb, context));
+			}
+		} else {
+			// Create a new conversation
+			Conversation c = new Conversation(ownerdb, ownerRole, context, topic);
+			optConv = Optional.of(conversationDao.save(c));
 		}
-    }
-
-    public void addConversationContext(Conversation conversation, String context) throws NotFoundException {
-    	addConversationContext(conversation, context, null, false);
+		return optConv.get();
     }
 
     /**
@@ -369,7 +353,34 @@ public class PublisherService {
      * @return A page of messages.
 	 * @throws BadRequestException 
 	 */
-    public @NotNull PagedResult<Conversation> listConversations(String context, String owner, boolean actualOnly, boolean archivedOnly, Integer maxResults, Integer offset) throws BadRequestException {
+    public @NotNull PagedResult<Conversation> listConversations(ConversationFilter filter, Cursor cursor) throws BadRequestException {
+    	filter.validate();
+    	cursor.validate(MAX_RESULTS, 0);
+    	// Get the total count
+    	PagedResult<Long> prs = conversationDao.listConversations(filter, Cursor.COUNTING_CURSOR);
+    	List<Conversation> conversations = null;
+    	if (!cursor.isCountingQuery()) {
+    		// Get the actual data
+        	PagedResult<Long> cids = conversationDao.listConversations(filter, cursor);
+        	conversations = conversationDao.loadGraphs(cids.getData(), Conversation.FULL_ENTITY_GRAPH, Conversation::getId);
+    	}
+    	return new PagedResult<>(conversations, cursor, prs.getTotalCount());
+    }
+
+	/**
+	 * Lists the conversations of a user for the inbox display. Each conversation refers to the most recent message.
+	 * Notification only messages are ignored.
+	 * @param owner the owner of the conversation
+	 * @param actualOnly If true then list only the actual conversations, i.e. those that are not archived yet.   
+	 * @param archivedOnly If true then list only the archived conversations.
+	 * @param sortDirection Dor4ection of the sort (on recent message creation)   
+     * @param maxResults for paging: maximum number of results per page.
+     * @param offset for paging: zero-based offset in the result.  
+     * @return A page of messages.
+	 * @throws BadRequestException 
+	 */
+    public @NotNull PagedResult<Conversation> listConversationsForInbox(CommunicatorUser owner, boolean actualOnly, 
+    		boolean archivedOnly, SortDirection sortDir, Integer maxResults, Integer offset) throws BadRequestException {
         if (maxResults == null) {
         	maxResults = MAX_RESULTS;
         }
@@ -378,18 +389,20 @@ public class PublisherService {
         }
         if (owner == null) {
         	// The paging does not work with owner null, because of the inversion of message --> conversation
-        	// To get it to work, something must be done to invert it. Not requried right now.
+        	// To get it to work, something must be done to invert it. Not required right now.
         	throw new BadRequestException("The owner of the conversation is a mandatory parameter");
         }
         if (actualOnly && archivedOnly) {
         	throw new BadRequestException("You cannot have actualOnly AND archiveOnly at the same time");
         }
     	// Get the total count
-    	PagedResult<Long> prs = messageDao.listTopMessagesByConversations(context, owner, actualOnly, archivedOnly, 0, offset);
+    	PagedResult<Long> prs = messageDao.listTopMessagesByConversations(null, owner, 
+    			actualOnly, archivedOnly, sortDir, 0, offset);
     	List<Message> messages = null;
     	if (maxResults > 0) {
     		// Get the actual data
-        	PagedResult<Long> mids = messageDao.listTopMessagesByConversations(context, owner, actualOnly, archivedOnly, maxResults, offset);
+        	PagedResult<Long> mids = messageDao.listTopMessagesByConversations(null, owner, 
+        			actualOnly, archivedOnly, sortDir, maxResults, offset);
         	messages = messageDao.loadGraphs(mids.getData(), Message.MESSAGE_ENVELOPES_ENTITY_GRAPH, Message::getId);
     	} else {
     		messages = Collections.emptyList();
@@ -399,13 +412,17 @@ public class PublisherService {
     	List<Conversation> conversations = new ArrayList<>();
     	for (Message msg: messages) {
     		Conversation c = msg.getEnvelopes().stream()
-    				.filter(env -> owner.equals(env.getConversation().getOwner().getManagedIdentity()))
+    				.filter(env -> owner.equals(env.getConversation().getOwner()))
     				.findFirst()
     				.orElseThrow(() -> new IllegalStateException("Expected an envelope for owner: " + owner))
     				.getConversation();
     		conversations.add(c);
     		c.setRecentMessage(msg);
     	}
+    	Map<Long, Conversation> cMap = conversations.stream()
+    			.collect(Collectors.toMap(Conversation::getId, Function.identity()));
+    	List<UnreadMessagesCount> umsgCount = envelopeDao.countUnreadMessages(cMap.keySet());
+    	umsgCount.forEach(uc -> cMap.get(uc.conversationId).setUnreadCount(uc.unreadCount.intValue()));
     	return new PagedResult<>(conversations, maxResults, offset, prs.getTotalCount());
     }
 
@@ -423,6 +440,55 @@ public class PublisherService {
     	messageDao.merge(message);
     }
 
+    private CommunicatorUser lookupUser(NetMobielUser recipient) throws NotFoundException {
+    	return userDao.findByManagedIdentity(recipient.getManagedIdentity())
+    			.orElseThrow(() -> new NotFoundException("No such communicator user: " + recipient.getManagedIdentity()));
+    }
+    
+    public boolean isValidForMobileMessaging(NetMobielUser user) throws NotFoundException {
+    	CommunicatorUser recipient = lookupUser(user);
+    	boolean isValid = false;
+	    // The delegator needs to have a number that can receive an SMS. We require a mobile number.
+	    if (! StringUtils.isAllBlank(recipient.getPhoneNumber())) {
+		    if (messageBirdClient.isMobileNumber(recipient.getPhoneNumber(), recipient.getCountryCode())) {
+		    	isValid = true;
+		    }
+	    }
+	    return isValid;
+    }
+
+    public String sendTextMessage(NetMobielUser user, String text) throws BadRequestException, NotFoundException {
+    	CommunicatorUser recipient = lookupUser(user);
+		String rcpPhoneNr = messageBirdClient.formatPhoneNumberTechnical(recipient.getPhoneNumber(), recipient.getCountryCode());
+		return messageBirdClient.sendSMS(null, text, new String[] { rcpPhoneNr });
+	}
+	
+	public String sendVoiceMessage(NetMobielUser user, String text) throws BadRequestException, NotFoundException {
+    	CommunicatorUser recipient = lookupUser(user);
+		String rcpPhoneNr = messageBirdClient.formatPhoneNumberTechnical(recipient.getPhoneNumber(), recipient.getCountryCode());
+		return messageBirdClient.sendVoiceMessage(null, text, new String[] { rcpPhoneNr }, recipient.getLanguageCode());
+	}
+
+    public Object getMessageBirdMessage(String messageId) throws NotFoundException {
+		return messageBirdClient.getMessage(messageId);
+    }
+
+    /**
+     * Verify the actual conversations. 
+     */
+	@Schedule(info = "Archive conversations", hour = "5", minute = "0", second = "0", persistent = false /* non-critical job */)
+	public void archiveConversations() {
+		// Get the list of actual inbox conversations
+		// Could also be done with a bulk update query, but I can't think about the exact JPL query needed.
+		Instant history = Instant.now().minusSeconds(3600 * 24 * ARCHIVE_DAYS);
+		try {
+			int count = conversationDao.archiveConversations(history);
+			logger.info(String.format("Archived conversations before %s: %d", history, count));
+		} catch (Exception e) {
+			logger.error("Error archiving the conversations", e);
+		}
+	}
+	
     /**
      * Updates the acknowledgement time of a message, meaning that the user has read the message.
      * The front-end should call this method explicitly when the user has read the message. 'Unreading' is also 
@@ -438,7 +504,7 @@ public class PublisherService {
 	    	if (recipient == null) {
 	    		throw new BadRequestException("recipient is a mandatory parameter");
 	    	}
-	    	Envelope envdb = envelopeDao.findByMessageAndRecipient(messageId, recipient.getManagedIdentity());
+	    	Envelope envdb = envelopeDao.findByMessageAndRecipient(messageId, recipient);
 	    	envdb.setAckTime(ackTime);
 	    	envelopeDao.merge(envdb);
     	} catch (NoResultException ex) {
@@ -446,74 +512,11 @@ public class PublisherService {
     	}
     }
 
-    public boolean isValidForMobileMessaging(Profile profile) {
-    	boolean isValid = false;
-	    // The delegator needs to have a number that can receive an SMS. We require a mobile number.
-	    if (! StringUtils.isAllBlank(profile.getPhoneNumber())) {
-		    if (messageBirdClient.isMobileNumber(profile.getPhoneNumber(), profile.getDefaultCountry())) {
-		    	isValid = true;
-		    }
-	    }
-	    return isValid;
-    }
-
-    public String sendTextMessage(String text, Profile recipient) throws BadRequestException {
-		String rcpPhoneNr = messageBirdClient.formatPhoneNumberTechnical(recipient.getPhoneNumber(), recipient.getDefaultCountry());
-		return messageBirdClient.sendSMS(null, text, new String[] { rcpPhoneNr });
-	}
-	
-    public String sendTextMessage(String managedIdentity, String text) throws NotFoundException, BadRequestException {
-		Profile profile = profileManager.getFlatProfileByManagedIdentity(managedIdentity);
-		return sendTextMessage(text, profile);
-    }
-
-	public String sendVoiceMessage(String text, Profile recipient) throws BadRequestException {
-		String rcpPhoneNr = messageBirdClient.formatPhoneNumberTechnical(recipient.getPhoneNumber(), recipient.getDefaultCountry());
-		return messageBirdClient.sendVoiceMessage(null, text, new String[] { rcpPhoneNr }, "nl-nl");
-	}
-
-	public String sendVoiceMessage(String managedIdentity, String text) throws NotFoundException, BadRequestException {
-		Profile profile = profileManager.getFlatProfileByManagedIdentity(managedIdentity);
-		return sendVoiceMessage(text, profile);
-    }
-    
-    public Object getMessageBirdMessage(String messageId) throws NotFoundException {
-		return messageBirdClient.getMessage(messageId);
-    }
-
     /**
-     * Informs any delegator of the specified user with a message.
-     * @param delegator The person who possibly has his travels managed by someone else.
-     * @param message The message to deliver.
-     * @param deliveryMode the delivery mode: message, notification or both.
+     * Acknowledge the whole conversation, i.e., mark all envelopes owned by the conversation as acknowledges.
+     * @param conv the conversation.
      */
-    @Asynchronous
-    public void informDelegates(NetMobielUser delegator, String message, DeliveryMode deliveryMode) {
-		try {
-			DelegationFilter filter = new DelegationFilter();
-			Cursor cursor = new Cursor(10, 0);
-			filter.setDelegator(new Profile(delegator.getManagedIdentity()));
-			PagedResult<Delegation> delegations = delegationManager.listDelegations(filter, cursor, Delegation.DELEGATE_PROFILE_ENTITY_GRAPH);
-			if (delegations.getTotalCount() > cursor.getMaxResults()) {
-				logger.warn("Too many delegates detected: # > " + cursor.getMaxResults());
-			}
-			if (delegations.getCount() > 0) {
-				String topic = MessageFormat.format("Beheer van reizen van {0}", delegator.getName());
-				Message msg = new Message();
-				// The context of the 'sender': The profile of the delegator (the common denominator)
-				msg.setContext(delegations.getData().get(0).getDelegatorRef());
-				msg.setDeliveryMode(deliveryMode);
-				msg.setBody(message);
-				// Start or continue conversation for all recipients with delegation context
-				// Delegation conversations are by definition targeting a passenger role.
-				delegations.getData().forEach(delegation -> msg.addRecipient(
-						lookupOrCreateConversation(delegation.getDelegate(), UserRole.DELEGATE, delegation.getUrn(), topic, false), delegation.getUrn()
-				));
-				publish(msg);
-			}
-		} catch (BusinessException ex) {
-			logger.error("Cannot inform delegates: " + String.join("\n\t", ExceptionUtil.unwindException(ex)));
-		}
-
-    }
+	public void acknowledgeConversation(Conversation conv) {
+		envelopeDao.acknowledge(conv, Instant.now());
+	}
 }

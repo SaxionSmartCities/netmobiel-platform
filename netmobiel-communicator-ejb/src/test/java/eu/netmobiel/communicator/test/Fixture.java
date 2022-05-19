@@ -24,18 +24,18 @@ public class Fixture {
 
     public static Message createMessage(String body, String context, DeliveryMode mode, String creationTimeIso, Conversation sender, Envelope... rcpEnvelopes) {
     	Instant creationTime = Instant.parse(creationTimeIso);
-    	Message m = new Message();
-    	m.setBody(body);
-    	m.setContext(context);
-    	m.setCreatedTime(creationTime);
-    	m.setDeliveryMode(mode);
+    	Message.MessageBuilder mb = Message.create()
+    	.withBody(body)
+    	.withContext(context)
+    	.withCreatedTime(creationTime)
+    	.withDeliveryMode(mode);
     	Arrays.stream(rcpEnvelopes)
-    			.forEach(env -> m.addRecipient(env));
+    			.forEach(env -> mb.addEnvelope(env));
     	if (sender != null) {
     		// Chat message
-    		m.addSender(sender, context);
+    		mb.withSender(context, sender);
     	}
-    	return m;
+    	return mb.buildMessage();
     }
 
     public static Envelope createEnvelope(String context, String pushTimeIso, String ackTimeIso, Conversation recipient) {

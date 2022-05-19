@@ -1,5 +1,6 @@
 package eu.netmobiel.communicator.api.mapping;
 
+import org.mapstruct.Builder;
 import org.mapstruct.Mapper;
 import org.mapstruct.Mapping;
 import org.mapstruct.ReportingPolicy;
@@ -16,8 +17,9 @@ import eu.netmobiel.communicator.model.Conversation;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
-	uses = { JavaTimeMapper.class, UserMapper.class, MessageMapper.class })
+	uses = { JavaTimeMapper.class, UserMapper.class, MessageMapper.class }, builder = @Builder(disableBuilder = true))
 @ConversationMapperQualifier
+
 public abstract class ConversationMapper {
 
 	// Domain --> API 
@@ -30,7 +32,10 @@ public abstract class ConversationMapper {
 	@Mapping(target = "conversationRef", source = "urn")
 	public abstract eu.netmobiel.communicator.api.model.Conversation mapShallow(Conversation source);
 	
+	//API --> Domain
 	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "recentMessage", ignore = true)
+	@Mapping(target = "unreadCount", ignore = true)
 	public abstract Conversation map(eu.netmobiel.communicator.api.model.Conversation source);
 
 }

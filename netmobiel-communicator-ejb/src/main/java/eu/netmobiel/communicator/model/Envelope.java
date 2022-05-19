@@ -94,7 +94,7 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "join conversation c on c.id = e.conversation "
 	        		+ "join message m on m.id = e.message "
 	        		+ "join cm_user u on u.id = c.owner "
-	        		+ "where e.sender = false and e.push_time >= ? and e.push_time < ? and e.context like 'urn:nb:pn:tripplan:' " 
+	        		+ "where e.sender = false and e.push_time >= ? and e.push_time < ? and e.context like 'urn:nb:pn:tripplan:%' " 
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
@@ -108,7 +108,7 @@ import eu.netmobiel.commons.report.NumericReportValue;
 	        		+ "join conversation c on c.id = e.conversation "
 	        		+ "join message m on m.id = e.message "
 	        		+ "join cm_user u on u.id = c.owner "
-	        		+ "where e.sender = false and e.ack_time >= ? and e.ack_time < ? and e.push_time is not null and e.context like 'urn:nb:pn:tripplan:' "
+	        		+ "where e.sender = false and e.ack_time >= ? and e.ack_time < ? and e.push_time is not null and e.context like 'urn:nb:pn:tripplan:%' "
 	        		+ "group by u.managed_identity, year, month "
 	        		+ "order by u.managed_identity, year, month",
 	        resultSetMapping = Envelope.USER_YEAR_MONTH_COUNT_MAPPING),
@@ -168,8 +168,8 @@ public class Envelope implements Serializable {
 	
 	/**
 	 * The context of the message for the participant. The context is a urn, referring to an object in the system.
-	 * This is the (non-optional) context of the message as conceived by the recipient.
-	 * If the receiver shares the context with the sender, refer to the context of the message.
+	 * This is the (non-optional) context of the message as perceived by the recipient.
+	 * The context of the message itself is about the system object that causes the message.
 	 */
 	@Size(max = 32)
 	@NotNull

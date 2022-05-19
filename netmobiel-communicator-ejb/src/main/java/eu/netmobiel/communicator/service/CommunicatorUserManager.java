@@ -1,5 +1,6 @@
 package eu.netmobiel.communicator.service;
 
+import java.time.Instant;
 import java.util.Optional;
 
 import javax.ejb.ConcurrencyManagement;
@@ -16,6 +17,7 @@ import eu.netmobiel.commons.service.UserManager;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.repository.CommunicatorUserDao;
+import eu.netmobiel.communicator.repository.EnvelopeDao;
 import eu.netmobiel.profile.service.ProfileManager;
 
 @Singleton
@@ -26,7 +28,10 @@ public class CommunicatorUserManager extends UserManager<CommunicatorUserDao, Co
     @Inject
     private CommunicatorUserDao userDao;
 
-	@Inject
+    @Inject
+    private EnvelopeDao envelopeDao;
+
+    @Inject
     protected Logger log;
 
 	@Inject
@@ -56,5 +61,23 @@ public class CommunicatorUserManager extends UserManager<CommunicatorUserDao, Co
 	protected NetMobielUser findExternalUser(String managedIdentity) throws NotFoundException {
 		return profileManager.getFlatProfileByManagedIdentity(managedIdentity);
 	}
+
+	public CommunicatorUser registerOrUpdateUser(NetMobielUser nbuser, String fcmToken, Instant fcmTokenTimestamp, String phoneNr, String countryCode) {
+		CommunicatorUser usr = super.registerOrUpdateUser(nbuser);
+		usr.setFcmToken(fcmToken);
+		usr.setFcmTokenTimestamp(fcmTokenTimestamp);
+		usr.setPhoneNumber(phoneNr);
+		usr.setCountryCode(countryCode);
+		return usr;
+	}
+
+	public CommunicatorUser getUserAndStatus(Long userId) throws NotFoundException {
+		CommunicatorUser usr = getUser(userId);
+		usr.setUnreadMessageCount(envelopeDao.countUnreadMessages(usr));
+		return usr;
+	}
 	
+	public CommunicatorUser updateUser(CommunicatorUser user) {
+		return userDao.merge(user);
+	}
 }
