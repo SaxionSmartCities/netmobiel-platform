@@ -243,16 +243,18 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     	dbusr.setGivenName(nbuser.getGivenName());
     }
     
-    public void registerOrUpdateUser(NetMobielUser nbuser) {
+    public T registerOrUpdateUser(NetMobielUser nbuser) {
     	T usr = findOrRegisterUser(nbuser);
     	copyUserData(usr, nbuser);
+    	return usr;
     }
 
-    public void findAndUpdateUser(NetMobielUser nbuser) {
+    public Optional<T> findAndUpdateUser(NetMobielUser nbuser) {
     	Optional<T> usr = findByManagedIdentity(nbuser.getManagedIdentity());
     	if (usr.isPresent()) {
     		copyUserData(usr.get(), nbuser);
     	}
+    	return usr;
     }
 
     protected abstract Optional<String> resolveUrnPrefix(NetMobielModule module);
