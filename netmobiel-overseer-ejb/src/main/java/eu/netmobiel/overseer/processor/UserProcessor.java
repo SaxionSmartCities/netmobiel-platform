@@ -9,7 +9,6 @@ import javax.inject.Inject;
 import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.commons.annotation.Created;
 import eu.netmobiel.commons.annotation.Updated;
-import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.communicator.service.CommunicatorUserManager;
 import eu.netmobiel.planner.service.PlannerUserManager;
@@ -36,18 +35,19 @@ public class UserProcessor {
     @Inject
     private RideshareUserManager rideshareUserManager;
     
+    public void syncAllUserDatabases(Profile profile) {
+    	bankerUserManager.registerOrUpdateUser(profile);
+    	communicatorUserManager.registerOrUpdateUser(profile, profile.getFcmToken(), 
+    			profile.getFcmTokenTimestamp(), profile.getPhoneNumber(), profile.getDefaultCountry());
+    	plannerUserManager.registerOrUpdateUser(profile);
+    	// A passenger is also known in the rideshare
+       	rideshareUserManager.registerOrUpdateUser(profile);
+    }
+    
     public void onUserCreation(@Observes(during = TransactionPhase.IN_PROGRESS) @Created Profile profile) {
     	syncAllUserDatabases(profile);
     }
 
-    public void syncAllUserDatabases(NetMobielUser nbuser) {
-    	bankerUserManager.registerOrUpdateUser(nbuser);
-    	communicatorUserManager.registerOrUpdateUser(nbuser);
-    	plannerUserManager.registerOrUpdateUser(nbuser);
-    	// A passenger is also known in the rideshare
-       	rideshareUserManager.registerOrUpdateUser(nbuser);
-    }
-    
     public void onUserUpdated(@Observes(during = TransactionPhase.IN_PROGRESS) @Updated Profile profile) {
     	syncAllUserDatabases(profile);
     }

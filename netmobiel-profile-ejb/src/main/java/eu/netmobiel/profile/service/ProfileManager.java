@@ -40,7 +40,6 @@ import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.NetMobielUser;
-import eu.netmobiel.commons.model.NetMobielUserImpl;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.EventFireWrapper;
@@ -295,6 +294,12 @@ public class ProfileManager {
     	return profile;
     }
 
+	private static boolean profileSyncNeeded(Profile oldProfile, Profile newProfile) {
+		return !newProfile.isSame(oldProfile) ||
+				!Objects.equals(oldProfile.getPhoneNumber(), newProfile.getPhoneNumber()) ||
+				!Objects.equals(oldProfile.getDefaultCountry(), newProfile.getDefaultCountry());
+	}
+
     /**
      * Updates all fields of the profile.
      * @param managedId
@@ -307,18 +312,17 @@ public class ProfileManager {
     	SearchPreferences searchPrefsDb = dbprofile.getSearchPreferences();
     	RidesharePreferences ridePrefsDb = dbprofile.getRidesharePreferences();
     	// Profile is detached at this point
-		NetMobielUser newuser = new NetMobielUserImpl(managedId, newProfile.getGivenName(), newProfile.getFamilyName(), newProfile.getEmail());
 		Optional<NetMobielUser> olduser = keycloakDao.getUser(managedId);
 		if (! olduser.isPresent()) {
 			throw new NotFoundException("No such user: " + managedId);
 		}
-		final boolean userNameChanged = ! newuser.isSame(olduser.get());   
-		if (userNameChanged) {
+		final boolean keycloakAttribsChanged = ! newProfile.isSame(olduser.get());   
+		if (keycloakAttribsChanged) {
 			// Some attributes differ, update the user in Keycloak.
 			if (logger.isDebugEnabled()) {
-				logger.debug("Update user attributes in Keycloak: " + newuser);
+				logger.debug("Update user attributes in Keycloak: " + newProfile);
 			}
-			keycloakDao.updateUser(newuser);
+			keycloakDao.updateUser(newProfile);
 		}
     	// Assure key attributes are set
     	newProfile.setManagedIdentity(managedId);
@@ -337,7 +341,8 @@ public class ProfileManager {
 		
 		newProfile.setPhoneNumber(formatPhoneNumber(newProfile.getPhoneNumber(), newProfile.getHomeAddress().getCountryCode()));
 		
-
+		// Do we need to propagate changes to other services?
+		boolean propagateChanges = profileSyncNeeded(dbprofile, newProfile);
 		// After the merge the new profile and the dbprofile are the same, they are merged!
 		dbprofile = profileDao.merge(newProfile);
 		// Transient properties are null now: dbprofile.getSearchPreferences, dbprofile.getRidesharePreferences
@@ -375,7 +380,7 @@ public class ProfileManager {
 		} else {
 			// Ignore, we dont't remove preferences once they are set.
 		}
-		if (userNameChanged) {
+		if (propagateChanges) {
     		EventFireWrapper.fire(profileUpdatedEvent, dbprofile);
 		}		
 		evaluateRewardTriggers(newProfile, plusChanged, ageChanged, age);
