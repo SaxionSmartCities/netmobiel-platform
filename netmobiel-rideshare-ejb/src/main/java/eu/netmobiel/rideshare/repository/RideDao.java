@@ -393,4 +393,43 @@ public class RideDao extends AbstractDao<Ride, Long> {
         return new PagedResult<>(results, maxResults, offset, totalCount);
     }
 
+    /**
+	 * Count for a specific user the number of occasions (i.e, at each recurrent ride) how often there were at least x recurrent rides 
+	 * within y days, given a date range
+     * @param driver the driver
+     * @param firstDate The date to start the evaluation
+     * @param lastDate The last date (exclusive) 
+     * @param evaluationPeriod the size of the evaluation period in days, e.g. 30.
+     * @param minimumRides the minimum number of rides to find in the period.
+     * @return if true than at 1 period has at least the minum number of recurrent rides. 
+     */
+	public boolean matchesRecurrentRideCondition(RideshareUser driver, Instant firstDate, 
+			Instant lastDate, int evaluationPeriod, int minimumRides) {
+		try {
+	        Object count = em.createNativeQuery("SELECT count(placed)\\:\\:integer FROM ( "
+					+ "	SELECT r.departure_time, "
+					+ "		(SELECT count(*) FROM ride rs "
+					+ "		 WHERE rs.departure_time >= r.departure_time AND "
+					+ "		 	rs.departure_time < r.departure_time + make_interval(days => ?) "
+					+ "		 	AND rs.ride_template IS NOT null AND rs.driver = r.driver "
+					+ "		 HAVING count(*) >= ? "
+					+ "		 ) AS placed"
+					+ "	FROM ride r "
+					+ "	WHERE r.ride_template IS NOT null AND r.driver = ? "
+					+ "		AND r.departure_time > ? AND r.departure_time < COALESCE(null, ?)\\:\\:date "
+					+ ") rec_rides")
+	        		.setParameter(1, evaluationPeriod)
+	        		.setParameter(2, minimumRides)
+	        		.setParameter(3, driver.getId())
+	        		.setParameter(4, firstDate)
+	        		.setParameter(5, lastDate)
+	        		.getSingleResult();
+	        return (Integer)count > 0;
+		} catch (Exception ex) {
+			logger.error("Error in matchesRecurrentRideCondition", ex);
+			throw ex;
+		}
+    }
+		
+
 }

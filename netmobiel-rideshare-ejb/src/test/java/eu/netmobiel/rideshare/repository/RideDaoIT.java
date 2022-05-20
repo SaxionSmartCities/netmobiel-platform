@@ -495,4 +495,26 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
     	assertEquals(r3.getId(), rides.get(0).getId());
     }
 
+    @Test
+    public void testMatchesRecurrentRideCondition() {
+    	Instant firstDate = Instant.parse("2022-01-01T01:00:00Z");
+    	Instant lastDate = Instant.parse("2023-01-01T01:00:00Z");
+    	boolean foundOne = rideDao.matchesRecurrentRideCondition(car1.getDriver(), firstDate, lastDate, 30, 4);
+    	assertFalse(foundOne);
+    	
+    	// Create some rides
+    	Instant dt1 = Instant.parse("2022-05-20T15:00:00Z");
+    	RideTemplate t = Fixture.createTemplate(car1, dt1, null);
+    	em.persist(t);
+    	saveNewRide(t.createRide());
+    	saveNewRide(t.createRide());
+    	saveNewRide(t.createRide());
+    	foundOne = rideDao.matchesRecurrentRideCondition(car1.getDriver(), firstDate, lastDate, 30, 4);
+    	assertFalse(foundOne);
+    	
+    	saveNewRide(t.createRide());
+    	foundOne = rideDao.matchesRecurrentRideCondition(car1.getDriver(), firstDate, lastDate, 30, 4);
+    	assertTrue(foundOne);
+
+    }
 }

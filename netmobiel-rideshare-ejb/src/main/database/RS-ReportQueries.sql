@@ -43,3 +43,36 @@ where rt.departure_time > '2022-04-02';
 select count(*) from ride r
 where r.departure_time > '2022-04-02' and ride_template is not null;
 
+
+-- Count for all user the number of occasions (i.e, at each recurrent ride) how often there were at least 4 recurrent rides 
+-- within 30 days, given a date range
+SELECT driver, count(placed), (SELECT u.email FROM rs_user u WHERE driver = u.id)  FROM (
+	SELECT r.driver as driver, r.departure_time, 
+		(SELECT count(*) FROM ride rs 
+		 WHERE rs.departure_time >= r.departure_time AND 
+			rs.departure_time < r.departure_time + interval '30 days'
+			AND rs.ride_template IS NOT null AND rs.driver = r.driver  
+		 HAVING count(*) >= 4
+		 ) AS placed
+	FROM ride r 
+	WHERE r.ride_template IS NOT null
+		AND r.departure_time > '2022-01-01' AND r.departure_time < COALESCE(null, '2022-07-01')::date
+	GROUP BY r.driver, r.departure_time
+	ORDER by r.departure_time asc
+) evcount GROUP BY driver
+;
+
+-- Count for a specifc user the number of occasions (i.e, at each recurrent ride) how often there were at least 4 recurrent rides 
+-- within 30 days, given a date range
+SELECT count(placed) FROM (
+	SELECT r.departure_time, 
+		(SELECT count(*) FROM ride rs 
+		 WHERE rs.departure_time >= r.departure_time AND 
+		 	rs.departure_time < r.departure_time + interval '30 days'
+		 	AND rs.ride_template IS NOT null AND rs.driver = r.driver  
+		 HAVING count(*) >= 4
+		 ) AS placed
+	FROM ride r 
+	WHERE r.ride_template IS NOT null AND r.driver = 1 
+		AND r.departure_time > '2022-01-01' AND r.departure_time < COALESCE(null, '2022-07-01')::date
+) rec_rides30;

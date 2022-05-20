@@ -62,6 +62,20 @@ import eu.netmobiel.rideshare.util.RideshareUrnHelper;
         		+ "group by u.managed_identity, year, month "
         		+ "order by u.managed_identity, year, month",
         resultSetMapping = Ride.RIDE_USER_YEAR_MONTH_COUNT_MAPPING),
+//	@NamedNativeQuery(
+//			name = Ride.MOVING_RECURRENT_RIDES_COUNT_QUERY,
+//			query = "SELECT count(placed) FROM ( "
+//					+ "	SELECT r.departure_time, "
+//					+ "		(SELECT count(*) FROM ride rs "
+//					+ "		 WHERE rs.departure_time >= r.departure_time AND "
+//					+ "		 	rs.departure_time < r.departure_time + interval '? days' "
+//					+ "		 	AND rs.ride_template IS NOT null AND rs.driver = r.driver "
+//					+ "		 HAVING count(*) >= ? "
+//					+ "		 ) AS placed"
+//					+ "	FROM ride r "
+//					+ "	WHERE r.ride_template IS NOT null AND r.driver = ? "
+//					+ "		AND r.departure_time > ? AND r.departure_time < COALESCE(null, ?)::date\r\n"
+//					+ ") rec_rides"),
 })
 @SqlResultSetMappings({
 	@SqlResultSetMapping(
@@ -170,7 +184,7 @@ public class Ride extends RideBase implements Serializable {
 	
 	public static final String RIDE_USER_YEAR_MONTH_COUNT_MAPPING = "RSRideUserYearMonthCountMapping";
 	public static final String RGC_1_OFFERED_RIDES_COUNT = "ListOfferedRidesCount";
-
+//	public static final String MOVING_RECURRENT_RIDES_COUNT_QUERY = "MovingRecurrentRidesCountQuery";
 	/**
 	 * The duration of the departing state.
 	 */
