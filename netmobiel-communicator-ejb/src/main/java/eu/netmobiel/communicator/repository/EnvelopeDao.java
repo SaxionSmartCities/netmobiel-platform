@@ -2,6 +2,7 @@ package eu.netmobiel.communicator.repository;
 
 import java.time.Instant;
 import java.util.Collection;
+import java.util.Collections;
 import java.util.EnumSet;
 import java.util.List;
 
@@ -66,6 +67,9 @@ public class EnvelopeDao extends AbstractDao<Envelope, Long> {
 	 * @return a list of UnreadMessagesCount objects.
 	 */
 	public List<UnreadMessagesCount> countUnreadMessages(Collection<Long> conversationIds) {
+		if (conversationIds.isEmpty()) {
+			return Collections.emptyList();
+		}
 		String q = "select new eu.netmobiel.communicator.repository.EnvelopeDao$UnreadMessagesCount(e.conversation.id, count(e)) " +
 				"from Envelope e where e.conversation.id in :conversationIds and e.sender = false and e.ackTime is null and " +
 				"e.message.deliveryMode in :deliveryModes group by e.conversation";
