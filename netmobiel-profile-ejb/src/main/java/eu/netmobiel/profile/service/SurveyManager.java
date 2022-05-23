@@ -88,14 +88,11 @@ public class SurveyManager {
     	Profile profile = profileDao.getReferenceByManagedIdentity(managedId)
     			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
 		Optional<Survey> survey = surveyDao.findSurveyToTake(Instant.now(), profile.getCreationTime());
-		Optional<SurveyInteraction> si = null;
-		if (! survey.isPresent()) {
-			// No active survey
-			si = Optional.empty();
-		} else {
+		Optional<SurveyInteraction> si = Optional.empty();
+		if (survey.isPresent()) {
 			// Check whether the survey interaction has already been created
 			si = surveyInteractionDao.findInteraction(survey.get(), profile);
-			if (! si.isPresent()) {
+			if (si.isEmpty()) {
 				SurveyInteraction sia = new SurveyInteraction(survey.get(), profile, profile.getCreationTime());
 				surveyInteractionDao.save(sia);
 				// A fresh interaction

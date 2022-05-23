@@ -480,7 +480,7 @@ public class PublisherService {
 	public void archiveConversations() {
 		// Get the list of actual inbox conversations
 		// Could also be done with a bulk update query, but I can't think about the exact JPL query needed.
-		Instant history = Instant.now().minusSeconds(3600 * 24 * ARCHIVE_DAYS);
+		Instant history = Instant.now().minusSeconds(3600L * 24 * ARCHIVE_DAYS);
 		try {
 			int count = conversationDao.archiveConversations(history);
 			logger.info(String.format("Archived conversations before %s: %d", history, count));

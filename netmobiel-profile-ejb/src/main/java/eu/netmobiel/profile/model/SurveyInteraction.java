@@ -223,7 +223,7 @@ public class SurveyInteraction extends ReferableObject implements Serializable {
 		Survey s = getSurvey();
 		Instant expTime = s.getEndTime();
 		if (s.getTakeIntervalHours() != null) {
-			expTime = triggerTime.plusSeconds((s.getTakeDelayHours() + s.getTakeIntervalHours()) * 3600);
+			expTime = triggerTime.plusSeconds((s.getTakeDelayHours() + s.getTakeIntervalHours()) * 3600L);
 			if (s.getEndTime() != null && expTime.isAfter(s.getEndTime())) {
 				expTime = s.getEndTime(); 
 			}

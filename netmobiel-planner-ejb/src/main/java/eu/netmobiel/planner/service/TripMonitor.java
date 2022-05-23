@@ -249,7 +249,7 @@ public class TripMonitor {
 			// 3. the payment decision by the Overseer
 			if (oldState != TripState.VALIDATING) {
 				// Probably from arriving or from completed. Start or restart the validation, from now.
-				trip.setValidationExpirationTime(now.plus(VALIDATION_INTERVAL.multipliedBy(1 + MAX_REMINDERS)));
+				trip.setValidationExpirationTime(now.plus(VALIDATION_INTERVAL.multipliedBy(1L + MAX_REMINDERS)));
 				trip.setValidationReminderTime(now.plus(VALIDATION_INTERVAL));
 				nextTimeout = trip.getValidationReminderTime(); 
 			} else {

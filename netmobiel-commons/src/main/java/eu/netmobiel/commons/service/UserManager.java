@@ -260,7 +260,7 @@ public abstract class UserManager<D extends UserDao<T>, T extends User> {
     protected abstract Optional<String> resolveUrnPrefix(NetMobielModule module);
 
     public Optional<T> resolveUrn(String userRef) throws BadRequestException {
-    	Optional<T> user = null;
+    	Optional<T> user;
     	if (UrnHelper.isUrn(userRef)) {
         	NetMobielModule module = NetMobielModule.getEnum(UrnHelper.getService(userRef));
     	    if (module == NetMobielModule.KEYCLOAK) {

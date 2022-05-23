@@ -408,15 +408,15 @@ public class RideDao extends AbstractDao<Ride, Long> {
 		try {
 	        Object count = em.createNativeQuery("SELECT count(placed)\\:\\:integer FROM ( "
 					+ "	SELECT r.departure_time, "
-					+ "		(SELECT count(*) FROM ride rs "
-					+ "		 WHERE rs.departure_time >= r.departure_time AND "
-					+ "		 	rs.departure_time < r.departure_time + make_interval(days => ?) "
-					+ "		 	AND rs.ride_template IS NOT null AND rs.driver = r.driver "
-					+ "		 HAVING count(*) >= ? "
-					+ "		 ) AS placed"
+					+ "	 (SELECT count(*) FROM ride rs "
+					+ "	  WHERE rs.departure_time >= r.departure_time AND "
+					+ "	   rs.departure_time < r.departure_time + make_interval(days => ?) "
+					+ "     AND rs.ride_template IS NOT null AND rs.driver = r.driver "
+					+ "   HAVING count(*) >= ? "
+					+ "	) AS placed"
 					+ "	FROM ride r "
 					+ "	WHERE r.ride_template IS NOT null AND r.driver = ? "
-					+ "		AND r.departure_time > ? AND r.departure_time < COALESCE(null, ?)\\:\\:date "
+					+ "	 AND r.departure_time > ? AND r.departure_time < COALESCE(null, ?)\\:\\:date "
 					+ ") rec_rides")
 	        		.setParameter(1, evaluationPeriod)
 	        		.setParameter(2, minimumRides)

@@ -187,7 +187,7 @@ public class RideMonitor {
 			//        the validation reminder could also be sent by the trip monitor. Decide (and change) later. 
 			if (oldState != RideState.VALIDATING) {
 				// Probably from arriving or from completed. Start or restart the validation, from now.
-				ride.setValidationExpirationTime(now.plus(VALIDATION_INTERVAL.multipliedBy(1 + MAX_REMINDERS)));
+				ride.setValidationExpirationTime(now.plus(VALIDATION_INTERVAL.multipliedBy(1L + MAX_REMINDERS)));
 				ride.setValidationReminderTime(now.plus(VALIDATION_INTERVAL));
 				nextTimeout = ride.getValidationReminderTime(); 
 			} else {

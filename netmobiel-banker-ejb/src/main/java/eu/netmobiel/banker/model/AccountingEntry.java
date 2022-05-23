@@ -264,7 +264,9 @@ public class AccountingEntry implements Serializable {
     }
     
     public AccountingEntry(AccountingEntryType entryType, int amount, TransactionType purpose) {
-        assert amount != 0 : "Amount of accounting entry must be nonzero";
+        if (amount == 0) {
+        	throw new IllegalArgumentException("Amount of accounting entry must be nonzero");
+        }
         this.entryType = entryType;
         this.amount = amount;
         this.purpose = purpose;

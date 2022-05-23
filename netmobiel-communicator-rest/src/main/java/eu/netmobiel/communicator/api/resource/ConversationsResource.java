@@ -47,14 +47,14 @@ public class ConversationsResource extends CommunicatorResource implements Conve
     	Response rsp = null;
 		try {
 			Conversation conversation = conversationMapper.map(apiConversation);
-			CallingContext<CommunicatorUser> callingContext = userManager.findCallingContext(securityIdentity);
+			CallingContext<CommunicatorUser> callingContext = communicatorUserManager.findCallingContext(securityIdentity);
 			CommunicatorUser owner = callingContext.getEffectiveUser();
 			if (apiConversation.getOwner() != null) {
 				if (!owner.getManagedIdentity().equals(apiConversation.getOwner().getManagedIdentity()) 
 						&& !request.isUserInRole("admin")) {
 					throw new SecurityException("You don't have the privilege to create a conversation");
 				}
-				owner = userManager.findOrRegisterUser(conversation.getOwner());
+				owner = communicatorUserManager.findOrRegisterUser(conversation.getOwner());
 			}
 			conversation.setOwner(owner);
 			// If (the topic or user role are not present, other services are requested to provide proper data.
@@ -72,7 +72,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 		try {
         	Long cid = UrnHelper.getId(Conversation.URN_PREFIX, conversationId);
         	Conversation conv = publisherService.getConversation(cid);
-			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			CallingContext<CommunicatorUser> context = communicatorUserManager.findOrRegisterCallingContext(securityIdentity);
         	allowAdminOrEffectiveUser(context, conv.getOwner());
 			rsp = Response.ok(conversationMapper.mapComplete(conv)).build();
 		} catch (BusinessException e) {
@@ -87,7 +87,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 		Response rsp = null;
 		PagedResult<Conversation> result = null;
 		try {
-			CallingContext<CommunicatorUser> callingContext = userManager.findOrRegisterCallingContext(securityIdentity);
+			CallingContext<CommunicatorUser> callingContext = communicatorUserManager.findOrRegisterCallingContext(securityIdentity);
 			CommunicatorUser owner = resolveUserReference(callingContext, ownerId);
 			allowAdminOrEffectiveUser(callingContext, owner);
 			ConversationFilter filter = new ConversationFilter(owner, "ACTUAL".equals(select), 
@@ -109,7 +109,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 			if (ownerId == null) {
 				ownerId = "me";
 			}
-			CallingContext<CommunicatorUser> callingContext = userManager.findOrRegisterCallingContext(securityIdentity);
+			CallingContext<CommunicatorUser> callingContext = communicatorUserManager.findOrRegisterCallingContext(securityIdentity);
 			CommunicatorUser owner = resolveUserReference(callingContext, ownerId);
 			allowAdminOrEffectiveUser(callingContext, owner);
 			result = publisherService.listConversationsForInbox(owner, "ACTUAL".equals(select), 
@@ -135,7 +135,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
         	Long cid = UrnHelper.getId(Conversation.URN_PREFIX, conversationId);
         	// Check whether this call is allowed
 			Conversation conv = publisherService.getConversation(cid);
-			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			CallingContext<CommunicatorUser> context = communicatorUserManager.findOrRegisterCallingContext(securityIdentity);
         	allowAdminOrEffectiveUser(context, conv.getOwner());
 
         	conv = conversationMapper.map(conversation);
@@ -157,7 +157,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 			Long convId = UrnHelper.getId(Conversation.URN_PREFIX, conversationId);
         	// Check whether this call is allowed
 			Conversation conv = publisherService.getConversation(convId);
-			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			CallingContext<CommunicatorUser> context = communicatorUserManager.findOrRegisterCallingContext(securityIdentity);
         	allowAdminOrEffectiveUser(context, conv.getOwner());
 
 			MessageFilter filter = new MessageFilter(convId, sortDir);
@@ -185,7 +185,7 @@ public class ConversationsResource extends CommunicatorResource implements Conve
 		try {
         	Long cid = UrnHelper.getId(Conversation.URN_PREFIX, conversationId);
         	Conversation conv = publisherService.getConversation(cid);
-			CallingContext<CommunicatorUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
+			CallingContext<CommunicatorUser> context = communicatorUserManager.findOrRegisterCallingContext(securityIdentity);
         	allowAdminOrEffectiveUser(context, conv.getOwner());
         	publisherService.acknowledgeConversation(conv);
 			rsp = Response.noContent().build();

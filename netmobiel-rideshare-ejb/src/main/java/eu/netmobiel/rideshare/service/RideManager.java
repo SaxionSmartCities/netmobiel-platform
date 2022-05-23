@@ -479,7 +479,7 @@ public class RideManager {
      */
     public Ride getRide(Long id) throws NotFoundException {
     	Ride ridedb = rideDao.loadGraph(id, Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such ride"));
+    			.orElseThrow(() -> new NotFoundException("No such ride: " + id));
     	// Because Hibernate cannot fetch multiple bags in one step, we retrieve the bookings separately
     	// Detach ride to avoid propagation of changes
     	rideDao.detach(ridedb);
@@ -495,7 +495,7 @@ public class RideManager {
      */
     public Ride getRideWithDriver(Long id) throws NotFoundException {
     	Ride ridedb = rideDao.loadGraph(id, Ride.RIDE_DRIVER_ENTITY_GRAPH)
-    			.orElseThrow(() -> new NotFoundException("No such ride"));
+    			.orElseThrow(() -> new NotFoundException("No such ride: " + id));
     	return ridedb;
     }
 
@@ -776,11 +776,13 @@ public class RideManager {
 								.map(b -> b.getId().toString())
 								.collect(Collectors.toList())));
 			for (Booking booking : bookings) {
-				Ride r = rideDao.loadGraph(booking.getRide().getId(), Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH).orElse(null);
+				Ride r = null;
 				try {
+			    	r = rideDao.loadGraph(booking.getRide().getId(), Ride.DETAILS_WITH_LEGS_ENTITY_GRAPH)
+			    			.orElseThrow(() -> new NotFoundException("No such ride: " + booking.getRide().getId()));
 					rideItineraryHelper.updateBookedLegs(r);
 				} catch (Exception ex) {
-					log.error(String.format("Ride r %s: %s", r.getId(), ex.toString()));
+					log.error(String.format("Error updating booked legs: %s", ex.toString()));
 				}
 			}
 		}

@@ -2,6 +2,7 @@ package eu.netmobiel.commons.util;
 
 import java.util.Arrays;
 import java.util.Base64;
+import java.util.Optional;
 
 import javax.ws.rs.BadRequestException;
 
@@ -32,13 +33,15 @@ public class ImageHelper {
 			throw new BadRequestException("Uploaded file does not have an image mimetype: " + di.mimetype);
 		}
 		di.filetype = di.mimetype.substring(di.mimetype.indexOf("/") + 1);
-		Arrays.stream(allowedFiletypes)
+		Optional<String> optAllowed = Arrays.stream(allowedFiletypes)
 			.filter(type -> type.equals(di.filetype))
-			.findFirst()
-			.orElseThrow(() -> new BadRequestException(
+			.findFirst();
+		if (!optAllowed.isPresent()) {
+			throw new BadRequestException(
 					String.format("Uploaded image type %s not supported, use one of [%s]", 
 							di.filetype, String.join(", ", allowedFiletypes))
-					));
+			);
+		}
 		String encoding = spec.length > 1 ? spec[1] : null;
 		if (encoding == null || !encoding.equals("base64")) {
 			throw new BadRequestException("Uploaded image encoding not supported: " + encoding);

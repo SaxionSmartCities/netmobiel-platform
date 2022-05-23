@@ -26,10 +26,10 @@ public class UsersResource extends CommunicatorResource implements UsersApi {
 	public Response getUser(String xDelegator, String userId) {
     	Response rsp = null;
 		try {
-			CallingContext<CommunicatorUser> callingContext = userManager.findOrRegisterCallingContext(securityIdentity);
+			CallingContext<CommunicatorUser> callingContext = communicatorUserManager.findOrRegisterCallingContext(securityIdentity);
 			CommunicatorUser user = resolveUserReference(callingContext, userId);
 			allowAdminOrEffectiveUser(callingContext, user);
-        	user = userManager.getUserAndStatus(user.getId());
+        	user = communicatorUserManager.getUserAndStatus(user.getId());
 			rsp = Response.ok(userMapper.map(user)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
@@ -43,7 +43,7 @@ public class UsersResource extends CommunicatorResource implements UsersApi {
 	public Response getFcmToken(String xDelegator, String userId) {
 		Response rsp = null;
 		try {
-			CallingContext<CommunicatorUser> callingContext = userManager.findOrRegisterCallingContext(securityIdentity);
+			CallingContext<CommunicatorUser> callingContext = communicatorUserManager.findOrRegisterCallingContext(securityIdentity);
 			CommunicatorUser user = resolveUserReference(callingContext, userId);
 			allowAdminOrEffectiveUser(callingContext, user);
 			FirebaseToken token = new FirebaseToken();
@@ -65,13 +65,13 @@ public class UsersResource extends CommunicatorResource implements UsersApi {
 		Response rsp = null;
 		try {
 			// Only admin and effective owner can update the user
-			CallingContext<CommunicatorUser> callingContext = userManager.findOrRegisterCallingContext(securityIdentity);
+			CallingContext<CommunicatorUser> callingContext = communicatorUserManager.findOrRegisterCallingContext(securityIdentity);
 			CommunicatorUser user = resolveUserReference(callingContext, userId);
 			allowAdminOrEffectiveUser(callingContext, user);
 			// Always update to force update of timestamp of token
 			user.setFcmToken(firebaseToken.getToken());
 			user.setFcmTokenTimestamp(Instant.now());
-			userManager.updateUser(user);
+			communicatorUserManager.updateUser(user);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);

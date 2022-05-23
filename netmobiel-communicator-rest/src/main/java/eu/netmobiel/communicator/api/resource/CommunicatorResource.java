@@ -32,7 +32,7 @@ class CommunicatorResource {
 	protected SecurityIdentity securityIdentity;
 
 	@Inject
-    protected CommunicatorUserManager userManager;
+    protected CommunicatorUserManager communicatorUserManager;
 
     protected Instant toInstant(OffsetDateTime odt) {
 		return odt == null ? null : odt.toInstant();
@@ -72,7 +72,7 @@ class CommunicatorResource {
 			if ("me".equals(userId)) {
 				user = callingContext.getEffectiveUser();
 			} else {
-				user = userManager
+				user = communicatorUserManager
 						.resolveUrn(userId)
 						.orElseThrow(() -> new NotFoundException("No such user: " + userId));
 			}
