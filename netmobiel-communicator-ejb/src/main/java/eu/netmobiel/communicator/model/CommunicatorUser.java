@@ -68,7 +68,7 @@ public class CommunicatorUser extends User  {
 	 * The number of unread mesages count. Only available on specific calls.
 	 */
 	@Transient
-	private int unreadMessageCount;
+	private Integer unreadMessageCount;
 	
 	public CommunicatorUser() {
     	
@@ -141,11 +141,11 @@ public class CommunicatorUser extends User  {
 		return code;
 	}
 
-	public int getUnreadMessageCount() {
+	public Integer getUnreadMessageCount() {
 		return unreadMessageCount;
 	}
 
-	public void setUnreadMessageCount(int unreadMessageCount) {
+	public void setUnreadMessageCount(Integer unreadMessageCount) {
 		this.unreadMessageCount = unreadMessageCount;
 	}
 	
