@@ -2,7 +2,7 @@
 
 SELECT st_astext(p.home_point), p.* from profile p WHERE st_astext(p.home_point) = 'POINT(0 0)'
 
--- Number of new profiles countend by day
+-- Number of new profiles counted by day
 select count(*) as nr_profiles, date_trunc('day', p.creation_time) as day 
 from profile p 
 where p.creation_time > '2022-04-02'
