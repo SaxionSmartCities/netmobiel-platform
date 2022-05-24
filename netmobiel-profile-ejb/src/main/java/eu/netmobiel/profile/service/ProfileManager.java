@@ -297,7 +297,9 @@ public class ProfileManager {
 	private static boolean profileSyncNeeded(Profile oldProfile, Profile newProfile) {
 		return !newProfile.isSame(oldProfile) ||
 				!Objects.equals(oldProfile.getPhoneNumber(), newProfile.getPhoneNumber()) ||
-				!Objects.equals(oldProfile.getDefaultCountry(), newProfile.getDefaultCountry());
+				!Objects.equals(oldProfile.getDefaultCountry(), newProfile.getDefaultCountry()) ||
+				!Objects.equals(oldProfile.getFcmToken(), newProfile.getFcmToken()) ||
+				!Objects.equals(oldProfile.getFcmTokenTimestamp(), newProfile.getFcmTokenTimestamp());
 	}
 
     /**
