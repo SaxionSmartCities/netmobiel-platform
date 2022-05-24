@@ -353,6 +353,12 @@ public class TripPlan implements Serializable {
 	@JoinColumn(name = "reference_itinerary", nullable = true, foreignKey = @ForeignKey(name = "trip_plan_reference_itinerary_fk"))
     private Itinerary referenceItinerary;
 
+    /**
+     * The state of the plan. Especially relevant for shout-outs.
+     */
+    @Column(name = "plan_state", length = 2)
+    private PlanState planState;
+    
 	public TripPlan() { 
     	this.creationTime = Instant.now();
        	this.requestTime = creationTime;
@@ -575,6 +581,14 @@ public class TripPlan implements Serializable {
 
 	public void setReferenceItinerary(Itinerary referenceItinerary) {
 		this.referenceItinerary = referenceItinerary;
+	}
+
+	public PlanState getPlanState() {
+		return planState;
+	}
+
+	public void setPlanState(PlanState planState) {
+		this.planState = planState;
 	}
 
 	private static String formatTime(Instant instant) {

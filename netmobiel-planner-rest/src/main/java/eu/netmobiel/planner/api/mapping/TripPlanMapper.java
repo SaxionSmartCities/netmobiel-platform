@@ -44,5 +44,9 @@ public interface TripPlanMapper {
     @Mapping(target = "plannerReports", ignore = true)
     @Mapping(target = "requestor", ignore = true)
     @Mapping(target = "traveller", ignore = true)
+    @Mapping(target = "geodesicDistance", ignore = true)
+    @Mapping(target = "planState", ignore = true)
+    @Mapping(target = "requestTime", ignore = true)
+    @Mapping(target = "requestDuration", ignore = true)
     TripPlan map(eu.netmobiel.planner.api.model.TripPlan source );
 }

@@ -40,6 +40,7 @@ import eu.netmobiel.planner.filter.ShoutOutFilter;
 import eu.netmobiel.planner.filter.TripPlanFilter;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
+import eu.netmobiel.planner.model.PlanState;
 import eu.netmobiel.planner.model.PlanType;
 import eu.netmobiel.planner.model.PlannerResult;
 import eu.netmobiel.planner.model.PlannerUser;
@@ -289,9 +290,11 @@ public class TripPlanManager {
     	}
 		// Add a geodesic estimation (as the crow flies)
 		plan.setGeodesicDistance(Math.toIntExact(Math.round(plan.getFrom().getDistanceTo(plan.getTo()) * 1000)));
+    	plan.setPlanState(PlanState.OPEN);
        	if (plan.getPlanType() != PlanType.SHOUT_OUT) {
        		// Start a search
        		plan = planner.searchMultiModal(plan);
+        	plan.setPlanState(PlanState.FINAL);
         	plan.close();
        	} else {
        		// Determine a reference itinerary for a shoutout
@@ -478,6 +481,7 @@ public class TripPlanManager {
         	passengerLegs.forEach(leg -> leg.setShoutOutRef(shoutOutPlanRefNormalized));
     	}
     	driverPlan.setPlanType(PlanType.SHOUT_OUT_SOLUTION);
+    	driverPlan.setPlanState(PlanState.FINAL);
     	driverPlan.addPlannerResult(result);
     	driverPlan.close();
        	tripPlanDao.save(driverPlan);
@@ -582,6 +586,7 @@ public class TripPlanManager {
     		throw new IllegalStateException("Expect to handle a shout-out plan");
     	}
     	cancelBookedLegs(shoutOutPlan, Optional.of(selectedItinerary), "Andere oplossing gekozen");
+    	shoutOutPlan.setPlanState(PlanState.FINAL);
     	shoutOutPlan.close();
     }
 
@@ -613,6 +618,7 @@ public class TripPlanManager {
     	if (plan.getPlanType() != PlanType.SHOUT_OUT) {
     		throw new BadRequestException("Plan is not a shout-out: " + id);
     	}
+    	plan.setPlanState(PlanState.CANCELLED);
     	if (plan.isOpen()) {
         	cancelBookedLegs(plan, Optional.empty(), 
         			reason != null && !reason.isBlank() ? reason : "Oproep is geannuleerd");
