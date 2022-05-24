@@ -1258,7 +1258,8 @@ components:
         \ plan contains the parameters as requested. \n\nWhether or not parameters\
         \ are requried depends on the use. Also, the amoubt of detail returned depends\
         \ on the call and who is asking for it. "
-      required: []
+      required:
+      - planState
       type: object
       properties:
         from:
@@ -1359,6 +1360,13 @@ components:
           $ref: '#/components/schemas/Itinerary'
           description: The reference itinerary for a shout-out. Only if plan type
             is `SHOUT_OUT`.
+        planState:
+          description: The state of the plan, in particulaar relevant for shout-outs.
+          enum:
+          - OPEN
+          - FINAL
+          - CANCELLED
+          type: string
       example:
         from:
           label: Zieuwent,Kennedystraat
