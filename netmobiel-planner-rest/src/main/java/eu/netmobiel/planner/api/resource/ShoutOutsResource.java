@@ -56,7 +56,8 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
 
     /**
      * Searches for matching shout-outs. This call is for the driver to check whether there potentials rides requested.
-     * Any driver (in fact anyone) can call this method. 
+     * Any driver (in fact anyone) can call this method. The caller can see his own itineraries (the rideshare legs) 
+     * in each shout-out, if any. That included any cancelled ones.
      */
 	@Override
     public Response listShoutOuts(String location, Integer depArrRadius, Integer travelRadius, 
@@ -67,11 +68,15 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
     		throw new BadRequestException("Missing mandatory parameter: location");
     	}
 		try {
-			PlannerUser caller = userManager.findOrRegisterCallingUser();
-			ShoutOutFilter filter = new ShoutOutFilter(caller, location, depArrRadius, travelRadius,
+			// No delegation for drivers
+			PlannerUser driver = userManager.findOrRegisterCallingUser(securityIdentity);
+			ShoutOutFilter filter = new ShoutOutFilter(driver, location, depArrRadius, travelRadius,
 					since, until, inProgressOnly, sortDir);
 			Cursor cursor = new Cursor(maxResults, offset);
 			PagedResult<TripPlan> result = tripPlanManager.findShoutOuts(filter, cursor);
+			// Remove the itineraries not driven by the caller
+			result.getData().forEach(plan -> plan.getItineraries()
+					.removeIf(it -> it.findLegByDriverId(driver.getKeyCloakUrn()).isEmpty()));
 			rsp = Response.ok(pageMapper.mapShoutOutPlans(result)).build();
 		} catch (Exception e) {
 			throw new WebApplicationException(e);
@@ -167,7 +172,7 @@ public class ShoutOutsResource extends PlannerResource implements ShoutOutsApi {
         	Long tid = UrnHelper.getId(TripPlan.URN_PREFIX, shoutOutPlanId);
 			plan = tripPlanManager.getShoutOutPlan(tid);
 			// Remove the itineraries not driven by the caller
-			plan.getItineraries().removeIf(it -> it.findLegByDriverId(driver.getManagedIdentity()).isEmpty());
+			plan.getItineraries().removeIf(it -> it.findLegByDriverId(driver.getKeyCloakUrn()).isEmpty());
 			rsp = Response.ok(tripPlanMapper.mapShoutOut(plan)).build();
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
