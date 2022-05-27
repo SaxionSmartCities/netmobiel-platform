@@ -46,6 +46,7 @@ public abstract class TripPlanMapper {
     @Mapping(target = "useAsArrivalTime", ignore = true)
     @Mapping(target = "geodesicDistance", ignore = true)
     @Mapping(target = "referenceItinerary", ignore = true)
+    @Mapping(target = "planState", ignore = true)
     public abstract eu.netmobiel.planner.model.TripPlan map(TripPlan source );
 
     @Mapping(target = "label", source = "name")
