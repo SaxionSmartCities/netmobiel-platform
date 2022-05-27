@@ -32,7 +32,7 @@ public interface TripPlanMapper {
     @Mapping(target = "modalities", source = "traverseModes")
     @Mapping(target = "firstLegRideshare", ignore = true)
     @Mapping(target = "lastLegRideshare", ignore = true)
-    @Mapping(target = "itineraries", ignore = true)
+    @Mapping(target = "itineraries", source = "itineraries", qualifiedBy = { ItineraryMapperQualifier.class })
     @Mapping(target = "referenceItinerary", source = "referenceItinerary", qualifiedBy = { ItineraryMapperQualifier.class })
     @TripPlanShallow
     eu.netmobiel.planner.api.model.TripPlan mapShoutOut(TripPlan source );
