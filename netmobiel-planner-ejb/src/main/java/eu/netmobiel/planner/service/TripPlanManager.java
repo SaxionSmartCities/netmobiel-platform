@@ -576,6 +576,7 @@ public class TripPlanManager {
 
     /**
      * Handles the resolvement of a shout-out at the side of the trip manager: Close other options, close the plan.
+     * This method is called by the Overseer.
      * @param shoutOutPlan the shout-out
      * @param selectedItinerary the itinerary not to cancel. Already in persistence context.
      * @throws BusinessException in case of trouble
