@@ -83,7 +83,7 @@ public class TextHelper {
 	}
 	
 	public String createPassengerShoutOutResolvedBody(String driverName) {
-		return MessageFormat.format("Je hebt het aanbod van %s geaccepteerd. Eventuele andere aanbieders zijn automatisch geïnformeerd",
+		return MessageFormat.format("Je hebt het aanbod van {0} geaccepteerd. Eventuele andere aanbieders zijn automatisch geïnformeerd.",
 				driverName != null ? driverName : "iemand");
 	}
 	
