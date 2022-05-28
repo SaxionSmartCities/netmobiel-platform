@@ -36,6 +36,12 @@ SELECT distinct e.id, e.message, e.context as env_context, m.context as msg_cont
 	--WHERE e.context = 'urn:nb:rs:booking:113' and e.context <> m.context
 	--WHERE e.sender = true
 	WHERE m.context like '%booking%' and e.context like '%trip:%' and c.owner_role = 'DR'
-	ORDER BY e.id ASC;
+	ORDER BY e.id ASC
+;
 
+-- Sanity check: Verify whether each ride is contained in at most one conversation 
+select cc.context, count(*) from conversation_context cc 
+where cc.context like '%:ride:%' 
+group by cc.context having count(*) > 1
+;
 	
