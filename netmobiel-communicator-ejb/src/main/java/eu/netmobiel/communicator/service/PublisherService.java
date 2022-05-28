@@ -252,6 +252,7 @@ public class PublisherService {
     	Conversation convdb = conversationDao.loadGraph(conversation.getId(), Conversation.DEFAULT_ENTITY_GRAPH)
     			.orElseThrow(() -> new NotFoundException("No such conversation: " + conversation.getId()));
     	conversation.setOwner(convdb.getOwner());
+    	conversation.setCreatedTime(convdb.getCreatedTime());
     	conversationDao.merge(conversation);
     }
     
