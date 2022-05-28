@@ -463,130 +463,6 @@ paths:
         type: string
       in: path
       required: true
-  /trips:
-    summary: Path used to manage the list of trips.
-    description: |-
-      The REST endpoint/path used to list and create zero or more `Trip` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
-
-      All tasks in this endpoint support delegation.
-    get:
-      parameters:
-      - name: user
-        description: |-
-          the user id owning the trips. This parameter needs admin powers. The format of the user id is the database id of planner user, or an urn reference. Two formats are allowed:
-          urn:nb:pl:user:{primary-key}
-          urn:nb:kc:user:{managed-identity}
-        schema:
-          type: string
-        in: query
-      - name: state
-        description: The specific trip state to filter. To find the shout-out trips
-          specify `PLANNING`.
-        schema:
-          enum:
-          - PLANNING
-          - BOOKING
-          - SCHEDULED
-          - DEPARTING
-          - IN_TRANSIT
-          - ARRIVING
-          - VALIDATING
-          - COMPLETED
-          - CANCELLED
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-11-30T12:00:00+01:00
-        name: since
-        description: The departure date at which to start the listing. Default is
-          now.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-12-15T14:00:00+01:00
-        name: until
-        description: The departure date and later not to include in the listing of
-          trips. The `until` date must be after the `since` parameter. Default is
-          not set, meaning all trips (after since).
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: deletedToo
-        description: Set this flag to 'true' if deleted trips should be returned as
-          well. Default is false.
-        schema:
-          type: boolean
-        in: query
-      - name: sortDir
-        description: "Direction of the sorting on departure time (or arrival time).\
-          \ Choose either \nascending (ASC, default) or descending (DESC)."
-        schema:
-          enum:
-          - ASC
-          - DESC
-          type: string
-        in: query
-        required: false
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a page with an array of `Trip`
-            entities.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-      operationId: getTrips
-      summary: List All trips
-      description: "Gets a list of all `Trip` entities owned by the calling user.\
-        \ The trips are\nsorted by the departure time or arrival time. Default is\
-        \ in ascending order, \nbut that can be reversed through the `sortDir` parameter."
-    post:
-      requestBody:
-        description: A new `Trip` to be created.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Trip'
-            examples:
-              createTrip:
-                value:
-                  itineraryRef: urn:nb:pn:itinerary:232
-        required: true
-      responses:
-        "201":
-          description: Successful response. The reference to the resource is mentioned
-            in the `Location` header.
-        "400":
-          $ref: '#/components/responses/BadRequest'
-        "402":
-          $ref: '#/components/responses/PaymentRequested'
-      operationId: createTrip
-      summary: Create a Trip
-      description: Creates a new instance of a `Trip`.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
   /trips/{tripId}:
     summary: Path used to manage a single Trip.
     description: |-
@@ -973,6 +849,152 @@ paths:
         type: string
       in: path
       required: true
+  /trips:
+    summary: Path used to manage the list of trips.
+    description: |-
+      The REST endpoint/path used to list and create zero or more `Trip` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+
+      All tasks in this endpoint support delegation.
+    get:
+      parameters:
+      - name: user
+        description: |-
+          the user id owning the trips. This parameter needs admin powers. The format of the user id is the database id of planner user, or an urn reference. Two formats are allowed:
+          urn:nb:pl:user:{primary-key}
+          urn:nb:kc:user:{managed-identity}
+        schema:
+          type: string
+        in: query
+      - name: state
+        description: The specific trip state to filter. To find the shout-out trips
+          specify `PLANNING`.
+        schema:
+          enum:
+          - PLANNING
+          - BOOKING
+          - SCHEDULED
+          - DEPARTING
+          - IN_TRANSIT
+          - ARRIVING
+          - VALIDATING
+          - COMPLETED
+          - CANCELLED
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The departure date at which to start the listing. Default is
+          now.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The departure date and later not to include in the listing of
+          trips. The `until` date must be after the `since` parameter. Default is
+          not set, meaning all trips (after since).
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: deletedToo
+        description: Set this flag to 'true' if deleted trips should be returned as
+          well. Default is false.
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting on departure time (or arrival time).\
+          \ Choose either \nascending (ASC, default) or descending (DESC)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a page with an array of `Trip`
+            entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: getTrips
+      summary: List All trips
+      description: "Gets a list of all `Trip` entities owned by the calling user.\
+        \ The trips are\nsorted by the departure time or arrival time. Default is\
+        \ in ascending order, \nbut that can be reversed through the `sortDir` parameter."
+    post:
+      requestBody:
+        description: A new `Trip` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Trip'
+            examples:
+              createTrip:
+                value:
+                  itineraryRef: urn:nb:pn:itinerary:232
+        required: true
+      responses:
+        "201":
+          description: Successful response. The reference to the resource is mentioned
+            in the `Location` header.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "402":
+          $ref: '#/components/responses/PaymentRequested'
+      operationId: createTrip
+      summary: Create a Trip
+      description: Creates a new instance of a `Trip`.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+  /trips/{tripId}/state:
+    summary: Path to refresh state machine
+    description: The end-point is used to re-run the trip monitor. Only for admin
+      role.
+    post:
+      responses:
+        "204":
+          description: 'Success response: State machine is updated.'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: runTripStateMachine
+      summary: Update the state of the trip.
+      description: Starts an evaluation of the trip state. This call is for maintenance
+        only and requires an admin role.
+    parameters:
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
@@ -1317,7 +1339,8 @@ components:
             value is `false`.
           type: boolean
         planType:
-          description: (Read-only). The type of the trip plan.
+          description: The type of the trip plan. Set to `SHOUT_OUT` for shout-out
+            plans, otherwise omit.
           enum:
           - REGULAR
           - SHOUT_OUT
@@ -1361,7 +1384,8 @@ components:
           description: The reference itinerary for a shout-out. Only if plan type
             is `SHOUT_OUT`.
         planState:
-          description: The state of the plan, in particulaar relevant for shout-outs.
+          description: Read-only. The state of the plan, in particulaar relevant for
+            shout-outs.
           enum:
           - OPEN
           - FINAL
