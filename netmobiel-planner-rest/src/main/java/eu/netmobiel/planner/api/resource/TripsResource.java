@@ -251,4 +251,20 @@ public class TripsResource extends PlannerResource implements TripsApi {
     	return rsp;
 	}
 
+	@Override
+	public Response runTripStateMachine(String tripId) {
+    	Response rsp = null;
+    	try {
+        	if (!request.isUserInRole("admin")) {
+        		throw new SecurityException("You have no access rights");
+        	}
+        	Long tid = UrnHelper.getId(Trip.URN_PREFIX, tripId);
+			tripManager.updateStateMachine(tid);
+			rsp = Response.noContent().build();
+		} catch (BusinessException e) {
+			throw new WebApplicationException(e);
+		}
+    	return rsp;
+	}
+
 }
