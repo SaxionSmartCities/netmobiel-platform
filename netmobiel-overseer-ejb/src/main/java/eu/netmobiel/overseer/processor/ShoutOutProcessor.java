@@ -1,6 +1,7 @@
 package eu.netmobiel.overseer.processor;
 
 import java.util.List;
+import java.util.Optional;
 
 import javax.annotation.Resource;
 import javax.annotation.security.RunAs;
@@ -12,7 +13,6 @@ import javax.inject.Inject;
 
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
-import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.communicator.event.RequestConversationEvent;
@@ -25,6 +25,7 @@ import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.event.TravelOfferEvent;
 import eu.netmobiel.planner.model.Itinerary;
+import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.service.TripPlanManager;
@@ -64,8 +65,6 @@ public class ShoutOutProcessor {
 
     @Inject
     private RideManager rideManager;
-    @Inject
-    private IdentityHelper identityHelper;
     
     @Inject
     private BookingManager bookingManager;
@@ -158,26 +157,7 @@ public class ShoutOutProcessor {
 		String bookingRef = bookingManager.createBooking(r.getUrn(), sop.getTraveller(), b);
 		tripPlanManager.assignBookingProposalReference(RideManager.AGENCY_ID, soi, r, bookingRef);
 
-		// Send a message to the driver get also the booking context in
-		NetMobielUser driver = identityHelper.resolveUserUrn(event.getDriverRef())
-				.orElseThrow(() -> new IllegalStateException("Unknown driver: " + event.getDriverRef()));
-		// At this moment there might already be conversation already started with the trip plan. If not, then create one.
-		
-		// The message context is the booking
-		// Use the ride as context for the driver, could also be the shout-out. 
-		// The topic remains the shout out topic.
-		Message driverMsg = Message.create()
-    			.withBody(textHelper.createDriverTravelOfferedMessageBody(r))
-    			.withContext(b.getUrn())
-    			.withDeliveryMode(DeliveryMode.MESSAGE)	// Only a message, notification to myself is not needed
-    			.addEnvelope(r.getUrn())
-	    			.withRecipient(driver)
-	    			.withConversationContext(sop.getPlanRef())
-	    			.withUserRole(UserRole.DRIVER)
-	    			.withTopic(textHelper.createDriverShoutOutTopic(sop))
-	    			.buildConversation()
-    			.buildMessage();
-		publisherService.publish(driverMsg);
+		// The driver is informed when something is done with bookings
 
 		// Inform the passenger about the new offer
 		// The message context is the booking
@@ -206,12 +186,14 @@ public class ShoutOutProcessor {
     public void onShoutOutResolved(@Observes(during = TransactionPhase.IN_PROGRESS) ShoutOutResolvedEvent event) throws BusinessException {
     	TripPlan shoutOutPlan = event.getTrip().getItinerary().getTripPlan();
     	tripPlanManager.resolveShoutOut(shoutOutPlan, event.getTrip().getItinerary());
+    	Optional<Leg> rsleg = event.getTrip().getItinerary().findLegByTraverseMode(TraverseMode.RIDESHARE);
+    	String driverName = rsleg.isPresent() ? rsleg.get().getDriverName() : null;
     	// Add the new trip to the conversation of the passenger
     	// The conversation context is the shout-out plan
     	// The message context is the new trip
     	// The recipient's context is the new trip too
     	Message msg = Message.create()
-    			.withBody(textHelper.createPassengerShoutOutResolvedBody())
+    			.withBody(textHelper.createPassengerShoutOutResolvedBody(driverName))
     			.withContext(event.getTrip().getTripRef())
     			.withDeliveryMode(DeliveryMode.MESSAGE)		// No notification needed for myself
     			.addEnvelope()

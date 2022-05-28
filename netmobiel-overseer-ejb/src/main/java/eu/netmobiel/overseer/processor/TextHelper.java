@@ -82,12 +82,9 @@ public class TextHelper {
 				);
 	}
 	
-	public String createDriverTravelOfferedMessageBody(Ride r) {
-		return "Je hebt aangeboden om te rijden";
-	}
-	
-	public String createPassengerShoutOutResolvedBody() {
-		return "The oproep is ingevuld, eventuele andere aanbiedingen zijn automatisch afgeslagen";
+	public String createPassengerShoutOutResolvedBody(String driverName) {
+		return MessageFormat.format("Je hebt het aanbod van %s geaccepteerd. Eventuele andere aanbieders zijn automatisch geïnformeerd",
+				driverName != null ? driverName : "iemand");
 	}
 	
     /***************  TRIP  *************/

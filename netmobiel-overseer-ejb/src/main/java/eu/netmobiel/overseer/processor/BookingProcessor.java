@@ -144,13 +144,16 @@ public class BookingProcessor {
     private void informDriverOnBookingChangeConversation(Booking booking, String text) throws BusinessException {
 		// Inform driver on booking creation or deletion
     	// The message is about the booking, the driver's envelope context is the ride.
-    	// The driver's conversation is about the ride
+    	// The driver's conversation is the passenger's shout-out (if any) or the ride
+    	String convContext = booking.getPassengerTripPlanRef() != null 
+    			? booking.getPassengerTripPlanRef() 
+    			: booking.getRide().getUrn(); 
     	Message msg = Message.create()
     			.withBody(text)
     			.withContext(booking.getUrn())
     			.addEnvelope(booking.getRide().getUrn())
 	    			.withRecipient(booking.getRide().getDriver())
-	    			.withConversationContext(booking.getRide().getUrn())
+	    			.withConversationContext(convContext)
 	    			.withUserRole(UserRole.DRIVER)
 	    			.withTopic(textHelper.createRideTopic(booking.getRide()))
 	    			.buildConversation()

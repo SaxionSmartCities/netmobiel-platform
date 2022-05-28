@@ -461,6 +461,20 @@ public class Itinerary implements Serializable {
 		return Optional.ofNullable(leg);
 	}
 
+	/**
+	 * Searches through the legs of this trip for a leg with a specific traverse mode.  
+	 * @param state the state to look for
+	 * @return An Optional with the fist leg containing the mode.  
+	 */
+	public Optional<Leg> findLegByTraverseMode(TraverseMode mode) {
+		Leg leg = null;
+		if (getLegs() != null) {
+			leg = getLegs().stream()
+					.filter(lg -> mode.equals(lg.getTraverseMode())).findFirst().orElse(null);
+		}
+		return Optional.ofNullable(leg);
+	}
+	
     private static String formatTime(Instant instant) {
     	return DateTimeFormatter.ISO_INSTANT.format(instant);
     }
