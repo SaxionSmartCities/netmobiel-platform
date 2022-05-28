@@ -640,8 +640,8 @@ public class Trip implements Serializable {
 	public String toStringCompact() {
 		return String.format("Trip %s %s %s D %s A %s %s from %s to %s",
 				getId(), 
-				traveller != null ? traveller.getEmail() : "<unknown>", 
-				state.name(), 
+				traveller != null ? traveller.getEmail() : "<unset>", 
+				state != null ? state.name() : "<unset>", 
 				formatTime(itinerary.getDepartureTime()), formatTime(itinerary.getArrivalTime()),
 				itinerary.getDuration() == null ? "" : Duration.ofSeconds(itinerary.getDuration()),
 				getFrom(), getTo());

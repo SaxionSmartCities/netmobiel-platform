@@ -647,11 +647,11 @@ public class Booking extends ReferableObject implements Serializable {
 				getId(),
 				getRide() != null ? getRide().getId() : "<null>",
 				getPassenger() == null ? "" : getPassenger().getManagedIdentity(), 
-				getState().name(), 
+				getState() != null ? getState().name() : "<unset>", 
 				DateTimeFormatter.ISO_INSTANT.format(getDepartureTime()), 
 				DateTimeFormatter.ISO_INSTANT.format(getArrivalTime()),
-				getPickup().toString(), 
-				getDropOff().toString(),
+				getPickup(), 
+				getDropOff(),
 				getNrSeats());
 	}
 
