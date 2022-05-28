@@ -179,41 +179,44 @@ public class TripManager {
         //TODO Use the local database first to lookup the coordinate. Omit for now. 
         trip.setDeparturePostalCode(hereSearchClient.getPostalCode6(trip.getFrom()));
         trip.setArrivalPostalCode(hereSearchClient.getPostalCode6(trip.getTo()));
-        tripDao.save(trip);
+        Trip tripdb = tripDao.save(trip);
        	tripDao.flush();
+   		// Update the state before doing any booking stuff
+    	tripMonitor.updateTripStateMachine(tripdb);
+    	// The state machine runs in its own transaction. Refresh. Can we use the dao.refresh?
+    	tripdb = getTrip(tripdb.getId());
     	List<Command> actions = new ArrayList<>();
     	if (plan.getPlanType() == PlanType.SHOUT_OUT) {
     		// it was a shout-out plan. It is being resolved now. 
     		// Use the event to adjust the context of the message thread from trip plan to trip.
     		// The trip must have a database identity!
-    		// Make it synchronous, just to be sure the conversation 
-    		EventFireWrapper.fire(shoutOutResolvedEvent, new ShoutOutResolvedEvent(trip));
+    		// Make it synchronous, just to be sure for the conversation 
+    		EventFireWrapper.fire(shoutOutResolvedEvent, new ShoutOutResolvedEvent(tripdb));
     	}
 
     	// Should we do any booking actions? Try to do them here in a single transaction
-   		for (Leg leg : trip.getItinerary().getLegs()) {
+   		for (Leg leg : tripdb.getItinerary().getLegs()) {
+   			final Trip theTrip = tripdb;
 	    	// Check for bookingID set. If so than it was a shout-out and we need to convert the PROPOSAL to a CONFIRMED booking
 	    	if (leg.getBookingId() != null) {
 	    		// This must be a proposed booking from a shout-out. Confirm it. Add a trip reference.
 		    	// Check for bookingID set. If so than it was a shout-out and we need to convert the PROPOSAL to a CONFIRMED booking
-	    		actions.add(() -> EventFireWrapper.fire(bookingConfirmedEvent, new BookingConfirmedEvent(trip, leg)));
+	    		actions.add(() -> EventFireWrapper.fire(bookingConfirmedEvent, new BookingConfirmedEvent(theTrip, leg)));
 	    	} else if (leg.isBookingRequired()) {
    	    		// Ok, we need to take additional steps before the leg can be scheduled. Start a booking procedure.
    				// Use the trip as reference, we are not sure the leg ID is a stable, permanent identifier in case of an update of a trip.
    				// Add the reference to the trip of the provider, e.g. the ride in case of rideshare.
-   				actions.add(() -> EventFireWrapper.fire(bookingRequestedEvent, new BookingRequestedEvent(trip, leg)));
+   				actions.add(() -> EventFireWrapper.fire(bookingRequestedEvent, new BookingRequestedEvent(theTrip, leg)));
 	    	} else {
    	    		// If no booking is required then no further action is required.
 	    	}
        	}
-   		// Update the state before doing any booking stuff
-    	tripMonitor.updateTripStateMachine(trip);
 		for (Command action : actions) {
 			action.execute();
 		}
-		// Booking might have been completed now
-    	// tripMonitor.updateTripStateMachine(trip);
-    	return trip.getId();
+		// Booking might have been completed now update the state
+    	tripMonitor.updateTripStateMachine(tripdb);
+    	return tripdb.getId();
     }
 
     
@@ -443,7 +446,7 @@ public class TripManager {
 
     /**
      * Assigns the given postal code to all trips with the same GeoLocations.
-     * This is a mainenance method, not intended for use by the presentation layer. 
+     * This is a maintenance method, not intended for use by the presentation layer. 
      * @param location the geolocation 
      * @param postalCode the postal code to assign
      * @return the number of trips altered.
@@ -478,6 +481,14 @@ public class TripManager {
 		return legDao.reportModalityUsageAsDriver(user);
 	}
 
+    /**
+     * Update the state machine. For maintenance and development.
+     * @param tripId the trip
+     */
+    public void updateStateMachine(Long tripId) {
+    	tripMonitor.updateStateMachine(tripId);
+    }
+    
 	/**********************************************/
 	/**********   CALLBACK METHODS  ***************/
 	/**********************************************/
