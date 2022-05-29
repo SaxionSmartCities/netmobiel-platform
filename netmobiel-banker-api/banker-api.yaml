@@ -1766,7 +1766,7 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Page'
-          description: Successful response - returns a `Page` with `Statement` entities.
+          description: Successful response - returns a `Page` with `Reward` entities.
         "404":
           $ref: '#/components/responses/NotFound'
       security:
@@ -2194,6 +2194,67 @@ paths:
         donated. The total amount is summed after filtering the individual donations
         according the filter parameters. Anonymous donations are never included in
         the report, even those by the calling user are ignored.
+  /users/{userId}/call-to-action:
+    summary: Path used to manage the list of incentives of interest for a user.
+    description: The REST endpoint/path used to list zero or more `Incentive` entities.
+      This path contains a `GET` operation to perform the list task. A Incentive defines
+      action to nudge a user to follow a certain behaviour.
+    get:
+      parameters:
+      - name: sortDir
+        description: "Direction of the sorting based on incentive creation time. Choose\
+          \ either \nascending (ASC) or descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Incentive` entities.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: listCallToActions
+      summary: List Incentive entries that needs attention.
+      description: |
+        Gets a paged list of  `Incentive` entities. The incentives are sorted default by creation time descending.
+        Descending so that on a fresh start the newest CTA is displayed.
+        Only those incentives still in need for attention are displayed.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
@@ -2916,6 +2977,7 @@ components:
       - redemption
       - relative
       - urn
+      - ctaEnabled
       type: object
       properties:
         id:
@@ -2961,6 +3023,33 @@ components:
         disableTime:
           format: date-time
           description: The time the incentive was disabled. Not set with active incentives.
+          type: string
+        ctaEnabled:
+          description: Does this incentive have a Call-To-Action?
+          type: boolean
+        ctaTitle:
+          description: The title of the CTA to display.
+          type: string
+        ctaBody:
+          description: |-
+            The body text of the CTA to display.
+
+            Be careful to align the text with the actual reward method (absolute, relative, redemption, amout).
+
+            Note that the description text is used in the conversation with the user.
+          type: string
+        ctaButtonLabel:
+          description: The label text of the CTA button to display.
+          type: string
+        ctaButtonAction:
+          description: |-
+            The action definition the CTA button. If omitted the button is not displayed.
+            The action text is taken from a vocabulary and is opaque to the banker. It should be understood by the webclient and acted on as requested.
+          type: string
+        ctaHideBeyondRewardCount:
+          description: "Keep on displaying the CTA until at least x rewards (for this\
+            \ incentive) are issued to a user. \nIf set to 0 the CTA is hidden when\
+            \ at least one single reward is issued to a user."
           type: string
       example:
         id: "2578"
