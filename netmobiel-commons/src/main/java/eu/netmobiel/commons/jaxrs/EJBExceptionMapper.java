@@ -5,6 +5,7 @@ import java.util.List;
 import javax.ejb.EJBAccessException;
 import javax.ejb.EJBException;
 import javax.persistence.OptimisticLockException;
+import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.ext.ExceptionMapper;
@@ -25,6 +26,7 @@ public class EJBExceptionMapper implements ExceptionMapper<EJBException> {
 	/**
 	 * Capture the cause of the exception and generate a proper HTTP status.
 	 */
+	@SuppressWarnings("resource")
 	@Override
 	public Response toResponse(EJBException e) {
 		Response rsp = null;
@@ -38,6 +40,8 @@ public class EJBExceptionMapper implements ExceptionMapper<EJBException> {
 		Response.Status status = null;
 		if (dspExc instanceof EJBAccessException || dspExc instanceof SecurityException) {
 			status = Response.Status.FORBIDDEN;
+		} else if (dspExc instanceof WebApplicationException) {
+			status = ((WebApplicationException)dspExc).getResponse().getStatusInfo().toEnum();
 		} else {
 			List<Throwable> causes = ExceptionUtil.listCauses(e);
 			if (causes.stream()

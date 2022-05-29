@@ -80,10 +80,16 @@ public class PaymentClient {
     	PaymentLink link = null;
         try (Response response = webClient.target(PAYMENT_LINKS_RESOURCE).request()
                 .header(HttpHeaders.AUTHORIZATION, authorizationValue)
+                .accept(MediaType.APPLICATION_JSON)
                 .post(Entity.entity(input, MediaType.APPLICATION_JSON))) {
 	        if (response.getStatusInfo() != Response.Status.CREATED) {
-	        	log.error("Payment client error: " + response.getStatusInfo());
-	        	PaymentError error = response.readEntity(PaymentError.class);
+	        	log.error(String.format("Payment client error: %s (%s)", response.getStatusInfo(), response.getMediaType()));
+	        	PaymentError error;
+	        	if (MediaType.APPLICATION_JSON.equals(response.getMediaType().toString())) {
+		        	error = response.readEntity(PaymentError.class);
+	        	} else {
+	        		error = new PaymentError(response.getStatus(), response.getMediaType().toString(), response.readEntity(String.class));
+	        	}
 	        	throw new WebApplicationException("Cannot create payment link: " + error.toString(), response.getStatus());
 	        }
 	        // In testing the object returned has only the id and the payment url added. No timestamps and status yet.

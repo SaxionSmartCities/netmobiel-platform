@@ -183,8 +183,6 @@ public class TripManager {
        	tripDao.flush();
    		// Update the state before doing any booking stuff
     	tripMonitor.updateTripStateMachine(tripdb);
-    	// The state machine runs in its own transaction. Refresh. Can we use the dao.refresh?
-    	tripdb = getTrip(tripdb.getId());
     	List<Command> actions = new ArrayList<>();
     	if (plan.getPlanType() == PlanType.SHOUT_OUT) {
     		// it was a shout-out plan. It is being resolved now. 
@@ -215,7 +213,10 @@ public class TripManager {
 			action.execute();
 		}
 		// Booking might have been completed now update the state
-    	tripMonitor.updateTripStateMachine(tripdb);
+		// Refresh the trip first; could we use tripDao.refresh?
+    	Trip tripdb2 = tripDao.loadGraph(tripdb.getId(), Trip.DETAILED_ENTITY_GRAPH)
+    			.orElseThrow(() -> new NotFoundException("No such trip: " + tripdb.getId()));
+    	tripMonitor.updateTripStateMachine(tripdb2);
     	return tripdb.getId();
     }
 

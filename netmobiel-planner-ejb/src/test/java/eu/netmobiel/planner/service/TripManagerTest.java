@@ -218,7 +218,10 @@ public class TripManagerTest {
 			itineraryDao.loadGraph(itineraryId, Itinerary.LIST_ITINERARIES_ENTITY_GRAPH);
 			result = Optional.of(plan.getItineraries().iterator().next());
 			tripDao.save(trip);
+			result = trip;
 			tripDao.flush();
+			tripDao.loadGraph(tripId, Trip.DETAILED_ENTITY_GRAPH);
+			result = Optional.of(trip);
 		}};
 		try {
 			Long id = tested.createTrip(traveller, traveller, trip);
@@ -231,6 +234,7 @@ public class TripManagerTest {
 			assertEquals(plan.getTo(), trip.getTo());
 			assertEquals(plan.getTraveller(), trip.getTraveller());
 		} catch (BusinessException ex) {
+			log.debug("Exception on create bookable trip", ex);
 			fail("Unexpected exception: " + ex);
 		}
 //		new Verifications() {{
