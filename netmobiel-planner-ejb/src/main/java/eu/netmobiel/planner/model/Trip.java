@@ -634,22 +634,33 @@ public class Trip implements Serializable {
 	}
 
 	private static String formatTime(Instant instant) {
-    	return DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime());
+		return instant != null 
+				? DateTimeFormatter.ISO_TIME.format(instant.atZone(ZoneId.systemDefault()).toLocalDateTime())
+				: "";
     }
 
 	public String toStringCompact() {
-		return String.format("Trip %s %s %s D %s A %s %s from %s to %s",
+		return String.format("Trip %s %s %s %s D %s A %s %s from %s to %s",
 				getId(), 
+				itineraryRef != null ? itineraryRef : "",
 				traveller != null ? traveller.getEmail() : "<unset>", 
 				state != null ? state.name() : "<unset>", 
-				formatTime(itinerary.getDepartureTime()), formatTime(itinerary.getArrivalTime()),
-				itinerary.getDuration() == null ? "" : Duration.ofSeconds(itinerary.getDuration()),
-				getFrom(), getTo());
+				itinerary != null ? formatTime(itinerary.getDepartureTime()) : "<unset>", 
+				itinerary != null ? formatTime(itinerary.getArrivalTime()) : "<unset>",
+				itinerary != null && itinerary.getDuration() != null ? Duration.ofSeconds(itinerary.getDuration()) : "",
+				getFrom(), 
+				getTo());
 	}
 
 	@Override
 	public String toString() {
-		return String.format("%s\n\t%s", toStringCompact(), itinerary.toStringCompact());
+		StringBuilder builder = new StringBuilder();
+		builder.append(toStringCompact());
+		if (itinerary != null) {
+			builder.append("\n\t");
+			builder.append(itinerary.toStringCompact());
+		}
+		return builder.toString();
 	}
 
 	public Leg getFirstLeg() {
@@ -661,7 +672,7 @@ public class Trip implements Serializable {
 	}
 
     /**
-     * Fiven the current state of the legs, determine the current state of the trip. 
+     * Given the current state of the legs, determine the current state of the trip. 
      * If there are no legs then the state remains as is.
      * 
      */
