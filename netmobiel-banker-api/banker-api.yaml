@@ -3051,10 +3051,6 @@ components:
             \ incentive) are issued to a user. \nIf set to 0 the CTA is hidden when\
             \ at least one single reward is issued to a user."
           type: string
-        ctaTargetList:
-          description: A list of role names or other keywords to define the target
-            roles etc. that should see the CTA.
-          type: string
       example:
         id: "2578"
         urn: urn:nb:nb:incentive:2578
