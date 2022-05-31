@@ -2194,7 +2194,7 @@ paths:
         donated. The total amount is summed after filtering the individual donations
         according the filter parameters. Anonymous donations are never included in
         the report, even those by the calling user are ignored.
-  /users/{userId}/call-to-action:
+  /users/{userId}/call-to-actions:
     summary: Path used to manage the list of incentives of interest for a user.
     description: The REST endpoint/path used to list zero or more `Incentive` entities.
       This path contains a `GET` operation to perform the list task. A Incentive defines
