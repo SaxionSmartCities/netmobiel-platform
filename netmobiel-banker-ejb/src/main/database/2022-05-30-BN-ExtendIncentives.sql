@@ -7,7 +7,7 @@ ALTER TABLE public.incentive
 	ADD COLUMN cta_button_label character varying(48),
 	-- Button action is a vocabulary, opaque to the banker.
 	ADD COLUMN cta_button_action character varying(32),
-	ADD COLUMN cta_hide_beyond_reward_count INTEGER,
+	ADD COLUMN cta_hide_beyond_reward_count INTEGER
 ;
 
 --INSERT INTO incentive (id, code, category, description, amount)
