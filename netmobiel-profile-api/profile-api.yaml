@@ -1119,8 +1119,9 @@ paths:
           type: boolean
         in: query
       - name: incentiveCode
-        description: The incentive code attached to this survey. The incentive code
-          is unique for an survey, so the result contains 0 or 1 object.
+        description: The incentive code attached to this survey. At any time there
+          should be at most one active survey per incentive code, otherwise the active
+          survey cannot be fould on return from the survey into the app.
         schema:
           type: string
         in: query
