@@ -59,19 +59,20 @@ public class SurveyManager {
      * List the survey interaction according the criteria. 
      * @param managedId the managed id of the user for whom to list the survey interactions. 
      * @param surveyId the provider ID of the survey interaction to lookup.
-     * @param completedToo If true then return also interactions that have been completed.
+     * @param completedToo If true then return also interactions that have been completed or have expired.
+     * @param incentiveCode If set then use an incentive code to lookup an survey.
      * @param cursor the max results and offset. 
      * @return A paged list of survey interactions.
      * @throws BadRequestException 
      */
-	public PagedResult<SurveyInteraction> listSurveyInteractions(String managedId, String surveyId, boolean completedToo, Cursor cursor) 
+	public PagedResult<SurveyInteraction> listSurveyInteractions(String managedId, String surveyId, boolean completedToo, String incentiveCode, Cursor cursor) 
 			throws NotFoundException, BadRequestException {
     	cursor.validate(MAX_RESULTS, 0);
-    	PagedResult<Long> prs = surveyInteractionDao.listSurveyInteractions(managedId, surveyId, completedToo, Cursor.COUNTING_CURSOR);
+    	PagedResult<Long> prs = surveyInteractionDao.listSurveyInteractions(managedId, surveyId, completedToo, incentiveCode, Cursor.COUNTING_CURSOR);
     	List<SurveyInteraction> results = null;
     	if (prs.getTotalCount() > 0 && !cursor.isCountingQuery()) {
     		// Get the actual data
-    		PagedResult<Long> pids = surveyInteractionDao.listSurveyInteractions(managedId, surveyId, completedToo, cursor);
+    		PagedResult<Long> pids = surveyInteractionDao.listSurveyInteractions(managedId, surveyId, completedToo, incentiveCode, cursor);
     		results = surveyInteractionDao.loadGraphs(pids.getData(), SurveyInteraction.SURVEY_PROFILE_ENTITY_GRAPH, SurveyInteraction::getId);
     	}
     	return new PagedResult<>(results, cursor, prs.getTotalCount());

@@ -87,13 +87,21 @@ public class IncentiveDao extends AbstractDao<Incentive, Long> {
         return new PagedResult<>(results, cursor, totalCount);
     }
     
-    
+
+    /**
+     * List the incentives that need to be brought into attention to the specified user.
+     * Ignore incentives that are disabled, unless specified.
+     * @param filter the filter to apply
+     * @param cursor the cursor to apply
+     * @return A list of incentive ids complying to the criteria.
+     * @throws BadRequestException
+     */
     public PagedResult<Long> listCallToActions(IncentiveFilter filter, Cursor cursor) throws BadRequestException {
     	/*
-	    	select inc.* from incentive inc where inc.cta_enabled and not exists 
+	    	select inc.* from incentive inc where inc.cta_enabled and inc.disable_time is null and and not exists 
 		    	(select 1 from reward r
 		    	 join bn_user u on u.id = r.recipient
-		    	 where r.incentive = inc.id and u.email = 'passagier-acc@netmobiel.eu' and inc.cta_enabled
+		    	 where r.incentive = inc.id and u.email = 'passagier-acc@netmobiel.eu' and r.cancel_time is null
 		    	 group by r.incentive
 		    	 having count(*) > inc.cta_hide_beyond_reward_count
 		    	)
@@ -109,21 +117,20 @@ public class IncentiveDao extends AbstractDao<Incentive, Long> {
         	predicates.add(cb.isNull(root.get(Incentive_.disableTime)));
         }
         // Retrieve the CTA incentives that match the criteria (and this do not need attention anymore)
+        // For a specific user and do not count the cancelled rewards
         Subquery<Incentive> sq = cq.subquery(Incentive.class);
         Root<Reward> sr = sq.from(Reward.class);
         sq.where(
         	cb.equal(sr.get(Reward_.incentive), root), 
-        	cb.equal(sr.get(Reward_.recipient), filter.getUser())
+        	cb.equal(sr.get(Reward_.recipient), filter.getUser()),
+        	cb.isNull(sr.get(Reward_.cancelTime))
         );
         sq.groupBy(sr.get(Reward_.incentive));
         sq.having(cb.greaterThan(cb.count(sr).as(Integer.class), root.get(Incentive_.ctaHideBeyondRewardCount)));
         sq.select(sr.get(Reward_.incentive)).distinct(true);
-//        if (filter.getUser()) {
-//        	// Non-disabled --> no disable time set
-//	        predicates.add(cb.isNull(root.get(Incentive_.disableTime)));
-//        }
     	predicates.add(cb.not(cb.exists(sq)));
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
+
         Long totalCount = null;
         List<Long> results = Collections.emptyList();
         if (cursor.isCountingQuery()) {

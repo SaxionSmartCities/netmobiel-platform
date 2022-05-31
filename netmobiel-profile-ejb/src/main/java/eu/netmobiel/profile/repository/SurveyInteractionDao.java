@@ -48,11 +48,12 @@ public class SurveyInteractionDao extends AbstractDao<SurveyInteraction, Long> {
 	 * Retrieves the survey interactions according the search criteria.
      * @param managedId the managed id of the user for whom to list the survey interactions. 
      * @param surveyId the provider ID of the survey interaction to lookup.
-     * @param completedToo If true then return also interactions that have been completed.
+     * @param completedToo If true then return also interactions that have been completed or have expired.
+     * @param incentiveCode If set then use an incentive code to lookup an survey.
      * @param cursor the max results and offset. 
 	 * @return A pages result. Total count is determined only when maxResults is set to 0.
 	 */
-	public PagedResult<Long> listSurveyInteractions(String managedId, String surveyId, boolean completedToo, Cursor cursor) {
+	public PagedResult<Long> listSurveyInteractions(String managedId, String surveyId, boolean completedToo, String incentiveCode, Cursor cursor) {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<SurveyInteraction> root = cq.from(SurveyInteraction.class);
@@ -64,6 +65,9 @@ public class SurveyInteractionDao extends AbstractDao<SurveyInteraction, Long> {
         if (surveyId != null) {
         	predicates.add(cb.equal(root.get(SurveyInteraction_.survey).get(Survey_.surveyId), surveyId));
         }
+        if (incentiveCode != null) {
+        	predicates.add(cb.equal(root.get(SurveyInteraction_.survey).get(Survey_.incentiveCode), incentiveCode));
+        }
         if (!completedToo) {
         	// If the submit time is set, the then there is (should be) a rewarding process active or starting soon.
         	predicates.add(cb.isNull(root.get(SurveyInteraction_.submitTime)));
@@ -72,6 +76,7 @@ public class SurveyInteractionDao extends AbstractDao<SurveyInteraction, Long> {
         			cb.isNull(root.get(SurveyInteraction_.survey).get(Survey_.endTime)),
         			cb.greaterThan(root.get(SurveyInteraction_.survey).get(Survey_.endTime), now))
         	);
+        	predicates.add(cb.lessThan(root.get(SurveyInteraction_.survey).get(Survey_.startTime), now));
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;

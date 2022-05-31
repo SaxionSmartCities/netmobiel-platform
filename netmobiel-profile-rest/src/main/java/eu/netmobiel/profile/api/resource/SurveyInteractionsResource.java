@@ -34,7 +34,7 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 	private HttpServletRequest request;
 
 	@Override
-	public Response getSurveyInteractions(String xDelegator, String profileId, String surveyId, Boolean completedToo, Integer maxResults, Integer offset) {
+	public Response getSurveyInteractions(String xDelegator, String profileId, String surveyId, Boolean completedToo, String incentiveCode, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		try {
 			final boolean privileged = request.isUserInRole("admin"); 
@@ -44,7 +44,7 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 			String mid  = resolveIdentity(xDelegator, profileId);
 			allowAdminOrEffectiveUser(request, mid);
 			Cursor cursor = new Cursor(maxResults, offset);
-			PagedResult<SurveyInteraction> sis = surveyManager.listSurveyInteractions(mid, surveyId, Boolean.TRUE.equals(completedToo), cursor);
+			PagedResult<SurveyInteraction> sis = surveyManager.listSurveyInteractions(mid, surveyId, Boolean.TRUE.equals(completedToo), incentiveCode, cursor);
 			rsp = Response.ok(mapper.mapWithUser(sis)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -96,7 +96,7 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 	/**
 	 * Reverts a survey interaction for testing purposes. 
 	 * @param surveyInteractionId the survey ID
-	 * @param scope One of: payment, reward, answer, survey. If a piece is removed, all derives pieces are removed or cancelled as well. 
+	 * @param hard If true then remove the object from the database. Default false.
 	 * @return A 204.
 	 */
 	@Override
