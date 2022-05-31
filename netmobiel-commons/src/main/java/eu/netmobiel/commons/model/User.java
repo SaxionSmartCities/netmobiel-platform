@@ -110,7 +110,13 @@ public abstract class User extends ReferableObject implements NetMobielUser {
 
 	@Override
 	public boolean isSame(NetMobielUser other) {
-		return equals(other) && 
+		if (this == other) {
+			return true;
+		}
+		if (other == null) {
+			return false;
+		}
+		return  Objects.equals(getManagedIdentity(), other.getManagedIdentity()) &&
 				Objects.equals(getEmail(), other.getEmail()) && 
 				Objects.equals(getFamilyName(), other.getFamilyName()) && 
 				Objects.equals(getGivenName(), other.getGivenName()) 
