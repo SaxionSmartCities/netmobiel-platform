@@ -3050,7 +3050,7 @@ components:
           description: "Keep on displaying the CTA until at least x rewards (for this\
             \ incentive) are issued to a user. \nIf set to 0 the CTA is hidden when\
             \ at least one single reward is issued to a user."
-          type: string
+          type: number
       example:
         id: "2578"
         urn: urn:nb:nb:incentive:2578
