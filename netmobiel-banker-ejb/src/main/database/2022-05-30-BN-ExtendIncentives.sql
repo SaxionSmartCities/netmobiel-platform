@@ -29,7 +29,7 @@ ALTER TABLE public.incentive
 UPDATE public.incentive 
 	SET cta_enabled = true, 
 		cta_title = 'Verdien met je profiel',
-		cta_body = 'Maak jouw profiel compleet en verdien 10 credits!',
+		cta_body = 'Maak je profiel compleet en verdien 10 credits!',
 		cta_button_label = 'Ik doe mee',
 		cta_button_action = 'onboarding-profile',
 		cta_hide_beyond_reward_count = 0
