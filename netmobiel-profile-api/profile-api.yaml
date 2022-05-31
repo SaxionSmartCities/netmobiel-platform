@@ -755,83 +755,6 @@ paths:
         type: string
       in: path
       required: true
-  /survey-interactions:
-    summary: Path used to manage the list of survey interactions.
-    description: The REST endpoint/path used to list and create zero or more `SurveyInteraction`
-      entities.  This path contains a `GET` and `POST` operations to perform the list
-      task, resp. the create task. There is at most a single combination of survey
-      and profile possible.
-    get:
-      parameters:
-      - name: surveyId
-        description: Filter the results by the external survey ID.
-        schema:
-          type: string
-        in: query
-      - name: completedToo
-        description: If true then include completed and expired surveys too in the
-          listing.
-        schema:
-          type: boolean
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/SurveyInteraction'
-          description: Successful response - returns an array of `SurveyInteraction`
-            entities.
-      security:
-      - Bearer-only: []
-        apikey: []
-      operationId: getSurveyInteractions
-      summary: List all surveyinteractions
-      description: "Gets a list of all `SurveyInteraction` entities for the calling\
-        \ user. \nWhen no query parameters are supplied, the call looks for pending\
-        \ invitations to take\na survey. The admin can see `SurveyInteraction` entities\
-        \ of any user. \n\nThis call is idempotent."
-    post:
-      responses:
-        "201":
-          description: A new survey interaction is created, the user may complete
-            a survey of some kind.
-        "204":
-          description: 'The system has not seen a trigger to issue a survey interaction. '
-      operationId: createSurveyInteraction
-      summary: Creates a survey interaction
-      description: |-
-        Attempts to create a survey interaction, but only if the conditions are right. Otherwise a 204 will be returned.
-        This call should be issued once in a time, e.g., when logging in.
-
-        If the survey is found, but it is not completed yet, it's invitation count is incremented and a 201 is returned, although a new object is not really created. Consider it as a new opportunity.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - name: profileId
-      description: The user to list or create a survey interaction for. This parameter
-        defaults to `me` for non-admin users. The admin can list all interactions.
-        The `profileId` is the managed identity of the user or `me`  for the calling
-        user.
-      schema:
-        type: string
-      in: query
   /profiles/{profileId}:
     summary: Path used to manage a single `Profile`.
     description: The REST endpoint/path used to get, update, and delete a single instance
@@ -1176,6 +1099,89 @@ paths:
         type: string
       in: path
       required: true
+  /survey-interactions:
+    summary: Path used to manage the list of survey interactions.
+    description: The REST endpoint/path used to list and create zero or more `SurveyInteraction`
+      entities.  This path contains a `GET` and `POST` operations to perform the list
+      task, resp. the create task. There is at most a single combination of survey
+      and profile possible.
+    get:
+      parameters:
+      - name: surveyId
+        description: Filter the results by the external survey ID.
+        schema:
+          type: string
+        in: query
+      - name: completedToo
+        description: If true then include completed and expired surveys too in the
+          listing.
+        schema:
+          type: boolean
+        in: query
+      - name: incentiveCode
+        description: The incentive code attached to this survey. The incentive code
+          is unique for an survey, so the result contains 0 or 1 object.
+        schema:
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SurveyInteraction'
+          description: Successful response - returns an array of `SurveyInteraction`
+            entities.
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: getSurveyInteractions
+      summary: List all surveyinteractions
+      description: "Gets a list of all `SurveyInteraction` entities for the calling\
+        \ user. \nWhen no query parameters are supplied, the call looks for pending\
+        \ invitations to take\na survey. The admin can see `SurveyInteraction` entities\
+        \ of any user. \n\nThis call is idempotent."
+    post:
+      responses:
+        "201":
+          description: A new survey interaction is created, the user may complete
+            a survey of some kind.
+        "204":
+          description: 'The system has not seen a trigger to issue a survey interaction. '
+      operationId: createSurveyInteraction
+      summary: Creates a survey interaction
+      description: |-
+        Attempts to create a survey interaction, but only if the conditions are right. Otherwise a 204 will be returned.
+        This call should be issued once in a time, e.g., when logging in.
+
+        If the survey is found, but it is not completed yet, it's invitation count is incremented and a 201 is returned, although a new object is not really created. Consider it as a new opportunity.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: profileId
+      description: The user to list or create a survey interaction for. This parameter
+        defaults to `me` for non-admin users. The admin can list all interactions.
+        The `profileId` is the managed identity of the user or `me`  for the calling
+        user.
+      schema:
+        type: string
+      in: query
 components:
   schemas:
     SearchPreferences:
