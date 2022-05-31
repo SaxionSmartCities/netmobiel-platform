@@ -25,6 +25,3 @@ UPDATE public.trip_plan SET plan_state = 'CN' WHERE plan_state is NULL AND plan_
 ALTER TABLE public.trip_plan
     ALTER COLUMN plan_state SET NOT NULL
 ;
-ALTER TABLE public.trip_plan
-    ALTER COLUMN plan_state SET NOT NULL
-;
