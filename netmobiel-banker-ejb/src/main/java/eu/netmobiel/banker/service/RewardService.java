@@ -12,6 +12,7 @@ import javax.inject.Inject;
 
 import org.slf4j.Logger;
 
+import eu.netmobiel.banker.filter.IncentiveFilter;
 import eu.netmobiel.banker.filter.RewardFilter;
 import eu.netmobiel.banker.model.BankerUser;
 import eu.netmobiel.banker.model.Incentive;
@@ -189,4 +190,25 @@ public class RewardService {
 		} 
 	}
 
+    /**
+     * Lists the incentives, sorted from new to old descending.  
+     * @param cursor the cursor 
+     * @return A paged list of incentives
+     * @throws BadRequestException
+     */
+    public PagedResult<Incentive> listCallToActions(IncentiveFilter filter, Cursor cursor) throws BadRequestException {
+    	cursor.validate(MAX_RESULTS, 0);
+    	filter.validate();
+    	if (filter.getUser() == null) {
+    		throw new BadRequestException("User is a mandatory parameter");
+    	}
+    	Long totalCount = incentiveDao.listCallToActions(filter, Cursor.COUNTING_CURSOR).getTotalCount();
+    	List<Incentive> results = null;
+    	if (!cursor.isCountingQuery() && totalCount > 0) {
+    		// Get the actual data
+    		PagedResult<Long> ids = incentiveDao.listCallToActions(filter, cursor);
+    		results = incentiveDao.loadGraphs(ids.getData(), null, Incentive::getId);
+    	}
+    	return new PagedResult<>(results, cursor, totalCount);
+    }
 }

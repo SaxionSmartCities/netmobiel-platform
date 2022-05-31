@@ -12,15 +12,21 @@ import javax.persistence.EntityManager;
 import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
+import javax.persistence.criteria.Expression;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
+import javax.persistence.criteria.Subquery;
 
 import eu.netmobiel.banker.annotation.BankerDatabase;
+import eu.netmobiel.banker.filter.IncentiveFilter;
 import eu.netmobiel.banker.model.Incentive;
 import eu.netmobiel.banker.model.Incentive_;
+import eu.netmobiel.banker.model.Reward;
+import eu.netmobiel.banker.model.Reward_;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.repository.AbstractDao;
 
 @ApplicationScoped
@@ -80,5 +86,58 @@ public class IncentiveDao extends AbstractDao<Incentive, Long> {
         }
         return new PagedResult<>(results, cursor, totalCount);
     }
-
+    
+    
+    public PagedResult<Long> listCallToActions(IncentiveFilter filter, Cursor cursor) throws BadRequestException {
+    	/*
+	    	select inc.* from incentive inc where inc.cta_enabled and not exists 
+		    	(select 1 from reward r
+		    	 join bn_user u on u.id = r.recipient
+		    	 where r.incentive = inc.id and u.email = 'passagier-acc@netmobiel.eu' and inc.cta_enabled
+		    	 group by r.incentive
+		    	 having count(*) > inc.cta_hide_beyond_reward_count
+		    	)
+	    	order by inc.id asc;
+		*/
+    	CriteriaBuilder cb = em.getCriteriaBuilder();
+        CriteriaQuery<Long> cq = cb.createQuery(Long.class);
+        Root<Incentive> root = cq.from(Incentive.class);
+        List<Predicate> predicates = new ArrayList<>();
+        // Only the CTA incentives
+    	predicates.add(cb.isTrue(root.get(Incentive_.ctaEnabled)));
+        if (!filter.isDisabledToo()) {
+        	predicates.add(cb.isNull(root.get(Incentive_.disableTime)));
+        }
+        // Retrieve the CTA incentives that match the criteria (and this do not need attention anymore)
+        Subquery<Incentive> sq = cq.subquery(Incentive.class);
+        Root<Reward> sr = sq.from(Reward.class);
+        sq.where(
+        	cb.equal(sr.get(Reward_.incentive), root), 
+        	cb.equal(sr.get(Reward_.recipient), filter.getUser())
+        );
+        sq.groupBy(sr.get(Reward_.incentive));
+        sq.having(cb.greaterThan(cb.count(sr).as(Integer.class), root.get(Incentive_.ctaHideBeyondRewardCount)));
+        sq.select(sr.get(Reward_.incentive)).distinct(true);
+//        if (filter.getUser()) {
+//        	// Non-disabled --> no disable time set
+//	        predicates.add(cb.isNull(root.get(Incentive_.disableTime)));
+//        }
+    	predicates.add(cb.not(cb.exists(sq)));
+        cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
+        Long totalCount = null;
+        List<Long> results = Collections.emptyList();
+        if (cursor.isCountingQuery()) {
+    		cq.select(cb.count(root.get(Incentive_.id)));
+            totalCount = em.createQuery(cq).getSingleResult();
+        } else {
+            cq.select(root.get(Incentive_.id));
+            Expression<Long> orderExpr = root.get(Incentive_.id);
+            cq.orderBy((filter.getSortDir() == SortDirection.ASC) ? cb.asc(orderExpr) : cb.desc(orderExpr)); 
+            TypedQuery<Long> tq = em.createQuery(cq);
+    		tq.setFirstResult(cursor.getOffset());
+    		tq.setMaxResults(cursor.getMaxResults());
+			results = tq.getResultList();
+        }
+        return new PagedResult<>(results, cursor, totalCount);
+    }
 }

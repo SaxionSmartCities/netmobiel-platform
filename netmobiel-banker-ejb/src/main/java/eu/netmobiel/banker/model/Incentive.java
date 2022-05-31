@@ -103,7 +103,50 @@ public class Incentive extends ReferableObject implements Serializable {
     @Column(name = "disable_time")
     private Instant disableTime;
 
-	@Override
+    /**
+     * Does this incentive have a Call-To-Action?
+     */
+    @NotNull
+    @Column(name = "cta_enabled")
+    private boolean ctaEnabled;
+    
+    /**
+     * The title of the CTA to display.
+     */
+    @Size(max = 128)
+    @Column(name = "cta_title")
+    private String ctaTitle;
+
+    /**
+     * The body text of the CTA to display.
+     */
+    @Size(max = 256)
+    @Column(name = "cta_body")
+    private String ctaBody;
+
+    /**
+     * The label text of the CTA button to display.
+     */
+    @Size(max = 48)
+    @Column(name = "cta_button_label")
+    private String ctaButtonLabel;
+
+    /**
+     * The action definition the CTA button. If omitted the button is not displayed.
+     * The action text is taken from a vocabulary and is opaque to the banker. 
+     */
+    @Size(max = 32)
+    @Column(name = "cta_button_action")
+    private String ctaButtonAction;
+    
+    /**
+     * Keep on displaying the CTA until at least x rewards (for this incentive) are issued to a user. 
+     * If set to 0 the CTA is hidden when at least one single reward is issued to a user.
+     */
+    @Column(name = "cta_hide_beyond_reward_count")
+    private Integer ctaHideBeyondRewardCount;
+    
+    @Override
 	public String getUrnPrefix() {
 		return URN_PREFIX;
 	}
@@ -183,6 +226,54 @@ public class Incentive extends ReferableObject implements Serializable {
 
 	public void setDisableTime(Instant disableTime) {
 		this.disableTime = disableTime;
+	}
+
+	public boolean isCtaEnabled() {
+		return ctaEnabled;
+	}
+
+	public void setCtaEnabled(boolean ctaEnabled) {
+		this.ctaEnabled = ctaEnabled;
+	}
+
+	public String getCtaTitle() {
+		return ctaTitle;
+	}
+
+	public void setCtaTitle(String ctaTitle) {
+		this.ctaTitle = ctaTitle;
+	}
+
+	public String getCtaBody() {
+		return ctaBody;
+	}
+
+	public void setCtaBody(String ctaBody) {
+		this.ctaBody = ctaBody;
+	}
+
+	public String getCtaButtonLabel() {
+		return ctaButtonLabel;
+	}
+
+	public void setCtaButtonLabel(String ctaButtonLabel) {
+		this.ctaButtonLabel = ctaButtonLabel;
+	}
+
+	public String getCtaButtonAction() {
+		return ctaButtonAction;
+	}
+
+	public void setCtaButtonAction(String ctaButtonAction) {
+		this.ctaButtonAction = ctaButtonAction;
+	}
+
+	public Integer getCtaHideBeyondRewardCount() {
+		return ctaHideBeyondRewardCount;
+	}
+
+	public void setCtaHideBeyondRewardCount(Integer ctaHideBeyondRewardCount) {
+		this.ctaHideBeyondRewardCount = ctaHideBeyondRewardCount;
 	}
 
 	/**
