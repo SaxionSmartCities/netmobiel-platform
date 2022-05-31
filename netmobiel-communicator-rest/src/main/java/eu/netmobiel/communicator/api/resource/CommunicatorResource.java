@@ -18,7 +18,7 @@ import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.service.CommunicatorUserManager;
 
 /**
- * Base class for the communicator resource handling. Contains a view convenience methods.
+ * Base class for the communicator resource handling. Contains a few convenience methods.
  * 
  * @author Jaap Reitsma
  *
