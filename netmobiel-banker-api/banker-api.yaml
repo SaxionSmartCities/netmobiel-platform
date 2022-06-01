@@ -1608,41 +1608,6 @@ paths:
         type: string
       in: path
       required: true
-  /incentives:
-    summary: Path used to manage the list of incentives.
-    description: "The REST endpoint/path used to list `Incentive` entities.  This\
-      \ path contains a `GET` operation to perform the list task.\n\nOnly users with\
-      \ the role `admin` or `treasurer` are allowed to use this endpoint. "
-    get:
-      parameters:
-      - name: disabledToo
-        description: If set then list also the disable incentives.
-        schema:
-          type: boolean
-        in: query
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Successful response - returns a `Page` of `Incentive` entities.
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: getIncentives
-      summary: List All incentives
-      description: Gets a list of all `Incentive` entities.
   /rewards:
     summary: Path used to manage the list of rewards.
     description: "The REST endpoint/path used to list  `Reward` entities.  This path\
@@ -2255,6 +2220,46 @@ paths:
         type: string
       in: path
       required: true
+  /incentives:
+    summary: Path used to manage the list of incentives.
+    description: "The REST endpoint/path used to list `Incentive` entities.  This\
+      \ path contains a `GET` operation to perform the list task.\n\nOnly users with\
+      \ the role `admin` or `treasurer` are allowed to use this endpoint. "
+    get:
+      parameters:
+      - name: inactiveToo
+        description: If set then list also the inactive incentives.
+        schema:
+          type: boolean
+        in: query
+      - name: disabledToo
+        description: If set then list also the disabled incentives.
+        schema:
+          type: boolean
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `Incentive` entities.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getIncentives
+      summary: List All incentives
+      description: Gets a list of all `Incentive` entities.
 components:
   schemas:
     Error:
@@ -2966,100 +2971,6 @@ components:
         image:
           description: The image data encoded in base64.
           type: string
-    Incentive:
-      title: Root Type for Incentive
-      description: Definition of the reward intended as stimulus for certain behaviour.
-      required:
-      - amount
-      - id
-      - category
-      - code
-      - redemption
-      - relative
-      - urn
-      - ctaEnabled
-      type: object
-      properties:
-        id:
-          description: The id of the incentive.
-          type: integer
-        urn:
-          description: The URN of the incentive.
-          type: string
-        code:
-          description: "An incentive has a short code as (internal) reference to an\
-            \ incentive. The code is direct or indirect  \nattached to the trigger\
-            \ object. Example code: 'survey-0' to indicate the first survey offered."
-          type: string
-        category:
-          description: The category of the incentives. Currently defined are SURVEY
-            and CARPOOL.
-          type: string
-        description:
-          description: The description of the incentive. The text is displayed in
-            the reward overview.
-          type: string
-        amount:
-          description: The amount of credits involved (relative is false) or the percentage
-            of credits (relative is true) to assign related to some yield value. The
-            ride fare is an example of such a yield value.
-          type: integer
-        relative:
-          description: If true then the amount to reward is calculated relative to
-            some yield value, like the fare of a ride. The amount field is then interpreted
-            as a percentage.
-          type: boolean
-        maxAmount:
-          description: When relative is true, the maximum amount to reward.
-          type: integer
-        redemption:
-          description: |-
-            If true the reward is a redemption type of award, meaning that the user rewarded by converting the specified amount of premium credits into freely spendable credits. If redemption is false, then the user is rewarded with premium credits.
-
-            Redemption-type rewards are issued only when the user has a positive balance of premium credits at the time of the reward trigger.
-
-            Premium credits are paid when the application has a positive premium balance. If not, the payment remains pending.
-          type: boolean
-        disableTime:
-          format: date-time
-          description: The time the incentive was disabled. Not set with active incentives.
-          type: string
-        ctaEnabled:
-          description: Does this incentive have a Call-To-Action?
-          type: boolean
-        ctaTitle:
-          description: The title of the CTA to display.
-          type: string
-        ctaBody:
-          description: |-
-            The body text of the CTA to display.
-
-            Be careful to align the text with the actual reward method (absolute, relative, redemption, amout).
-
-            Note that the description text is used in the conversation with the user.
-          type: string
-        ctaButtonLabel:
-          description: The label text of the CTA button to display.
-          type: string
-        ctaButtonAction:
-          description: |-
-            The action definition the CTA button. If omitted the button is not displayed.
-            The action text is taken from a vocabulary and is opaque to the banker. It should be understood by the webclient and acted on as requested.
-          type: string
-        ctaHideBeyondRewardCount:
-          description: "Keep on displaying the CTA until at least x rewards (for this\
-            \ incentive) are issued to a user. \nIf set to 0 the CTA is hidden when\
-            \ at least one single reward is issued to a user."
-          type: number
-      example:
-        id: "2578"
-        urn: urn:nb:nb:incentive:2578
-        code: survey-0
-        category: SURVEY
-        description: Stimulus voor invullen van de nulmeting
-        amount: "10"
-        relative: false
-        redemption: false
     Reward:
       title: Root Type for Reward
       description: 'The actual reward for something in the application. A reward is
@@ -3176,6 +3087,108 @@ components:
         offset: 32
         count: 16
         data: []
+    Incentive:
+      title: Root Type for Incentive
+      description: Definition of the reward intended as stimulus for certain behaviour.
+      required:
+      - amount
+      - id
+      - category
+      - code
+      - redemption
+      - relative
+      - urn
+      - ctaEnabled
+      type: object
+      properties:
+        id:
+          description: The id of the incentive.
+          type: integer
+        urn:
+          description: The URN of the incentive.
+          type: string
+        code:
+          description: "An incentive has a short code as (internal) reference to an\
+            \ incentive. The code is direct or indirect  \nattached to the trigger\
+            \ object. Example code: 'survey-0' to indicate the first survey offered."
+          type: string
+        category:
+          description: The category of the incentives. Currently defined are SURVEY
+            and CARPOOL.
+          type: string
+        description:
+          description: The description of the incentive. The text is displayed in
+            the reward overview.
+          type: string
+        amount:
+          description: The amount of credits involved (relative is false) or the percentage
+            of credits (relative is true) to assign related to some yield value. The
+            ride fare is an example of such a yield value.
+          type: integer
+        relative:
+          description: If true then the amount to reward is calculated relative to
+            some yield value, like the fare of a ride. The amount field is then interpreted
+            as a percentage.
+          type: boolean
+        maxAmount:
+          description: When relative is true, the maximum amount to reward.
+          type: integer
+        redemption:
+          description: |-
+            If true the reward is a redemption type of award, meaning that the user rewarded by converting the specified amount of premium credits into freely spendable credits. If redemption is false, then the user is rewarded with premium credits.
+
+            Redemption-type rewards are issued only when the user has a positive balance of premium credits at the time of the reward trigger.
+
+            Premium credits are paid when the application has a positive premium balance. If not, the payment remains pending.
+          type: boolean
+        disableTime:
+          format: date-time
+          description: The time the incentive was disabled. Not set with active incentives.
+          type: string
+        startTime:
+          format: date-time
+          description: The time the incentive becomes active.
+          type: string
+        endTime:
+          format: date-time
+          description: The time the incentive becomes inactive.
+          type: string
+        ctaEnabled:
+          description: Does this incentive have a Call-To-Action?
+          type: boolean
+        ctaTitle:
+          description: The title of the CTA to display.
+          type: string
+        ctaBody:
+          description: |-
+            The body text of the CTA to display.
+
+            Be careful to align the text with the actual reward method (absolute, relative, redemption, amout).
+
+            Note that the description text is used in the conversation with the user.
+          type: string
+        ctaButtonLabel:
+          description: The label text of the CTA button to display.
+          type: string
+        ctaButtonAction:
+          description: |-
+            The action definition the CTA button. If omitted the button is not displayed.
+            The action text is taken from a vocabulary and is opaque to the banker. It should be understood by the webclient and acted on as requested.
+          type: string
+        ctaHideBeyondRewardCount:
+          description: "Keep on displaying the CTA until at least x rewards (for this\
+            \ incentive) are issued to a user. \nIf set to 0 the CTA is hidden when\
+            \ at least one single reward is issued to a user."
+          type: number
+      example:
+        id: "2578"
+        urn: urn:nb:nb:incentive:2578
+        code: survey-0
+        category: SURVEY
+        description: Stimulus voor invullen van de nulmeting
+        amount: "10"
+        relative: false
+        redemption: false
   responses:
     InternalServerError:
       content:
