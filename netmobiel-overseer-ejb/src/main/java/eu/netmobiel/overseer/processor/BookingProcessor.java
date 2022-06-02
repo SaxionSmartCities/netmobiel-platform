@@ -145,9 +145,15 @@ public class BookingProcessor {
 		// Inform driver on booking creation or deletion
     	// The message is about the booking, the driver's envelope context is the ride.
     	// The driver's conversation is the passenger's shout-out (if any) or the ride
+    	// The topic is only changed to the ride topic if the booking is accepted.
     	String convContext = booking.getPassengerTripPlanRef() != null 
     			? booking.getPassengerTripPlanRef() 
-    			: booking.getRide().getUrn(); 
+    			: booking.getRide().getUrn();
+    	String topic = null;
+    	if (booking.getState() == BookingState.CONFIRMED) {
+    		// When the booking is really accepted then change the conversation topic.
+    		topic = textHelper.createRideTopic(booking.getRide());  
+    	}
     	Message msg = Message.create()
     			.withBody(text)
     			.withContext(booking.getUrn())
@@ -155,12 +161,18 @@ public class BookingProcessor {
 	    			.withRecipient(booking.getRide().getDriver())
 	    			.withConversationContext(convContext)
 	    			.withUserRole(UserRole.DRIVER)
-	    			.withTopic(textHelper.createRideTopic(booking.getRide()))
+	    			.withTopic(topic)
 	    			.buildConversation()
     			.buildMessage();
 		publisherService.publish(msg);
     }
 
+    /**
+     * Observes the creation of booking because of the passenger selecting an existing ride, or when the driver makes an offer on a shout-out.
+     * The booking state is PROPOSED (shout-out offer) or CONFIRMED. REQUESTED could be a possibility too, but not as long we have auto-confirmation.
+     * @param booking
+     * @throws BusinessException
+     */
     public void onBookingCreated(@Observes(during = TransactionPhase.IN_PROGRESS) @Created Booking booking) throws BusinessException {
 		// Inform driver on new booking
     	informDriverOnBookingChangeConversation(booking, textHelper.createBookingCreatedTextForDriver(booking));
