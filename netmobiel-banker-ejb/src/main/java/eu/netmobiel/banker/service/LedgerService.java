@@ -136,6 +136,35 @@ public class LedgerService {
     @Inject
     private RewardDao rewardDao;
 
+    /**
+     * Tool to check whether a transaction is active.
+     * The status starts at 0, see javax.transaction.Status.
+     */
+//	@Resource
+//	private TransactionSynchronizationRegistry transactionSynchronisationRegistry;
+//	private static final String [] TRANSACTION_STATUS = {
+//		"STATUS_ACTIVE",
+//		"STATUS_MARKED_ROLLBACK",
+//		"STATUS_PREPARED",
+//		"STATUS_COMMITTED",
+//		"STATUS_ROLLEDBACK",
+//		"STATUS_UNKNOWN",
+//		"STATUS_NO_TRANSACTION",
+//		"STATUS_PREPARING",
+//		"STATUS_COMMITTING",
+//		"STATUS_ROLLING_BACK",
+//	};
+//
+//	private void showTransactionStatus(String contextName) {
+//		if (log.isDebugEnabled()) {
+//			log.debug(String.format("%s: Key %s Transaction status is %d %s",
+//					contextName,
+//					transactionSynchronisationRegistry.getTransactionKey(),
+//					transactionSynchronisationRegistry.getTransactionStatus(), 
+//					TRANSACTION_STATUS[transactionSynchronisationRegistry.getTransactionStatus()]));
+//		}
+//	}
+
     private static void expect(Account account, AccountType type) {
     	if (! Account.isOpen.test(account)) {
     		throw new IllegalArgumentException(String.format("Account is not open: %s", account.toString()));
@@ -870,6 +899,7 @@ public class LedgerService {
      * @throws NotFoundException
      */
     public void rewardWithPremium(Reward reward, OffsetDateTime when) throws BalanceInsufficientException, NotFoundException {
+//		showTransactionStatus("rewardWithPremium");
     	Reward rewarddb = rewardDao.loadGraph(reward.getId(), Reward.GRAPH_WITH_INCENTIVE_AND_RECIPIENT)
     			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getId()));
     	BankerUser user = userDao.loadGraph(rewarddb.getRecipient().getId(), BankerUser.GRAPH_WITH_ACCOUNT)  
@@ -919,6 +949,7 @@ public class LedgerService {
      * @throws NotFoundException
      */
     public void rewardWithRedemption(Reward reward, OffsetDateTime when) throws BalanceInsufficientException, NotFoundException {
+//		showTransactionStatus("rewardWithRedemption");
     	Reward rewarddb = rewardDao.loadGraph(reward.getId(), Reward.GRAPH_WITH_INCENTIVE_AND_RECIPIENT)
     			.orElseThrow(() -> new NotFoundException("No such reward: " + reward.getId()));
     	BankerUser user = userDao.loadGraph(rewarddb.getRecipient().getId(), BankerUser.GRAPH_WITH_ACCOUNT)  
@@ -1035,6 +1066,7 @@ public class LedgerService {
      */
     @Asynchronous
     public void onNewReward(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Created Reward reward) {
+//		showTransactionStatus("onNewReward");
     	onNewOrUpdatedReward(reward);
     }
 
@@ -1044,21 +1076,21 @@ public class LedgerService {
      */
     @Asynchronous
     public void onUpdatedReward(@Observes(during = TransactionPhase.AFTER_SUCCESS) @Updated Reward reward) {
+//		showTransactionStatus("onUpdatedReward");
     	onNewOrUpdatedReward(reward);
     }
 
     /**
-     * Handles the case of a new reward. 
-     * NOTE: This call is made without transaction!! Use the session context to invoke the bean and start a new transaction.
+     * Handles the case of a new or updated reward. 
      * @param reward
      */
     private void onNewOrUpdatedReward(Reward reward) {
     	try {
     		var when = OffsetDateTime.now();
     		if (reward.getIncentive().isRedemption()) {
-    	    	sessionContext.getBusinessObject(LedgerService.class).rewardWithRedemption(reward, when);
+    	    	rewardWithRedemption(reward, when);
     		} else {
-    	    	sessionContext.getBusinessObject(LedgerService.class).rewardWithPremium(reward, when);
+    	    	rewardWithPremium(reward, when);
     		}
     	} catch (BalanceInsufficientException e) {
     		log.warn("Premium balance is insufficient, reward payment is pending: " + reward.getUrn());
@@ -1074,6 +1106,7 @@ public class LedgerService {
      * @throws BusinessException
      */
     public void onRewardDisposal(@Observes(during = TransactionPhase.IN_PROGRESS) @Removed Reward reward) throws BusinessException {
+//		showTransactionStatus("onRewardDisposal");
     	if (reward.getTransaction() != null && reward.isPaidOut()) {
     		refundReward(reward, OffsetDateTime.now());
     	}
@@ -1112,6 +1145,7 @@ public class LedgerService {
      */
     @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
     public boolean attemptToPayoutReward(Reward reward) {
+//		showTransactionStatus("attemptToPayoutReward");
     	boolean paid = false;
     	try {
         	Reward rewarddb = rewardDao.find(reward.getId())
@@ -1134,11 +1168,13 @@ public class LedgerService {
      */
     @Schedule(info = "Reward check", hour = "*/1", minute = "15", second = "0", persistent = false /* non-critical job */)
 	public void resolvePendingRewardPayments() {
+//		showTransactionStatus("resolvePendingRewardPayments");
 		try {
 			long totalCount = listPendingRewards(Cursor.COUNTING_CURSOR).getTotalCount();
 	    	Cursor cursor = new Cursor(10, 0);
 			PagedResult<Long> pendingRewardIds = listPendingRewards(cursor);
     		for (Long rewardId: pendingRewardIds.getData()) {
+    			// Force transaction demarcation
     			boolean paid = sessionContext.getBusinessObject(LedgerService.class).attemptToPayoutReward(rewardDao.getReference(rewardId));
     			if (!paid) {
     				break;
