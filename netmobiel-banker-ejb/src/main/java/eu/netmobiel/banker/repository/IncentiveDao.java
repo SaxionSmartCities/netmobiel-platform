@@ -1,5 +1,6 @@
 package eu.netmobiel.banker.repository;
 
+import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -13,6 +14,7 @@ import javax.persistence.TypedQuery;
 import javax.persistence.criteria.CriteriaBuilder;
 import javax.persistence.criteria.CriteriaQuery;
 import javax.persistence.criteria.Expression;
+import javax.persistence.criteria.Path;
 import javax.persistence.criteria.Predicate;
 import javax.persistence.criteria.Root;
 import javax.persistence.criteria.Subquery;
@@ -58,15 +60,27 @@ public class IncentiveDao extends AbstractDao<Incentive, Long> {
 	
     /**
      * Lists incentives according specific criteria. 
-     * @param cursor The position and size of the result set. 
+     * @param filter the filter to apply
+     * @param cursor the cursor to apply
      * @return A list of incentive IDs in descending order.
      */
-    public PagedResult<Long> listIncentives(boolean disabledToo, Cursor cursor) throws BadRequestException {
+    public PagedResult<Long> listIncentives(IncentiveFilter filter, Cursor cursor) throws BadRequestException {
     	CriteriaBuilder cb = em.getCriteriaBuilder();
         CriteriaQuery<Long> cq = cb.createQuery(Long.class);
         Root<Incentive> root = cq.from(Incentive.class);
         List<Predicate> predicates = new ArrayList<>();
-        if (!disabledToo) {
+        if (!filter.isInactiveToo()) {
+        	// Only active incentives
+        	Path<Instant> start = root.get(Incentive_.startTime);
+        	Path<Instant> end = root.get(Incentive_.endTime);
+	        predicates.add(
+	        	cb.and(
+	        		cb.or(cb.isNull(start), cb.lessThanOrEqualTo(start, filter.getNow())),
+	        		cb.or(cb.isNull(end), cb.greaterThan(end, filter.getNow()))
+	        	)
+	        );
+        }
+        if (!filter.isDisabledToo()) {
         	// Non-disabled --> no disable time set
 	        predicates.add(cb.isNull(root.get(Incentive_.disableTime)));
         }
@@ -78,7 +92,8 @@ public class IncentiveDao extends AbstractDao<Incentive, Long> {
             totalCount = em.createQuery(cq).getSingleResult();
         } else {
             cq.select(root.get(Incentive_.id));
-            cq.orderBy(cb.desc(root.get(Incentive_.id))); 
+            Expression<Long> orderExpr = root.get(Incentive_.id);
+            cq.orderBy((filter.getSortDir() == SortDirection.ASC) ? cb.asc(orderExpr) : cb.desc(orderExpr)); 
             TypedQuery<Long> tq = em.createQuery(cq);
     		tq.setFirstResult(cursor.getOffset());
     		tq.setMaxResults(cursor.getMaxResults());
@@ -113,6 +128,17 @@ public class IncentiveDao extends AbstractDao<Incentive, Long> {
         List<Predicate> predicates = new ArrayList<>();
         // Only the CTA incentives
     	predicates.add(cb.isTrue(root.get(Incentive_.ctaEnabled)));
+        if (!filter.isInactiveToo()) {
+        	// Only active incentives
+        	Path<Instant> start = root.get(Incentive_.startTime);
+        	Path<Instant> end = root.get(Incentive_.endTime);
+	        predicates.add(
+	        	cb.and(
+	        		cb.or(cb.isNull(start), cb.lessThanOrEqualTo(start, filter.getNow())),
+	        		cb.or(cb.isNull(end), cb.greaterThan(end, filter.getNow()))
+	        	)
+	        );
+        }
         if (!filter.isDisabledToo()) {
         	predicates.add(cb.isNull(root.get(Incentive_.disableTime)));
         }

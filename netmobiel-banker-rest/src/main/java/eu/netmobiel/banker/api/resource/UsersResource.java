@@ -317,7 +317,7 @@ public class UsersResource extends BankerResource implements UsersApi {
 			CallingContext<BankerUser> context = bankerUserManager.findOrRegisterCallingContext(securityIdentity);
 			BankerUser user = resolveUserReference(context, userId);
 			allowAdminOrEffectiveUser(context, user);
-			IncentiveFilter filter = new IncentiveFilter(user, false, sortDir == null ? SortDirection.DESC.name() : sortDir); 
+			IncentiveFilter filter = new IncentiveFilter(user, false, false, sortDir == null ? SortDirection.DESC.name() : sortDir); 
 			Cursor cursor = new Cursor(maxResults, offset);
 	    	PagedResult<Incentive> results = rewardService.listCallToActions(filter, cursor);
 			rsp = Response.ok(pageMapper.mapIncentives(results)).build();

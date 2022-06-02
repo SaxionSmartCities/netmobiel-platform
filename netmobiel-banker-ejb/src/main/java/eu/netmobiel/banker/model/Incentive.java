@@ -98,6 +98,20 @@ public class Incentive extends ReferableObject implements Serializable {
     private Integer maxAmount;
 
     /**
+     * The time of the start of the incentive period.
+     * If not set it is valid indefinitely with backward compatibility
+     */
+    @Column(name = "start_time")
+    private Instant startTime;
+
+    /**
+     * The time of the end of the incentive period.
+     * If not set it remains valid indefinitely.
+     */
+    @Column(name = "end_time")
+    private Instant endTime;
+
+    /**
      * The time of the disabling of the incentive.
      */
     @Column(name = "disable_time")
@@ -220,6 +234,22 @@ public class Incentive extends ReferableObject implements Serializable {
 		this.maxAmount = maxAmount;
 	}
 
+	public Instant getStartTime() {
+		return startTime;
+	}
+
+	public void setStartTime(Instant startTime) {
+		this.startTime = startTime;
+	}
+
+	public Instant getEndTime() {
+		return endTime;
+	}
+
+	public void setEndTime(Instant endTime) {
+		this.endTime = endTime;
+	}
+
 	public Instant getDisableTime() {
 		return disableTime;
 	}
@@ -296,7 +326,21 @@ public class Incentive extends ReferableObject implements Serializable {
 		}
 		return reward;
 	}
+
+	public boolean isInActivePeriod(Instant now) {
+		// startTime <= now < endTime
+		return (getStartTime() == null || !now.isBefore(getStartTime())) &&
+			   (getEndTime() == null || now.isBefore(getEndTime()));
+	}
 	
+	public boolean isDisabled() {
+		return getDisableTime() != null;
+	}
+
+	public boolean isActive(Instant now) {
+		return !isDisabled() && isInActivePeriod(now);
+	}
+
 	@Override
 	public int hashCode() {
 		return Objects.hash(code);

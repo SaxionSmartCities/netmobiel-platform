@@ -71,17 +71,19 @@ public class RewardService {
 
     /**
      * Lists the incentives, sorted from new to old descending.  
+     * @param filter the filter to apply
      * @param cursor the cursor 
      * @return A paged list of incentives
      * @throws BadRequestException
      */
-    public PagedResult<Incentive> listIncentives(boolean disabledToo, Cursor cursor) throws BadRequestException {
+    public PagedResult<Incentive> listIncentives(IncentiveFilter filter, Cursor cursor) throws BadRequestException {
+    	filter.validate();
     	cursor.validate(MAX_RESULTS, 0);
-    	Long totalCount = incentiveDao.listIncentives(disabledToo, Cursor.COUNTING_CURSOR).getTotalCount();
+    	Long totalCount = incentiveDao.listIncentives(filter, Cursor.COUNTING_CURSOR).getTotalCount();
     	List<Incentive> results = null;
     	if (!cursor.isCountingQuery() && totalCount > 0) {
     		// Get the actual data
-    		PagedResult<Long> ids = incentiveDao.listIncentives(disabledToo, cursor);
+    		PagedResult<Long> ids = incentiveDao.listIncentives(filter, cursor);
     		results = incentiveDao.loadGraphs(ids.getData(), null, Incentive::getId);
     	}
     	return new PagedResult<>(results, cursor, totalCount);
@@ -192,13 +194,14 @@ public class RewardService {
 
     /**
      * Lists the incentives, sorted from new to old descending.  
+     * @param filter the filter to apply
      * @param cursor the cursor 
      * @return A paged list of incentives
      * @throws BadRequestException
      */
     public PagedResult<Incentive> listCallToActions(IncentiveFilter filter, Cursor cursor) throws BadRequestException {
-    	cursor.validate(MAX_RESULTS, 0);
     	filter.validate();
+    	cursor.validate(MAX_RESULTS, 0);
     	if (filter.getUser() == null) {
     		throw new BadRequestException("User is a mandatory parameter");
     	}
