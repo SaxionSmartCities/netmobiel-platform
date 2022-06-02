@@ -68,6 +68,7 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
     	rideDao.save(r);
     	r.getStops().forEach(stop -> em.persist(stop));
     	r.getLegs().forEach(leg -> em.persist(leg));
+    	log.debug("Save ride departing: " + r.getDepartureTime());
     }
 
     public void findRidesBeyondTemplateSetup(int depShift, int expectedCount) {
@@ -497,6 +498,7 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
 
     @Test
     public void testMatchesRecurrentRideCondition() {
+    	log.debug("Start testMatchesRecurrentRideCondition");
     	Instant firstDate = Instant.parse("2022-01-01T01:00:00Z");
     	Instant lastDate = Instant.parse("2023-01-01T01:00:00Z");
     	boolean foundOne = rideDao.matchesRecurrentRideCondition(car1.getDriver(), firstDate, lastDate, 30, 4);
@@ -504,17 +506,26 @@ public class RideDaoIT extends RideshareIntegrationTestBase {
     	
     	// Create some rides
     	Instant dt1 = Instant.parse("2022-05-20T15:00:00Z");
+    	// Note: Recurrence is 1 day
     	RideTemplate t = Fixture.createTemplate(car1, dt1, null);
     	em.persist(t);
-    	saveNewRide(t.createRide());
-    	saveNewRide(t.createRide());
-    	saveNewRide(t.createRide());
+    	t.generateRides(dt1.plusSeconds(60 * 60 * 24 * 3)).forEach(r -> saveNewRide(r));
     	foundOne = rideDao.matchesRecurrentRideCondition(car1.getDriver(), firstDate, lastDate, 30, 4);
     	assertFalse(foundOne);
     	
-    	saveNewRide(t.createRide());
+    	t.generateRides(dt1.plusSeconds(60 * 60 * 24 * 6)).forEach(r -> saveNewRide(r));
     	foundOne = rideDao.matchesRecurrentRideCondition(car1.getDriver(), firstDate, lastDate, 30, 4);
     	assertTrue(foundOne);
+
+    	firstDate = Instant.parse("2022-05-19T01:00:00Z");
+    	lastDate = Instant.parse("2022-05-21T01:00:00Z");
+    	foundOne = rideDao.matchesRecurrentRideCondition(car1.getDriver(), firstDate, lastDate, 30, 4);
+    	assertTrue(foundOne);
+
+    	firstDate = Instant.parse("2022-05-19T01:00:00Z");
+    	lastDate = Instant.parse("2022-05-20T01:00:00Z");
+    	foundOne = rideDao.matchesRecurrentRideCondition(car1.getDriver(), firstDate, lastDate, 30, 4);
+    	assertFalse(foundOne);
 
     }
 }

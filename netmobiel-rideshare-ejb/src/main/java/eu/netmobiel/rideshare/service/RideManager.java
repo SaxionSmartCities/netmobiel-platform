@@ -26,6 +26,7 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.annotation.Removed;
 import eu.netmobiel.commons.annotation.Updated;
+import eu.netmobiel.commons.event.RewardEvaluationEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.CreateException;
@@ -34,6 +35,7 @@ import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
@@ -80,8 +82,10 @@ public class RideManager {
 	 */
 	private static final int MAX_BEARING_DIFFERENCE = 60; 	/* degrees */
 //	private static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
-	private static final int HORIZON_WEEKS = 8;
+	public static final int HORIZON_WEEKS = 8;
 	private static final int TEMPLATE_CURSOR_SIZE = 10;
+
+	public static final String INCENTIVE_CODE_REPEATED_RIDE = "repeated-ride"; 
 
 	@Inject
     private Logger log;
@@ -114,6 +118,12 @@ public class RideManager {
 
     @Inject @Removed
     private Event<Ride> rideRemovedEvent;
+
+    /**
+     * Signals the evaluation for a reward of some kind.
+     */
+    @Inject
+    private Event<RewardEvaluationEvent> rewardEvaluationEvent;
 
     /**
      * Updates all recurrent rides by advancing the system horizon to a predefined offset with reference to the calling time.
@@ -181,6 +191,9 @@ public class RideManager {
 		for (Ride ride : rides) {
 			rideItineraryHelper.saveNewRide(ride);
 			rideMonitor.updateRideStateMachine(ride);
+		}
+		if (rides.size() > 0) {
+			triggerRepeatedRideRewardEvaluation(rides.get(0));
 		}
 		return rides.size();
 	}
@@ -371,6 +384,7 @@ public class RideManager {
     	if (template != null) {
     		// Create the current rides
     		attachTemplateAndInstantiateRides(ride, template);
+    		triggerRepeatedRideRewardEvaluation(ride);
     	}
     	// Force update of state machine
     	rideMonitor.updateRideStateMachine(ride);
@@ -445,7 +459,7 @@ public class RideManager {
 		// If nobody is using the old template anymore, then it is removed.
 
     	limitTemplateHorizonUpToRide(template, ride);
-		checkIfTemplateObsoleted(template); 
+		removeIfTemplateObsoleted(template); 
     }
 
     /**
@@ -465,7 +479,7 @@ public class RideManager {
      * Checks how many rides are attached to the template. If 0 then delete the template. 
      * @param template
      */
-    private void checkIfTemplateObsoleted(RideTemplate template) {
+    private void removeIfTemplateObsoleted(RideTemplate template) {
 		if (rideTemplateDao.getNrRidesAttached(template) == 0L) {
 			rideTemplateDao.remove(template);
 		}
@@ -626,7 +640,7 @@ public class RideManager {
     		} else {
     	    	// 3.2. THIS Remove template for this ride. Ride is no longer recurrent.
     			ridedb.setRideTemplate(null);
-        		checkIfTemplateObsoleted(oldTemplate);
+        		removeIfTemplateObsoleted(oldTemplate);
     		}
     	} else {
 	    	// 4. Recurrence in DB and update. Ride scope this-and-following is implicit. 
@@ -638,6 +652,10 @@ public class RideManager {
     	// just like the normal use of a planner.
     	if (rideDao.existsTemporalOverlap(ride)) {
     		throw new UpdateException("Ride overlaps existing ride");
+    	}
+    	// Whenever something changes with the ride template then check the repeated-ride incentive.
+    	if (oldTemplate != null || newRecurrence != null) {
+    		triggerRepeatedRideRewardEvaluation(ridedb);
     	}
     	rideMonitor.updateRideStateMachine(ridedb);
     }
@@ -707,10 +725,36 @@ public class RideManager {
 	    			.forEach(rid -> removeRideById(rid, reason, hard));
 	        	limitTemplateHorizonUpToRide(ridedb.getRideTemplate(), ridedb);
     		}
-    		checkIfTemplateObsoleted(ridedb.getRideTemplate());
+    		removeIfTemplateObsoleted(ridedb.getRideTemplate());
+    		triggerRepeatedRideRewardEvaluation(ridedb);
     	}
     }
 
+    private void triggerRepeatedRideRewardEvaluation(Ride ride) {
+		// The repeated ride reward is not tied to a specific template, but is related to the driver or the whole rideshare service.
+		// The context of the reward is therefore the driver, i.e. the keycloak urn.
+    	RewardEvaluationEvent repeatedRide = 
+    			new RewardEvaluationEvent(INCENTIVE_CODE_REPEATED_RIDE, ride.getDriver(), ride.getDriver().getKeyCloakUrn());
+		rewardEvaluationEvent.fire(repeatedRide);
+    }
+
+    /**
+	 * Count for a specific user the number of occasions (i.e, at each recurrent ride) how often there were at least x recurrent rides 
+	 * within y days, given a date range. All parameters must be set, i.e. no nulls allowed.
+     * @param driver the driver
+     * @param firstDate The date to start the evaluation
+     * @param lastDate The last date (exclusive) 
+     * @param evaluationPeriod the size of the evaluation period in days, e.g. 30.
+     * @param minimumRides the minimum number of rides to find in the period.
+     * @return if true than at 1 period has at least the minum number of recurrent rides. 
+     * @throws NotFoundException 
+     */
+	public boolean matchesRepeatedRideCondition(NetMobielUser user, Instant firstDate, Instant lastDate, int evaluationPeriod, int minimumRides) throws NotFoundException {
+    	RideshareUser driver = userDao.findByManagedIdentity(user.getManagedIdentity())
+    			.orElseThrow(() -> new NotFoundException("No such user: " + user.getManagedIdentity()));
+		return rideDao.matchesRecurrentRideCondition(driver, firstDate, lastDate, evaluationPeriod, minimumRides);
+	}
+	
 	public Optional<GeoLocation> findNextMissingPostalCode() {
 		Optional<Ride> r = rideDao.findFirstRideWithoutPostalCode();
 		GeoLocation loc = null;

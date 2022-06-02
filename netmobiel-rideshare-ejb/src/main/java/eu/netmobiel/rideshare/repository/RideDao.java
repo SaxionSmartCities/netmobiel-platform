@@ -395,7 +395,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
 
     /**
 	 * Count for a specific user the number of occasions (i.e, at each recurrent ride) how often there were at least x recurrent rides 
-	 * within y days, given a date range
+	 * within y days, given a date range. All parqameteres must be set, i.e. no nulls allowed.
      * @param driver the driver
      * @param firstDate The date to start the evaluation
      * @param lastDate The last date (exclusive) 
@@ -406,23 +406,25 @@ public class RideDao extends AbstractDao<Ride, Long> {
 	public boolean matchesRecurrentRideCondition(RideshareUser driver, Instant firstDate, 
 			Instant lastDate, int evaluationPeriod, int minimumRides) {
 		try {
-	        Object count = em.createNativeQuery("SELECT count(placed)\\:\\:integer FROM ( "
+	        Object count = em.createNativeQuery(
+	        		  "SELECT count(placed)\\:\\:integer FROM ( "
 					+ "	SELECT r.departure_time, "
 					+ "	 (SELECT count(*) FROM ride rs "
 					+ "	  WHERE rs.departure_time >= r.departure_time AND "
-					+ "	   rs.departure_time < r.departure_time + make_interval(days => ?) "
+					+ "	   rs.departure_time < r.departure_time + make_interval(days => :evaluationPeriod) "
 					+ "     AND rs.ride_template IS NOT null AND rs.driver = r.driver "
-					+ "   HAVING count(*) >= ? "
+					+ "   HAVING count(*) >= :minimumRides "
 					+ "	) AS placed"
 					+ "	FROM ride r "
-					+ "	WHERE r.ride_template IS NOT null AND r.driver = ? "
-					+ "	 AND r.departure_time > ? AND r.departure_time < COALESCE(null, ?)\\:\\:date "
+					+ "	WHERE r.ride_template IS NOT null AND r.driver = :driver "
+					+ "	 AND r.departure_time >= :firstDate " 
+					+ "  AND r.departure_time < :lastDate "
 					+ ") rec_rides")
-	        		.setParameter(1, evaluationPeriod)
-	        		.setParameter(2, minimumRides)
-	        		.setParameter(3, driver.getId())
-	        		.setParameter(4, firstDate)
-	        		.setParameter(5, lastDate)
+	        		.setParameter("evaluationPeriod", evaluationPeriod)
+	        		.setParameter("minimumRides", minimumRides)
+	        		.setParameter("driver", driver.getId())
+	        		.setParameter("firstDate", firstDate)
+	        		.setParameter("lastDate", lastDate)
 	        		.getSingleResult();
 	        return (Integer)count > 0;
 		} catch (Exception ex) {
