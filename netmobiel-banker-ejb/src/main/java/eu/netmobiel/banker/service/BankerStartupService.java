@@ -88,9 +88,6 @@ public class BankerStartupService {
 		for (BankerUser user: usersWithoutAccount) {
 			logger.info("Assigning a personal account to: " + user.getName());
 	    	ledgerService.addPersonalAccount(user);
-	    	// Cannot use following construct: Reentrant call not allowed in a postconstruct
-	    	// If wanted, then call this method from the Overseer.
-			// context.getBusinessObject(BankerStartupService.class).addPersonalAccount(user);
 		}
 
     	usersWithoutAccount = bankerUserDao.findUsersWithoutPremiumAccount();
@@ -99,9 +96,6 @@ public class BankerStartupService {
 		for (BankerUser user: usersWithoutAccount) {
 			logger.info("Assigning a premium account to: " + user.getName());
 	    	ledgerService.addPremiumAccount(user);
-	    	// Cannot use following construct: Reentrant call not allowed in a postconstruct
-	    	// If wanted, then call this method from the Overseer.
-			// context.getBusinessObject(BankerStartupService.class).addPersonalAccount(user);
 		}
     }
 }
