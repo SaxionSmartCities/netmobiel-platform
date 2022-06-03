@@ -10,11 +10,16 @@ import java.util.Optional;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 
+import javax.annotation.Resource;
 import javax.ejb.Schedule;
+import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
+import javax.ejb.TransactionAttribute;
+import javax.ejb.TransactionAttributeType;
 import javax.enterprise.event.Event;
 import javax.inject.Inject;
 import javax.persistence.NoResultException;
+import javax.persistence.PersistenceException;
 import javax.validation.constraints.NotNull;
 
 import org.apache.commons.lang3.StringUtils;
@@ -65,6 +70,9 @@ public class PublisherService {
 	public static final int ARCHIVE_DAYS = 30;
     @Inject
     private Logger logger;
+
+    @Resource
+	private SessionContext sessionContext;
 
     @Inject
     private EnvelopeDao envelopeDao;
@@ -174,7 +182,7 @@ public class PublisherService {
 		for (Envelope env : msg.getEnvelopes()) {
 			Conversation conv_in = env.getConversation();
 			Conversation conv_db = lookupOrCreateConversation(conv_in.getOwner(), 
-					conv_in.getOwnerRole(),	conv_in.getFirstContext(), conv_in.getTopic());
+					conv_in.getOwnerRole(),	conv_in.getInitialContext(), conv_in.getTopic());
 			// Add additional contexts
 			conv_db.getContexts().addAll(conv_in.getContexts());
 			// The context of the envelope is added to the conversation. The message context is the shared context
@@ -206,16 +214,17 @@ public class PublisherService {
     }
 
     /**
-     * Creates a conversation
+     * Creates a conversation. This method is used by the front-end to start a conversation. Especially needed when 
+     * starting a chat with someone (and no system message was received yet). 
      * @param c the conversation. 
      * @return The ID of the conversation just created.
      * @throws BadRequestException In case of bad parameters.
      * @throws DuplicateEntryException When a conversation is found with a matching (context, owner)
      * @throws NotFoundException 
      */
-    public Long createConversation(Conversation c) throws BadRequestException, DuplicateEntryException, NotFoundException {
-    	if (c.getContexts().isEmpty()) {
-    		throw new BadRequestException("Specify at least one context");
+    public Long createConversation(Conversation c) throws BadRequestException, DuplicateEntryException, NotFoundException, CreateException {
+    	if (c.getInitialContext() == null) {
+    		throw new BadRequestException("Specify the initial context");
     	}
     	if (c.getOwner() == null) {
     		throw new BadRequestException("Specify an owner");
@@ -225,13 +234,17 @@ public class PublisherService {
     				.orElseThrow(() -> new NotFoundException("No such user: " + c.getOwner().getManagedIdentity()));
     		c.setOwner(usr);
     	}
-   		Optional<Conversation> optConv = conversationDao.findByContextAndOwner(c.getFirstContext(), c.getOwner());
+   		Optional<Conversation> optConv = conversationDao.findByContextAndOwner(c.getInitialContext(), c.getOwner());
 		if (optConv.isPresent()) {
 			throw new DuplicateEntryException(
 					String.format("Conversation %s already associated with context %s", 
-							optConv.get().getUrn(), c.getFirstContext()));
+							optConv.get().getUrn(), c.getInitialContext()));
 		}
-    	Conversation cdb = createConversation(c.getOwner(), c.getOwnerRole(), c.getFirstContext(), c.getTopic());
+    	Optional<Conversation> cdbopt = createConversation(c.getOwner(), c.getOwnerRole(), c.getInitialContext(), c.getTopic());
+    	if (cdbopt.isEmpty()) {
+    		throw new CreateException("Error creating conversation");
+    	}
+    	Conversation cdb = cdbopt.get();
     	cdb.getContexts().addAll(c.getContexts());
 		return cdb.getId();
     }
@@ -266,8 +279,9 @@ public class PublisherService {
      * @param overwriteTopic if true then overwrite the subject. 
      * @return a conversation object.
      * @throws NotFoundException 
+     * @throws BusinessException 
      */
-    private Conversation lookupOrCreateConversation(CommunicatorUser owner, UserRole ownerRole, String context, String topic) throws NotFoundException {
+    private Conversation lookupOrCreateConversation(CommunicatorUser owner, UserRole ownerRole, String context, String topic) throws BusinessException {
     	CommunicatorUser ownerdb = owner;
     	if (owner.getId() == null) {
     		ownerdb = userDao.findByManagedIdentity(owner.getManagedIdentity())
@@ -280,7 +294,15 @@ public class PublisherService {
 				optConv.get().setTopic(topic);
 			}
 		} else {
-			optConv = Optional.of(createConversation(ownerdb, ownerRole, context, topic));
+			optConv = sessionContext.getBusinessObject(PublisherService.class)
+					.createConversation(ownerdb, ownerRole, context, topic);
+			if (optConv.isEmpty()) {
+				optConv = conversationDao.findByContextAndOwner(context, ownerdb);
+				if (optConv.isEmpty()) {
+					throw new CreateException(String.format("Unable to create conversation for user %s and context %s", 
+							ownerdb.getUrn(), context));
+				}
+			}
 		}
 		return optConv.get();
     }
@@ -296,10 +318,11 @@ public class PublisherService {
      * @return a conversation object.
      * @throws NotFoundException 
      */
-    private Conversation createConversation(CommunicatorUser ownerdb, UserRole ownerRole, String context, String topic) throws NotFoundException {
+    @TransactionAttribute(TransactionAttributeType.REQUIRES_NEW)
+    public Optional<Conversation> createConversation(CommunicatorUser ownerdb, UserRole ownerRole, String context, String topic) throws NotFoundException {
 		Optional<Conversation> optConv = Optional.empty();
 		if (topic == null || ownerRole == null) {
-			// Create a new conversation, if possible, by delegating to the system
+			// Find more details about the conversation, by delegating to the application
 			requestConversationEvent.fire(new RequestConversationEvent(context, ownerdb));
 			// Now try to lookup if the event was successfully processed 
 			optConv = conversationDao.findByContextAndOwner(context, ownerdb);
@@ -307,11 +330,19 @@ public class PublisherService {
 				throw new NotFoundException(String.format("User %s has no conversation established for %s", ownerdb, context));
 			}
 		} else {
-			// Create a new conversation
-			Conversation c = new Conversation(ownerdb, ownerRole, context, topic);
-			optConv = Optional.of(conversationDao.save(c));
+			try {
+				// Create a new conversation
+				Conversation c = new Conversation(ownerdb, ownerRole, context, topic);
+				optConv = Optional.of(conversationDao.save(c));
+				// Check whether we don't violation the unique constraint
+				conversationDao.flush();
+			} catch (PersistenceException ex) {
+				// System will log message too if enabled in wildfly console
+				logger.warn(String.join("\n\t", ExceptionUtil.unwindException("Error creating conversation", ex)));
+				optConv = Optional.empty();
+			}
 		}
-		return optConv.get();
+		return optConv;
     }
 
     /**

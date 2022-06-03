@@ -20,6 +20,8 @@ public interface UserMapper {
 
 	// API --> Domain
 	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "fcmToken", ignore = true)
+	@Mapping(target = "fcmTokenTimestamp", ignore = true)
 	CommunicatorUser map(eu.netmobiel.communicator.api.model.User source);
 
 }

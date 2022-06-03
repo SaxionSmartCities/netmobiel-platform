@@ -55,6 +55,8 @@ public class MessagesResource extends CommunicatorResource implements MessagesAp
 			for (eu.netmobiel.communicator.api.model.Envelope env : msg.getEnvelopes()) {
 				mb.addEnvelope(env.getContext())
 					.withRecipient(env.getRecipient().getManagedIdentity())
+					// Leave it to the system to identify the right conversation or a new one if needed.
+					// There is no topic, so the system will ask the overseer what to do 
 					.withConversationContext(env.getContext())
 					.buildConversation();
 			}

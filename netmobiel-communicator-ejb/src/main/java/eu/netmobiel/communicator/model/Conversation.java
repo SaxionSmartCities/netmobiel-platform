@@ -24,6 +24,7 @@ import javax.persistence.OrderBy;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
+import javax.persistence.UniqueConstraint;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Size;
 
@@ -68,7 +69,9 @@ import eu.netmobiel.communicator.util.CommunicatorUrnHelper;
 })
 
 @Entity
-@Table(name = "conversation")
+@Table(name = "conversation", uniqueConstraints = {
+	    @UniqueConstraint(name = "cs_unique_conversation", columnNames = { "initial_context", "owner" })
+})
 @Vetoed
 @SequenceGenerator(name = "conversation_sg", sequenceName = "conversation_id_seq", allocationSize = 1, initialValue = 50)
 public class Conversation extends ReferableObject implements Serializable {
@@ -94,7 +97,7 @@ public class Conversation extends ReferableObject implements Serializable {
      * Creation time of the thread.
      */
     @NotNull
-	@Column(name = "created_time")
+	@Column(name = "created_time", updatable = false)
 	private Instant createdTime;
 	
     /**
@@ -108,7 +111,7 @@ public class Conversation extends ReferableObject implements Serializable {
 	 */
     @NotNull
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "owner", foreignKey = @ForeignKey(name = "conversation_owner_fk"))
+    @JoinColumn(name = "owner", foreignKey = @ForeignKey(name = "conversation_owner_fk"), updatable = false)
     private CommunicatorUser owner;
 
    /**
@@ -139,11 +142,20 @@ public class Conversation extends ReferableObject implements Serializable {
 	/**
 	 * The effective role of the owner at the time the conversation was created.
 	 * The role is used when the context is ambiguous, like in the case of a shout-out.
+	 * FIXME: This should have been a urn of some kind, it is opaque to the communicator.
 	 */
 	@NotNull
-	@Column(name = "owner_role", length = 2)
+	@Column(name = "owner_role", length = 2, updatable = false)
 	private UserRole ownerRole;
 
+	/**
+	 * The initial context of the conversation. This column is added to prevent duplicates due to a race condition when 
+	 * creating a conversation.
+	 */
+	@NotNull
+    @Column(name = "initial_context", length = 64, updatable = false)
+    private String initialContext;
+    
     public Conversation() {
     	this(null, null, null, null);
     }
@@ -165,6 +177,7 @@ public class Conversation extends ReferableObject implements Serializable {
     }
 
     public Conversation(CommunicatorUser anOwner, UserRole ownerRole, String initialContext, String aTopic, Instant aCcreationTime) {
+    	this.initialContext = initialContext;
     	this.owner = anOwner;
     	this.ownerRole = ownerRole;
     	this.topic = aTopic;
@@ -225,16 +238,11 @@ public class Conversation extends ReferableObject implements Serializable {
 		if (contexts == null) {
 			// Maintain order of insertion
 			contexts = new LinkedHashSet<>();
+			if (initialContext != null) {
+				contexts.add(initialContext);
+			}
 		}
 		return contexts;
-	}
-
-	/**
-	 * Returns the first context in the linked set.
-	 * @return
-	 */
-	public String getFirstContext() {
-		return getContexts().size() == 0 ? null : getContexts().iterator().next();
 	}
 
 	public void setContexts(Set<String> contexts) {
@@ -263,6 +271,14 @@ public class Conversation extends ReferableObject implements Serializable {
 
 	public void setUnreadCount(int unreadCount) {
 		this.unreadCount = unreadCount;
+	}
+
+	public String getInitialContext() {
+		return initialContext;
+	}
+
+	public void setInitialContext(String initialContext) {
+		this.initialContext = initialContext;
 	}
 
 	@Override
@@ -304,6 +320,7 @@ public class Conversation extends ReferableObject implements Serializable {
 		}
 
 		public ConversationBuilder withConversationContext(String aContext) {
+			conversation.setInitialContext(aContext);
 			conversation.getContexts().add(aContext);
 			return this;
 		}

@@ -85,7 +85,7 @@ public class Message extends ReferableObject implements NetMobielMessage, Serial
 	private String context;
 	
     @NotNull
-	@Column(name = "created_time")
+	@Column(name = "created_time", updatable = false)
 	private Instant createdTime;
 	
     /**

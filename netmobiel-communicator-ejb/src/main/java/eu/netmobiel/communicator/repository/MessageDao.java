@@ -117,8 +117,8 @@ public class MessageDao extends AbstractDao<Message, Long> {
 		String sort = sortDir != null ? sortDir.name().toLowerCase() : "desc"; 
 		// To write the query below as a criteria query seems impossible, I can't get the selection of a subquery right.
 		String queryString = String.format( 
-				"%s from Envelope e where (e.conversation, e.message.createdTime) in" +
-				" (select env.conversation, max(env.message.createdTime) from Envelope env" + 
+				"%s from Envelope e where (e.conversation, e.message.id) in" +
+				" (select env.conversation, max(env.message.id) from Envelope env" + 
 				"  where env.message.deliveryMode in :deliverySet %s %s" +
 				"  group by env.conversation" +
 				" ) %s %s",
@@ -126,7 +126,7 @@ public class MessageDao extends AbstractDao<Message, Long> {
 				owner != null ? "and env.conversation.owner = :participant" : "",
 				context != null ? "and :context member of env.conversation.contexts" : "",
 				actualOnly ? "and e.conversation.archivedTime is null" : (archivedOnly ? "and e.conversation.archivedTime is not null" : ""),
-				maxResults > 0 ? "order by e.message.createdTime " + sort : ""
+				maxResults > 0 ? "order by e.message.id " + sort : ""
 		);
 		TypedQuery<Long> query = em.createQuery(queryString, Long.class);
 		if (owner != null) {

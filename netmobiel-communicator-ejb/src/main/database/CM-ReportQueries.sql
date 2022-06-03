@@ -39,9 +39,11 @@ SELECT distinct e.id, e.message, e.context as env_context, m.context as msg_cont
 	ORDER BY e.id ASC
 ;
 
--- Sanity check: Verify whether each ride is contained in at most one conversation 
-select cc.context, count(*) from conversation_context cc 
-where cc.context like '%:ride:%' 
+-- Sanity check: Verify whether contexts are unique that should be unique 
+select conversation, context from conversation_context where context in (
+select cc.context from conversation_context cc 
+where cc.context not like '%:booking:%' and cc.context not like '%:tripplan:%'
 group by cc.context having count(*) > 1
-;
+);
+
 	

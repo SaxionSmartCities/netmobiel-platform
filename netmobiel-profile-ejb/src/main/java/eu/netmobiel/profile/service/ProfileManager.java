@@ -11,6 +11,7 @@ import java.nio.file.StandardOpenOption;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneId;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Objects;
 import java.util.Optional;
@@ -101,7 +102,7 @@ public class ProfileManager {
     private Event<Profile> profileUpdatedEvent;
 
     @Inject
-    private Event<RewardEvent> rewardEvent;
+    private Event<List<RewardEvent>> rewardEvents;
 
     @Inject
     private Event<RewardRollbackEvent> rewardRollbackEvent;
@@ -391,16 +392,19 @@ public class ProfileManager {
 	private void evaluateRewardTriggers(Profile profile, boolean plusChanged, boolean ageChanged, Integer age) {
 		// Trigger the starter. Should be at creation time but now we have backward compatibility
 		// If at creation time, then after creation of the banker user! And communicator user!
+		// List of (asynchronous) reward events
+		List<RewardEvent> events = new ArrayList<>();
 		RewardEvent starter = new RewardEvent(INCENTIVE_CODE_STARTER, profile, profile.getKeyCloakUrn());
-		rewardEvent.fire(starter);
+		events.add(starter);
 
 		// Trigger the additional profile info if the state has changed
 		if (plusChanged) {
 			if (profile.isProfilePlus()) {
 				RewardEvent plus = new RewardEvent(INCENTIVE_CODE_PROFILE_PLUS, profile, profile.getKeyCloakUrn());
-				rewardEvent.fire(plus);
+				events.add(plus);
 			} else {
 				RewardRollbackEvent noPlus = new RewardRollbackEvent(INCENTIVE_CODE_PROFILE_PLUS, profile, profile.getKeyCloakUrn());
+				// in process
 				rewardRollbackEvent.fire(noPlus);
 			}
 		}
@@ -410,13 +414,17 @@ public class ProfileManager {
 			// Trigger on the age at the time of creation of the profile
 			if (age != null && age >= 15 && age <= 25) {
 				RewardEvent youth = new RewardEvent(INCENTIVE_CODE_AGE_YOUTH, profile, profile.getKeyCloakUrn());
-				rewardEvent.fire(youth);
+				events.add(youth);
 			} else {
 				RewardRollbackEvent noYouth = new RewardRollbackEvent(INCENTIVE_CODE_AGE_YOUTH, profile, profile.getKeyCloakUrn());
+				// in process
 				rewardRollbackEvent.fire(noYouth);
 			}
 		}
-
+		if (!events.isEmpty()) {
+			//asynchronous handling
+			rewardEvents.fire(events);
+		}
 	}
 
 	/**

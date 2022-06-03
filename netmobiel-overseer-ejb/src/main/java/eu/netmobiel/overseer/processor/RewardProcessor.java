@@ -1,6 +1,7 @@
 package eu.netmobiel.overseer.processor;
 
 import java.time.Instant;
+import java.util.List;
 import java.util.Optional;
 
 import javax.annotation.Resource;
@@ -201,6 +202,17 @@ public class RewardProcessor {
 			logger.error("Error in onReward: " + e);
 		}
     }
+
+	/**
+	 * In case a method sends multiple rewards, then handle them in sequence, to prevent troubles with conversation creation. 
+	 * @param events
+	 */
+	@Asynchronous
+	public void onRewards(@Observes(during = TransactionPhase.AFTER_SUCCESS) List<RewardEvent> events) {
+		for (RewardEvent event : events) {
+			onReward(event);
+		}
+	}
 
 	/**
 	 * Performs a rollback of an earlier reward. This is an in-progress operation to assure consistency. 
