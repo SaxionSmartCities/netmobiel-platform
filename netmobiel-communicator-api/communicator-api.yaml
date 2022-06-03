@@ -220,9 +220,8 @@ paths:
       parameters:
       - name: participant
         description: The participant in the messages, i.e. as a recipient or a sender.
-          Use `me` as indicator to retrieve the own messages. Defaults to the effective
-          user when not set, unless the caller is an admin. An admin can list any
-          message. The participant domain is the Keycloak managed identity.
+          Use `me` to retrieve the caller's messages. An admin can list messages of
+          anyone. The participant domain is the communicator urn or a Keycloak urn.
         schema:
           type: string
         in: query
@@ -914,6 +913,7 @@ components:
       - topic
       - ownerRole
       - contexts
+      - initialContext
       type: object
       properties:
         id:
@@ -973,6 +973,10 @@ components:
           description: The number of unread messages. Only valid (filled) when the
             inbox conversations are requested.
           type: integer
+        initialContext:
+          description: The context that started the conversation. It must be unique
+            per user.
+          type: string
       example:
         id: 12345
         createdTime: 2021-10-26T12:00:00Z
