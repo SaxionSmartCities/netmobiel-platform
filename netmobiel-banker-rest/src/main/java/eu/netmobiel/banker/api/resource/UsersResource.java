@@ -154,9 +154,8 @@ public class UsersResource extends BankerResource implements UsersApi {
 			if (user != null) {
 				CallingContext<BankerUser> context = bankerUserManager.findOrRegisterCallingContext(securityIdentity);
 				BankerUser bnuser = resolveUserReference(context, user);
-				allowAdminOrEffectiveUser(context, bnuser);
+				// Anyone can see the generosity of anyone in Netmobiel
 				userId = bnuser.getId();
-				
 			}
 			if (charity != null) {
 				filter = new DonationFilter(charity, userId, since, until, sortBy, sortDir, false);
