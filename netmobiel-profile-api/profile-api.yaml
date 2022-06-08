@@ -976,7 +976,7 @@ paths:
         required: true
       responses:
         "204":
-          description: The updated profile.
+          description: The image is stored.
       operationId: uploadImage
       summary: Uploads an image
       description: Uploads an image. The previous image is removed. The path to the
@@ -1132,6 +1132,42 @@ paths:
       schema:
         type: string
       in: query
+  /profiles/{profileId}/session-log:
+    summary: Manages the user's session log.
+    description: Manage the session log of the user of this profile. When a call a
+      made by someone with the delegate role, the effective user will be the user
+      specified in the X-Delegator header.
+    put:
+      requestBody:
+        description: The image to upload.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserSession'
+        required: true
+      responses:
+        "202":
+          description: Success, the session log is processed in the background.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: uploadSessionLog
+      summary: Uploads the session log
+      description: Uploads the session log. The log is concatenated with the already
+        existing session, if present.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: profileId
+      description: The unique profile id.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     SearchPreferences:
@@ -1855,6 +1891,81 @@ components:
           firstName: Pietje
           lastName: Puk
           email: pietje.puk@netmobiel.eu
+    UserSession:
+      title: Root Type for UserSession
+      description: A record identifying a user session.
+      required:
+      - sessionId
+      - userAgent
+      - sessionStart
+      type: object
+      properties:
+        id:
+          format: int32
+          description: Read-only. The internal id of the user session.
+          type: integer
+        sessionId:
+          description: The session id identified by Keycloak.
+          type: string
+        ipAddress:
+          description: Read-only. The ip address used by the client. Filled-in server-side.
+          type: string
+        userAgent:
+          description: The user agent as defined by the browser.
+          type: string
+        sessionStart:
+          format: date-time
+          description: The start of the session as defined by Keycloak.
+          type: string
+        sessionEnd:
+          format: date-time
+          description: 'Optional. In case of logout: Marks the end of the session.'
+          type: string
+        pageVisits:
+          description: The list of pages visited since the last upload.
+          type: array
+          items:
+            type: object
+            properties:
+              path:
+                type: string
+              visit_time:
+                format: date-time
+                type: string
+        managedIdentity:
+          description: The identity of the effective user. Only present when listing
+            records of someone else.
+          type: string
+      example:
+        id: 12345
+        sessionId: 1224-2568-abcd-12ef
+        ipAddress: 192.168.0.2
+        userAgent: Android 18
+        sessionStart: 2022-06-01T12:23:00Z
+        sessionEnd: 2022-06-01T13:15:00Z
+        pageVisits:
+        - path: /home
+          visitTime: 2022-06-01T12:23:00Z
+        - path: /plan
+          visitTime: 2022-06-01T12:24:00Z
+    PageVisit:
+      title: Root Type for PageVisit
+      description: A record defining a page visit
+      required:
+      - path
+      - visitTime
+      type: object
+      properties:
+        path:
+          description: The router path of the page visited.
+          type: string
+        visitTime:
+          format: date-time
+          description: 'The time stamp of the visit. '
+          type: string
+      example:
+        path: /home
+        visitTime: 2022-06-01T12:23:00Z
   responses:
     InternalServerError:
       content:
