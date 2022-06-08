@@ -261,57 +261,6 @@ paths:
       operationId: createProfile
       summary: Create a profile.
       description: Creates a new profile. The user must already be authenticated.
-  /profiles/{profileId}/fcmToken:
-    summary: Path used to manage a single `Firebase Messaging Token`.
-    description: The REST endpoint/path used to get, update or delete the `Firebase
-      Messaging Token` of a user. This path contains `GET`, `PUT`, and `DELETE` operations
-      used to perform the get, update, and delete tasks, respectively. When a call
-      a made by someone with the delegate role, the effective user will be the user
-      specified in the X-Delegator header.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/FirebaseToken'
-          description: Returns a FCM token.
-      operationId: getFcmToken
-      summary: Retrieves a `Firebase Messaging Token`.
-      description: Retrieves a `Firebase Messaging Token` from the profile of a user,
-        given the managed identity of the user.
-    put:
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/FirebaseToken'
-        required: true
-      responses:
-        "204":
-          description: Success response.
-      operationId: updateFcmToken
-      summary: Updates the `Firebase Messaging Token`token
-      description: |-
-        Updates a `Firebase Messaging Token` of the user, given the managed identity of the user.
-
-        The token can be `null`, indicating that the FCM token is not available.
-    parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
-    - examples:
-        keycloakId:
-          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
-      name: profileId
-      description: The keycloak managed identity of the user owning the profile.
-      schema:
-        type: string
-      in: path
-      required: true
   /profiles/{profileId}/places:
     summary: Path used to manage the list of places (favorite locations) for an profile.
     description: The REST endpoint/path used to list and create zero or more `Place`
@@ -1872,26 +1821,6 @@ components:
         surveyId: SV_38g7VCfcJFDB75X
         displayName: Nulmeting Netmobiel
         incentiveCode: survey-0
-    FirebaseToken:
-      title: Root Type for FirebaseMessagingToken
-      description: Type of a messaging token.
-      required:
-      - token
-      type: object
-      properties:
-        token:
-          description: The `Firebase Messaging Token` used to send a message to a
-            specific device. If `null` the token is not available (anymore).
-          type: string
-        lastUpdate:
-          format: date-time
-          description: Read-only. The timestamp of the last update. This date is also
-            a proxy for the last login of the user. The FCM is updated when returning
-            from the login page.
-          type: string
-      example:
-        token: "1234"
-        lastUpdate: 2022-05-09T10:59:00Z
     Version:
       description: Object telling us about the version of the system, as well as the
         caller.
