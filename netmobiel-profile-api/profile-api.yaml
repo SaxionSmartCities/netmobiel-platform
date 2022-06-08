@@ -1905,7 +1905,7 @@ components:
           description: Read-only. The internal id of the user session.
           type: integer
         sessionId:
-          description: The session id identified by Keycloak.
+          description: Read-only. The session id identified by Keycloak.
           type: string
         ipAddress:
           description: Read-only. The ip address used by the client. Filled-in server-side.
@@ -1915,11 +1915,12 @@ components:
           type: string
         sessionStart:
           format: date-time
-          description: The start of the session as defined by Keycloak.
+          description: Read-only. The start of the session as defined by Keycloak
+            (actually the first log-entry).
           type: string
         sessionEnd:
           format: date-time
-          description: 'Optional. In case of logout: Marks the end of the session.'
+          description: 'Read-only. In case of logout: Marks the end of the session.'
           type: string
         pageVisits:
           description: The list of pages visited since the last upload.
@@ -1927,8 +1928,8 @@ components:
           items:
             $ref: '#/components/schemas/PageVisit'
         managedIdentity:
-          description: The identity of the effective user. Only present when listing
-            records of someone else.
+          description: Read-only. The identity of the effective user. Only present
+            when listing records of someone else.
           type: string
       example:
         id: 12345
