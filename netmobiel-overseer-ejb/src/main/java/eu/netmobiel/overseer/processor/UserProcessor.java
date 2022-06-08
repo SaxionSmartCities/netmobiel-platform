@@ -37,8 +37,7 @@ public class UserProcessor {
     
     public void syncAllUserDatabases(Profile profile) {
     	bankerUserManager.registerOrUpdateUser(profile);
-    	communicatorUserManager.registerOrUpdateUser(profile, profile.getFcmToken(), 
-    			profile.getFcmTokenTimestamp(), profile.getPhoneNumber(), profile.getDefaultCountry());
+    	communicatorUserManager.registerOrUpdateUser(profile, profile.getPhoneNumber(), profile.getDefaultCountry());
     	plannerUserManager.registerOrUpdateUser(profile);
     	// A passenger is also known in the rideshare
        	rideshareUserManager.registerOrUpdateUser(profile);

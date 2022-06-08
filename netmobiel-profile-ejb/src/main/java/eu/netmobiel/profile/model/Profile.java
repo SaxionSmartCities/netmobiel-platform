@@ -128,20 +128,6 @@ public class Profile extends User  {
 	private LocalDate dateOfBirth;
 	
 	/**
-	 * The Firebase Cloud Messaging token, a unique token to send push messages to a mobile phone.
-	 */
-	@Size(max = 512)
-	@Column(name = "fcm_token")
-	private String fcmToken;
-
-	/**
-	 * The timestamp of the last update of the FCM token.
-	 * See https://firebase.google.com/docs/cloud-messaging/manage-tokens
-	 */
-	@Column(name = "fcm_token_timestamp")
-	private Instant fcmTokenTimestamp;
-	
-	/**
 	 * The (relative) path to a profile image of the user.
 	 */
 	@Size(max = 128)
@@ -293,14 +279,6 @@ public class Profile extends User  {
 		return Period.between(this.dateOfBirth, someDate).getYears();
 	}
 
-	public String getFcmToken() {
-		return fcmToken;
-	}
-
-	public void setFcmToken(String fcmToken) {
-		this.fcmToken = fcmToken;
-	}
-
 	public String getImagePath() {
 		return imagePath;
 	}
@@ -395,14 +373,6 @@ public class Profile extends User  {
 
 	public final void removeRidesharePreferences() {
 		this.ridesharePreferences = null;
-	}
-
-	public Instant getFcmTokenTimestamp() {
-		return fcmTokenTimestamp;
-	}
-
-	public void setFcmTokenTimestamp(Instant fcmTokenTimestamp) {
-		this.fcmTokenTimestamp = fcmTokenTimestamp;
 	}
 
 	/**

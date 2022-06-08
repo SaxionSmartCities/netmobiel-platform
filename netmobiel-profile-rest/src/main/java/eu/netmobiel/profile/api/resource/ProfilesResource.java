@@ -1,8 +1,6 @@
 package eu.netmobiel.profile.api.resource;
 
 import java.net.URI;
-import java.time.Instant;
-import java.time.ZoneOffset;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
@@ -23,7 +21,6 @@ import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.ProfilesApi;
 import eu.netmobiel.profile.api.mapping.PlaceMapper;
 import eu.netmobiel.profile.api.mapping.ProfileMapper;
-import eu.netmobiel.profile.api.model.FirebaseToken;
 import eu.netmobiel.profile.api.model.ImageUploadRequest;
 import eu.netmobiel.profile.api.model.Page;
 import eu.netmobiel.profile.filter.ProfileFilter;
@@ -195,59 +192,6 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 
 	    	profileManager.removeProfile(mid);
 			rsp = Response.noContent().build();
-		} catch (BusinessException ex) {
-			throw new WebApplicationException(ex);
-		}
-		return rsp;
-	}
-
-	// =========================   Firebase Messaging Token  =========================
-	
-	@Override
-	public Response getFcmToken(String xDelegator, String profileId) {
-		Response rsp = null;
-		try {
-			// Only admin and effective owner can update the profile
-			String mid = resolveIdentity(xDelegator, profileId);
-			String me = securityIdentity.getEffectivePrincipal().getName();
-			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && !me.equals(mid)) {
-				throw new SecurityException("You have no privilege to update the profile owned by someone else");
-			}
-			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
-			FirebaseToken token = new FirebaseToken();
-			token.setToken(profile.getFcmToken());
-			if (profile.getFcmTokenTimestamp() != null) {
-				token.setLastUpdate(profile.getFcmTokenTimestamp().atOffset(ZoneOffset.UTC));
-			}
-			rsp = Response.ok(token).build();
-		} catch (IllegalArgumentException e) {
-			throw new BadRequestException(e);
-		} catch (BusinessException ex) {
-			throw new WebApplicationException(ex);
-		}
-		return rsp;
-	}
-
-	@Override
-	public Response updateFcmToken(String xDelegator, String profileId, FirebaseToken firebaseToken) {
-		Response rsp = null;
-		try {
-			// Only admin and effective owner can update the profile
-			String mid = resolveIdentity(xDelegator, profileId);
-			String me = securityIdentity.getEffectivePrincipal().getName();
-			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && !me.equals(mid)) {
-				throw new SecurityException("You have no privilege to update the profile owned by someone else");
-			}
-			Profile profile = profileManager.getFlatProfileByManagedIdentity(mid);
-			// Always update to force update of timestamp of token
-			profile.setFcmToken(firebaseToken.getToken());
-			profile.setFcmTokenTimestamp(Instant.now());
-			profileManager.updateProfileByManagedIdentity(mid, profile);
-			rsp = Response.noContent().build();
-		} catch (IllegalArgumentException e) {
-			throw new BadRequestException(e);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
 		}

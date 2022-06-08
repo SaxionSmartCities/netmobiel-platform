@@ -144,9 +144,11 @@ public class PublisherService {
     private void notifyRecipient(NetMobielMessage msg, Envelope env) {
 		try {
 			CommunicatorUser user = env.getRecipient();
-			if ((user.getFcmToken() == null || user.getFcmToken().isBlank()) && logger.isDebugEnabled()) {
-				logger.debug(String.format("Cannot send push notification to %s (%s): No FCM token set", 
-						user.getManagedIdentity(), user.getName()));
+			if (user.getFcmToken() == null || user.getFcmToken().isBlank()) {
+				if (logger.isDebugEnabled()) {
+					logger.debug(String.format("Cannot send push notification to %s (%s): No FCM token set", 
+							user.getManagedIdentity(), user.getName()));
+				}
 			} else if (FirebaseMessagingClient.isFcmTokenProbablyStale(user.getFcmTokenTimestamp())) {
 				logger.warn(String.format("Cannot send push notification to %s: FCM token (%s) is probably stale", user.getName(), user.getFcmTokenTimestamp()));
 				user.setFcmToken(null);

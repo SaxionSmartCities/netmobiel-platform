@@ -1,6 +1,5 @@
 package eu.netmobiel.communicator.service;
 
-import java.time.Instant;
 import java.util.Optional;
 
 import javax.ejb.ConcurrencyManagement;
@@ -62,10 +61,8 @@ public class CommunicatorUserManager extends UserManager<CommunicatorUserDao, Co
 		return profileManager.getFlatProfileByManagedIdentity(managedIdentity);
 	}
 
-	public CommunicatorUser registerOrUpdateUser(NetMobielUser nbuser, String fcmToken, Instant fcmTokenTimestamp, String phoneNr, String countryCode) {
+	public CommunicatorUser registerOrUpdateUser(NetMobielUser nbuser, String phoneNr, String countryCode) {
 		CommunicatorUser usr = super.registerOrUpdateUser(nbuser);
-		usr.setFcmToken(fcmToken);
-		usr.setFcmTokenTimestamp(fcmTokenTimestamp);
 		usr.setPhoneNumber(phoneNr);
 		usr.setCountryCode(countryCode);
 		return usr;

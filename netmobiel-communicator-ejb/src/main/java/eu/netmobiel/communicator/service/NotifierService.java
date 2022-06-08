@@ -11,13 +11,12 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.communicator.model.CommunicatorUser;
 import eu.netmobiel.communicator.model.DeliveryMode;
 import eu.netmobiel.communicator.model.Envelope;
 import eu.netmobiel.communicator.model.Message;
 import eu.netmobiel.communicator.repository.MessageDao;
 import eu.netmobiel.firebase.messaging.FirebaseMessagingClient;
-import eu.netmobiel.profile.model.Profile;
-import eu.netmobiel.profile.service.ProfileManager;
 
 /**
  * Bean class for Publisher enterprise bean. 
@@ -28,10 +27,6 @@ public class NotifierService {
 
     @Inject
     private Logger logger;
-
-    @Inject
-    private ProfileManager profileManager;
-    
 
     @Inject
     private FirebaseMessagingClient firebaseMessagingClient;
@@ -54,12 +49,15 @@ public class NotifierService {
 	    			.orElseThrow(() -> new NotFoundException("No such message: " + msg.getId())); 
 			for (Envelope env : msgdb.getEnvelopes()) {
 				try {
-					Profile profile = profileManager.getFlatProfileByManagedIdentity(env.getRecipient().getManagedIdentity());
-					if (profile.getFcmToken() == null || profile.getFcmToken().isBlank()) {
+					CommunicatorUser user = env.getRecipient();
+					if (user.getFcmToken() == null || user.getFcmToken().isBlank()) {
 						logger.warn(String.format("Cannot send push notification to %s (%s): No FCM token set", 
-								profile.getManagedIdentity(), profile.getName()));  
+								user.getManagedIdentity(), user.getName()));  
+					} else if (FirebaseMessagingClient.isFcmTokenProbablyStale(user.getFcmTokenTimestamp())) {
+						logger.warn(String.format("Cannot send push notification to %s: FCM token (%s) is probably stale", user.getName(), user.getFcmTokenTimestamp()));
+						user.setFcmToken(null);
 					} else {
-						firebaseMessagingClient.send(profile.getFcmToken(), msgdb);
+						firebaseMessagingClient.send(user.getFcmToken(), msgdb);
 						env.setPushTime(Instant.now());
 					}
 				} catch (Exception ex) {

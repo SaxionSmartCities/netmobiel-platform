@@ -69,7 +69,6 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     public void savePassenger() throws Exception {
     	log.debug("Start of test: savePassenger");
     	var birthDay = "1946-10-30";
-    	var token = "Hup-234";
     	var address = Fixture.createAddressLichtenvoorde();
     	var location = Fixture.placeThuisLichtenvoorde;
     	var path = "/images/my/image.png";
@@ -78,7 +77,6 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	var p = Fixture.createPassenger2();
     	log.debug("Create passenger2 with address");
     	p.setDateOfBirth(LocalDate.parse(birthDay));
-    	p.setFcmToken(token);
     	p.setHomeAddress(address);
     	p.setHomeLocation(location);
     	p.setImagePath(path);
@@ -105,8 +103,6 @@ public class ProfileDaoIT extends ProfileIntegrationTestBase {
     	assertNotNull(p.getManagedIdentity());
     	assertNotNull(p.getDateOfBirth());
     	assertEquals(birthDay, p.getDateOfBirth().format(DateTimeFormatter.ISO_DATE));
-    	assertNotNull(p.getFcmToken());
-    	assertEquals(token, p.getFcmToken());
     	assertNotNull(p.getPhoneNumber());
     	assertEquals(phoneNr, p.getPhoneNumber());
     	
