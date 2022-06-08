@@ -1925,13 +1925,7 @@ components:
           description: The list of pages visited since the last upload.
           type: array
           items:
-            type: object
-            properties:
-              path:
-                type: string
-              visit_time:
-                format: date-time
-                type: string
+            $ref: '#/components/schemas/PageVisit'
         managedIdentity:
           description: The identity of the effective user. Only present when listing
             records of someone else.
