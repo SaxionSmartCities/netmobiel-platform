@@ -1145,6 +1145,13 @@ paths:
             schema:
               $ref: '#/components/schemas/UserSession'
         required: true
+      parameters:
+      - name: final
+        description: Marks the session as final. No more logs are expected from this
+          session.
+        schema:
+          type: boolean
+        in: query
       responses:
         "202":
           description: Success, the session log is processed in the background.
