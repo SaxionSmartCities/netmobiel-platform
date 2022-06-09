@@ -19,6 +19,7 @@ import java.util.Optional;
 import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
 import javax.annotation.security.RolesAllowed;
+import javax.ejb.Asynchronous;
 import javax.ejb.SessionContext;
 import javax.ejb.Stateless;
 import javax.enterprise.event.Event;
@@ -48,13 +49,17 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.messagebird.MessageBird;
 import eu.netmobiel.profile.event.DelegatorAccountCreatedEvent;
 import eu.netmobiel.profile.filter.ProfileFilter;
+import eu.netmobiel.profile.model.PageVisit;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
 import eu.netmobiel.profile.model.SearchPreferences;
+import eu.netmobiel.profile.model.UserSession;
 import eu.netmobiel.profile.repository.KeycloakDao;
+import eu.netmobiel.profile.repository.PageVisitDao;
 import eu.netmobiel.profile.repository.ProfileDao;
 import eu.netmobiel.profile.repository.RidesharePreferencesDao;
 import eu.netmobiel.profile.repository.SearchPreferencesDao;
+import eu.netmobiel.profile.repository.UserSessionDao;
 
 /**
  * Bean class for the Profile service. The security is handled only if specific roles are required. All other security constraints are handled one level higher. 
@@ -107,6 +112,13 @@ public class ProfileManager {
     @Inject
     private Event<RewardRollbackEvent> rewardRollbackEvent;
 
+    @Inject
+    private UserSessionDao userSessionDao;
+
+    @Inject
+    private PageVisitDao pageVisitDao;
+
+    
 	public @NotNull PagedResult<Profile> listProfiles(ProfileFilter filter, Cursor cursor) throws BadRequestException {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
     	// the additional call to determine the totalCount.
@@ -503,5 +515,32 @@ public class ProfileManager {
     		throw new BadRequestException(e.getMessage());
     	}
 		return result;
+    }
+
+    /**
+     * Saves the log sent by the front-end.
+     * @param session the session records with the pages attached
+     * @throws NotFoundException 
+     */
+    @Asynchronous
+    public void logPageVisits(String managedId, UserSession session, boolean isFinalLog) throws NotFoundException {
+    	Profile profile = profileDao.findByManagedIdentity(managedId, null)
+    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
+    	session.setProfile(profile);
+    	UserSession usdb = userSessionDao.findUserSessionBySessionId(session.getSessionId())
+    		.orElseGet(() -> {
+    			Instant start = session.getPageVisits().size() > 0 
+    					? session.getPageVisits().get(0).getVisitTime() 
+    					: Instant.now(); 
+    			session.setSessionStart(start);
+    			return userSessionDao.save(session);	
+    		});
+    	if (isFinalLog) {
+    		usdb.setSessionEnd(Instant.now());
+    	}
+    	for (PageVisit pv : session.getPageVisits()) {
+    		pv.setUserSession(usdb);
+    		pageVisitDao.save(pv);
+		}
     }
 }

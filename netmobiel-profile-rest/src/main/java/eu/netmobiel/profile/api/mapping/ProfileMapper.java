@@ -17,10 +17,12 @@ import eu.netmobiel.profile.api.mapping.annotation.ProfileMapperQualifier;
 import eu.netmobiel.profile.api.mapping.annotation.PublicProfile;
 import eu.netmobiel.profile.api.mapping.annotation.Shallow;
 import eu.netmobiel.profile.api.model.Profile.ActingRoleEnum;
+import eu.netmobiel.profile.model.PageVisit;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
 import eu.netmobiel.profile.model.SearchPreferences;
 import eu.netmobiel.profile.model.UserRole;
+import eu.netmobiel.profile.model.UserSession;
 
 /**
  * This mapper defines the mapping from the domain Booking to the API Booking as defined by OpenAPI.
@@ -29,7 +31,7 @@ import eu.netmobiel.profile.model.UserRole;
  *
  */
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, 
-	uses = { GeometryMapper.class })
+	uses = { GeometryMapper.class, JavaTimeMapper.class })
 @ProfileMapperQualifier
 public abstract class ProfileMapper {
 	@Mapping(target = "data", source = "data", qualifiedBy = { Shallow.class } )
@@ -148,4 +150,12 @@ public abstract class ProfileMapper {
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "profile", ignore = true)
 	public abstract SearchPreferences map(eu.netmobiel.profile.api.model.SearchPreferences source);
+
+	// API --> Domain 
+	@Mapping(target = "profile", ignore = true)
+	public abstract UserSession map(eu.netmobiel.profile.api.model.UserSession source);
+
+	@Mapping(target = "id", ignore = true)
+	@Mapping(target = "userSession", ignore = true)
+	public abstract PageVisit map(eu.netmobiel.profile.api.model.PageVisit source);
 }

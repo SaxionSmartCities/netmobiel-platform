@@ -1,7 +1,11 @@
 package eu.netmobiel.profile.api.resource;
 
+import java.util.Optional;
+
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
+import javax.servlet.http.HttpServletRequest;
+import javax.servlet.http.HttpSession;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.GET;
 import javax.ws.rs.InternalServerErrorException;
@@ -9,6 +13,7 @@ import javax.ws.rs.NotFoundException;
 import javax.ws.rs.Path;
 import javax.ws.rs.Produces;
 import javax.ws.rs.WebApplicationException;
+import javax.ws.rs.core.Context;
 import javax.ws.rs.core.MediaType;
 import javax.ws.rs.core.Response;
 
@@ -27,7 +32,10 @@ public class TestsResource {
 	@Inject
 	private SecurityIdentity securityIdentity;
 
-    @GET
+	@Context
+	private HttpServletRequest request;
+
+	@GET
     @Path("/rte")
     @Produces(MediaType.APPLICATION_JSON)
     public Response testRuntime() {
@@ -74,6 +82,12 @@ public class TestsResource {
     @Produces(MediaType.APPLICATION_JSON)
     public Response check() {
     	log.debug("User: " + securityIdentity);
+//    	String me = securityIdentity.getEffectivePrincipal().getName();
+    	Optional<String> sessionId = SecurityIdentity.getKeycloakSessionId(securityIdentity.getEffectivePrincipal());
+    	log.debug("Session kcid: " + (sessionId.isPresent() ? sessionId.get() : "Unknown"));
+    	log.debug("Session rsid: " + request.getRequestedSessionId());
+    	HttpSession session = request.getSession();
+    	log.debug("Session http: " + session.getId());
     	return Response.ok().build();
     }
 

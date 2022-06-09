@@ -1,6 +1,7 @@
 package eu.netmobiel.profile.api.resource;
 
 import java.net.URI;
+import java.util.Optional;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
@@ -16,6 +17,7 @@ import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.ImageHelper;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.ProfilesApi;
@@ -23,6 +25,7 @@ import eu.netmobiel.profile.api.mapping.PlaceMapper;
 import eu.netmobiel.profile.api.mapping.ProfileMapper;
 import eu.netmobiel.profile.api.model.ImageUploadRequest;
 import eu.netmobiel.profile.api.model.Page;
+import eu.netmobiel.profile.api.model.UserSession;
 import eu.netmobiel.profile.filter.ProfileFilter;
 import eu.netmobiel.profile.model.Place;
 import eu.netmobiel.profile.model.Profile;
@@ -174,6 +177,27 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 		return rsp;
 	}
 
+	@Override
+	public Response uploadSessionLog(String xDelegator, String profileId, Boolean isFinalLog, UserSession userSession) {
+		Response rsp = null;
+		try {
+			String mid = resolveIdentity(xDelegator, profileId);
+			eu.netmobiel.profile.model.UserSession domUserSession = profileMapper.map(userSession);
+	    	Optional<String> sessionId = SecurityIdentity.getKeycloakSessionId(securityIdentity.getPrincipal());
+	    	if (sessionId.isPresent()) {
+				domUserSession.setSessionId(sessionId.get());
+				domUserSession.setIpAddress(request.getRemoteAddr());
+		    	profileManager.logPageVisits(mid, domUserSession, Boolean.TRUE.equals(isFinalLog));
+	    	}
+			rsp = Response.accepted().build();
+		} catch (IllegalArgumentException e) {
+			throw new BadRequestException(e);
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		}
+		return rsp;
+	}
+
 	/**
 	 * Delete a profile. For now only an admin can do that.
 	 * @param xDelegator the delegator, if any.
@@ -280,5 +304,4 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 		return rsp;
 	}
 
-	
 }

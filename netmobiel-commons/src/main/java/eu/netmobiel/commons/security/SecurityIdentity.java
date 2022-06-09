@@ -88,4 +88,22 @@ public interface SecurityIdentity {
     	}
     	return Optional.ofNullable(user);
     }
+
+	/**
+	 * Retrieve the session ID from the access token. 
+	 * @param p the principal
+	 * @return the session id, if any.
+	 */
+	public static Optional<String> getKeycloakSessionId(Principal p) {
+        String sessionState = null;
+        // In an EJB the non-authenticated user is represented by a AnonymousPrincipal with name 'anonymous'.
+    	if (p != null && p instanceof KeycloakPrincipal) {
+    		@SuppressWarnings("unchecked")
+			KeycloakPrincipal<KeycloakSecurityContext> kp = (KeycloakPrincipal<KeycloakSecurityContext>) p;
+            KeycloakSecurityContext ksc = kp.getKeycloakSecurityContext(); 
+            AccessToken token = ksc.getToken();
+            sessionState = token.getSessionState();
+    	}
+    	return Optional.ofNullable(sessionState);
+    }
 }
