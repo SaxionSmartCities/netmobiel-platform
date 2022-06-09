@@ -837,6 +837,121 @@ paths:
         type: string
       in: path
       required: true
+  /users/{userId}/cars:
+    summary: Path used to manage the list of cars.
+    description: "The REST endpoint/path used to list and create zero or more `Car`\
+      \ entities.  This path contains a `GET` and `POST` operation to perform the\
+      \ list and create tasks, respectively.\nCars belong always to a specific user. "
+    get:
+      parameters:
+      - name: deletedToo
+        description: Return also cars that have been (soft) deleted in the past.
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Car'
+          description: Successful response - returns an array of `Car` entities.
+      operationId: getUsersCars
+      summary: List All cars
+      description: |-
+        Gets a list of all `Car` entities driven by the calling user. Cars that have
+        been deleted are not listed, unless the 'deletedToo' flag is set.
+    post:
+      requestBody:
+        description: A new `Car` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Car'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "409":
+          $ref: '#/components/responses/Conflict'
+      operationId: createUsersCar
+      summary: Create a Car
+      description: Creates a new instance of a `Car` or restored a soft-deleted one.
+        The car is owned (driven) by the calling user.
+    parameters:
+    - name: userId
+      description: A unique identifier for a `User`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/cars/{carId}:
+    summary: Path used to manage a single Car.
+    description: |-
+      The REST endpoint/path used to get, update, and delete single instances of an `Car`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.
+
+      Cars belong always to a specific user. This endpoint should be placed under /users.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+          description: Successful response - returns a single `Car`.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getUsersCar
+      summary: Get a Car
+      description: Gets the details of a single instance of a `Car`.
+    put:
+      requestBody:
+        description: Updated `Car` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Car'
+        required: true
+      responses:
+        "204":
+          description: Successful response.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: updateUsersCar
+      summary: Update a Car
+      description: Updates an existing `Car`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: deleteUsersCar
+      summary: Delete a Car
+      description: "Deletes an existing `Car`. Cars are hard deleted if never used\
+        \ in a ride, \notherwise a soft delete is performed. If a car is soft-deleted,\
+        \ it can be restored\nby creating the car again. \n"
+    parameters:
+    - name: userId
+      description: A unique identifier for a `User`.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: carId
+      description: A unique identifier for a `Car`.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Car:
