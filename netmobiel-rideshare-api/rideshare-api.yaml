@@ -20,56 +20,10 @@ servers:
 - url: https://api.netmobiel.eu/gwapi/acc/rideshare
   description: The rideshare service visible to the world (acceptance).
 paths:
-  /cars:
-    summary: Path used to manage the list of cars.
-    description: |-
-      The REST endpoint/path used to list and create zero or more `Car` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
-
-      Cars belong always to a specific user. This endpoint should be placed under /users.
-    get:
-      parameters:
-      - name: deletedToo
-        description: Return also cars that have been (soft) deleted in the past.
-        schema:
-          type: boolean
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                type: array
-                items:
-                  $ref: '#/components/schemas/Car'
-          description: Successful response - returns an array of `Car` entities.
-      operationId: getCars
-      summary: List All cars
-      description: |-
-        Gets a list of all `Car` entities driven by the calling user. Cars that have
-        been deleted are not listed, unless the 'deletedToo' flag is set.
-    post:
-      requestBody:
-        description: A new `Car` to be created.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Car'
-        required: true
-      responses:
-        "201":
-          description: Successful response.
-        "409":
-          $ref: '#/components/responses/Conflict'
-      operationId: createCar
-      summary: Create a Car
-      description: Creates a new instance of a `Car` or restored a soft-deleted one.
-        The car is owned (driven) by the calling user.
   /cars/{carId}:
     summary: Path used to manage a single Car.
-    description: |-
-      The REST endpoint/path used to get, update, and delete single instances of an `Car`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.
-
-      Cars belong always to a specific user. This endpoint should be placed under /users.
+    description: The REST endpoint/path used to get a single instances of an `Car`.  This
+      path contains a `GET` operation used to perform the get task.
     get:
       responses:
         "200":
@@ -78,44 +32,12 @@ paths:
               schema:
                 $ref: '#/components/schemas/Car'
           description: Successful response - returns a single `Car`.
-        "403":
-          $ref: '#/components/responses/Forbidden'
         "404":
           $ref: '#/components/responses/NotFound'
       operationId: getCar
       summary: Get a Car
-      description: Gets the details of a single instance of a `Car`.
-    put:
-      requestBody:
-        description: Updated `Car` information.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Car'
-        required: true
-      responses:
-        "204":
-          description: Successful response.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: updateCar
-      summary: Update a Car
-      description: Updates an existing `Car`.
-    delete:
-      responses:
-        "204":
-          description: Successful response.
-        "403":
-          $ref: '#/components/responses/Forbidden'
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: deleteCar
-      summary: Delete a Car
-      description: "Deletes an existing `Car`. Cars are hard deleted if never used\
-        \ in a ride, \notherwise a soft delete is performed. If a car is soft-deleted,\
-        \ it can be restored\nby creating the car again. \n"
+      description: Gets the details of a single instance of a `Car`. Only the admin
+        can see the owner of the car.
     parameters:
     - name: carId
       description: A unique identifier for a `Car`.
@@ -276,58 +198,6 @@ paths:
       schema:
         type: string
       in: path
-      required: true
-  /carLicenses:
-    summary: Get license plate details
-    description: 'In case of NL: Retrieve the car details from the RDW.'
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Car'
-              examples:
-                Volvo-V70:
-                  value:
-                    registrationCountry: NL
-                    licensePlate: 52-PH-VD
-                    brand: Volvo
-                    model: V70
-                    type: Estate
-                    color: ZWART
-                    registrationYear: 2004
-                    nrOfSeats: 4
-                    nrOfDoors: 4
-                    typeRegistrationId: e4*2001/116*0040*10
-                    co2Emission: 217
-          description: The license plate information as registered.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: getCarLicense
-      summary: Get license info
-      description: |
-        Go the the license provider to retrieve information about the car. Supported are:
-
-        NL: RDW
-    parameters:
-    - examples:
-        Nederland:
-          value: NL
-      name: country
-      description: The country abbreviation according ISO 3166-1 Alpha-2.
-      schema:
-        type: string
-      in: query
-      required: true
-    - examples:
-        Volvo-V70:
-          value: 52-PH-VD
-      name: plate
-      description: The license plate including dashes, without spaces.
-      schema:
-        type: string
-      in: query
       required: true
   /users:
     summary: Path used to manage the list of users. NOT YET IMPLEMENTED.
@@ -889,10 +759,10 @@ paths:
       required: true
   /users/{userId}/cars/{carId}:
     summary: Path used to manage a single Car.
-    description: |-
-      The REST endpoint/path used to get, update, and delete single instances of an `Car`.  This path contains `GET`, `PUT`, and `DELETE` operations used to perform the get, update, and delete tasks, respectively.
-
-      Cars belong always to a specific user. This endpoint should be placed under /users.
+    description: "The REST endpoint/path used to get, update, and delete single instances\
+      \ of an `Car`.  This path contains `GET`, `PUT`, and `DELETE` operations used\
+      \ to perform the get, update, and delete tasks, respectively.\n\nCars belong\
+      \ always to a specific user. "
     get:
       responses:
         "200":
@@ -952,6 +822,45 @@ paths:
         type: string
       in: path
       required: true
+  /cars/lookup:
+    summary: Get license plate details
+    description: 'In case of NL: Retrieve the car details from the RDW.'
+    post:
+      requestBody:
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CarLookupRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+              examples:
+                Volvo-V70:
+                  value:
+                    registrationCountry: NL
+                    licensePlate: 52-PH-VD
+                    brand: Volvo
+                    model: V70
+                    type: Estate
+                    color: ZWART
+                    registrationYear: 2004
+                    nrOfSeats: 4
+                    nrOfDoors: 4
+                    typeRegistrationId: e4*2001/116*0040*10
+                    co2Emission: 217
+          description: The car details  as registered. The car is not persisted yet.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: lookupCarRegistration
+      summary: Get car registration details
+      description: |
+        Go the vehicle registrar to retrieve information about the car. Supported are:
+
+        NL: RDW
 components:
   schemas:
     Car:
@@ -1605,6 +1514,23 @@ components:
         legRefs:
         - urn:nb:rs:leg:54
         passengerTripRef: urn:nb:pl:trip:568
+    CarLookupRequest:
+      title: Root Type for CarLookupRequest
+      description: |-
+        A request for looking up the registration details of a car at a registrar. In The Netherlands the RDW is the registrar for all motorized vehicles.
+
+        The parameters requried for lookup depend on the country.
+      type: object
+      properties:
+        countryCode:
+          description: The country abbreviation according ISO 3166-1 Alpha-2.
+          type: string
+        licensePlate:
+          description: The license plate including dashes, without spaces.
+          type: string
+      example:
+        countryCode: NL
+        licensePlate: PH-VD-52
   responses:
     InternalServerError:
       content:
