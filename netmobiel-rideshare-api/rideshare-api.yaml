@@ -62,6 +62,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: getRide
       summary: Get a Ride
       description: Gets the details of a single instance of a `Ride`. All available
@@ -186,6 +189,9 @@ paths:
           $ref: '#/components/responses/BadRequest'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: createBooking
       summary: Creates a booking.
       description: |-
@@ -234,14 +240,16 @@ paths:
                     id: 50
                     managedIdentity: 5fd8defe-848e-4b66-8e6f-8a7d3b7ee485
           description: Successful response - returns an array of `User` entities.
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: getUsers
       summary: List All users
       description: Gets a list of all `User` entities.
   /users/{userId}:
-    summary: Path used to manage a single User. NOT YET IMPLEMENTED.
-    description: The REST endpoint/path used to get, update, and delete single instances
-      of an `User`.  This path contains `GET`, `PUT`, and `DELETE` operations used
-      to perform the get, update, and delete tasks, respectively.
+    summary: Path used to manage a single User.
+    description: The REST endpoint/path used to get a single instance of an `User`.
+      This path contains a `GET` operation used to perform the get task, respectively.
     get:
       responses:
         "200":
@@ -262,30 +270,12 @@ paths:
           description: Successful response - returns a single `User`.
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: getUser
       summary: Get a User
       description: Gets the details of a single instance of a `User`.
-    put:
-      requestBody:
-        description: Updated `User` information.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/User'
-        required: true
-      responses:
-        "202":
-          description: Successful response.
-      operationId: updateUser
-      summary: Update a User. NOT IMPLEMENTED.
-      description: Updates an existing `User`.
-    delete:
-      responses:
-        "204":
-          description: Successful response.
-      operationId: deleteUser
-      summary: Delete a User. NOT IMPLEMENTED.
-      description: Deletes an existing `User`.
     parameters:
     - name: userId
       description: A unique identifier for a `User`.
@@ -308,6 +298,9 @@ paths:
           description: Successful response - returns a single `Booking`.
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: getBooking
       summary: Get a Booking
       description: Gets the details of a single instance of a `Booking`.
@@ -381,6 +374,9 @@ paths:
                 $ref: '#/components/schemas/Page'
           description: Successful response - returns a `Page` with an array of `Booking`
             entities.
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: getBookings
       summary: List all bookings made by the calling user.
       description: Gets a list of `Booking` entities of which the calling user is
@@ -459,7 +455,8 @@ paths:
             * toPlace
             * fromDate
       security:
-      - OAuth2: []
+      - apikey: []
+        OAuth2: []
       operationId: searchRides
       summary: Search for rides
       description: Search and retrieve matching rides. The own rides are never included
@@ -571,6 +568,9 @@ paths:
             * fromPlace
             * toPlace
             * fromTime
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: listRides
       summary: List a user's rides.
       description: List all rides of which the calling user is the driver.
@@ -665,6 +665,9 @@ paths:
       responses:
         "204":
           description: Success response, the ride has been confirmed.
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: confirmTravelling
       summary: Confirms a booking use.
       description: "Confirms that the passenger has been in the car for this ride.\
@@ -694,6 +697,9 @@ paths:
           description: Success response, the ride has been confirmed.
         "403":
           $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: unconfirmTravelling
       summary: Unconfirms travelling in a booking.
       description: |-
@@ -728,6 +734,9 @@ paths:
                 items:
                   $ref: '#/components/schemas/Car'
           description: Successful response - returns an array of `Car` entities.
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: getUsersCars
       summary: List All cars
       description: |-
@@ -775,6 +784,9 @@ paths:
           $ref: '#/components/responses/Forbidden'
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: getUsersCar
       summary: Get a Car
       description: Gets the details of a single instance of a `Car`.
