@@ -283,8 +283,8 @@ where p.creation_time > '2022-04-02' and p.plan_type = 'SOS'
 group by day order by day;
 
 
--- Number of shout-outs per day since a specific date that have been fulfilled
+-- Number of shout-outs per day since a specific date that have been fulfilled and accepted
 select count(*) as nr_shout_outs, date_trunc('day', p.creation_time) as day 
 from trip_plan p 
-where p.creation_time > '2022-04-02' and p.plan_type = 'SHO' and p.request_duration is not null
+where p.creation_time > '2022-04-02' and p.plan_type = 'SHO' and p.plan_state = 'FN'
 group by day order by day;
