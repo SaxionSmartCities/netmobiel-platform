@@ -37,12 +37,11 @@ import eu.netmobiel.commons.jaxrs.ProcessingExceptionMapper;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
 import eu.netmobiel.rideshare.api.resource.BookingsResource;
-import eu.netmobiel.rideshare.api.resource.CarLicenseResource;
 import eu.netmobiel.rideshare.api.resource.CarsResource;
 import eu.netmobiel.rideshare.api.resource.RidesResource;
 import eu.netmobiel.rideshare.api.resource.SearchResource;
 import eu.netmobiel.rideshare.api.resource.TestsResource;
-import eu.netmobiel.rideshare.api.resource.UserResource;
+import eu.netmobiel.rideshare.api.resource.UsersResource;
 
 
 /**
@@ -81,13 +80,12 @@ public class RideshareApplication extends Application {
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new HashSet<>();
-        resources.add(CarLicenseResource.class);
         resources.add(BookingsResource.class);
         resources.add(CarsResource.class);
         resources.add(RidesResource.class);
         resources.add(SearchResource.class);
         resources.add(TestsResource.class);
-        resources.add(UserResource.class);
+        resources.add(UsersResource.class);
         resources.add(Jackson2ObjectMapperContextResolver.class);
         resources.add(LocalDateParamConverterProvider.class);
         resources.add(OffsetDateTimeParamConverterProvider.class);

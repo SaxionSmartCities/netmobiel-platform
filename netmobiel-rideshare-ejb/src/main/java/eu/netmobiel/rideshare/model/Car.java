@@ -12,7 +12,6 @@ import javax.persistence.GenerationType;
 import javax.persistence.Id;
 import javax.persistence.JoinColumn;
 import javax.persistence.ManyToOne;
-import javax.persistence.NamedEntityGraph;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.persistence.Transient;
@@ -28,7 +27,6 @@ import eu.netmobiel.commons.model.ReferableObject;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.rideshare.util.RideshareUrnHelper;
 
-@NamedEntityGraph()
 @Entity
 @Table(name = "car", uniqueConstraints = @UniqueConstraint(name="car_uc", columnNames = {"driver", "registration_country", "license_plate_raw"}))
 @Vetoed
@@ -264,6 +262,10 @@ public class Car extends ReferableObject implements Serializable {
 
 	public void setDeleted(Boolean deleted) {
 		this.deleted = deleted;
+	}
+
+	public boolean isDeleted() {
+		return Boolean.TRUE.equals(getDeleted());
 	}
 
 	public String getDriverRef() {

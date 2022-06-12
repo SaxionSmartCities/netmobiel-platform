@@ -4,9 +4,7 @@ import java.time.OffsetDateTime;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import eu.netmobiel.commons.exception.BusinessException;
@@ -21,7 +19,6 @@ import eu.netmobiel.rideshare.api.model.Booking.ConfirmationReasonEnum;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.service.BookingManager;
-import eu.netmobiel.rideshare.service.RideshareUserManager;
 
 @RequestScoped
 public class BookingsResource extends RideshareResource implements BookingsApi {
@@ -35,12 +32,6 @@ public class BookingsResource extends RideshareResource implements BookingsApi {
 	@Inject
     private BookingManager bookingManager;
 
-    @Inject
-    private RideshareUserManager userManager;
-
-    @Context
-    private HttpServletRequest request;
-
 	/**
      * Lists the bookings driven by the calling user.
      * @return an array of bookings.
@@ -51,7 +42,7 @@ public class BookingsResource extends RideshareResource implements BookingsApi {
     		sinceDate = OffsetDateTime.now();
     	}
     	PagedResult<Booking> bookings;
-    	Long userId = userManager.findCallingUser().getId();
+    	Long userId = rideshareUserManager.findCallingUser().getId();
 		try {
 			if (userId == null) {
 				bookings = PagedResult.empty();
@@ -81,7 +72,7 @@ public class BookingsResource extends RideshareResource implements BookingsApi {
     	Response rsp = null;
     	try {
 //        	Long cid = RideshareUrnHelper.getId(Booking.URN_PREFIX, bookingId);
-//        	User initiator = userManager.findCallingUser();
+//        	User initiator = rideshareUserManager.findCallingUser();
         	//FIXME who is calling? Can a driver call this interface?
         	boolean isDriver = false;
         	// FIXME add security
@@ -98,9 +89,9 @@ public class BookingsResource extends RideshareResource implements BookingsApi {
     	Response rsp = null;
     	try {
         	Long bid = UrnHelper.getId(Booking.URN_PREFIX, bookingId);
-			RideshareUser caller = userManager.findCallingUser();
+			RideshareUser caller = rideshareUserManager.findCallingUser();
 			Booking bdb = bookingManager.getBooking(bid);
-			allowAdminOrCaller(request, caller, bdb.getRide().getDriver());
+			allowAdminOrCaller(caller, bdb.getRide().getDriver());
         	ConfirmationReasonEnum reasonEnum = reason == null ? null : 
         		ConfirmationReasonEnum.valueOf(reason);
         	ConfirmationReasonType reasonType = mapper.map(reasonEnum); 
@@ -118,9 +109,9 @@ public class BookingsResource extends RideshareResource implements BookingsApi {
     	Response rsp = null;
     	try {
         	Long bid = UrnHelper.getId(Booking.URN_PREFIX, bookingId);
-			RideshareUser caller = userManager.findCallingUser();
+			RideshareUser caller = rideshareUserManager.findCallingUser();
 			Booking bdb = bookingManager.getBooking(bid);
-			allowAdminOrCaller(request, caller, bdb.getRide().getDriver());
+			allowAdminOrCaller(caller, bdb.getRide().getDriver());
 			bookingManager.unconfirmTravelling(bid);
 			rsp = Response.noContent().build();
 		} catch (RemoveException e) {

@@ -5,11 +5,9 @@ import java.time.OffsetDateTime;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import eu.netmobiel.commons.exception.BusinessException;
@@ -27,7 +25,6 @@ import eu.netmobiel.rideshare.model.RideScope;
 import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.service.BookingManager;
 import eu.netmobiel.rideshare.service.RideManager;
-import eu.netmobiel.rideshare.service.RideshareUserManager;
 
 @RequestScoped
 public class RidesResource extends RideshareResource implements RidesApi {
@@ -47,12 +44,6 @@ public class RidesResource extends RideshareResource implements RidesApi {
     @Inject
     private PageMapper pageMapper;
     
-    @Inject
-    private RideshareUserManager userManager;
-    
-    @Context
-    private HttpServletRequest request;
-
     /**
      * List all rides owned by the calling user. Soft deleted rides are omitted.
      * @return A list of rides owned by the calling user.
@@ -69,10 +60,10 @@ public class RidesResource extends RideshareResource implements RidesApi {
 		try {
 			RideshareUser driver = null;
 			if (driverId != null) {
-				driver = userManager.resolveUrn(driverId)
+				driver = rideshareUserManager.resolveUrn(driverId)
 						.orElseThrow(() -> new NotFoundException("No such user: " + driverId));
 			} else {
-				driver = userManager.findCallingUser();
+				driver = rideshareUserManager.findCallingUser();
 			}
 			if (driver.getId() != null) {
 				RideFilter filter = new RideFilter(driver.getId(), since, until, state, bookingState, 
@@ -101,7 +92,7 @@ public class RidesResource extends RideshareResource implements RidesApi {
     	Response rsp = null;
 		try {
 			Ride ride = mapper.map(ridedt);
-			RideshareUser driver = userManager.findOrRegisterCallingUser();
+			RideshareUser driver = rideshareUserManager.findOrRegisterCallingUser();
 			ride.setDriver(driver);
 			// The owner of the ride will be the caller
 			String newRideId = UrnHelper.createUrn(Ride.URN_PREFIX, rideManager.createRide(ride));
@@ -122,9 +113,9 @@ public class RidesResource extends RideshareResource implements RidesApi {
     	Ride ride = null;
     	try {
         	Long cid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
-			RideshareUser caller = userManager.findCallingUser();
+			RideshareUser caller = rideshareUserManager.findCallingUser();
 			ride = rideManager.getRide(cid);
-			allowAdminOrCaller(request, caller, ride.getDriver());
+			allowAdminOrCaller(caller, ride.getDriver());
 		} catch (BusinessException e) {
 			throw new WebApplicationException(e);
 		}
@@ -145,9 +136,9 @@ public class RidesResource extends RideshareResource implements RidesApi {
     	Response rsp = null;
     	try {
         	Long cid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
-			RideshareUser caller = userManager.findCallingUser();
+			RideshareUser caller = rideshareUserManager.findCallingUser();
 			Ride rdb = rideManager.getRideWithDriver(cid);
-			allowAdminOrCaller(request, caller, rdb.getDriver());
+			allowAdminOrCaller(caller, rdb.getDriver());
 			Ride ride = mapper.map(ridedt);
 			ride.setId(cid);
     		RideScope rs = scope == null ? RideScope.THIS: RideScope.lookup(scope);
@@ -175,9 +166,9 @@ public class RidesResource extends RideshareResource implements RidesApi {
     	try {
     		RideScope rs = scope == null ? RideScope.THIS: RideScope.lookup(scope);
         	Long cid = UrnHelper.getId(Ride.URN_PREFIX, rideId);
-			RideshareUser caller = userManager.findCallingUser();
+			RideshareUser caller = rideshareUserManager.findCallingUser();
 			Ride rdb = rideManager.getRideWithDriver(cid);
-			allowAdminOrCaller(request, caller, rdb.getDriver());
+			allowAdminOrCaller(caller, rdb.getDriver());
 			rideManager.removeRide(cid, reason, rs, Boolean.TRUE.equals(hard));
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
@@ -198,7 +189,7 @@ public class RidesResource extends RideshareResource implements RidesApi {
 	public Response createBooking(String rideId, eu.netmobiel.rideshare.api.model.Booking bookingdt)  {
     	Response rsp = null;
 		try {
-			RideshareUser passenger = userManager.findOrRegisterCallingUser();
+			RideshareUser passenger = rideshareUserManager.findOrRegisterCallingUser();
         	Booking booking = bookingMapper.map(bookingdt);
 			String newBookingUrn = bookingManager.createBooking(rideId, passenger, booking);
 			rsp = Response.created(URI.create(newBookingUrn)).build();

@@ -2,7 +2,8 @@ package eu.netmobiel.rideshare.repository;
 
 import java.io.IOException;
 import java.io.StringReader;
-import java.util.HashMap;
+import java.net.URLEncoder;
+import java.nio.charset.StandardCharsets;
 import java.util.LinkedHashMap;
 import java.util.Map;
 
@@ -19,7 +20,6 @@ import javax.ws.rs.client.WebTarget;
 import javax.ws.rs.core.Response;
 
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.text.StringSubstitutor;
 import org.slf4j.Logger;
 
 import eu.netmobiel.rideshare.model.Car;
@@ -30,42 +30,44 @@ public class RDWCarLicenseDao {
     @Inject
     private Logger log;
 
-//  $$app_token=....
-    @Resource(lookup = "java:global/licensePlate/RDWAppToken")
+    @Resource(lookup = "java:global/carRegistrar/RDW/AppToken")
     private String rdwAppToken;
 
-//  https://opendata.rdw.nl/resource/m9d7-ebf2.json?kenteken=52PHVD&$select=kenteken,voertuigsoort,merk,handelsbenaming,inrichting,aantal_zitplaatsen,eerste_kleur,tweede_kleur,aantal_deuren,aantal_wielen,datum_eerste_toelating,typegoedkeuringsnummer
-    @Resource(lookup = "java:global/licensePlate/RDWVoertuigenUrl")
+    @Resource(lookup = "java:global/carRegistrar/RDW/VoertuigenUrl")
     private String rdwVoertuigenUrl;
 
-//  https://opendata.rdw.nl/resource/8ys7-d773.json?kenteken=52PHVD&$select=co2_uitstoot_gecombineerd
-    @Resource(lookup = "java:global/licensePlate/RDWBrandstofUrl")
+    @Resource(lookup = "java:global/carRegistrar/RDW/BrandstofUrl")
     private String rdwBrandstofUrl; 
 
-    @SuppressWarnings("el-syntax")
     public Car fetchDutchLicensePlateInformation(String plate) throws IOException {
 		String plateRaw = Car.unformatPlate(plate);
-		Map<String, String> valuesMap = new HashMap<>();
-		valuesMap.put("APP_TOKEN", rdwAppToken);
-		valuesMap.put("KENTEKEN", plateRaw);
-		StringSubstitutor substitutor = new StringSubstitutor(valuesMap, "#{", "}");
-		String url = substitutor.replace(rdwVoertuigenUrl);
 		Client client = ClientBuilder.newBuilder().build();
-		WebTarget target = client.target(url);
-		String result = null;
+		WebTarget target = client.target(rdwVoertuigenUrl)
+			.queryParam("kenteken", plateRaw)
+			.queryParam("$select", URLEncoder.encode(
+				"kenteken,voertuigsoort,merk,handelsbenaming,inrichting,aantal_zitplaatsen,eerste_kleur,tweede_kleur," + 
+				"aantal_deuren,aantal_wielen,datum_eerste_toelating,typegoedkeuringsnummer", StandardCharsets.UTF_8)
+		);
 		Car car = null;
-		try (Response response = target.request().get()) {
-	        result = response.readEntity(String.class);
+		try (Response response = target.request()
+				.header("X-App-Token", rdwAppToken)
+				.get()
+			) {
+			String result = response.readEntity(String.class);
 	        car = convertRDW2Car(plateRaw, plate, result);
 		} catch (IOException e) {
-			log.error("Unable to parse RDW license JSON - " + e.toString());
+			log.error("Unable to parse RDW vehicle JSON - " + e.toString());
 			throw e;
 		}
 		if (car != null) {
-			url = substitutor.replace(rdwBrandstofUrl);
-			target = client.target(url);
-			try (Response response = target.request().get()) {
-		        result = response.readEntity(String.class);
+			target = client.target(rdwBrandstofUrl)
+				.queryParam("kenteken", plateRaw)
+				.queryParam("$select", "co2_uitstoot_gecombineerd");
+			try (Response response = target.request()
+					.header("X-App-Token", rdwAppToken)
+					.get()
+				) {
+		        String result = response.readEntity(String.class);
 		        convertRDWFuel2Car(car, plateRaw, result);
 			} catch (IOException e) {
 				log.error("Unable to parse RDW fuel JSON - " + e.toString());
@@ -75,6 +77,7 @@ public class RDWCarLicenseDao {
         return car;
     }
 
+    
     private Car convertRDW2Car(String plateRaw, String plate, String json) throws IOException {
     	Car car = null;
     	try (JsonReader jsonReader = Json.createReader(new StringReader(json))) {
