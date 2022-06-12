@@ -34,6 +34,9 @@ paths:
           description: Successful response - returns a single `Car`.
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: getCar
       summary: Get a Car
       description: Gets the details of a single instance of a `Car`. Only the admin
@@ -835,14 +838,21 @@ paths:
       in: path
       required: true
   /cars/lookup:
-    summary: Get license plate details
+    summary: Get license plate details.
     description: 'In case of NL: Retrieve the car details from the RDW.'
-    post:
-      requestBody:
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/CarLookupRequest'
+    get:
+      parameters:
+      - name: countryCode
+        description: The country abbreviation according ISO 3166-1 Alpha-2.
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: licensePlate
+        description: The license plate including dashes, without spaces.
+        schema:
+          type: string
+        in: query
         required: true
       responses:
         "200":
@@ -864,9 +874,12 @@ paths:
                     nrOfDoors: 4
                     typeRegistrationId: e4*2001/116*0040*10
                     co2Emission: 217
-          description: The car details  as registered. The car is not persisted yet.
+          description: The car details  as registered by the registrar.
         "404":
           $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
       operationId: lookupCarRegistration
       summary: Get car registration details
       description: |
