@@ -1539,23 +1539,6 @@ components:
         legRefs:
         - urn:nb:rs:leg:54
         passengerTripRef: urn:nb:pl:trip:568
-    CarLookupRequest:
-      title: Root Type for CarLookupRequest
-      description: |-
-        A request for looking up the registration details of a car at a registrar. In The Netherlands the RDW is the registrar for all motorized vehicles.
-
-        The parameters requried for lookup depend on the country.
-      type: object
-      properties:
-        countryCode:
-          description: The country abbreviation according ISO 3166-1 Alpha-2.
-          type: string
-        licensePlate:
-          description: The license plate including dashes, without spaces.
-          type: string
-      example:
-        countryCode: NL
-        licensePlate: PH-VD-52
   responses:
     InternalServerError:
       content:
