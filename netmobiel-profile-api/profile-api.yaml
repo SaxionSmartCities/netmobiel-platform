@@ -397,11 +397,12 @@ paths:
         "201":
           description: Successful response.
         "403":
-          description: The activation code did not match, or the activation request
-            was issued more than 24 hours ago. Or you just lack the permission to
-            perform this operation.
+          description: You lack the permission to perform this operation.
         "422":
           description: The delegation was already activated or cancelled.
+        "400":
+          description: The activation code did not match, or the activation request
+            was not issued in time.
       operationId: activateDelegation
       summary: Activate a Delegation
       description: Tries to match the activation code. On a match the delegation is
@@ -1566,78 +1567,6 @@ components:
           type: string
       example:
         activationCode: "123456"
-    Delegation:
-      title: Root Type for Designation
-      description: A `Delegation` describes the delegation relation between two profiles.
-      type: object
-      properties:
-        delegate:
-          $ref: '#/components/schemas/Profile'
-          description: The person acting on NetMobiel on behalf of someone else (called
-            the delegator).
-          properties:
-            givenName:
-              type: string
-            id:
-              type: string
-        delegator:
-          $ref: '#/components/schemas/Profile'
-          description: The person who is represented in NetMobiel by someone else
-            (called the delegate).
-          properties:
-            givenName:
-              type: string
-            id:
-              type: string
-        revocationTime:
-          format: date-time
-          description: Read-only. The time where the delegation has ended. The delegation
-            is after the revocation time no longer valid. If not set the end time
-            of the delegation is undecided.
-          type: string
-        activationTime:
-          format: date-time
-          description: Read-only. The time the delegation was activated. If not set
-            then the acceptation proces has not yet completed.
-          type: string
-        activationCodeSentTime:
-          format: date-time
-          description: Read-only. The time the activation code was sent. If not set
-            then the code has not be sent (e.g., when the admin creates the delegation).
-          type: string
-        submissionTime:
-          format: date-time
-          description: Read-only. The time the submission to become a delegate  was
-            issued, it marks the start of the delegation process.
-          type: string
-        id:
-          description: The database identifier.
-          type: integer
-        delegateRef:
-          description: A reference to the delegate, the representative.
-          type: string
-        delegatorRef:
-          description: A reference to person being represented.
-          type: string
-        activationCode:
-          description: |-
-            Read-only. When an delegation is created, an activation code is generated and sent to the delegator. Only when the delegator trusts the delegate and tells the activation code, the delegation becomes active by giving the acceptance time a value.
-
-            The activationCode can only be read by an admin, it is invisible for others.
-          type: string
-      example:
-        delegate:
-          givenName: Jaap
-          id: 1234-5678
-        delegator:
-          givenName: Marietje
-          id: 123421-567821
-        submissionTime: 2021-02-25T10:05:23Z
-        revocationTime: 2021-03-31T12.35.43Z
-        activationTime: 2021-02-25T10:53:16Z
-        activationCodeSentTime: 2021-02-25T10:05:23Z
-        activationCode: "123456"
-        id: 1234
     Review:
       title: Root Type for Review
       description: A review for a user.
@@ -1968,6 +1897,82 @@ components:
       example:
         path: /home
         visitTime: 2022-06-01T12:23:00Z
+    Delegation:
+      title: Root Type for Designation
+      description: A `Delegation` describes the delegation relation between two profiles.
+      type: object
+      properties:
+        delegate:
+          $ref: '#/components/schemas/Profile'
+          description: The person acting on NetMobiel on behalf of someone else (called
+            the delegator).
+          properties:
+            givenName:
+              type: string
+            id:
+              type: string
+        delegator:
+          $ref: '#/components/schemas/Profile'
+          description: The person who is represented in NetMobiel by someone else
+            (called the delegate).
+          properties:
+            givenName:
+              type: string
+            id:
+              type: string
+        revocationTime:
+          format: date-time
+          description: Read-only. The time where the delegation has ended. The delegation
+            is after the revocation time no longer valid. If not set the end time
+            of the delegation is undecided.
+          type: string
+        activationCodeTTL:
+          description: Read-only. The time-to-live value of the activation code in
+            seconds. The reference is the `activationCodeSentTime`.
+          type: integer
+        activationTime:
+          format: date-time
+          description: Read-only. The time the delegation was activated. If not set
+            then the activation proces has not yet completed.
+          type: string
+        activationCodeSentTime:
+          format: date-time
+          description: Read-only. The time the activation code was sent. If not set
+            then the code has not be sent (e.g., when the admin creates the delegation).
+          type: string
+        submissionTime:
+          format: date-time
+          description: Read-only. The time the submission to become a delegate  was
+            issued, it marks the start of the delegation process.
+          type: string
+        id:
+          description: The database identifier.
+          type: integer
+        delegateRef:
+          description: A reference to the delegate, the representative.
+          type: string
+        delegatorRef:
+          description: A reference to person being represented.
+          type: string
+        activationCode:
+          description: |-
+            Read-only. When an delegation is created, an activation code is generated and sent to the delegator. Only when the delegator trusts the delegate and tells the activation code, the delegation becomes active by giving the acceptance time a value.
+
+            The activationCode can only be read by an admin, it is invisible for others.
+          type: string
+      example:
+        delegate:
+          givenName: Jaap
+          id: 1234-5678
+        delegator:
+          givenName: Marietje
+          id: 123421-567821
+        submissionTime: 2021-02-25T10:05:23Z
+        revocationTime: 2021-03-31T12.35.43Z
+        activationTime: 2021-02-25T10:53:16Z
+        activationCodeSentTime: 2021-02-25T10:05:23Z
+        activationCode: "123456"
+        id: 1234
   responses:
     InternalServerError:
       content:
