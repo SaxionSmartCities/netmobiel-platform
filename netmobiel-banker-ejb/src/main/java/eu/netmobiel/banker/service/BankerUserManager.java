@@ -4,7 +4,6 @@ import java.util.Optional;
 
 import javax.ejb.ConcurrencyManagement;
 import javax.ejb.ConcurrencyManagementType;
-import javax.ejb.EJBAccessException;
 import javax.ejb.Lock;
 import javax.ejb.LockType;
 import javax.ejb.Singleton;
@@ -71,52 +70,27 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
 		return user;
 	}
 
-    /**
-     * Retrieves a user. Anyone can read a user record, but the account of the user is only accessible to
-     * the user and the administrators.
-     * @param id the user id
-     * @return a banker user object
-     * @throws NotFoundException No matching user found.
-     */
-    @Override
-	public BankerUser getUser(Long id) throws NotFoundException {
+    public BankerUser getUserWithBalance(Long id) throws NotFoundException {
     	BankerUser userdb = userDao.loadGraph(id, BankerUser.GRAPH_WITH_ACCOUNT)
     			.orElseThrow(() -> new NotFoundException("No such user: " + id));
     	if (userdb.getPersonalAccount() == null) {
     		throw new IllegalStateException("BankerUser has no personal account: " + id);
     	}
-    	// Assure changes are not propagated to the database.
-    	userDao.detach(userdb);
-    	String caller = sessionContext.getCallerPrincipal().getName();
-		boolean admin = sessionContext.isCallerInRole("admin");
-		if (!admin && !userdb.getManagedIdentity().equals(caller)) {
-			// Roles and Account are privileged
-			userdb.setPersonalAccount(null);
-			userdb.setPremiumAccount(null);
-		} else {
-			// Add the balance too
-			Balance balance = balanceDao.findActualBalance(userdb.getPersonalAccount());
-			userdb.getPersonalAccount().setActualBalance(balance);
-			if (userdb.getPremiumAccount() != null) {
-				Balance premiumBalance = balanceDao.findActualBalance(userdb.getPremiumAccount());
-				userdb.getPremiumAccount().setActualBalance(premiumBalance);
-			}
+		// Add the balance too
+		Balance balance = balanceDao.findActualBalance(userdb.getPersonalAccount());
+		userdb.getPersonalAccount().setActualBalance(balance);
+		if (userdb.getPremiumAccount() != null) {
+			Balance premiumBalance = balanceDao.findActualBalance(userdb.getPremiumAccount());
+			userdb.getPremiumAccount().setActualBalance(premiumBalance);
 		}
     	return userdb;
     }
-
-    public BankerUser getUserWithBalance(Long id) throws NotFoundException {
-    	BankerUser user = getUser(id);
-    	if (user.getPersonalAccount() == null) {
-    		throw new EJBAccessException("Read access to user account not allowed");
-    	}
-    	return user;
-    }
     
     public Account getPersonalAccount(Long id) throws NotFoundException {
-    	BankerUser userdb = getUser(id);
+    	BankerUser userdb = userDao.loadGraph(id, BankerUser.GRAPH_WITH_ACCOUNT)
+    			.orElseThrow(() -> new NotFoundException("No such user: " + id));
     	if (userdb.getPersonalAccount() == null) {
-    		throw new EJBAccessException("Read access to user account not allowed");
+    		throw new IllegalStateException("BankerUser has no personal account: " + id);
     	}
     	return userdb.getPersonalAccount();
     }
@@ -128,11 +102,6 @@ public class BankerUserManager extends UserManager<BankerUserDao, BankerUser> {
     	if (userdb.getPersonalAccount() == null) {
     		throw new IllegalStateException("BankerUser has no account: " + userId);
     	}
-    	String caller = sessionContext.getCallerPrincipal().getName();
-		boolean admin = sessionContext.isCallerInRole("admin");
-		if (!admin && !userdb.getManagedIdentity().equals(caller)) {
-    		throw new EJBAccessException("Write access to personal user account not allowed");
-		}
     	Account accdb = userdb.getPersonalAccount();
     	// Set only specific attributes
     	accdb.setIban(acc.getIban());
