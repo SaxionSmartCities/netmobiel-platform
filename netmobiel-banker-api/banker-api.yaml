@@ -131,37 +131,6 @@ paths:
         type: string
       in: path
       required: true
-  /charities/{charityId}/donations/{donationId}:
-    summary: Path used to manage a single Statement.
-    description: The REST endpoint/path used to get a single instances of a `Statement`.  This
-      path contains a `GET` operation used to perform the get task.
-    get:
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Donation'
-          description: A single `Donation` object.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: getDonation
-      summary: Retrieves a specific donation.
-      description: Gets the details of a single `Donation`.
-    parameters:
-    - name: charityId
-      description: |
-        The charity id to use. Specify a id, or a charity urn.
-      schema:
-        type: string
-      in: path
-      required: true
-    - name: donationId
-      description: The id of the donation.
-      schema:
-        type: string
-      in: path
-      required: true
   /charities/popularity:
     summary: Path used to retrieve a popularity report.
     description: This endpoint is used to create a report on the popularity of charities,
@@ -319,110 +288,6 @@ paths:
     - name: charityId
       description: A unique identifier for a `Charity`. Allowed are the database id
         or a Charity urn.
-      schema:
-        type: string
-      in: path
-      required: true
-  /charities/{charityId}/donations:
-    summary: Path used to manage the donations to a charity.
-    description: The REST endpoint/path used to make a donation to a `Charity` and
-      to list donations. This path contains `POST` and `GET` operations to perform
-      the donation task, resp. the listing task.
-    get:
-      parameters:
-      - name: user
-        description: The user for which to list the donations. Specify 'me' or an
-          user id or a user urn.
-        schema:
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-11-30T12:00:00+01:00
-        name: since
-        description: The creation date at which to start the listing. Default is not
-          set.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - examples:
-          Format:
-            value: 2019-12-15T14:00:00+01:00
-        name: until
-        description: The creation date and later not to include in the listing of
-          charities. The `until` date must be after the `since` parameter. Default
-          is not set.
-        schema:
-          format: date-time
-          type: string
-        in: query
-      - name: sortBy
-        description: The field to sort on. Choose one of `DATE` (default), `AMOUNT`.
-        schema:
-          enum:
-          - DATE
-          - AMOUNT
-          type: string
-        in: query
-        required: false
-      - name: sortDir
-        description: "Direction of the sorting. Choose either \nascending (ASC) or\
-          \ descending (DESC, default)."
-        schema:
-          enum:
-          - ASC
-          - DESC
-          type: string
-        in: query
-        required: false
-      - name: maxResults
-        description: 'Paging: The maximum number of results per page. Default is 10.'
-        schema:
-          type: integer
-        in: query
-      - name: offset
-        description: 'Paging: The zero-based offset in the result set to return.'
-        schema:
-          type: integer
-        in: query
-      responses:
-        "200":
-          content:
-            application/json:
-              schema:
-                $ref: '#/components/schemas/Page'
-          description: Success response. A `Page` of `Donation` objects is returned.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: listDonationsForCharity
-      summary: List the donations.
-      description: "Lists the donations for a specific charity.\n\nThe donor of an\
-        \ anonymous donation is hidden if the anonymous flag is true, unless:\n* the\
-        \ caller has the admin role\n* the caller is the anoymous donor\n \n"
-    post:
-      requestBody:
-        description: The donation to the charity.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/Donation'
-        required: true
-      responses:
-        "201":
-          description: The donation was successfull.
-        "402":
-          description: The balance of the user was insufficient for performing the
-            donation.
-        "404":
-          $ref: '#/components/responses/NotFound'
-      operationId: postDonation
-      summary: Post a donation.
-      description: 'Donates an amount of credits to a `Charity`. The credits are debited
-        from the calling user''s balance. '
-    parameters:
-    - name: charityId
-      description: The charity id to use. Specify a charity id or a charity urn.
       schema:
         type: string
       in: path
@@ -2260,6 +2125,153 @@ paths:
       operationId: getIncentives
       summary: List All incentives
       description: Gets a list of all `Incentive` entities.
+  /charities/{charityId}/donations/{donationId}:
+    summary: Path used to manage a single Statement.
+    description: The REST endpoint/path used to get a single instances of a `Statement`.  This
+      path contains a `GET` operation used to perform the get task.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Donation'
+          description: A single `Donation` object.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getDonation
+      summary: Retrieves a specific donation.
+      description: Gets the details of a single `Donation`.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: charityId
+      description: |
+        The charity id to use. Specify a id, or a charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: donationId
+      description: The id of the donation.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/{charityId}/donations:
+    summary: Path used to manage the donations to a charity.
+    description: The REST endpoint/path used to make a donation to a `Charity` and
+      to list donations. This path contains `POST` and `GET` operations to perform
+      the donation task, resp. the listing task.
+    get:
+      parameters:
+      - name: user
+        description: The user for which to list the donations. Specify 'me' or an
+          user id or a user urn.
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing of
+          charities. The `until` date must be after the `since` parameter. Default
+          is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: sortBy
+        description: The field to sort on. Choose one of `DATE` (default), `AMOUNT`.
+        schema:
+          enum:
+          - DATE
+          - AMOUNT
+          type: string
+        in: query
+        required: false
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC) or\
+          \ descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Success response. A `Page` of `Donation` objects is returned.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: listDonationsForCharity
+      summary: List the donations.
+      description: "Lists the donations for a specific charity.\n\nThe donor of an\
+        \ anonymous donation is hidden if the anonymous flag is true, unless:\n* the\
+        \ caller has the admin role\n* the caller is the anoymous donor\n \n"
+    post:
+      requestBody:
+        description: The donation to the charity.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Donation'
+        required: true
+      responses:
+        "201":
+          description: The donation was successfull.
+        "402":
+          description: The balance of the user was insufficient for performing the
+            donation.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: postDonation
+      summary: Post a donation.
+      description: 'Donates an amount of credits to a `Charity`. The credits are debited
+        from the calling user''s balance. '
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: charityId
+      description: The charity id to use. Specify a charity id or a charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     Error:
