@@ -40,6 +40,7 @@ import eu.netmobiel.commons.exception.LegalReasonsException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.UpdateException;
 import eu.netmobiel.commons.filter.Cursor;
+import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.NetMobielUser;
 import eu.netmobiel.commons.model.PagedResult;
@@ -118,6 +119,15 @@ public class ProfileManager {
     @Inject
     private PageVisitDao pageVisitDao;
 
+    public CallingContext<Profile> findCallingContext(SecurityIdentity securityIdentity) throws NotFoundException {
+		Profile caller = getFlatProfileByManagedIdentity(securityIdentity.getPrincipal().getName());
+		Profile effectiveUser = caller;
+    	if (securityIdentity.isDelegationActive()) {
+        	String effUserId = securityIdentity.getEffectivePrincipal().getName();
+    		effectiveUser = getFlatProfileByManagedIdentity(effUserId);
+    	}
+    	return new CallingContext<>(caller, effectiveUser);
+    }   
     
 	public @NotNull PagedResult<Profile> listProfiles(ProfileFilter filter, Cursor cursor) throws BadRequestException {
     	// As an optimisation we could first call the data. If less then maxResults are received, we can deduce the totalCount and thus omit
@@ -523,10 +533,7 @@ public class ProfileManager {
      * @throws NotFoundException 
      */
     @Asynchronous
-    public void logPageVisits(String managedId, UserSession session, boolean isFinalLog) throws NotFoundException {
-    	Profile profile = profileDao.findByManagedIdentity(managedId, null)
-    			.orElseThrow(() -> new NotFoundException("No such profile: " + managedId));
-    	session.setProfile(profile);
+    public void logPageVisits(UserSession session, Profile effectiveUser, boolean isFinalLog) throws NotFoundException {
     	UserSession usdb = userSessionDao.findUserSessionBySessionId(session.getSessionId())
     		.orElseGet(() -> {
     			Instant start = session.getPageVisits().size() > 0 
@@ -535,11 +542,13 @@ public class ProfileManager {
     			session.setSessionStart(start);
     			return userSessionDao.save(session);	
     		});
+    	usdb.setIpAddress(session.getIpAddress());
     	if (isFinalLog) {
     		usdb.setSessionEnd(Instant.now());
     	}
     	for (PageVisit pv : session.getPageVisits()) {
     		pv.setUserSession(usdb);
+    		pv.setOnBehalfOf(effectiveUser);
     		pageVisitDao.save(pv);
 		}
     }

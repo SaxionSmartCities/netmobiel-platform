@@ -309,6 +309,12 @@ public class TextHelper {
 		);
 	}
 	
+	public String createDelegationRevokedText(Delegation delegation) {
+		return MessageFormat.format("Je beheert niet langer de reizen van {0}.", 
+				delegation.getDelegator().getName()
+		);
+	}
+	
     /***************  REWARDS  *************/
 
 	public String createPremiumRewardText(Reward reward) {

@@ -6,10 +6,8 @@ import java.util.Optional;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
@@ -34,9 +32,6 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 	@Inject
 	private ReviewMapper mapper;
 
-	@Context
-	private HttpServletRequest request;
-
     private void validateInput(Review r) throws BadRequestException, NotFoundException {
 		if (r.getContext() == null) {
 			throw new BadRequestException("Review context is a mandatory parameter");
@@ -44,7 +39,7 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 		if (r.getReceiver() == null) {
 			throw new BadRequestException("Review receiver is a mandatory parameter");
 		} 
-		final boolean privileged = request.isUserInRole("admin"); 
+		final boolean privileged = isAdmin(); 
 		String me = securityIdentity.getEffectivePrincipal().getName();
 		if (me.equals(r.getReceiver().getManagedIdentity())) {
 			throw new BadRequestException("You cannot review yourself");
@@ -94,8 +89,7 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 		try {
 	    	Review r = reviewManager.getReview(Long.parseLong(reviewId));
 			String me = securityIdentity.getEffectivePrincipal().getName();
-			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && !r.getReceiver().getManagedIdentity().equals(me) && !r.getSender().getManagedIdentity().equals(me)) {
+			if (! isAdmin() && !r.getReceiver().getManagedIdentity().equals(me) && !r.getSender().getManagedIdentity().equals(me)) {
 				throw new SecurityException("You have no privilege to inspect a review that is not written by you or attributed to you");
 			}
 			rsp = Response.ok(mapper.map(r)).build();
@@ -149,8 +143,7 @@ public class ReviewsResource extends BasicResource implements ReviewsApi {
 		try {
 	    	Review r = reviewManager.getReview(Long.parseLong(reviewId));
 			String me = securityIdentity.getEffectivePrincipal().getName();
-			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && !r.getSender().getManagedIdentity().equals(me)) {
+			if (! isAdmin() && !r.getSender().getManagedIdentity().equals(me)) {
 				throw new SecurityException("You have no privilege to remove a review that is not written by you");
 			}
 	    	reviewManager.removeReview(Long.parseLong(reviewId));

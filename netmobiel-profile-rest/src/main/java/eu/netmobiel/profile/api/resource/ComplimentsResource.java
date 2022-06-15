@@ -9,10 +9,8 @@ import java.util.stream.Stream;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
@@ -39,9 +37,6 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 	@Inject
 	private ComplimentMapper mapper;
 
-	@Context
-	private HttpServletRequest request;
-
     private void validateInput(Compliments c) throws BadRequestException, NotFoundException {
 		if (c.getContext() == null) {
 			throw new BadRequestException("Compliment context is a mandatory parameter");
@@ -53,7 +48,7 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 		if (me.equals(c.getReceiver().getManagedIdentity())) {
 			throw new BadRequestException("You cannot compliment yourself");
 		}
-		final boolean privileged = request.isUserInRole("admin");
+		final boolean privileged = isAdmin();
 		if (c.getSender() != null ) {
 			if (! privileged) {
 				if (!me.equals(c.getSender().getManagedIdentity())) {
@@ -118,8 +113,7 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 	    	Compliments c = complimentManager.getCompliment(Long.parseLong(complimentId));
 			validateInput(c);
 			String me = securityIdentity.getEffectivePrincipal().getName();
-			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && !c.getReceiver().getManagedIdentity().equals(me) && !c.getSender().getManagedIdentity().equals(me)) {
+			if (! isAdmin() && !c.getReceiver().getManagedIdentity().equals(me) && !c.getSender().getManagedIdentity().equals(me)) {
 				throw new SecurityException("You have no privilege to inspect a compliment that is not made by you or paid to you");
 			}
 	    	rsp = Response.ok(mapper.map(c)).build();
@@ -155,8 +149,7 @@ public class ComplimentsResource extends BasicResource implements ComplimentsApi
 		try {
 	    	Compliments c = complimentManager.getCompliment(Long.parseLong(complimentId));
 			String me = securityIdentity.getEffectivePrincipal().getName();
-			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && !c.getSender().getManagedIdentity().equals(me)) {
+			if (! isAdmin() && !c.getSender().getManagedIdentity().equals(me)) {
 				throw new SecurityException("You have no privilege to remove a compliment that is not made by you");
 			}
 	    	complimentManager.removeCompliment(Long.parseLong(complimentId));

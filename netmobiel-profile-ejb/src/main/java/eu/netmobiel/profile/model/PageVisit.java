@@ -49,6 +49,13 @@ public class PageVisit implements Serializable {
 	private UserSession userSession;
 
 	/**
+	 * Association with the effective user profile in case of delegation.
+	 */
+	@ManyToOne(fetch = FetchType.LAZY)
+	@JoinColumn(name= "on_behalf_of", foreignKey = @ForeignKey(name = "page_visit_on_behalf_of_fk"))
+	private Profile onBehalfOf;
+
+	/**
 	 * The path of the page.
 	 */
 	@NotNull
@@ -79,6 +86,14 @@ public class PageVisit implements Serializable {
 		this.userSession = userSession;
 	}
 
+	public Profile getOnBehalfOf() {
+		return onBehalfOf;
+	}
+
+	public void setOnBehalfOf(Profile onBehalfOf) {
+		this.onBehalfOf = onBehalfOf;
+	}
+
 	public String getPath() {
 		return path;
 	}
@@ -93,6 +108,11 @@ public class PageVisit implements Serializable {
 
 	public void setVisitTime(Instant visitTime) {
 		this.visitTime = visitTime;
+	}
+
+	@Override
+	public String toString() {
+		return String.format("PageVisit [%s %s]", id, path);
 	}
 
 }

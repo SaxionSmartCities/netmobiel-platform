@@ -8,17 +8,13 @@ import javax.ws.rs.WebApplicationException;
 import javax.ws.rs.core.Response;
 
 import eu.netmobiel.commons.model.NetMobielUser;
-import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.profile.api.ProfileServiceVersion;
 import eu.netmobiel.profile.api.VersionApi;
 import eu.netmobiel.profile.api.model.UserRef;
 import eu.netmobiel.profile.service.ProfileManager;
 
 @RequestScoped
-public class VersionResource implements VersionApi {
-
-	@Inject
-	protected SecurityIdentity securityIdentity;
+public class VersionResource extends BasicResource implements VersionApi {
 
 	@Inject
 	private ProfileServiceVersion version;

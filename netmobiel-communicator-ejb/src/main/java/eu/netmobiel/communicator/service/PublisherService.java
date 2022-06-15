@@ -479,7 +479,7 @@ public class PublisherService {
     			.orElseThrow(() -> new NotFoundException("No such communicator user: " + recipient.getManagedIdentity()));
     }
     
-    public boolean isValidForMobileMessaging(NetMobielUser user) throws NotFoundException {
+    public boolean isValidForMobileMessaging(NetMobielUser user) throws NotFoundException, BadRequestException {
     	CommunicatorUser recipient = lookupUser(user);
     	boolean isValid = false;
 	    // The delegator needs to have a number that can receive an SMS. We require a mobile number.

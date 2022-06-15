@@ -30,6 +30,7 @@ import eu.netmobiel.communicator.model.UserRole;
 import eu.netmobiel.communicator.service.PublisherService;
 import eu.netmobiel.profile.event.DelegationActivationConfirmedEvent;
 import eu.netmobiel.profile.event.DelegationActivationRequestedEvent;
+import eu.netmobiel.profile.event.DelegationRevokedEvent;
 import eu.netmobiel.profile.event.DelegationTransferCompletedEvent;
 import eu.netmobiel.profile.event.DelegationTransferRequestedEvent;
 import eu.netmobiel.profile.event.DelegatorAccountCreatedEvent;
@@ -156,6 +157,7 @@ public class DelegationProcessor {
      	Delegation fromDelegation = event.getFrom();
      	Delegation toDelegation = event.getTo();
      	if (!event.isImmediate()) {
+     		//TODO ?
      	}
 		// Inform previous delegate 
 		// Message context is the fromDelegation, so is the recipient's context
@@ -172,6 +174,28 @@ public class DelegationProcessor {
 		publisherService.publish(msg);
     }
     
+    /**
+     * Handles the delegation transfer competed event.
+     * @param event the transfer event
+     * @throws BusinessException 
+     */
+    public void onDelegationRevoked(@Observes(during = TransactionPhase.IN_PROGRESS) DelegationRevokedEvent event) throws BusinessException {
+		// Inform delegate 
+		// Message context is the delegation, so is the recipient's context
+     	Delegation delegation = event.getDelegation();
+    	Message msg = Message.create()
+    			.withBody(textHelper.createDelegationRevokedText(delegation))
+    			.withContext(delegation.getUrn())
+    			.addEnvelope()
+	    			.withRecipient(delegation.getDelegate())
+	    			.withConversationContext(delegation.getUrn())
+	    			.withUserRole(UserRole.DELEGATE)
+	    			.withTopic(textHelper.createDelegationTopic(delegation))
+	    			.buildConversation()
+    			.buildMessage();
+		publisherService.publish(msg);
+    }
+
     /**
      * Informs any delegator of the specified user with a message.
      * @param delegator The person who possibly has his travels managed by someone else.

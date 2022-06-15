@@ -22,6 +22,7 @@ import javax.persistence.NamedEntityGraphs;
 import javax.persistence.SequenceGenerator;
 import javax.persistence.Table;
 import javax.validation.constraints.NotNull;
+import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
 
 import eu.netmobiel.commons.model.ReferableObject;
@@ -86,6 +87,14 @@ public class Delegation extends ReferableObject implements Serializable {
     @Column(name = "activation_time")
     private Instant activationTime;
 
+	/**
+	 * The activation code time to live value in seconds. Reference is the activation code sent time.
+	 */
+    @NotNull
+    @Positive
+    @Column(name = "activation_code_ttl")
+    private int activationCodeTTL;
+    
 	/**
 	 * The revocation time of the delegation. If null while activation time is set then the delegation is still active.
 	 */
@@ -206,6 +215,14 @@ public class Delegation extends ReferableObject implements Serializable {
 		this.activationCodeSentTime = activationCodeSentTime;
 	}
 
+	public int getActivationCodeTTL() {
+		return activationCodeTTL;
+	}
+
+	public void setActivationCodeTTL(int activationCodeTTL) {
+		this.activationCodeTTL = activationCodeTTL;
+	}
+
 	public String getSmsId() {
 		return smsId;
 	}
@@ -220,6 +237,10 @@ public class Delegation extends ReferableObject implements Serializable {
 
 	public void setTransferFrom(Delegation transferFrom) {
 		this.transferFrom = transferFrom;
+	}
+
+	public boolean hasActivationCodeExpired(Instant now) {
+    	 return getActivationCodeSentTime().plusSeconds(getActivationCodeTTL()).isBefore(now);
 	}
 
 	public String getDelegateRef() {

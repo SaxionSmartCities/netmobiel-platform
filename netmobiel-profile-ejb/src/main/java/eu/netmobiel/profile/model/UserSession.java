@@ -87,8 +87,8 @@ public class UserSession implements Serializable {
 	 */
 	@NotNull
 	@ManyToOne(fetch = FetchType.LAZY)
-	@JoinColumn(name= "profile", foreignKey = @ForeignKey(name = "user_session_profile_fk"))
-	private Profile profile;
+	@JoinColumn(name= "real_user", foreignKey = @ForeignKey(name = "user_session_profile_fk"))
+	private Profile realUser;
 
 	/*
      * The page visit records.
@@ -144,12 +144,12 @@ public class UserSession implements Serializable {
 		this.sessionEnd = sessionEnd;
 	}
 
-	public Profile getProfile() {
-		return profile;
+	public Profile getRealUser() {
+		return realUser;
 	}
 
-	public void setProfile(Profile profile) {
-		this.profile = profile;
+	public void setRealUser(Profile realUser) {
+		this.realUser = realUser;
 	}
 
 	public List<PageVisit> getPageVisits() {
@@ -175,5 +175,10 @@ public class UserSession implements Serializable {
 		}
 		UserSession other = (UserSession) obj;
 		return Objects.equals(sessionId, other.sessionId);
+	}
+
+	@Override
+	public String toString() {
+		return String.format("UserSession [id=%s, sid=%s]", id, sessionId);
 	}
 }

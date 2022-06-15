@@ -2,15 +2,9 @@ package eu.netmobiel.profile.event;
 
 import eu.netmobiel.profile.model.Delegation;
 
-public class DelegationActivationRequestedEvent {
-	private Delegation delegation;
+public class DelegationActivationRequestedEvent extends DelegationEvent {
 	
 	public DelegationActivationRequestedEvent(Delegation delegation) {
-		this.delegation= delegation;
+		super(delegation);
 	}
-
-	public Delegation getDelegation() {
-		return delegation;
-	}
-
 }

@@ -85,49 +85,58 @@ public class MessageBird {
 		return ExceptionUtil.unwindException(ex) + " - " + sb.toString();
 	}
 
-	public boolean isMobileNumber(String inputPhoneNumber,  String defaultCountry) {
+	public boolean isMobileNumber(String inputPhoneNumber,  String defaultCountry) throws BadRequestException {
 	    boolean isMobile = false;
 		String countryCode2 = IsoCountryCodeHelper.getIso2CountryCode(defaultCountry);
 		try {
+		    if (inputPhoneNumber == null || inputPhoneNumber.isBlank()) {
+		    	throw new BadRequestException("No phone number set");
+		    }
 			PhoneNumber number = phoneUtil.parse(inputPhoneNumber, countryCode2);
 		    if (!phoneUtil.isValidNumber(number)) {
-		    	throw new IllegalArgumentException("Not a valid phone number: " + inputPhoneNumber);
+		    	throw new BadRequestException("Not a valid phone number: " + inputPhoneNumber);
 		    }
 		    isMobile = phoneUtil.getNumberType(number) == PhoneNumberType.MOBILE;
 		} catch (NumberParseException e) {
-	    	throw new IllegalArgumentException("Not a valid phone number: " + inputPhoneNumber);
+	    	throw new BadRequestException("Not a valid phone number: " + inputPhoneNumber);
 		}
 	    return isMobile;
     }
 
-	public String formatPhoneNumberNational(String inputPhoneNumber, String defaultCountry) {
+	public String formatPhoneNumberNational(String inputPhoneNumber, String defaultCountry) throws BadRequestException {
 	    String output = null;
 		String countryCode2 = IsoCountryCodeHelper.getIso2CountryCode(defaultCountry);
 		try {
+		    if (inputPhoneNumber == null || inputPhoneNumber.isBlank()) {
+		    	throw new BadRequestException("No phone number set");
+		    }
 			PhoneNumber number = phoneUtil.parse(inputPhoneNumber, countryCode2);
 		    if (!phoneUtil.isValidNumber(number)) {
-		    	throw new IllegalArgumentException("Not a valid phone number: " + inputPhoneNumber);
+		    	throw new BadRequestException("Not a valid phone number: " + inputPhoneNumber);
 		    }
 		    // Convert the input to the national format
 		    output = phoneUtil.format(number, PhoneNumberFormat.NATIONAL);
 		} catch (NumberParseException e) {
-	    	throw new IllegalArgumentException("Not a valid phone number: " + inputPhoneNumber);
+	    	throw new BadRequestException("Not a valid phone number: " + inputPhoneNumber);
 		}
 		return output;
 	}
 
-	public String formatPhoneNumberTechnical(String inputPhoneNumber, String defaultCountry) {
+	public String formatPhoneNumberTechnical(String inputPhoneNumber, String defaultCountry) throws BadRequestException {
 	    String output = null;
 		String countryCode2 = IsoCountryCodeHelper.getIso2CountryCode(defaultCountry);
 		try {
+		    if (inputPhoneNumber == null || inputPhoneNumber.isBlank()) {
+		    	throw new BadRequestException("No phone number set");
+		    }
 			PhoneNumber number = phoneUtil.parse(inputPhoneNumber, countryCode2);
 		    if (!phoneUtil.isValidNumber(number)) {
-		    	throw new IllegalArgumentException("Not a valid phone number: " + inputPhoneNumber);
+		    	throw new BadRequestException("Not a valid phone number: " + inputPhoneNumber);
 		    }
 		    // Convert the input to an international number and remove the '+'
 		    output = phoneUtil.format(number, PhoneNumberFormat.E164).substring(1);
 		} catch (NumberParseException e) {
-	    	throw new IllegalArgumentException("Not a valid phone number: " + inputPhoneNumber);
+	    	throw new BadRequestException("Not a valid phone number: " + inputPhoneNumber);
 		}
 		return output;
 	}

@@ -5,10 +5,8 @@ import java.util.Optional;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 import javax.ws.rs.core.Response.Status;
@@ -16,6 +14,7 @@ import javax.ws.rs.core.Response.Status;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.filter.Cursor;
+import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.ImageHelper;
@@ -46,9 +45,6 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	@Inject
 	private PlaceManager placeManager;
 
-	@Context
-	private HttpServletRequest request;
-
 	/**
 	 * Creates a new profile. If the user is not authenticated, it must be a fresh new user.
 	 * If the user is authenticated, then it must be the user's own profile or it is a delegate that wants to 
@@ -74,7 +70,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	@Override
     public Response getProfileStatus(String xDelegator, String profileId) {
 		String mid = resolveIdentity(xDelegator, profileId);
-		if (!request.isUserInRole("admin") && !mid.equals(securityIdentity.getEffectivePrincipal().getName())
+		if (!isAdmin() && !mid.equals(securityIdentity.getEffectivePrincipal().getName())
 				&& !mid.equals(securityIdentity.getRealUser().getManagedIdentity())) {
     		throw new SecurityException("You have no access rights");
 		}
@@ -90,7 +86,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 			String mid = resolveIdentity(xDelegator, profileId);
 			// The profile is always completely initialized, but may only be filled in part,
 			// depending on the privileges of the caller.
-			boolean complete = request.isUserInRole("admin") || mid.equals(securityIdentity.getEffectivePrincipal().getName());
+			boolean complete = isAdmin() || mid.equals(securityIdentity.getEffectivePrincipal().getName());
 			if (Boolean.TRUE.equals(_public)) {
 				complete = false;
 			}
@@ -113,7 +109,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 	public Response listProfiles(String text, String role, Boolean details, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		try {
-			final boolean privileged = request.isUserInRole("admin") || request.isUserInRole("delegate"); 
+			final boolean privileged = isAdmin() || isDelegate(); 
 			if (! privileged) {
 				throw new SecurityException("You have no privilege to list the profiles owned by someone else");
 			}
@@ -123,7 +119,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 			filter.setUserRole(role);
 	    	PagedResult<Profile> results = profileManager.listProfiles(filter, cursor);
 	    	Page page;
-	    	if (request.isUserInRole("admin") && Boolean.TRUE.equals(details)) {
+	    	if (isAdmin() && Boolean.TRUE.equals(details)) {
 	    		page = profileMapper.mapShallow(results);
 	    	} else {
 	    		page = profileMapper.mapSecondary(results);
@@ -144,7 +140,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 			// Only admin and effective owner can update the profile
 			String mid = resolveIdentity(xDelegator, profileId);
 			String me = securityIdentity.getEffectivePrincipal().getName();
-			final boolean privileged = request.isUserInRole("admin"); 
+			final boolean privileged = isAdmin(); 
 			if (! privileged && !me.equals(mid)) {
 				throw new SecurityException("You have no privilege to update the profile owned by someone else");
 			}
@@ -165,8 +161,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 
 			String mid = resolveIdentity(xDelegator, profileId);
 			String me = securityIdentity.getEffectivePrincipal().getName();
-			final boolean privileged = request.isUserInRole("admin"); 
-			if (! privileged && ! me.equals(mid)) {
+			if (! isAdmin() && ! me.equals(mid)) {
 				throw new SecurityException("You have no privilege to update the image of a profile owned by someone else");
 			}
 	    	profileManager.uploadImage(mid, di.filetype, di.decodedImage);
@@ -182,12 +177,19 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 		Response rsp = null;
 		try {
 			String mid = resolveIdentity(xDelegator, profileId);
+			String me = securityIdentity.getEffectivePrincipal().getName();
+			if (! isAdmin() && ! me.equals(mid)) {
+				throw new SecurityException("You have no privilege to log the session of someone else");
+			}
+			CallingContext<Profile> context = profileManager.findCallingContext(securityIdentity);
 			eu.netmobiel.profile.model.UserSession domUserSession = profileMapper.map(userSession);
 	    	Optional<String> sessionId = SecurityIdentity.getKeycloakSessionId(securityIdentity.getPrincipal());
 	    	if (sessionId.isPresent()) {
 				domUserSession.setSessionId(sessionId.get());
-				domUserSession.setIpAddress(request.getRemoteAddr());
-		    	profileManager.logPageVisits(mid, domUserSession, Boolean.TRUE.equals(isFinalLog));
+				domUserSession.setIpAddress(getRemoteAddress());
+				domUserSession.setRealUser(context.getCallingUser());
+				final Profile effUser = securityIdentity.isDelegationActive() ? context.getEffectiveUser() : null;
+		    	profileManager.logPageVisits(domUserSession, effUser, Boolean.TRUE.equals(isFinalLog));
 	    	}
 			rsp = Response.accepted().build();
 		} catch (IllegalArgumentException e) {

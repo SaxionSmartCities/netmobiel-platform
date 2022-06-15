@@ -5,10 +5,8 @@ import java.util.Optional;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 import javax.ws.rs.core.Response.ResponseBuilder;
 
@@ -30,19 +28,16 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 	@Inject
 	private SurveyMapper mapper;
 
-	@Context
-	private HttpServletRequest request;
-
 	@Override
 	public Response getSurveyInteractions(String xDelegator, String profileId, String surveyId, Boolean completedToo, String incentiveCode, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		try {
-			final boolean privileged = request.isUserInRole("admin"); 
+			final boolean privileged = isAdmin(); 
 			if (!privileged && profileId == null) {
 				profileId = "me";
 			}
 			String mid  = resolveIdentity(xDelegator, profileId);
-			allowAdminOrEffectiveUser(request, mid);
+			allowAdminOrEffectiveUser(mid);
 			Cursor cursor = new Cursor(maxResults, offset);
 			PagedResult<SurveyInteraction> sis = surveyManager.listSurveyInteractions(mid, surveyId, Boolean.TRUE.equals(completedToo), incentiveCode, cursor);
 			rsp = Response.ok(mapper.mapWithUser(sis)).build();
@@ -62,7 +57,7 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 				profileId = "me";
 			}
 			String mid  = resolveIdentity(xDelegator, profileId);
-			allowAdminOrEffectiveUser(request, mid);
+			allowAdminOrEffectiveUser(mid);
 			Optional<SurveyInteraction> sopt = surveyManager.inviteToSurvey(mid);
 			if (sopt.isPresent()) {
 				rspb = Response.created(URI.create(sopt.get().getUrn()));
@@ -83,7 +78,7 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 		try {
 			Long sid = UrnHelper.getId(SurveyInteraction.URN_PREFIX, surveyInteractionId);
 			SurveyInteraction si = surveyManager.getSurveyInteraction(sid);
-			allowAdminOrEffectiveUser(request, si.getProfile().getManagedIdentity());
+			allowAdminOrEffectiveUser(si.getProfile().getManagedIdentity());
 			rsp = Response.ok(mapper.mapWithUser(si)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -105,7 +100,7 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 		try {
 			Long sid = UrnHelper.getId(SurveyInteraction.URN_PREFIX, surveyInteractionId);
 			SurveyInteraction si = surveyManager.getSurveyInteraction(sid);
-			allowAdminOrEffectiveUser(request, si.getProfile().getManagedIdentity());
+			allowAdminOrEffectiveUser(si.getProfile().getManagedIdentity());
 			// Ok, we are allowed to proceed
 			surveyManager.revertSurveyInteraction(sid, Boolean.TRUE.equals(hard));
 			rsp = Response.noContent().build();
@@ -121,7 +116,7 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 		try {
 			Long sid = UrnHelper.getId(SurveyInteraction.URN_PREFIX, surveyInteractionId);
 			SurveyInteraction si = surveyManager.getSurveyInteraction(sid);
-			allowAdminOrEffectiveUser(request, si.getProfile().getManagedIdentity());
+			allowAdminOrEffectiveUser(si.getProfile().getManagedIdentity());
 			surveyManager.markSurveyRedirect(sid);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
@@ -138,7 +133,7 @@ public class SurveyInteractionsResource extends BasicResource implements SurveyI
 		try {
 			Long sid = UrnHelper.getId(SurveyInteraction.URN_PREFIX, surveyInteractionId);
 			SurveyInteraction si = surveyManager.getSurveyInteraction(sid);
-			allowAdminOrEffectiveUser(request, si.getProfile().getManagedIdentity());
+			allowAdminOrEffectiveUser(si.getProfile().getManagedIdentity());
 			surveyManager.markSurveySubmitted(sid);
 			rsp = Response.noContent().build();
 		} catch (BusinessException e) {

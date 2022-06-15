@@ -5,16 +5,13 @@ import java.time.OffsetDateTime;
 
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.profile.api.DelegationsApi;
 import eu.netmobiel.profile.api.mapping.DelegationMapper;
@@ -25,32 +22,13 @@ import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.service.DelegationManager;
 
 @RequestScoped
-@Logging
-public class DelegationsResource implements DelegationsApi {
+public class DelegationsResource extends BasicResource implements DelegationsApi {
 
 	@Inject
 	private DelegationMapper mapper;
 
 	@Inject
 	private DelegationManager delegationManager;
-
-	@Context
-	private HttpServletRequest request;
-
-	/**
-	 * Determines the real user of the call in case 'me'is used.
-	 * @param profileId the profile id. If 'me' is used then the real user id is taken.
-	 * @return the resolved user id (a keycloak managed identity).
-	 */
-    protected String resolveIdentity(String profileId) {
-		String mid = null;
-		if ("me".equals(profileId)) {
-			mid = request.getUserPrincipal().getName();
-		} else {
-			mid = profileId;
-		}
-		return mid;
-    }
 
     private static Long resolveDelegationRef(String delegationRef) throws eu.netmobiel.commons.exception.BadRequestException {
     	Long id = null;
@@ -62,17 +40,23 @@ public class DelegationsResource implements DelegationsApi {
     	return id;
 	}
 
+    private boolean isParticipant(String mid, Delegation delegation) {
+		String me = resolveIdentity(mid);
+		return me.equals(delegation.getDelegate().getManagedIdentity()) || 
+			   me.equals(delegation.getDelegator().getManagedIdentity());
+    }
+		
 	@Override
 	public Response getDelegations(String delegate, String delegator, OffsetDateTime since, OffsetDateTime until,
 			Boolean inactiveToo, String sortDir, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		try {
-			String me = request.getUserPrincipal().getName();
+			String me = resolveIdentity("me");
 			Cursor cursor = new Cursor(maxResults, offset);
 			// Replace 'me' by the caller.
 			delegate = resolveIdentity(delegate);
 			delegator = resolveIdentity(delegator);
-			if (!request.isUserInRole("admin")) {
+			if (!isAdmin()) {
 				if (delegator != null && !delegator.equals(me)) {
 					throw new SecurityException("You have no privilege to list delegations for this delegator: " + delegator);
 				}
@@ -80,7 +64,7 @@ public class DelegationsResource implements DelegationsApi {
 					throw new SecurityException("You have no privilege to list delegations for this delegate: " + delegate);
 				}
 				if (delegate == null && delegator == null) {
-					if (request.isUserInRole("delegate")) {
+					if (isDelegate()) {
 						delegate = me;
 					} else {
 						delegator = me;
@@ -90,6 +74,10 @@ public class DelegationsResource implements DelegationsApi {
 			DelegationFilter filter = new DelegationFilter(mapper.mapProfileRef(delegate), mapper.mapProfileRef(delegator), since, until, Boolean.TRUE.equals(inactiveToo));
 			filter.setSortDir(sortDir);
 	    	PagedResult<Delegation> results = delegationManager.listDelegations(filter, cursor, Delegation.PROFILES_ENTITY_GRAPH);
+	    	// Only admin can see the activation code
+	    	if (!isAdmin()) {
+	    		results.getData().forEach(d -> d.setActivationCode(null));
+	    	}
 			rsp = Response.ok(mapper.mapWithPublicProfiles(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
@@ -105,12 +93,12 @@ public class DelegationsResource implements DelegationsApi {
 		try {
 			Delegation delegation = mapper.mapApi(apiDelegation);
 			// Admins must set parameters explicitly
-			if (!request.isUserInRole("admin")) {
-				if (!request.isUserInRole("delegate")) {
+			if (!isAdmin()) {
+				if (!isDelegate()) {
 					throw new SecurityException("You have no privilege to create a delegation");
 				} 
 				// Delegate role may set the delegate parameter, but only to refer to themselves
-				String me = request.getUserPrincipal().getName();
+				String me = resolveIdentity("me");
 				if (delegation.getDelegate() == null) {
 					delegation.setDelegate(new Profile(me));
 				} else {
@@ -120,7 +108,7 @@ public class DelegationsResource implements DelegationsApi {
 					}
 				}
 			}
-	    	Long id = delegationManager.createDelegation(delegation, request.isUserInRole("admin"));
+	    	Long id = delegationManager.createDelegation(delegation, isAdmin());
 	    	String urn = UrnHelper.createUrn(Delegation.URN_PREFIX, id);
 			rsp = Response.created(URI.create(urn)).build();
 		} catch (IllegalArgumentException e) {
@@ -143,14 +131,11 @@ public class DelegationsResource implements DelegationsApi {
 			// Check the security rules for the current delegation
 			Long fromDelId = resolveDelegationRef(fromDelegationRef);
 			Delegation fromDelegation = delegationManager.getDelegation(fromDelId, Delegation.PROFILES_ENTITY_GRAPH);
-			if (!request.isUserInRole("admin")) {
-				String me = request.getUserPrincipal().getName();
-				if (! me.equals(fromDelegation.getDelegate().getManagedIdentity()) && !me.equals(fromDelegation.getDelegator().getManagedIdentity())) {
-					throw new SecurityException("You have no privilege to transfer this delegation: " + fromDelegationRef);
-				}
+			if (!isAdmin() && !isParticipant("me", fromDelegation)) {
+				throw new SecurityException("You have no privilege to transfer this delegation: " + fromDelegationRef);
 			}
-			if (!request.isUserInRole("admin")) {
-				if (!request.isUserInRole("delegate")) {
+			if (!isAdmin()) {
+				if (!isDelegate()) {
 					throw new SecurityException("You have no privilege to transfer a delegation");
 				}
 				// For now no check if new delegate holds role delegate. If not, the prospected delegate cannot activate.
@@ -165,7 +150,7 @@ public class DelegationsResource implements DelegationsApi {
 			if (toDelegation.getDelegate().equals(fromDelegation.getDelegate())) {
 				throw new BadRequestException("A transfer to the same delegate is not allowed");
 			}
-	    	Long id = delegationManager.transferDelegation(fromDelegation.getId(), toDelegation, request.isUserInRole("admin"));
+	    	Long id = delegationManager.transferDelegation(fromDelegation.getId(), toDelegation, isAdmin());
 	    	String urn = UrnHelper.createUrn(Delegation.URN_PREFIX, id);
 			rsp = Response.created(URI.create(urn)).build();
 		} catch (IllegalArgumentException e) {
@@ -183,12 +168,13 @@ public class DelegationsResource implements DelegationsApi {
 		try {
 			Long id = resolveDelegationRef(delegationRef);
 			Delegation delegation = delegationManager.getDelegation(id, Delegation.PROFILES_ENTITY_GRAPH);
-			if (!request.isUserInRole("admin")) {
-				String me = request.getUserPrincipal().getName();
-				if (! me.equals(delegation.getDelegate().getManagedIdentity()) && !me.equals(delegation.getDelegator().getManagedIdentity())) {
-					throw new SecurityException("You have no privilege to inspect this delegation: " + delegationRef);
-				}
+			if (!isAdmin() && !isParticipant("me", delegation)) {
+				throw new SecurityException("You have no privilege to inspect this delegation: " + delegationRef);
 			}
+	    	// Only admin can see the activation code
+	    	if (!isAdmin()) {
+	    		delegation.setActivationCode(null);
+	    	}
    			rsp = Response.ok(mapper.mapWithPublicProfiles(delegation)).build();
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);
@@ -202,11 +188,8 @@ public class DelegationsResource implements DelegationsApi {
 		try {
 			Long id = resolveDelegationRef(delegationRef);
 			Delegation delegation = delegationManager.getDelegation(id, Delegation.PROFILES_ENTITY_GRAPH);
-			if (!request.isUserInRole("admin")) {
-				String me = request.getUserPrincipal().getName();
-				if (! me.equals(delegation.getDelegate().getManagedIdentity()) && !me.equals(delegation.getDelegator().getManagedIdentity())) {
-					throw new SecurityException("You have no privilege to update this delegation: " + delegationRef);
-				}
+			if (!isAdmin() && !isParticipant("me", delegation)) {
+				throw new SecurityException("You have no privilege to update this delegation: " + delegationRef);
 			}
 			delegationManager.updateDelegation(id);
 			rsp = Response.noContent().build();
@@ -229,11 +212,8 @@ public class DelegationsResource implements DelegationsApi {
 		try {
 			Long id = resolveDelegationRef(delegationRef);
 			Delegation delegation = delegationManager.getDelegation(id, Delegation.PROFILES_ENTITY_GRAPH);
-			if (!request.isUserInRole("admin")) {
-				String me = request.getUserPrincipal().getName();
-				if (! me.equals(delegation.getDelegate().getManagedIdentity()) && !me.equals(delegation.getDelegator().getManagedIdentity())) {
-					throw new SecurityException("You have no privilege to activate this delegation: " + delegationRef);
-				}
+			if (!isAdmin() && !isParticipant("me", delegation)) {
+				throw new SecurityException("You have no privilege to activate this delegation: " + delegationRef);
 			}
 			delegationManager.activateDelegation(id, activationCode);
 			rsp = Response.noContent().build();
@@ -250,11 +230,8 @@ public class DelegationsResource implements DelegationsApi {
 			Long id = resolveDelegationRef(delegationRef);
 
 			Delegation delegation = delegationManager.getDelegation(id, Delegation.PROFILES_ENTITY_GRAPH);
-			if (!request.isUserInRole("admin")) {
-				String me = request.getUserPrincipal().getName();
-				if (! me.equals(delegation.getDelegate().getManagedIdentity()) && !me.equals(delegation.getDelegator().getManagedIdentity())) {
-					throw new SecurityException("You have no privilege to remove this delegation: " + delegationRef);
-				}
+			if (!isAdmin() && !isParticipant("me", delegation)) {
+				throw new SecurityException("You have no privilege to remove this delegation: " + delegationRef);
 			}
 			delegationManager.removeDelegation(id);
 			rsp = Response.noContent().build();

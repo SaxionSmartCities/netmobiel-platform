@@ -152,10 +152,11 @@ public abstract class ProfileMapper {
 	public abstract SearchPreferences map(eu.netmobiel.profile.api.model.SearchPreferences source);
 
 	// API --> Domain 
-	@Mapping(target = "profile", ignore = true)
+	@Mapping(target = "realUser", ignore = true)
 	public abstract UserSession map(eu.netmobiel.profile.api.model.UserSession source);
 
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "userSession", ignore = true)
+	@Mapping(target = "onBehalfOf", ignore = true)
 	public abstract PageVisit map(eu.netmobiel.profile.api.model.PageVisit source);
 }
