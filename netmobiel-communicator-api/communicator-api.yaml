@@ -676,11 +676,11 @@ paths:
       required: true
   /users/{userId}/fcm-token:
     summary: Path used to manage a single `Firebase Messaging Token`.
-    description: The REST endpoint/path used to get, update or delete the `Firebase
-      Messaging Token` of a user. This path contains `GET` and `PUT` operations used
-      to perform the get and update tasks, respectively. When a call a made by someone
-      with the delegate role, the effective user will be the user specified in the
-      X-Delegator header.
+    description: "The REST endpoint/path used to get, update or delete the `Firebase\
+      \ Messaging Token` of a user. This path contains `GET` and `PUT` operations\
+      \ used to perform the get and update tasks, respectively. \n\nNote: the FCM\
+      \ token is attached to the real user, the person owning the mobile device (as\
+      \ opposed to the effective user)."
     get:
       responses:
         "200":
@@ -710,12 +710,6 @@ paths:
 
         The token can be `null`, indicating that the FCM token is not available.
     parameters:
-    - name: X-Delegator
-      description: The Keycloak managed identity of a Netmobiel user on whose behalf
-        the call is made. The real user must have the global `delegate` role.
-      schema:
-        type: string
-      in: header
     - name: userId
       description: The identity of the user. Use `me` to refer to the calling user.
       schema:
