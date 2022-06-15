@@ -45,6 +45,13 @@ class CommunicatorResource {
     	}
     }
     
+    protected void allowAdminOrCallingUser(CallingContext<CommunicatorUser> callingContext, CommunicatorUser owner) {
+    	boolean privileged = request.isUserInRole("admin");
+    	if (!privileged && (owner == null || ! Objects.equal(callingContext.getCallingUser().getId(), owner.getId()))) {
+    		throw new SecurityException("You have no access rights");
+    	}
+    }
+
     /**
      * Checks whether the caller has enough privilege to proceed: Only the caller or the admin may proceeed.
      * @param request the http request.
@@ -80,4 +87,17 @@ class CommunicatorResource {
 		return user;
     }
 
+    protected CommunicatorUser resolveCallingUserReference(CallingContext<CommunicatorUser> callingContext, String userId) throws NotFoundException, BadRequestException {
+    	CommunicatorUser user = null;
+		if (userId != null) {
+			if ("me".equals(userId)) {
+				user = callingContext.getCallingUser();
+			} else {
+				user = communicatorUserManager
+						.resolveUrn(userId)
+						.orElseThrow(() -> new NotFoundException("No such user: " + userId));
+			}
+		}
+		return user;
+    }
 }

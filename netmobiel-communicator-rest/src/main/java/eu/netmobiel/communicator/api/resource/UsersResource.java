@@ -40,12 +40,12 @@ public class UsersResource extends CommunicatorResource implements UsersApi {
 	// =========================   Firebase Messaging Token  =========================
 
 	@Override
-	public Response getFcmToken(String xDelegator, String userId) {
+	public Response getFcmToken(String userId) {
 		Response rsp = null;
 		try {
 			CallingContext<CommunicatorUser> callingContext = communicatorUserManager.findOrRegisterCallingContext(securityIdentity);
 			CommunicatorUser user = resolveUserReference(callingContext, userId);
-			allowAdminOrEffectiveUser(callingContext, user);
+			allowAdminOrCallingUser(callingContext, user);
 			FirebaseToken token = new FirebaseToken();
 			token.setToken(user.getFcmToken());
 			if (user.getFcmTokenTimestamp() != null) {
@@ -61,13 +61,13 @@ public class UsersResource extends CommunicatorResource implements UsersApi {
 	}
 
 	@Override
-	public Response updateFcmToken(String xDelegator, String userId, FirebaseToken firebaseToken) {
+	public Response updateFcmToken(String userId, FirebaseToken firebaseToken) {
 		Response rsp = null;
 		try {
 			// Only admin and effective owner can update the user
 			CallingContext<CommunicatorUser> callingContext = communicatorUserManager.findOrRegisterCallingContext(securityIdentity);
-			CommunicatorUser user = resolveUserReference(callingContext, userId);
-			allowAdminOrEffectiveUser(callingContext, user);
+			CommunicatorUser user = resolveCallingUserReference(callingContext, userId);
+			allowAdminOrCallingUser(callingContext, user);
 			// Always update to force update of timestamp of token
 			user.setFcmToken(firebaseToken.getToken());
 			user.setFcmTokenTimestamp(Instant.now());
