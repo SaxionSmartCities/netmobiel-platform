@@ -408,7 +408,7 @@ public class CharityManager {
      * @return A list of donations matching the criteria.
 	 * @throws BadRequestException
 	 */
-    public PagedResult<Donation> listDonations(DonationFilter filter, Cursor cursor, boolean includeUserData) throws NotFoundException, BadRequestException {
+    public PagedResult<Donation> listDonations(BankerUser effectiveUser, DonationFilter filter, Cursor cursor, boolean includeUserData) throws NotFoundException, BadRequestException {
     	completeTheFilter(filter);
     	cursor.validate(MAX_RESULTS, 0);
         
@@ -423,14 +423,13 @@ public class CharityManager {
     	// If there is user data, then check for anonymous donations.
     	// An anonymous donation is listed, but without the user, unless the admin is asking for it.
     	if (includeUserData) {
-    		String me = sessionContext.getCallerPrincipal().getName();
     		boolean admin = sessionContext.isCallerInRole("admin") ;
     		if (! admin) {
+    			// Detach all the donations, otherwise post-filter changes will be persisted in the database!
+    	    	donationDao.clear();
     			results.stream()
-    				.filter(d -> d.isAnonymous() && !d.getUser().getManagedIdentity().equals(me))
+    				.filter(d -> d.isAnonymous() && !d.getUser().equals(effectiveUser))
     				.forEach(d -> {
-    					// Detach the donation, otherwise the change will be persisted in the database!
-    					donationDao.detach(d);
     					// Make sure the donor remains anonymous 
     					d.setUser(null);	
     				});

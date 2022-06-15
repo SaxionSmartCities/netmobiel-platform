@@ -7,12 +7,10 @@ import java.time.OffsetDateTime;
 import javax.ejb.EJBAccessException;
 import javax.enterprise.context.RequestScoped;
 import javax.inject.Inject;
-import javax.servlet.http.HttpServletRequest;
 import javax.ws.rs.BadRequestException;
 import javax.ws.rs.ForbiddenException;
 import javax.ws.rs.NotFoundException;
 import javax.ws.rs.WebApplicationException;
-import javax.ws.rs.core.Context;
 import javax.ws.rs.core.Response;
 
 import eu.netmobiel.banker.api.CharitiesApi;
@@ -34,25 +32,22 @@ import eu.netmobiel.banker.model.DonationSortBy;
 import eu.netmobiel.banker.model.PaymentStatus;
 import eu.netmobiel.banker.model.TransactionType;
 import eu.netmobiel.banker.model.WithdrawalRequest;
-import eu.netmobiel.banker.service.BankerUserManager;
 import eu.netmobiel.banker.service.CharityManager;
 import eu.netmobiel.banker.service.LedgerService;
 import eu.netmobiel.banker.service.WithdrawalService;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.filter.Cursor;
+import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.ImageHelper;
 import eu.netmobiel.commons.util.UrnHelper;
 
 @RequestScoped
-public class CharitiesResource implements CharitiesApi {
+public class CharitiesResource extends BankerResource implements CharitiesApi {
 
 	@Inject
     private CharityManager charityManager;
-
-	@Inject
-    private BankerUserManager userManager;
 
 	@Inject
 	private AccountMapper accountMapper;
@@ -72,15 +67,12 @@ public class CharitiesResource implements CharitiesApi {
 	@Inject
     private WithdrawalService withdrawalService;
 	
-	@Context
-	private HttpServletRequest request;
-
     private BankerUser resolveUserReference(String userId, boolean createIfNeeded) throws NotFoundException, eu.netmobiel.commons.exception.BadRequestException {
 		BankerUser user = null;
 		if ("me".equals(userId)) {
-			user = createIfNeeded ? userManager.findOrRegisterCallingUser() : userManager.findCallingUser();
+			user = createIfNeeded ? bankerUserManager.findOrRegisterCallingUser() : bankerUserManager.findCallingUser();
 		} else {
-			user = userManager
+			user = bankerUserManager
 					.resolveUrn(userId)
 					.orElseThrow(() -> new NotFoundException("No such user: " + userId));
 		}
@@ -110,7 +102,7 @@ public class CharitiesResource implements CharitiesApi {
     	Response rsp = null;
 		// The calling user will become a manager of the charity
 		try {
-			BankerUser user = userManager.findOrRegisterCallingUser();
+			BankerUser user = bankerUserManager.findOrRegisterCallingUser();
 			Charity dch = charityMapper.map(charity);
 			final Long charityId = charityManager.createCharity(user, dch);
 			final String urn = UrnHelper.createUrn(Charity.URN_PREFIX, charityId);
@@ -238,11 +230,12 @@ public class CharitiesResource implements CharitiesApi {
 	/*======================================   DONATIONS   ==========================================*/
 	
 	@Override
-	public Response postDonation(String charityId, eu.netmobiel.banker.api.model.Donation donation) {
+	public Response postDonation(String xDelegator, String charityId, eu.netmobiel.banker.api.model.Donation donation) {
 		Response rsp = null;
 		try {
         	final Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
-        	final BankerUser user = userManager.findOrRegisterCallingUser();
+			CallingContext<BankerUser> context = bankerUserManager.findOrRegisterCallingContext(securityIdentity);
+        	final BankerUser user = context.getEffectiveUser();
         	final Donation domainDonation = donationMapper.map(donation);
         	final Long donationId = charityManager.donate(user, cid, domainDonation);
         	final String urn = UrnHelper.createUrn(Donation.URN_PREFIX, donationId);
@@ -254,7 +247,7 @@ public class CharitiesResource implements CharitiesApi {
 	}
 
 	@Override
-	public Response getDonation(String charityId, String donationId) {
+	public Response getDonation(String xDelegator, String charityId, String donationId) {
 		Response rsp = null;
 		try {
         	Long cid = UrnHelper.getId(Charity.URN_PREFIX, charityId);
@@ -268,18 +261,19 @@ public class CharitiesResource implements CharitiesApi {
 	}
 
 	@Override
-	public Response listDonationsForCharity(String charityId, String userId, OffsetDateTime since, OffsetDateTime until,
+	public Response listDonationsForCharity(String xDelegator, String charityId, String userId, OffsetDateTime since, OffsetDateTime until,
 			String sortBy, String sortDir, Integer maxResults, Integer offset) {
 		Response rsp = null;
 		try {
-			BankerUser user = userId == null ? null : resolveUserReference(userId, false);
+			CallingContext<BankerUser> context = bankerUserManager.findOrRegisterCallingContext(securityIdentity);
+			BankerUser user = userId == null ? null : resolveUserReference(context, userId);
 			DonationFilter filter = new DonationFilter(charityId, user == null ? null : user.getId(), since, until, sortBy, sortDir, false);
 			filter.setAnonymousToo(true);
 			filter.setSortBy(sortBy, DonationSortBy.DATE, new DonationSortBy[] { DonationSortBy.DATE, DonationSortBy.AMOUNT });
 			filter.setSortDir(sortDir, SortDirection.DESC);
 			Cursor cursor = new Cursor(maxResults, offset);
 			// Include user data in result
-	    	PagedResult<Donation> results = charityManager.listDonations(filter, cursor, true);
+	    	PagedResult<Donation> results = charityManager.listDonations(context.getEffectiveUser(), filter, cursor, true);
 			rsp = Response.ok(pageMapper.mapDonationsWithUser(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
