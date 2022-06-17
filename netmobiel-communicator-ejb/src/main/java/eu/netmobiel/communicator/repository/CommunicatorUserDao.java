@@ -20,6 +20,7 @@ import javax.enterprise.context.ApplicationScoped;
 import javax.enterprise.inject.Typed;
 import javax.inject.Inject;
 import javax.persistence.EntityManager;
+import javax.persistence.Query;
 
 import eu.netmobiel.commons.repository.UserDao;
 import eu.netmobiel.communicator.annotation.CommunicatorDatabase;
@@ -42,4 +43,15 @@ public class CommunicatorUserDao extends UserDao<CommunicatorUser> {
 		return em;
 	}
 
+	public void makeFcmTokenUnique(CommunicatorUser user) {
+		if (user.getFcmToken() != null) {
+			String q = "update CommunicatorUser u set u.fcmToken = null, u.fcmTokenTimestamp = :timestamp" +
+					   " where u <> :userToKeep and u.fcmToken = :fcmToken";
+			Query query = em.createQuery(q);
+			query.setParameter("userToKeep", user);
+			query.setParameter("timestamp", user.getFcmTokenTimestamp());
+			query.setParameter("fcmToken", user.getFcmToken());
+			query.executeUpdate();
+		}
+	}
 }

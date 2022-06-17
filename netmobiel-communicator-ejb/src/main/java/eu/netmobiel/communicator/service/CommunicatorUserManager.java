@@ -74,7 +74,11 @@ public class CommunicatorUserManager extends UserManager<CommunicatorUserDao, Co
 		return usr;
 	}
 	
-	public CommunicatorUser updateUser(CommunicatorUser user) {
-		return userDao.merge(user);
+	public CommunicatorUser updateUser(CommunicatorUser user, boolean makeFcmTokenUnique) {
+		CommunicatorUser userdb = userDao.merge(user);
+		if (makeFcmTokenUnique && userdb.getFcmToken() != null) {
+			userDao.makeFcmTokenUnique(userdb);
+		}
+		return userdb;
 	}
 }

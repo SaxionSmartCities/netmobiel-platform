@@ -71,7 +71,7 @@ public class UsersResource extends CommunicatorResource implements UsersApi {
 			// Always update to force update of timestamp of token
 			user.setFcmToken(firebaseToken.getToken());
 			user.setFcmTokenTimestamp(Instant.now());
-			communicatorUserManager.updateUser(user);
+			communicatorUserManager.updateUser(user, true);
 			rsp = Response.noContent().build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);
