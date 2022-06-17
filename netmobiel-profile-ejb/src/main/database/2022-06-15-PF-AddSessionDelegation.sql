@@ -2,7 +2,7 @@
 
 ALTER TABLE public.page_visit
 	ADD COLUMN on_behalf_of integer,
-	ADD CONSTRAINT page_visit_on_behalf_of_fk FOREIGN KEY (profile)
+	ADD CONSTRAINT page_visit_on_behalf_of_fk FOREIGN KEY (on_behalf_of)
         REFERENCES public.profile (id) MATCH SIMPLE
         ON UPDATE NO ACTION
         ON DELETE CASCADE
