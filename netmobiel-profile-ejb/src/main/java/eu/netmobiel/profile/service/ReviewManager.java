@@ -2,6 +2,8 @@ package eu.netmobiel.profile.service;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.Set;
+import java.util.stream.Collectors;
 
 import javax.annotation.Resource;
 import javax.annotation.security.DeclareRoles;
@@ -104,4 +106,15 @@ public class ReviewManager {
 		reviewDao.remove(c);
 	}
 
+	/**
+	 * Given a set of contexts, return a subset of the contexts that have a review.
+	 * @param contexts
+	 * @return A set of contexts that have a review.
+	 */
+	public Set<String> reviewExists(List<String> contexts) {
+		List<Review> reviews = reviewDao.findReviewsByContext(contexts);
+		return reviews.stream()
+				.map(rv -> rv.getContext())
+				.collect(Collectors.toSet());
+	}
 }

@@ -97,4 +97,12 @@ public class ReviewDao extends AbstractDao<Review, Long> {
     			.getResultList();
     	return results.isEmpty() ? Optional.empty() : Optional.of(results.get(0)); 
 	}
+	
+	public List<Review> findReviewsByContext(List<String> contexts) {
+    	List<Review> results = 
+    			em.createQuery("from Review r where r.context in :contexts", Review.class)
+    			.setParameter("contexts", contexts)
+    			.getResultList();
+    	return results; 
+	}
 }

@@ -15,6 +15,7 @@ import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import javax.activation.DataHandler;
@@ -75,6 +76,7 @@ import eu.netmobiel.overseer.model.PassengerBehaviourSpssReport;
 import eu.netmobiel.overseer.model.PassengerModalityBehaviourSpssReport;
 import eu.netmobiel.planner.service.PlannerReportService;
 import eu.netmobiel.profile.service.ProfileReportService;
+import eu.netmobiel.profile.service.ReviewManager;
 import eu.netmobiel.rideshare.service.RideshareReportService;
 
 /**
@@ -125,6 +127,9 @@ public class ReportProcessor {
 	@Inject
 	private RideshareReportService rideshareReportService;
 
+	@Inject
+	private ReviewManager reviewManager;
+	
 	@Inject
     private Logger log;
 
@@ -234,10 +239,17 @@ public class ReportProcessor {
 	protected void createAndSendActivityReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
    		  	Map<String, ActivityReport> activityReportMap = communicatorReportService.reportActivity(since.toInstant(), until.toInstant());
+   		  	Map<String, ActivityReport> profileActivityReportMap = profileReportService.reportUsageActivity(since.toInstant(), until.toInstant());
+   		  	// Merge profile activity into communicator activity 
+    		for (Map.Entry<String, ActivityReport> entry : profileActivityReportMap.entrySet()) {
+    			activityReportMap.computeIfAbsent(entry.getKey(), key -> new ActivityReport(entry.getValue()))
+				.setUsageDaysPerMonthCount(entry.getValue().getUsageDaysPerMonthCount());
+			}
 			List<ActivityReport> activityReport = activityReportMap.values().stream()
 	    			.sorted()
 	    			.collect(Collectors.toList());
    		  	copyProfileInfo(activityReport, profileReportMap);
+   		  	
 			String report = convertToCsv(activityReport, ActivityReport.class);
 			
 			Collection<ActivitySpssReport> spssReports = createSpssReport(activityReport, ActivitySpssReport.class); 
@@ -384,6 +396,25 @@ public class ReportProcessor {
 	protected void createAndSendRideshareRidesReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		List<RideReport> report = rideshareReportService.reportRides(since.toInstant(), until.toInstant());
+
+    		// RSC-8 
+    		List<String> passengerReviewContexts = report.stream()
+    				.filter(r -> r.getTripUrn() != null)
+    				.map(r -> r.getTripUrn())
+    				.collect(Collectors.toList());
+    		Set<String> passengerReviewExists = reviewManager.reviewExists(passengerReviewContexts);
+    		for(RideReport r: report) {
+   				r.setReviewedByPassenger(passengerReviewExists.contains(r.getTripUrn()));
+    		}
+    		// RSC-9 
+    		List<String> driverReviewContexts = report.stream()
+    				.map(r -> r.getRideUrn())
+    				.collect(Collectors.toList());
+    		Set<String> driverReviewExists = reviewManager.reviewExists(driverReviewContexts);
+    		for(RideReport r: report) {
+   				r.setReviewedByDriver(driverReviewExists.contains(r.getRideUrn()));
+    		}
+
    		  	copyProfileInfo(report, profileReportMap);
    		  	String ridesReport = convertToCsv(report, RideReport.class);
 			Map<String, String> reports = new LinkedHashMap<>();
@@ -398,6 +429,24 @@ public class ReportProcessor {
 	protected void createAndSendTripsReport(ZonedDateTime since, ZonedDateTime until, String reportDate, Map<String, ProfileReport> profileReportMap) {
     	try {
     		List<TripReport> report = plannerReportService.reportTrips(since.toInstant(), until.toInstant());
+    		// RSP-10 
+    		List<String> passengerReviewContexts = report.stream()
+    				.filter(r -> r.getTripUrn() != null)
+    				.map(r -> r.getTripUrn())
+    				.collect(Collectors.toList());
+    		Set<String> passengerReviewExists = reviewManager.reviewExists(passengerReviewContexts);
+    		for(TripReport r: report) {
+   				r.setReviewedByPassenger(passengerReviewExists.contains(r.getTripUrn()));
+    		}
+    		// RSP-11 
+    		List<String> driverReviewContexts = report.stream()
+    				.map(r -> r.getRideUrn())
+    				.collect(Collectors.toList());
+    		Set<String> driverReviewExists = reviewManager.reviewExists(driverReviewContexts);
+    		for(TripReport r: report) {
+   				r.setReviewedByDriver(driverReviewExists.contains(r.getRideUrn()));
+    		}
+
    		  	copyProfileInfo(report, profileReportMap);
    		  	String tripsReport= convertToCsv(report, TripReport.class);
 			Map<String, String> reports = new LinkedHashMap<>();

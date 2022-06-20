@@ -11,6 +11,16 @@ public class RideReport extends ReportKey {
 	private static final long serialVersionUID = 5251079360179443539L;
 
 	/**
+	 * Identification of the Ride.
+	 */
+	private String rideUrn;
+	
+	/**
+	 * Identification of the passenger's trip associated with this ride.
+	 */
+	private String tripUrn;
+
+	/**
 	 * RSC-1: Departure postal code
 	 */
 	@CsvBindByName
@@ -66,16 +76,18 @@ public class RideReport extends ReportKey {
 	private boolean recurrentRide;
 
 	
-	public RideReport() {
-		
-	}
-	
-	public RideReport(ReportPeriodKey key) {
-		super(key);
+	public RideReport(String managedIdentity, String driverRideUrn, String passengerTripUrn) {
+		super(managedIdentity);
+		this.rideUrn = driverRideUrn;
+		this.tripUrn = passengerTripUrn;
 	}
 
-	public RideReport(String managedIdentity) {
-		super(managedIdentity);
+	public String getRideUrn() {
+		return rideUrn;
+	}
+
+	public String getTripUrn() {
+		return tripUrn;
 	}
 
 	public String getDeparturePostalCode() {
@@ -154,7 +166,7 @@ public class RideReport extends ReportKey {
 	public int compareTo(ReportKey other) {
 		int cmp = Objects.compare(getKey(), other.getKey(), Comparator.naturalOrder());
 		if (cmp == 0) {
-			cmp = getTravelDate().compareTo(((RideReport)other).getTravelDate());
+			cmp = getRideUrn().compareTo(((RideReport)other).getRideUrn());
 		}
 		return cmp;
 	}

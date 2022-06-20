@@ -17,10 +17,10 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.report.DriverBehaviourReport;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.report.ProfileReport;
 import eu.netmobiel.commons.report.RideReport;
-import eu.netmobiel.commons.report.DriverBehaviourReport;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.model.Recurrence;
@@ -64,7 +64,7 @@ public class RideshareReportService {
     		reportMap.computeIfAbsent(nrv.getKey(), k -> new DriverBehaviourReport(nrv))
 			.setBookingsConfirmedCount(nrv.getValue());
 		}
-    	// RGC_5 and RGC-6 are queries from the Communicator.
+    	// RGC-5 and RGC-6 are queries from the Communicator.
     	for (NumericReportValue nrv : bookingDao.reportCount(Booking.RGC_7_RIDES_PROPOSED_COUNT, since, until)) {
     		reportMap.computeIfAbsent(nrv.getKey(), k -> new DriverBehaviourReport(nrv))
 			.setRidesProposedCount(nrv.getValue());
@@ -92,7 +92,10 @@ public class RideshareReportService {
     		PagedResult<Long> rideIds = rideDao.listRides(since, until, batchSize, offset);
     		List<Ride> rides = rideDao.loadGraphs(rideIds.getData(), Ride.LIST_RIDES_ENTITY_GRAPH, Ride::getId);
     		for (Ride ride : rides) {
-    			RideReport rr = new RideReport(ride.getDriver().getManagedIdentity());
+    			
+    			RideReport rr = new RideReport(ride.getDriver().getManagedIdentity(), 
+    					ride.getUrn(),
+    					ride.getConfirmedBooking().isPresent() ? ride.getConfirmedBooking().get().getPassengerTripRef() : null);
     			report.add(rr);
     			// RSC-1
     			rr.setDeparturePostalCode(ride.getDeparturePostalCode());
@@ -113,12 +116,9 @@ public class RideshareReportService {
     			if (optBooking.isPresent()) {
     				rr.setRideConfirmedByDriver(optBooking.get().getConfirmed());
     			}
-    			// RSC-7
-    			// FIXME Add review reports
-//    			rr.setReviewedByDriver(reviewedByDriver);
-    			// RSC-8
-//    			rr.setReviewedByPassenger(reviewedByPassenger);
-    			// RSC-9
+    			// RSC-7 not defined
+    			// RSC-8 from profile service, see Overseer.
+    			// RSC-9 from profile service, see Overseer.
     			rr.setRecurrentRide(ride.getRideTemplate() != null);
 			}
     		

@@ -12,13 +12,16 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.model.PagedResult;
+import eu.netmobiel.commons.report.ActivityReport;
 import eu.netmobiel.commons.report.IncentiveModelDriverReport;
 import eu.netmobiel.commons.report.IncentiveModelPassengerReport;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.report.ProfileReport;
 import eu.netmobiel.commons.util.Logging;
+import eu.netmobiel.profile.model.PageVisit;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Review;
+import eu.netmobiel.profile.repository.PageVisitDao;
 import eu.netmobiel.profile.repository.ProfileDao;
 import eu.netmobiel.profile.repository.ReviewDao;
 
@@ -38,6 +41,9 @@ public class ProfileReportService {
 
     @Inject
     private ReviewDao reviewDao;
+
+    @Inject
+    private PageVisitDao pageVisitDao;
 
     public Map<String, ProfileReport> reportUsers() throws BadRequestException {
     	Map<String, ProfileReport> reportMap = new HashMap<>();
@@ -83,4 +89,13 @@ public class ProfileReportService {
     	return reportMap;
     }
 
+    public Map<String, ActivityReport> reportUsageActivity(Instant since, Instant until) throws BadRequestException {
+    	Map<String, ActivityReport> reportMap = new HashMap<>();
+    	// ACT-5
+    	for (NumericReportValue nrv : pageVisitDao.reportCount(PageVisit.ACT_5_USER_VISITS_DAYS_PER_MONTH_COUNT, since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new ActivityReport(nrv))
+			.setUsageDaysPerMonthCount(nrv.getValue());
+		}
+    	return reportMap;
+    }
 }

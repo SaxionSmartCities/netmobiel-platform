@@ -45,7 +45,7 @@ import eu.netmobiel.profile.util.ProfileUrnHelper;
         		+ "from review r "
         		+ "join profile p on p.id = r.sender "
         		+ "where r.published >= ? and r.published < ? "
-//        		+ "and the review is about a trip"
+        		+ "and r.context like 'urn:nb:pn:trip:%' "
         		+ "group by p.managed_identity, year, month "
         		+ "order by p.managed_identity, year, month",
         resultSetMapping = Review.PR_REVIEW_USER_YEAR_MONTH_COUNT_MAPPING),
@@ -58,7 +58,7 @@ import eu.netmobiel.profile.util.ProfileUrnHelper;
 	        		+ "from review r "
 	        		+ "join profile p on p.id = r.sender "
 	        		+ "where r.published >= ? and r.published < ? "
-//	        		+ "and the review is about a ride"
+	        		+ "and r.context like 'urn:nb:rs:ride:%' "
 	        		+ "group by p.managed_identity, year, month "
 	        		+ "order by p.managed_identity, year, month",
 	        resultSetMapping = Review.PR_REVIEW_USER_YEAR_MONTH_COUNT_MAPPING),

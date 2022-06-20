@@ -29,6 +29,11 @@ public class ActivityReport extends ReportPeriodKey {
 	@CsvBindByName
 	private int notificationAckedCount;
 	
+	/**
+	 * ACT-5: The number of days in the month the app was used (to visit at least one page)  
+	 */
+	@CsvBindByName
+	private int usageDaysPerMonthCount;
 
 	public ActivityReport() {
 		
@@ -74,6 +79,14 @@ public class ActivityReport extends ReportPeriodKey {
 		this.notificationAckedCount = notificationAckedCount;
 	}
 	
+	public int getUsageDaysPerMonthCount() {
+		return usageDaysPerMonthCount;
+	}
+
+	public void setUsageDaysPerMonthCount(int usageDaysPerMonthCount) {
+		this.usageDaysPerMonthCount = usageDaysPerMonthCount;
+	}
+
 	@Override
 	public String toString() {
 		return String.format(

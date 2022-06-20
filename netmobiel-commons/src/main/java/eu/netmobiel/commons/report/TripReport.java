@@ -16,6 +16,16 @@ public class TripReport extends ReportKey {
 	private static final long serialVersionUID = 5251079360179443539L;
 
 	/**
+	 * Identification of the passenger's trip.
+	 */
+	private String tripUrn;
+
+	/**
+	 * Identification of the rideshare Ride, if any.
+	 */
+	private String rideUrn;
+	
+	/**
 	 * RSP-1: Departure postal code
 	 */
 	@CsvBindByName
@@ -74,24 +84,26 @@ public class TripReport extends ReportKey {
 	 * RSP-10: Has the passenger given a review?
 	 */
 	@CsvBindByName
-	private Boolean reviewByPassenger;
+	private Boolean reviewedByPassenger;
 	
 	/**
 	 * RSP-11: Has the driver given a review?
 	 */
 	@CsvBindByName
-	private Boolean reviewByDriver;
+	private Boolean reviewedByDriver;
 	
-	public TripReport() {
-		
-	}
-	
-	public TripReport(ReportPeriodKey key) {
-		super(key);
+	public TripReport(String managedIdentity, String tripUrn, String rideUrn) {
+		super(managedIdentity);
+		this.tripUrn = tripUrn;
+		this.rideUrn = rideUrn;
 	}
 
-	public TripReport(String managedIdentity) {
-		super(managedIdentity);
+	public String getTripUrn() {
+		return tripUrn;
+	}
+
+	public String getRideUrn() {
+		return rideUrn;
 	}
 
 	public String getDeparturePostalCode() {
@@ -166,20 +178,20 @@ public class TripReport extends ReportKey {
 		this.publicTransportUsed = publicTransportUsed;
 	}
 
-	public Boolean getReviewByPassenger() {
-		return reviewByPassenger;
+	public Boolean getReviewedByPassenger() {
+		return reviewedByPassenger;
 	}
 
-	public void setReviewByPassenger(Boolean reviewByPassenger) {
-		this.reviewByPassenger = reviewByPassenger;
+	public void setReviewedByPassenger(Boolean reviewedByPassenger) {
+		this.reviewedByPassenger = reviewedByPassenger;
 	}
 
-	public Boolean getReviewByDriver() {
-		return reviewByDriver;
+	public Boolean getReviewedByDriver() {
+		return reviewedByDriver;
 	}
 
-	public void setReviewByDriver(Boolean reviewByDriver) {
-		this.reviewByDriver = reviewByDriver;
+	public void setReviewedByDriver(Boolean reviewedByDriver) {
+		this.reviewedByDriver = reviewedByDriver;
 	}
 
 	@Override

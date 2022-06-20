@@ -73,7 +73,10 @@ public class BankerReportService {
     		reportMap.computeIfAbsent(nrv.getKey(), k -> new IncentiveModelDriverReport(nrv))
     			.setEarnedCreditsRides(nrv.getValue());
 		}
-    	// TODO AccountingEntry.IMC_3_EARNED_CREDITS_BY_APP_USAGE
+    	// IMC_3_EARNED_CREDITS_BY_APP_USAGE
+    	for (IncentiveModelDriverReport r: reportMap.values()) {
+    		r.setEarnedCreditsByAppUsage(Math.max(0,  r.getEarnedCreditsTotal() - r.getEarnedCreditsRides()));
+    	}
     	for (NumericReportValue nrv : accountingEntryDao.reportCount(AccountingEntry.IMC_4_SPENT_CREDITS, since, until)) {
     		reportMap.computeIfAbsent(nrv.getKey(), k -> new IncentiveModelDriverReport(nrv))
     			.setSpentCreditsTotal(nrv.getValue());

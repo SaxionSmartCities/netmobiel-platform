@@ -7,6 +7,7 @@ import java.util.Comparator;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 import javax.ejb.Stateless;
@@ -25,6 +26,7 @@ import eu.netmobiel.commons.report.ProfileReport;
 import eu.netmobiel.commons.report.TripReport;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.commons.util.TriStateLogic;
+import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.Trip;
@@ -147,7 +149,13 @@ public class PlannerReportService {
     		PagedResult<Long> tripIds = tripDao.listTrips(since, until, batchSize, offset);
     		List<Trip> trips = tripDao.loadGraphs(tripIds.getData(), Trip.DETAILED_ENTITY_GRAPH, Trip::getId);
     		for (Trip trip : trips) {
-    			TripReport rr = new TripReport(trip.getTraveller().getManagedIdentity());
+    			Optional<Leg> rsLeg = trip.getItinerary().getLegs().stream()
+    					.filter(lg -> lg.getTraverseMode() == TraverseMode.RIDESHARE)
+    					.findFirst();
+    			// Note: truipId in the leg referes to the ride urn of the rideshare
+    			TripReport rr = new TripReport(trip.getTraveller().getManagedIdentity(),
+    					trip.getTripRef(),
+    					rsLeg.isPresent() ? rsLeg.get().getTripId() : null);
     			report.add(rr);
     			// RSP-1
     			rr.setDeparturePostalCode(trip.getDeparturePostalCode());
@@ -185,10 +193,8 @@ public class PlannerReportService {
     					.findFirst()
     					.isPresent();
     			rr.setPublicTransportUsed(hasPublicTransportLeg);
-    			// RSP-10
-//    			rr.setReviewedByPassenger(reviewedByPassenger);
-    			// RSP-11
-//    			rr.setReviewByDriver(reviewedByDriver);
+    			// RSP-10 From profile service, see Overseer
+    			// RSP-11  From profile service, see Overseer
 			}
     		
 		}
