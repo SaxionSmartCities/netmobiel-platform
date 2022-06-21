@@ -43,6 +43,7 @@ import javax.persistence.SequenceGenerator;
 import javax.persistence.SqlResultSetMapping;
 import javax.persistence.Table;
 import javax.persistence.Transient;
+import javax.persistence.Version;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 
@@ -186,6 +187,13 @@ public class TripPlan implements Serializable {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "trip_plan_sg")
     private Long id;
 
+	/**
+	 * Optimistic locking version.
+	 */
+	@Version
+	@Column(name = "version", nullable = false)
+	private int version;
+	
     @Transient
     private String planRef;
 

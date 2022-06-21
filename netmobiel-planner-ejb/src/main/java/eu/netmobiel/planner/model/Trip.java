@@ -39,6 +39,7 @@ import javax.persistence.SqlResultSetMappings;
 import javax.persistence.Table;
 import javax.persistence.Transient;
 import javax.persistence.UniqueConstraint;
+import javax.persistence.Version;
 import javax.validation.constraints.NotNull;
 import javax.validation.constraints.Positive;
 import javax.validation.constraints.Size;
@@ -325,6 +326,13 @@ public class Trip implements Serializable {
     @GeneratedValue(strategy = GenerationType.SEQUENCE, generator = "trip_sg")
     private Long id;
 
+	/**
+	 * Optimistic locking version.
+	 */
+	@Version
+	@Column(name = "version", nullable = false)
+	private int version;
+	
     @Transient
     private String tripRef;
 
