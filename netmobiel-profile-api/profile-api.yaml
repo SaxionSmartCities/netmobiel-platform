@@ -381,40 +381,6 @@ paths:
       schema:
         type: string
       in: header
-  /delegations/{delegationId}/activations:
-    summary: Path used to manage the list of delegation activations.
-    description: The REST endpoint/path used to activate a delegation. This path contains
-      a `POST` operation to perform the activation task.
-    post:
-      requestBody:
-        description: A new `DelegationActivation` to compare the delegation record.
-        content:
-          application/json:
-            schema:
-              $ref: '#/components/schemas/DelegationActivation'
-        required: true
-      responses:
-        "201":
-          description: Successful response.
-        "403":
-          description: You lack the permission to perform this operation.
-        "422":
-          description: The delegation was already activated or cancelled.
-        "400":
-          description: The activation code did not match, or the activation request
-            was not issued in time.
-      operationId: activateDelegation
-      summary: Activate a Delegation
-      description: Tries to match the activation code. On a match the delegation is
-        activated. Only the participants in the delegation and the admin can activate
-        a delegation.
-    parameters:
-    - name: delegationId
-      description: A unique identifier for a `Delegation`.
-      schema:
-        type: string
-      in: path
-      required: true
   /delegations/{delegationId}:
     summary: Path used to manage a single Delegation.
     description: Admin only. The REST endpoint/path used to get, update, and delete
@@ -1176,6 +1142,40 @@ paths:
         type: string
       in: path
       required: true
+  /delegations/{delegationId}/activations:
+    summary: Path used to manage the list of delegation activations.
+    description: The REST endpoint/path used to activate a delegation. This path contains
+      a `POST` operation to perform the activation task.
+    post:
+      requestBody:
+        description: A new `DelegationActivation` to compare the delegation record.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DelegationActivation'
+        required: true
+      responses:
+        "204":
+          description: Successful response.
+        "400":
+          description: The activation code did not match, or the activation request
+            was not issued in time.
+        "403":
+          description: You lack the permission to perform this operation.
+        "422":
+          description: The delegation was already activated or cancelled.
+      operationId: activateDelegation
+      summary: Activate a Delegation
+      description: Tries to match the activation code. On a match the delegation is
+        activated. Only the participants in the delegation and the admin can activate
+        a delegation.
+    parameters:
+    - name: delegationId
+      description: A unique identifier for a `Delegation`.
+      schema:
+        type: string
+      in: path
+      required: true
 components:
   schemas:
     SearchPreferences:
@@ -1858,15 +1858,15 @@ components:
           format: date-time
           description: 'Read-only. In case of logout: Marks the end of the session.'
           type: string
-        pageVisits:
-          description: The list of pages visited since the last upload.
-          type: array
-          items:
-            $ref: '#/components/schemas/PageVisit'
         managedIdentity:
           description: Read-only. The identity of the effective user. Only present
             when listing records of someone else.
           type: string
+        userEvents:
+          description: The list of pages visited since the last upload.
+          type: array
+          items:
+            $ref: '#/components/schemas/UserEvent'
       example:
         id: 12345
         sessionId: 1224-2568-abcd-12ef
@@ -1874,29 +1874,13 @@ components:
         userAgent: Android 18
         sessionStart: 2022-06-01T12:23:00Z
         sessionEnd: 2022-06-01T13:15:00Z
-        pageVisits:
+        userEvents:
         - path: /home
-          visitTime: 2022-06-01T12:23:00Z
+          event: PAGE_VISIT
+          eventTime: 2022-06-01T12:23:00Z
         - path: /plan
-          visitTime: 2022-06-01T12:24:00Z
-    PageVisit:
-      title: Root Type for PageVisit
-      description: A record defining a page visit
-      required:
-      - path
-      - visitTime
-      type: object
-      properties:
-        path:
-          description: The router path of the page visited.
-          type: string
-        visitTime:
-          format: date-time
-          description: 'The time stamp of the visit. '
-          type: string
-      example:
-        path: /home
-        visitTime: 2022-06-01T12:23:00Z
+          event: PAGE_VISIT
+          eventTime: 2022-06-01T12:24:00Z
     Delegation:
       title: Root Type for Designation
       description: A `Delegation` describes the delegation relation between two profiles.
@@ -1973,6 +1957,36 @@ components:
         activationCodeSentTime: 2021-02-25T10:05:23Z
         activationCode: "123456"
         id: 1234
+    UserEvent:
+      title: Root Type for PageVisit
+      description: A record defining a page visit
+      required:
+      - path
+      - eventTime
+      - event
+      type: object
+      properties:
+        path:
+          description: The router path of the page visited.
+          type: string
+        eventTime:
+          format: date-time
+          description: 'The time stamp of the visit. '
+          type: string
+        event:
+          description: The event that occurred in the GUI.
+          enum:
+          - CTA_IN_VIEW
+          - CTA_SELECTED
+          - PAGE_VISIT
+          type: string
+        arguments:
+          description: 'Free form arguments of an event. '
+          type: string
+      example:
+        path: /home
+        eventTime: 2022-06-01T12:23:00Z
+        event: PAGE_VISIT
   responses:
     InternalServerError:
       content:
