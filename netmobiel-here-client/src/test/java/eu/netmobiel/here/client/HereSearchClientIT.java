@@ -24,8 +24,10 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.here.search.HereSearchClient;
 import eu.netmobiel.here.search.Jackson2ObjectMapperContextResolver;
+import eu.netmobiel.here.search.api.model.AllOfOpenSearchReverseGeocodeResponseItemsItems;
 import eu.netmobiel.here.search.api.model.AutosuggestEntityResultItem;
 import eu.netmobiel.here.search.api.model.GeocodeResultItem;
+import eu.netmobiel.here.search.api.model.OneOfOpenSearchAutosuggestResponseItemsItems;
 import eu.netmobiel.here.search.api.model.OpenSearchAutosuggestResponse;
 import eu.netmobiel.here.search.api.model.OpenSearchReverseGeocodeResponse;
 
@@ -71,7 +73,7 @@ public class HereSearchClientIT {
     	assertNotNull(result);
     	assertNotNull(result.getItems());
     	assertEquals(1, result.getItems().size());
-    	GeocodeResultItem item = result.getItems().get(0);
+    	AllOfOpenSearchReverseGeocodeResponseItemsItems item = result.getItems().get(0);
     	assertEquals("Kennedystraat 8, 7136 LX Zieuwent, Nederland", item.getTitle());
     	assertNotNull(item.getId());
     	assertEquals(GeocodeResultItem.ResultTypeEnum.HOUSENUMBER, item.getResultType());
@@ -116,7 +118,6 @@ public class HereSearchClientIT {
     public void testAutoSuggest() throws Exception {
     	GeoLocation myLocation = GeoLocation.fromString("Zieuwent, Kennedystraat::52.004166,6.517835");
     	int radius = 150000;
-    	OpenSearchAutosuggestResponse result = client.listAutosuggestions("slingeland", myLocation, radius, null, null, null);
 /*    	
         {
             "title": "Slingeland Ziekenhuis",
@@ -169,22 +170,35 @@ public class HereSearchClientIT {
             }
         },
 */
-    	assertNotNull(result);
-    	assertNotNull(result.getItems());
-    	assertTrue(result.getItems().size() > 0);
-    	AutosuggestEntityResultItem item = result.getItems().get(0);
-    	assertEquals("Slingeland Ziekenhuis", item.getTitle());
-    	assertEquals(AutosuggestEntityResultItem.ResultTypeEnum.PLACE, item.getResultType());
-    	assertNotNull(item.getAddress());
-    	assertEquals("Slingeland Ziekenhuis, Kruisbergseweg 25, 7009 Doetinchem, Nederland", item.getAddress().getLabel());
-    	assertNotNull(item.getPosition());
-    	assertEquals(51.97641, item.getPosition().getLat(), 1E-4);
-    	assertEquals(6.28509, item.getPosition().getLng(), 1E-4);
-    	assertNotNull(item.getAccess());
-    	assertTrue(item.getAccess().size() > 0);
-    	assertEquals(51.97641, item.getAccess().get(0).getLat(), 1E-4);
-    	assertEquals(6.28569, item.getAccess().get(0).getLng(), 1E-4);
-    	assertEquals(16233, item.getDistance().intValue());
+		OpenSearchAutosuggestResponse result;
+		try {
+			result = client.listAutosuggestions("slingeland", myLocation, radius, null, null, null);
+	    	assertNotNull(result);
+	    	assertNotNull(result.getItems());
+	    	assertTrue(result.getItems().size() > 0);
+	    	OneOfOpenSearchAutosuggestResponseItemsItems someItem = result.getItems().get(0);
+	    	if (someItem instanceof AutosuggestEntityResultItem) {
+		    	AutosuggestEntityResultItem item = (AutosuggestEntityResultItem) someItem;
+		    	assertEquals("Slingeland Ziekenhuis", item.getTitle());
+		    	assertEquals(AutosuggestEntityResultItem.ResultTypeEnum.PLACE, item.getResultType());
+		    	assertNotNull(item.getAddress());
+		    	assertEquals("Slingeland Ziekenhuis, Kruisbergseweg 25, 7009 Doetinchem, Nederland", item.getAddress().getLabel());
+		    	assertNotNull(item.getPosition());
+		    	assertEquals(51.97641, item.getPosition().getLat(), 1E-4);
+		    	assertEquals(6.28509, item.getPosition().getLng(), 1E-4);
+		    	assertNotNull(item.getAccess());
+		    	assertTrue(item.getAccess().size() > 0);
+		    	assertEquals(51.97641, item.getAccess().get(0).getLat(), 1E-4);
+		    	assertEquals(6.28569, item.getAccess().get(0).getLng(), 1E-4);
+		    	assertEquals(16233, item.getDistance().intValue());
+	    	} else {
+	    		fail("Not implemented");
+	    	}
+		} catch (Exception e) {
+			// TODO Auto-generated catch block
+			log.error("Fail to process auto suggest:", e);
+			fail(e.toString());
+		}
     	
     }
 }

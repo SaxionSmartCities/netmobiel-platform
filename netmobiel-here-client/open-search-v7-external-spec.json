@@ -2,36 +2,36 @@
   "openapi": "3.0.0",
   "info": {
     "title": "Geocoding and Search API v7",
-    "version": "7.64",
+    "version": "7.85",
     "description": "This document describes the Geocoding and Search API.",
     "x-document-meta-data": {
-      "copyright": "© 2021 HERE Europe B.V.",
-      "document-id": "57bf29fe-b7c8-4946-84c1-d364b6bd69bf",
-      "date-created": "2021-03-29T14:32:56+00:00"
+      "copyright": "© 2022 HERE Europe B.V.",
+      "document-id": "db336425-079c-4c65-bd90-5d4bfaf4c4e9",
+      "date-created": "2022-05-25T16:14:29+00:00"
     }
   },
   "security": [
     {
-      "bearerAuth": [
+      "Bearer": [
 
       ]
     },
     {
-      "apiKey": [
+      "ApiKey": [
 
       ]
     }
   ],
   "components": {
     "securitySchemes": {
-      "bearerAuth": {
-        "description": "A client access token needs to be obtained from a separate endpoint using the client credentials and an OAuth 1.0a HMAC-SHA256 signed request.\n For more information, see https://developer.here.com/olp/documentation/access_control/api-reference-swagger.html#operation/clientcredentialsgrant.\n",
+      "Bearer": {
+        "description": "A token obtained from a separate endpoint using client credentials and an OAuth 1.0a HMAC-SHA256 signed request.\nFor more information on how to get a bearer token, see the\n[Identity & Access Management Guide](https://developer.here.com/documentation/identity-access-management/dev_guide/index.html).\n",
         "type": "http",
         "scheme": "bearer",
         "bearerFormat": "JWT"
       },
-      "apiKey": {
-        "description": "API key used to authorize requests.\n For more information, see https://developer.here.com/documentation/authentication/dev_guide/topics/api-key-credentials.html.\n",
+      "ApiKey": {
+        "description": "A key generated specifically to authenticate API requests.\nFor more information on how to get an API key, see the\n[Identity & Access Management Guide](https://developer.here.com/documentation/identity-access-management/dev_guide/index.html).\n",
         "type": "apiKey",
         "name": "apiKey",
         "in": "query"
@@ -41,16 +41,6 @@
       "atBrowse": {
         "name": "at",
         "description": "Specify the center of the search context expressed as coordinates\n\nRequired parameter for endpoints that are expected to rank results by distance from the explicitly\n specified search center\n\nFormat: `{latitude},{longitude}`\n\nType: `{decimal},{decimal}`\n\nExample: `-13.163068,-72.545128` (Machu Picchu Mountain, Peru)\n",
-        "in": "query",
-        "required": true,
-        "schema": {
-          "type": "string",
-          "example": "52.5308,13.3856"
-        }
-      },
-      "atRevgeocode": {
-        "name": "at",
-        "description": "Specify the center of the search context expressed as coordinates.\n\nFormat: `{latitude},{longitude}`\n\nType: `{decimal},{decimal}`\n\nExample: `-13.163068,-72.545128` (Machu Picchu Mountain, Peru)\n",
         "in": "query",
         "required": true,
         "schema": {
@@ -117,13 +107,53 @@
           "example": "52.5308,13.3856"
         }
       },
-      "categories": {
-        "name": "categories",
-        "description": "Category filter consisting of a comma-separated list of category-Ids for Categories defined in the HERE Places Category System, described\nin the Appendix to the HERE Search Developer Guide. Places with any assigned categories that match any of the requested categories are\nincluded in the response.\n",
+      "atRevgeocode": {
+        "name": "at",
+        "description": "Specify the center of the search context expressed as coordinates.\n\nFormat: `{latitude},{longitude}`\n\nType: `{decimal},{decimal}`\n\nExample: `-13.163068,-72.545128` (Machu Picchu Mountain, Peru)\n\nThe following constraints apply:\n\n * Either \"at\" or \"in=circle\" is required.\n\n * Parameters \"at\" and \"in=circle\" are mutually exclusive. Only one of them is allowed.\n",
         "in": "query",
         "required": false,
         "schema": {
-          "type": "string"
+          "type": "string",
+          "example": "52.5308,13.3856"
+        }
+      },
+      "categories": {
+        "name": "categories",
+        "description": "Category filter consisting of a comma-separated list of category-IDs for Categories defined in the HERE Places Category System, described\nin the Appendix to the HERE Search Developer Guide. Places with any assigned categories that match any of the requested categories are\nincluded in the response.\n\nAn exclamation mark \"`!`\" in front of a category ID causes that category to be excluded from the results.\nIt is possible to mix excluded and included categories in the request - e.g. searching for places that are restaurants but not fast food restaurants.\nAn exclusion will always win over an inclusion.\n",
+        "in": "query",
+        "explode": false,
+        "required": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "chains": {
+        "name": "chains",
+        "description": "Chain filter consisting of a comma-separated list of chain-IDs for Chains defined in the HERE Places Chain System, described\nin the Appendix to the HERE Search Developer Guide. Places with any assigned chains that match any of the requested chains are\nincluded in the response.\n\nAn exclamation mark \"`!`\" in front of a chain ID causes that chain to be excluded from the results.\nIt is possible to mix excluded and included chains in the request - e.g. searching for places that are amazon but not wholefoods.\nAn exclusion will always win over an inclusion.\n",
+        "in": "query",
+        "explode": false,
+        "required": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "foodTypes": {
+        "name": "foodTypes",
+        "description": "FoodType filter consisting of a comma-separated list of cuisine-IDs for FoodTypes defined in the HERE Places Cuisine System, described\nin the Appendix to the HERE Search Developer Guide. Places with any assigned foodTypes that match any of the requested foodTypes are\nincluded in the response.\n\nAn exclamation mark \"`!`\" in front of a cuisine ID causes that foodType to be excluded from the results.\nIt is possible to mix excluded and included foodTypes in the request - e.g. searching for places that serve italian but not chinese.\nAn exclusion will always win over an inclusion.\n",
+        "in": "query",
+        "explode": false,
+        "required": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "inAutocompleteGeocode": {
@@ -147,6 +177,15 @@
       "inBrowse": {
         "name": "in",
         "description": "Search within a geographic area. This is a hard filter. Results will be returned if they are located within the specified area.\n\nA geographic area can be\n\n * a country (or multiple countries), provided as comma-separated [ISO 3166-1 alpha-3](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3) country codes\n\n   The country codes are to be provided in all uppercase.\n\n   Format: `countryCode:{countryCode}[,{countryCode}]*`\n\n   Examples:\n    * `countryCode:USA`\n    * `countryCode:CAN,MEX,USA`\n\n\n * a circular area, provided as latitude, longitude, and radius (in meters)\n\n   Format: `circle:{latitude},{longitude};r={radius}`\n\n   Type: `circle:{decimal},{decimal};r={integer}`\n\n   Example: `circle:52.53,13.38;r=10000`\n\n\n * a bounding box, provided as _west longitude_, _south latitude_, _east longitude_, _north latitude_\n\n   Format: `bbox:{west longitude},{south latitude},{east longitude},{north latitude}`\n\n   Example: `bbox:13.08836,52.33812,13.761,52.6755`\n\n\nThe following constraints apply:\n\n * Parameters \"in=circle\" and \"in=bbox\" are mutually exclusive. Only one of them is allowed.\n",
+        "in": "query",
+        "required": false,
+        "schema": {
+          "type": "string"
+        }
+      },
+      "inRevgeocode": {
+        "name": "in",
+        "description": "Search within a geographic area. This is a hard filter. Results will be returned if they are located within the specified area.\n\nA geographic area can be\n\n * a circular area, provided as latitude, longitude, and radius (in meters)\n\n   Format: `circle:{latitude},{longitude};r={radius}`\n\n   Type: `circle:{decimal},{decimal};r={integer}`\n\n   Example: `circle:52.53,13.38;r=10000`\n\n\nThe following constraints apply:\n\n * Either \"at\" or \"in=circle\" is required.\n",
         "in": "query",
         "required": false,
         "schema": {
@@ -222,7 +261,7 @@
       },
       "route": {
         "name": "route",
-        "description": "BETA: Select within a geographic corridor. This is a hard filter. Results will be returned if they are located within the specified area.\n\nA `route` is defined by a [Flexible Polyline Encoding](https://github.com/heremaps/flexible-polyline),\n followed by an optional width, represented by a sub-parameter \"w\".\n\nFormat: `{route};w={width}`\n\nIn regular expression syntax, the values of `route` look like:\n\n`[a-zA-Z0-9_-]+(;w=\\d+)?`\n\n\"[a-zA-Z0-9._-]+\" is the encoded flexible polyline.\n\n\"w=\\d+\" is the optional width. The width is specified in meters from the center of the path. If no width is provided, the default is 1000 meters.\n\nType: `{Flexible Polyline Encoding};w={integer}`\n\nExamples:\n * `BFoz5xJ67i1B1B7PzIhaxL7Y`\n * `BFoz5xJ67i1B1B7PzIhaxL7Y;w=5000`\n * `BlD05xgKuy2xCCx9B7vUCl0OhnRC54EqSCzpEl-HCxjD3pBCiGnyGCi2CvwFCsgD3nDC4vB6eC;w=2000`\n\nNote: The last example above can be decoded (using the Python class [here](https://github.com/heremaps/flexible-polyline/tree/master/python) as follows:\n\n```\n>>> import flexpolyline\n>>> polyline = 'BlD05xgKuy2xCCx9B7vUCl0OhnRC54EqSCzpEl-HCxjD3pBCiGnyGCi2CvwFCsgD3nDC4vB6eC'\n>>> flexpolyline.decode(polyline)\n[(52.51994, 13.38663, 1.0), (52.51009, 13.28169, 2.0), (52.43518, 13.19352, 3.0), (52.41073, 13.19645, 4.0), (52.38871, 13.15578, 5.0), (52.37278, 13.1491, 6.0), (52.37375, 13.11546, 7.0), (52.38752, 13.08722, 8.0), (52.40294, 13.07062, 9.0), (52.41058, 13.07555, 10.0)]\n```\n",
+        "description": "BETA: Select within a geographic corridor. This is a hard filter. Results will be returned if they are located within the specified area.\n\nA `route` is defined by a [Flexible Polyline Encoding](https://github.com/heremaps/flexible-polyline),\n followed by an optional width, represented by a sub-parameter \"w\".\n\nFormat: `{route};w={width}`\n\nIn regular expression syntax, the values of `route` look like:\n\n`[a-zA-Z0-9_-]+(;w=\\d+)?`\n\n\"[a-zA-Z0-9._-]+\" is the encoded flexible polyline.\n\n\"w=\\d+\" is the optional width. The width is specified in meters from the center of the path. If no width is provided, the default is 1000 meters.\n\nType: `{Flexible Polyline Encoding};w={integer}`\n\nThe following constraints apply:\n * A `route` MUST NOT contain more than 2000 points.\n\nExamples:\n * `BFoz5xJ67i1B1B7PzIhaxL7Y`\n * `BFoz5xJ67i1B1B7PzIhaxL7Y;w=5000`\n * `BlD05xgKuy2xCCx9B7vUCl0OhnRC54EqSCzpEl-HCxjD3pBCiGnyGCi2CvwFCsgD3nDC4vB6eC;w=2000`\n\nNote: The last example above can be decoded (using the Python class [here](https://github.com/heremaps/flexible-polyline/tree/master/python) as follows:\n\n```\n>>> import flexpolyline\n>>> polyline = 'BlD05xgKuy2xCCx9B7vUCl0OhnRC54EqSCzpEl-HCxjD3pBCiGnyGCi2CvwFCsgD3nDC4vB6eC'\n>>> flexpolyline.decode(polyline)\n[(52.51994, 13.38663, 1.0), (52.51009, 13.28169, 2.0), (52.43518, 13.19352, 3.0), (52.41073, 13.19645, 4.0), (52.38871, 13.15578, 5.0), (52.37278, 13.1491, 6.0), (52.37375, 13.11546, 7.0), (52.38752, 13.08722, 8.0), (52.40294, 13.07062, 9.0), (52.41058, 13.07555, 10.0)]\n```\n",
         "in": "query",
         "required": false,
         "schema": {
@@ -231,7 +270,7 @@
       },
       "termsLimit": {
         "name": "termsLimit",
-        "description": "BETA: Maximum number of Query Terms Suggestions to be returned.",
+        "description": "Maximum number of Query Terms Suggestions to be returned.",
         "in": "query",
         "required": false,
         "schema": {
@@ -263,23 +302,56 @@
         "name": "lang",
         "description": "Select the preferred response language for result rendering from a list of BCP47 compliant Language Codes.\nThe autocomplete endpoint tries to detect the query language based on matching name variants and then chooses the same language for the response.\n\nTherefore the end-user can see and recognize all the entered terms in the same language as in the query.\nThe specified preferred language is used only for not matched address tokens and for matched address tokens in case of ambiguity\n",
         "in": "query",
+        "explode": false,
         "required": false,
         "schema": {
-          "type": "string"
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
         }
       },
       "langAutosuggestBrowseDiscoverGeocodeLookupRevgeocode": {
         "name": "lang",
         "description": "Select the language to be used for result rendering from a list of [BCP 47](https://en.wikipedia.org/wiki/IETF_language_tag) compliant language codes.",
         "in": "query",
+        "explode": false,
+        "required": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      },
+      "politicalView": {
+        "name": "politicalView",
+        "description": "Toggle the political view.\n\nThis parameter accepts single ISO 3166-1 alpha-3 country code. The country codes are to be provided in all uppercase.\n\nCurrently the only supported political views are:\n * RUS expressing the Russian view on Crimea\n * SRB expressing the Serbian view on Kosovo, Vukovar and Sarengrad Islands\n * MAR expressing the Moroccan view on Western Sahara\n * SUR Suriname view on Courantyne Headwaters and Lawa Headwaters\n * KEN Kenya view on Ilemi Triangle\n * TZA Tanzania view on Lake Malawi\n * URY Uruguay view on Rincon de Artigas\n * EGY Egypt view on Bir Tawil\n * SDN Sudan view on Halaib Triangle\n * SYR Syria view on Golan Heights\n * ARG Argentina view on Southern Patagonian Ice Field and Tierra Del Fuego, including Falkland Islands, South Georgia and South Sandwich Islands\n * IND Indian View on Gilgit-Baltistan\n * PAK Pakistan View on Jammu and Kashmir and Junagadh Area\n\nFor any valid 3 letter country code, for which GS7 does not have dedicated political view, it falls back to the default view.\n\nFor not accepted values of the politicalView parameter the GS7 responds with \"400\" error code.",
+        "in": "query",
         "required": false,
         "schema": {
           "type": "string"
         }
       },
-      "showAutosuggestBrowseDiscoverLookup": {
+      "showAutocomplete": {
         "name": "show",
-        "description": "Select additional fields to be rendered in the response.\nPlease note that some of the fields involve additional webservice calls and can increase the overall response time.\n\nThe value is a comma-separated list of the sections to be enabled.\nFor each section there is a long and a short version of its id.\n\nDescription of accepted values:\n\n'phonemes': Renders phonemes for address and place names into the results.\n\nBETA: 'tz': Renders result items with additional time zone information. Please note that this may impact latency significantly.",
+        "description": "Select additional fields to be rendered in the response.\nPlease note that some of the fields involve additional webservice calls and can increase the overall response time.\n\nThe value is a comma-separated list of the sections to be enabled.\nFor some sections there is a long and a short ID.\n\nDescription of accepted values:\n\n'streetInfo': For each result item renders additional block with the street name decomposed into its parts like the base name, the street type, etc.",
+        "in": "query",
+        "explode": false,
+        "required": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "streetInfo"
+            ]
+          }
+        }
+      },
+      "showAutosuggestBrowseDiscover": {
+        "name": "show",
+        "description": "Select additional fields to be rendered in the response.\nPlease note that some of the fields involve additional webservice calls and can increase the overall response time.\n\nThe value is a comma-separated list of the sections to be enabled.\nFor some sections there is a long and a short ID.\n\nDescription of accepted values:\n\n'phonemes': Renders phonemes for address and place names into the results.\n\n'streetInfo': For each result item renders additional block with the street name decomposed into its parts like the base name, the street type, etc.\n\nBETA: 'tz': Renders result items with additional time zone information. Please note that this may impact latency significantly.",
         "in": "query",
         "explode": false,
         "required": false,
@@ -289,14 +361,15 @@
             "type": "string",
             "enum": [
               "phonemes",
+              "streetInfo",
               "tz"
             ]
           }
         }
       },
-      "showGeocodeRevgeocode": {
+      "showGeocode": {
         "name": "show",
-        "description": "Select additional fields to be rendered in the response.\nPlease note that some of the fields involve additional webservice calls and can increase the overall response time.\n\nThe value is a comma-separated list of the sections to be enabled.\nFor each section there is a long and a short version of its id.\n\nDescription of accepted values:\n\nBETA: 'parsing'\n\nBETA: 'tz': Renders result items with additional time zone information. Please note that this may impact latency significantly.",
+        "description": "Select additional fields to be rendered in the response.\nPlease note that some of the fields involve additional webservice calls and can increase the overall response time.\n\nThe value is a comma-separated list of the sections to be enabled.\nFor some sections there is a long and a short ID.\n\nDescription of accepted values:\n\n'countryInfo': For each result item renders additional block with the country info, such as [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) and [ISO 3166-1 alpha-3](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3) country code.\n\n'streetInfo': For each result item renders additional block with the street name decomposed into its parts like the base name, the street type, etc.\n\nBETA: 'parsing'\n\nBETA: 'tz': Renders result items with additional time zone information. Please note that this may impact latency significantly.",
         "in": "query",
         "explode": false,
         "required": false,
@@ -305,7 +378,46 @@
           "items": {
             "type": "string",
             "enum": [
+              "countryInfo",
+              "streetInfo",
               "parsing",
+              "tz"
+            ]
+          }
+        }
+      },
+      "showLookup": {
+        "name": "show",
+        "description": "Select additional fields to be rendered in the response.\nPlease note that some of the fields involve additional webservice calls and can increase the overall response time.\n\nThe value is a comma-separated list of the sections to be enabled.\nFor some sections there is a long and a short ID.\n\nDescription of accepted values:\n\n'countryInfo': For each result item renders additional block with the country info, such as [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) and [ISO 3166-1 alpha-3](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3) country code.\n\n'phonemes': Renders phonemes for address and place names into the results.\n\n'streetInfo': For each result item renders additional block with the street name decomposed into its parts like the base name, the street type, etc.\n\nBETA: 'tz': Renders result items with additional time zone information. Please note that this may impact latency significantly.",
+        "in": "query",
+        "explode": false,
+        "required": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "countryInfo",
+              "phonemes",
+              "streetInfo",
+              "tz"
+            ]
+          }
+        }
+      },
+      "showRevgeocode": {
+        "name": "show",
+        "description": "Select additional fields to be rendered in the response.\nPlease note that some of the fields involve additional webservice calls and can increase the overall response time.\n\nThe value is a comma-separated list of the sections to be enabled.\nFor some sections there is a long and a short ID.\n\nDescription of accepted values:\n\n'countryInfo': For each result item renders additional block with the country info, such as [ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) and [ISO 3166-1 alpha-3](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3) country code.\n\n'streetInfo': For each result item renders additional block with the street name decomposed into its parts like the base name, the street type, etc.\n\nBETA: 'tz': Renders result items with additional time zone information. Please note that this may impact latency significantly.",
+        "in": "query",
+        "explode": false,
+        "required": false,
+        "schema": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "enum": [
+              "countryInfo",
+              "streetInfo",
               "tz"
             ]
           }
@@ -356,6 +468,10 @@
             "type": "string",
             "description": "The unique identifier for the result item. This ID can be used for a Look Up by ID search as well."
           },
+          "politicalView": {
+            "type": "string",
+            "description": "ISO3 country code of the item political view (default for international). This response element is populated when the politicalView parameter is set in the query"
+          },
           "resultType": {
             "type": "string",
             "enum": [
@@ -367,15 +483,15 @@
               "houseNumber",
               "postalCodePoint",
               "place"
-            ],
-            "description": "WARNING: The resultType values 'intersection' and 'postalCodePoint' are in BETA state"
+            ]
           },
           "houseNumberType": {
             "type": "string",
             "enum": [
               "PA",
               "interpolated"
-            ]
+            ],
+            "description": "* PA - a Point Address represents an individual address as a point object. Point Addresses are coming from trusted sources.\n  We can say with high certainty that the address exists and at what position. A Point Address result contains two types of coordinates.\n  One is the access point (or navigation coordinates), which is the point to start or end a drive. The other point is the position or display point.\n  This point varies per source and country. The point can be the rooftop point, a point close to the building entry, or a point close to the building,\n  driveway or parking lot that belongs to the building.\n* interpolated - an interpolated address. These are approximate positions as a result of a linear interpolation based on address ranges.\n  Address ranges, especially in the USA, are typical per block. For interpolated addresses, we cannot say with confidence that the address exists in reality.\n  But the interpolation provides a good location approximation that brings people in most use cases close to the target location.\n  The access point of an interpolated address result is calculated based on the address range and the road geometry.\n  The position (display) point is pre-configured offset from the street geometry.\n  Compared to Point Addresses, interpolated addresses are less accurate."
           },
           "addressBlockType": {
             "type": "string",
@@ -431,7 +547,8 @@
           "distance": {
             "type": "integer",
             "format": "int64",
-            "description": "The distance from the search center to this result item in meters. For example: \"172039\""
+            "description": "The distance \\\"as the crow flies\\\" from the search center to this result item in meters. For example: \\\"172039\\\".\n\nWhen searching along a route this is the distance\\nalong the route plus the distance from the route polyline to this result item.",
+            "example": 172039
           },
           "mapView": {
             "allOf": [
@@ -490,6 +607,25 @@
               }
             ],
             "description": "BETA - Parsed terms and their positions in the input query (only rendered if 'show=parsing' is provided.)"
+          },
+          "streetInfo": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/StreetInfo"
+                }
+              ]
+            },
+            "description": "Street Details (only rendered if 'show=streetInfo' is provided.)"
+          },
+          "countryInfo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CountryInfo"
+              }
+            ],
+            "description": "Country Details (only rendered if 'show=countryInfo' is provided.)"
           }
         }
       },
@@ -555,6 +691,10 @@
           "houseNumber": {
             "type": "string",
             "description": "House number. For example: \"4\""
+          },
+          "building": {
+            "type": "string",
+            "description": "Name of building."
           }
         }
       },
@@ -988,6 +1128,56 @@
           }
         }
       },
+      "StreetInfo": {
+        "type": "object",
+        "properties": {
+          "baseName": {
+            "type": "string",
+            "description": "Base name part of the street name."
+          },
+          "streetType": {
+            "type": "string",
+            "description": "Street type part of the street name."
+          },
+          "streetTypePrecedes": {
+            "type": "boolean",
+            "description": "Defines if the street type is before or after the base name."
+          },
+          "streetTypeAttached": {
+            "type": "boolean",
+            "description": "Defines if the street type is attached or unattached to the base name."
+          },
+          "prefix": {
+            "type": "string",
+            "description": "A prefix is a directional identifier that precedes, but is not included in, the base name of a road."
+          },
+          "suffix": {
+            "type": "string",
+            "description": "A suffix is a directional identifier that follows, but is not included in, the base name of a road."
+          },
+          "direction": {
+            "type": "string",
+            "description": "Indicates the official directional identifiers assigned to highways, typically either \"North/South\" or \"East/West\""
+          },
+          "language": {
+            "type": "string",
+            "description": "BCP 47 compliant language code"
+          }
+        }
+      },
+      "CountryInfo": {
+        "type": "object",
+        "properties": {
+          "alpha2": {
+            "type": "string",
+            "description": "[ISO 3166-1 alpha-2](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-2) country code"
+          },
+          "alpha3": {
+            "type": "string",
+            "description": "[ISO 3166-1 alpha-3](https://en.wikipedia.org/wiki/ISO_3166-1_alpha-3) country code"
+          }
+        }
+      },
       "ErrorResponse": {
         "type": "object",
         "required": [
@@ -1062,6 +1252,10 @@
             "type": "string",
             "description": "The unique identifier for the result item. This ID can be used for a Look Up by ID search as well."
           },
+          "politicalView": {
+            "type": "string",
+            "description": "ISO3 country code of the item political view (default for international). This response element is populated when the politicalView parameter is set in the query"
+          },
           "ontologyId": {
             "type": "string",
             "description": "Related ontology ID"
@@ -1077,15 +1271,15 @@
               "houseNumber",
               "postalCodePoint",
               "place"
-            ],
-            "description": "WARNING: The resultType values 'intersection' and 'postalCodePoint' are in BETA state"
+            ]
           },
           "houseNumberType": {
             "type": "string",
             "enum": [
               "PA",
               "interpolated"
-            ]
+            ],
+            "description": "* PA - a Point Address represents an individual address as a point object. Point Addresses are coming from trusted sources.\n  We can say with high certainty that the address exists and at what position. A Point Address result contains two types of coordinates.\n  One is the access point (or navigation coordinates), which is the point to start or end a drive. The other point is the position or display point.\n  This point varies per source and country. The point can be the rooftop point, a point close to the building entry, or a point close to the building,\n  driveway or parking lot that belongs to the building.\n* interpolated - an interpolated address. These are approximate positions as a result of a linear interpolation based on address ranges.\n  Address ranges, especially in the USA, are typical per block. For interpolated addresses, we cannot say with confidence that the address exists in reality.\n  But the interpolation provides a good location approximation that brings people in most use cases close to the target location.\n  The access point of an interpolated address result is calculated based on the address range and the road geometry.\n  The position (display) point is pre-configured offset from the street geometry.\n  Compared to Point Addresses, interpolated addresses are less accurate."
           },
           "addressBlockType": {
             "type": "string",
@@ -1141,7 +1335,13 @@
           "distance": {
             "type": "integer",
             "format": "int64",
-            "description": "The distance from the search center to this result item in meters. For example: \"172039\""
+            "description": "The distance \\\"as the crow flies\\\" from the search center to this result item in meters. For example: \\\"172039\\\".\n\nWhen searching along a route this is the distance\\nalong the route plus the distance from the route polyline to this result item.",
+            "example": 172039
+          },
+          "excursionDistance": {
+            "type": "integer",
+            "format": "int64",
+            "description": "BETA - Two times the distance from the polyline to this result item in meters while searching along the route"
           },
           "mapView": {
             "allOf": [
@@ -1219,7 +1419,7 @@
                 }
               ]
             },
-            "description": "A list of hours during which the place is open for business."
+            "description": "A list of hours during which the place is open for business.\nThis field is optional: When it is not present, it means that we are lacking data about the place opening hours.\nDays without opening hours have to be considered as closed."
           },
           "timeZone": {
             "allOf": [
@@ -1229,6 +1429,14 @@
             ],
             "description": "BETA - Provides time zone information for this place. (rendered only if 'show=tz' is provided.)"
           },
+          "extended": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExtendedAttribute"
+              }
+            ],
+            "description": "Extended attributes section to contain detailed information for specific result types."
+          },
           "phonemes": {
             "allOf": [
               {
@@ -1236,6 +1444,17 @@
               }
             ],
             "description": "Phonemes for address and place names. (rendered only if 'show=phonemes' is provided.)"
+          },
+          "streetInfo": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/StreetInfo"
+                }
+              ]
+            },
+            "description": "Street Details (only rendered if 'show=streetInfo' is provided.)"
           }
         }
       },
@@ -1284,7 +1503,12 @@
               "core",
               "yelp",
               "tripadvisor",
-              "parkopedia"
+              "parkopedia",
+              "venues",
+              "vinfast",
+              "ryd",
+              "booking.com",
+              "nsr"
             ],
             "description": "An identifier for the supplier."
           }
@@ -1368,6 +1592,17 @@
           "value": {
             "type": "string",
             "description": "Contact information, as specified by the contact type."
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Category"
+                }
+              ]
+            },
+            "description": "The list of place categories this contact refers to."
           }
         }
       },
@@ -1378,6 +1613,17 @@
           "structured"
         ],
         "properties": {
+          "categories": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Category"
+                }
+              ]
+            },
+            "description": "The list of place categories, this set of opening hours refers to."
+          },
           "text": {
             "type": "array",
             "items": {
@@ -1395,7 +1641,8 @@
                   "$ref": "#/components/schemas/StructuredOpeningHours"
                 }
               ]
-            }
+            },
+            "description": "List of iCalender-based structured representations of opening hours"
           }
         }
       },
@@ -1408,13 +1655,130 @@
         ],
         "properties": {
           "start": {
-            "type": "string"
+            "type": "string",
+            "description": "String with a modified [iCalendar DATE-TIME](https://datatracker.ietf.org/doc/html/rfc5545#section-3.3.5) value.\nThe date part is omitted, values starts with the time section maker \\\"T\\\". Example: T132000"
           },
           "duration": {
-            "type": "string"
+            "type": "string",
+            "description": "String with an [iCalendar DURATION](https://datatracker.ietf.org/doc/html/rfc5545#section-3.3.6) value.\nA closed day has the value PT00:00M"
           },
           "recurrence": {
-            "type": "string"
+            "type": "string",
+            "description": "String with a [RECUR](https://datatracker.ietf.org/doc/html/rfc5545#section-3.3.10) rule. Note that, in contrast to the RFC, the assignment operator is a colon `:` and not an equal sign `=`."
+          }
+        }
+      },
+      "ExtendedAttribute": {
+        "type": "object",
+        "properties": {
+          "evStation": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EvChargingAttributes"
+              }
+            ],
+            "description": "EV charging pool information"
+          }
+        }
+      },
+      "EvChargingAttributes": {
+        "type": "object",
+        "properties": {
+          "connectors": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/EvConnector"
+                }
+              ]
+            },
+            "description": "List of EV pool groups of connectors. Each group is defined by a common charging connector type and max power level. The numberOfConnectors field contains the number of connectors in the group."
+          },
+          "totalNumberOfConnectors": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Total number of charging connectors in the EV charging pool"
+          }
+        }
+      },
+      "EvConnector": {
+        "type": "object",
+        "properties": {
+          "supplierName": {
+            "type": "string",
+            "description": "The EV charge point operator"
+          },
+          "connectorType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EvNameId"
+              }
+            ],
+            "description": "Id and name element pair representing the connector type in the EV pool group.\nFor more information on the current connector types, see the [connectorTypes](https://developer.here.com/documentation/charging-stations/dev_guide/topics/resource-type-connector-types.html) values in the HERE EV Charge Points API."
+          },
+          "powerFeedType": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EvNameId"
+              }
+            ],
+            "description": "Details on type of power feed with respect to [SAE J1772](https://en.wikipedia.org/wiki/SAE_J1772#Charging) standard."
+          },
+          "maxPowerLevel": {
+            "type": "number",
+            "format": "double",
+            "description": "Maximum charge power (in kilowatt) of connectors in connectors group."
+          },
+          "chargingPoint": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/EvChargingPoint"
+              }
+            ],
+            "description": "Connectors group additional charging information"
+          }
+        }
+      },
+      "EvNameId": {
+        "type": "object",
+        "properties": {
+          "name": {
+            "type": "string",
+            "description": "Any string value"
+          },
+          "id": {
+            "type": "string",
+            "description": "Unique ID"
+          }
+        }
+      },
+      "EvChargingPoint": {
+        "type": "object",
+        "properties": {
+          "numberOfConnectors": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of physical connectors in the connectors group"
+          },
+          "chargeMode": {
+            "type": "string",
+            "description": "Charge mode of the connectors group. For more information, check the [IEC-61851-1](https://en.wikipedia.org/w/index.php?title=Charging_station&oldid=1013010605#IEC-61851-1_Charging_Modes) standard."
+          },
+          "voltsRange": {
+            "type": "string",
+            "description": "Voltage provided by the connectors group",
+            "example": "100-120V AC"
+          },
+          "phases": {
+            "type": "integer",
+            "format": "int32",
+            "description": "Number of phases provided by the connectors group"
+          },
+          "ampsRange": {
+            "type": "string",
+            "description": "Amperage provided by the connectors group",
+            "example": "12A-80A"
           }
         }
       },
@@ -1602,6 +1966,10 @@
             "type": "string",
             "description": "The unique identifier for the result item. This ID can be used for a Look Up by ID search as well."
           },
+          "politicalView": {
+            "type": "string",
+            "description": "ISO3 country code of the item political view (default for international). This response element is populated when the politicalView parameter is set in the query"
+          },
           "ontologyId": {
             "type": "string",
             "description": "Related ontology ID"
@@ -1617,15 +1985,15 @@
               "houseNumber",
               "postalCodePoint",
               "place"
-            ],
-            "description": "WARNING: The resultType values 'intersection' and 'postalCodePoint' are in BETA state"
+            ]
           },
           "houseNumberType": {
             "type": "string",
             "enum": [
               "PA",
               "interpolated"
-            ]
+            ],
+            "description": "* PA - a Point Address represents an individual address as a point object. Point Addresses are coming from trusted sources.\n  We can say with high certainty that the address exists and at what position. A Point Address result contains two types of coordinates.\n  One is the access point (or navigation coordinates), which is the point to start or end a drive. The other point is the position or display point.\n  This point varies per source and country. The point can be the rooftop point, a point close to the building entry, or a point close to the building,\n  driveway or parking lot that belongs to the building.\n* interpolated - an interpolated address. These are approximate positions as a result of a linear interpolation based on address ranges.\n  Address ranges, especially in the USA, are typical per block. For interpolated addresses, we cannot say with confidence that the address exists in reality.\n  But the interpolation provides a good location approximation that brings people in most use cases close to the target location.\n  The access point of an interpolated address result is calculated based on the address range and the road geometry.\n  The position (display) point is pre-configured offset from the street geometry.\n  Compared to Point Addresses, interpolated addresses are less accurate."
           },
           "addressBlockType": {
             "type": "string",
@@ -1657,7 +2025,7 @@
                 "$ref": "#/components/schemas/Address"
               }
             ],
-            "description": "Postal address of the result item. Detailed address fields are rendered only if 'show=details' is provided."
+            "description": "Postal address of the result item."
           },
           "position": {
             "allOf": [
@@ -1681,7 +2049,13 @@
           "distance": {
             "type": "integer",
             "format": "int64",
-            "description": "The distance from the search center to this result item in meters. For example: \"172039\""
+            "description": "The distance \\\"as the crow flies\\\" from the search center to this result item in meters. For example: \\\"172039\\\".\n\nWhen searching along a route this is the distance\\nalong the route plus the distance from the route polyline to this result item.",
+            "example": 172039
+          },
+          "excursionDistance": {
+            "type": "integer",
+            "format": "int64",
+            "description": "BETA - Two times the distance from the polyline to this result item in meters while searching along the route"
           },
           "mapView": {
             "allOf": [
@@ -1744,7 +2118,7 @@
                 }
               ]
             },
-            "description": "BETA - Contact information like phone, email, WWW. (rendered only if 'show=details' is provided.)"
+            "description": "BETA - Contact information like phone, email, WWW."
           },
           "openingHours": {
             "type": "array",
@@ -1755,7 +2129,7 @@
                 }
               ]
             },
-            "description": "BETA - A list of hours during which the place is open for business. (rendered only if 'show=details' is provided.)"
+            "description": "BETA - A list of hours during which the place is open for business."
           },
           "timeZone": {
             "allOf": [
@@ -1780,6 +2154,17 @@
               }
             ],
             "description": "Phonemes for address and place names. (rendered only if 'show=phonemes' is provided.)"
+          },
+          "streetInfo": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/StreetInfo"
+                }
+              ]
+            },
+            "description": "Street Details (only rendered if 'show=streetInfo' is provided.)"
           }
         }
       },
@@ -1837,8 +2222,7 @@
             "enum": [
               "categoryQuery",
               "chainQuery"
-            ],
-            "description": "WARNING: The resultType values 'intersection' and 'postalCodePoint' are in BETA state"
+            ]
           },
           "href": {
             "type": "string",
@@ -1933,6 +2317,14 @@
             "type": "string",
             "description": "The unique identifier for the result item. This ID can be used for a Look Up by ID search as well."
           },
+          "language": {
+            "type": "string",
+            "description": "The preferred language of address elements in the result."
+          },
+          "politicalView": {
+            "type": "string",
+            "description": "ISO3 country code of the item political view (default for international). This response element is populated when the politicalView parameter is set in the query"
+          },
           "resultType": {
             "type": "string",
             "enum": [
@@ -1944,8 +2336,7 @@
               "houseNumber",
               "postalCodePoint",
               "place"
-            ],
-            "description": "WARNING: The resultType values 'intersection' and 'postalCodePoint' are in BETA state"
+            ]
           },
           "houseNumberType": {
             "type": "string",
@@ -1982,7 +2373,8 @@
           "distance": {
             "type": "integer",
             "format": "int64",
-            "description": "The distance from the search center to this result item in meters. For example: \"172039\""
+            "description": "The distance \\\"as the crow flies\\\" from the search center to this result item in meters. For example: \\\"172039\\\".\n\nWhen searching along a route this is the distance\\nalong the route plus the distance from the route polyline to this result item.",
+            "example": 172039
           },
           "highlights": {
             "allOf": [
@@ -1991,6 +2383,17 @@
               }
             ],
             "description": "Describes how the parts of the response element matched the input query"
+          },
+          "streetInfo": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/StreetInfo"
+                }
+              ]
+            },
+            "description": "Street Details (only rendered if 'show=streetInfo' is provided.)"
           }
         }
       },
@@ -2028,6 +2431,10 @@
             "type": "string",
             "description": "The unique identifier for the result item. This ID can be used for a Look Up by ID search as well."
           },
+          "politicalView": {
+            "type": "string",
+            "description": "ISO3 country code of the item political view (default for international). This response element is populated when the politicalView parameter is set in the query"
+          },
           "resultType": {
             "type": "string",
             "enum": [
@@ -2039,15 +2446,15 @@
               "houseNumber",
               "postalCodePoint",
               "place"
-            ],
-            "description": "WARNING: The resultType values 'intersection' and 'postalCodePoint' are in BETA state"
+            ]
           },
           "houseNumberType": {
             "type": "string",
             "enum": [
               "PA",
               "interpolated"
-            ]
+            ],
+            "description": "* PA - a Point Address represents an individual address as a point object. Point Addresses are coming from trusted sources.\n  We can say with high certainty that the address exists and at what position. A Point Address result contains two types of coordinates.\n  One is the access point (or navigation coordinates), which is the point to start or end a drive. The other point is the position or display point.\n  This point varies per source and country. The point can be the rooftop point, a point close to the building entry, or a point close to the building,\n  driveway or parking lot that belongs to the building.\n* interpolated - an interpolated address. These are approximate positions as a result of a linear interpolation based on address ranges.\n  Address ranges, especially in the USA, are typical per block. For interpolated addresses, we cannot say with confidence that the address exists in reality.\n  But the interpolation provides a good location approximation that brings people in most use cases close to the target location.\n  The access point of an interpolated address result is calculated based on the address range and the road geometry.\n  The position (display) point is pre-configured offset from the street geometry.\n  Compared to Point Addresses, interpolated addresses are less accurate."
           },
           "addressBlockType": {
             "type": "string",
@@ -2107,7 +2514,13 @@
           "distance": {
             "type": "integer",
             "format": "int64",
-            "description": "The distance from the search center to this result item in meters. For example: \"172039\""
+            "description": "The distance \\\"as the crow flies\\\" from the search center to this result item in meters. For example: \\\"172039\\\".\n\nWhen searching along a route this is the distance\\nalong the route plus the distance from the route polyline to this result item.",
+            "example": 172039
+          },
+          "excursionDistance": {
+            "type": "integer",
+            "format": "int64",
+            "description": "BETA - Two times the distance from the polyline to this result item in meters while searching along the route"
           },
           "mapView": {
             "allOf": [
@@ -2181,7 +2594,7 @@
                 }
               ]
             },
-            "description": "A list of hours during which the place is open for business."
+            "description": "A list of hours during which the place is open for business.\nThis field is optional: When it is not present, it means that we are lacking data about the place opening hours.\nDays without opening hours have to be considered as closed."
           },
           "timeZone": {
             "allOf": [
@@ -2191,6 +2604,14 @@
             ],
             "description": "BETA - Provides time zone information for this place. (rendered only if 'show=tz' is provided.)"
           },
+          "extended": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExtendedAttribute"
+              }
+            ],
+            "description": "Extended attributes section to contain detailed information for specific result types."
+          },
           "phonemes": {
             "allOf": [
               {
@@ -2198,6 +2619,17 @@
               }
             ],
             "description": "Phonemes for address and place names. (rendered only if 'show=phonemes' is provided.)"
+          },
+          "streetInfo": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/StreetInfo"
+                }
+              ]
+            },
+            "description": "Street Details (only rendered if 'show=streetInfo' is provided.)"
           }
         }
       },
@@ -2212,11 +2644,171 @@
             "items": {
               "allOf": [
                 {
-                  "$ref": "#/components/schemas/GeocodeResultItem"
+                  "$ref": "#/components/schemas/ReverseGeocodeResultItem"
                 }
               ]
             },
             "description": "The results are presented as a JSON list of candidates in ranked order (most-likely to least-likely) based on the matched location criteria."
+          }
+        }
+      },
+      "ReverseGeocodeResultItem": {
+        "type": "object",
+        "required": [
+          "title",
+          "address"
+        ],
+        "properties": {
+          "title": {
+            "type": "string",
+            "description": "The localized display name of this result item."
+          },
+          "id": {
+            "type": "string",
+            "description": "The unique identifier for the result item. This ID can be used for a Look Up by ID search as well."
+          },
+          "politicalView": {
+            "type": "string",
+            "description": "ISO3 country code of the item political view (default for international). This response element is populated when the politicalView parameter is set in the query"
+          },
+          "resultType": {
+            "type": "string",
+            "enum": [
+              "administrativeArea",
+              "locality",
+              "street",
+              "intersection",
+              "addressBlock",
+              "houseNumber",
+              "postalCodePoint",
+              "place"
+            ]
+          },
+          "houseNumberType": {
+            "type": "string",
+            "enum": [
+              "PA",
+              "interpolated"
+            ],
+            "description": "* PA - a Point Address represents an individual address as a point object. Point Addresses are coming from trusted sources.\n  We can say with high certainty that the address exists and at what position. A Point Address result contains two types of coordinates.\n  One is the access point (or navigation coordinates), which is the point to start or end a drive. The other point is the position or display point.\n  This point varies per source and country. The point can be the rooftop point, a point close to the building entry, or a point close to the building,\n  driveway or parking lot that belongs to the building.\n* interpolated - an interpolated address. These are approximate positions as a result of a linear interpolation based on address ranges.\n  Address ranges, especially in the USA, are typical per block. For interpolated addresses, we cannot say with confidence that the address exists in reality.\n  But the interpolation provides a good location approximation that brings people in most use cases close to the target location.\n  The access point of an interpolated address result is calculated based on the address range and the road geometry.\n  The position (display) point is pre-configured offset from the street geometry.\n  Compared to Point Addresses, interpolated addresses are less accurate."
+          },
+          "addressBlockType": {
+            "type": "string",
+            "enum": [
+              "block",
+              "subblock"
+            ]
+          },
+          "localityType": {
+            "type": "string",
+            "enum": [
+              "postalCode",
+              "subdistrict",
+              "district",
+              "city"
+            ]
+          },
+          "administrativeAreaType": {
+            "type": "string",
+            "enum": [
+              "county",
+              "state",
+              "country"
+            ]
+          },
+          "address": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/Address"
+              }
+            ],
+            "description": "Postal address of the result item."
+          },
+          "position": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/DisplayResponseCoordinate"
+              }
+            ],
+            "description": "The coordinates (latitude, longitude) of a pin on a map corresponding to the searched place."
+          },
+          "access": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/AccessResponseCoordinate"
+                }
+              ]
+            },
+            "description": "Coordinates of the place you are navigating to (for example, driving or walking). This is a point on a road or in a parking lot."
+          },
+          "distance": {
+            "type": "integer",
+            "format": "int64",
+            "description": "The distance \\\"as the crow flies\\\" from the search center to this result item in meters. For example: \\\"172039\\\".\n\nWhen searching along a route this is the distance\\nalong the route plus the distance from the route polyline to this result item.",
+            "example": 172039
+          },
+          "mapView": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/MapView"
+              }
+            ],
+            "description": "The bounding box enclosing the geometric shape (area or line) that an individual result covers. `place` typed results have no `mapView`."
+          },
+          "categories": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Category"
+                }
+              ]
+            },
+            "description": "The list of categories assigned to this place."
+          },
+          "foodTypes": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/Category"
+                }
+              ]
+            },
+            "description": "The list of food types assigned to this place."
+          },
+          "houseNumberFallback": {
+            "type": "boolean",
+            "description": "If true, indicates that the requested house number was corrected to match the nearest known house number. This field is visible only when the value is true."
+          },
+          "timeZone": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/TimeZoneInfo"
+              }
+            ],
+            "description": "BETA - Provides time zone information for this place. (rendered only if 'show=tz' is provided.)"
+          },
+          "streetInfo": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/StreetInfo"
+                }
+              ]
+            },
+            "description": "Street Details (only rendered if 'show=streetInfo' is provided.)"
+          },
+          "countryInfo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CountryInfo"
+              }
+            ],
+            "description": "Country Details (only rendered if 'show=countryInfo' is provided.)"
           }
         }
       },
@@ -2235,6 +2827,10 @@
             "type": "string",
             "description": "The unique identifier for the result item. This ID can be used for a Look Up by ID search as well."
           },
+          "politicalView": {
+            "type": "string",
+            "description": "ISO3 country code of the item political view (default for international). This response element is populated when the politicalView parameter is set in the query"
+          },
           "resultType": {
             "type": "string",
             "enum": [
@@ -2246,15 +2842,15 @@
               "houseNumber",
               "postalCodePoint",
               "place"
-            ],
-            "description": "WARNING: The resultType values 'intersection' and 'postalCodePoint' are in BETA state"
+            ]
           },
           "houseNumberType": {
             "type": "string",
             "enum": [
               "PA",
               "interpolated"
-            ]
+            ],
+            "description": "* PA - a Point Address represents an individual address as a point object. Point Addresses are coming from trusted sources.\n  We can say with high certainty that the address exists and at what position. A Point Address result contains two types of coordinates.\n  One is the access point (or navigation coordinates), which is the point to start or end a drive. The other point is the position or display point.\n  This point varies per source and country. The point can be the rooftop point, a point close to the building entry, or a point close to the building,\n  driveway or parking lot that belongs to the building.\n* interpolated - an interpolated address. These are approximate positions as a result of a linear interpolation based on address ranges.\n  Address ranges, especially in the USA, are typical per block. For interpolated addresses, we cannot say with confidence that the address exists in reality.\n  But the interpolation provides a good location approximation that brings people in most use cases close to the target location.\n  The access point of an interpolated address result is calculated based on the address range and the road geometry.\n  The position (display) point is pre-configured offset from the street geometry.\n  Compared to Point Addresses, interpolated addresses are less accurate."
           },
           "addressBlockType": {
             "type": "string",
@@ -2383,7 +2979,7 @@
                 }
               ]
             },
-            "description": "A list of hours during which the place is open for business."
+            "description": "A list of hours during which the place is open for business.\nThis field is optional: When it is not present, it means that we are lacking data about the place opening hours.\nDays without opening hours have to be considered as closed."
           },
           "timeZone": {
             "allOf": [
@@ -2393,6 +2989,14 @@
             ],
             "description": "BETA - Provides time zone information for this place. (rendered only if 'show=tz' is provided.)"
           },
+          "extended": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/ExtendedAttribute"
+              }
+            ],
+            "description": "Extended attributes section to contain detailed information for specific result types."
+          },
           "phonemes": {
             "allOf": [
               {
@@ -2400,6 +3004,25 @@
               }
             ],
             "description": "Phonemes for address and place names. (rendered only if 'show=phonemes' is provided.)"
+          },
+          "streetInfo": {
+            "type": "array",
+            "items": {
+              "allOf": [
+                {
+                  "$ref": "#/components/schemas/StreetInfo"
+                }
+              ]
+            },
+            "description": "Street Details (only rendered if 'show=streetInfo' is provided.)"
+          },
+          "countryInfo": {
+            "allOf": [
+              {
+                "$ref": "#/components/schemas/CountryInfo"
+              }
+            ],
+            "description": "Country Details (only rendered if 'show=countryInfo' is provided.)"
           }
         }
       }
@@ -2435,7 +3058,10 @@
             "$ref": "#/components/parameters/langAutosuggestBrowseDiscoverGeocodeLookupRevgeocode"
           },
           {
-            "$ref": "#/components/parameters/showGeocodeRevgeocode"
+            "$ref": "#/components/parameters/politicalView"
+          },
+          {
+            "$ref": "#/components/parameters/showGeocode"
           },
           {
             "$ref": "#/components/parameters/X-Request-ID"
@@ -2464,6 +3090,16 @@
           },
           "405": {
             "description": "Client error: http method not supported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Client error: Rate limit exceeded.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2514,7 +3150,10 @@
             "$ref": "#/components/parameters/langAutosuggestBrowseDiscoverGeocodeLookupRevgeocode"
           },
           {
-            "$ref": "#/components/parameters/showAutosuggestBrowseDiscoverLookup"
+            "$ref": "#/components/parameters/politicalView"
+          },
+          {
+            "$ref": "#/components/parameters/showAutosuggestBrowseDiscover"
           },
           {
             "$ref": "#/components/parameters/X-Request-ID"
@@ -2543,6 +3182,16 @@
           },
           "405": {
             "description": "Client error: http method not supported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Client error: Rate limit exceeded.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2596,7 +3245,10 @@
             "$ref": "#/components/parameters/langAutosuggestBrowseDiscoverGeocodeLookupRevgeocode"
           },
           {
-            "$ref": "#/components/parameters/showAutosuggestBrowseDiscoverLookup"
+            "$ref": "#/components/parameters/politicalView"
+          },
+          {
+            "$ref": "#/components/parameters/showAutosuggestBrowseDiscover"
           },
           {
             "$ref": "#/components/parameters/X-Request-ID"
@@ -2625,6 +3277,16 @@
           },
           "405": {
             "description": "Client error: http method not supported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Client error: Rate limit exceeded.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2675,6 +3337,12 @@
             "$ref": "#/components/parameters/langAutocomplete"
           },
           {
+            "$ref": "#/components/parameters/politicalView"
+          },
+          {
+            "$ref": "#/components/parameters/showAutocomplete"
+          },
+          {
             "$ref": "#/components/parameters/X-Request-ID"
           }
         ],
@@ -2701,6 +3369,16 @@
           },
           "405": {
             "description": "Client error: http method not supported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Client error: Rate limit exceeded.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2739,6 +3417,12 @@
             "$ref": "#/components/parameters/categories"
           },
           {
+            "$ref": "#/components/parameters/chains"
+          },
+          {
+            "$ref": "#/components/parameters/foodTypes"
+          },
+          {
             "$ref": "#/components/parameters/inBrowse"
           },
           {
@@ -2754,7 +3438,10 @@
             "$ref": "#/components/parameters/langAutosuggestBrowseDiscoverGeocodeLookupRevgeocode"
           },
           {
-            "$ref": "#/components/parameters/showAutosuggestBrowseDiscoverLookup"
+            "$ref": "#/components/parameters/politicalView"
+          },
+          {
+            "$ref": "#/components/parameters/showAutosuggestBrowseDiscover"
           },
           {
             "$ref": "#/components/parameters/X-Request-ID"
@@ -2791,6 +3478,16 @@
               }
             }
           },
+          "429": {
+            "description": "Client error: Rate limit exceeded.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
           "503": {
             "description": "Temporary server error.",
             "content": {
@@ -2818,13 +3515,19 @@
             "$ref": "#/components/parameters/atRevgeocode"
           },
           {
+            "$ref": "#/components/parameters/inRevgeocode"
+          },
+          {
             "$ref": "#/components/parameters/limitRevgeocode"
           },
           {
             "$ref": "#/components/parameters/langAutosuggestBrowseDiscoverGeocodeLookupRevgeocode"
           },
           {
-            "$ref": "#/components/parameters/showGeocodeRevgeocode"
+            "$ref": "#/components/parameters/politicalView"
+          },
+          {
+            "$ref": "#/components/parameters/showRevgeocode"
           },
           {
             "$ref": "#/components/parameters/X-Request-ID"
@@ -2853,6 +3556,16 @@
           },
           "405": {
             "description": "Client error: http method not supported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Client error: Rate limit exceeded.",
             "content": {
               "application/json": {
                 "schema": {
@@ -2891,7 +3604,10 @@
             "$ref": "#/components/parameters/langAutosuggestBrowseDiscoverGeocodeLookupRevgeocode"
           },
           {
-            "$ref": "#/components/parameters/showAutosuggestBrowseDiscoverLookup"
+            "$ref": "#/components/parameters/politicalView"
+          },
+          {
+            "$ref": "#/components/parameters/showLookup"
           },
           {
             "$ref": "#/components/parameters/X-Request-ID"
@@ -2930,6 +3646,16 @@
           },
           "405": {
             "description": "Client error: http method not supported.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorResponse"
+                }
+              }
+            }
+          },
+          "429": {
+            "description": "Client error: Rate limit exceeded.",
             "content": {
               "application/json": {
                 "schema": {

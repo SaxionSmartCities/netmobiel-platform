@@ -126,8 +126,8 @@ public class HereSearchClient {
     /* ===================================  AUTOSUGGEST  =================================== */
     
 	/**
-	 * Returns autosuggestions from the HERE Search Api. The AutoSuggest categoryQuery and chainQuery results are not supported due to issues with 
-	 * the mapping of the OpenAPI spec by openapi-generator.
+	 * Returns autosuggestions from the HERE Search Api. The AutoSuggest categoryQuery and chainQuery results are mapped into AutoSuggestResults type.
+	 * The discriminator is not properly defined in the official API and also not implemented by the Swagger java generator. 
 	 * @param query the query string.
 	 * @param centre centre point of a circle as latitude and longitude. The circle limits the search area.
 	 * @param radius the radius around the centre point.
