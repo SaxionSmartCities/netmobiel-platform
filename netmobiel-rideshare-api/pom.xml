@@ -36,10 +36,15 @@
 			        </execution>
 			    </executions>
 			</plugin>
-			<plugin>
+        	<plugin>
 		        <groupId>net.revelc.code</groupId>
 		        <artifactId>impsort-maven-plugin</artifactId>
-		      </plugin>
+				<configuration>
+					<directories>
+						<directory>target/generated-sources/openapi/src/main/java</directory>
+					</directories>
+				</configuration>
+	        </plugin>
 		</plugins>
     </build>
 
@@ -64,6 +69,10 @@
     		<groupId>com.fasterxml.jackson.core</groupId>
     		<artifactId>jackson-annotations</artifactId>
             <scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>io.swagger</groupId>
+		    <artifactId>swagger-annotations</artifactId>
 		</dependency>
     </dependencies>
 

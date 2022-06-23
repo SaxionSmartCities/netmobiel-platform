@@ -22,7 +22,6 @@
 			<plugin>
 				<groupId>io.swagger.codegen.v3</groupId>
 				<artifactId>swagger-codegen-maven-plugin</artifactId>
-				<version>3.0.34</version>
 				<!-- This is a particular tricky configuration due to the many bugs in the generators.
 					 The model generation works fine only in jaxrs-cxf-client, but not in the jaxrs-spec.
 					 The API generation works fine in jaxrs-spec, but the model has issues with missing jackson imports.
@@ -37,21 +36,6 @@
 	            	<apiPackage>eu.netmobiel.tomp.api</apiPackage>
 	            	<modelPackage>eu.netmobiel.tomp.api.model</modelPackage>
 	            	<invokerPackage>eu.netmobiel.tomp.api.rest</invokerPackage>
-					<configOptions>
-						<sortParamsByRequiredFlag>true</sortParamsByRequiredFlag>
-						<java8>true</java8>
-						<dateLibrary>java8</dateLibrary>
-						<!-- <additionalModelTypeAnnotations>JsonInclude(Include.NON_NULL)</additionalModelTypeAnnotations> -->
-						<generatePom>false</generatePom>
-						<sourceFolder>src/main/java</sourceFolder>
-					</configOptions>
-					<generateApis>false</generateApis>
-					<generateApiTests>false</generateApiTests>
-					<generateModels>false</generateModels>
-					<generateModelTests>false</generateModelTests>
-					<generateModelDocumentation>false</generateModelDocumentation>
-					<generateApiDocumentation>false</generateApiDocumentation>
-					<generateSupportingFiles>false</generateSupportingFiles>
 		        </configuration>
 			    <executions>
 			        <execution>
@@ -89,10 +73,15 @@
 			        </execution>
 			    </executions>
 			</plugin>
-			<plugin>
+        	<plugin>
 		        <groupId>net.revelc.code</groupId>
 		        <artifactId>impsort-maven-plugin</artifactId>
-	      	</plugin>
+				<configuration>
+					<directories>
+						<directory>target/generated-sources/swagger/src/main/java</directory>
+					</directories>
+				</configuration>
+	        </plugin>
 		</plugins>
     </build>
 
