@@ -16,7 +16,9 @@ import eu.netmobiel.geoservice.api.model.Suggestion.CategoryEnum;
 import eu.netmobiel.here.search.api.model.Address;
 import eu.netmobiel.here.search.api.model.AutosuggestEntityResultItem;
 import eu.netmobiel.here.search.api.model.AutosuggestEntityResultItem.ResultTypeEnum;
+import eu.netmobiel.here.search.api.model.AutosuggestQueryResultItem;
 import eu.netmobiel.here.search.api.model.Category;
+import eu.netmobiel.here.search.api.model.OneOfOpenSearchAutosuggestResponseItemsItems;
 import eu.netmobiel.here.search.api.model.OpenSearchAutosuggestResponse;
 
 /**
@@ -28,44 +30,66 @@ import eu.netmobiel.here.search.api.model.OpenSearchAutosuggestResponse;
 @Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN, uses = { GeometryMapper.class } )
 public abstract class SuggestionMapper {
 
-	@Mapping(target = "data", source = "items")
-	@Mapping(target = "totalCount", ignore = true)
-	@Mapping(target = "count", ignore = true)
-	@Mapping(target = "offset", ignore = true)
-	public abstract eu.netmobiel.geoservice.api.model.Page map(OpenSearchAutosuggestResponse source);
-
-	@AfterMapping
-    protected void addCategory(OpenSearchAutosuggestResponse source, @MappingTarget eu.netmobiel.geoservice.api.model.Page target) {
-		target.setOffset(0);
-		target.setCount(target.getData().size());
-		target.setTotalCount(target.getCount());
+	public eu.netmobiel.geoservice.api.model.Page map(OpenSearchAutosuggestResponse source) {
+		List<eu.netmobiel.geoservice.api.model.Suggestion> sugs = mapAndFilter(source.getItems());
+		eu.netmobiel.geoservice.api.model.Page page = new eu.netmobiel.geoservice.api.model.Page();
+		page.setData(mapToData(sugs));
+		page.setOffset(0);
+		page.setCount(page.getData().size());
+		page.setTotalCount(page.getCount());
+		return page;
 	}
 
-	public List<Object> map(List<AutosuggestEntityResultItem> source) {
-		// Only return results with an acceptable result type.
-		return source.stream()
-				.map(item -> map(item))
+	public abstract List<Object> mapToData(List<eu.netmobiel.geoservice.api.model.Suggestion> source);
+	
+	public List<eu.netmobiel.geoservice.api.model.Suggestion> mapAndFilter(List<OneOfOpenSearchAutosuggestResponseItemsItems> source) {
+		return source.stream().map((item) -> {
+			if (item instanceof AutosuggestEntityResultItem) {
+				return mapEntity((AutosuggestEntityResultItem) item);
+			}
+			return mapQuery((AutosuggestQueryResultItem) item);
+		})
 				.filter(sug -> sug.getResultType() != null)
 				.collect(Collectors.toList());
 	}
-
+	
 	// HERE Suggestion --> API Suggestion
 	@Mapping(target = "titleHighlights", source = "highlights.title")
 	@Mapping(target = "category", ignore = true)	// use after mapping for category
-	public abstract eu.netmobiel.geoservice.api.model.Suggestion map(AutosuggestEntityResultItem source);
+	@Mapping(target = "removeAccessItem", ignore = true)
+	@Mapping(target = "removeTitleHighlightsItem", ignore = true)
+	public abstract eu.netmobiel.geoservice.api.model.Suggestion mapEntity(AutosuggestEntityResultItem source);
+
+	@Mapping(target = "titleHighlights", source = "highlights.title")
+	@Mapping(target = "access", ignore = true)
+	@Mapping(target = "address", ignore = true)
+	@Mapping(target = "category", ignore = true)
+	@Mapping(target = "distance", ignore = true)
+	@Mapping(target = "position", ignore = true)
+	@Mapping(target = "removeAccessItem", ignore = true)
+	@Mapping(target = "removeTitleHighlightsItem", ignore = true)
+	public abstract eu.netmobiel.geoservice.api.model.Suggestion mapQuery(AutosuggestQueryResultItem source);
 
 	@ValueMappings({
         @ValueMapping(target = MappingConstants.NULL, source = MappingConstants.ANY_REMAINING),
     })
 	public abstract eu.netmobiel.geoservice.api.model.Suggestion.ResultTypeEnum map(AutosuggestEntityResultItem.ResultTypeEnum source);
 
+	@ValueMappings({
+        @ValueMapping(target = MappingConstants.NULL, source = MappingConstants.ANY_REMAINING),
+    })
+	public abstract eu.netmobiel.geoservice.api.model.Suggestion.ResultTypeEnum map(AutosuggestQueryResultItem.ResultTypeEnum source);
+
 	@Mapping(target = "locality", source = "city")
 	public abstract eu.netmobiel.geoservice.api.model.Address map(Address source);
 
 	@AfterMapping
     protected void addCategory(AutosuggestEntityResultItem source, @MappingTarget eu.netmobiel.geoservice.api.model.Suggestion target) {
+		if (source.getCategories() == null) {
+			return;
+		}
 		Category cat = source.getCategories().stream()
-				.filter(c -> c.getPrimary().equals(Boolean.TRUE))
+				.filter(c -> c.isPrimary().equals(Boolean.TRUE))
 				.findFirst()
 				.orElse(null);
 		if (source.getResultType() == ResultTypeEnum.PLACE && cat != null) {
