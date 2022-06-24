@@ -18,10 +18,10 @@ import eu.netmobiel.commons.report.IncentiveModelPassengerReport;
 import eu.netmobiel.commons.report.NumericReportValue;
 import eu.netmobiel.commons.report.ProfileReport;
 import eu.netmobiel.commons.util.Logging;
-import eu.netmobiel.profile.model.PageVisit;
+import eu.netmobiel.profile.model.UserEvent;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.Review;
-import eu.netmobiel.profile.repository.PageVisitDao;
+import eu.netmobiel.profile.repository.UserEventDao;
 import eu.netmobiel.profile.repository.ProfileDao;
 import eu.netmobiel.profile.repository.ReviewDao;
 
@@ -43,7 +43,7 @@ public class ProfileReportService {
     private ReviewDao reviewDao;
 
     @Inject
-    private PageVisitDao pageVisitDao;
+    private UserEventDao pageVisitDao;
 
     public Map<String, ProfileReport> reportUsers() throws BadRequestException {
     	Map<String, ProfileReport> reportMap = new HashMap<>();
@@ -92,9 +92,19 @@ public class ProfileReportService {
     public Map<String, ActivityReport> reportUsageActivity(Instant since, Instant until) throws BadRequestException {
     	Map<String, ActivityReport> reportMap = new HashMap<>();
     	// ACT-5
-    	for (NumericReportValue nrv : pageVisitDao.reportCount(PageVisit.ACT_5_USER_VISITS_DAYS_PER_MONTH_COUNT, since, until)) {
+    	for (NumericReportValue nrv : pageVisitDao.reportCount(UserEvent.ACT_5_USER_VISITS_DAYS_PER_MONTH_COUNT, since, until)) {
     		reportMap.computeIfAbsent(nrv.getKey(), k -> new ActivityReport(nrv))
 			.setUsageDaysPerMonthCount(nrv.getValue());
+		}
+    	// ACT-6
+    	for (NumericReportValue nrv : pageVisitDao.reportCount(UserEvent.ACT_6_HOME_PAGE_UPDATES_COUNT, since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new ActivityReport(nrv))
+			.setViewHomePageCTACount(nrv.getValue());
+		}
+    	// ACT-7
+    	for (NumericReportValue nrv : pageVisitDao.reportCount(UserEvent.ACT_7_HOME_PAGE_UPDATES_CTA_PRESSED_COUNT, since, until)) {
+    		reportMap.computeIfAbsent(nrv.getKey(), k -> new ActivityReport(nrv))
+			.setSelectHomePageCTACount(nrv.getValue());
 		}
     	return reportMap;
     }

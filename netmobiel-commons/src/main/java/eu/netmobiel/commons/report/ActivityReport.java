@@ -35,6 +35,18 @@ public class ActivityReport extends ReportPeriodKey {
 	@CsvBindByName
 	private int usageDaysPerMonthCount;
 
+	/**
+	 * ACT-6: The number of times the user sees at least one call-to-action (on the home page).  
+	 */
+	@CsvBindByName
+	private int viewHomePageCTACount;
+
+	/**
+	 * ACT-7: The number of times the user has selected the a call-to-action from the home page.  
+	 */
+	@CsvBindByName
+	private int selectHomePageCTACount;
+
 	public ActivityReport() {
 		
 	}
@@ -85,6 +97,22 @@ public class ActivityReport extends ReportPeriodKey {
 
 	public void setUsageDaysPerMonthCount(int usageDaysPerMonthCount) {
 		this.usageDaysPerMonthCount = usageDaysPerMonthCount;
+	}
+
+	public int getViewHomePageCTACount() {
+		return viewHomePageCTACount;
+	}
+
+	public void setViewHomePageCTACount(int viewHomePageCTACount) {
+		this.viewHomePageCTACount = viewHomePageCTACount;
+	}
+
+	public int getSelectHomePageCTACount() {
+		return selectHomePageCTACount;
+	}
+
+	public void setSelectHomePageCTACount(int selectHomePageCTACount) {
+		this.selectHomePageCTACount = selectHomePageCTACount;
 	}
 
 	@Override

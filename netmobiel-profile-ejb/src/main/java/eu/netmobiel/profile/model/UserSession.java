@@ -91,10 +91,10 @@ public class UserSession implements Serializable {
 	private Profile realUser;
 
 	/*
-     * The page visit records.
+     * The user event records.
      */
     @OneToMany(mappedBy = "userSession", fetch = FetchType.LAZY)
-    private List<PageVisit> pageVisits;
+    private List<UserEvent> userEvents;
 
 	public Long getId() {
 		return id;
@@ -152,12 +152,12 @@ public class UserSession implements Serializable {
 		this.realUser = realUser;
 	}
 
-	public List<PageVisit> getPageVisits() {
-		return pageVisits;
+	public List<UserEvent> getUserEvents() {
+		return userEvents;
 	}
 
-	public void setPageVisits(List<PageVisit> pageVisits) {
-		this.pageVisits = pageVisits;
+	public void setUserEvents(List<UserEvent> userEvents) {
+		this.userEvents = userEvents;
 	}
 
 	@Override

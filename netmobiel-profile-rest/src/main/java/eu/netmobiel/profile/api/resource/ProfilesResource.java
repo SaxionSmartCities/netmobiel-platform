@@ -189,7 +189,7 @@ public class ProfilesResource extends BasicResource implements ProfilesApi {
 				domUserSession.setIpAddress(getRemoteAddress());
 				domUserSession.setRealUser(context.getCallingUser());
 				final Profile effUser = securityIdentity.isDelegationActive() ? context.getEffectiveUser() : null;
-		    	profileManager.logPageVisits(domUserSession, effUser, Boolean.TRUE.equals(isFinalLog));
+		    	profileManager.logUserEvents(domUserSession, effUser, Boolean.TRUE.equals(isFinalLog));
 	    	}
 			rsp = Response.accepted().build();
 		} catch (IllegalArgumentException e) {

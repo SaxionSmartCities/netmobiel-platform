@@ -50,13 +50,13 @@ import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.messagebird.MessageBird;
 import eu.netmobiel.profile.event.DelegatorAccountCreatedEvent;
 import eu.netmobiel.profile.filter.ProfileFilter;
-import eu.netmobiel.profile.model.PageVisit;
+import eu.netmobiel.profile.model.UserEvent;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
 import eu.netmobiel.profile.model.SearchPreferences;
 import eu.netmobiel.profile.model.UserSession;
 import eu.netmobiel.profile.repository.KeycloakDao;
-import eu.netmobiel.profile.repository.PageVisitDao;
+import eu.netmobiel.profile.repository.UserEventDao;
 import eu.netmobiel.profile.repository.ProfileDao;
 import eu.netmobiel.profile.repository.RidesharePreferencesDao;
 import eu.netmobiel.profile.repository.SearchPreferencesDao;
@@ -117,7 +117,7 @@ public class ProfileManager {
     private UserSessionDao userSessionDao;
 
     @Inject
-    private PageVisitDao pageVisitDao;
+    private UserEventDao userEventDao;
 
     public CallingContext<Profile> findCallingContext(SecurityIdentity securityIdentity) throws NotFoundException {
 		Profile caller = getFlatProfileByManagedIdentity(securityIdentity.getPrincipal().getName());
@@ -533,11 +533,11 @@ public class ProfileManager {
      * @throws NotFoundException 
      */
     @Asynchronous
-    public void logPageVisits(UserSession session, Profile effectiveUser, boolean isFinalLog) throws NotFoundException {
+    public void logUserEvents(UserSession session, Profile effectiveUser, boolean isFinalLog) throws NotFoundException {
     	UserSession usdb = userSessionDao.findUserSessionBySessionId(session.getSessionId())
     		.orElseGet(() -> {
-    			Instant start = session.getPageVisits().size() > 0 
-    					? session.getPageVisits().get(0).getVisitTime() 
+    			Instant start = session.getUserEvents().size() > 0 
+    					? session.getUserEvents().get(0).getEventTime() 
     					: Instant.now(); 
     			session.setSessionStart(start);
     			return userSessionDao.save(session);	
@@ -546,10 +546,10 @@ public class ProfileManager {
     	if (isFinalLog) {
     		usdb.setSessionEnd(Instant.now());
     	}
-    	for (PageVisit pv : session.getPageVisits()) {
-    		pv.setUserSession(usdb);
-    		pv.setOnBehalfOf(effectiveUser);
-    		pageVisitDao.save(pv);
+    	for (UserEvent ev : session.getUserEvents()) {
+    		ev.setUserSession(usdb);
+    		ev.setOnBehalfOf(effectiveUser);
+    		userEventDao.save(ev);
 		}
     }
 }
