@@ -29,16 +29,19 @@ public class RideFilter extends PeriodFilter {
 	private Long siblingRideId;
 
 	/**
-	 * Should we ignore the anonymous flag? Only when a user requests his own
-	 * donations, or when an admin requests the overview In report queries the
-	 * anonymous donations are *always* excluded from the reports.
+	 * Included deleted rides as well. 
 	 */
 	private boolean deletedToo;
+
+	/**
+	 * Do not include cancelled rides. 
+	 */
+	private boolean skipCancelled;
 
 	public RideFilter() {
 	}
 
-	public RideFilter(Long driverId, OffsetDateTime since, OffsetDateTime until, String rideState, String bookingState, Long siblingRideId, String sortDir, boolean deletedToo) {
+	public RideFilter(Long driverId, OffsetDateTime since, OffsetDateTime until, String rideState, String bookingState, Long siblingRideId, String sortDir, boolean deletedToo, boolean skipCancelled) {
 		this.driverId = driverId;
 		setSince(since);
 		setUntil(until);
@@ -47,6 +50,7 @@ public class RideFilter extends PeriodFilter {
 		setSortDir(sortDir);
 		this.siblingRideId = siblingRideId;
 		this.deletedToo = deletedToo;
+		this.skipCancelled = skipCancelled;
 	}
 	
 	public RideFilter(RideshareUser driver, Instant since, Instant until) {
@@ -125,6 +129,14 @@ public class RideFilter extends PeriodFilter {
 		this.siblingRideId = siblingRideId;
 	}
 
+	public boolean isSkipCancelled() {
+		return skipCancelled;
+	}
+
+	public void setSkipCancelled(boolean skipCancelled) {
+		this.skipCancelled = skipCancelled;
+	}
+
 	@Override
 	public String toString() {
 		StringBuilder builder = new StringBuilder();
@@ -133,11 +145,6 @@ public class RideFilter extends PeriodFilter {
 			builder.append(driverId);
 			builder.append(" ");
 		}
-//		if (driver != null) {
-//			builder.append("dr=");
-//			builder.append(driver);
-//			builder.append(" ");
-//		}
 		if (rideState != null) {
 			builder.append("rs=");
 			builder.append(rideState);
@@ -153,8 +160,14 @@ public class RideFilter extends PeriodFilter {
 			builder.append(siblingRideId);
 			builder.append(", ");
 		}
-		builder.append("dt=");
-		builder.append(deletedToo);
+		if (deletedToo) {
+			builder.append("dt=");
+			builder.append(deletedToo);
+		}
+		if (skipCancelled) {
+			builder.append("sc=");
+			builder.append(skipCancelled);
+		}
 		builder.append(" ");
 		builder.append(super.toString());
 		return builder.toString();

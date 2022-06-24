@@ -20,6 +20,7 @@ import eu.netmobiel.commons.event.TripValidationEvent;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.repository.ClockDao;
@@ -33,6 +34,7 @@ import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.event.TripConfirmedEvent;
 import eu.netmobiel.planner.event.TripStateUpdatedEvent;
 import eu.netmobiel.planner.event.TripUnconfirmedEvent;
+import eu.netmobiel.planner.filter.TripFilter;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlannerUser;
@@ -119,26 +121,28 @@ public class TripManagerTest {
 	}
 
 	@Test
-	public void testListTrips() {
-		TripState state = TripState.SCHEDULED;
-		Instant since = Instant.parse("2020-06-24T00:00:00Z");
-		Instant until = Instant.parse("2020-06-25T00:00:00Z");
-		Boolean deletedToo = true;
-		SortDirection sortDir = SortDirection.ASC;
-		Integer maxResults = 9;
-		Integer offset = 1;
+	public void testListTrips() throws BadRequestException {
+    	TripFilter filter = new TripFilter();
+    	Cursor cursor = new Cursor();
+    	filter.setTripState(TripState.SCHEDULED);
+    	filter.setSince(Instant.parse("2020-06-24T00:00:00Z"));
+    	filter.setUntil(Instant.parse("2020-06-25T00:00:00Z"));
+    	filter.setDeletedToo(true);
+    	filter.setSortDir(SortDirection.ASC);
+    	filter.validate();
+    	cursor.validate(9,  1);
 		new Expectations() {{
-			tripDao.findTrips(traveller, state, since, until, deletedToo, sortDir, 0, 0);
+			tripDao.findTrips(filter, Cursor.COUNTING_CURSOR);
 			result = PagedResult.empty();
 		}};
 		try {
-			tested.listTrips(traveller, state, since, until, deletedToo, sortDir, maxResults, offset);
+			tested.listTrips(filter, cursor);
 		} catch (BusinessException ex) {
 			fail("Unexpected exception: " + ex);
 		}
 		new Verifications() {{
 			// Verify call to DAO. No results returned, so no second call.
-			tripDao.findTrips(traveller, state, since, until, deletedToo, sortDir, 0, 0);
+			tripDao.findTrips(filter, Cursor.COUNTING_CURSOR);
 			times = 1;
 //			tripDao.findTrips(traveller, state, since, until, deletedToo, sortDir, maxResults, offset);
 //			times = 1;

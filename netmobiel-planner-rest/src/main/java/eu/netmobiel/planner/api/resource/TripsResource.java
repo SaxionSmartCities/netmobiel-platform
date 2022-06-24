@@ -16,10 +16,10 @@ import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.RemoveException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.CallingContext;
 import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.PagedResult;
-import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.security.SecurityIdentity;
 import eu.netmobiel.commons.util.UrnHelper;
 import eu.netmobiel.planner.api.TripsApi;
@@ -27,11 +27,11 @@ import eu.netmobiel.planner.api.mapping.LegMapper;
 import eu.netmobiel.planner.api.mapping.PageMapper;
 import eu.netmobiel.planner.api.mapping.TripMapper;
 import eu.netmobiel.planner.api.model.Leg.ConfirmationReasonEnum;
+import eu.netmobiel.planner.filter.TripFilter;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.PlannerUser;
 import eu.netmobiel.planner.model.Trip;
-import eu.netmobiel.planner.model.TripState;
 import eu.netmobiel.planner.service.PlannerUserManager;
 import eu.netmobiel.planner.service.TripManager;
 
@@ -120,15 +120,10 @@ public class TripsResource extends PlannerResource implements TripsApi {
 
 	@Override
 	public Response getTrips(String xDelegator, String userRef, String tripState, 
-			OffsetDateTime since, OffsetDateTime until, Boolean deletedToo, 
+			OffsetDateTime since, OffsetDateTime until, Boolean deletedToo, Boolean skipCancelled,
 			String sortDir, Integer maxResults, Integer offset) {
     	Response rsp = null;
 		try {
-			TripState state = tripState == null ? null : TripState.valueOf(tripState);
-			SortDirection sortDirection = sortDir == null ? SortDirection.ASC : SortDirection.valueOf(sortDir);
-	    	if (since == null && until == null) {
-	    		since = OffsetDateTime.now();
-	    	}
 			CallingContext<PlannerUser> context = userManager.findOrRegisterCallingContext(securityIdentity);
     		PlannerUser traveller = null;
 	    	if (userRef == null) {
@@ -138,13 +133,9 @@ public class TripsResource extends PlannerResource implements TripsApi {
 	    				.orElseThrow(() -> new IllegalStateException("Didn't expect user null from " + userRef));
 	    	}
 	    	allowAdminOrEffectiveUser(request, context, traveller);
-	    	PagedResult<Trip> results = null;
-        	// Only retrieve if a user exists in the planner service
-	    	if (traveller != null && traveller.getId() != null) {
-	    		results = tripManager.listTrips(traveller, state, toInstant(since), toInstant(until), deletedToo, sortDirection, maxResults, offset);
-	    	} else {
-	    		results = PagedResult.<Trip>empty();
-	    	}
+	    	TripFilter filter = new TripFilter(traveller, since, until, tripState, deletedToo, skipCancelled, sortDir);
+	    	Cursor cursor = new Cursor(maxResults, offset);
+	    	PagedResult<Trip> results = tripManager.listTrips(filter, cursor);
 			rsp = Response.ok(pageMapper.mapMine(results)).build();
 		} catch (IllegalArgumentException e) {
 			throw new BadRequestException(e);

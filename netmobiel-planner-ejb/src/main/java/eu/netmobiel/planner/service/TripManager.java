@@ -1,6 +1,5 @@
 package eu.netmobiel.planner.service;
 
-import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -22,11 +21,11 @@ import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.RemoveException;
 import eu.netmobiel.commons.exception.UpdateException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.ConfirmationReasonType;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.PaymentState;
-import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.Command;
 import eu.netmobiel.commons.util.EventFireWrapper;
 import eu.netmobiel.commons.util.Logging;
@@ -40,6 +39,7 @@ import eu.netmobiel.planner.event.ShoutOutResolvedEvent;
 import eu.netmobiel.planner.event.TripConfirmedEvent;
 import eu.netmobiel.planner.event.TripEvaluatedEvent;
 import eu.netmobiel.planner.event.TripUnconfirmedEvent;
+import eu.netmobiel.planner.filter.TripFilter;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.ModalityUsage;
@@ -110,38 +110,21 @@ public class TripManager {
      * List all trips owned by the specified user. Soft deleted trips are omitted.
      * @return A list of trips owned by the specified user.
      */
-    public PagedResult<Trip> listTrips(PlannerUser traveller, TripState state, Instant since, Instant until, Boolean deletedToo, 
-    		SortDirection sortDirection, Integer maxResults, Integer offset) throws BadRequestException {
-    	if (until != null && since != null && !until.isAfter(since)) {
-    		throw new BadRequestException("Constraint violation: 'until' must be later than 'since'.");
-    	}
-    	if (maxResults != null && maxResults > 100) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' <= 100.");
-    	}
-    	if (maxResults != null && maxResults < 0) {
-    		throw new BadRequestException("Constraint violation: 'maxResults' >= 0.");
-    	}
-    	if (offset != null && offset < 0) {
-    		throw new BadRequestException("Constraint violation: 'offset' >= 0.");
-    	}
-        if (maxResults == null) {
-        	maxResults = MAX_RESULTS;
-        }
-        if (offset == null) {
-        	offset = 0;
-        }
+    public PagedResult<Trip> listTrips(TripFilter filter, Cursor cursor) throws BadRequestException {
+    	filter.validate();
+    	cursor.validate(MAX_RESULTS, 0);
         List<Trip> results = Collections.emptyList();
         Long totalCount = 0L;
-		PagedResult<Long> prs = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 0, 0);
+		PagedResult<Long> prs = tripDao.findTrips(filter, Cursor.COUNTING_CURSOR);
 		totalCount = prs.getTotalCount();
-    	if (totalCount > 0 && maxResults > 0) {
+    	if (totalCount > 0 && !cursor.isCountingQuery()) {
     		// Get the actual data
-    		PagedResult<Long> tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, maxResults, offset);
+    		PagedResult<Long> tripIds = tripDao.findTrips(filter, cursor);
     		if (tripIds.getData().size() > 0) {
     			results = tripDao.loadGraphs(tripIds.getData(), Trip.DETAILED_ENTITY_GRAPH, Trip::getId);
     		}
     	}
-    	return new PagedResult<>(results, maxResults, offset, totalCount);
+    	return new PagedResult<>(results, cursor, totalCount);
     }
 
     /**

@@ -50,13 +50,8 @@ public class RidesResource extends RideshareResource implements RidesApi {
      */
     @Override
 	public Response listRides(String driverId, OffsetDateTime since, OffsetDateTime until, String state, String bookingState,
-    		String siblingRideId, Boolean deletedToo, String sortDir, Integer maxResults, Integer offset) {
+    		String siblingRideId, Boolean deletedToo, Boolean skipCancelled, String sortDir, Integer maxResults, Integer offset) {
     	Response rsp = null;
-    	if (since == null && until == null) {
-    		since = OffsetDateTime.now();
-    	}
-
-    	PagedResult<Ride> rides = null;
 		try {
 			RideshareUser driver = null;
 			if (driverId != null) {
@@ -64,15 +59,15 @@ public class RidesResource extends RideshareResource implements RidesApi {
 						.orElseThrow(() -> new NotFoundException("No such user: " + driverId));
 			} else {
 				driver = rideshareUserManager.findCallingUser();
+				if (driver.getId() == null) {
+					throw new NotFoundException("No such user: " + driver.toString());
+				}
 			}
-			if (driver.getId() != null) {
-				RideFilter filter = new RideFilter(driver.getId(), since, until, state, bookingState, 
-						UrnHelper.getId(Ride.URN_PREFIX, siblingRideId), sortDir, Boolean.TRUE.equals(deletedToo));
-				Cursor cursor = new Cursor(maxResults, offset);
-				rides = rideManager.listRides(filter, cursor);
-			} else {
-				rides = PagedResult.empty();
-			}
+			RideFilter filter = new RideFilter(driver.getId(), since, until, state, bookingState, 
+					UrnHelper.getId(Ride.URN_PREFIX, siblingRideId), sortDir, 
+					Boolean.TRUE.equals(deletedToo), Boolean.TRUE.equals(skipCancelled));
+			Cursor cursor = new Cursor(maxResults, offset);
+			PagedResult<Ride> rides = rideManager.listRides(filter, cursor);
 			// Map the rides as my rides: Brand/model car only, no driver info (because it is the specified driver)
 			rsp = Response.ok(pageMapper.mapMine(rides)).build();
 		} catch (BusinessException e) {

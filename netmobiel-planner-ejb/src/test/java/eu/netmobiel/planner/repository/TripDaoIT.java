@@ -21,9 +21,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.slf4j.Logger;
 
+import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.filter.Cursor;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.model.SortDirection;
 import eu.netmobiel.commons.util.UrnHelper;
+import eu.netmobiel.planner.filter.TripFilter;
 import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.Itinerary_;
 import eu.netmobiel.planner.model.Leg;
@@ -90,13 +94,14 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
 
 		trip0 = Fixture.createTrip(user1, plan0);
 		trip0.setDeleted(true);
-		trip0.setCancelReason("Sorry, verkeerde dag");
 		em.persist(trip0);
 		trip1 = Fixture.createTrip(user1, plan1);
 		em.persist(trip1);
 		trip2 = Fixture.createTrip(user2, plan2);
 		em.persist(trip2);
 		trip3 = Fixture.createTrip(user3, plan3);
+		trip3.setState(TripState.CANCELLED);
+		trip3.setCancelReason("Sorry, verkeerde dag");
 		em.persist(trip3);
 
 	}
@@ -182,14 +187,13 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
 //	}
 
     @Test
-    public void listTrips_All_Sorting() {
-    	PlannerUser traveller = null;
-    	TripState state = null;
-    	Instant since = null;
-    	Instant until = null; 
-		Boolean deletedToo = null;
-		SortDirection sortDirection = null;
-    	PagedResult<Long> tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
+    public void listTrips_All_Sorting() throws BusinessException {
+    	TripFilter filter = new TripFilter();
+    	Cursor cursor = new Cursor();
+    	filter.validate();
+    	cursor.validate(10,  0);
+
+    	PagedResult<Long> tripIds = tripDao.findTrips(filter, cursor);
     	assertNotNull(tripIds);
     	assertEquals(3, tripIds.getCount());
     	List<Trip> trips = tripDao.loadGraphs(tripIds.getData(), null, Trip::getId);
@@ -199,16 +203,16 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     			.allMatch(i -> trips.get(i).getItinerary().getDepartureTime().isBefore(trips.get(i + 1).getItinerary().getDepartureTime()))
     	);
     	
-    	sortDirection = SortDirection.ASC;
-    	tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
+    	filter.setSortDir(SortDirection.ASC);
+    	tripIds = tripDao.findTrips(filter, cursor);
     	List<Trip> trips2 = tripDao.loadGraphs(tripIds.getData(), null, Trip::getId);
     	assertTrue(IntStream
     			.range(0, trips2.size() - 1)
     			.allMatch(i -> trips2.get(i).getItinerary().getDepartureTime().isBefore(trips2.get(i + 1).getItinerary().getDepartureTime()))
     	);
 
-    	sortDirection = SortDirection.DESC;
-    	tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
+    	filter.setSortDir(SortDirection.DESC);
+    	tripIds = tripDao.findTrips(filter, cursor);
     	List<Trip> trips3 = tripDao.loadGraphs(tripIds.getData(), null, Trip::getId);
     	assertTrue(IntStream
     			.range(0, trips3.size() - 1)
@@ -219,85 +223,99 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
     
     @Test
     public void listTrips_ByState() throws Exception {
-    	PlannerUser traveller = null;
-    	TripState state = TripState.PLANNING;
-    	Instant since = null;
-    	Instant until = null; 
-		Boolean deletedToo = null;
-		SortDirection sortDirection = null;
-    	PagedResult<Long> tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
+    	TripFilter filter = new TripFilter();
+    	Cursor cursor = new Cursor();
+    	filter.validate();
+    	cursor.validate(10,  0);
+
+    	filter.setTripState(TripState.PLANNING);
+    	PagedResult<Long> tripIds = tripDao.findTrips(filter, cursor);
     	assertNotNull(tripIds);
     	assertEquals(0, tripIds.getCount());
-    	state = TripState.SCHEDULED;
-    	tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
-    	assertEquals(3, tripIds.getCount());
+
+    	filter.setTripState(TripState.SCHEDULED);
+    	tripIds = tripDao.findTrips(filter, cursor);
+    	assertEquals(2, tripIds.getCount());
     }
 
     @Test
-    public void listTrips_InProgressOnly() {
-    	PlannerUser traveller = null;
-    	TripState state = null;
-    	Instant since = null;
-    	Instant until = null; 
-		Boolean deletedToo = true;
-		SortDirection sortDirection = null;
-    	PagedResult<Long> tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
+    public void listTrips_DeletedToo() throws BadRequestException {
+    	TripFilter filter = new TripFilter();
+    	Cursor cursor = new Cursor();
+    	filter.validate();
+    	cursor.validate(10,  0);
+
+		filter.setDeletedToo(true);
+    	PagedResult<Long> tripIds = tripDao.findTrips(filter, cursor);
     	assertNotNull(tripIds);
     	assertEquals(4, tripIds.getCount());
     }
     
     @Test
-    public void listTrips_ByUser() {
-    	PlannerUser traveller = user1;
-    	TripState state = null;
-    	Instant since = null;
-    	Instant until = null; 
-		Boolean deletedToo = null;
-		SortDirection sortDirection = null;
-    	PagedResult<Long> tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
+    public void listTrips_SkipCancelled() throws BadRequestException {
+    	TripFilter filter = new TripFilter();
+    	Cursor cursor = new Cursor();
+    	filter.validate();
+    	cursor.validate(10,  0);
+
+		filter.setSkipCancelled(true);
+    	PagedResult<Long> tripIds = tripDao.findTrips(filter, cursor);
+    	assertNotNull(tripIds);
+    	assertEquals(2, tripIds.getCount());
+    }
+
+    @Test
+    public void listTrips_ByUser() throws BadRequestException {
+    	TripFilter filter = new TripFilter();
+    	Cursor cursor = new Cursor();
+    	filter.validate();
+    	cursor.validate(10,  0);
+
+    	filter.setTraveller(user1);
+    	PagedResult<Long> tripIds = tripDao.findTrips(filter, cursor);
     	assertNotNull(tripIds);
     	assertEquals(1, tripIds.getCount());
     }
     
     @Test
-    public void listTrips_Since() {
-    	PlannerUser traveller = null;
-    	TripState state = null;
-    	Instant since = Instant.parse("2020-03-19T12:00:00Z");
-    	Instant until = null; 
-		Boolean deletedToo = null;
-		SortDirection sortDirection = null;
-    	PagedResult<Long> tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
+    public void listTrips_Since() throws BadRequestException {
+    	TripFilter filter = new TripFilter();
+    	Cursor cursor = new Cursor();
+    	filter.validate();
+    	cursor.validate(10,  0);
+
+    	filter.setSince(Instant.parse("2020-03-19T12:00:00Z"));
+    	PagedResult<Long> tripIds = tripDao.findTrips(filter, cursor);
     	assertNotNull(tripIds);
     	assertEquals(3, tripIds.getCount());
     	
-    	since = Instant.parse("2020-03-20T12:00:00Z");
-    	tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
+    	filter.setSince(Instant.parse("2020-03-20T12:00:00Z"));
+    	tripIds = tripDao.findTrips(filter, cursor);
     	assertEquals(3, tripIds.getCount());
 
-    	since = Instant.parse("2020-03-22T12:00:00Z");
-    	tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
+    	filter.setSince(Instant.parse("2020-03-22T12:00:00Z"));
+    	tripIds = tripDao.findTrips(filter, cursor);
     	assertEquals(1, tripIds.getCount());
     }
 
     @Test
-    public void listTrips_Until() {
-    	PlannerUser traveller = null;
-    	TripState state = null;
-    	Instant since = null;
-    	Instant until = Instant.parse("2020-03-19T12:00:00Z"); 
-		Boolean deletedToo = null;
-		SortDirection sortDirection = null;
-    	PagedResult<Long> tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
+    public void listTrips_Until() throws BadRequestException {
+    	TripFilter filter = new TripFilter();
+    	Cursor cursor = new Cursor();
+    	filter.validate();
+    	cursor.validate(10,  0);
+
+    	filter.setUntil(Instant.parse("2020-03-19T12:00:00Z"));
+    	PagedResult<Long> tripIds = tripDao.findTrips(filter, cursor);
     	assertNotNull(tripIds);
     	assertEquals(0, tripIds.getCount());
     	
-    	until = Instant.parse("2020-03-20T12:00:00Z");
-    	tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
+    	filter.setUntil(Instant.parse("2020-03-20T12:00:00Z"));
+    	tripIds = tripDao.findTrips(filter, cursor);
     	assertEquals(0, tripIds.getCount());
 
-    	until = Instant.parse("2020-03-22T12:00:00Z");
-    	tripIds = tripDao.findTrips(traveller, state, since, until, deletedToo, sortDirection, 10, 0);
+    	filter.setUntil(Instant.parse("2020-03-22T12:00:00Z"));
+    	tripIds = tripDao.findTrips(filter, cursor);
     	assertEquals(2, tripIds.getCount());
     }
 
@@ -358,21 +376,21 @@ public class TripDaoIT  extends PlannerIntegrationTestBase {
 
     @Test
     public void findTripsToMonitor_AllScheduled() throws Exception {
-    	List<Long> tripIds = tripDao.findTripsToMonitor(Instant.parse("2020-03-22T19:30:00Z"));
+    	List<Long> tripIds = tripDao.findTripsToMonitor(Instant.parse("2020-03-22T14:30:00Z"));
     	assertNotNull(tripIds);
-    	assertEquals(4, tripIds.size());
+    	assertEquals(2, tripIds.size());
     	// Assert trip is departing within 1 hour
     	// Need to fetch the graph
-    	Trip trip = tripDao.fetchGraph(tripIds.get(3), Trip.DETAILED_ENTITY_GRAPH).orElse(null);
+    	Trip trip = tripDao.fetchGraph(tripIds.get(1), Trip.DETAILED_ENTITY_GRAPH).orElse(null);
     	assertNotNull(trip);
-    	assertTrue(Duration.between(trip.getItinerary().getDepartureTime(), Instant.parse("2020-03-22T19:30:00Z")).getSeconds() < 3600);
+    	assertTrue(Duration.between(Instant.parse("2020-03-21T16:30:00Z"), trip.getItinerary().getDepartureTime()).getSeconds() < 3600);
     }
 
     @Test
     public void findTripsToMonitor_Some() throws Exception {
-    	List<Long> tripIds = tripDao.findTripsToMonitor(Instant.parse("2020-03-22T17:00:00Z"));
+    	List<Long> tripIds = tripDao.findTripsToMonitor(Instant.parse("2020-03-20T17:00:00Z"));
     	assertNotNull(tripIds);
-    	assertEquals(3, tripIds.size());
+    	assertEquals(1, tripIds.size());
     }
 
     @Test

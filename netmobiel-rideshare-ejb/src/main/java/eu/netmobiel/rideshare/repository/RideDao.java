@@ -43,7 +43,6 @@ import eu.netmobiel.rideshare.model.RideshareUser;
 public class RideDao extends AbstractDao<Ride, Long> {
 	public static final Integer DEFAULT_PAGE_SIZE = 10; 
 
-	@SuppressWarnings("unused")
 	@Inject
     private Logger logger;
     
@@ -88,6 +87,9 @@ public class RideDao extends AbstractDao<Ride, Long> {
         if (!filter.isDeletedToo()) {
             Predicate predNotDeleted = cb.or(cb.isNull(root.get(Ride_.deleted)), cb.isFalse(root.get(Ride_.deleted)));
 	        predicates.add(predNotDeleted);
+        }
+        if (filter.isSkipCancelled()) {
+ 	        predicates.add(cb.notEqual(root.get(Ride_.state), RideState.CANCELLED));
         }
         cq.where(cb.and(predicates.toArray(new Predicate[predicates.size()])));
         Long totalCount = null;
