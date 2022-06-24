@@ -26,6 +26,8 @@ public interface TripPlanMapper {
     @Mapping(target = "lastLegRideshare", source = "lastLegRideshareAllowed")
     @Mapping(target = "itineraries", source = "itineraries", qualifiedBy = { ItineraryMapperQualifier.class })
     @Mapping(target = "referenceItinerary", source = "referenceItinerary", qualifiedBy = { ItineraryMapperQualifier.class })
+	@Mapping(target = "removeItinerariesItem", ignore = true)
+	@Mapping(target = "removeModalitiesItem", ignore = true)
     @TripPlanDetails
     eu.netmobiel.planner.api.model.TripPlan map(TripPlan source );
 
@@ -34,6 +36,8 @@ public interface TripPlanMapper {
     @Mapping(target = "lastLegRideshare", ignore = true)
     @Mapping(target = "itineraries", source = "itineraries", qualifiedBy = { ItineraryMapperQualifier.class })
     @Mapping(target = "referenceItinerary", source = "referenceItinerary", qualifiedBy = { ItineraryMapperQualifier.class })
+	@Mapping(target = "removeItinerariesItem", ignore = true)
+	@Mapping(target = "removeModalitiesItem", ignore = true)
     @TripPlanShallow
     eu.netmobiel.planner.api.model.TripPlan mapShoutOut(TripPlan source );
 

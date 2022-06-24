@@ -31,9 +31,11 @@ public abstract class SurveyMapper {
 //	public abstract List<eu.netmobiel.profile.api.model.SurveyInteraction> mapWithUser(List<SurveyInteraction> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { Shallow.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Page mapWithoutUser(PagedResult<SurveyInteraction> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { PublicProfile.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Page mapWithUser(PagedResult<SurveyInteraction> source);
 
 	

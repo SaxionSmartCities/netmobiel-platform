@@ -28,11 +28,13 @@ public interface CharityMapper {
 	// Domain --> API
 	@CharityWithRoleAndAccountDetails
 	@Mapping(target = "account", source = "account", qualifiedBy = { AccountMapperQualifier.class, AccountAll.class })
+	@Mapping(target = "removeRolesItem", ignore = true)
 	eu.netmobiel.banker.api.model.Charity mapWithRolesAndAccount(Charity source);
 
 	// Domain --> API
 	@Mapping(target = "roles", ignore = true)
 	@Mapping(target = "account", ignore = true)
+	@Mapping(target = "removeRolesItem", ignore = true)
 	@CharityDetails
 	eu.netmobiel.banker.api.model.Charity mapWithoutRoles(Charity source);
 

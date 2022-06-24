@@ -17,7 +17,7 @@ import eu.netmobiel.profile.api.mapping.annotation.ProfileMapperQualifier;
 import eu.netmobiel.profile.api.mapping.annotation.PublicProfile;
 import eu.netmobiel.profile.api.mapping.annotation.Shallow;
 import eu.netmobiel.profile.api.model.Profile.ActingRoleEnum;
-import eu.netmobiel.profile.model.PageVisit;
+import eu.netmobiel.profile.model.UserEvent;
 import eu.netmobiel.profile.model.Profile;
 import eu.netmobiel.profile.model.RidesharePreferences;
 import eu.netmobiel.profile.model.SearchPreferences;
@@ -35,9 +35,11 @@ import eu.netmobiel.profile.model.UserSession;
 @ProfileMapperQualifier
 public abstract class ProfileMapper {
 	@Mapping(target = "data", source = "data", qualifiedBy = { Shallow.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Page mapShallow(PagedResult<Profile> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { PublicProfile.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Page mapSecondary(PagedResult<Profile> source);
 
 	// Translation of a faulty acting role enum to a safe value,
@@ -66,6 +68,7 @@ public abstract class ProfileMapper {
 	// The id is defined as the keycloak identity.
 	@Mapping(target = "id", source = "managedIdentity")
 	@Mapping(target = "interests", ignore = true)
+	@Mapping(target = "removeInterestsItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Profile commonMap(Profile source);
 
 	@PublicProfile
@@ -97,8 +100,8 @@ public abstract class ProfileMapper {
 	@BeanMapping(qualifiedBy = Shallow.class)
 	public abstract eu.netmobiel.profile.api.model.Profile mapShallow(Profile source);
 
-	@InheritConfiguration(name = "commonMap")
 	@ProfileComplete
+	@InheritConfiguration(name = "commonMap")
 	@BeanMapping(qualifiedBy = ProfileComplete.class)
 	public abstract eu.netmobiel.profile.api.model.Profile mapComplete(Profile source);
 
@@ -135,6 +138,7 @@ public abstract class ProfileMapper {
 	}
 
 	@Mapping(target = "selectedCarRef", source = "defaultCarRef")
+	@Mapping(target = "removeLuggageOptionsItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.RidePlanOptions map(RidesharePreferences source);
 
 	@InheritInverseConfiguration
@@ -144,6 +148,8 @@ public abstract class ProfileMapper {
 
 	@Mapping(target = "numPassengers", source = "numberOfPassengers")
 	@Mapping(target = "allowedTravelModes", source = "allowedTraverseModes")
+	@Mapping(target = "removeAllowedTravelModesItem", ignore = true)
+	@Mapping(target = "removeLuggageOptionsItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.SearchPreferences map(SearchPreferences source);
 
 	@InheritInverseConfiguration
@@ -158,5 +164,5 @@ public abstract class ProfileMapper {
 	@Mapping(target = "id", ignore = true)
 	@Mapping(target = "userSession", ignore = true)
 	@Mapping(target = "onBehalfOf", ignore = true)
-	public abstract PageVisit map(eu.netmobiel.profile.api.model.PageVisit source);
+	public abstract UserEvent map(eu.netmobiel.profile.api.model.UserEvent source);
 }

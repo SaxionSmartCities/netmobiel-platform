@@ -22,6 +22,7 @@ public abstract class PageMapper {
 
 	// Domain page with conversation --> Api page of conversation
 	@Mapping(target = "data", source = "data", qualifiedBy = { ConversationMapperQualifier.class, Shallow.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.communicator.api.model.Page mapShallow(PagedResult<Conversation> source);
 
 }

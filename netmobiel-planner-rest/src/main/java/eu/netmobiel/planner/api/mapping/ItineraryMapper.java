@@ -21,5 +21,6 @@ import eu.netmobiel.planner.model.Itinerary;
 public interface ItineraryMapper {
 	
 	@Mapping(target = "legs", source = "legs", qualifiedBy = { LegMapperQualifier.class, LegDetails.class })
+	@Mapping(target = "removeLegsItem", ignore = true)
     eu.netmobiel.planner.api.model.Itinerary mapDetails(Itinerary source );
 }

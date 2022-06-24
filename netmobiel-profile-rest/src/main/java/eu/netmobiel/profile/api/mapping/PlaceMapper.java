@@ -23,6 +23,7 @@ import eu.netmobiel.profile.model.Place;
 @ProfileMapperQualifier
 public abstract class PlaceMapper {
 	@Mapping(target = "data", source = "data")
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Page mapPlacesPage(PagedResult<Place> source);
 
 	@Mapping(target = "countryCode", source ="address.countryCode")

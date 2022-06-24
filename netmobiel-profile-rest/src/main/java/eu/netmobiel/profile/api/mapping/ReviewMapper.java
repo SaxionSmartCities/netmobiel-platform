@@ -19,6 +19,7 @@ import eu.netmobiel.profile.model.Review;
 	uses = { GeometryMapper.class, JavaTimeMapper.class, ProfileMapper.class })
 public abstract class ReviewMapper {
 
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Review> source);
 	
 	// Domain --> API

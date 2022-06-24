@@ -26,17 +26,21 @@ import eu.netmobiel.rideshare.model.Ride;
 public abstract class PageMapper {
 	// Domain page with rides --> Api page of rides
 	@Mapping(target = "data", source = "data", qualifiedBy = { RideMapperQualifier.class, RideDetails.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.rideshare.api.model.Page mapInDetail(PagedResult<Ride> source);
 
 	// Domain page with rides --> Api page of rides
 	@Mapping(target = "data", source = "data", qualifiedBy = { RideMapperQualifier.class, RideMyDetails.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.rideshare.api.model.Page mapMine(PagedResult<Ride> source);
 
 	// Domain page with rides --> Api page of rides
 	@Mapping(target = "data", source = "data", qualifiedBy = { RideMapperQualifier.class, RideSearchDetails.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.rideshare.api.model.Page mapSearch(PagedResult<Ride> source);
 
 	// Domain page with rides --> Api page of rides
 	@Mapping(target = "data", source = "data", qualifiedBy = { BookingMapperQualifier.class, BookingNestedMine.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.rideshare.api.model.Page mapMyBookings(PagedResult<Booking> source);
 }

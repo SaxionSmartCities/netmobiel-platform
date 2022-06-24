@@ -59,6 +59,8 @@ public abstract class RideMapper {
 	@Mapping(target = "rideRef", source = "urn")
 	@Mapping(target = "toPlace", source = "to") 
 	@Mapping(target = "car", ignore = true)
+	@Mapping(target = "removeBookingsItem", ignore = true)
+	@Mapping(target = "removeLegsItem", ignore = true)
 	public abstract eu.netmobiel.rideshare.api.model.Ride commonMap(Ride source);
 
 	// Common mapping Api --> domain Ride
@@ -80,6 +82,7 @@ public abstract class RideMapper {
 	@Mapping(target = "version", ignore = true)
 	@Mapping(target = "departurePostalCode", ignore = true)
 	@Mapping(target = "arrivalPostalCode", ignore = true)
+	@Mapping(target = "activeBookings", ignore = true)
 	public abstract Ride commonInverseMap(eu.netmobiel.rideshare.api.model.Ride source);
 
 	

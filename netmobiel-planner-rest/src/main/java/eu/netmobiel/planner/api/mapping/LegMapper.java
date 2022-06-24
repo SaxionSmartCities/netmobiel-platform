@@ -35,11 +35,13 @@ public interface LegMapper {
     // Domain Leg --> API Leg
     @LegDetails
     @Mapping(target = "guideSteps", ignore = true)
+	@Mapping(target = "removeGuideStepsItem", ignore = true)
     eu.netmobiel.planner.api.model.Leg mapDetails(Leg source );
 
     // Domain Leg --> API Leg
     @Mapping(target = "legGeometry", ignore = true)
     @Mapping(target = "guideSteps", ignore = true)
+	@Mapping(target = "removeGuideStepsItem", ignore = true)
     @LegShallow
     eu.netmobiel.planner.api.model.Leg mapShallow(Leg source );
 

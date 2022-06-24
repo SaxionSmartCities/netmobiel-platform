@@ -26,14 +26,18 @@ import eu.netmobiel.planner.model.TripPlan;
 public abstract class PageMapper {
 	// Domain page with trips --> Api page of trips
 	@Mapping(target = "data", source = "data", qualifiedBy = { TripMapperQualifier.class, TripDetails.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.planner.api.model.Page mapInDetail(PagedResult<Trip> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { TripMapperQualifier.class, TripMyDetails.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.planner.api.model.Page mapMine(PagedResult<Trip> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { TripPlanMapperQualifier.class, TripPlanDetails.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.planner.api.model.Page mapPlans(PagedResult<TripPlan> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { TripPlanMapperQualifier.class, TripPlanShallow.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.planner.api.model.Page mapShoutOutPlans(PagedResult<TripPlan> source);
 }

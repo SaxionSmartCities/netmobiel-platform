@@ -28,12 +28,14 @@ public interface PaymentBatchMapper {
 	@Mapping(target = "createdBy", source = "createdBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
 	@Mapping(target = "modifiedBy", source = "modifiedBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
 	@Mapping(target = "withdrawalRequests", ignore = true)
+	@Mapping(target = "removeWithdrawalRequestsItem", ignore = true)
 	@PaymentBatchShallow
 	eu.netmobiel.banker.api.model.PaymentBatch mapShallow(PaymentBatch source);
 
 	@Mapping(target = "createdBy", source = "createdBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
 	@Mapping(target = "modifiedBy", source = "modifiedBy", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
 	@Mapping(target = "withdrawalRequests", source = "withdrawalRequests", qualifiedBy = { WithdrawalRequestMapperQualifier.class, WithdrawalRequestShallow.class })
+	@Mapping(target = "removeWithdrawalRequestsItem", ignore = true)
 	@PaymentBatchWithdrawals
 	eu.netmobiel.banker.api.model.PaymentBatch mapWithWithdrawals(PaymentBatch source);
 

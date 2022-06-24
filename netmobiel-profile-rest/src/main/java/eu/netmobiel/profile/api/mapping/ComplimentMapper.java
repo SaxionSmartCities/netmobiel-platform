@@ -21,6 +21,7 @@ import eu.netmobiel.profile.model.Profile;
 	uses = { GeometryMapper.class, JavaTimeMapper.class })
 public abstract class ComplimentMapper {
 
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Page map(PagedResult<Compliments> source);
 
 	// Domain --> API
@@ -37,6 +38,7 @@ public abstract class ComplimentMapper {
 	// Domain --> API
 	
 //	@Mapping(target = "complimentType", source = "compliment")
+	@Mapping(target = "removeComplimentsItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Compliments map(Compliments source);
 
 	// API --> Domain

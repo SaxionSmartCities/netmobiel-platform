@@ -24,6 +24,7 @@ public interface BalanceMapper {
 	@Mapping(target = "account", source = "account", qualifiedBy = { AccountMapperQualifier.class, AccountMinimal.class })
 	eu.netmobiel.banker.api.model.Balance map(Balance source);
 	
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page map(PagedResult<Balance> source);
 
 }

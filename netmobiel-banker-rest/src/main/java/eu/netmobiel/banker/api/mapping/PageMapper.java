@@ -52,53 +52,68 @@ import eu.netmobiel.commons.model.PagedResult;
 		WithdrawalRequestMapper.class, })
 public interface PageMapper {
 	@Mapping(target = "data", source = "data", qualifiedBy = { AccountMapperQualifier.class, AccountAll.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapAccountsAll(PagedResult<Account> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { AccountingEntryMapperQualifier.class,
 			AccountingEntryShallow.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapAccountingEntriesShallow(PagedResult<AccountingEntry> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { AccountingEntryMapperQualifier.class,
 			AccountingEntryAccount.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapAccountingEntriesWithAccount(PagedResult<AccountingEntry> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { CharityMapperQualifier.class,
 			CharityWithRoleAndAccountDetails.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapCharitiesWithRoleAndBalance(PagedResult<Charity> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { CharityMapperQualifier.class, CharityDetails.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapCharities(PagedResult<Charity> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { DonationMapperQualifier.class, DonationDetails.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapDonations(PagedResult<Donation> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { DonationMapperQualifier.class,
 			DonationWithCharity.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapDonationsWithCharity(PagedResult<Donation> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { DonationMapperQualifier.class, DonationWithUser.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapDonationsWithUser(PagedResult<Donation> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { IncentiveMapperQualifier.class, IncentiveDetails.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapIncentives(PagedResult<Incentive> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { PaymentBatchMapperQualifier.class,
 			PaymentBatchShallow.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapPaymentBatches(PagedResult<PaymentBatch> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { RewardMapperQualifier.class, RewardDetails.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapRewardsDetailed(PagedResult<Reward> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { RewardMapperQualifier.class, RewardShallow.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapRewardsShallow(PagedResult<Reward> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { UserMapperQualifier.class, UserCreditDetails.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapUsers(PagedResult<BankerUser> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { UserMapperQualifier.class, UserOnlyDetails.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapUsersWithoutPersonalCredit(PagedResult<BankerUser> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { WithdrawalRequestMapperQualifier.class,
 			WithdrawalRequestPaymentBatch.class })
+	@Mapping(target = "removeDataItem", ignore = true)
 	eu.netmobiel.banker.api.model.Page mapWithdrawalRequests(PagedResult<WithdrawalRequest> source);
 }

@@ -43,6 +43,7 @@ public abstract class BookingMapper {
 	@Mapping(target = "legs", source = "legs", qualifiedBy = { LegMapperQualifier.class, LegDetails.class })
 	@Mapping(target = "ride", source = "ride", qualifiedBy = { RideMapperQualifier.class, RideDetailsForBooking.class })
 	@Mapping(target = "bookingRef", source = "urn")
+	@Mapping(target = "removeLegsItem", ignore = true)
 	@BookingNestedMine
 	public abstract eu.netmobiel.rideshare.api.model.Booking mapMineInDetail(Booking source);
 
@@ -51,6 +52,7 @@ public abstract class BookingMapper {
 	@Mapping(target = "legs", source = "legs", qualifiedBy = { LegMapperQualifier.class, LegDetails.class })
 	@Mapping(target = "ride", source = "ride", qualifiedBy = { RideMapperQualifier.class, RideDetailsForBooking.class })
 	@Mapping(target = "bookingRef", source = "urn")
+	@Mapping(target = "removeLegsItem", ignore = true)
 	@BookingNested
 	public abstract eu.netmobiel.rideshare.api.model.Booking mapInDetail(Booking source);
 
@@ -58,6 +60,7 @@ public abstract class BookingMapper {
 	@Mapping(target = "legs", source = "legs", qualifiedBy = { LegMapperQualifier.class, LegReference.class })
 	@Mapping(target = "ride", ignore = true)
 	@Mapping(target = "bookingRef", source = "urn")
+	@Mapping(target = "removeLegsItem", ignore = true)
 	@BookingShallow
 	public abstract eu.netmobiel.rideshare.api.model.Booking mapShallow(Booking source);
 
@@ -65,6 +68,7 @@ public abstract class BookingMapper {
 	@Mapping(target = "legs", ignore = true)
 	@Mapping(target = "ride", ignore = true)
 	@Mapping(target = "bookingRef", source = "urn")
+	@Mapping(target = "removeLegsItem", ignore = true)
 	@BookingFlat
 	public abstract eu.netmobiel.rideshare.api.model.Booking mapFlat(Booking source);
 

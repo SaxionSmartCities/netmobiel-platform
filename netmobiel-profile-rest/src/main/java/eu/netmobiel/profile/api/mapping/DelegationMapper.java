@@ -26,9 +26,11 @@ import eu.netmobiel.profile.model.Profile;
 public abstract class DelegationMapper {
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { Shallow.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Page mapWithShallowProfiles(PagedResult<Delegation> source);
 
 	@Mapping(target = "data", source = "data", qualifiedBy = { PublicProfile.class } )
+	@Mapping(target = "removeDataItem", ignore = true)
 	public abstract eu.netmobiel.profile.api.model.Page mapWithPublicProfiles(PagedResult<Delegation> source);
 
 	// Domain --> API
