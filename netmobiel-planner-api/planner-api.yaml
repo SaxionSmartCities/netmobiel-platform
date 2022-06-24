@@ -849,6 +849,28 @@ paths:
         type: string
       in: path
       required: true
+  /trips/{tripId}/state:
+    summary: Path to refresh state machine
+    description: The end-point is used to re-run the trip monitor. Only for admin
+      role.
+    post:
+      responses:
+        "204":
+          description: 'Success response: State machine is updated.'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: runTripStateMachine
+      summary: Update the state of the trip.
+      description: Starts an evaluation of the trip state. This call is for maintenance
+        only and requires an admin role.
+    parameters:
+    - name: tripId
+      description: A unique identifier for a `Trip`.
+      schema:
+        type: string
+      in: path
+      required: true
   /trips:
     summary: Path used to manage the list of trips.
     description: |-
@@ -885,7 +907,7 @@ paths:
           Format:
             value: 2019-11-30T12:00:00+01:00
         name: since
-        description: The departure date at which to start the listing. Default is
+        description: The `arrival` date at which to start the listing. Default is
           now.
         schema:
           format: date-time
@@ -895,9 +917,10 @@ paths:
           Format:
             value: 2019-12-15T14:00:00+01:00
         name: until
-        description: The departure date and later not to include in the listing of
-          trips. The `until` date must be after the `since` parameter. Default is
-          not set, meaning all trips (after since).
+        description: The `departure` date and later not to include in the listing
+          of trips. The `until` date must be after the `since` parameter. Default
+          is not set, meaning all trips (after since). If `since` and `until` have
+          the same non-null value, you get the current active trips.
         schema:
           format: date-time
           type: string
@@ -905,6 +928,12 @@ paths:
       - name: deletedToo
         description: Set this flag to 'true' if deleted trips should be returned as
           well. Default is false.
+        schema:
+          type: boolean
+        in: query
+      - name: skipCancelled
+        description: Set this flag to 'true' if cancelled trips should not be returned.
+          Default is false.
         schema:
           type: boolean
         in: query
@@ -973,28 +1002,6 @@ paths:
       schema:
         type: string
       in: header
-  /trips/{tripId}/state:
-    summary: Path to refresh state machine
-    description: The end-point is used to re-run the trip monitor. Only for admin
-      role.
-    post:
-      responses:
-        "204":
-          description: 'Success response: State machine is updated.'
-      security:
-      - apikey: []
-        Bearer-only: []
-      operationId: runTripStateMachine
-      summary: Update the state of the trip.
-      description: Starts an evaluation of the trip state. This call is for maintenance
-        only and requires an admin role.
-    parameters:
-    - name: tripId
-      description: A unique identifier for a `Trip`.
-      schema:
-        type: string
-      in: path
-      required: true
 components:
   schemas:
     Error:
