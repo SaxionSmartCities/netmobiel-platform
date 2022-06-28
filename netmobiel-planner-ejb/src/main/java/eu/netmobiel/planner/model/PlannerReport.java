@@ -218,6 +218,9 @@ public class PlannerReport implements Serializable {
     @Column(name = "tool_type", nullable = false, length = 3)
     private ToolType toolType;
 
+    /**
+     * The plan as base of the reports.
+     */
     @ManyToOne(fetch = FetchType.LAZY)
 	@JoinColumn(name = "plan", foreignKey = @ForeignKey(name = "planner_report_plan_fk"), nullable = false)
 	private TripPlan plan;
