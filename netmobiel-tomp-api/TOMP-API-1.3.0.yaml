@@ -2084,13 +2084,12 @@ components:
           $ref: "#/components/schemas/customer"
 
     bookingState:
-      description: The life-cycle state of the booking (from NEW to FINISHED). JR':' Extended with PROPOSED
+      description: The life-cycle state of the booking (from NEW to FINISHED)
       type: string
       enum:
         [
           NEW,
           PENDING,
-          PROPOSED,
           REJECTED,
           RELEASED,
           EXPIRED,

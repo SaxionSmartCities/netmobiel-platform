@@ -32,7 +32,7 @@
 				 -->
 	            <configuration>
 					<configHelp>false</configHelp>
-	                <inputSpec>${project.basedir}/TOMP-API.yaml</inputSpec>
+	                <inputSpec>${project.basedir}/TOMP-API-netmobiel.yaml</inputSpec>
 	            	<apiPackage>eu.netmobiel.tomp.api</apiPackage>
 	            	<modelPackage>eu.netmobiel.tomp.api.model</modelPackage>
 	            	<invokerPackage>eu.netmobiel.tomp.api.rest</invokerPackage>
@@ -66,6 +66,7 @@
 								<!--  Generate the API only, no implementation, e.g. a server stub -->
 								<interfaceOnly>true</interfaceOnly>
 								<generatePom>false</generatePom>
+								<returnResponse>true</returnResponse>
 							</configOptions>
 							<generateApis>true</generateApis>
 							<generateModels>false</generateModels>
