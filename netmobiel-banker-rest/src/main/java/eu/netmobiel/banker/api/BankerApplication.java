@@ -66,7 +66,7 @@ public class BankerApplication extends Application {
     public void postConstruct() {
         StringBuilder builder = new StringBuilder();
         builder.append("\n------------------------------------------------");
-        builder.append("\nStarting up Netmobiel Credit REST Service");
+        builder.append("\nStarting up Netmobiel Banker REST Service");
         builder.append("\n\tVersion:  " + version.getVersionString());
         builder.append("\n\tBuilt On: " + version.getVersionDate());
         builder.append("\n\tBuild:    " + version.getCommitId());
