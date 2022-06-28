@@ -7,6 +7,7 @@ import java.util.concurrent.atomic.AtomicInteger;
 import java.util.stream.Collectors;
 
 import javax.enterprise.context.ApplicationScoped;
+import javax.enterprise.event.Event;
 import javax.inject.Inject;
 
 import org.slf4j.Logger;
@@ -14,6 +15,7 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
+import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.util.ClosenessFilter;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
@@ -51,6 +53,9 @@ public class RideItineraryHelper {
     private StopDao stopDao;
     @Inject
     private OpenTripPlannerDao otpDao;
+
+    @Inject
+    private Event<Booking> quoteRequestedEvent;
 
     /**
      * Saves a fresh new ride, including the legs and stops.
@@ -216,4 +221,48 @@ public class RideItineraryHelper {
 //							.collect(Collectors.toList())))));
 		}
     }
+
+    /**
+     * Create a booking fromthe calculated ride legs. 
+     * @param ride the calculated ride with the legs
+     * @param pickup The requested location for pickup
+     * @param dropOff The requested location for drop-off
+     * 
+     */
+    public Booking createBooking(Ride ride, GeoLocation pickup, GeoLocation dropOff) {
+    	ClosenessFilter closenessFilter = new ClosenessFilter(MAX_BOOKING_LOCATION_SHIFT);
+   		// Get the start, the end and everything in between and add them to the booking
+  		Leg pickupLeg = ride.getLegs().stream()
+			.filter(leg -> closenessFilter.test(leg.getFrom().getLocation(), pickup))
+			.findFirst()
+			.orElseThrow(() -> new IllegalStateException("Cannot find first leg of passenger"));
+   		Leg dropOffLeg = ride.getLegs().stream()
+			.filter(leg -> closenessFilter.test(leg.getTo().getLocation(), dropOff))
+			.findFirst()
+			.orElseThrow(() -> new IllegalStateException("Cannot find last legof passenger"));
+//		log.info("Pickup leg: " + pickup.toString());
+//		log.info("Pickup leg index: " + ride.getLegs().indexOf(pickup));
+//		log.info("Drop-off leg: " + dropOff.toString());
+//		log.info("Drop-off leg index: " + ride.getLegs().indexOf(dropOff));
+   		Booking b = new Booking();
+   		b.setDepartureTime(pickupLeg.getStartTime());
+   		b.setPickup(pickupLeg.getFrom().getLocation());
+   		b.setArrivalTime(dropOffLeg.getEndTime());
+   		b.setDropOff(dropOffLeg.getTo().getLocation());
+   		b.setRide(ride);
+   		b.setState(BookingState.NEW);
+		ride.getLegs()
+			.subList(ride.getLegs().indexOf(pickupLeg), ride.getLegs().indexOf(dropOffLeg) + 1)
+			.forEach(leg -> leg.addBooking(b));
+		// Now the booking has a reference to the legs 
+		quoteRequestedEvent.fire(b);
+//			ride.getLegs()
+//			.forEach(leg -> log.info(String.format("Leg %s Bookings %s", leg.getId(), 
+//					String.join(", ", leg.getBookings()
+//							.stream()
+//							.map(b -> b.getId().toString())
+//							.collect(Collectors.toList())))));
+		return b;
+    }
+
 }

@@ -80,7 +80,7 @@ public class RideManager {
 	 * wrong direction. The total bearing matching angle is twice the difference 
 	 * (driver bearing - diff, driver bearing + diff). 
 	 */
-	private static final int MAX_BEARING_DIFFERENCE = 60; 	/* degrees */
+	public static final int MAX_BEARING_DIFFERENCE = 60; 	/* degrees */
 //	private static final String DEFAULT_TIME_ZONE = "Europe/Amsterdam";
 	public static final int HORIZON_WEEKS = 8;
 	private static final int TEMPLATE_CURSOR_SIZE = 10;
@@ -246,7 +246,6 @@ public class RideManager {
      * @param travellerIdentity The managed identity of the traveller asking the question. Rides by this user are skipped.
      * @param fromPlace The location for pickup
      * @param toPlace The location for drop-off
-     * @param maxBearingDifference The maximum difference in bearing direction between driver and passenger vectors.
      * @param earliestDeparture The date and time to depart earliest
      * @param latestArrival The date and time to arrive latest 
      * @param nrSeatsRequested the number of seats required
