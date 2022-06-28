@@ -168,6 +168,12 @@
 		</dependency>
 		<dependency>
 			<groupId>${project.groupId}</groupId>
+			<artifactId>netmobiel-rideshare-to</artifactId>
+			<version>${project.version}</version>
+			<type>war</type>
+		</dependency>
+		<dependency>
+			<groupId>${project.groupId}</groupId>
 			<artifactId>netmobiel-tomp-api</artifactId>
 			<version>${project.version}</version>
 			<type>jar</type>
@@ -277,6 +283,12 @@
 				<artifactId>netmobiel-rideshare-rest</artifactId>
               	<contextRoot>/rideshare</contextRoot>
               	<bundleFileName>netmobiel-rideshare-rest.war</bundleFileName>
+            </webModule>
+            <webModule>
+				<groupId>${project.groupId}</groupId>
+				<artifactId>netmobiel-rideshare-to</artifactId>
+              	<contextRoot>/rideshare-to</contextRoot>
+              	<bundleFileName>netmobiel-rideshare-to.war</bundleFileName>
             </webModule>
           </modules>
         </configuration>

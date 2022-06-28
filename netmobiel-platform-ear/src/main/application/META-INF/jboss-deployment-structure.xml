@@ -103,6 +103,11 @@
         	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
         </dependencies>
     </sub-deployment>
+    <sub-deployment name="netmobiel-rideshare-to.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
     <sub-deployment name="netmobiel-overseer-rest.war">
         <dependencies>
         	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-overseer-ejb.jar"/>
