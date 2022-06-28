@@ -1,10 +1,13 @@
 package eu.netmobiel.overseer.processor;
 
+import java.util.stream.Collectors;
+
 import javax.ejb.Stateless;
 import javax.enterprise.event.Observes;
 import javax.enterprise.event.TransactionPhase;
 
 import eu.netmobiel.planner.model.Leg;
+import eu.netmobiel.rideshare.model.Booking;
 import eu.netmobiel.rideshare.service.RideManager;
 
 /**
@@ -31,4 +34,9 @@ public class QuoteProcessor {
     	}
     }
 
+	public void onQuoteRequested(@Observes(during = TransactionPhase.IN_PROGRESS) Booking booking) {
+    	int distance = booking.getLegs().stream().collect(Collectors.summingInt(eu.netmobiel.rideshare.model.Leg::getDistance));
+		booking.setFareInCredits(Math.max(MINIMUM_FARE, 
+										  Math.toIntExact(Math.round((distance / 1000.0) * CREDITS_PER_KILOMETER))));
+    }
 }
