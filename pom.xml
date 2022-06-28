@@ -42,6 +42,7 @@
         <module>netmobiel-rideshare-api</module>
         <module>netmobiel-rideshare-ejb</module>
         <module>netmobiel-rideshare-rest</module>
+        <module>netmobiel-rideshare-to</module>
         <module>netmobiel-tomp-api</module>
         <module>netmobiel-platform-ear</module>
     </modules>
