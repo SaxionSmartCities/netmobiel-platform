@@ -37,7 +37,7 @@ public class TransportOperator implements Serializable {
 	 * The base url of the transport operator.
 	 */
     @Size(max = 256)
-    @Column(name = "baseUrl")
+    @Column(name = "base_url")
     private String baseUrl;
 
     /**

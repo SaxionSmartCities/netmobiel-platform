@@ -73,6 +73,9 @@ public class Planner {
     @Inject
     private OtpClusterDao otpClusterDao;
 
+    @Inject
+    private TransportOperatorRegistrar transportOperatorRegistrar;
+    
     /**
      * Filter for acceptable itineraries, testing on max detour in meters.
      */
@@ -525,6 +528,13 @@ public class Planner {
      * @return
      */
     public TripPlan searchMultiModal(TripPlan plan) throws BadRequestException {
+    	if (!transportOperatorRegistrar.hasOperators()) {
+        	transportOperatorRegistrar.updateRegistry();
+    	}
+    	if (log.isDebugEnabled()) {
+        	transportOperatorRegistrar.getOperatorsforTraverseMode(TraverseMode.RIDESHARE)
+    		.forEach(to -> log.debug(String.format("Transport Operator '%s' supports rideshare", to.getDisplayName())));
+    	}
 		Set<TraverseMode> transitModalities = plan.getTraverseModes().stream().filter(m -> m.isTransit()).collect(Collectors.toSet());
 		boolean rideshareEligable = plan.getTraverseModes().contains(TraverseMode.RIDESHARE);
 		if (!transitModalities.isEmpty()) {

@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.util.List;
 
 import javax.annotation.PostConstruct;
 import javax.annotation.Resource;
@@ -18,14 +19,15 @@ import org.keycloak.util.JsonSerialization;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
-import eu.netmobiel.commons.exception.BusinessException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.planner.model.TransportOperator;
+import eu.netmobiel.tomp.api.model.AssetType;
 import eu.netmobiel.tomp.api.model.Planning;
 import eu.netmobiel.tomp.api.model.PlanningRequest;
 import eu.netmobiel.tomp.client.ApiClient;
 import eu.netmobiel.tomp.client.ApiException;
+import eu.netmobiel.tomp.client.impl.OperatorInformationApi;
 import eu.netmobiel.tomp.client.impl.PlanningApi;
 
 /**
@@ -34,7 +36,7 @@ import eu.netmobiel.tomp.client.impl.PlanningApi;
  *
  */
 @ApplicationScoped
-public class TransportOperatorDao {
+public class TransportOperatorApiDao {
 	/**
 	 * Start acquiring a new token token when expiration is this near
 	 */
@@ -48,13 +50,10 @@ public class TransportOperatorDao {
 	@Inject
     private Logger log;
     
-    @Resource(lookup = "java:global/TOMP/TO/rideshare/baseUrl")
-    private String rideshareTOUrl; 
-
     /**
-     * The path to the service account file for the Profile Service.
+     * The path to the service account file. Abuse the profiel service account for this. We look at some time in the future for a real solution.
      */
-    @Resource(lookup = "java:global/TOMP/TO/serviceAccountPath")
+    @Resource(lookup = "java:global/profileService/serviceAccountPath")
     private String serviceAccountPath;
 
     private Configuration keycloakServiceAccount;
@@ -111,6 +110,10 @@ public class TransportOperatorDao {
     	return authzClient.obtainAccessToken(user, password);
 	}
 	
+	public Instant getProfileTokenExpiration() {
+		return keycloakTokenExpiration;
+	}
+
 	/**
 	 * For testing purposes: Clears the profile service token. 
 	 */
@@ -119,17 +122,18 @@ public class TransportOperatorDao {
         keycloakTokenExpiration = null;
 	}
 
-	private static void handleApiException(ApiException ex) throws BusinessException {
+	private static Exception createException(ApiException ex) {
+		Exception exception;
 		if (ex.getCode() == 400) {
-			throw new BadRequestException(ex);
+			exception = new BadRequestException(ex);
+		} else if (ex.getCode() == 403) {
+			exception = new SecurityException(ex);
+		} else if (ex.getCode() == 404) {
+			exception = new NotFoundException(ex);
+		} else {
+			exception = new SystemException(ex);
 		}
-		if (ex.getCode() == 403) {
-			throw new SecurityException(ex);
-		}
-		if (ex.getCode() == 404) {
-			throw new NotFoundException(ex);
-		}
-		throw new SystemException(ex);
+		return exception; 
 	}
 	
 	private void prepareApiClient(TransportOperator operator, ApiClient client) {
@@ -138,20 +142,25 @@ public class TransportOperatorDao {
 		client.setUserAgent(USER_AGENT);
 		
 	}
-	public Planning searchInquiry(TransportOperator operator, PlanningRequest body) throws BusinessException {
-		PlanningApi api = new PlanningApi();
+	
+	public List<AssetType> getAvailableAssets(TransportOperator operator) throws Exception {
+		OperatorInformationApi api = new OperatorInformationApi();
 		prepareApiClient(operator, api.getApiClient());
-		Planning planning = null;
 		try {
-			planning = api.planningInquiriesPost(TOMP_LANGUAGE, TOMP_API, TOMP_API_VERSION, TOMP_MY_MAAS_ID, body, null);
+			return api.operatorAvailableAssetsGet(TOMP_LANGUAGE, TOMP_API, TOMP_API_VERSION, TOMP_MY_MAAS_ID, null, null, null, null, null);
 		} catch (ApiException e) {
-			handleApiException(e);
+			throw createException(e);
 		}
-		return planning;
 	}
 
-	public Instant getProfileTokenExpiration() {
-		return keycloakTokenExpiration;
+	public Planning requestPlanningInquiry(TransportOperator operator, PlanningRequest body) throws Exception {
+		PlanningApi api = new PlanningApi();
+		prepareApiClient(operator, api.getApiClient());
+		try {
+			return api.planningInquiriesPost(TOMP_LANGUAGE, TOMP_API, TOMP_API_VERSION, TOMP_MY_MAAS_ID, body, null);
+		} catch (ApiException e) {
+			throw createException(e);
+		}
 	}
 
 }

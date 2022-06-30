@@ -35,6 +35,8 @@ public class PlannerMaintenance {
     @Inject
     private TripMonitor tripMonitor;
     
+//    @Inject
+//    private TransportOperatorRegistrar transportOperatorRegistrar;
 
 	@Inject
     private HereSearchClient hereSearchClient;
@@ -49,6 +51,11 @@ public class PlannerMaintenance {
 		log.info("Starting up the Planner, doing some maintenance tasks");
 		tripMonitor.reviveTripMonitors();
 		schedulePostalCodeGeocoding();
+		// If enabled, at startup a spurious error might occur: 
+		// RESTEASY008200: JSON Binding deserialization error: javax.json.bind.JsonbException: Can't infer a type for unmarshalling into: eu.netmobiel.tomp.api.model.OneOfassetTypeConditionsItems
+		// Can't infer a type for unmarshalling into: eu.netmobiel.tomp.api.model.OneOfassetTypeConditionsItems
+		// Jsonb is used instead of jackson despite of all exclusion in the deployment descriptor. Reason for the error is not known.
+//		transportOperatorRegistrar.updateRegistry();
 	}
 
 	private static class GeocodingTimerInfo implements Serializable {
