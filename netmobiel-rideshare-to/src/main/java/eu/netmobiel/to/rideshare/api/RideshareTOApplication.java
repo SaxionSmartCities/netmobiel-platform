@@ -36,7 +36,8 @@ import eu.netmobiel.commons.jaxrs.OffsetDateTimeParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.ProcessingExceptionMapper;
 import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
 import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
-import eu.netmobiel.to.rideshare.api.resource.SearchResource;
+import eu.netmobiel.to.rideshare.api.resource.OperatorResource;
+import eu.netmobiel.to.rideshare.api.resource.PlanningResource;
 
 
 /**
@@ -49,12 +50,12 @@ import eu.netmobiel.to.rideshare.api.resource.SearchResource;
  */
 @ApplicationPath("/api")
 @ApplicationScoped
-public class RideshareApplication extends Application {
+public class RideshareTOApplication extends Application {
     @Inject
     private Logger log;
 
     @Inject
-    private RideshareVersion version;
+    private RideshareTOVersion version;
 
     @PostConstruct
     public void postConstruct() {
@@ -75,7 +76,8 @@ public class RideshareApplication extends Application {
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new HashSet<>();
-        resources.add(SearchResource.class);
+        resources.add(OperatorResource.class);
+        resources.add(PlanningResource.class);
         resources.add(Jackson2ObjectMapperContextResolver.class);
         resources.add(LocalDateParamConverterProvider.class);
         resources.add(OffsetDateTimeParamConverterProvider.class);

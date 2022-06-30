@@ -27,10 +27,10 @@ import eu.netmobiel.commons.Version;
  *
  */
 @ApplicationScoped
-public class RideshareVersion extends Version {
+public class RideshareTOVersion extends Version {
 
-	public RideshareVersion() {
-		super(RideshareVersion.class.getClassLoader(), "eu/netmobiel/rideshare/version.properties");
+	public RideshareTOVersion() {
+		super(RideshareTOVersion.class.getClassLoader(), "eu/netmobiel/rideshare/version.properties");
 	}
 
 }

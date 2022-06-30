@@ -28,7 +28,7 @@ import eu.netmobiel.tomp.api.model.Planning;
 import eu.netmobiel.tomp.api.model.PlanningRequest;
 
 @RequestScoped
-public class SearchResource extends TransportOperatorResource implements PlanningApi {
+public class PlanningResource extends TransportOperatorResource implements PlanningApi {
 
 	@SuppressWarnings("unused")
 	@Inject

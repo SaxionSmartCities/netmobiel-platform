@@ -308,4 +308,13 @@ public class RideshareTompService {
     	planrequestDao.save(rq);
     	return bookings;
     }
+ 
+    /**
+     * Check the health of the transport operator.
+     * No exception means healthy.
+     */
+    public void ping() {
+    	// Get a total count.
+    	rideDao.findAll(0, 0);
+    }
 }
