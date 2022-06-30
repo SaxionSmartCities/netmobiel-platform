@@ -44,13 +44,13 @@ tags:
 #                           bearer (in header: Authorization: Bearer <token>)
 #                           Api-key (in header: X-API-Key: abcdef12345)
 #                           OAuth2 and OpenId are also available
+#                           JR: Removed OpenId, generated client does not understand OpenId.
 # The exact ways to authenticate will be described in a later version
 security:
   - BasicAuth: []
   - BearerAuth: []
   - ApiKeyAuth: []
   - OAuth: []
-  - OpenId: []
 
 servers:
   - url: https://tomp.dat.nl/bike/
@@ -3792,9 +3792,6 @@ components:
           authorizationUrl: /oauth/authorize
           tokenUrl: /oauth/token
           scopes: {}
-    OpenId:
-      type: openIdConnect
-      openIdConnectUrl: https://unknownserver/.well-known/openid-configuration
 
   responses:
     202Accepted:
