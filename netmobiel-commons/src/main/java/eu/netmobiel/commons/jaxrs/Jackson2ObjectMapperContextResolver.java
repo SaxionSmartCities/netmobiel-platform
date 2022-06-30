@@ -22,7 +22,13 @@ public class Jackson2ObjectMapperContextResolver implements ContextResolver<Obje
 		mapper.setSerializationInclusion(JsonInclude.Include.NON_NULL);
 		// When the following statement is enabled, the complete Page object is omitted in case of an empty response.
 		// That is undesirable.
+		// Some other values seen at the generation of a client 
 //		mapper.setSerializationInclusion(JsonInclude.Include.NON_DEFAULT);
+//	    mapper.disable(DeserializationFeature.FAIL_ON_INVALID_SUBTYPE);
+//	    mapper.enable(SerializationFeature.WRITE_ENUMS_USING_TO_STRING);
+//	    mapper.enable(DeserializationFeature.READ_ENUMS_USING_TO_STRING);
+//	    mapper.setDateFormat(new RFC3339DateFormat());
+
 	}
 
     @Override
