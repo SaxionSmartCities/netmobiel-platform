@@ -591,6 +591,8 @@ public class Itinerary implements Serializable {
 		Leg lastLeg = getLegs().get(getLegs().size() - 1);
 		setDepartureTime(firstLeg.getFrom().getDepartureTime());
 		setArrivalTime(lastLeg.getTo().getArrivalTime());
+		firstLeg.getFrom().setArrivalTime(null);
+		lastLeg.getTo().setDepartureTime(null);
 		setDuration(Math.toIntExact(Duration.between(getDepartureTime(), getArrivalTime()).getSeconds()));
 		updateTransfers();
 		updateTransitTime();
@@ -630,8 +632,6 @@ public class Itinerary implements Serializable {
 		it.getLegs().add(leg);
 		// Now make a deep copy of the shallow copy
 		it = it.deepCopy();
-		leg.getFrom().setArrivalTime(null);
-		leg.getTo().setDepartureTime(null);
 		it.updateCharacteristics();
 		return it;
 	}
