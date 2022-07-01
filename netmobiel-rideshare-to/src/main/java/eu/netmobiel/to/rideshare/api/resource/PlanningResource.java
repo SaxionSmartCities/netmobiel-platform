@@ -105,7 +105,7 @@ public class PlanningResource extends TransportOperatorResource implements Plann
 	public Planning planningInquiriesPost(@NotNull String acceptLanguage, @NotNull String api,
 			@NotNull String apiVersion, @NotNull String maasId, @Valid PlanningRequest body, String addressedTo) {
 		String travellerId = null;
-		if (body.getTravelers().size() > 0) {
+		if (body.getTravelers() != null && body.getTravelers().size() > 0) {
 			travellerId = body.getTravelers().get(0).getKnownIdentifier();
 		} else {
 			travellerId = getCaller();
@@ -126,8 +126,9 @@ public class PlanningResource extends TransportOperatorResource implements Plann
 		Planning planning = new Planning();
 		planning.setValidUntil(OffsetDateTime.now().plusMinutes(15));
 		try {
-			List<Booking> bookings = tompService.searchTompRides(travellerId, from, to, toInstant(earliestDepTime), toInstant(latestArrTime), nrSeats, RideManager.MAX_RESULTS); 
-			planning.setOptions(bookingMapper.mapSearch(bookings));
+			List<Booking> bookings = tompService.searchTompRides(travellerId, from, to, 
+					toInstant(earliestDepTime), toInstant(latestArrTime), body.getRadius(), nrSeats, RideManager.MAX_RESULTS); 
+			planning.setOptions(bookingMapper.mapBookings(bookings));
 			response.setStatus(HttpServletResponse.SC_CREATED);
 		} catch (BusinessException ex) {
 			throw new WebApplicationException(ex);

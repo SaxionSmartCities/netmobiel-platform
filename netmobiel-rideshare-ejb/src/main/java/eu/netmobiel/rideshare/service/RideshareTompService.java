@@ -36,7 +36,14 @@ import eu.netmobiel.rideshare.repository.PlanRequestDao;
 import eu.netmobiel.rideshare.repository.RideDao;
 import eu.netmobiel.rideshare.repository.RideshareUserDao;
 /**
- * The service for the offering the TOMP Transport Operator API.
+ * The service for the offering the TOMP Transport Operator API. 
+ * Although it is possible to realise a ride planner inside the MaaS service, we have chosen to put the function inside the the rideshare service itself.
+ * That means that selecting the right driver, given a passenger's trip request, is some kind of proprietary technology applied by the rideshare supplier.
+ * The following considerations apply:
+ * - The rideshare knows the ellipse algoritm to create the long list with eligable drivers.
+ * - The rideshare knows the (proprietary) characteristics of the driver (detour distance and time) to create the short list.
+ * - No need for the MaaS provider to collect all the rides from the transport operator through a backchannel. At the same time no need 
+ *   for the TO to open up his database for MaaS providers.
  * 
  * @author Jaap Reitsma
  *
@@ -254,7 +261,7 @@ public class RideshareTompService {
      */
 
     public List<Booking> searchTompRides(@NotNull String travellerIdentity, @NotNull GeoLocation pickup, @NotNull GeoLocation dropOff, 
-    		Instant earliestDeparture, Instant latestArrival, Integer nrSeats, Integer maxResults) throws BadRequestException {
+    		Instant earliestDeparture, Instant latestArrival, Integer maxWalkDistance, Integer nrSeats, Integer maxResults) throws BadRequestException {
     	long start = System.currentTimeMillis();
     	if (earliestDeparture != null && latestArrival != null && earliestDeparture.isAfter(latestArrival)) {
     		throw new BadRequestException("Departure time must be before arrival time");
@@ -270,7 +277,7 @@ public class RideshareTompService {
     	rq.setEarliestDepartureTime(earliestDeparture);
     	rq.setFrom(pickup);
     	rq.setLatestArrivalTime(latestArrival);
-    	rq.setMaxWalkDistance(OpenTripPlannerDao.OTP_MAX_WALK_DISTANCE);
+    	rq.setMaxWalkDistance(maxWalkDistance != null ? maxWalkDistance : OpenTripPlannerDao.OTP_MAX_WALK_DISTANCE);
     	rq.setNrSeats(nrSeats);
     	rq.setRequestor(traveller);
     	rq.setRequestTime(Instant.now());

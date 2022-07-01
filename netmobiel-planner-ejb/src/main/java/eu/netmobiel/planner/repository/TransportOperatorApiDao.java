@@ -5,6 +5,7 @@ import java.io.InputStream;
 import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.time.Instant;
+import java.time.ZoneOffset;
 import java.util.List;
 
 import javax.annotation.PostConstruct;
@@ -21,10 +22,17 @@ import org.slf4j.Logger;
 import eu.netmobiel.commons.exception.BadRequestException;
 import eu.netmobiel.commons.exception.NotFoundException;
 import eu.netmobiel.commons.exception.SystemException;
+import eu.netmobiel.commons.model.GeoLocation;
+import eu.netmobiel.planner.model.Itinerary;
 import eu.netmobiel.planner.model.TransportOperator;
+import eu.netmobiel.planner.model.TripPlan;
+import eu.netmobiel.planner.repository.mapping.TompBookingMapper;
 import eu.netmobiel.tomp.api.model.AssetType;
+import eu.netmobiel.tomp.api.model.Coordinates;
+import eu.netmobiel.tomp.api.model.Place;
 import eu.netmobiel.tomp.api.model.Planning;
 import eu.netmobiel.tomp.api.model.PlanningRequest;
+import eu.netmobiel.tomp.api.model.Traveler;
 import eu.netmobiel.tomp.client.ApiClient;
 import eu.netmobiel.tomp.client.ApiException;
 import eu.netmobiel.tomp.client.impl.OperatorInformationApi;
@@ -61,7 +69,9 @@ public class TransportOperatorApiDao {
     private String keycloakAccessToken;
     private Instant keycloakTokenExpiration;
 
-    private 
+    @Inject
+    private TompBookingMapper mapper;
+    
     /**
      * Initializes the API client and the service account credentials. 
      */
@@ -153,11 +163,34 @@ public class TransportOperatorApiDao {
 		}
 	}
 
-	public Planning requestPlanningInquiry(TransportOperator operator, PlanningRequest body) throws Exception {
+	private static Place createPlace(GeoLocation loc) {
+		Place p = new Place();
+		p.setName(loc.getLabel());
+		p.setCoordinates(new Coordinates());
+		p.getCoordinates().setLat(loc.getLatitude().floatValue());
+		p.getCoordinates().setLng(loc.getLongitude().floatValue());
+		return p;
+	}
+	
+	public List<Itinerary> requestPlanningInquiry(TransportOperator operator, TripPlan plan, GeoLocation from, GeoLocation to) throws Exception {
 		PlanningApi api = new PlanningApi();
 		prepareApiClient(operator, api.getApiClient());
+		PlanningRequest pr = new PlanningRequest();
+		pr.setDepartureTime(plan.getEarliestDepartureTime().atOffset(ZoneOffset.UTC));
+		pr.setArrivalTime(plan.getLatestArrivalTime().atOffset(ZoneOffset.UTC));
+		pr.setNrOfTravelers(plan.getNrSeats());
+		pr.setFrom(createPlace(plan.getFrom()));
+		pr.setTo(createPlace(plan.getTo()));
+		pr.setRadius(plan.getMaxWalkDistance());
+		Traveler trav = new Traveler();
+		trav.setIsValidated(Boolean.TRUE);
+		trav.setKnownIdentifier(plan.getTraveller().getManagedIdentity());
+		trav.setKnownIdentifierProvider("Netmobiel Keycloak");
+		pr.addTravelersItem(trav);
 		try {
-			return api.planningInquiriesPost(TOMP_LANGUAGE, TOMP_API, TOMP_API_VERSION, TOMP_MY_MAAS_ID, body, null);
+			Planning planning = api.planningInquiriesPost(TOMP_LANGUAGE, TOMP_API, TOMP_API_VERSION, TOMP_MY_MAAS_ID, pr, null);
+			return mapper.mapToItineraries(planning.getOptions(), operator, plan);
+			
 		} catch (ApiException e) {
 			throw createException(e);
 		}

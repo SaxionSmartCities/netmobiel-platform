@@ -55,7 +55,7 @@ public class TransportOperatorRegistrar {
 
 	private void addSupportedTraverseMode(TransportOperator operator, TraverseMode supportedMode) {
 		if (log.isDebugEnabled()) {
-			log.debug(String.format("Transport Operator '%s' supports %s", operator.getDisplayName(), supportedMode));
+			log.debug(String.format("Transport Operator '%s' supports %s", operator.getAgencyName(), supportedMode));
 		}
 		traverseMode2Operators
 			.computeIfAbsent(TraverseMode.RIDESHARE, k -> new LinkedHashSet<>())
@@ -76,7 +76,7 @@ public class TransportOperatorRegistrar {
 				}
 			}
 		} catch (Exception ex) {
-			log.error(String.join("\n\t", ExceptionUtil.unwindExceptionMessage("Error adding transport operator: " + operator.getDisplayName(), ex)));
+			log.error(String.join("\n\t", ExceptionUtil.unwindExceptionMessage("Error adding transport operator: " + operator.getAgencyName(), ex)));
 		}
 	}
 

@@ -23,6 +23,8 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.exception.SystemException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.EllipseHelper;
@@ -38,10 +40,12 @@ import eu.netmobiel.planner.model.PlannerResult;
 import eu.netmobiel.planner.model.RideshareResult;
 import eu.netmobiel.planner.model.Stop;
 import eu.netmobiel.planner.model.ToolType;
+import eu.netmobiel.planner.model.TransportOperator;
 import eu.netmobiel.planner.model.TraverseMode;
 import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.planner.repository.OpenTripPlannerDao;
 import eu.netmobiel.planner.repository.OtpClusterDao;
+import eu.netmobiel.planner.repository.TransportOperatorApiDao;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.service.RideManager;
 
@@ -76,6 +80,9 @@ public class Planner {
     @Inject
     private TransportOperatorRegistrar transportOperatorRegistrar;
     
+    @Inject
+    private TransportOperatorApiDao transportOperatorApiDao;
+
     /**
      * Filter for acceptable itineraries, testing on max detour in meters.
      */
@@ -235,7 +242,7 @@ public class Planner {
 	 * @param toPlace The arrival location of the passenger.  Not necessarily the departure location of the plan (in case of a multi-legged journey).
 	 * @return A list of possible itineraries.
 	 */
-    private List<PlannerResult> searchRideshareOnly(TripPlan plan, GeoLocation fromPlace, GeoLocation toPlace) {
+    private List<PlannerResult> searchRideshareOnly(TripPlan plan, GeoLocation fromPlace, GeoLocation toPlace) throws BusinessException {
     	RideshareResult ridesResult = searchRides(plan, fromPlace, toPlace,  RIDESHARE_LENIENT_SEARCH, MAX_RIDESHARES, 0);
 		List<GeoLocation> intermediatePlaces = Arrays.asList(new GeoLocation[] { fromPlace, toPlace });
 		List<PlannerResult> results = new ArrayList<>();
@@ -276,6 +283,23 @@ public class Planner {
     		}
 		}
     	// These are itineraries for the passenger, not the complete ones for the driver
+//    	Set<TransportOperator> rsto = transportOperatorRegistrar.getOperatorsforTraverseMode(TraverseMode.RIDESHARE);
+//		for (TransportOperator to: rsto) {
+//			try {
+//				List<Itinerary> its = transportOperatorApiDao.requestPlanningInquiry(to, plan, fromPlace, toPlace);
+////				PlannerResult pr = new PlannerResult();
+////				pr.addItineraries(its);
+//				for (Itinerary it: its) {
+//					log.debug("\n\t" + it.toString());
+//				}
+//			} catch (Exception ex) {
+//				if (ex instanceof BusinessException) {
+//					throw (BusinessException) ex;
+//				}
+//				throw new SystemException(ex);
+//			}
+//		}
+    	
     	return results;
     }
 
@@ -291,7 +315,7 @@ public class Planner {
 		return valid;
     }
     
-    private void addRideshareAsFirstLeg(TripPlan plan, Set<Stop> transitBoardingStops, Set<TraverseMode> transitModalities) {
+    private void addRideshareAsFirstLeg(TripPlan plan, Set<Stop> transitBoardingStops, Set<TraverseMode> transitModalities) throws BusinessException {
     	log.debug("Search for first leg by Car");
     	if (plan.getMaxTransfers() != null && plan.getMaxTransfers() < 0) {
     		throw new IllegalArgumentException("maxTransfers cannot be 0 at this point");
@@ -333,7 +357,7 @@ public class Planner {
 		}
     }
 
-    private void addRideshareAsLastLeg(TripPlan plan, Set<Stop> transitAlightingStops, Set<TraverseMode> transitModalities) {
+    private void addRideshareAsLastLeg(TripPlan plan, Set<Stop> transitAlightingStops, Set<TraverseMode> transitModalities) throws BusinessException {
     	// Try to find a ride from transit place to drop-off (last mile by car)
     	log.debug("Search for a last leg by Car");
     	if (plan.getMaxTransfers() != null && plan.getMaxTransfers() < 0) {
@@ -393,14 +417,14 @@ public class Planner {
     }
 
     private PlannerResult createTransitPlan(Instant now, GeoLocation fromPlace, GeoLocation toPlace, Instant travelTime, boolean isArrivalTime, 
-    		Set<TraverseMode> modes, Integer maxWalkDistance, Integer maxTransfers, Integer maxItineraries) {
+    		Set<TraverseMode> modes, Integer maxWalkDistance, Integer maxTransfers, Integer maxItineraries) throws BusinessException {
     	// For transit walk is necessary
 		modes.add(TraverseMode.WALK);
 		return otpDao.createPlan(now, fromPlace, toPlace, travelTime, isArrivalTime, 
 					modes, false, maxWalkDistance, maxTransfers, null, maxItineraries);
     }
     
-    private void addRidesharePlans(TripPlan plan, Set<TraverseMode> transitModalities) {
+    private void addRidesharePlans(TripPlan plan, Set<TraverseMode> transitModalities) throws BusinessException {
     	// Add the RIDESHARE only itineraries
 		List<PlannerResult> rideResults = searchRideshareOnly(plan, plan.getFrom(), plan.getTo());
     	rideResults.stream().forEach(pr -> plan.addPlannerReport(pr.getReport()));
@@ -527,13 +551,13 @@ public class Planner {
      * @param nrSeats The number of seats the passenger wants to use in a car.
      * @return
      */
-    public TripPlan searchMultiModal(TripPlan plan) throws BadRequestException {
+    public TripPlan searchMultiModal(TripPlan plan) throws BusinessException {
     	if (!transportOperatorRegistrar.hasOperators()) {
         	transportOperatorRegistrar.updateRegistry();
     	}
     	if (log.isDebugEnabled()) {
         	transportOperatorRegistrar.getOperatorsforTraverseMode(TraverseMode.RIDESHARE)
-    		.forEach(to -> log.debug(String.format("Transport Operator '%s' supports rideshare", to.getDisplayName())));
+    		.forEach(to -> log.debug(String.format("Transport Operator '%s' supports rideshare", to.getAgencyName())));
     	}
 		Set<TraverseMode> transitModalities = plan.getTraverseModes().stream().filter(m -> m.isTransit()).collect(Collectors.toSet());
 		boolean rideshareEligable = plan.getTraverseModes().contains(TraverseMode.RIDESHARE);

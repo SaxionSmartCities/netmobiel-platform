@@ -2,6 +2,7 @@ package eu.netmobiel.commons.util;
 
 import java.util.AbstractList;
 import java.util.ArrayList;
+import java.util.Collection;
 import java.util.List;
 
 import com.vividsolutions.jts.geom.Coordinate;
@@ -29,6 +30,10 @@ public class PolylineEncoder {
     public static EncodedPolylineBean createEncodings(double[] lat, double[] lon, int offset,
             int length, int level) {
         return createEncodings(new PointAdapterList(lat, lon, offset, length), level);
+    }
+
+    public static EncodedPolylineBean createEncodings(Collection<Coordinate> points) {
+        return createEncodings(points, -1);
     }
 
     public static EncodedPolylineBean createEncodings(Iterable<Coordinate> points) {
@@ -92,9 +97,10 @@ public class PolylineEncoder {
     }
 
     public static List<Coordinate> decode(EncodedPolylineBean polyline) {
-
-        String pointString = polyline.getPoints();
-
+    	return decode(polyline.getPoints());
+    }
+    
+    public static List<Coordinate> decode(String pointString) {
         double lat = 0;
         double lon = 0;
 

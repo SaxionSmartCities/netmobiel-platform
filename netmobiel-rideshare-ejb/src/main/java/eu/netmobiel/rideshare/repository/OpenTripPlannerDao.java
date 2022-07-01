@@ -178,7 +178,8 @@ public class OpenTripPlannerDao {
 		    	newLegs.forEach(leg -> ride.addLeg(leg));
 		    	ride.addStop(newLegs.get(0).getFrom());
 		    	newLegs.forEach(leg -> ride.addStop(leg.getTo()));
-
+		    	
+		    	ride.setId(orgRide.getId());
 		    	ride.setCar(orgRide.getCar());
 		    	ride.setDriver(orgRide.getDriver());
 		    	ride.setDepartureTime(ride.getLegs().get(0).getStartTime());

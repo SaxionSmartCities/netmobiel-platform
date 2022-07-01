@@ -1,8 +1,5 @@
 package eu.netmobiel.planner.repository.mapping;
 
-import java.time.Instant;
-import java.time.OffsetDateTime;
-import java.time.ZoneOffset;
 import java.util.ArrayList;
 
 import javax.inject.Inject;
@@ -22,7 +19,9 @@ import eu.netmobiel.opentripplanner.api.model.TripPlan;
 import eu.netmobiel.opentripplanner.api.model.WalkStep;
 import eu.netmobiel.planner.model.Stop;
 
-@Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN)
+@Mapper(unmappedSourcePolicy = ReportingPolicy.IGNORE, unmappedTargetPolicy = ReportingPolicy.WARN,
+	uses = { JavaTimeMapper.class }
+)
 public abstract class TripPlanMapper {
 	@Inject
 	private Logger log;
@@ -110,10 +109,6 @@ public abstract class TripPlanMapper {
     @Mapping(target = "longitude", source = "lon")
     public abstract eu.netmobiel.planner.model.GuideStep guideStepToGuideStep(WalkStep step);
     
-    public OffsetDateTime map(Instant instant) {
-    	return instant.atOffset(ZoneOffset.UTC);
-    }
-
     @AfterMapping
     // Replace the leg list structure with a linear graph
     public eu.netmobiel.planner.model.TripPlan transformIntoLinearGraph(@MappingTarget eu.netmobiel.planner.model.TripPlan plan) {

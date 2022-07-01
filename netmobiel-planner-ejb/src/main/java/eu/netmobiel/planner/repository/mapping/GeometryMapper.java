@@ -1,4 +1,4 @@
-package eu.netmobiel.to.rideshare.api.mapping;
+package eu.netmobiel.planner.repository.mapping;
 
 import org.mapstruct.BeanMapping;
 import org.mapstruct.InheritInverseConfiguration;

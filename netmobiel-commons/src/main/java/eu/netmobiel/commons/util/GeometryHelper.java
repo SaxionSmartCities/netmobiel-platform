@@ -173,4 +173,20 @@ public class GeometryHelper {
 	public static String convertEncodedPolyline2WKT(String encodedPolyline) {
 		return createWKT(deserializeEncodedPolyline(encodedPolyline)); 
 	}
+
+	/**
+	 * Concat two polylines.
+	 * @param polyline1
+	 * @param polyline2
+	 * @return
+	 */
+    public static String concatEncodedPolylines(String polyline1, String polyline2) {
+    	if (polyline1 == null || polyline2 == null) {
+    		throw new IllegalArgumentException("Polylines cannot be null");
+    	}
+    	List<Coordinate> coords = PolylineEncoder.decode(polyline1);
+    	coords.addAll(PolylineEncoder.decode(polyline2));
+    	return PolylineEncoder.createEncodings(coords).getPoints();
+    }
+
 }

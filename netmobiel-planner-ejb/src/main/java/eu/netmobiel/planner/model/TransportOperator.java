@@ -41,12 +41,25 @@ public class TransportOperator implements Serializable {
     private String baseUrl;
 
     /**
+     * A short Id.
+     */
+    @Size(max = 32)
+    @Column(name = "agency_id")
+    private String agencyId;
+
+    /**
      * A short name, intended for the maintainer.
      */
     @Size(max = 32)
-    @Column(name = "display_name")
-    private String displayName;
+    @Column(name = "agency_name")
+    private String agencyName;
 
+    /**
+     * The agency time zone e.g. 'Europe/Amsterdam'.
+     */
+    @Size(max = 32)
+    @Column(name = "agency_zone_id")
+    private String agencyZoneId;
     /**
      * A short description, intended for the maintainer.
      */
@@ -79,12 +92,28 @@ public class TransportOperator implements Serializable {
 		this.baseUrl = baseUrl;
 	}
 
-	public String getDisplayName() {
-		return displayName;
+	public String getAgencyId() {
+		return agencyId;
 	}
 
-	public void setDisplayName(String displayName) {
-		this.displayName = displayName;
+	public void setAgencyId(String agencyId) {
+		this.agencyId = agencyId;
+	}
+
+	public String getAgencyName() {
+		return agencyName;
+	}
+
+	public void setAgencyName(String agencyName) {
+		this.agencyName = agencyName;
+	}
+
+	public String getAgencyZoneId() {
+		return agencyZoneId;
+	}
+
+	public void setAgencyZoneId(String agencyZoneId) {
+		this.agencyZoneId = agencyZoneId;
 	}
 
 	public String getDescription() {
@@ -130,7 +159,7 @@ public class TransportOperator implements Serializable {
 
 	@Override
 	public String toString() {
-		return String.format("TransportOperator [%s %s]", id, displayName);
+		return String.format("TransportOperator [%s %s]", id, agencyName);
 	}
 
 }

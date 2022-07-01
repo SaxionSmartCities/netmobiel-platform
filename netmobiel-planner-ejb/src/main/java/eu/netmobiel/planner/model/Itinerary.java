@@ -584,6 +584,9 @@ public class Itinerary implements Serializable {
 	}
 
 	public void updateCharacteristics( ) {
+		if (getLegs().isEmpty()) {
+			return;
+		}
 		Leg firstLeg = getLegs().get(0);
 		Leg lastLeg = getLegs().get(getLegs().size() - 1);
 		setDepartureTime(firstLeg.getFrom().getDepartureTime());
