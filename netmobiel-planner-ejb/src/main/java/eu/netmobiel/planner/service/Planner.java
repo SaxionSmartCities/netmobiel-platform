@@ -283,22 +283,22 @@ public class Planner {
     		}
 		}
     	// These are itineraries for the passenger, not the complete ones for the driver
-//    	Set<TransportOperator> rsto = transportOperatorRegistrar.getOperatorsforTraverseMode(TraverseMode.RIDESHARE);
-//		for (TransportOperator to: rsto) {
-//			try {
-//				List<Itinerary> its = transportOperatorApiDao.requestPlanningInquiry(to, plan, fromPlace, toPlace);
-////				PlannerResult pr = new PlannerResult();
-////				pr.addItineraries(its);
-//				for (Itinerary it: its) {
-//					log.debug("\n\t" + it.toString());
-//				}
-//			} catch (Exception ex) {
-//				if (ex instanceof BusinessException) {
-//					throw (BusinessException) ex;
-//				}
-//				throw new SystemException(ex);
-//			}
-//		}
+    	Set<TransportOperator> rsto = transportOperatorRegistrar.getOperatorsforTraverseMode(TraverseMode.RIDESHARE);
+		for (TransportOperator to: rsto) {
+			try {
+				List<Itinerary> its = transportOperatorApiDao.requestPlanningInquiry(to, plan, fromPlace, toPlace);
+//				PlannerResult pr = new PlannerResult();
+//				pr.addItineraries(its);
+				for (Itinerary it: its) {
+					log.debug("\n\t" + it.toString());
+				}
+			} catch (Exception ex) {
+				if (ex instanceof BusinessException) {
+					throw (BusinessException) ex;
+				}
+				throw new SystemException(ex);
+			}
+		}
     	
     	return results;
     }

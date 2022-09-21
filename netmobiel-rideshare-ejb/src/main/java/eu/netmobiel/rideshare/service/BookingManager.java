@@ -183,6 +183,60 @@ public class BookingManager {
     	return bookingRef;
     }
 
+    public Booking createTompBooking(String bookingRef, NetMobielUser traveller, Booking booking) throws BusinessException {
+		if (traveller.getManagedIdentity() == null) {
+			throw new CreateException("Traveller identity is mandatory");
+		}
+    	RideshareUser passenger = userDao.findByManagedIdentity(traveller.getManagedIdentity())
+				.orElseGet(() -> userDao.save(new RideshareUser(traveller)));
+    	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
+    	// Fetch booking, ride and car
+    	Booking bdb = getBooking(bookingId);
+		if (bdb.getState() != BookingState.NEW) {
+			throw new BadRequestException(String.format("Expected booking %s in state NEW, actual state is %s", bookingRef, bdb.getState()));
+		}
+		bdb.setState(BookingState.REQUESTED);
+    	if (booking.getPickup() != null) {
+    		bdb.setPickup(booking.getPickup());
+    	}
+    	if (booking.getDropOff() != null) {
+    		bdb.setDropOff(booking.getDropOff());
+    	}
+    	bdb.setPassenger(passenger);
+    	return bdb;
+    }
+    
+    public Booking commitTompBooking(String bookingRef) throws BusinessException {
+    	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
+    	Booking bdb = getBooking(bookingId);
+		if (bdb.getState() != BookingState.REQUESTED) {
+			throw new BadRequestException(String.format("Expected booking %s in state REQUESTED, actual state is %s", bookingRef, bdb.getState()));
+		}
+		bdb.setState(BookingState.CONFIRMED);
+    	bookingDao.flush();
+		// Update itinerary of the driver
+    	EventFireWrapper.fire(staleItineraryEvent, bdb.getRide());
+		// Inform driver about the new booking booking. The handler decides what to do, given the booking state
+		EventFireWrapper.fire(bookingCreatedEvent, bdb);
+		return bdb;
+    }
+    
+    public Booking cancelTompBooking(String bookingRef) throws BusinessException {
+    	Long bookingId = UrnHelper.getId(Booking.URN_PREFIX, bookingRef);
+    	Booking bdb = getBooking(bookingId);
+		if (bdb.getState() == BookingState.REQUESTED) {
+			bdb.setState(BookingState.RELEASED);
+		} else if (bdb.getState() == BookingState.CONFIRMED) {
+			removeBooking(bookingRef, null, false, false);
+		} else if (bdb.getState() == BookingState.RELEASED || bdb.getState() == BookingState.CANCELLED) {
+			// Already released or cancelled, that is OK
+			
+		}
+    	bookingDao.flush();
+		bdb = getBooking(bookingId);
+		return bdb;
+    }
+
     /**
      * Retrieves a booking. Anyone can read a booking, given the id.
      * @param id

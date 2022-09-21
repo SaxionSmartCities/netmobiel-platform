@@ -18,12 +18,15 @@ import javax.ws.rs.core.Response;
 import org.slf4j.Logger;
 
 import eu.netmobiel.commons.exception.BadRequestException;
+import eu.netmobiel.commons.exception.BusinessException;
+import eu.netmobiel.commons.exception.CreateException;
 import eu.netmobiel.commons.model.GeoLocation;
 import eu.netmobiel.commons.model.PagedResult;
 import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.rideshare.model.Booking;
+import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Leg;
 import eu.netmobiel.rideshare.model.PlanRequest;
 import eu.netmobiel.rideshare.model.PlannerReport;
@@ -31,6 +34,7 @@ import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideshareResult;
 import eu.netmobiel.rideshare.model.RideshareUser;
 import eu.netmobiel.rideshare.model.ToolType;
+import eu.netmobiel.rideshare.repository.BookingDao;
 import eu.netmobiel.rideshare.repository.OpenTripPlannerDao;
 import eu.netmobiel.rideshare.repository.PlanRequestDao;
 import eu.netmobiel.rideshare.repository.RideDao;
@@ -68,9 +72,9 @@ public class RideshareTompService {
     @Inject
     private RideDao rideDao;
     
-//    @Inject
-//    private BookingDao bookingDao;
-//
+    @Inject
+    private BookingDao bookingDao;
+
     @Inject
     private RideItineraryHelper rideItineraryHelper;
 
@@ -83,6 +87,9 @@ public class RideshareTompService {
     @Resource
     private SessionContext context;
 
+    @Inject
+    private BookingManager bookingManager;
+    
     /**
      * Filter for acceptable itineraries, testing on max detour in meters.
      */
@@ -260,8 +267,8 @@ public class RideshareTompService {
      * @return A list of potential matches.
      */
 
-    public List<Booking> searchTompRides(@NotNull String travellerIdentity, @NotNull GeoLocation pickup, @NotNull GeoLocation dropOff, 
-    		Instant earliestDeparture, Instant latestArrival, Integer maxWalkDistance, Integer nrSeats, Integer maxResults) throws BadRequestException {
+    public List<Booking> searchTompRides(String travellerIdentity, @NotNull GeoLocation pickup, @NotNull GeoLocation dropOff, 
+    		Instant earliestDeparture, Instant latestArrival, Integer maxWalkDistance, Integer nrSeats, boolean persistBooking, Integer maxResults) throws BadRequestException {
     	long start = System.currentTimeMillis();
     	if (earliestDeparture != null && latestArrival != null && earliestDeparture.isAfter(latestArrival)) {
     		throw new BadRequestException("Departure time must be before arrival time");
@@ -272,7 +279,7 @@ public class RideshareTompService {
     	if (maxResults == null) {
     		maxResults = MAX_RESULTS;
     	}
-    	RideshareUser traveller = userDao.findByManagedIdentity(travellerIdentity).orElse(null);
+    	RideshareUser traveller = travellerIdentity != null ? userDao.findByManagedIdentity(travellerIdentity).orElse(null) : null;
     	PlanRequest rq = new PlanRequest();
     	rq.setEarliestDepartureTime(earliestDeparture);
     	rq.setFrom(pickup);
@@ -298,6 +305,7 @@ public class RideshareTompService {
     		rq.addPlannerReport(rr.getReport());
     		if (!rr.hasError()) {
         		Ride ride = rr.getPage().getData().get(0);
+        		// This ride is (must) NOT in the persistence context 
         		boolean accepted = Stream.of(
         				new DetourMetersAcceptable(orgRide, rr.getReport()), 
         				new DetourSecondsAcceptable(orgRide, rr.getReport()))
@@ -306,7 +314,14 @@ public class RideshareTompService {
         		// Note: the report is updated on the fly with the validations
             	if (accepted) {
     	        	// We have the plan for the driver now. Extract the passenger leg (always a single leg now)
-            		bookings.add(rideItineraryHelper.createBooking(ride, pickup, dropOff));
+            		// We do not store the passenger yet, that is not really necessary.
+            		// When really creating the booking, the passenger must be defined. 
+            		Booking b = rideItineraryHelper.createBooking(ride, pickup, dropOff);
+            		b.setNrSeats(rq.getNrSeats());
+            		if (persistBooking) {
+            			bookingDao.save(b);
+            		}
+            		bookings.add(b);
             	}
     		}
     	}
@@ -321,7 +336,17 @@ public class RideshareTompService {
      * No exception means healthy.
      */
     public void ping() {
-    	// Get a total count.
+    	// Get a total count to test the database connection.
     	rideDao.findAll(0, 0);
+    }
+    
+    public Booking createBooking(String bookingRef) throws BusinessException {
+    	Booking b = bookingManager.getShallowBooking(bookingRef);
+    	if (b.getState() != BookingState.NEW) {
+    		throw new CreateException(String.format("Resource %s has unexpected state: %s", bookingRef, b.getState()));
+    	}
+    	b.setState(BookingState.REQUESTED);
+    	return b;
+    		
     }
 }

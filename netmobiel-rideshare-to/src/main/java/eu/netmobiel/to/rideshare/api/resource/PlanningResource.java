@@ -22,8 +22,6 @@ import eu.netmobiel.rideshare.service.RideManager;
 import eu.netmobiel.rideshare.service.RideshareTompService;
 import eu.netmobiel.to.rideshare.api.mapping.BookingMapper;
 import eu.netmobiel.tomp.api.PlanningApi;
-import eu.netmobiel.tomp.api.model.Address;
-import eu.netmobiel.tomp.api.model.Place;
 import eu.netmobiel.tomp.api.model.Planning;
 import eu.netmobiel.tomp.api.model.PlanningRequest;
 
@@ -43,47 +41,6 @@ public class PlanningResource extends TransportOperatorResource implements Plann
 	@Context 
 	private HttpServletResponse response;
 	
-    private static GeoLocation createGeolocation(Place place) {
-    	GeoLocation loc = new GeoLocation();
-    	if (place.getName() != null) {
-    		loc.setLabel(place.getName());
-    	} else if (place.getPhysicalAddress() != null) {
-    		Address addr = place.getPhysicalAddress();
-    		String streetPart = addr.getStreetAddress();
-    		if (streetPart == null) {
-        		StringBuilder sb = new StringBuilder();
-        		if (addr.getStreetAddress() != null) {
-        			sb.append(addr.getStreetAddress());
-        		} else if (addr.getStreet() != null) {
-        			sb.append(addr.getStreet()).append(" ");
-        			if (addr.getHouseNumber() != null) {
-        				sb.append(addr.getHouseNumber()).append(" ");
-        			}
-        			if (addr.getHouseNumberAddition() != null) {
-        				sb.append(addr.getHouseNumberAddition());
-        			}
-        		}
-        		streetPart = sb.toString().trim();
-    		}
-    		String cityPart = addr.getAreaReference();
-    		if (cityPart == null) {
-        		StringBuilder sb = new StringBuilder();
-        		if (addr.getPostalCode() != null) {
-        			sb.append(addr.getPostalCode()).append(" ");
-        		}
-    			if (addr.getCity() != null) {
-    				sb.append(addr.getCity());
-    			}
-        		cityPart = sb.toString().trim();
-    		}
-    		loc.setLabel(streetPart + " " + cityPart);
-    	}
-    	loc.setLatitude(place.getCoordinates().getLat().doubleValue());
-    	loc.setLongitude(place.getCoordinates().getLng().doubleValue());
-    	return loc;
-    }
-    			
-
     /**
      * Returns informative options for the given travel plan. <p>Start time can be defined, but is optional. If startTime is not provided, 
      * but required by the third party API, a default value of \"Date.now()\" is used. [from MaaS-API /listing]. During the routing phase 
@@ -99,45 +56,12 @@ public class PlanningResource extends TransportOperatorResource implements Plann
      * @param maasId The ID of the sending maas operator
      * @param body the actal planning request.
      * @param addressedTo The ID of the maas operator that has to receive this message
-     * @returns
+     * @returns a quick overview of possible bookings
      */
 	@Override
 	public Planning planningInquiriesPost(@NotNull String acceptLanguage, @NotNull String api,
 			@NotNull String apiVersion, @NotNull String maasId, @Valid PlanningRequest body, String addressedTo) {
-		String travellerId = null;
-		if (body.getTravelers() != null && body.getTravelers().size() > 0) {
-			travellerId = body.getTravelers().get(0).getKnownIdentifier();
-		} else {
-			travellerId = getCaller();
-		}
-		OffsetDateTime earliestDepTime = body.getDepartureTime();
-		OffsetDateTime latestArrTime = body.getArrivalTime();
-		if (earliestDepTime == null && latestArrTime == null) {
-			earliestDepTime = OffsetDateTime.now();
-		}
-		// Estimated distance is also a field. It is used to get an asset with enough fuel. Not used with rideshare.
-		GeoLocation from = createGeolocation (body.getFrom());
-		GeoLocation to = createGeolocation (body.getTo());
-		int nrSeats = body.getNrOfTravelers() != null ? body.getNrOfTravelers() : 1;
-		
-    	if (from == null || to == null) {
-    		throw new BadRequestException("Missing one or more mandatory parameters: from, to");
-    	}
-		Planning planning = new Planning();
-		planning.setValidUntil(OffsetDateTime.now().plusMinutes(15));
-		try {
-			List<Booking> bookings = tompService.searchTompRides(travellerId, from, to, 
-					toInstant(earliestDepTime), toInstant(latestArrTime), body.getRadius(), nrSeats, RideManager.MAX_RESULTS); 
-			planning.setOptions(bookingMapper.mapBookings(bookings));
-			response.setStatus(HttpServletResponse.SC_CREATED);
-		} catch (BusinessException ex) {
-			throw new WebApplicationException(ex);
-		} catch (DateTimeParseException ex) {
-			throw new BadRequestException("Date parameter has unrecognized format", ex);
-		} catch (IllegalArgumentException ex) {
-			throw new BadRequestException("Input parameter has unrecognized format", ex);
-		}
-    	return planning; 
+		return createPlanning(body, false);
 	}
 
     /**
@@ -155,14 +79,51 @@ public class PlanningResource extends TransportOperatorResource implements Plann
      * @param maasId The ID of the sending maas operator
      * @param body the actal planning request.
      * @param addressedTo The ID of the maas operator that has to receive this message
-     * @returns
+     * @returns A planning with persistent booking id.
      *  
      */
 	@Override
 	public Planning planningOffersPost(@NotNull String acceptLanguage, @NotNull String api, @NotNull String apiVersion,
 			@NotNull String maasId, @Valid PlanningRequest body, String addressedTo) {
-		// TODO Auto-generated method stub
-		return null;
+		return createPlanning(body, true);
+	}
+
+	public Planning createPlanning(PlanningRequest body, boolean makeItAnOffer) {
+		String travellerId = null;
+		// The traveller is during planning used the exclude the traveller's own rides (in case the traveller is a driver too). 
+		if (body.getTravelers() != null && body.getTravelers().size() > 0) {
+			travellerId = body.getTravelers().get(0).getKnownIdentifier();
+		} else {
+			travellerId = getCaller();
+		}
+		OffsetDateTime earliestDepTime = body.getDepartureTime();
+		OffsetDateTime latestArrTime = body.getArrivalTime();
+		if (earliestDepTime == null && latestArrTime == null) {
+			earliestDepTime = OffsetDateTime.now();
+		}
+		// Estimated distance is also a field. It is used to get an asset with enough fuel. Not used with rideshare.
+		GeoLocation from = PlaceHelper.createGeolocation (body.getFrom());
+		GeoLocation to = PlaceHelper.createGeolocation (body.getTo());
+		int nrSeats = body.getNrOfTravelers() != null ? body.getNrOfTravelers() : 1;
+		
+    	if (from == null || to == null) {
+    		throw new BadRequestException("Missing one or more mandatory parameters: from, to");
+    	}
+		Planning planning = new Planning();
+		planning.setValidUntil(OffsetDateTime.now().plusMinutes(15));
+		try {
+			List<Booking> bookings = tompService.searchTompRides(travellerId, from, to, 
+					toInstant(earliestDepTime), toInstant(latestArrTime), body.getRadius(), nrSeats, makeItAnOffer, RideManager.MAX_RESULTS); 
+			planning.setOptions(bookingMapper.mapBookings(bookings));
+			response.setStatus(HttpServletResponse.SC_CREATED);
+		} catch (BusinessException ex) {
+			throw new WebApplicationException(ex);
+		} catch (DateTimeParseException ex) {
+			throw new BadRequestException("Date parameter has unrecognized format", ex);
+		} catch (IllegalArgumentException ex) {
+			throw new BadRequestException("Input parameter has unrecognized format", ex);
+		}
+    	return planning; 
 	}
 
 }

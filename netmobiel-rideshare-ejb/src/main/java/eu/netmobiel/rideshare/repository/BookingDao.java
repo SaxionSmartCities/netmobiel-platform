@@ -3,6 +3,7 @@ package eu.netmobiel.rideshare.repository;
 import java.time.Instant;
 import java.util.ArrayList;
 import java.util.Collections;
+import java.util.EnumSet;
 import java.util.List;
 
 import javax.enterprise.context.ApplicationScoped;
@@ -53,12 +54,12 @@ public class BookingDao extends AbstractDao<Booking, Long> {
     	return tq.getResultList();
     }
 
-    public Boolean hasBookings(Ride ride) {
-    	Boolean exists = em.createQuery("select exists(select 1 from Booking where ride = :ride)", Boolean.class)
-    			.setParameter("ride", ride)
-    			.getSingleResult();
-    	return exists != null && exists;
-    }
+//    public Boolean hasBookings(Ride ride) {
+//    	Boolean exists = em.createQuery("select exists(select 1 from Booking where ride = :ride)", Boolean.class)
+//    			.setParameter("ride", ride)
+//    			.getSingleResult();
+//    	return exists != null && exists;
+//    }
     
     public PagedResult<Long> findByPassenger(RideshareUser passenger, Instant since, Instant until, boolean cancelledToo, Integer maxResults, Integer offset) {
         CriteriaBuilder cb = em.getCriteriaBuilder();
@@ -97,8 +98,8 @@ public class BookingDao extends AbstractDao<Booking, Long> {
     }
 
     public List<Booking> findActiveBookingsWithoutLegs() {
-    	TypedQuery<Booking> tq = em.createQuery("from Booking b where b.state <> :cancelledState and b.legs is empty", Booking.class)
-    			.setParameter("cancelledState", BookingState.CANCELLED);
+    	TypedQuery<Booking> tq = em.createQuery("from Booking b where b.state in :activeStates and b.legs is empty", Booking.class)
+    			.setParameter("activeStates", EnumSet.of(BookingState.REQUESTED, BookingState.PROPOSED, BookingState.CONFIRMED));
     	return tq.getResultList();
     }
 

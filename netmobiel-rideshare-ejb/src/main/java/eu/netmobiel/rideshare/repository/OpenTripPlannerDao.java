@@ -155,6 +155,7 @@ public class OpenTripPlannerDao {
     			orgRide.getTo().getPoint().getCoordinate(), 
     			via.stream().map(loc -> loc.getPoint().getCoordinate()).toArray(Coordinate[]::new)));
     	report.setToolType(ToolType.OPEN_TRIP_PLANNER);
+    	report.setViaLocations(via);
     	RideshareResult rideshareResult = new RideshareResult(report);
     	long start = System.currentTimeMillis();
     	try {

@@ -27,15 +27,10 @@ import javax.ws.rs.core.Application;
 
 import org.slf4j.Logger;
 
-import eu.netmobiel.commons.jaxrs.BusinessExceptionMapper;
-import eu.netmobiel.commons.jaxrs.EJBExceptionMapper;
 import eu.netmobiel.commons.jaxrs.Jackson2ObjectMapperContextResolver;
-import eu.netmobiel.commons.jaxrs.JsonProcessingExceptionMapper;
 import eu.netmobiel.commons.jaxrs.LocalDateParamConverterProvider;
 import eu.netmobiel.commons.jaxrs.OffsetDateTimeParamConverterProvider;
-import eu.netmobiel.commons.jaxrs.ProcessingExceptionMapper;
-import eu.netmobiel.commons.jaxrs.SecurityExceptionMapper;
-import eu.netmobiel.commons.jaxrs.WebApplicationExceptionMapper;
+import eu.netmobiel.to.rideshare.api.resource.BookingsResource;
 import eu.netmobiel.to.rideshare.api.resource.OperatorResource;
 import eu.netmobiel.to.rideshare.api.resource.PlanningResource;
 
@@ -76,17 +71,19 @@ public class RideshareTOApplication extends Application {
     @Override
     public Set<Class<?>> getClasses() {
         Set<Class<?>> resources = new HashSet<>();
+        resources.add(BookingsResource.class);
         resources.add(OperatorResource.class);
         resources.add(PlanningResource.class);
         resources.add(Jackson2ObjectMapperContextResolver.class);
         resources.add(LocalDateParamConverterProvider.class);
         resources.add(OffsetDateTimeParamConverterProvider.class);
-        resources.add(WebApplicationExceptionMapper.class);
-        resources.add(EJBExceptionMapper.class);
-        resources.add(SecurityExceptionMapper.class);
-        resources.add(BusinessExceptionMapper.class);
-        resources.add(ProcessingExceptionMapper.class);
-        resources.add(JsonProcessingExceptionMapper.class);
+        // TransportOperator requires a different response.
+//        resources.add(WebApplicationExceptionMapper.class);
+//        resources.add(EJBExceptionMapper.class);
+//        resources.add(SecurityExceptionMapper.class);
+//        resources.add(BusinessExceptionMapper.class);
+//        resources.add(ProcessingExceptionMapper.class);
+//        resources.add(JsonProcessingExceptionMapper.class);
         return resources;
     }
 

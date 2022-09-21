@@ -54,7 +54,7 @@ public abstract class BookingMapper {
 	// We also need a reference to the original ride. Where to put it? Use the booking id(!)
 	// So, now the booking id is actually the ride id, required to book a ride. 
 	// After booking we have a booking id.
-	@Mapping(target = "id", source = "ride.urn")
+	@Mapping(target = "id", source = "urn")
 	public abstract eu.netmobiel.tomp.api.model.Booking map(Booking source);
 
 	public Fare map(Integer fareInCredits) {

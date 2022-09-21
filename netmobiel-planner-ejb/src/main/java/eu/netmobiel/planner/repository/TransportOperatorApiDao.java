@@ -182,6 +182,7 @@ public class TransportOperatorApiDao {
 		pr.setFrom(createPlace(plan.getFrom()));
 		pr.setTo(createPlace(plan.getTo()));
 		pr.setRadius(plan.getMaxWalkDistance());
+		// The traveller is added to filter the rides. For booking it is not yet required.
 		Traveler trav = new Traveler();
 		trav.setIsValidated(Boolean.TRUE);
 		trav.setKnownIdentifier(plan.getTraveller().getManagedIdentity());

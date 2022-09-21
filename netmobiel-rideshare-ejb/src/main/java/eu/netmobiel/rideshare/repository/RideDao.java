@@ -30,6 +30,7 @@ import eu.netmobiel.commons.util.EllipseHelper;
 import eu.netmobiel.rideshare.annotation.RideshareDatabase;
 import eu.netmobiel.rideshare.filter.RideFilter;
 import eu.netmobiel.rideshare.model.Booking;
+import eu.netmobiel.rideshare.model.BookingState;
 import eu.netmobiel.rideshare.model.Booking_;
 import eu.netmobiel.rideshare.model.Ride;
 import eu.netmobiel.rideshare.model.RideBase_;
@@ -153,7 +154,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
     			"(CAST(:latestArrival as java.lang.String) is null or (:lenient = false and r.arrivalTime <= :latestArrival) or (:lenient = true and r.departureTime < :latestArrival)) and " +
     			"r.nrSeatsAvailable >= :nrSeatsRequested and " +
     			"(r.deleted is null or r.deleted = false) and " +
-    			"(:maxBookings is null or (select cast(count(b) as java.lang.Integer) from r.bookings b where b.state <> eu.netmobiel.rideshare.model.BookingState.CANCELLED) < :maxBookings) and " +
+    			"(:maxBookings is null or (select cast(count(b) as java.lang.Integer) from r.bookings b where b.state in :activeBookingStates) < :maxBookings) and " +
     			"(:traveller is null or r.driver != :traveller) and " +
     			"r.state = :state";
     	TypedQuery<Long> tq = null;
@@ -174,6 +175,7 @@ public class RideDao extends AbstractDao<Ride, Long> {
 			.setParameter("lenient", lenient)
     		.setParameter("maxBookings", maxBookings)
     		.setParameter("traveller", traveller)
+    		.setParameter("activeBookingStates", EnumSet.of(BookingState.REQUESTED, BookingState.PROPOSED, BookingState.CONFIRMED))
     		.setParameter("state", RideState.SCHEDULED);
         Long totalCount = null;
         List<Long> results = Collections.emptyList();
@@ -282,12 +284,12 @@ public class RideDao extends AbstractDao<Ride, Long> {
     			"select count(r) from Ride r where r != :myRide and r.driver = :driver " + 
     			"and not (r.departureTime > :arrivalTime or r.arrivalTime < :departureTime) " +
     			"and (r.deleted is null or r.deleted = false) " +
-    			"and state <> :state", Long.class)
+    			"and state in :activeStates", Long.class)
     			.setParameter("myRide", ride)
     			.setParameter("driver", ride.getDriver())
     			.setParameter("departureTime", ride.getDepartureTime())
     			.setParameter("arrivalTime", ride.getArrivalTime())
-    			.setParameter("state", RideState.CANCELLED)
+        		.setParameter("activeStates", EnumSet.of(BookingState.REQUESTED, BookingState.PROPOSED, BookingState.CONFIRMED))
     			.getSingleResult();
     	return count > 0;
     }

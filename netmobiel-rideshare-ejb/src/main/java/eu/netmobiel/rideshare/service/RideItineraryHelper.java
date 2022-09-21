@@ -223,7 +223,7 @@ public class RideItineraryHelper {
     }
 
     /**
-     * Create a booking fromthe calculated ride legs. 
+     * Create a booking from the calculated ride legs. 
      * @param ride the calculated ride with the legs
      * @param pickup The requested location for pickup
      * @param dropOff The requested location for drop-off
@@ -239,7 +239,7 @@ public class RideItineraryHelper {
    		Leg dropOffLeg = ride.getLegs().stream()
 			.filter(leg -> closenessFilter.test(leg.getTo().getLocation(), dropOff))
 			.findFirst()
-			.orElseThrow(() -> new IllegalStateException("Cannot find last legof passenger"));
+			.orElseThrow(() -> new IllegalStateException("Cannot find last leg of passenger"));
 //		log.info("Pickup leg: " + pickup.toString());
 //		log.info("Pickup leg index: " + ride.getLegs().indexOf(pickup));
 //		log.info("Drop-off leg: " + dropOff.toString());
