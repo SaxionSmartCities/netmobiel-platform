@@ -1,7 +1,7 @@
 # Configuration
 
 ## Configuration of the database
-The rideshare service uses Postgres (version 10.x) as relational database. No extensions are required.
+The rideshare service uses Postgres (version 10.x) as relational database. The PostGis extensions is required.
 
 For each database you need to create a login and the database itself.
 ### Add a Postgres user
@@ -20,7 +20,7 @@ CREATE ROLE rideshare WITH
 	PASSWORD 'xxxxxx';
 ```
 ### Create the database
-In the snippet the database name is `rideshare_dev`. You are free to give the database any name you prefer.    
+In the snippet the database name is `rideshare_dev`. You are free to give the database any name you prefer. Use whatever collation or character type you see fit. You might also use instead template0 or template 1.
 
 ```SQL
 CREATE DATABASE rideshare_dev
@@ -31,6 +31,10 @@ CREATE DATABASE rideshare_dev
     LC_CTYPE = 'English_Netherlands.1252'
     TABLESPACE = pg_default
     CONNECTION LIMIT = -1;
+```
+
+COMMENT ON DATABASE banker_dev
+    IS 'Carpool service database';
 ```
 
 We are using the PostGIS extension. Use the following commands to add the extensions:
@@ -59,8 +63,8 @@ The Netmobiel platform uses a separate XA datasource for each service. To add th
     </xa-datasource-property>
     <driver>postgres</driver>
     <security>
-        <user-name>aDatabaseUser</user-name>
-        <password>thePassword</password>
+        <user-name>rideshare</user-name>
+        <password>xxxxxx</password>
     </security>
     <validation>
         <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker"/>
@@ -76,18 +80,20 @@ Acceptance and production servers don't need a test database either.
 To add a test database to Wildfly, stop Wildfly and add the following XML snippet to the standalone.xml at `<subsystem xmlns="urn:jboss:domain:datasources:5.0">/<datasources>`:
 
 ```XML
-<datasource jndi-name="java:jboss/datasources/rideshare-testDS" pool-name="banker-testDS">
+<datasource jndi-name="java:jboss/datasources/rideshare-testDS" pool-name="rideshare-testDS">
     <connection-url>jdbc:postgresql://localhost:5432/rideshare_test</connection-url>
     <driver>postgres</driver>
     <security>
-        <user-name>aDatabaseUser</user-name>
-        <password>thePassword</password>
+        <user-name>rideshare</user-name>
+        <password>xxxxxx</password>
     </security>
 </datasource>
 ```
 
 
 ## JNDI definitions
+TBD
+
 Rideshare uses the Dutch RDW for retrieving information about cars keyed by the license plate. Define the following JNDI entries:
 * java:global/licensePlate/RDWAppToken: The access token issued by the RDW.
 

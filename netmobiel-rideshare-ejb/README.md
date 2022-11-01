@@ -9,7 +9,7 @@ After checking out from GitHub the project is ready for use.
 Refer to the [design page](doc/design.md) for a global description of the rideshare service.
   
 ## Configuration
-The rideshare service component requires the definition of the rideshareDS datasource in WildFly and a few JNDI definitions. Refer to the [detailed instructions](doc/configuration.md) to setup the database and database connection, and also the required JNDI definitions. 
+The rideshare service component requires the definition of the rideshareDS datasource in WildFly and a few JNDI definitions. Refer to the [detailed instructions](doc/configuration.md) to setup the database and database connection, and the required JNDI definitions. 
 
 The database schema must be manually created for development, acceptance and production stages. 
 
