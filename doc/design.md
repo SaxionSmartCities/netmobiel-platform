@@ -2,7 +2,7 @@
 
 Below is the context diagram of the Netmobiel Platform.
 
-![Netmobiel Context Diagram](./Netmobiel Context Diagram.png)
+![Netmobiel Context Diagram](Netmobiel-Context-Diagram.png)
 
 The context diagram shows a number of subsystems:
 * The Maas platform: The backend of the Mobilty-as-a-Service system.
@@ -26,7 +26,7 @@ Two services/libraries have not been realized in the project:
 ## Backend
 The platform backend is comprised of multiple services and client libraries. 
 
-![Netmobiel Backend](./Netmobiel-Backend.png)
+![Netmobiel Backend](Netmobiel-Backend.png)
 
 The services are is alphabetical order:
 * [Banker](../netmobiel-banker-ejb/doc/design.md) - The credit and incentive management service, maintaining the financial position of each user.
@@ -38,7 +38,7 @@ The services are is alphabetical order:
 The backend is packaged as a single EAR, but the design follows more or less a microarchitecture (with a few TODOs left although). The frontend communicates with the platform through a REST API. 
 This API is split over each service for easier handling. Each backend service has the same overall setup, see the following picture.
 
-![Netmobiel Backend Service](Netmobiel Backend Service.png) 
+![Netmobiel Backend Service](Netmobiel-Backend-Service.png) 
 
 Each service has three subprojects: 
  * The EJB for the business logic (including database).
@@ -50,4 +50,4 @@ Each external service, e.g. HERE or Firebase, is encapsulated in a library to li
 ##Front-end
 The front-end written for Netmobiel is in the project [Netmobiel Vue Client](../../netmobiel-vue-client/README.md). It is (mainly) a reactive HTML5 application written in Vue. For integration with the Firebase messaging a real app was required. For ease of development we used a [Flutter application](../../netmobiel-flutter-client/README.md) to have a single source and generate from there an Android as well as an iOS app. On desktop the webapplication can be used directly in a modern browser.
 
-![Netmobiel Frontend](Netmobiel Frontend.png) 
+![Netmobiel Frontend](Netmobiel-Frontend.png) 
