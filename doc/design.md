@@ -5,10 +5,10 @@ Below is the context diagram of the Netmobiel Platform.
 ![Netmobiel Context Diagram](Netmobiel-Context-Diagram.png)
 
 The context diagram shows a number of subsystems:
-* The Maas platform: The backend of the Mobilty-as-a-Service system.
-* The Rideshare service: The carpool service developed in Netmobiel, it's own transport operator for sharing a ride by car. In the implementation the Maas platform and Rideshare service have been packaged together.
-* The front-end application: The front-end comprises of a large responsive webclient contained in very small app, both Android and iOS.
-* Mobility Providers GTFS Ingres: The periodic loading of timetables of public transport operators.
+* [The Maas platform](#backend): The backend of the Mobilty-as-a-Service system.
+* [The Rideshare service](#backend): The carpool service developed in Netmobiel, it's own transport operator for sharing a ride by car. In the implementation the Maas platform and Rideshare service have been packaged together.
+* [The Frontend application](#frontend): The front-end comprises of a large responsive webclient contained in very small app, both Android and iOS.
+* [Mobility Providers GTFS Ingres](#gtfs-ingres): The periodic loading of timetables of public transport operators.
 
 Netmobiel uses a few free or paid external services, in alphabetical order:
 * API Gateway: Centralized access  for all client applications of the platform. This service is optional.
@@ -47,7 +47,20 @@ Each service has three subprojects:
  
 Each external service, e.g. HERE or Firebase, is encapsulated in a library to limit the visibility of external interfaces as much as possible and to ease a migration to a different service provider, if necessary.
 
-##Front-end
+## Frontend
 The front-end written for Netmobiel is in the project [Netmobiel Vue Client](../../netmobiel-vue-client/README.md). It is (mainly) a reactive HTML5 application written in Vue. For integration with the Firebase messaging a real app was required. For ease of development we used a [Flutter application](../../netmobiel-flutter-client/README.md) to have a single source and generate from there an Android as well as an iOS app. On desktop the webapplication can be used directly in a modern browser.
 
 ![Netmobiel Frontend](Netmobiel-Frontend.png) 
+
+## GTFS Ingres
+GTFS is the abbreviation of General Transit Feed Specification. GTFS defines a common format for public transportation schedules and associated geographic information. GTFS "feeds" let public transit agencies publish their transit data and developers write applications that consume that data in an interoperable way. See [GTFS.org](https://gtfs.org/) for more information.
+
+![GTFS-Ingres](GTFS-Ingres.png) 
+
+For the pilot of Netmobiel the GTFS data of all the public transport operators in the Netherlands was periodically loaded by a script at some quiet time every sunday morning very early. Netmobiel does not support GTFS-Flex or data provided by Bike rentals or Shared Car rentals.
+
+## Netmobiel and the TOMP API
+Parallel to the development of Netmobiel the [TOMP](https://github.com/TOMP-WG/TOMP-API) initiative was underway to standardize the interface between a MaaS Platform and the Transport Operators. In Netmobiel a proof of concept has been developed to make the Rideshare service available as a TOMP Transport Operator service. Only the planning part is implemented.
+
+The TOMP OpenApi specification is used in Netmobiel to create the Java interface together with all data transfer object types in the [netmobiel-tomp-api](../netmobiel-tomp-api) project. This interface is implemented by a separate [Rideshare Transport Operator](../netmobiel-rideshare-to) REST service. In the repository the service is not actually used. For more information about calling the api see the comments in this source file in the [Planner](../netmobiel-planner-ejb/src/main/java/eu/netmobiel/planner/service/Planner.java), method searchRideshareOnly().
+
