@@ -2,7 +2,7 @@
 
 Below is the context diagram of the Netmobiel Platform.
 
-![Netmobiel Context Diagram](Netmobiel Context Diagram.png) 
+![Netmobiel Context Diagram](./Netmobiel Context Diagram.png) 
 
 The context diagram shows a number of subsystems:
 * The Maas platform: The backend of the Mobilty-as-a-Service system.
@@ -26,7 +26,7 @@ Two services/libraries have not been realized in the project:
 ## Backend
 The platform backend is comprised of multiple services and client libraries. 
 
-![Netmobiel Backend](Netmobiel-Backend.png) 
+![Netmobiel Backend](./Netmobiel-Backend.png) 
 
 The services are is alphabetical order:
 * [Banker](../netmobiel-banker-ejb/doc/design.md) - The credit and incentive management service, maintaining the financial position of each user.
