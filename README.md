@@ -12,10 +12,11 @@ Following below is the functional architecture of Netmobiel.
 
 ![Netmobiel Functional Architecture](doc/Netmobiel-Architecture.png)
 
-Netmobiel comprises of three layers:
+Netmobiel comprises of four blocks:
 * The front-end: User interface for travellers, rideshare drivers and a bit of management for the administrators of Netmobiel. 
 * The MaaS platform: The functionality for planning and booking a trip.
 * The Transport Operators: The parties with the wheels, including public transport. Rideshare is the carpool service developed in Netmobiel.
+* The security: Security must be enforced in each to prevent unauthorized access. 
 
 Netmobiel targets the people living in a rural area. The emphasis has been on sharing rides, and also on combining in a multi-legged trip the first or last leg 
 by car with public transport for the other legs. Netmobiel defines its own  carpool service. As a consequence of the emphasis on car pooling, 
