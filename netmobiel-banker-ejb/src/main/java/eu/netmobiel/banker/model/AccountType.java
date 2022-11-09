@@ -2,7 +2,7 @@ package eu.netmobiel.banker.model;
 
 /**
  * Generalized model of account types. For Netmobiel we need only Assets and Liability accounts.
- * Defintions of debit/credit for the different types of accounts
+ * Definitions of debit/credit for the different types of accounts
  * Account 	To Increase Balance 	To Decrease Balance
  *  Assets 	   		Debit 				Credit
  *  Liabilities 	Credit 				Debit
