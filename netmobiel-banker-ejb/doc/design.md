@@ -31,12 +31,20 @@ Each account has also a purpose:
 * **Current**: The account is used for depositing, payments and withdrawals.
 * **Premium**: The account is used to pay rewards as incentives. The system is the holder of the central **Premium** **Liability** account from where premiums are paid to the users of Netmobiel. The API has a method to deposit premium credits into the system, thus creating credits from this air as it seems. However, there must be an equal amount of real money have been deposited on the bank account of the party responsible for the exploitation of Netmobiel. The user cannot deposit to or withdraw from the account.
 
+### Example Transaction Chain
+Let's assume a traveller books a ride with someone. Let's also assume the traveller - soon to be passenger - has premium credits is his premium account, enough to pay for the whole trip. The business rule: trips with rideshare can be paid for the full amount with premium credits. What are the transactions, following the happy path?
+* The user books a ride: Reserve the fare of premium credits. The reserved amount is moved to a central reservation account.
+* The now passenger and driver agree at the end of the ride. A number of transaction are now atomically executed:
+  - The premium credits are released, the premium credits return to the user's premium account.
+  - The premium amount is transferred from the user's premium account to the user's current account.
+  - The fare is transferred to the current account of the driver.
+
 ## Deposits, Withdrawals and Payment Batches
 This diagram shows the elements involved in moving real money in and out Netmobiel. The transaction details part and the banker user are omitted.
 
 User can deposit credits by buying them through iDeal payment. 
 
-![Payment Class Diagram](Banker-Payment-Class-Diagram.png)
+![Deposit and Withdraw Class Diagram](Banker-Deposit-and-Withdraw-Class-Diagram.png)
 
 A DepositRequest captures the conversation between NetMobiel and an external payment provider, used by the BankerUser to deposit credits in his Account. The credits are paid in euro's.
 
@@ -45,5 +53,26 @@ A WithdrawalRequest models the reverse operation where a BankerUser wants to exc
 Summarized: Any user can initiate a deposit request, but a withdrawal is only a request. The actual execution is performed by the treasurer, the owner of the bank account of Netmobiel.
 
 ## Charities and Donations
+Netmobiel supports donations of credits to local charity organizations that have been approved by the treasurer or administrator of Netmobiel. The model is depicted below.
+
+![Charity and Donations Class Diagram](Banker-Charity-and-Donations-Class-Diagram.png)
+
+A Charity is managed by the treasurer, the administrator or a user that has been given the CharityUserRole `Manager`. The manager can see all the account details (current balance) of a charity. Ordinary users only see public information.
+
 
 ## Incentives and Rewards
+Netmobiel has defined an incentive model to stimulate desired behaviour, for example carpooling. A rule in Netmobiel during the pilot has been to reward a driver when he or she has offered a certain amount of rides in some period of time. The incentives don't drop out of the blue sky of course, so that is where the premium budget is used for. The general mechanism of rewarding someone is:
+1. A user has earned a reward for something.
+1. The reward is issued to that user.
+1. If there is enough budget, the user is finacially rewarded, usiung his/her premium account.
+
+The design of the incentives is state-based, as opposite to event-based. By this we mean that periodically the incentive rules are evaluated. That evaluation might lead to a hand out of a reward. Equally, a reward might also taken back if it was handed out mistakenly or for some other reason. With this mechanism it is easy to create new  incentives that can be put in operation with a specified look-back period.
+
+A reward can be of two types:
+* **Premium Reward**: This reward will increase the amount of premium credits of a user, at the expense of the premium budget (a system account). Of course this will fail when the system premium balance is empty. The reward will stay, perhaps later on more budget will be assigned and then the rewards are paid out after all.
+* **Redemption Reward**: A redemption reward is a reward that transfers premium credits from a user to his current account. If a user has no premium credits, then the user does not get anything.
+
+ A reward has a `factContext` field. This field contains the URN of the system object that initiated the reward. In combination with the incentive the system can track the origin exactly.
+
+![Incentive Model Class Diagram](Banker-Incentive-Model-Class-Diagram.png)
+
