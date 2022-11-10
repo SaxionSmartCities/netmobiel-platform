@@ -43,6 +43,7 @@ Each service consists of three subprojects:
  * The EJB for the business logic (including database for the particular service).
  * The REST implementation, including the (generated) mapping between domain objects and REST interface objects.
  * The OpenAPI specification. From the specification a JAX-RS interface and data transfer objects are generated. The OpenAPI specification plays therefore an important and central role.
+   For editing the OpenAPI specification we used [apicurio](https://www.apicur.io/studio/) and exported each specification to Github.
  
 Each external service, e.g. HERE or Firebase, is encapsulated in a library to limit the visibility of external interfaces as much as possible and to ease a migration to a different service provider, if necessary.
 

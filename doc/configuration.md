@@ -1,91 +1,58 @@
 # Configuration
 
-## Configuration of the database
-The planner service uses Postgres (version 10.x) as relational database. The PostGis extensions is required.
+## Configuration of Keycloak
+Netmobiel uses the [Keycloak Open Source Identity and Access Management Server](https://www.keycloak.org/) as its single sign-on solution/. At the time of writing we used version 15.0. To use Keycloak for Netmobiel, the global roles need to be configured as well as the clients.
 
-For each database you need to create a login and the database itself.
-### Add a Postgres user
+First install Keycloak, following the procedures in the Keycloak documentation. Then create a realm in Keycloak for Netmobiel. The realm is the container for all other configuration steps. Configure the realm according the keycloak instructions.
 
-Add a user (planner) with a password. Use the same values in the setup for WildFly.
+### Global roles
+Add the following roles:
+* admin -  A role with unrestricted great power in Netmobiel.
+* treasurer - Responsible for the credit management in NetMobiel. The treasurer is allowed to run a payment batch to execute withdrawal requests. 
+* delegate - Users with this role may act on behalf of other users in Netmobiel (for informal care, the caregiver).
 
-```SQL
-CREATE ROLE planner WITH
-	LOGIN
-	NOSUPERUSER
-	NOCREATEDB
-	NOCREATEROLE
-	INHERIT
-	NOREPLICATION
-	CONNECTION LIMIT -1
-	PASSWORD 'xxxxxx';
-```
-### Create the database
-In the snippet the database name is `planner_dev`. You are free to give the database any name you prefer, it is good practise to distinguish explicitly between the databases used in different develop stages to prevent accidents. Use whatever collation or character type you see fit. You might also use instead template0 or template 1.
+The roles can only be assigned from the Keycloak console.
 
-```SQL
-CREATE DATABASE planner_dev
-    WITH 
-    OWNER = postgres
-    ENCODING = 'UTF8'
-    LC_COLLATE = 'English_Netherlands.1252'
-    LC_CTYPE = 'English_Netherlands.1252'
-    TABLESPACE = pg_default
-    CONNECTION LIMIT = -1;
+### Client applications
+Each back-end service with a REST Api has a client application defined in Keycloak. Add the following clients with access type `bearer-only`.
+* banker-service
+* communicator-service
+* geo-service
+* planner-service
+* profile-service
+* rideshare-service 
 
-COMMENT ON DATABASE planner_dev
-    IS 'Planner service database';
-```
-   
-We are using the PostGIS extension. Use the following commands to add the extensions:
+The frontend application needs also a representation, so add another client:
+* netmobiel-frontend (with access type `public`). Enable standard flow. Add valid redirection urls and web origins.
 
-```SQL
-create extension postgis;
-create extension postgis_topology;
-```
 
-Repeat this step for the integration test database (if required), with name `planner_test`. Because the test database is dropped and created by the application, the owner of the database must be set to `planner`.  
+If you want to use [Postman](https://www.postman.com/) for testing, it is useful to add another client that can be used to fetch a token from, e.g. netmobiel-postman. Configure accoirding requirements of Postman.
 
-## Configuration of the datasource
-The Netmobiel platform uses a separate XA datasource for each service. To add the database to Wildfly, stop Wildfly and add the following XML snippet to the standalone.xml at `<subsystem xmlns="urn:jboss:domain:datasources:5.0">/<datasources>`:
+## Configuration of Wildfly
+Netmobiel uses the Wildfly application server (version 17 at the time of writing). Download and install Wildfly according instructions. 
+
+Install the client adapter of Keycloak for Wildfly, follow the instructions.
+
+Because of the distributed databases, extended datasources need to be defined. This is explained in the configuration section of each Netmobiel service.
+
+Wildfly 17.0 kept endlessly complaining about attempts to roll-back failed transactions. In production usefull, but during development it is of no use. Disable the feature with the following fragment in `standalone.xml`.
 
 ```XML
-<xa-datasource jndi-name="java:jboss/datasources/plannerDS" pool-name="plannerDS">
-    <xa-datasource-property name="ServerName">
-        localhost
-    </xa-datasource-property>
-    <xa-datasource-property name="PortNumber">
-        5432
-    </xa-datasource-property>
-    <xa-datasource-property name="DatabaseName">
-        planner_dev
-    </xa-datasource-property>
-    <driver>postgres</driver>
-    <security>
-        <user-name>planner</user-name>
-        <password>xxxxxx</password>
-    </security>
-    <validation>
-        <valid-connection-checker class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLValidConnectionChecker"/>
-        <exception-sorter class-name="org.jboss.jca.adapters.jdbc.extensions.postgres.PostgreSQLExceptionSorter"/>
-    </validation>
-</xa-datasource>
+<system-properties>
+  <property name="com.arjuna.ats.jta.orphanSafetyInterval" value="20000"/>
+  <property name="com.arjuna.ats.jta.xaAssumeRecoveryComplete" value="true"/>
+</system-properties>
 ```
 
-## Configuration of the test datasource
-The test database is used to run integration test with Maven. If you don't intend to run integration tests, then there is no need for a test database. 
-Acceptance and production servers don't need a test database either.
+## Configuration of Postgres
+Netmobiel uses Postgres 10 as RDBMS. Download and install according instructions.
 
-To add a test database to Wildfly, stop Wildfly and add the following XML snippet to the standalone.xml at `<subsystem xmlns="urn:jboss:domain:datasources:5.0">/<datasources>`:
+For the extended datasource, this version of Postgres required a chnage of setting in `postgresql.conf`:
 
-```XML
-<datasource jndi-name="java:jboss/datasources/planner-testDS" pool-name="planner-testDS">
-    <connection-url>jdbc:postgresql://localhost:5432/planner_test</connection-url>
-    <driver>postgres</driver>
-    <security>
-        <user-name>planner</user-name>
-        <password>xxxxxx</password>
-    </security>
-</datasource>
+```
+max_prepared_transactions = 100		# zero disables the feature
 ```
 
+Details about each database are given in the configuration section of each service.
 
+Also install the PostGiS extension. 
