@@ -87,7 +87,7 @@ A Charity is managed by the treasurer, the administrator or a user that has been
 Netmobiel has defined an incentive model to stimulate desired behaviour, for example carpooling. A rule in Netmobiel during the pilot has been to reward a driver when he or she has offered a certain amount of rides in some period of time. The incentives don't drop out of the blue sky of course, so that is where the premium budget is used for. The general mechanism of rewarding someone is:
 1. A user has earned a reward for something.
 1. The reward is issued to that user.
-1. If there is enough budget, the user is finacially rewarded, usiung his/her premium account.
+1. If there is enough budget, the user is financially rewarded, using his/her premium account.
 
 The design of the incentives is state-based, as opposite to event-based. By this we mean that periodically the incentive rules are evaluated. That evaluation might lead to a hand out of a reward. Equally, a reward might also taken back if it was handed out mistakenly or for some other reason. With this mechanism it is easy to create new  incentives that can be put in operation with a specified look-back period.
 
@@ -99,3 +99,4 @@ A reward can be of two types:
 
 ![Incentive Model Class Diagram](Banker-Incentive-Model-Class-Diagram.png)
 
+For the frontend usage a call-to-action (CTA) mechanism has been created. The front-end asks at the home screen if any CTAs need to be displayed. If so, the user can initiate the action and earn a reward.
