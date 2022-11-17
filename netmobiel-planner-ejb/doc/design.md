@@ -1,26 +1,28 @@
 # Design
 The Planner is the functional core of the MaaS platform. It handles all the trip related functions:
-* Searching: Multi-modal trip planning, op top of OpenTripPlanner
-* Booking: Handle the booking (low-level) process.
+* Searching: Multi-modal trip planning, on top of OpenTripPlanner
+* [Booking](trip-booking.md): Handle the booking (low-level) process.
 * Management: Store and retrieve saved trips.
-* Monitoring: Follow progress of a trip.
+* [Monitoring](trip-monitoring.md): Follow the progress of a trip.
 
 The Planner is using OpenTripPlanner (OTP) for the actual planning of public transport or car itineraries. 
 
 ## Planner Algorithm
-The Planner uses OTP for planning the regular trips: Trips involving public transport or car, both exclusively. Public transport could be seen as multi-modal because of the combination of bus and train, but in Netmobiel multi-modal means the combination of public transport with others means of transport in a single trip, like train and car (as in rideshare). The combination of public transport and rideshare is not calculated inside OTP. We considered GTFS-Flex, but in 2018 this specification was just in its infancy and support in OTP 1.4 was still limited. We did not consider to extend OTP ourselves, because OTP is a sophisticated piece of solid engineering and good understanding of the internals is a prerequisite for making changes. Our resources were too limited to undertake such a task. Instead, the planner service a doing the combinatoric work, applying some heuristics to limit the required calculations.
+The Planner uses OTP for planning the regular trips: Trips involving public transport or car, both exclusively. Public transport could be seen as multi-modal because of the combination of bus and train, but in Netmobiel multi-modal means the combination of public transport with others means of transport in a single trip, like train and car (as in rideshare). The combination of public transport and rideshare is not calculated inside OTP. We considered [GTFS-Flex](https://trid.trb.org/view/1858112), but in 2018 this specification was just in its infancy and support in OTP 1.4 was still limited. We did not consider to extend OTP ourselves, because OTP is a sophisticated piece of solid engineering and good understanding of the internals is a prerequisite for making changes. Our resources were too limited to undertake such a task. Instead, the planner service a doing the combinatoric work, applying some heuristics to limit the required calculations.
 
 The Planner in Netmobiel, targeting people living in rural areas, considers the following use cases:
 1. A complete trip by car as a passenger, riding along with someone, a trip with a single modality.
 2. A trip largely using public transport, but using rideshare as first or last leg, a true multi-modal trip. This is in fact an extension of the first use case.
 
-A multi-leg itinerary involving multiple cars is not considered. The distances in the Netherlands are relatively small, in case of the targeted pilot area the maximum distance would be aroiund 50 kilometer. People are in general not inclined to switch cars on their trips. 
+A multi-leg itinerary involving multiple cars is not considered. The distances in the Netherlands are relatively small, in case of the targeted pilot area the maximum distance would be around 50 kilometer. People are in general not inclined to switch cars on their trips. 
 
 Both use case have in common that a route needs to be calculated for the pickup and drop-off of the prospective passenger, given the initial origin and destination of the driver.
 
 The first case uses the search algorithm of the Rideshare service to find potential rides. For each potential ride the planner calculates the new route including the passenger and verifies whether the trip fits the driver's conditions on maximum detour. The itinerary is assigned a score primarily based on the shift in actual departure time compared with the requested departure time of the passenger.
 
-The second use case involves true multi-modal itinerary by combining public transport and rideshare. The algorithm first calculates an itinerary using only public transport (using a very large maximum walking distance for walking up to the nearest bus or train stop). The stops are collected. More stops, if necessary,  are added by looking up the stops in the larger clusters that are found in the vicinity of the trajectory of the passenger. Then for each stop a numbers of calculations are made:
+The second use case involves true multi-modal itinerary by combining public transport and rideshare. The algorithm first calculates an itinerary using only public transport (using a very large maximum walking distance for walking up to the nearest bus or train stop). The stops are collected. More stops, if necessary, are added by looking up the stops in the larger clusters that are found in the vicinity of the trajectory of the passenger. The vicinity is expressed as an ellipse, as explained in the paper by Massoud[^1].  Only clusters in the ellipse that are large enough (have a number of routes above a threshold) are considered. For a bit of background see also the explanation in the [Rideshare Service design description](../../netmobiel-rideshare-ejb/doc/design.md).
+
+For each stop a numbers of calculations are made:
 * Are there any rides that could drop-off the passenger to the public transport stop?
 * Are there any rides that could pickup the passenger from the public transport stop?
 
@@ -51,3 +53,8 @@ The Planner domain model is shown below. It is rather conscise and straightforwa
 For finding potential stops for car to public transport of vice versa, we make a copy the public transport graph in OpenTripPlanner. The copy is regularly updated by a scheduled refresh operation. For obvious reasons, the refresh must be timed after finishing the update of OTP.
 
 ![Planner OTP Data Class Diagram](Planner-OTP-Data-Class-Diagram.png)
+
+## Shout-Out Plan
+The Planner Service supports an innovative type of trip plan: The Shout-Out. A shout-out is basically a request for a ride. The shout-out is implemented as a trip plan that has not completed yet. Drivers can propose a ride by submitting a driver trip plan. The traveller can confirm one of the offered rides, thereby automatically cancelling the remaining proposals. From then on the trip plan has completed and is closed.
+
+[^1]: A real-time algorithm to solve the peer-to-peer ride-matching problem in a flexible ridesharing system, Neda Massoud, R. Jayakrishnan, Transportation Research Part B 106 (2017) 218-236.

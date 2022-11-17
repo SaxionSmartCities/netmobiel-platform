@@ -2,7 +2,7 @@
 
 Rideshare is a small service for managing rides by car, with the purpose to find passengers, or better: To give passenger the possibility to find a ride that fits the intended itinerary. Below is the algorithm for finding a ride explained. In addition the class diagram of the domain of Rideshare is depicted as well as the state transition diagram of a ride.
 
-## Rideshare Eligibility Algorithm
+## Rideshare Ride Eligibility Algorithm
 
 The search for a matching ride has some obstacles. The traveller (the potential passenger) knows the location of his departure and arrival, and also knows either time of departure or arrival. However, both time and place are not written in stone. Perhaps a few hundered meters further or a hour later would do as well. We do no know the precise intention of the traveller. The search for rides must therefore be a bit flexible and also find rides that are less optional (for the traveller). On the other hand, the driver might be inclined to make a longer detour for someone from his own community than for a stranger.
 
