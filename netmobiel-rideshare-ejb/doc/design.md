@@ -39,9 +39,14 @@ The model assigns a car to a driver. Note that although the entity is called *Ca
 Currently a ride can have at most one booking. Cancelled bookings are ignored. A ride with a booking has one, two or three legs, depending on the pickup and drop-off location of the passenger.
 
 ## Ride State Transitions
-The Rideshare service monitors each ride. In absence of a real-time measurement of the driver's actual location, the service monitors the theoretical progress by observing the itinerary. The sttae transitions are depicted in the next State Transition Diagram (STD).
+The Rideshare service monitors each ride. In absence of a real-time measurement of the driver's actual location, the service monitors the theoretical progress by observing the itinerary. The state transitions are depicted in the next State Transition Diagram (STD).
 
 ![Ride State Transition Diagram](Ride-STD.png) 
+
+## Rideshare Booking
+A booking is created when a passenger accepts a ride from the itinerary search page, or when the passenger accepts the offer of a driver in response to a shout-out. In the current implementation, a requested booking is automatically confirmed without interaction with the driver.
+
+![Booking STD](Rideshare-Booking-STD.png)
 
 
 [^1]: A real-time algorithm to solve the peer-to-peer ride-matching problem in a flexible ridesharing system, Neda Massoud, R. Jayakrishnan, Transportation Research Part B 106 (2017) 218-236.
