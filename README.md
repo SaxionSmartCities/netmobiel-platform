@@ -36,3 +36,5 @@ mvn install
 mvn -P arq-remote verify
 ```
 
+## Deployment
+The backend build results in a single EAR file, ready for deployment in Wildfly ofr some other Java Enterprise server. Refer to the [deployment page](doc/deployment.md) for a global description of the deployment of the Netmobiel backend.
