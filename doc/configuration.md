@@ -98,10 +98,13 @@ OTP needs timetables to search for public transport and map data for car routing
 
 The graph needs a periodic rebuild. We used to do the rebuild once a week. The scripts can be found in the `/etc` folder in the project root.
 
+## Configuration of the API Gateway
+For netmobiel we used the [Gravitee](https://ww.gravitee.io) API Gateway, community edition. The gateway uses quite a lot of resources, at 4G memory is required. Elastic search engine is also installed. Setup was also quite a lot of work, so is updating. You might consider a ready-to-run cloud service instead of running your own.
+
 ## External Services
 You need to obtain api keys for the external services:
 * [Firebase Cloud Messaging](https://firebase.google.com/products/cloud-messaging): A file needs to be placed in a secure place, e.g., in the configuration section of Wildfly. This file can be downloaded from the [Google Cloud Console](https://console.cloud.google.com), once you have enabled the API. 
-* [HERE Geocoding & Search](https://www.here.com/platform/geocoding) : Create an account and get the API key. It is free up to some point.
+* [HERE Geocoding & Search](https://www.here.com/platform/geocoding): Create an account and get the API key. It is free up to some point.
 * [Messagebird SMS](https://messagebird.com/): Optional (more or less), only for sending text messages to mobile devices (paid service), mainly for authentication purposes for the delegation function. Not free.
 * [RDW License Plate registration](https://opendata.rdw.nl/browse?category=Voertuigen&provenance=official): The Dutch registrar for the license plates of cars in The Netherlands. Obtain an API for free.
 

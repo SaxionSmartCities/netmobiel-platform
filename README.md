@@ -1,8 +1,8 @@
 # netmobiel-platform
 
-`Netmobiel Platform` is the back-end of the NetMobiel Mobility-As-A-Service. The back-end is written as a Java Enterprise application and packaged as an EAR. 
+`Netmobiel Platform` is the back-end of the NetMobiel Mobility-As-A-Service platform. The back-end is written as a Java Enterprise application and packaged as an EAR. 
 
-The Netmobiel Project (also named Netmobil) is a Dutch RAAK-Pro project managed by Saxion during 2017-2022. The purpose of the project was to create a Mobility-as-a-Services system for rural areas. The selected pilot region was the Achterhoek region, in the east of Gelderland, The Netherlands. The requirements, both for features and user interface were drawn up together with people from the selected communities in the targeted areas. Prototypes were also tested in the same communities. The original intention was to reuse an existing MaaS platform and make adaptations. That appeared however too hard for multiple reasons. Enter this project, a first starter for a MaaS system. 
+The Netmobiel Project (also named Netmobil) is a Dutch RAAK-Pro project managed by Saxion during 2017-2022. The purpose of the project was to create a Mobility-as-a-Services system for rural areas. The selected pilot region was the Achterhoek region, in the east of Gelderland, The Netherlands. The requirements, both for features and user interface, were drawn up together with people from the selected communities in the targeted area. Prototypes were also tested in the same communities. The original intention was to reuse an existing MaaS platform and make adaptations. That appeared however too hard for multiple reasons. Enter this project, a basic MaaS system with a number of unique features. 
  
 ## Project setup
 After checking out from GitHub the project is ready for use.
@@ -12,20 +12,18 @@ Following below is the functional architecture of Netmobiel.
 
 ![Netmobiel Functional Architecture](doc/Netmobiel-Architecture.png)
 
-Netmobiel comprises of four blocks:
-* The front-end: User interface for travellers, rideshare drivers and a bit of management for the administrators of Netmobiel. 
+The Netmobiel system comprises of four blocks:
+* The front-end: The user interface for travellers, rideshare drivers and a bit of management for the administrators of Netmobiel. 
 * The MaaS platform: The functionality for planning and booking a trip.
 * The Transport Operators: The parties with the wheels, including public transport. Rideshare is the carpool service developed in Netmobiel.
-* The security: Security must be enforced in each to prevent unauthorized access. 
+* The security: Security must be enforced in each service to prevent unauthorized access. 
 
-Netmobiel targets the people living in a rural area. The emphasis has been on sharing rides, and also on combining in a multi-legged trip the first or last leg 
-by car with public transport for the other legs. Netmobiel defines its own  carpool service. As a consequence of the emphasis on car pooling, 
-Netmobiel has combined the user interface of traveller (passenger) and car driver in a single front-end application for all users of Netmobiel.
+Netmobiel targets the people living in a rural area. The emphasis has been on sharing rides, as a single leg and also in combination with public transport in a multi-legged trip. The first or last leg is then by car. Netmobiel has its own rideshare (carpool) service. As a consequence of the emphasis on car pooling, Netmobiel has combined the user interface of traveller (passenger) and car driver in a single front-end application for all users of Netmobiel. It is even possible for a Netmobiel user to combine both roles, although time-wise not overlapping of course.
 
-Refer to the [design page](doc/design.md) for a global description of the Netmobiel backend. Each individual service is explained in more detail by the documentation in the service itself.
+Refer to the [design page](doc/design.md) for a global description of the Netmobiel backend. Each individual service is explained in more detail by the documentation in the service itself. References to the documentation are provided.
 
 ## Configuration
-Each service has its own database. Refer to the documentation of each service for the details of ech setup.
+Each service has its own database. Refer to the documentation of each service for the details of each setup.
 
 ### Compiles and builds the EAR 
 ```
@@ -37,4 +35,4 @@ mvn -P arq-remote verify
 ```
 
 ## Deployment
-The backend build results in a single EAR file, ready for deployment in Wildfly ofr some other Java Enterprise server. Refer to the [deployment page](doc/deployment.md) for a global description of the deployment of the Netmobiel backend.
+The backend build process results in a single EAR file, ready for deployment in Wildfly or some other Java Enterprise server. Refer to the [deployment page](doc/deployment.md) for a global description of the deployment of the Netmobiel backend as we used to have for the pilot.
