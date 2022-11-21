@@ -45,7 +45,7 @@ Each individual transaction has a `TransactionType`:
 Premium credits are introduced for rewarding the users of Netmobiel for exhibiting desired behaviour. The system is the holder of the central **Premium** **Liability** account from where premiums are paid. The API has a method to deposit premium credits into the system, thus creating credits from thin air, as it seems. However, there must be an equal amount of real money have been deposited on the bank account of the party responsible for the exploitation of Netmobiel. To avoid abuse of premium credits a few rules have been put in place:
 * The user cannot deposit to or withdraw from the premium account. 
 * The premium credits are earmarked, so a refund will return into the premium account if the amount originates from the premium account.
-* A premium account supports overdraw for this reason, but only to make a refund possible. 
+* A premium account supports overdraw, but only to make a refund possible. This situation might occur in the rare case when a redemption-type reward is rolled-back (see on rewards below).
 
 ### Example Transaction Chain
 Let's assume a traveller books a ride with someone. Let's also assume the traveller - soon to be passenger - has premium credits is his premium account, enough to pay for the whole trip. The business rule: trips with rideshare can be paid for the full amount with premium credits. What are the transactions, following the happy path?
@@ -93,7 +93,7 @@ The design of the incentives is state-based, as opposite to event-based. By this
 
 A reward can be of two types:
 * **Premium Reward**: This reward will increase the amount of premium credits of a user, at the expense of the premium budget (a system account). Of course this will fail when the system premium balance is empty. The reward will stay, perhaps later on more budget will be assigned and then the rewards are paid out after all.
-* **Redemption Reward**: A redemption reward is a reward that transfers premium credits from a user to his current account. If a user has no premium credits, then the user does not get anything.
+* **Redemption Reward**: A redemption reward is a reward that transfers premium credits from a user's premium account to his current account. If a user has no premium credits, then the user does not get anything.
 
  A reward has a `factContext` field. This field contains the URN of the system object that initiated the reward. In combination with the incentive the system can track the origin exactly.
 
