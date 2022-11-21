@@ -1,6 +1,6 @@
 # netmobiel-platform
 
-`Netmobiel Platform` is the back-end of the NetMobiel Mobility-As-A-Service platform. The back-end is written as a Java Enterprise application and packaged as an EAR. 
+`Netmobiel Platform` is the backend of the NetMobiel Mobility-As-A-Service system. The backend is written as a Java Enterprise application and packaged as an EAR. 
 
 The Netmobiel Project (also named Netmobil) is a Dutch RAAK-Pro project managed by the Saxion research group [Smart Cities](https://www.saxion.nl/onderzoek/smart-industry/smart-cities) during the period 2017-2022. The purpose of the project was to create a Mobility-as-a-Services system for rural areas. The selected pilot region was the Achterhoek region, in the east of Gelderland, The Netherlands. The requirements, both for features and user interface, were drawn up together with people from the selected communities in the targeted area. Prototypes were also tested in the same communities. The original intention was to reuse an existing MaaS platform and make adaptations. That appeared however too hard for multiple reasons. Enter this project, a basic MaaS system with a number of unique features. 
  
