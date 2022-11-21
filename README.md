@@ -18,14 +18,14 @@ The Netmobiel system comprises of four blocks:
 * The Transport Operators: The parties with the wheels, including public transport. Rideshare is the carpool service developed in Netmobiel.
 * The security: Security must be enforced in each service to prevent unauthorized access. 
 
-Netmobiel targets the people living in a rural area. The emphasis has been on sharing rides, as a single leg and also in combination with public transport in a multi-legged trip. The first or last leg is then by car. Netmobiel has its own rideshare (carpool) service. As a consequence of the emphasis on car pooling, Netmobiel has combined the user interface of traveller (passenger) and car driver in a single front-end application for all users of Netmobiel. It is even possible for a Netmobiel user to combine both roles, although time-wise not overlapping of course.
+Netmobiel targets people living in a rural area. The emphasis has been on sharing rides as a single legged trip and also in combination with public transport in a multi-legged trip. Only the first or last leg is then by car as a shared ride. Netmobiel has its own rideshare (carpool) service. As a consequence of the emphasis on car pooling, Netmobiel has combined the user interfaces for the traveller (passenger) and the car driver in a single front-end application for all users of Netmobiel. It is even possible for a Netmobiel user to combine both roles, although time-wise not overlapping of course.
 
-Refer to the [design page](doc/design.md) for a global description of the Netmobiel backend. Each individual service is explained in more detail by the documentation in the service itself. References to the documentation are provided.
+Refer to the [design page](doc/design.md) for a global description of the Netmobiel system. 
 
 ## Configuration
-Each service has its own database. Refer to the documentation of each service for the details of each setup.
+Each block has its own specific configuration. Refer to the [configuration](doc/configuration.md) documentation for more details.
 
-### Compiles and builds the EAR 
+### Compile and build the EAR 
 ```
 mvn install
 ```

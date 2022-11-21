@@ -1,20 +1,27 @@
-# Configuration
+# Platform Configuration
+The configuration of the backend concerns a number of topics:
+1. The security setup for Keycloak. The application server requires a client adapter and a bit of client configuration is needed for each service.
+2. The definition of api keys etc. in the application server.
+3. Configuration of OpenTripPlanner and the periodic update of the map and GTFS data.
+4. The database(s). Each service has its own database. 
+5. The API Gateway, if included.
+6. Other external services.
 
 ## Configuration of Keycloak
-Netmobiel uses the [Keycloak Open Source Identity and Access Management Server](https://www.keycloak.org/) as its single sign-on solution/. At the time of writing we used version 15.0. To use Keycloak for Netmobiel, the global roles need to be configured as well as the clients.
+Netmobiel uses the [Keycloak Open Source Identity and Access Management Server](https://www.keycloak.org/) as its single sign-on solution. At the time of writing we used version 15.0. To use Keycloak for Netmobiel, the global roles need to be configured as well as the clients.
 
-First install Keycloak, following the procedures in the Keycloak documentation. Then create a realm in Keycloak for Netmobiel. The realm is the container for all other configuration steps. Configure the realm according the keycloak instructions.
+First install Keycloak, following the procedures in the Keycloak documentation. Then create a realm in Keycloak for Netmobiel, e.g. `netmobiel`. The realm is the container for all other configuration steps. Configure the realm according the keycloak instructions.
 
 ### Global roles
 Add the following roles:
-* admin -  A role with unrestricted great power in Netmobiel.
+* admin -  The master of the Netmobiel universe.
 * treasurer - Responsible for the credit management in NetMobiel. The treasurer is allowed to run a payment batch to execute withdrawal requests. 
 * delegate - Users with this role may act on behalf of other users in Netmobiel (for informal care, the caregiver).
 
 The roles can only be assigned from the Keycloak console.
 
 ### Client applications
-Each back-end service with a REST Api has a client application defined in Keycloak. Add the following clients with access type `bearer-only`.
+Each back-end service with a REST API has a client application defined in Keycloak. Add the following clients with access type `bearer-only`.
 * banker-service
 * communicator-service
 * geo-service
@@ -22,11 +29,12 @@ Each back-end service with a REST Api has a client application defined in Keyclo
 * profile-service
 * rideshare-service 
 
-The frontend application needs also a representation, so add another client:
+The realm name and the client id are used in the `<REST Service>/src/main/webapp/WEB-INF/keycloak.json`. Update this file if necessary.
+
+The frontend application also needs a representation, so add another client:
 * netmobiel-frontend (with access type `public`). Enable standard flow. Add valid redirection urls and web origins.
 
-
-If you want to use [Postman](https://www.postman.com/) for testing, it is useful to add another client that can be used to fetch a token from, e.g. netmobiel-postman. Configure accoirding requirements of Postman.
+If you want to use [Postman](https://www.postman.com/) for testing, it is useful to add another client that can be used to fetch a token from, e.g. netmobiel-postman. Configure according requirements of Postman.
 
 ## Configuration of Wildfly
 Netmobiel uses the Wildfly application server (version 17 at the time of writing). Download and install Wildfly according instructions. 
@@ -76,8 +84,13 @@ The external services need to be defined in the `standalone.xml` configuration f
 </subsystem>
 ```
 
+You need to enter valid values for each property that has no value yet.
+
+### Image Server
+Netmobiel uses a simple file base image server. Any authenticated user can access the images. You only have to define the root folder of the image service in the application server, keyed by `java:global/imageService/imageFolder`.
+
 ## Configuration of Postgres
-Netmobiel uses Postgres 10 as RDBMS. Download and install according instructions.
+Netmobiel uses Postgres 10 as RDBMS, but the latest stable works probably as well. Download and install according instructions.
 
 For the extended datasource, this version of Postgres required a change of setting in `postgresql.conf`:
 
@@ -87,7 +100,7 @@ max_prepared_transactions = 100		# zero disables the feature
 
 Details about each database are given in the configuration section of each service.
 
-Also install the PostGiS extension. 
+Also install the PostGiS extension, it is required by most services.
 
 ## Configuration of OpenTripPlanner
 The [OpenTripPlanner](http://docs.opentripplanner.org/en/latest/) (OTP) is open source and can be downloaded from their website. We used version 1.4. The new version (2.1) is probably a better option. Our version needed a heavy-weight server for building the graph for The Netherlands, about 12 Gb memory was required. 
@@ -108,5 +121,6 @@ You need to obtain api keys for the external services:
 * [Messagebird SMS](https://messagebird.com/): Optional (more or less), only for sending text messages to mobile devices (paid service), mainly for authentication purposes for the delegation function. Not free.
 * [RDW License Plate registration](https://opendata.rdw.nl/browse?category=Voertuigen&provenance=official): The Dutch registrar for the license plates of cars in The Netherlands. Obtain an API for free.
 
+Added the API keys to the application server in the template as explained before.
 
 
