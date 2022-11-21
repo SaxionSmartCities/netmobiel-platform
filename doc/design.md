@@ -62,7 +62,7 @@ In the Netmobiel application the important system objects like a TripPlan or a T
 Netmobiel has developed its own Rideshare service. The original idea at the start of the project has been to have a generic API with the possibility to connect multiple third party rideshare services. That idea has not materialized. Writing this in 2022, the better choice is to join the [TOMP](#netmobiel-and-the-tomp-api) initiative.
 
 ## Frontend
-The front-end written for Netmobiel is in the project [Netmobiel Vue Client](../../netmobiel-vue-client/README.md). It is (mainly) a reactive HTML5 application written in [Vue 2](https://v2.vuejs.org/). For integration with the Firebase messaging a real app was required. For ease of development we used a [Flutter application](../../netmobiel-flutter-client/README.md) to have a single source and generate from there an Android as well as an iOS app. On desktop the web application can be used directly in any modern browser.
+The front-end written for Netmobiel is in the project [Netmobiel Vue Client](https://github.com/SaxionSmartCities/netmobiel-vue-client). It is (mainly) a reactive HTML5 application written in [Vue 2](https://v2.vuejs.org/). For integration with the Firebase messaging a real app was required. For ease of development we used a [Flutter application](https://github.com/SaxionSmartCities/netmobiel-flutter-client) to have a single source and generate from there an Android as well as an iOS app. On desktop the web application can be used directly in any modern browser.
 
 ![Netmobiel Frontend](Netmobiel-Frontend.png) 
 

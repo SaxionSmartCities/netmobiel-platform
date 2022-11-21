@@ -36,6 +36,9 @@ The frontend application also needs a representation, so add another client:
 
 If you want to use [Postman](https://www.postman.com/) for testing, it is useful to add another client that can be used to fetch a token from, e.g. netmobiel-postman. Configure according requirements of Postman.
 
+### Modifying look and feel
+For Netmobiel we adapted the standard look and feel of Keycloak. We modified the CSS a bit, and altered a few message texts. See our [keycloak project](https://github.com/SaxionSmartCities/netmobiel-keycloak).
+
 ## Configuration of Wildfly
 Netmobiel uses the Wildfly application server (version 17 at the time of writing). Download and install Wildfly according instructions. 
 
