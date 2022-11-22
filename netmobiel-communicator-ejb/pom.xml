@@ -1,0 +1,205 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>eu.netmobiel</groupId>
+        <artifactId>netmobiel-parent-pom</artifactId>
+        <version>0.2.0-SNAPSHOT</version>
+        <relativePath>../netmobiel-parent-pom/pom.xml</relativePath>
+    </parent>
+    <artifactId>netmobiel-communicator-ejb</artifactId>
+    <packaging>ejb</packaging>
+    <name>NetMobiel Communicator Service EJB Implementation</name>
+    <description>The message service implementation for the NetMobiel Mobility-as-a-Service application.</description>
+	<properties>
+	</properties>
+
+	<build>
+		<plugins>
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-ejb-plugin</artifactId>
+				<configuration>
+					<archive>
+    					<manifestEntries>
+    						<!-- Trigger the loading of the keycloak core module when this jar is used (because of vividsolutions usage) -->
+    						<!-- See also https://docs.jboss.org/author/display/WFLY10/Class+Loading+in+WildFly -->
+							<!-- Is this also required for the message service? -->
+			                <!-- <Dependencies>org.keycloak.keycloak-core</Dependencies> -->
+    					</manifestEntries>
+					</archive>
+				</configuration>
+        	</plugin>
+		</plugins>
+	</build>
+
+    <dependencies>
+		<dependency>
+		    <groupId>${project.groupId}</groupId>
+		    <artifactId>netmobiel-commons</artifactId>
+		    <version>${project.version}</version>
+		</dependency>
+		<dependency>
+		    <groupId>${project.groupId}</groupId>
+		    <artifactId>netmobiel-firebase-client</artifactId>
+		    <version>${project.version}</version>
+		</dependency>
+		<dependency>
+		    <groupId>${project.groupId}</groupId>
+		    <artifactId>netmobiel-messagebird-client</artifactId>
+		    <version>${project.version}</version>
+		</dependency>
+		<dependency>
+		    <groupId>${project.groupId}</groupId>
+		    <artifactId>netmobiel-profile-ejb</artifactId>
+		    <version>${project.version}</version>
+		</dependency>
+        <dependency>
+            <groupId>javax.enterprise</groupId>
+            <artifactId>cdi-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Import the JPA API, we use provided scope as the API is included in
+            JBoss EAP 
+		-->
+        <dependency>
+            <groupId>javax.persistence</groupId>
+            <artifactId>javax.persistence-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-core</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        
+        <!-- Annotation processor to generate the JPA metamodel classes for
+            typesafe criteria queries 
+		-->
+        <dependency>
+            <groupId>org.hibernate</groupId>
+            <artifactId>hibernate-jpamodelgen</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Bean Validation Implementation 
+             Provides portable constraints such as @Email 
+             Hibernate Validator is shipped in JBoss EAP 
+		-->
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Annotation processor that raising compilation errors whenever constraint
+            annotations are incorrectly used. 
+		-->
+        <dependency>
+            <groupId>org.hibernate.validator</groupId>
+            <artifactId>hibernate-validator-annotation-processor</artifactId>
+            <scope>provided</scope>
+        </dependency>
+		<!--  Bean validation -->
+		<dependency>
+	        <groupId>javax.validation</groupId>
+	        <artifactId>validation-api</artifactId>
+		    <scope>provided</scope>
+        </dependency>
+
+        <!-- Import the Common Annotations API (JSR-250), we use provided scope
+            as the API is included in JBoss EAP 
+		-->
+        <dependency>
+            <groupId>org.jboss.spec.javax.annotation</groupId>
+            <artifactId>jboss-annotations-api_1.3_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+        <!-- Import the EJB API, we use provided scope as the API is included in
+            JBoss EAP 
+		-->
+        <dependency>
+            <groupId>org.jboss.spec.javax.ejb</groupId>
+            <artifactId>jboss-ejb-api_3.2_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+
+        <dependency>
+            <groupId>org.jboss.spec.javax.xml.bind</groupId>
+            <artifactId>jboss-jaxb-api_2.3_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+
+		<dependency>
+			<groupId>org.jboss.spec.javax.interceptor</groupId>
+			<artifactId>jboss-interceptors-api_1.2_spec</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>org.jboss.ejb3</groupId>
+		    <artifactId>jboss-ejb3-ext-api</artifactId>
+		    <scope>provided</scope>
+		</dependency>
+<!--         <dependency> -->
+<!--             <groupId>org.jboss.spec.javax.jms</groupId> -->
+<!--             <artifactId>jboss-jms-api_2.0_spec</artifactId> -->
+<!--             <scope>provided</scope> -->
+<!--         </dependency> -->
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-authz-client</artifactId>
+		    <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-adapter-core</artifactId>
+		    <scope>provided</scope>
+        </dependency>
+        <!--  Add the SPI as well, otherwise maven will complain -->
+        <dependency>
+            <groupId>org.keycloak</groupId>
+            <artifactId>keycloak-adapter-spi</artifactId>
+		    <scope>provided</scope>
+        </dependency>
+		<dependency>
+			<groupId>com.opencsv</groupId>
+			<artifactId>opencsv</artifactId>
+		    <scope>compile</scope>
+		</dependency>
+
+		<!-- TEST Dependencies -->
+        <dependency>
+            <groupId>junit</groupId>
+            <artifactId>junit</artifactId>
+            <scope>test</scope>
+        </dependency>
+		<dependency>
+        	<groupId>org.jboss.spec.javax.transaction</groupId>
+        	<artifactId>jboss-transaction-api_1.2_spec</artifactId>
+            <scope>provided</scope>
+      	</dependency>
+        <!-- Optional, but highly recommended -->
+        <!-- Arquillian allows you to test enterprise code such as EJBs and Transactional(JTA)
+            JPA from JUnit/TestNG 
+		-->
+        <dependency>
+            <groupId>org.jboss.arquillian.junit</groupId>
+            <artifactId>arquillian-junit-container</artifactId>
+            <scope>test</scope>
+        </dependency>
+
+        <dependency>
+            <groupId>org.jboss.arquillian.protocol</groupId>
+            <artifactId>arquillian-protocol-servlet</artifactId>
+            <scope>test</scope>
+        </dependency>
+		<dependency>
+		    <groupId>org.jboss.shrinkwrap.resolver</groupId>
+		    <artifactId>shrinkwrap-resolver-impl-maven</artifactId>
+		    <scope>test</scope>
+		</dependency>
+    </dependencies>
+
+</project>

@@ -1,0 +1,49 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+
+    <parent>
+        <groupId>eu.netmobiel</groupId>
+        <artifactId>netmobiel-parent-pom</artifactId>
+        <version>0.2.0-SNAPSHOT</version>
+        <relativePath>netmobiel-parent-pom/pom.xml</relativePath>
+    </parent>
+
+    <artifactId>netmobiel-platform-aggregator</artifactId>
+    <packaging>pom</packaging>
+    <name>NetMobiel Platform Aggregator</name>
+    <description>Aggregator of the NetMobiel Platform</description>
+
+    <modules>
+        <module>netmobiel-banker-api</module>
+        <module>netmobiel-banker-ejb</module>
+        <module>netmobiel-banker-rest</module>
+        <module>netmobiel-commons</module>
+        <module>netmobiel-communicator-api</module>
+        <module>netmobiel-communicator-ejb</module>
+        <module>netmobiel-communicator-rest</module>
+        <module>netmobiel-firebase-client</module>
+        <module>netmobiel-geo-api</module>
+        <module>netmobiel-geo-rest</module>
+        <module>netmobiel-here-client</module>
+        <module>netmobiel-messagebird-client</module>
+        <module>netmobiel-otp-client</module>
+        <module>netmobiel-overseer-ejb</module>
+        <module>netmobiel-overseer-rest</module>
+        <module>netmobiel-parent-pom</module>
+        <module>netmobiel-payment-client</module>
+        <module>netmobiel-planner-api</module>
+        <module>netmobiel-planner-ejb</module>
+        <module>netmobiel-planner-rest</module>
+        <module>netmobiel-profile-api</module>
+        <module>netmobiel-profile-ejb</module>
+        <module>netmobiel-profile-rest</module>
+        <module>netmobiel-rideshare-api</module>
+        <module>netmobiel-rideshare-ejb</module>
+        <module>netmobiel-rideshare-rest</module>
+        <module>netmobiel-rideshare-to</module>
+        <module>netmobiel-tomp-api</module>
+        <module>netmobiel-platform-ear</module>
+    </modules>
+</project>

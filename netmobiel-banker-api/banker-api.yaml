@@ -1,0 +1,3268 @@
+---
+openapi: 3.0.2
+info:
+  title: banker
+  version: 1.0.0
+  description: The credit management service for NetMobiel
+servers:
+- url: https://prod.netmobiel.eu/banker/api
+  description: The internal URL for the credit service (production).
+- url: https://api.netmobiel.eu/gwapi/banker
+  description: The credit service visible to the world (production).
+- url: https://acc.netmobiel.eu/banker/api
+  description: The internal URL for the credit service (acceptance).
+- url: https://api.netmobiel.eu/gwapi/acc/banker
+  description: The credit service visible to the world (acceptance).
+paths:
+  /settings:
+    summary: Path used to manage the list of settings.
+    description: The REST endpoint/path used to list and create zero or more `Settings`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Settings'
+          description: Successful response - returns an array of `Settings` entities.
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: getSettings
+      summary: List the settings
+      description: Gets the `Settings` entity.
+  /users:
+    summary: Path used to manage the list of users.
+    description: 'The REST endpoint/path used to list `User` entities and to manage
+      derived entities such as deposits and statements. This path contains a `GET`
+      operation to perform the list task. '
+  /deposit-events:
+    summary: Path used to manage the list of deposit events.
+    description: The REST endpoint/path used to create zero or more deposit events.
+      This path contains a `POST` operation to perform the create task of updating
+      a `DepositStatus`.
+    post:
+      requestBody:
+        description: The event parameters, specifying the order_id and the project_id.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentEvent'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentStatus'
+          description: 'A deposit status is returned. When the status is completed,
+            the payment has succeeded and the credits have been added. If active,
+            the credits have not yet been added. '
+      security:
+      - {}
+      operationId: updateDepositStatus
+      summary: Updates the status of an deposit
+      description: Verifies and updates the status of a deposit through the order_id
+        passed on by the payment provider. As a side effect the status of the payment
+        in the Banker Service is synchronized with the status of the payment at the
+        payment provider. This method can be used as webhook for the EMS Pay payment
+        provider. No security restrictions apply. Once the status is either expired
+        or completed, it will not change anymore.
+  /charities/{charityId}/statements:
+    summary: Path used to manage the list of statements for a charity.
+    description: The REST endpoint/path used to list zero or more `Statement` entities.  This
+      path contains a `GET` operation to perform the list task. A Statement reports
+      on a credit transaction for this charity.
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The maximum lookback date of the listing. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: 'The date of the latest entry to retrieve. The `until` date must
+          be after the `since` parameter. Default is not set, meaning all entries
+          from now and before. '
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Statement` entities.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: listCharityStatements
+      summary: List Statement entries.
+      description: "Gets a paged list of  `Statement` entities. The statements are\
+        \ sorted on accounting time descending.\nThe administrator can request statements\
+        \ owned by any charity. \n"
+    parameters:
+    - name: charityId
+      description: The charity id to use. Specify a charity id or a charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/popularity:
+    summary: Path used to retrieve a popularity report.
+    description: This endpoint is used to create a report on the popularity of charities,
+      defined the the actual number of distinct donors.
+    get:
+      parameters:
+      - name: charity
+        description: The charity for which to list the number of donors. Specify charity
+          id or a charity urn. If set then the value of the parameters `location`,
+          `radius` and `omitInactive` are ignored.
+        schema:
+          type: string
+        in: query
+      - examples:
+          Location:
+            value: 51.987757,6.564012
+        name: location
+        description: A location consisting of a pair of latitude, longitude coordinates
+          acting as the center of a circle to search in for charities. Specify the
+          radius parameter as well. Only donations to  included charities are counted.
+        schema:
+          type: string
+        in: query
+      - name: radius
+        description: The radius in meters of the circle around the location point
+          to find charities in.
+        schema:
+          type: integer
+        in: query
+      - name: omitInactive
+        description: If set to true then omit charities that are no longer campaigning.
+          Default false.
+        schema:
+          type: boolean
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The donation date marking the start of the reporting period.
+          Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The donation date to end the reporting period. The `until` date
+          must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: sortBy
+        description: The field to sort on. Only `DONORS` is supported, meaning the
+          number of donors.
+        schema:
+          enum:
+          - DONORS
+          type: string
+        in: query
+        required: false
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC) or\
+          \ descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Success response. The result is a `Page` of  `Charity` objects.
+            Each `Charity` has the number of attributing donors set.
+      operationId: reportPopularity
+      summary: Report on the popularity of charities.
+      description: Creates a report listing the selected charities with the total
+        number of donors during the selected period.
+  /charities/{charityId}:
+    summary: Path used to manage a single Charity.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Charity`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Charity'
+          description: Successful response - returns a single `Charity`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getCharity
+      summary: Get a Charity
+      description: "Gets the details of a single instance of a `Charity`. The bank\
+        \ (iban) details are \nonly available to managers of the charity and to the\
+        \ administrators."
+    put:
+      requestBody:
+        description: Updated `Charity` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Charity'
+        required: true
+      responses:
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "204":
+          description: Successfull update.
+      operationId: updateCharity
+      summary: Update a Charity
+      description: "Updates an existing `Charity`. Only the following fields can be\
+        \ updated: \n - campaignStartTime\n - campaignEndTIme\n - description\n -\
+        \ name\n - location\n - goalAmount\n - imageUrl\n\nOnly the admin or treasurer\
+        \ role or the Charity Manager can make changes."
+    delete:
+      parameters:
+      - name: delete
+        description: If set then delete the charity too.
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "204":
+          description: Successful response.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: closeCharity
+      summary: Closes a Charity
+      description: |-
+        Stops the campaigning of the `Charity`. A `Charity` is never deleted. The charity gets as campaign end time the time of the request assigned. Only the admin, treasurer or the Charity Manager can modify a Charity.
+
+        If the delete flag is set, then the charity is soft deleted.
+    parameters:
+    - name: charityId
+      description: A unique identifier for a `Charity`. Allowed are the database id
+        or a Charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /payment-batches:
+    summary: Path used to manage the list of paymentbatches.
+    description: "The REST endpoint/path used to list and create zero or more `PaymentBatch`\
+      \ entities.  This path contains a `GET` and `POST` operation to perform the\
+      \ list and create tasks, respectively.\n\nOnly users with the role `admin` or\
+      \ `treasurer` are allowed to use this endpoint. "
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing. The
+          `until` date must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: status
+        description: 'The status to filter by. '
+        schema:
+          enum:
+          - ACTIVE
+          - COMPLETED
+          - CANCELLED
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `PaymentBatch` entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listPaymentBatches
+      summary: List payment batches.
+      description: Gets a list of all `PaymentBatch` entities. The objects are sorted
+        on creation time descending.
+    post:
+      responses:
+        "201":
+          description: Successful response.
+        "404":
+          description: Issued when no pending withdrawal requests are present.
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: createPaymentBatch
+      summary: Create a PaymentBatch
+      description: "Creates a new instance of a `PaymentBatch` by collecting all `WithdrawalRequests`\
+        \ with status `REQUESTED`. \nOnce added each  `WithdrawalRequest` is assigned\
+        \ the status `ACTIVE`."
+  /payment-batches/{paymentBatchId}:
+    summary: Path used to manage a single PaymentBatch.
+    description: "The REST endpoint/path used to get, and delete single instances\
+      \ of an `PaymentBatch`.  This path contains `GET`  and `DELETE` operations used\
+      \ to perform the get and delete tasks, respectively.\n\nOnly users with the\
+      \ role `admin` or `treasurer` are allowed to use this endpoint. "
+    get:
+      parameters:
+      - name: format
+        description: |-
+          The format of the payment batch. Default is JSON. Specify PAIN.001 for a SEPA PAIN Credit Transfer XML document.
+          When SEPA is selected, only the ACTIVE withdrawal requests are present in the PAIN file.
+        schema:
+          enum:
+          - JSON
+          - PAIN.001
+          type: string
+        in: query
+      - name: forceUniqueId
+        description: |
+          Optional, SEPA only. If set to true, the batch id is guaranteed to be unique. Default false.
+          A SEPA batch file is not accepted if the messageId (batchId) already exists. The payment batch order id is used as the SEPA messageId. The feature is used to protect you paying the same bill twice, so think twice before forcing a unique id (that would lift the protection).
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentBatch'
+            text/xml:
+              schema:
+                $ref: '#/components/schemas/PaymentBatch'
+          description: Successful response - returns a single `PaymentBatch` as either
+            JSON or PAIN.001 format.
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: getPaymentBatch
+      summary: Get a PaymentBatch
+      description: |
+        Gets the details of a single instance of a `PaymentBatch`. Two formats are supported:
+        * JSON: the default (and standard) json format.
+        * PAIN.001: The format for a SEPA PAIN Credit Transfer XML document.
+
+        Note: When PAIN.001 is selected, only the `ACTIVE` withdrawal requests are present in the PAIN file.
+    put:
+      requestBody:
+        description: Provide an array of withdrawal requests with only the id and
+          the status set.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PaymentBatch'
+        required: true
+      responses:
+        "204":
+          description: Success response.
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: updatePaymentBatch
+      summary: Updates the status of the batch.
+      description: "Updates the payment batch by updating each provided withdrawal\
+        \ status. The old status must be `ACTIVE`. All fields of the payment batch\
+        \ are ignored except for the withdrawal array. Each withdrawal might have\
+        \ a reason set and of course its identifier. All other fields are ignored.\
+        \ \n\nThe status of the batch itself is automatically set to `COMPLETED` when\
+        \ all withdrawals have reached a final state or is set to `CANCELLED` when\
+        \ all withdrawals have status `CANCELLED`.\n"
+    delete:
+      parameters:
+      - name: reason
+        description: The reason to cancel the payment batch.
+        schema:
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the payment batch is cancelled.
+        "400":
+          description: The request to cancel was not accepted because the batch was
+            already no longer active.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: cancelPaymentBatch
+      summary: Cancels a payment batch
+      description: 'Cancels a payment batch by cancelling all active withdrawal requests.
+        An optional reason specifies why the batch was cancelled. '
+    parameters:
+    - name: paymentBatchId
+      description: A unique identifier for a `PaymentBatch`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/{charityId}/account:
+    summary: Manage the credit account of the charity.
+    description: 'The REST endpoint/path used to manage the `Account` of the charity.
+      This path contains a `GET` and a `PUT` operation to perform the get resp. put
+      task. '
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+          description: Return the `Account` of the charity.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getCharityAccount
+      summary: Get the charity account.
+      description: Gets the details of a single instance of a `Account`, including
+        the current amount of credits owned (i.e., the actual balance). The actual
+        amount is only visible to the manager, admin role and treasurer role.
+    put:
+      requestBody:
+        description: Specify name, iban and ibanHolder. Other fields are ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+        required: true
+      responses:
+        "204":
+          description: The account is updated.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: updateCharityAccount
+      summary: Updates the account of the charity.
+      description: Updates the account of the charity. The update is considered as
+        a sensitive operation, the access token cannot have an issue time of less
+        than 2 minutes ago.
+    parameters:
+    - name: charityId
+      description: A unique identifier for a `Charity`. Allowed are the database id
+        or a Charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /accounts/{accountId}:
+    summary: Manage an NetMobiel account.
+    description: "The REST endpoint/path used to manage an `Account`. This path contains\
+      \ a `GET` and a `PUT` operation to perform the get resp. put task. \n\nOnly\
+      \ users with the role `admin` or `treasurer` are allowed to use this endpoint. "
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+          description: Return an  `Account`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getAccount
+      summary: Get the account.
+      description: 'Gets the details of a single instance of an `Account`, including
+        the current amount of credits owned (i.e., the actual balance). '
+    put:
+      requestBody:
+        description: Specify name, iban and ibanHolder. Other fields are ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+        required: true
+      responses:
+        "204":
+          description: The account is updated.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: updateAccount
+      summary: Updates the account.
+      description: |-
+        Updates the account. Only the following details can be updated:
+         - name
+         - iban
+         - ibanHolder
+
+        The update of the iban is considered sensitive. An additional restriction is placed on the bearer token used to update the iban: The token must have been issued less than 2 minutes ago.
+    parameters:
+    - name: accountId
+      description: The account id to use. Specify a banker account id, or an account
+        urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}:
+    summary: Path used to manage a single User.
+    description: The REST endpoint/path used to get and update a single instance of
+      a `User`. This path contains a `GET` and a `PUT` operation used to perform the
+      get and put tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+          description: Return a single `User`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getUser
+      summary: Get a User.
+      description: Gets the details of a single instance of a `User`, including the
+        current amount of credits owned (i.e., the actual balance). The actual amount
+        is only visible to the owner and to the administrator. The iban number and
+        iban account holder are also only visible to the owner and the administrator.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/account:
+    summary: Manage the user's personal credit account.
+    description: 'The REST endpoint/path used to manage the personal  `Account` of
+      a user. This path contains a `GET` and a `PUT` operation to perform the get
+      resp. put task. '
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Account'
+          description: Return the personal `Account`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getPersonalAccount
+      summary: Get the personal user account.
+      description: Gets the details of a single instance of a `Account`, including
+        the current amount of credits owned (i.e., the actual balance). The actual
+        amount is only visible to the owner and to the administrator.
+    put:
+      requestBody:
+        description: Specify name, iban and ibanHolder. Other fields are ignored.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Account'
+        required: true
+      responses:
+        "204":
+          description: The account is updated.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: updatePersonalAccount
+      summary: Updates the account.
+      description: |-
+        Updates the personal account of the user. Only the following details can be updated:
+         - name
+         - iban
+         - ibanHolder
+
+        The update of the iban is considered sensitive. An additional restriction is placed on the bearer token used to update the iban: The token must have been issued less than 2 minutes ago.
+
+        Only the owning user and the administrator can modify the user details.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/deposits:
+    summary: Path used to manage deposits to user accounts.
+    description: The REST endpoint/path used to create zero or more `DepositRequest`
+      entities.  This path contains a `POST` operation to perform the create task.
+    post:
+      requestBody:
+        description: A new `Deposit` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PaymentLink'
+          description: Successful response.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: createPersonalDeposit
+      summary: Create a Deposit
+      description: Creates a new `DepositRequest`. The call returns a `PaymentLink`,
+        containing a url to a payment page. The client should redirect a browser to
+        the payment page url. The payment is converted into credits, the credits are
+        added to the personal account of the specified user.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/recent-donations:
+    summary: Reports on recent donations.
+    description: Endpoint used to create a report on recent donations to distinct
+      charities.
+    get:
+      parameters:
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Success response. The results contains a pages result of `Donation`
+            entities.  The charity is expanded, the user is omitted.
+      operationId: reportRecentDonations
+      summary: List the recent donations.
+      description: Reports on the most recent donation to each distinct charity. The
+        donation are sorted by `donationTime` descending.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/statements:
+    summary: Path used to manage the list of statements for a user.
+    description: The REST endpoint/path used to list zero or more `Statement` entities.  This
+      path contains a `GET` operation to perform the list task. A Statement reports
+      on a credit transaction for this user.
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The maximum lookback date of the listing. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: 'The date of the latest entry to retrieve. The `until` date must
+          be after the `since` parameter. Default is not set, meaning all entries
+          from now and before. '
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Statement` entities.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: listUserStatements
+      summary: List Statement entries.
+      description: "Gets a paged list of  `Statement` entities. The statements are\
+        \ sorted on accounting time descending.\n\nThe administrator can request statements\
+        \ owned by any user. \n"
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/statements/{entryId}:
+    summary: Path used to manage a single Statement.
+    description: The REST endpoint/path used to get a single instances of a `Statement`.  This
+      path contains a `GET` operation used to perform the get task.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Statement'
+          description: A single `Statement` object.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getStatement
+      summary: Retrieves a specific statement.
+      description: Gets the details of a single instance of a `Statement`.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: entryId
+      description: The statement id.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/withdrawals:
+    summary: Path used to manage withdrawals from the personal account of a user.
+    description: The REST endpoint/path used to make a withdrawal from a `User` and
+      to list withdrawals from the personal account. This path contains `POST` and
+      `GET` operations to perform the withdrawal creation task, resp. the listing
+      task.
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing. The
+          `until` date must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: status
+        description: The status of the request to filter.
+        schema:
+          enum:
+          - ACTIVE
+          - EXPIRED
+          - COMPLETED
+          - REQUESTED
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `WithdrawalRequest`
+            entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listUserWithdrawalRequests
+      summary: List withdrawal requests.
+      description: 'Gets a list of `WithdrawalRequest` entities matching the criteria.
+        The objects are sorted on creation time descending. '
+    post:
+      requestBody:
+        description: |-
+          A new `WithdrawalRequest` to be created. Only the amount in credits and a description are mandatory.
+          All other values are calculated or derived.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawalRequest'
+        required: true
+      responses:
+        "201":
+          description: Successful response. The request has been created.
+        "402":
+          description: The balance of the charity was insufficient for performing
+            the withdrawal.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: createPersonalWithdrawal
+      summary: Create a WithdrawalRequest.
+      description: Creates a new `WithdrawalRequest`. The withdrawal amount in credits
+        is converted into eurocents, the credits are reserved from the personal account
+        of the specified user. At regular moments the `WithdrawalRequest` objects
+        are collected in a payment batch and sent to the NetMobiel treasurer for processing.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/{charityId}/withdrawals:
+    summary: Path used to manage the withdrawals from the account coupled to a charity.
+    description: The REST endpoint/path used to make a withdrawal from a `Charity`
+      and to list withdrawals. This path contains `POST` and `GET` operations to perform
+      the withdrawal creation task, resp. the listing task.
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing. The
+          `until` date must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: status
+        description: The status of the request to filter.
+        schema:
+          enum:
+          - ACTIVE
+          - EXPIRED
+          - COMPLETED
+          - REQUESTED
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `WithdrawalRequest`
+            entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listCharityWithdrawalRequests
+      summary: List withdrawal requests.
+      description: 'Gets a list of `WithdrawalRequest` entities matching the criteria.
+        The objects are sorted on creation time descending. '
+    post:
+      requestBody:
+        description: |-
+          The withdrawal request with the amount of credits to withdraw specified. Only the amount in credits and a description are mandatory.
+          All other values are calculated or derived.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawalRequest'
+        required: true
+      responses:
+        "201":
+          description: The withdrawal request was created successfully.
+        "402":
+          description: The balance of the charity was insufficient for performing
+            the withdrawal.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: createCharityWithdrawal
+      summary: Create a withdrawal.
+      description: Creates a `WithdrawalRequest` for a `Charity`. The credits are
+        reserved from the balance of the charity. The actual withdrawal will be done
+        by the treasurer of NetMobiel. Only managers of the charity have the privilege
+        to request a withdrawal. The beneficiary account in the real world is known
+        by the treasurer and part of the administrative details of the charity object.
+    parameters:
+    - name: charityId
+      description: The charity id to use. Specify a charity id or a charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/{charityId}/withdrawals/{withdrawalId}:
+    summary: Path used to manage a single WithdrawalRequest.
+    description: "The REST endpoint/path used to manage a single instance of a `WithdrawalRequest`.\
+      \  This path contains a `DELETE` operation used to perform the delete task.\
+      \ \n\nOnly users with a management role at the charity are allowed to use this\
+      \ endpoint."
+    delete:
+      parameters:
+      - name: reason
+        description: The reason to cancel the withdrawal request.
+        schema:
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the withdrawal request is cancelled.
+        "400":
+          description: The request to cancel was not accepted because the withdrawal
+            was already no longer requested nor active.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: cancelCharityWithdrawalRequest
+      summary: Cancels a withdrawal request
+      description: |-
+        Cancels a withdrawal request. An optional reason specifies why the request was cancelled. Two scenarios are quite possible:
+        - The user gets seconds thoughts
+        - The penningmeester gets an error on the particular withdrawal while processing the payment batch.
+    parameters:
+    - name: charityId
+      description: The charity id to use. Specify a charity id or a charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: withdrawalId
+      description: The id of the withdrawal request. Use the database id or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /withdrawals:
+    summary: Path used to manage the list of withdrawal requests.
+    description: "The REST endpoint/path used to list `WithdrawalRequest` entities.\
+      \  This path contains a `GET` operation to perform the list task. This endpoint\
+      \ cannot be used to create a withdrawal request. Instead, use the approriate\
+      \ user or charity endpoints.\n\nOnly users with the role `admin` or `treasurer`\
+      \ are allowed to use this endpoint. "
+    get:
+      parameters:
+      - name: accountName
+        description: 'The account name to search for. Use the wildcard character ''*''
+          to match any string. '
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing. The
+          `until` date must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: status
+        description: The status of the request to filter.
+        schema:
+          enum:
+          - ACTIVE
+          - EXPIRED
+          - COMPLETED
+          - REQUESTED
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `WithdrawalRequest`
+            entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listWithdrawalRequests
+      summary: List withdrawal requests.
+      description: "Gets a list of `WithdrawalRequest` entities matching the criteria.\
+        \ The objects are sorted on creation time descending. \n"
+  /withdrawals/{withdrawalId}:
+    summary: Path used to manage a single WithdrawalRequest.
+    description: "The REST endpoint/path used to manage a single instance of a `WithdrawalRequest`.\
+      \  This path contains a `DELETE` operation used to perform the delete task.\
+      \ \n\nOnly users with the role `admin` or `treasurer` are allowed to use this\
+      \ endpoint."
+    delete:
+      parameters:
+      - name: reason
+        description: The reason to cancel the withdrawal request.
+        schema:
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the withdrawal request is cancelled.
+        "400":
+          description: The request to cancel was not accepted because the withdrawal
+            was already no longer requested nor active.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: cancelWithdrawalRequest
+      summary: Cancels a withdrawal request
+      description: |-
+        Cancels a withdrawal request. An optional reason specifies why the request was cancelled. Two scenarios are quite possible:
+        - The user gets seconds thoughts
+        - The penningmeester gets an error on the particular withdrawal while processing the payment batch.
+    parameters:
+    - name: withdrawalId
+      description: The id of the withdrawal request. Use the database id or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /withdrawals/{withdrawalId}/settled:
+    summary: Settle the batch.
+    description: "Simple call the notify the settlement of the batch, i.e. the settlement\
+      \ of all individual withdrawal requests in the batch.\n\nOnly users with the\
+      \ role `admin` or `treasurer` are allowed to use this endpoint. "
+    put:
+      responses:
+        "204":
+          description: The batch is settled.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: settleWithdrawalRequest
+      summary: Settles a withdrawal request.
+      description: Settles an individual withdrawal request, i.e. confirm the withdrawal
+        request has been processed by the treasurer of NetMobiel.
+    parameters:
+    - name: withdrawalId
+      description: The id of the withdrawal request. Use the database id or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/withdrawals/{withdrawalId}:
+    summary: Path used to manage a single WithdrawalRequest.
+    description: "The REST endpoint/path used to manage a single instance of a `WithdrawalRequest`.\
+      \  This path contains a `DELETE` operation used to perform the delete task.\
+      \ \n\nOnly the effective user and users with the role `admin` are allowed to\
+      \ use this endpoint."
+    delete:
+      parameters:
+      - name: reason
+        description: The reason to cancel the withdrawal request.
+        schema:
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the withdrawal request is cancelled.
+        "400":
+          description: The request to cancel was not accepted because the withdrawal
+            was already no longer requested nor active.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: cancelUserWithdrawalRequest
+      summary: Cancels a withdrawal request
+      description: "Cancels a withdrawal request. An optional reason specifies why\
+        \ the request was cancelled. The withdrawal request can be cancelled by the\
+        \ user only when tghe status is `REQUESTED`. \n\nThe `treasurer` or `admin`\
+        \ can cancel a withdrawal in a later stage, i.e. when processing cannot be\
+        \ completed by the bank.\n"
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: withdrawalId
+      description: The id of the withdrawal request. Use the database id or a urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/{charityId}/image:
+    summary: Manages the charity image.
+    description: Manage the image of the charity.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+          description: The relative path to the image or an empty string if none available.
+      operationId: getCharityImage
+      summary: Get the image path.
+      description: Gets the path to the charity image.
+    put:
+      requestBody:
+        description: The charity image to upload.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageUploadRequest'
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ImageResponse'
+          description: The updated profile.
+      operationId: uploadImage
+      summary: Uploads an image
+      description: |-
+        Uploads an image. The previous image is removed. The path to the image is saved in the charity object. The image file name has the uploadtime encoded in the filename  to defeat caching by the broswer.
+
+        Only an admin role, treasurer role or Charity Manager can update the image.
+    delete:
+      responses:
+        "204":
+          description: Successful operation.
+      operationId: removeImage
+      summary: Removes the image.
+      description: |-
+        Removes the image of the charity. If no image is present the call has no effect.
+
+        Only an admin role, treasurer role or Charity Manager can remove the image.
+    parameters:
+    - name: charityId
+      description: The unique charity id.
+      schema:
+        type: string
+      in: path
+      required: true
+  /accounts:
+    summary: Path used to manage the list of accounts.
+    description: "The REST endpoint/path used to list `Account` entities.  This path\
+      \ contains a `GET` operation to perform the list task. This endpoint cannot\
+      \ be used to create an account. Accounts are created automatically by the system\
+      \ when requried, or are predefined.\n\nOnly users with the role `admin` or `treasurer`\
+      \ are allowed to use this endpoint. "
+    get:
+      parameters:
+      - name: accountName
+        description: 'The account name to search for. Use the wildcard character ''*''
+          to match any string. '
+        schema:
+          type: string
+        in: query
+      - name: purpose
+        description: The purpose of an account. Use one of SYSTEM (predefined system
+          accounts), CURRENT (regular accounts), PREMIUM (premium accounts).
+        schema:
+          enum:
+          - SYSTEM
+          - CURRENT
+          - PREMIUM
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `Account` entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listAccounts
+      summary: List Account requests.
+      description: |
+        Gets a list of `Account` entities matching the criteria. The objects are sorted by account name ascending.
+  /rewards/{rewardId}:
+    summary: Path used to manage a single Reward.
+    description: "The REST endpoint/path used to get and delete single instances of\
+      \ an `Reward`.  This path contains `GET` and `DELETE` operations used to perform\
+      \ the get and delete tasks, respectively.\n\nOnly users with the role `admin`\
+      \ or `treasurer` are allowed to use this endpoint. "
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Reward'
+          description: Successful response - returns a single `Reward`.
+      operationId: getReward
+      summary: Get a Reward
+      description: Gets the details of a single instance of a `Reward`.
+    delete:
+      parameters:
+      - name: hard
+        description: 'If true then  try to remove the reward from the database. Default:
+          false.'
+        schema:
+          type: boolean
+        in: query
+      - name: paymentOnly
+        description: If set then reverse only the payment, if paid at all.
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deleteReward
+      summary: Delete a Reward
+      description: Deletes an existing `Reward`. The financial transaction is reversed.
+        If that is not possible, then the deletion will fail.
+    parameters:
+    - name: rewardId
+      description: A unique identifier for a `Reward`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /rewards:
+    summary: Path used to manage the list of rewards.
+    description: "The REST endpoint/path used to list  `Reward` entities.  This path\
+      \ contains a `GET` operation to perform the list task.\n\nOnly users with the\
+      \ role `admin` or `treasurer` are allowed to use this endpoint. "
+    get:
+      parameters:
+      - name: user
+        description: 'The urn or id of a specific user to list the rewards of. Default:
+          Not set.'
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The reward date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The reward date and later not to include in the listing of rewards.
+          The `until` date must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: paid
+        description: 'If set then filter rewards on the payment status. Default: not
+          set.'
+        schema:
+          type: boolean
+        in: query
+        required: false
+      - name: type
+        description: 'Flag for limiting the list to a certain type of reward. Supported
+          are PREMIUM, REDEMPTION. Default: Not set.'
+        schema:
+          enum:
+          - PREMIUM
+          - REDEMPTION
+          type: string
+        in: query
+      - name: cancelled
+        description: 'If set then list the rewards according the cancelled status.
+          Default: not set.'
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting based on reward time. Choose either\
+          \ \nascending (ASC) or descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `Reward` entities.
+      operationId: getRewards
+      summary: List All rewards
+      description: Gets a list of all `Reward` entities.
+  /users/{userId}/rewards:
+    summary: Path used to manage the list of rewards of a user.
+    description: The REST endpoint/path used to list zero or more `Reward` entities.  This
+      path contains a `GET` operation to perform the list task. A Reward reports on
+      reward assigned to the user.
+    get:
+      parameters:
+      - name: cancelled
+        description: If set then filter rewards according the cancelled status.
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting based on reward time. Choose either\
+          \ \nascending (ASC) or descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Reward` entities.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: listUserRewards
+      summary: List Reward entries.
+      description: "Gets a paged list of  `Reward` entities. The rewards are sorted\
+        \ on rewarding time descending.\n\nThe administrator can request rewards owned\
+        \ by any user. \n"
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities:
+    summary: Path used to manage the list of charities.
+    description: The REST endpoint/path used to list and create zero or more `Charity`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - examples:
+          Location:
+            value: 51.987757,6.564012
+        name: location
+        description: A location consisting of a pair of latitude, longitude coordinates
+          acting as the center of a circle to search in for charities. Specify the
+          radius parameter as well.
+        schema:
+          type: string
+        in: query
+      - name: radius
+        description: The radius in meters of the circle around the location point
+          to find charities in.
+        schema:
+          type: integer
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing of
+          charities. The `until` date must be after the `since` parameter. Default
+          is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: closedToo
+        description: Set this flag to 'true' if closed charities should be returned
+          as well. Default is false.
+        schema:
+          type: boolean
+        in: query
+      - name: deletedToo
+        description: Set this flag to 'true' if deleted charities should be returned
+          as well. Default is false.
+        schema:
+          type: boolean
+        in: query
+      - name: sortBy
+        description: The field to sort on. Choose one of `DATE`, `DISTANCE`, `NAME`
+          (default).
+        schema:
+          enum:
+          - DATE
+          - DISTANCE
+          - NAME
+          type: string
+        in: query
+        required: false
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC, default)\
+          \ or descending (DESC)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns `Page` with `Charity` entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: listCharities
+      summary: List All charities
+      description: Gets a list of all `Charity` entities.
+    post:
+      requestBody:
+        description: A new `Charity` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Charity'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+      operationId: createCharity
+      summary: Create a Charity
+      description: Creates a new instance of a `Charity`.
+  /payment-batches/{paymentBatchId}/mail-pain:
+    summary: Mail the PAIN Credit Transfer file to the caller
+    description: "The REST endpoint/path used to create and mail a PAIN Credit Transfer\
+      \ file. This path contains a `POST` operation used to perform the create task.\n\
+      \nOnly users with the role `admin` or `treasurer` are allowed to use this endpoint. "
+    post:
+      parameters:
+      - name: forceUniqueId
+        description: |
+          Optional, SEPA only. If set to true, the batch id is guaranteed to be unique. Default false.
+          A SEPA batch file is not accepted if the messageId (batchId) already exists. The payment batch order id is used as the SEPA messageId. The feature is used to protect you paying the same bill twice, so think twice before forcing a unique id (that would lift the protection).
+        schema:
+          type: boolean
+        in: query
+      - name: pendingOnly
+        description: 'If set then include only pending withdrawals in the batch. Default:
+          true'
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "204":
+          description: Success response. The mail has been sent to the caller's email
+            address. No reference is available to the mail just sent.
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: mailPaymentBatchAsPAINFile
+      summary: Mail a PAIN file.
+      description: |
+        Mail a `PaymentBatch` as a PAIN.001 formatted SEPA PAIN Credit Transfer XML document.
+
+        Only the `ACTIVE` withdrawal requests are present in the PAIN file.
+    parameters:
+    - name: paymentBatchId
+      description: A unique identifier for a `PaymentBatch`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /accounts/{accountId}/statements/:
+    summary: Path used to manage the list of statements for an account.
+    description: "The REST endpoint/path used to list zero or more `Statement` entities.\
+      \  This path contains a `GET` operation to perform the list task. A Statement\
+      \ reports on a credit transaction for this account.\n\nOnly users with the role\
+      \ `admin` or `treasurer` are allowed to use this endpoint. "
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The maximum lookback date of the listing. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: 'The date of the latest entry to retrieve. The `until` date must
+          be after the `since` parameter. Default is not set, meaning all entries
+          from now and before. '
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: purpose
+        description: Filter the statements by transaction type.
+        schema:
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Statement` entities.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: listAccountStatements
+      summary: List Statement entries.
+      description: |
+        Gets a paged list of  `Statement` entities. The statements are sorted on accounting time descending.
+    parameters:
+    - name: accountId
+      description: The account id to use. Specify a banker account id, or an account
+        urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /accounts/{accountId}/withdrawals:
+    summary: Path used to manage withdrawals from any liability account.
+    description: "The REST endpoint/path used to create zero or more `WITHDRAWAL`\
+      \ transactions.  This path contains a `POST` operation to perform the create\
+      \ task.\n\nOnly users with the role `admin` or `treasurer` are allowed to use\
+      \ this endpoint. "
+    post:
+      requestBody:
+        description: |-
+          A new `WITHDRAWAL` transaction to be created. Only the amount in credits and a description are mandatory.
+          All other values are calculated or derived.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/WithdrawalRequest'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: withdrawFromAccount
+      summary: Withdraw from an account
+      description: |-
+        Withdraw credits from referenced account. The account must be a `LIABILITY`account and is thus debited with the requested amount.
+        The banking reserve `ASSET` account is credited with the same amount.
+
+        This endpoint is in particular used to remove credits from the system premiums account.
+
+        Note that this call will evaporate credits into thin air, there is no hard link with the real world.
+    parameters:
+    - name: accountId
+      description: The account id to use. Specify a banker account id, or an account
+        urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /accounts/{accountId}/deposits:
+    summary: Path used to manage deposits to any liability account.
+    description: "The REST endpoint/path used to create zero or more `DEPOSIT` transactions.\
+      \ This path contains a `POST` operation to perform the create task.\n\nOnly\
+      \ users with the role `admin` or `treasurer` are allowed to use this endpoint. "
+    post:
+      requestBody:
+        description: A new `DEPOSIT` transaction to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DepositRequest'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: depositToAccount
+      summary: Deposit to an account
+      description: |-
+        Creates a new deposit of credits to referenced account. The account must be a `LIABILITY`account and is thus credited with the requested amount.
+        The banking reserve `ASSET` account is debited with the same amount.
+
+        This endpoint is in particular used to add credits to the system premiums account.
+
+        Note that credits are created from thin air with this call, there is no hard link with the real world. The treasurer must take care to reserve real money for future pay-out.
+    parameters:
+    - name: accountId
+      description: The account id to use. Specify a banker account id, or an account
+        urn.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/generosity:
+    summary: Fetches a report on generosity of the users.
+    description: 'The REST endpoint/path used to create a report on the generosity
+      of users. This path contains a `GET` operation to perform the report task. '
+    get:
+      parameters:
+      - name: user
+        description: 'The user to report on. '
+        schema:
+          type: string
+        in: query
+      - name: charity
+        description: The charity for which to list the donated amount totals. Specify
+          charity id or a charity urn. If set then the value of the parameters `location`,
+          `radius` and `omitInactive` are ignored.
+        schema:
+          type: string
+        in: query
+      - examples:
+          Location:
+            value: 51.987757,6.564012
+        name: location
+        description: A location consisting of a pair of latitude, longitude coordinates
+          acting as the center of a circle to search in for charities. Specify the
+          radius parameter as well. Only donations to  included charities are counted.
+        schema:
+          type: string
+        in: query
+      - name: radius
+        description: The radius in meters of the circle around the location point
+          to find charities in.
+        schema:
+          type: integer
+        in: query
+      - name: omitInactive
+        description: If set to true then omit charities that are no longer campaigning.
+          Default false.
+        schema:
+          type: boolean
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The donation date marking the start of the reporting period.
+          Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The donation date to end the reporting period.. The `until` date
+          must be after the `since` parameter. Default is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: sortBy
+        description: The field to sort on. Choose `AMOUNT`, the only option.
+        schema:
+          enum:
+          - AMOUNT
+          type: string
+        in: query
+        required: false
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC) or\
+          \ descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: 'Success response. The results contains a pages result of `User`entities,
+            the `donatedAmount` attribute is defined. '
+      operationId: reportGenerosity
+      summary: Report generosity of users.
+      description: Creates a list of users with the amount of credits each user has
+        donated. The total amount is summed after filtering the individual donations
+        according the filter parameters. Anonymous donations are never included in
+        the report, even those by the calling user are ignored.
+  /users/{userId}/call-to-actions:
+    summary: Path used to manage the list of incentives of interest for a user.
+    description: The REST endpoint/path used to list zero or more `Incentive` entities.
+      This path contains a `GET` operation to perform the list task. A Incentive defines
+      action to nudge a user to follow a certain behaviour.
+    get:
+      parameters:
+      - name: sortDir
+        description: "Direction of the sorting based on incentive creation time. Choose\
+          \ either \nascending (ASC) or descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Incentive` entities.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: listCallToActions
+      summary: List Incentive entries that needs attention.
+      description: |
+        Gets a paged list of  `Incentive` entities. The incentives are sorted default by creation time descending.
+        Descending so that on a fresh start the newest CTA is displayed.
+        Only those incentives still in need for attention are displayed.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: userId
+      description: |-
+        The user id to use. Specify a banker user id, or a user urn from bank or keycloak. If referring to the caller use `me` as userId.
+
+        Using a userid other than your own (or me) requires admin privilege.
+      schema:
+        type: string
+      in: path
+      required: true
+  /incentives:
+    summary: Path used to manage the list of incentives.
+    description: "The REST endpoint/path used to list `Incentive` entities.  This\
+      \ path contains a `GET` operation to perform the list task.\n\nOnly users with\
+      \ the role `admin` or `treasurer` are allowed to use this endpoint. "
+    get:
+      parameters:
+      - name: inactiveToo
+        description: If set then list also the inactive incentives.
+        schema:
+          type: boolean
+        in: query
+      - name: disabledToo
+        description: If set then list also the disabled incentives.
+        schema:
+          type: boolean
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` of `Incentive` entities.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getIncentives
+      summary: List All incentives
+      description: Gets a list of all `Incentive` entities.
+  /charities/{charityId}/donations/{donationId}:
+    summary: Path used to manage a single Statement.
+    description: The REST endpoint/path used to get a single instances of a `Statement`.  This
+      path contains a `GET` operation used to perform the get task.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Donation'
+          description: A single `Donation` object.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: getDonation
+      summary: Retrieves a specific donation.
+      description: Gets the details of a single `Donation`.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: charityId
+      description: |
+        The charity id to use. Specify a id, or a charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: donationId
+      description: The id of the donation.
+      schema:
+        type: string
+      in: path
+      required: true
+  /charities/{charityId}/donations:
+    summary: Path used to manage the donations to a charity.
+    description: The REST endpoint/path used to make a donation to a `Charity` and
+      to list donations. This path contains `POST` and `GET` operations to perform
+      the donation task, resp. the listing task.
+    get:
+      parameters:
+      - name: user
+        description: The user for which to list the donations. Specify 'me' or an
+          user id or a user urn.
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The creation date at which to start the listing. Default is not
+          set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The creation date and later not to include in the listing of
+          charities. The `until` date must be after the `since` parameter. Default
+          is not set.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: sortBy
+        description: The field to sort on. Choose one of `DATE` (default), `AMOUNT`.
+        schema:
+          enum:
+          - DATE
+          - AMOUNT
+          type: string
+        in: query
+        required: false
+      - name: sortDir
+        description: "Direction of the sorting. Choose either \nascending (ASC) or\
+          \ descending (DESC, default)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Success response. A `Page` of `Donation` objects is returned.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: listDonationsForCharity
+      summary: List the donations.
+      description: "Lists the donations for a specific charity.\n\nThe donor of an\
+        \ anonymous donation is hidden if the anonymous flag is true, unless:\n* the\
+        \ caller has the admin role\n* the caller is the anoymous donor\n \n"
+    post:
+      requestBody:
+        description: The donation to the charity.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Donation'
+        required: true
+      responses:
+        "201":
+          description: The donation was successfull.
+        "402":
+          description: The balance of the user was insufficient for performing the
+            donation.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: postDonation
+      summary: Post a donation.
+      description: 'Donates an amount of credits to a `Charity`. The credits are debited
+        from the calling user''s balance. '
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: charityId
+      description: The charity id to use. Specify a charity id or a charity urn.
+      schema:
+        type: string
+      in: path
+      required: true
+components:
+  schemas:
+    Error:
+      title: Root Type for Error
+      description: The error response.
+      type: object
+      properties:
+        message:
+          description: Human-readable error text intended for developers.
+          type: string
+        reasonPhrase:
+          description: The HTTP status code textual message.
+          type: string
+        status:
+          format: int32
+          description: The HTTP status code.
+          type: integer
+        errorCode:
+          description: A string code identifying the error. This code can be used
+            to display an error message in the right language.
+          type: string
+      example:
+        message: This is a really bad request
+        reasonPhrase: Bad Request
+        status: 400
+    Settings:
+      title: Root Type for Settings
+      description: A collection of banking settings.
+      type: object
+      properties:
+        exchangeRate:
+          format: int32
+          description: The value of one euro in NetMobiel credits.
+          type: integer
+      example:
+        exchangeRate: 19
+    PaymentLink:
+      title: Root Type for PaymentLink
+      description: Contains a url to the payment page for making a deposit.
+      type: object
+      properties:
+        paymentUrl:
+          type: string
+      example:
+        paymentUrl: https://api.online.emspay.eu/paymentlinks/805e7d01-ab46-44a9-b7cc-8f7d962ca152/
+    PaymentEvent:
+      title: Root Type for PaymentEvent
+      description: An event generated direct or indirect by a status change of an
+        order at the EMS Pay payment provider.
+      type: object
+      properties:
+        event:
+          description: The name of the event. Only status_changed is supported.
+          type: string
+        order_id:
+          description: The order id passed on by the payment provider in the return
+            url.
+          type: string
+        project_id:
+          description: The payment project id as defined at the EMS Pay payment provider.
+          type: string
+      example:
+        event: status_changed
+        order_id: 4c6afd74-a840-4aab-b411-1e6e0636d341
+        project_id: b5f39273-44e7-4385-8e08-44612ef3e117
+    Statement:
+      title: Root Type for AccountingEntry
+      description: An single accounting entry or booking statement.
+      required:
+      - accountingTime
+      - amount
+      - id
+      - transactionTime
+      - type
+      - transactionType
+      type: object
+      properties:
+        accountingTime:
+          format: date-time
+          description: The timestamp of the 'financial' fact.
+          type: string
+        transactionTime:
+          format: date-time
+          description: The timstamp of the actual execution of the transaction.
+          type: string
+        description:
+          description: The short description of the transaction.
+          type: string
+        id:
+          format: int32
+          description: The database id of the entry.
+          type: integer
+        amount:
+          format: int32
+          description: The amount of credits involved in the transaction.
+          type: integer
+        type:
+          description: The type of the entry.
+          enum:
+          - DEBIT
+          - CREDIT
+          type: string
+        transactionType:
+          description: The type of transaction, the purpose of the transaction.
+          enum:
+          - DEPOSIT
+          - WITHDRAWAL
+          - PAYMENT
+          - REFUND
+          - RESERVATION
+          - RELEASE
+          type: string
+        counterparty:
+          $ref: '#/components/schemas/Account'
+          description: 'The account of the other party. Only the name is available. '
+        context:
+          description: The reference to a netmobiel object. This will be a urn to
+            the object.
+          type: string
+        account:
+          $ref: '#/components/schemas/Account'
+          description: The account. Only present when statements for multiple accounts
+            are present.
+        rollback:
+          description: Read-only. If set then this statement concerns a rollback of
+            a payment or release transaction.
+          type: boolean
+      example:
+        account:
+          ncan: PLA-51
+          name: M. Pietersen
+        accountingTime: 2019-06-17T15:59:00Z
+        transactionTime: 2019-06-17T16:30:00Z
+        description: Rit met Coby Hoekstra naar Zelhem
+        id: 12345
+        amount: 5
+        type: CREDIT
+        transactionType: PAYMENT
+        context: urn:nb:rs:Booking:53
+        counterparty: Jan Jansen
+    Location:
+      title: Root Type for Place
+      description: A location on a map, comprising of a GPS coordinate and optional
+        a descriptional label for human display.
+      type: object
+      properties:
+        latitude:
+          format: double
+          description: The latitude of this place.
+          type: number
+        longitude:
+          format: double
+          description: The longitude of this place.
+          type: number
+        label:
+          description: A descriptive label of the place.
+          type: string
+      example:
+        latitude: 52.004166
+        longitude: 6.517835
+        label: Zieuwent,Kennedystraat
+    DepositRequest:
+      title: Root Type for Deposit
+      description: Object for making a deposit to the Netmobiel system, converting
+        euros to credits.
+      type: object
+      properties:
+        description:
+          description: The description to display on the payment page.
+          type: string
+        amountCredits:
+          format: int32
+          description: The amount of credits to buy. Use the `/settings` endpoint
+            to retrieve the exchange rate.
+          type: integer
+        returnUrl:
+          description: 'The return url for the payment provider to return to. The
+            url will be extended with two query parameters: A project_id and an order_id.
+            Both parameters must be passed on to a call to the `deposit-events` end-point. '
+          type: string
+      example:
+        description: Koop credits
+        amountCredits: 100
+        returnUrl: app://netmobielapp/payment-done
+    CharityUserRole:
+      title: Root Type for CharityUserRole
+      description: Defines the role of a user with respect to the charity.
+      required:
+      - role
+      - user
+      type: object
+      properties:
+        role:
+          description: The role for the user for a particular charity.
+          enum:
+          - VIEWER
+          - MANAGER
+          type: string
+        user:
+          $ref: '#/components/schemas/User'
+          description: The user possessing the role for the charity.
+          properties:
+            givenName:
+              type: string
+            familyName:
+              type: string
+      example:
+        role: MANAGER
+        user:
+          givenName: Pieter
+          familyName: Oude Zijlink
+    Donation:
+      title: Root Type for Donation
+      description: Definition of a donation to a `Charity`.
+      type: object
+      properties:
+        amount:
+          format: int32
+          description: The amount of credits to donate.
+          type: integer
+        description:
+          description: A short description that will appear on the statement.
+          type: string
+        anonymous:
+          description: 'If true then the donor wants to stay anonymous. '
+          type: boolean
+        donationTime:
+          format: date-time
+          description: The date and time of the donation.
+          type: string
+        donor:
+          $ref: '#/components/schemas/User'
+          description: The originator of the donation.
+        charity:
+          $ref: '#/components/schemas/Charity'
+          description: The beneficiary of the donation.
+        donorRef:
+          description: A URN of the donor, a user. Format is urn:nb:bn:user:id.
+          type: string
+        charityRef:
+          description: A URN of the charity. Format is urn:nb:bn:charity:id.
+          type: string
+      example:
+        amount: 100
+        description: Succes met de inzameling
+        anonymous: false
+    PaymentStatus:
+      title: Root Type for DepositStatus
+      description: "Status of the deposit or withdrawal. A new deposit request is\
+        \ immediated active, \na withdrawal request becomes active after being picked\
+        \ up in a payment batch."
+      required:
+      - status
+      type: object
+      properties:
+        status:
+          description: The status of the payment link referred to by the order_id,
+            or the status of an withdrawal.
+          enum:
+          - ACTIVE
+          - EXPIRED
+          - COMPLETED
+          - REQUESTED
+          - CANCELLED
+          type: string
+      example:
+        status: COMPLETED
+    Account:
+      description: A credits account in NetMobiel.
+      required:
+      - name
+      type: object
+      properties:
+        id:
+          format: int64
+          description: 'The unique account  id. If referenced use the URN notation:
+            urn:nb:bn:account:<id>'
+          type: integer
+        name:
+          description: The name of the account holder.
+          type: string
+        ncan:
+          description: "The Netmobiel Credit Account Number, a unique id. \nThe NACN\
+            \ is generated by the system and cannot be modified."
+          type: string
+        iban:
+          description: The International Bank Account Number (IBAN) belonging to this
+            account.
+          type: string
+        ibanHolder:
+          description: The name of the holder of the IBAN account. Mandatory if an
+            IBAN is defined.
+          type: string
+        credits:
+          description: |-
+            The amount of credits currently in possession. The reserved credits are subtracted.
+            The balance is only present after specific queries.
+            This is a read-only property.
+          type: integer
+        purpose:
+          description: The purpose of the account.
+          enum:
+          - SYSTEM
+          - CURRENT
+          - PREMIUM
+          type: string
+        type:
+          description: "The type of the account. Must be one of `ASSET` or `LIABILITY`.\n\
+            \nCredit of a `LIABILITY` increases the balance. Debit of a `LIABILITY`\
+            \ decreases the balance.  \nFor an `ASSET` it is the other way around.\n"
+          enum:
+          - ASSET
+          - LIABILITY
+          type: string
+      example:
+        name: Jantje NB Smit
+        ncan: PLA-1234567890
+        id: 2
+        iban: NL02ABNA0123456789,
+        ibanHolder: Jan Smit
+        purpose: CURRENT
+        type: LIABILITY
+    Balance:
+      title: Root Type for Balance
+      description: A representation of the balance of an account.
+      required:
+      - endAmount
+      - ledger
+      - startAmount
+      - modifiedTime
+      type: object
+      properties:
+        startAmount:
+          format: int32
+          description: The amount at the start of the accounting period.
+          type: integer
+        endAmount:
+          format: int32
+          description: The amount of credits currently held in this account.
+          type: integer
+        ledger:
+          description: The name of the accounting period, in general the fiscal year.
+          type: string
+        id:
+          description: Database reference of the entity.
+          type: integer
+        modifiedTime:
+          format: date-time
+          description: Last modification time.
+          type: string
+        account:
+          $ref: '#/components/schemas/Account'
+          description: 'The account for the balance. '
+      example:
+        startAmount: 54
+        endAmount: 112
+        ledger: "2020"
+        account:
+          ncan: PLA-1234567890
+          name: Nico Jansen
+        id: 23
+        modifiedTime: 2020-04-09T13:33:00.000Z
+    Charity:
+      title: Root Type for Charity
+      description: A charity is some noble purpose in need of funding. NetMobiel users
+        can donate credits to a charity of their choice.
+      required:
+      - location
+      - goalAmount
+      - donatedAmount
+      - name
+      - roles
+      - campaignStartTime
+      type: object
+      properties:
+        name:
+          description: The short display name of the charity.
+          type: string
+        location:
+          $ref: '#/components/schemas/Location'
+          description: The location (in GPS coordinates) and the label for the place
+            where the charity resides.
+          properties:
+            label:
+              type: string
+            latitude:
+              format: double
+              type: number
+            longitude:
+              format: double
+              type: number
+        goalAmount:
+          format: int32
+          description: The ultimate amount of credits this charity has set as a goal.
+          type: integer
+        donatedAmount:
+          format: int32
+          description: The total amount of donations to this charity.
+          type: integer
+        imageUrl:
+          description: The url to an image todisplay along the desription of the charity.
+          type: string
+        description:
+          description: A short description to explain the goal of the charity to the
+            potential donors.
+          type: string
+        roles:
+          description: An array of roles have rights to view or administer the charity.
+            Anyone can read the charity's attributes, but financial statements are
+            limite to these roles. Only a manager can make changes.
+          type: array
+          items:
+            $ref: '#/components/schemas/CharityUserRole'
+        id:
+          description: The database id of this charity.
+          type: integer
+        campaignStartTime:
+          format: date-time
+          description: The start date and time of the campaign to raise funds.
+          type: string
+        campaignEndTime:
+          format: date-time
+          description: 'The date and time the fund raising is ended. After this date
+            no more donations are accepted. '
+          type: string
+        donorCount:
+          description: The number of distinct donors that have donated credits to
+            the charity. This field is defined only when the object is created by
+            the charity popularity report.
+          type: integer
+        account:
+          $ref: '#/components/schemas/Account'
+          description: The NetMobiel account for the charity. This attribute is only
+            visible for users having a role in the charity or the admin.
+        urn:
+          description: The unique charity refrence as an urn.
+          type: string
+      example:
+        name: Rozentuin Zieuwent
+        location:
+          label: Zieuwent R.K. Kerk
+          latitude: 52.004485
+          longitude: 6.519542
+        campaignStartTime: 2020-05-01T12:00:00Z
+        campaignEndTime: 2020-08-31T00:00:00Z
+        goalAmount: 10000
+        donatedAmount: 2478
+        imageUrl: some/image.jpg
+        description: Ondersteuning van de vrijwilligers van de Rozentuin achter de
+          kerk,
+        account:
+          name: Jan P. Smit
+          iban: NL02ABNA0123456789,
+          ibanHolder: Jan Smit
+          credits: 1350
+        roles:
+        - role: MANAGER
+          user:
+            email: pieter@oostgelre.nl
+            givenName: Pieter
+            familyName: Oude Zijlink
+            managedIdentity: 1234-5678-aabb
+            id: 1034
+        id: 453
+        urn: urn:nb:bn:charity:453
+    PaymentBatch:
+      title: Root Type for PaymentBatch
+      description: 'A `PaymentBatch` is a collection of `WithdrawalRequest` objects
+        that need to be settled. '
+      required:
+      - status
+      type: object
+      properties:
+        creationTime:
+          format: date-time
+          description: The date and time the batch was created.
+          type: string
+        withdrawalRequests:
+          description: The list with withdrawal requests in this batch.
+          type: array
+          items:
+            $ref: '#/components/schemas/WithdrawalRequest'
+        createdBy:
+          $ref: '#/components/schemas/User'
+          description: 'The user that created the batch. '
+          properties:
+            familyName:
+              type: string
+        id:
+          description: Database id of the batch.
+          type: integer
+        orderReference:
+          description: A short unique code for the batch, for external reference.
+          type: string
+        modifiedBy:
+          $ref: '#/components/schemas/User'
+          description: The user that modified the batch.
+          properties:
+            familyName:
+              type: string
+        modificationTime:
+          format: date-time
+          description: The date and time that the batch was modified in some way.
+          type: string
+        status:
+          description: 'The status of the batch. The list of status values is standardized,
+            in practise the batch can have the following values: ACTIVE, COMPLETED,
+            CANCELLED.'
+          enum:
+          - REQUESTED
+          - ACTIVE
+          - COMPLETED
+          - EXPIRED
+          - CANCELLED
+          type: string
+        originatorIban:
+          description: The IBAN of the originator account, that is the bank account
+            held by the Stichting NetMobiel. It is a copy because it reflects the
+            IBAN at the time the batch was generated.
+          type: string
+        originatorAccountRef:
+          description: A reference to the originator's account.
+          type: string
+        originatorIbanHolder:
+          description: The name of the originator account holder. A copy as it reflects
+            the name at the time the batch was generated.
+          type: string
+        nrRequests:
+          description: The number of `WithDrawal` requests in the batch.
+          type: integer
+        amountRequestedEurocents:
+          description: The total amount  requested in eurocents.
+          type: integer
+        amountSettledEurocents:
+          description: The total amount settled in eurocents. This is the total amount
+            actually transferred by the bank.
+          type: integer
+        reason:
+          description: The reason for the current status.
+          type: string
+      example:
+        amountRequestedEurocents: 560
+        amountSettledEurocents: 250
+        creationTime: 2020-10-20T12:00:00Z
+        completionTime: 2020-10-26T14:25:00Z
+        orderReference: NMPB-20301-354
+        withdrawalRequests: []
+        status: ACTIVE
+        createdBy:
+          familyName: Pietersen
+        modifiedBy:
+          familyName: Pietersen,
+        nrRequests: 5
+        originatorIbanHolder: Stichting Netmobiel
+        originatorIban: NL57ASNB0123456789
+        originatorAccountRef: urn:nb:bn:account:5463
+    WithdrawalRequest:
+      title: Root Type for Deposit
+      description: "Object for making a withdrawal from the Netmobiel credit system,\
+        \ converting credits to euros.\nMost values are calculated or derived. The\
+        \ IBAN number and holder's na,e are copied to \nprevent in-flight change of\
+        \ the number between request time and completion time. The processing may\
+        \ take several \ndays due to the human effort needed to process the payment\
+        \ batch at the bank."
+      required: []
+      type: object
+      properties:
+        account:
+          $ref: '#/components/schemas/Account'
+          description: The NetMobiel beneficiary account for the withdrawal request.
+        description:
+          description: The description to display on the payment page.
+          type: string
+        amountCredits:
+          format: int32
+          description: The amount of credits to buy. Use the `/settings` endpoint
+            to retrieve the exchange rate.
+          type: integer
+        amountEurocents:
+          description: The calculated amount of eurocents to withdraw.
+          type: integer
+        status:
+          description: 'Status of the withdrawal. '
+          enum:
+          - REQUESTED
+          - ACTIVE
+          - COMPLETED
+          - EXPIRED
+          - CANCELLED
+          type: string
+        creationTime:
+          format: date-time
+          description: The date and time of creating the request.
+          type: string
+        id:
+          description: Dtabase id of the withdrawal request.
+          type: integer
+        orderReference:
+          description: The reference to use for the actual payment; generated by NetMobiel.
+          type: string
+        createdBy:
+          $ref: '#/components/schemas/User'
+          description: 'The user that created the withdrawal request. '
+          properties:
+            familyName:
+              type: string
+        paymentBatchRef:
+          description: Reference to the payment batch.
+          type: string
+        reason:
+          description: The reason for the current status. Used in particular when
+            a request has been cancelled.
+          type: string
+        modifiedBy:
+          $ref: '#/components/schemas/User'
+          description: The user that modified the request, in general the treasurer.
+        modificationTime:
+          format: date-time
+          description: Thedate and time the requested was settled.
+          type: string
+        iban:
+          description: The International Bank Account Number (IBAN) of the beneficiary
+            account at the time the request was created.
+          type: string
+        ibanHolder:
+          description: "The name of the holder of the IBAN beneficiary account at\
+            \ the time the request was created. \nMandatory if an IBAN is defined."
+          type: string
+        accountRef:
+          description: The unique reference to the account.
+          type: string
+        urn:
+          description: The urn of the withdrawal object.
+          type: string
+      example:
+        description: Uitbetaling volgens afspraak 2020-10-09
+        amountCredits: 1000
+        amountEurocents: 19000
+        creationTime: 2020-10-20T13:00:00Z
+        modificationTime: 2020-10-20T13:00:00Z
+        id: 2345
+        status: REQUESTED
+        account:
+          name: Smit, Jan
+          iban: NL02ABNA0123456789,
+          ibanHolder: Jan Smit
+    User:
+      description: 'A user in the message service. '
+      required:
+      - managedIdentity
+      - givenName
+      - familyName
+      - credits
+      type: object
+      properties:
+        id:
+          format: int64
+          description: 'The unique user id. If referenced use the URN notation: urn:nb:bn:user:<id>'
+          type: integer
+        managedIdentity:
+          description: The user is as known by the IDM (Keycloak). The format is determined
+            by the IDM.
+          type: string
+        givenName:
+          description: The first name of the driver.
+          type: string
+        familyName:
+          description: The family name of the driver.
+          type: string
+        email:
+          description: The email address of the user.
+          type: string
+        donatedCredits:
+          description: Donated amount of credits. The attribute is defined only as
+            part of the generosity report. The value depends on the filter parameters
+            of the report.
+          type: integer
+        personalAccount:
+          $ref: '#/components/schemas/Account'
+          description: The personal (current) NetMobiel account for the user.
+        premiumAccount:
+          $ref: '#/components/schemas/Account'
+          description: The premium NetMobiel account for the user. Premium credits
+            are saved in this account.
+      example:
+        familyName: Normalverbraucher
+        givenName: Otto
+        id: 2
+        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+        personalAccount:
+          credits: 10
+          iban: NL02ABNA0123456789,
+          ibanHolder: Jan Smit
+    ImageResponse:
+      title: Root Type for ImageResponse
+      description: The response to a request for an image.
+      type: object
+      properties:
+        image:
+          type: string
+      example:
+        image: /images/ab/cdef.png
+    ImageUploadRequest:
+      description: The request for uploading an image.
+      required:
+      - image
+      type: object
+      properties:
+        image:
+          description: The image data encoded in base64.
+          type: string
+    Reward:
+      title: Root Type for Reward
+      description: 'The actual reward for something in the application. A reward is
+        either a premium amount of credits or as a redemption of currently owned premium
+        credits. '
+      required:
+      - incentive
+      - id
+      - factContext
+      - amount
+      - recipient
+      - rewardTime
+      - paidOut
+      - urn
+      type: object
+      properties:
+        id:
+          format: int32
+          description: The identifier of the reward.
+          type: integer
+        urn:
+          description: The URN of the reward.
+          type: string
+        amount:
+          format: int32
+          description: The actual amount of credits rewarded, either as new premium
+            credits or as redeemed credits.
+          type: integer
+        rewardTime:
+          format: date-time
+          description: The date and time the reward was issued.
+          type: string
+        cancelTime:
+          description: If the reward is cancelled, the cancel time.
+          type: string
+        incentive:
+          $ref: '#/components/schemas/Incentive'
+          description: The incentive on which the reward is based.
+          properties:
+            id:
+              format: int32
+              type: integer
+        recipient:
+          $ref: '#/components/schemas/User'
+          description: The recipient of the reward.
+          properties:
+            givenName:
+              type: string
+            familyName:
+              type: string
+            managedIdentity:
+              type: string
+        transactionRef:
+          description: If set, the accounting transaction referring to the actual
+            payment.
+          type: string
+        factContext:
+          description: The context of the reward, a reference to the system object
+            that caused the issue of reward.
+          type: string
+        paidOut:
+          description: Flag signalling the payout status of the reward.
+          type: boolean
+      example:
+        id: 612
+        urn: urn:nb:bn:reward:612
+        amount: 10
+        rewardTime: 2022-03-16T11:04:34Z
+        incentive:
+          id: "2578"
+          urn: urn:nb:nb:incentive:2578
+          code: survey-0
+          category: SURVEY
+          description: Stimulus voor invullen van de nulmeting
+          amount: "10"
+          relative: false
+          redemption: false
+        recipient:
+          givenName: Hein
+          familyName: Hogendorp
+          managedIdentity: aabbccdd-1234-5678-90abcdef1234
+        transactionRef: urn:nb:bn:transaction:63
+        factContext: urn:nb:pf:surveyint:52
+        paidOut: true
+    Page:
+      title: Root Type for Page
+      description: A page from a result set. For smaller sets the page contains the
+        complete result set.
+      type: object
+      properties:
+        totalCount:
+          format: int32
+          description: |-
+            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
+
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
+          type: integer
+        count:
+          format: int32
+          description: The number of items in this page.
+          type: integer
+        data:
+          description: An array with the actual payload. The payload depends on the
+            request being made.
+          type: array
+          items: {}
+        offset:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
+      example:
+        totalCount: 104
+        offset: 32
+        count: 16
+        data: []
+    Incentive:
+      title: Root Type for Incentive
+      description: Definition of the reward intended as stimulus for certain behaviour.
+      required:
+      - amount
+      - id
+      - category
+      - code
+      - redemption
+      - relative
+      - urn
+      - ctaEnabled
+      type: object
+      properties:
+        id:
+          description: The id of the incentive.
+          type: integer
+        urn:
+          description: The URN of the incentive.
+          type: string
+        code:
+          description: "An incentive has a short code as (internal) reference to an\
+            \ incentive. The code is direct or indirect  \nattached to the trigger\
+            \ object. Example code: 'survey-0' to indicate the first survey offered."
+          type: string
+        category:
+          description: The category of the incentives. Currently defined are SURVEY
+            and CARPOOL.
+          type: string
+        description:
+          description: The description of the incentive. The text is displayed in
+            the reward overview.
+          type: string
+        amount:
+          description: The amount of credits involved (relative is false) or the percentage
+            of credits (relative is true) to assign related to some yield value. The
+            ride fare is an example of such a yield value.
+          type: integer
+        relative:
+          description: If true then the amount to reward is calculated relative to
+            some yield value, like the fare of a ride. The amount field is then interpreted
+            as a percentage.
+          type: boolean
+        maxAmount:
+          description: When relative is true, the maximum amount to reward.
+          type: integer
+        redemption:
+          description: |-
+            If true the reward is a redemption type of award, meaning that the user rewarded by converting the specified amount of premium credits into freely spendable credits. If redemption is false, then the user is rewarded with premium credits.
+
+            Redemption-type rewards are issued only when the user has a positive balance of premium credits at the time of the reward trigger.
+
+            Premium credits are paid when the application has a positive premium balance. If not, the payment remains pending.
+          type: boolean
+        disableTime:
+          format: date-time
+          description: The time the incentive was disabled. Not set with active incentives.
+          type: string
+        startTime:
+          format: date-time
+          description: The time the incentive becomes active.
+          type: string
+        endTime:
+          format: date-time
+          description: The time the incentive becomes inactive.
+          type: string
+        ctaEnabled:
+          description: Does this incentive have a Call-To-Action?
+          type: boolean
+        ctaTitle:
+          description: The title of the CTA to display.
+          type: string
+        ctaBody:
+          description: |-
+            The body text of the CTA to display.
+
+            Be careful to align the text with the actual reward method (absolute, relative, redemption, amout).
+
+            Note that the description text is used in the conversation with the user.
+          type: string
+        ctaButtonLabel:
+          description: The label text of the CTA button to display.
+          type: string
+        ctaButtonAction:
+          description: |-
+            The action definition the CTA button. If omitted the button is not displayed.
+            The action text is taken from a vocabulary and is opaque to the banker. It should be understood by the webclient and acted on as requested.
+          type: string
+        ctaHideBeyondRewardCount:
+          description: "Keep on displaying the CTA until at least x rewards (for this\
+            \ incentive) are issued to a user. \nIf set to 0 the CTA is hidden when\
+            \ at least one single reward is issued to a user."
+          type: number
+      example:
+        id: "2578"
+        urn: urn:nb:nb:incentive:2578
+        code: survey-0
+        category: SURVEY
+        description: Stimulus voor invullen van de nulmeting
+        amount: "10"
+        relative: false
+        redemption: false
+  responses:
+    InternalServerError:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: Some application error occurred, indicating a bug in the application
+        (500).
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The calling user is not allowed to perform the operation on the
+        resource (403).
+    NotAuthorized:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The caller is not authorized to performed the intended operation
+        (status 401).
+    ServiceUnavailableException:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: 'The (underlying) service is (temporarily) not available. Try again
+        later (503). '
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: A requested object could not be found (404).
+    Gone:
+      description: The requested object does no longer exist (410).
+    Conflict:
+      description: A conflict occurred with existing objects (duplicate key ec.).
+        A 409 error.
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The request was understood, but in incomplete or invalid and cannot
+        be processed (400).
+    PaymentRequested:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: A payment is requested, i.e. balance (in credits) is insufficient
+        for a payment.
+  securitySchemes:
+    apikey:
+      type: apiKey
+      description: 'The Planner service requires an Api Key: x-gravitee-api-key in
+        the header.'
+      name: Api-key
+      in: header
+    Bearer-only:
+      scheme: bearer
+      type: http
+      description: You need a valid access token.

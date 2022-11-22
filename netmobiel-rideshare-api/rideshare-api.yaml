@@ -1,0 +1,1605 @@
+---
+openapi: 3.0.2
+info:
+  title: rideshare
+  version: 1.0.0
+  description: 'API for sharing a ride '
+  contact:
+    name: Jaap Reitsma
+    email: j.reitsma@saxion.nl
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+servers:
+- url: https://prod.netmobiel.eu/rideshare/api
+  description: The internal URL for the rideshare (production).
+- url: https://api.netmobiel.eu/gwapi/rideshare
+  description: The rideshare service visible to the world (production).
+- url: https://acc.netmobiel.eu/rideshare/api
+  description: The internal URL for the rideshare (acceptance).
+- url: https://api.netmobiel.eu/gwapi/acc/rideshare
+  description: The rideshare service visible to the world (acceptance).
+paths:
+  /cars/{carId}:
+    summary: Path used to manage a single Car.
+    description: The REST endpoint/path used to get a single instances of an `Car`.  This
+      path contains a `GET` operation used to perform the get task.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+          description: Successful response - returns a single `Car`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: getCar
+      summary: Get a Car
+      description: Gets the details of a single instance of a `Car`. Only the admin
+        can see the owner of the car.
+    parameters:
+    - name: carId
+      description: A unique identifier for a `Car`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /rides/{rideId}:
+    summary: Path used to manage a single Ride.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Ride`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Ride'
+          description: Successful response - returns a single `Ride`.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: getRide
+      summary: Get a Ride
+      description: Gets the details of a single instance of a `Ride`. All available
+        non-null fields are returned.
+    put:
+      requestBody:
+        description: 'An updated ride. '
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ride'
+        required: true
+      parameters:
+      - name: scope
+        description: 'Flag indicating the extent of the put. Only used in case of
+          a recurrent ride: If set to `this-and-following`, then not only this ride
+          is updated, but also all following rides derived from the same pattern.
+          Default is only this ride.'
+        schema:
+          enum:
+          - this
+          - this-and-following
+          type: string
+        in: query
+      responses:
+        "204":
+          description: The ride and, in case of a recurrent ride, all futures ride
+            are updated.
+      operationId: updateRide
+      summary: Updates a ride.
+      description: Updates a ride. In case of a recurrent ride all future rides are
+        affected too. Recurrent rides before the current ride are never affected.
+        Note that either departure time or arrival time must be specified in order
+        to determine which of the two is pinned. If you specify both then the flag
+        `isArrivalTimePinned` must also be present. If that falg is omitted, then
+        default is false.
+    delete:
+      parameters:
+      - name: scope
+        description: 'Flag indicating the extent of the delete. Only used in case
+          of a recurrent ride: If set to `this-and-following`, then not only this
+          ride is removed, but also all following rides derived from the same pattern.
+          Default: `this`'
+        schema:
+          enum:
+          - this
+          - this-and-following
+          type: string
+        in: query
+      - name: reason
+        description: Optional explanation for the removal (cancellation) of this ride.
+        schema:
+          type: string
+        in: query
+      - name: hard
+        description: If true then set the deleted flag. Deleted rides will not show
+          up in the regular listing.
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "204":
+          description: Successful response.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      operationId: deleteRide
+      summary: Delete a Ride
+      description: "Cancels and/or deletes an existing `Ride`. If a ride is already\
+        \ booked by a passenger, then the ride will be soft deleted, also when the\
+        \ booking was cancelled or when it was a proposal. \n\nIf a ride is recurrent,\
+        \ the delete action can be extended to all rides with the same recurrence\
+        \ pattern by setting the `scope` flag to the value `following`. The current\
+        \ ride is always deleted too. Because recurrent rides are all scheduled, most\
+        \ of them are completed erases when changing or removing the recurrence pattern.\
+        \ This behaviour prevents the cluttering of the list of cancelled rides.\n\
+        \nThere is a fine line between a cancelled ride and a deleted ride. A ride\
+        \ can only be cancelled when scheduled or planned. Cancelling a ride means\
+        \ it is no longer valid. A cancelled ride still appears in the list. Deleting\
+        \ a ride is only possible when the state of the ride is cancelled or completed."
+    parameters:
+    - name: rideId
+      description: A unique identifier for a `Ride`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /rides/{rideId}/bookings:
+    summary: Path used to manage the list of bookings for a ride.
+    description: The REST endpoint/path used to create a `Booking` for a `Ride`.  This
+      path contains only a `POST` operation used to perform the create task.
+    post:
+      requestBody:
+        description: A `Booking` entity
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Booking'
+        required: true
+      parameters:
+      - examples:
+          Booking:
+            value:
+              dropOff:
+                label: Station Zutphen
+                latitude: 52.145119
+                longitude: 6.192722
+              nrSeats: 2
+              pickup:
+                label: Station Enschede
+                latitude: 52.221609
+                longitude: 6.887536
+        name: rideId
+        description: The ride to book.
+        schema:
+          type: string
+        in: path
+        required: true
+      responses:
+        "201":
+          description: A booking has been created.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: createBooking
+      summary: Creates a booking.
+      description: |-
+        Creates a booking for a ride for the calling user. Required are: pickup, dropOff, (desired) departureTime, (desired) arrivalTime. The actual departure time  and arrivalTime are calculated from the driver's route.
+
+        It is not allowed to book your own ride.
+    parameters:
+    - name: rideId
+      description: A unique identifier for a `Ride`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users:
+    summary: Path used to manage the list of users. NOT YET IMPLEMENTED.
+    description: The REST endpoint/path used to list and create zero or more `User`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/User'
+              examples:
+                List-users:
+                  value:
+                  - email: j.reitsma@saxion.nl
+                    familyName: Reitsma
+                    gender: MAN
+                    givenName: Jaap
+                    id: 1
+                    managedIdentity: 71f69345-42e1-4d17-a7c4-7c47178edcd7
+                    yearOfBirth: "1962"
+                  - email: otto1971@hotmail.com
+                    familyName: Normalverbraucher
+                    givenName: Otto
+                    id: 2
+                    managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+                  - email: net@mobiel.net
+                    familyName: Mobiel
+                    givenName: Net
+                    id: 50
+                    managedIdentity: 5fd8defe-848e-4b66-8e6f-8a7d3b7ee485
+          description: Successful response - returns an array of `User` entities.
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: getUsers
+      summary: List All users
+      description: Gets a list of all `User` entities.
+  /users/{userId}:
+    summary: Path used to manage a single User.
+    description: The REST endpoint/path used to get a single instance of an `User`.
+      This path contains a `GET` operation used to perform the get task, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/User'
+              examples:
+                User:
+                  value:
+                    email: j.reitsma@saxion.nl
+                    familyName: Reitsma
+                    gender: MAN
+                    givenName: Jaap
+                    id: 1
+                    managedIdentity: 71f69345-42e1-4d17-a7c4-7c47178edcd7
+                    yearOfBirth: "1962"
+          description: Successful response - returns a single `User`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: getUser
+      summary: Get a User
+      description: Gets the details of a single instance of a `User`.
+    parameters:
+    - name: userId
+      description: A unique identifier for a `User`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /bookings/{bookingId}:
+    summary: Path used to manage a single Booking.
+    description: "The REST endpoint/path used to get and delete single instances of\
+      \ an `Booking`.  This path contains `GET` and `DELETE` operations used to perform\
+      \ the get and delete tasks, respectively.\n\nA booking cannot be modified. "
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Booking'
+          description: Successful response - returns a single `Booking`.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: getBooking
+      summary: Get a Booking
+      description: Gets the details of a single instance of a `Booking`.
+    delete:
+      parameters:
+      - name: reason
+        description: Optional explanation for the removal (cancellation) of this booking.
+        schema:
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Successful response. The booking has been removed (or soft
+            deleted).
+        "410":
+          $ref: '#/components/responses/Gone'
+      operationId: deleteBooking
+      summary: Delete a Booking
+      description: 'Deletes an existing `Booking`. '
+    parameters:
+    - name: bookingId
+      description: A unique identifier for a `Booking`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /bookings:
+    summary: Path used to retrieve the list of bookings.
+    description: |-
+      The REST endpoint/path used to list `Booking` entities.  This path contains a `GET` operation to perform the list tasks, respectively.
+
+      A booking is created through the `ride` path.
+    get:
+      parameters:
+      - examples:
+          Format:
+            value: 2019-11-30
+        name: since
+        description: The departure date at which to start the listing. Default is
+          today (local date), effectively listing all bookings since midnight.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15
+        name: until
+        description: The departure date and later not to include in the listing of
+          bookings. The until date must be after the since parameter. Default is not
+          set, meaning all available bookings (after since).
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with an array of `Booking`
+            entities.
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: getBookings
+      summary: List all bookings made by the calling user.
+      description: Gets a list of `Booking` entities of which the calling user is
+        the passenger.
+  /search/rides:
+    summary: Search for rides resources.
+    description: Search the rides resources for matching rides.
+    get:
+      parameters:
+      - examples:
+          Borne:
+            value: Station Borne::52.298417, 6.749157
+        name: fromPlace
+        description: The start location, a latitude, longitude pair in degrees according
+          WGS84. For logging purposes you may prepend the coordinates with a place
+          label followed by two colons.
+        schema:
+          type: string
+        in: query
+        required: true
+      - examples:
+          Example:
+            value: 2019-10-23T09:30+01:00
+        name: fromDate
+        description: The date and time of the earliest departure. The format is ISO8601.
+          If not set then now is taken.
+        schema:
+          format: date-time
+          type: string
+        in: query
+        required: false
+      - name: toPlace
+        description: The end location (see fromPlace for format).
+        schema:
+          type: string
+        in: query
+        required: true
+      - examples:
+          Example:
+            value: 2019-10-23T12:15+01:00
+        name: toDate
+        description: The date and time of the latest intended arrival time. The arrival
+          time must be after the departure time. If not set the implicit latestArrivalTime  is
+          24 hours after the (earliest) departure time.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: nrSeats
+        description: The number of seats required.
+        schema:
+          type: integer
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successfull call. Returns a `Page` with `Ride` entities.
+        "400":
+          description: |-
+            When not the minimal required search parameters are specified. Required for search are:
+            * fromPlace
+            * toPlace
+            * fromDate
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: searchRides
+      summary: Search for rides
+      description: Search and retrieve matching rides. The own rides are never included
+        with this call.
+  /bookings/{bookingId}/confirm/{value}:
+    summary: Path used by the driver to confirm that the passenger took the ride.
+    description: Endpoint used to confirm (or deny) the use of booking , using a PUT.
+    put:
+      parameters:
+      - name: reason
+        description: |-
+          The reason for the given (negative) confirmation value.
+           - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
+           - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
+           - `NO_SHOW`: The passenger did not show up
+           - `NO_TRIP`: The ride did not take place at all.
+        schema:
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          - NO_TRIP
+          type: string
+        in: query
+      responses:
+        "204":
+          description: Success response, the ride has been confirmed.
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: confirmTravelling
+      summary: Confirms a booking use.
+      description: "Confirms that the passenger has been in the car for this ride.\
+        \ Once the driver has confirmed the ride, the credits will be claimed unless\
+        \ the passenger denies having been in the car. A confirmation can only be\
+        \ issued once. Only an 'unconfirm' can be used to reconsider the the payment.\n\
+        \nA booking can be confirmed only by the driver. "
+    parameters:
+    - name: bookingId
+      description: A unique identifier for a `Ride`.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: value
+      description: 'A confirmation alue: true of false.'
+      schema:
+        type: boolean
+      in: path
+      required: true
+  /bookings/{bookingId}/unconfirm:
+    summary: Path used to unconfirm a booking travel.
+    description: Endpoint used to unconfirm travelling after a booking, using a PUT.
+    put:
+      responses:
+        "204":
+          description: Success response, the ride has been confirmed.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: unconfirmTravelling
+      summary: Unconfirms travelling in a booking.
+      description: |-
+        Reverses an implicit or explicit confirmation that the passenger has actually been on this ride. The driver can only unconfirm a travel that has given him credits. Once reversed, the credit account of the driver is debited, and the fare is again a reservation made by the passenger.
+
+        A 403 is returned when the driver unconfirms a trip when he was not credited. In case of a dispute, both parties can unconfirm.
+    parameters:
+    - name: bookingId
+      description: A unique identifier for a `Ride`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/cars:
+    summary: Path used to manage the list of cars.
+    description: "The REST endpoint/path used to list and create zero or more `Car`\
+      \ entities.  This path contains a `GET` and `POST` operation to perform the\
+      \ list and create tasks, respectively.\nCars belong always to a specific user. "
+    get:
+      parameters:
+      - name: deletedToo
+        description: Return also cars that have been (soft) deleted in the past.
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Car'
+          description: Successful response - returns an array of `Car` entities.
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: getUsersCars
+      summary: List All cars
+      description: |-
+        Gets a list of all `Car` entities driven by the calling user. Cars that have
+        been deleted are not listed, unless the 'deletedToo' flag is set.
+    post:
+      requestBody:
+        description: A new `Car` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Car'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "409":
+          $ref: '#/components/responses/Conflict'
+      operationId: createUsersCar
+      summary: Create a Car
+      description: Creates a new instance of a `Car` or restored a soft-deleted one.
+        The car is owned (driven) by the calling user.
+    parameters:
+    - name: userId
+      description: A unique identifier for a `User`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /users/{userId}/cars/{carId}:
+    summary: Path used to manage a single Car.
+    description: "The REST endpoint/path used to get, update, and delete single instances\
+      \ of an `Car`.  This path contains `GET`, `PUT`, and `DELETE` operations used\
+      \ to perform the get, update, and delete tasks, respectively.\n\nCars belong\
+      \ always to a specific user. "
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+          description: Successful response - returns a single `Car`.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: getUsersCar
+      summary: Get a Car
+      description: Gets the details of a single instance of a `Car`.
+    put:
+      requestBody:
+        description: Updated `Car` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Car'
+        required: true
+      responses:
+        "204":
+          description: Successful response.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: updateUsersCar
+      summary: Update a Car
+      description: Updates an existing `Car`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: deleteUsersCar
+      summary: Delete a Car
+      description: "Deletes an existing `Car`. Cars are hard deleted if never used\
+        \ in a ride, \notherwise a soft delete is performed. If a car is soft-deleted,\
+        \ it can be restored\nby creating the car again. \n"
+    parameters:
+    - name: userId
+      description: A unique identifier for a `User`.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: carId
+      description: A unique identifier for a `Car`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /cars/lookup:
+    summary: Get license plate details.
+    description: 'In case of NL: Retrieve the car details from the RDW.'
+    get:
+      parameters:
+      - name: countryCode
+        description: The country abbreviation according ISO 3166-1 Alpha-2.
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: licensePlate
+        description: The license plate including dashes, without spaces.
+        schema:
+          type: string
+        in: query
+        required: true
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Car'
+              examples:
+                Volvo-V70:
+                  value:
+                    registrationCountry: NL
+                    licensePlate: 52-PH-VD
+                    brand: Volvo
+                    model: V70
+                    type: Estate
+                    color: ZWART
+                    registrationYear: 2004
+                    nrOfSeats: 4
+                    nrOfDoors: 4
+                    typeRegistrationId: e4*2001/116*0040*10
+                    co2Emission: 217
+          description: The car details  as registered by the registrar.
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: lookupCarRegistration
+      summary: Get car registration details
+      description: |
+        Go the vehicle registrar to retrieve information about the car. Supported are:
+
+        NL: RDW
+  /rides:
+    summary: Path used to manage rides.
+    description: The REST endpoint/path used to list and create zero or more `Ride`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - name: driverId
+        description: The driverId of the user to query. If omitted the rides of the
+          calling user are returned. The id can be a user urn.
+        schema:
+          type: string
+        in: query
+        required: false
+      - examples:
+          Format:
+            value: 2019-11-30
+        name: since
+        description: "The departure date at which to start the listing. Default is\
+          \ today (local date), effectively listing all rides \nsince midnight."
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15
+        name: until
+        description: The departure date and later not to include in the listing of
+          rides. The until date must be after the since parameter. Default is not
+          set, meaning all available rides (after since).
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: state
+        description: 'Filter the rides to contain only rides with the specified state. '
+        schema:
+          enum:
+          - SCHEDULED
+          - DEPARTING
+          - IN_TRANSIT
+          - ARRIVING
+          - VALIDATING
+          - COMPLETED
+          - CANCELLED
+          type: string
+        in: query
+      - name: bookingState
+        description: Only show rides with a booking having the specified state.
+        schema:
+          enum:
+          - PROPOSED
+          - REQUESTED
+          - CONFIRMED
+          - CANCELLED
+          type: string
+        in: query
+      - name: siblingRideId
+        description: Only show rides that are siblings, i.e. rides sharing the same
+          template as the one specified. If that ride has no template then no results
+          are returned.
+        schema:
+          type: string
+        in: query
+      - name: deletedToo
+        description: If set to true then return also deleted rides.
+        schema:
+          type: boolean
+        in: query
+      - name: skip[Cancelled
+        description: If set to true then do not include cancelled rides.
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: The sorting direction based on departure time, either ascending
+          (ASC) or descending (DESC). Default ascending.
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successfull call. The result contains a `Page` with an array
+            of `Ride` entities.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: |-
+            When not the minimal required search parameters are specified. Required for search are:
+            * fromPlace
+            * toPlace
+            * fromTime
+      security:
+      - apikey: []
+        OAuth2: []
+      operationId: listRides
+      summary: List a user's rides.
+      description: List all rides of which the calling user is the driver.
+    post:
+      requestBody:
+        description: A ride entity.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Ride'
+            examples:
+              Single:
+                value:
+                  carRef: urn:nb:rs:car:5
+                  departureTime: 2019-10-02T09:30:00
+                  fromPlace:
+                    label: Station Borne
+                    latitude: 52.298417
+                    longitude: 6.749157
+                  nrSeatsAvailable: 2
+                  remarks: A test ride from Borne to Enschede
+                  toPlace:
+                    label: Station Enschede
+                    latitude: 52.221609
+                    longitude: 6.887536
+                  maxDetourMeters: 1000
+              Recurrent:
+                value:
+                  carRef: urn:nb:rs:car:5
+                  departureTime: 2019-10-02T09:30:00
+                  fromPlace:
+                    label: Station Borne
+                    latitude: 52.298417
+                    longitude: 6.749157
+                  nrSeatsAvailable: 2
+                  recurrency:
+                    unit: W
+                    interval: 2
+                    daysOfWeek: 3
+                    horizon: 2019-12-31
+                  remarks: A test ride from Borne to Enschede
+                  toPlace:
+                    label: Station Enschede
+                    latitude: 52.221609
+                    longitude: 6.887536
+                  maxDetourMeters: 1000
+        required: true
+      responses:
+        "201":
+          description: A ride has been created.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: "The ride entity contains errors or violates constraints: \n\
+            * A ride must contain exact two stops.\n* A ride does not contain any\
+            \ booking."
+        "404":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Error'
+          description: Some dependencies could not be found, e.g. the car specified
+            in the ride.
+      operationId: createRide
+      summary: Add a new ride.
+      description: |-
+        Add a new ride. The calling user will be the driver.
+
+        If recurrence is set, then all future drivers up to 8 weeks in advance are generated as well.
+components:
+  schemas:
+    Car:
+      description: "A description of a car used for a ride. Car details are intended\
+        \ for the potential \nto assess in advance their commfort level, but also\
+        \ to recognize their transport \nvehicle when waiting to be picked up by the\
+        \ driver."
+      required:
+      - registrationCountry
+      - licensePlate
+      - brand
+      - model
+      - type
+      - licensePlateRaw
+      type: object
+      properties:
+        registrationCountry:
+          description: The country code of registration. Use the ISO3166 Aplha-2 abbreviation.
+          type: string
+        licensePlate:
+          description: The license plate for the car. Include the dashes.
+          type: string
+        brand:
+          description: The brand of the car.
+          type: string
+        model:
+          description: The particular model of the Car.
+          type: string
+        type:
+          description: The general type of the car. Not always registered for really
+            old cars.
+          enum:
+          - CONVERTIBLE
+          - COUPE
+          - ESTATE
+          - HATCHBACK
+          - MINIVAN
+          - OTHER
+          - SALOON
+          - SUV
+          - VAN
+          type: string
+        color:
+          description: The main color of the car.
+          type: string
+        color2:
+          description: The second color of the car (optional).
+          type: string
+        id:
+          format: int64
+          description: 'The id of the car. The external reference of a car is a URN:
+            urn:nb:rs:car:<id>'
+          type: integer
+        registrationYear:
+          description: The year the license was registered. This is not necessarily
+            the year the car was manufactured.
+          type: integer
+        typeRegistrationId:
+          description: The official type registration ID. Only used for calls to RDW.
+          type: string
+        co2Emission:
+          description: The CO2 emission of the car in grams per kilometer.
+          type: integer
+        driverRef:
+          description: |
+            The reference to the driver of the car. This will be a URN: urn:nb:rs:user:<id>.
+          type: string
+        nrDoors:
+          description: The number of doors.
+          type: integer
+        nrSeats:
+          description: The number of seats in the car.
+          type: integer
+        deleted:
+          description: If true then the car has been deleted by the user. The car
+            may still be referenced in ride templates.
+          type: boolean
+        carRef:
+          description: The urn reference to this car. Use this value in references.
+          type: string
+        licensePlateRaw:
+          description: 'The license plate without any markup: No spaces, dashes, uppercase.'
+          type: string
+    User:
+      description: "A user in the ride share service. A user can have a role as a\
+        \ driver or as a passenger. \nThe role is contextually assigned."
+      required:
+      - managedIdentity
+      - givenName
+      - familyName
+      type: object
+      properties:
+        id:
+          format: int64
+          description: 'The unique user id. If referenced use the URN notation: urn:nb:rs:user:<id>'
+          type: integer
+        managedIdentity:
+          description: The user is as known by the IDM (Keycloak). The format is determined
+            by the IDM.
+          type: string
+        email:
+          description: Email address.
+          type: string
+        givenName:
+          description: The first name of the driver.
+          type: string
+        familyName:
+          description: The family name of the driver.
+          type: string
+      example:
+        familyName: Normalverbraucher
+        givenName: Otto
+        id: 2
+        managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+    Error:
+      title: Root Type for Error
+      description: A object returned when an error occurred. The status code is 4xx
+        or 5xx.
+      type: object
+      properties:
+        message:
+          description: 'An informational message provided by the application about
+            the context of the error. '
+          type: string
+        reasonPhrase:
+          description: The formal text associated with the provided  HTTP status code.
+          type: string
+        status:
+          format: int32
+          description: The HTTP status code of this error.
+          type: integer
+      example:
+        message: This is a really bad request
+        reasonPhrase: Bad Request
+        status: 400
+    Page:
+      title: Root Type for Page
+      description: A page from a result set. For smaller sets the page contains the
+        complete result set.
+      type: object
+      properties:
+        totalCount:
+          format: int32
+          description: |-
+            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
+
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
+          type: integer
+        count:
+          format: int32
+          description: The number of items in this page.
+          type: integer
+        data:
+          description: An array with the actual payload. The payload depends on the
+            request being made.
+          type: array
+          items: {}
+        offset:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
+      example:
+        totalCount: 104
+        start: 32
+        count: 16
+        data: []
+    Location:
+      description: A place where a driver will/can stop to pickup or drop-off a passenger.
+      required:
+      - latitude
+      - longitude
+      type: object
+      properties:
+        label:
+          description: Short name for the location.
+          type: string
+        latitude:
+          format: double
+          description: GPS latitude value.
+          type: number
+        longitude:
+          format: double
+          description: GPS longitude value.
+          type: number
+      example:
+        label: Station Enschede
+        latitude: 52.221609
+        longitude: 6.887536
+    Stop:
+      title: Root Type for Stop
+      description: A stop is extended location on a map, comprising of a GPS coordinate
+        and optional a descriptional label for human display. A stop contains also
+        a timestamp for departure and/or arrival.
+      type: object
+      properties:
+        latitude:
+          format: double
+          description: The latitude of this place.
+          type: number
+        longitude:
+          format: double
+          description: The longitude of this place.
+          type: number
+        label:
+          description: A descriptive label of the place.
+          type: string
+        departureTime:
+          format: date-time
+          description: The time of departure in UTC time.
+          type: string
+        arrivalTime:
+          format: date-time
+          description: The time of arrival in UTC time.
+          type: string
+      example:
+        departureTime: 2020-05-14T10:00:00.000Z
+        latitude: 52.004166
+        longitude: 6.517835
+        label: Zieuwent,Kennedystraat
+    EncodedPolyline:
+      description: A list of coordinates encoded as a string. See Encoded polyline
+        algorithm format (http://code.google.com/apis/maps/documentation/polylinealgorithm.html).
+      required:
+      - points
+      - length
+      type: object
+      properties:
+        points:
+          description: The encoded points of the polyline.
+          type: string
+        levels:
+          description: Levels describes which points should be shown at various zoom
+            levels. OpenTripPlanner shows all points at all zoom levels.
+          type: string
+        length:
+          description: The number of points in the string
+          type: integer
+      example:
+        length: 11
+        points: _al|Hm_xf@?U?WHe@D_AF{@?QAQEW[iAs@@
+    Leg:
+      description: A leg is a displacement along a certain route from one location
+        to another at a specific time with specific duration.
+      required:
+      - from
+      - to
+      - duration
+      - distance
+      type: object
+      properties:
+        startTime:
+          format: date-time
+          description: The time of departure in UTC time.
+          type: string
+        endTime:
+          format: date-time
+          description: Time of arrival at destination in UTC time.
+          type: string
+        duration:
+          description: The total duration of the leg in seconds.
+          type: integer
+        distance:
+          description: The distance travelled in meters.
+          type: integer
+        from:
+          $ref: '#/components/schemas/Stop'
+          description: Departure location.
+        to:
+          $ref: '#/components/schemas/Stop'
+          description: Arrival location
+        legGeometry:
+          $ref: '#/components/schemas/EncodedPolyline'
+          description: An encoded description of the leg in GPS coordinates.
+        legRef:
+          description: The leg reference urn.
+          type: string
+      example:
+        distance: 152
+        duration: 123
+        from:
+          departureTime: 2020-05-14T10:00:00.000Z
+          latitude: 52.004166
+          longitude: 6.517835
+          label: Zieuwent,Kennedystraat
+        legGeometry:
+          length: 11
+          points: _al|Hm_xf@?U?WHe@D_AF{@?QAQEW[iAs@@
+        to:
+          arrivalTime: 2020-05-14T10:01:00.000Z
+          latitude: 52.004485
+          longitude: 6.519542
+          label: Zieuwent, R.K. Kerk
+    Recurrence:
+      title: Root Type for Recurrency
+      description: A descriptor for a recurrent ride.
+      required:
+      - unit
+      - interval
+      type: object
+      properties:
+        interval:
+          format: int32
+          description: The repetition interval. One week means every week. Two weeks
+            means every two weeks.
+          type: integer
+        unit:
+          description: The unit of the repetition.
+          enum:
+          - DAY
+          - WEEK
+          type: string
+        horizon:
+          format: date
+          description: 'Optional: the horizon date (a local date!) limits the recurrence
+            to a future date where the ride is no longer repeated. The horizon date
+            is exclusive.'
+          type: string
+        daysOfWeekMask:
+          format: int32
+          description: 'In case of unit ''week'': A bitmask of day included in the
+            recurrence. The days of the week are numbered according ISO8601: 1 to
+            7 for Monday to Sunday. The number of the weekday corresponds with the
+            bit number plus one, i.e., bit 0 corresponds with Monday.'
+          type: integer
+        timeZone:
+          description: 'The time zone of the recurrence. The zone is required to calculate
+            the local time, as it is the local departure/arrival time that is repeated.
+            Default: Europe/Amsterdam. '
+          type: string
+      example:
+        interval: 2
+        unit: WEEK
+        daysOfWeek: 62
+        horizon: 2019-12-31
+        timeZone: Europe/Amsterdam
+    Ride:
+      description: A Ride object specifies a ride with a car by a driver on a certain.
+        The retour can be specified as well.
+      required:
+      - nrSeatsAvailable
+      - carRef
+      - fromPlace
+      - toPlace
+      - legs
+      - maxDetourMeters
+      type: object
+      properties:
+        nrSeatsAvailable:
+          description: The maximum number of seats available for passengers (according
+            to the driver).
+          type: integer
+        remarks:
+          description: 'Remarks for passengers. '
+          type: string
+        id:
+          format: int64
+          description: '(Read-only) The unique id of this ride, assigned by the system.
+            When referenced use the URN notation: urn:nb:rs:ride:<id>'
+          type: integer
+        allowedLuggage:
+          description: The luggage the driver is allowing on the ride.
+          enum:
+          - HANDLUGGAGE
+          - PET
+          - STROLLER
+          - GROCERIES
+          type: string
+        bookings:
+          description: (Read-only) A list of bookings for this `Ride`.
+          type: array
+          items:
+            $ref: '#/components/schemas/Booking'
+        maxDetourMeters:
+          description: 'The distance in meters the driver is prepared to detour to
+            pickup of dropoff a passenger. Default: 10000 meter.'
+          type: integer
+        carRef:
+          description: 'The car used for the ride. This is a URN: urn:nb:rs:car:<id>'
+          type: string
+        driverRef:
+          description: "The user driving the car. If omitted the user registering\
+            \ the ride. \nFormat is a URN according urn:nb:rs:user:<id>."
+          type: string
+        fromPlace:
+          $ref: '#/components/schemas/Location'
+          description: The place (a stop) to depart from.
+        toPlace:
+          $ref: '#/components/schemas/Location'
+          description: The final destination a stop for the ride.
+        maxDetourSeconds:
+          description: 'The time in seconds the driver is prepared to detour to pickup
+            or drop-off a passenger. Default: no limit.'
+          type: integer
+        rideRef:
+          description: (Read-only) The reference to a ride. Format is a URN according
+            urn:nb:rs:ride:<id>.
+          type: string
+        carthesianBearing:
+          description: (Read-only) The compass direction of the ride (as the crow
+            flies))
+          type: integer
+        carthesianDistance:
+          description: (Read-only) Distance as the crow flies (flat earth approximation)
+          type: integer
+        recurrence:
+          $ref: '#/components/schemas/Recurrence'
+          description: The recurrence pattern of a ride. Optional.
+        driver:
+          $ref: '#/components/schemas/User'
+          description: (Read-only) The driver of the car used for this ride.
+        car:
+          $ref: '#/components/schemas/Car'
+          description: (Read-only) The car used for this ride.
+        deleted:
+          description: (Read-only) If true then the ride was deleted / cancelled.
+          type: boolean
+        departureTime:
+          format: date-time
+          description: The departure date and time of the trip, formatted according
+            ISO 8601. On creation or update of a ride either departure or arrival
+            must be set. If both are given then departure time prevails.
+          type: string
+        legs:
+          description: '(Read-only) The ride split up in legs and stops. The legs
+            and stops are calculated by the service from the initial ride information
+            and the optional booking(s). '
+          type: array
+          items:
+            $ref: '#/components/schemas/Leg'
+        arrivalTime:
+          format: date-time
+          description: The time of arrival (under normal traffic conditions), formatted
+            according ISO 8601. On creation or update of a ride either departure or
+            arrival must be set. If both are given then departure time prevails.
+          type: string
+        distance:
+          description: (Read-only) The estimated distance in meter.
+          type: integer
+        arrivalTimePinned:
+          description: 'Flag to signal whether the original request is made use the
+            departure time as input (false) or the arrival time (true). This flag
+            is used when recalculating the route when a booking is added. Either departure
+            or arrival time will change then.  '
+          type: boolean
+        CO2Emission:
+          description: (Read-only) The amount of CO2 emitted by the car in this trip.
+          type: integer
+        duration:
+          description: (Read-only) The estimation duration of the trip.
+          type: integer
+        state:
+          description: (Read-only) The current state of the ride.
+          enum:
+          - SCHEDULED
+          - DEPARTING
+          - IN_TRANSIT
+          - ARRIVING
+          - VALIDATING
+          - COMPLETED
+          - CANCELLED
+          type: string
+        templateRef:
+          description: '(Read-only) The reference to the template of the ride, if
+            any. '
+          type: string
+        cancelReason:
+          description: Optional. If the ride was cancelled, the reason why.
+          type: string
+        ableToAssist:
+          description: If true the driver is able to assist a passenger with getting
+            in and out of the car, when neccessary.
+          type: boolean
+        validationExpirationTime:
+          format: date-time
+          description: The time when the validation expires. If the driver does not
+            respond in time, the payment will be cancelled.
+          type: string
+        validationReminderTime:
+          format: date-time
+          description: The time when the next reminder for the validation is due.
+          type: string
+      example:
+        bookings: []
+        car:
+          brand: Volvo
+          model: V70
+        carRef: urn:nb:rs:car:5
+        carthesianBearing: 265
+        carthesianDistance: 19009
+        departureTime: 2019-11-02T11:30:00Z
+        arrivalTime: 2019-11-02T11:58:40Z
+        co2Emission: 5055
+        distance: 23295
+        duration: 1720
+        fromPlace:
+          label: Rapenburgsestraat Lichtenvoorde
+          latitude: 51.987757
+          longitude: 6.564012
+        templateRef: urn:nb:rs:ridetemplate:43
+    Booking:
+      description: A booking of a ride by a passenger.
+      required:
+      - pickup
+      - dropOff
+      - state
+      type: object
+      properties:
+        arrivalTime:
+          format: date-time
+          description: 'The (desired) time of arrival, formatted according ISO 8601. '
+          type: string
+        departureTime:
+          format: date-time
+          description: 'The (desired) time of departure, formatted according ISO 8601. '
+          type: string
+        pickup:
+          $ref: '#/components/schemas/Location'
+          description: The pickup location of the passenger.
+        dropOff:
+          $ref: '#/components/schemas/Location'
+          description: The drop-off location of the passenger.
+        state:
+          description: (Read-only). The state of the booking.
+          enum:
+          - New
+          - Proposed
+          - Requested
+          - Confirmed
+          - Cancelled
+          type: string
+        cancelReason:
+          description: If the booking was cancelled, the reason why. Optional field.
+          type: string
+        cancelledByDriver:
+          description: If set this flag indicates the driver has cancelled the ride,
+            thereby also cancelling the bookings.
+          type: boolean
+        passengerRef:
+          description: 'The passenger who wants to join the ride. The format is a
+            URN: urn:nb:rs:user:<id> or a keycloak urn.'
+          type: string
+        passenger:
+          $ref: '#/components/schemas/User'
+          description: The passenger who booked the ride. The information is included
+            to avoid a lookup.
+        nrSeats:
+          description: The number of seats requested for this booking. Default is
+            1.
+          type: integer
+        bookingRef:
+          description: The booking reference URN.
+          type: string
+        legs:
+          description: The legs and stops involved in the booking. Only present in
+            full detail when a booking is listed. As part of a ride only the leg reference
+            is present.
+          type: array
+          items:
+            $ref: '#/components/schemas/Leg'
+        ride:
+          $ref: '#/components/schemas/Ride'
+          description: A short description of the ride, including the car and the
+            driver's name.
+        passengerTripRef:
+          description: "The reference (a planner URN) to the passenger's trip. The\
+            \ refrence is used when interaction is needed with the planner, e.g. in\
+            \ case of updating or cancelling a booking on initiative from the rideshare\
+            \ service side. In case of a shout-out, the \nbooking is provisionary.\
+            \ Use `passengerTripPlanRef` to find the shout-out plan."
+          type: string
+        passengerTripPlanRef:
+          description: |-
+            The reference to the passenger's (shout-out) trip plan (a planner URN).
+            This field is used to refer to the plan of the passenger asking for transport.
+          type: string
+        confirmed:
+          description: (Read-only) If true then the driver has indeed executed the
+            scheduled ride. If false then the driver has not driven this ride. If
+            unspecified then the driver has not answered yet.
+          type: boolean
+        confirmationReason:
+          description: |-
+            Read-only: The reason for the given (negative) confirmation value.
+             - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
+             - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
+             - `NO_SHOW`: The passenger did not show up
+             - `NO_TRIP`: The ride did not take place at all.
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          - NO_TRIP
+          - DISPUTED
+          - UNKNOWN
+          type: string
+        confirmedByPassenger:
+          description: (Read-only) If true then the passenger has indicated to be
+            on the ride. If false then the passenger was not present on the ride.
+            If unspecified then the passenger has not answered yet.
+          type: boolean
+        confirmationReasonByPassenger:
+          description: |-
+            Read-only: The reason for the given (negative) confirmation value by the passenger.
+             - `TRIP_NOT_NEEDED`: The trip was not needed anymore by the passenger;
+             - `FOUND_OTHER_TRANSPORT`: The passenger found a different means of transport;
+             - `NO_SHOW`: The passenger did not show up
+             - `NO_TRIP`: The ride did not take place at all.
+          enum:
+          - TRIP_NOT_NEEDED
+          - FOUND_OTHER_TRANSPORT
+          - NO_SHOW
+          - NO_TRIP
+          - DISPUTED
+          - UNKNOWN
+          type: string
+        paymentState:
+          description: The payment state of the booking. If `CANCELLED`, the payment
+            was cancelled because the booking was not effectuated, or the driver did
+            not confirm the ride.
+          enum:
+          - CANCELLED
+          - PAID
+          type: string
+        paymentId:
+          description: The urn to the payment transaction. Only present when the payment
+            state equals `PAID`.
+          type: string
+        fareInCredits:
+          description: The fare the driver will receive for the ride with this passenger.
+          type: number
+      example:
+        departureTime: 2020-05-27T10:00:00Z
+        arrivalTime: 2020-05-27T10:45:00Z
+        dropOff:
+          label: Station Zutphen
+          latitude: 52.145119
+          longitude: 6.192722
+        id: 1
+        nrSeats: 1
+        passenger:
+          familyName: Otto
+          givenName: Otto
+          id: 2
+          managedIdentity: a8ee130f-23c6-4b26-bb79-b84a3799216d
+        pickup:
+          label: Station Enschede
+          latitude: 52.221609
+          longitude: 6.887536
+        state: CONFIRMED
+        legRefs:
+        - urn:nb:rs:leg:54
+        passengerTripRef: urn:nb:pl:trip:568
+  responses:
+    InternalServerError:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: Some application error occurred, indicating a bug in the application
+        (500).
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The calling user is not allowed to perform the operation on the
+        resource (403).
+    NotAuthorized:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The caller is not authorized to performed the intended operation
+        (status 401).
+    ServiceUnavailableException:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: 'The (underlying) service is (temporarily) not available. Try again
+        later (503). '
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: A requested object could not be found (404).
+    Gone:
+      description: The requested object does no longer exist (410).
+    Conflict:
+      description: A conflict occurred with existing objects (duplicate key ec.).
+        A 409 error.
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The request was understood, but in incomplete or invalid and cannot
+        be processed (400).
+  securitySchemes:
+    apikey:
+      type: apiKey
+      description: 'The rideshare service requires an Api Key: x-gravitee-api-key
+        in the header.'
+      name: Api-key
+      in: header
+    OAuth2:
+      scheme: bearer
+      type: http
+      description: The rideshare service expects a authorization token issued by Keycloak
+        for all resources except for the carLicenses.

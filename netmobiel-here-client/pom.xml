@@ -1,0 +1,135 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>eu.netmobiel</groupId>
+        <artifactId>netmobiel-parent-pom</artifactId>
+        <version>0.2.0-SNAPSHOT</version>
+        <relativePath>../netmobiel-parent-pom/pom.xml</relativePath>
+    </parent>
+    <artifactId>netmobiel-here-client</artifactId>
+    <packaging>jar</packaging>
+    <name>NetMobiel HERE Client</name>
+    <description>The client for HERE for used in NetMobiel.</description>
+    <build>
+		<plugins>
+      <plugin>
+        <groupId>org.codehaus.mojo</groupId>
+        <artifactId>build-helper-maven-plugin</artifactId>
+        <executions>
+          <execution>
+            <id>add_sources</id>
+            <phase>generate-sources</phase>
+            <goals>
+              <goal>add-source</goal>
+            </goals>
+            <configuration>
+              <sources>
+                <source>${basedir}/target/generated-sources/swagger/src/main/java</source>
+              </sources>
+            </configuration>
+          </execution>
+        </executions>
+      </plugin>
+			<plugin>
+				<groupId>io.swagger.codegen.v3</groupId>
+				<artifactId>swagger-codegen-maven-plugin</artifactId>
+				<!-- This is a particular tricky configuration due to the many bugs in the generators.
+				 -->
+	            <configuration>
+					<configHelp>false</configHelp>
+	                <inputSpec>${project.basedir}/open-search-v7-external-spec-netmobiel.json</inputSpec>
+					<apiPackage>eu.netmobiel.here.search.api</apiPackage>
+					<modelPackage>eu.netmobiel.here.search.api.model</modelPackage>
+		        </configuration>
+			    <executions>
+			        <execution>
+			        	<id>here-api-model</id>
+			            <goals>
+			                <goal>generate</goal>
+			            </goals>
+			            <configuration>
+							<language>java</language>
+							<configOptions>
+								<library>resteasy</library>
+							</configOptions>
+							<generateModels>true</generateModels>
+			            </configuration>
+			        </execution>
+			    </executions>
+			</plugin>
+        	<plugin>
+		        <groupId>net.revelc.code</groupId>
+		        <artifactId>impsort-maven-plugin</artifactId>
+				<configuration>
+					<directories>
+						<directory>target/generated-sources/swagger/src/main/java</directory>
+					</directories>
+				</configuration>
+	        </plugin>
+		</plugins>
+	</build>
+    <dependencies>
+        <dependency>
+            <groupId>${project.groupId}</groupId>
+            <artifactId>netmobiel-commons</artifactId>
+            <version>${project.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>javax.enterprise</groupId>
+            <artifactId>cdi-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.spec.javax.ws.rs</groupId>
+            <artifactId>jboss-jaxrs-api_2.1_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.resteasy</groupId>
+            <artifactId>resteasy-client</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <dependency>
+            <groupId>org.jboss.spec.javax.annotation</groupId>
+            <artifactId>jboss-annotations-api_1.3_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-core</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-databind</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+			<groupId>com.fasterxml.jackson.core</groupId>
+			<artifactId>jackson-annotations</artifactId>
+			<scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>io.swagger</groupId>
+		    <artifactId>swagger-annotations</artifactId>
+		</dependency>
+		<dependency>
+		    <groupId>io.swagger.core.v3</groupId>
+		    <artifactId>swagger-annotations</artifactId>
+		</dependency>
+		<!-- Needed to prevent enum warnings: 
+		     [WARNING] unknown enum constant javax.persistence.AccessType.FIELD
+  			reason: class file for javax.persistence.AccessType not found 
+  		-->
+        <dependency>
+            <groupId>javax.persistence</groupId>
+            <artifactId>javax.persistence-api</artifactId>
+            <scope>provided</scope>
+        </dependency>
+		<!-- TEST Dependencies -->
+		
+    </dependencies>
+
+</project>

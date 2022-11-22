@@ -1,0 +1,90 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<jboss-deployment-structure xmlns="urn:jboss:deployment-structure:1.2">
+	<ear-subdeployments-isolated>false</ear-subdeployments-isolated>
+    <deployment>
+        <dependencies>
+        	<module name="org.keycloak.keycloak-adapter-core" services="import"/>
+        	<module name="org.keycloak.keycloak-adapter-spi"/>
+            <module name="org.keycloak.keycloak-authz-client"/>
+        	<module name="org.keycloak.keycloak-core"/>
+        	<module name="org.keycloak.keycloak-common"/>
+        </dependencies>
+        <exclusions>
+            <module name="org.jboss.resteasy.resteasy-json-binding-provider"/>
+        </exclusions>
+    </deployment>
+    <sub-deployment name="netmobiel-banker-ejb.jar">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-profile-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-banker-rest.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-banker-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-communicator-ejb.jar">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-profile-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-communicator-rest.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-communicator-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-rideshare-ejb.jar">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-profile-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-overseer-ejb.jar">
+        <dependencies>
+        	<module name="org.keycloak.keycloak-core"/>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-banker-ejb.jar"/>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-communicator-ejb.jar"/>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-profile-ejb.jar"/>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-planner-ejb.jar">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-profile-ejb.jar"/>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-to.war"/>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-profile-ejb.jar">
+        <dependencies>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-geo-rest.war">
+    </sub-deployment>
+    <sub-deployment name="netmobiel-planner-rest.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-planner-ejb.jar"/>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-profile-rest.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-profile-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-rideshare-rest.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-rideshare-to.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-rideshare-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+    <sub-deployment name="netmobiel-overseer-rest.war">
+        <dependencies>
+        	<module name="deployment.netmobiel-platform-ear.ear.netmobiel-overseer-ejb.jar"/>
+        </dependencies>
+    </sub-deployment>
+
+</jboss-deployment-structure>

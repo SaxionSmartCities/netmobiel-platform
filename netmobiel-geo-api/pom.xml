@@ -1,0 +1,79 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <parent>
+        <groupId>eu.netmobiel</groupId>
+        <artifactId>netmobiel-parent-pom</artifactId>
+        <version>0.2.0-SNAPSHOT</version>
+        <relativePath>../netmobiel-parent-pom/pom.xml</relativePath>
+    </parent>
+    <artifactId>netmobiel-geo-api</artifactId>
+    <packaging>jar</packaging>
+    <name>NetMobiel Geo-Service API</name>
+    <description>The geo-service API for the NetMobiel Mobility-as-a-Service application.</description>
+    <url>https://github.com/SaxionSmartCities/netmobiel-platform/netmobiel-geo-api</url>
+	<properties>
+	</properties>
+    <build>
+        <!-- Set the name of the WAR. Jboss-web determines the context root when the app is deployed -->
+        <finalName>${project.artifactId}-${project.version}</finalName>
+        <plugins>
+			<plugin>
+			    <groupId>org.openapitools</groupId>
+			    <artifactId>openapi-generator-maven-plugin</artifactId>
+			    <executions>
+			        <execution>
+			        	<id>geo-service-api-model</id>
+			            <goals>
+			                <goal>generate</goal>
+			            </goals>
+			            <configuration>
+			                <inputSpec>${project.basedir}/geo-service-api.yaml</inputSpec>
+			            	<apiPackage>eu.netmobiel.geoservice.api</apiPackage>
+			            	<modelPackage>eu.netmobiel.geoservice.api.model</modelPackage>
+			            </configuration>
+			        </execution>
+			    </executions>
+			</plugin>
+			<plugin>
+		        <groupId>net.revelc.code</groupId>
+		        <artifactId>impsort-maven-plugin</artifactId>
+				<configuration>
+					<directories>
+						<directory>target/generated-sources/openapi/src/main/java</directory>
+					</directories>
+				</configuration>
+		      </plugin>
+		</plugins>
+    </build>
+
+    <dependencies>
+        <!-- Import the JAX-RS API, we use provided scope as the API is included
+            in JBoss EAP 
+		-->
+        <dependency>
+            <groupId>org.jboss.spec.javax.ws.rs</groupId>
+            <artifactId>jboss-jaxrs-api_2.1_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+        <!-- Import the Common Annotations API (JSR-250), we use provided scope
+            as the API is included in JBoss EAP 
+		-->
+        <dependency>
+            <groupId>org.jboss.spec.javax.annotation</groupId>
+            <artifactId>jboss-annotations-api_1.3_spec</artifactId>
+            <scope>provided</scope>
+        </dependency>
+		<dependency>
+    		<groupId>com.fasterxml.jackson.core</groupId>
+    		<artifactId>jackson-annotations</artifactId>
+            <scope>provided</scope>
+		</dependency>
+		<dependency>
+		    <groupId>io.swagger</groupId>
+		    <artifactId>swagger-annotations</artifactId>
+		</dependency>
+    </dependencies>
+
+</project>

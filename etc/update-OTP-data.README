@@ -1,0 +1,9 @@
+The updating of the OpenTripPlanner graph is fully automated now.
+
+The script is run by root in crontab. The OTP runs normally during building of the new graph.
+
+For the command see crontab -e
+
+When the server crashes during the build, the new graph will possibly not be there, but the
+old graph still is.
+

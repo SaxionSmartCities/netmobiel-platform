@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<web-app xmlns="http://xmlns.jcp.org/xml/ns/javaee"
+	xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+	xsi:schemaLocation="http://xmlns.jcp.org/xml/ns/javaee web-app_4_0.xsd"
+	version="4.0">
+	<module-name>rideshare</module-name>
+	<context-param>
+		<param-name>resteasy.preferJacksonOverJsonB</param-name>
+		<param-value>true</param-value>
+	</context-param>
+	<context-param>
+		<param-name>resteasy.resources</param-name>
+		<param-value>org.jboss.resteasy.plugins.stats.RegistryStatsResource
+		</param-value>
+	</context-param>
+	<servlet>
+		<servlet-name>ErrorHandler</servlet-name>
+		<servlet-class>eu.netmobiel.commons.servlet.ErrorHandlerServlet</servlet-class>
+	</servlet>
+	<servlet-mapping>
+		<servlet-name>ErrorHandler</servlet-name>
+		<url-pattern>/error-handler-servlet</url-pattern>
+	</servlet-mapping>
+	<filter>
+		<filter-name>KeycloakSecurity</filter-name>
+		<filter-class>eu.netmobiel.commons.security.KeycloakSecurityFilter</filter-class>
+	</filter>
+	<filter-mapping>
+		<filter-name>KeycloakSecurity</filter-name>
+		<url-pattern>/*</url-pattern>
+	</filter-mapping>
+	<error-page>
+		<exception-type />
+		<!-- <error-code>403</error-code> -->
+		<location>/error-handler-servlet</location>
+	</error-page>
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>Public resources</web-resource-name>
+			<url-pattern>/api/carLicenses</url-pattern>
+			<url-pattern>/api/tests/*</url-pattern>
+		</web-resource-collection>
+		<!-- confidential is not necessary, the service runs behind a proxy on 
+			a LAN or localhost <user-data-constraint> <transport-guarantee>CONFIDENTIAL</transport-guarantee> 
+			</user-data-constraint> -->
+	</security-constraint>
+	<security-constraint>
+		<web-resource-collection>
+			<web-resource-name>All other resources</web-resource-name>
+			<url-pattern>/api/*</url-pattern>
+		</web-resource-collection>
+		<auth-constraint>
+			<role-name>*</role-name>
+		</auth-constraint>
+		<!-- <user-data-constraint> <transport-guarantee>CONFIDENTIAL</transport-guarantee> 
+			</user-data-constraint> -->
+	</security-constraint>
+	<login-config>
+		<auth-method>KEYCLOAK</auth-method>
+		<realm-name>this is ignored currently</realm-name>
+	</login-config>
+	<security-role>
+		<role-name>admin</role-name>
+	</security-role>
+	<security-role>
+		<role-name>*</role-name>
+	</security-role>
+</web-app>

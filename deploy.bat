@@ -1,0 +1,1 @@
+mvn -pl netmobiel-platform-ear wildfly:deploy-only

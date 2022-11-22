@@ -1,0 +1,2096 @@
+---
+openapi: 3.0.2
+info:
+  title: profile-service
+  version: 1.0.0
+  description: API for the profile service of NetMobiel.
+servers:
+- url: https://api.netmobiel.eu/gwapi/profiles
+  description: The profile service visible to the world (production).
+- url: https://api.netmobiel.eu/gwapi/acc/profiles
+  description: The profile service visible to the world (acceptance).
+paths:
+  /compliments/types:
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ComplimentTypesResponse'
+          description: Returns a list of compliment strings.
+      operationId: getComplimentTypes
+      summary: List compliment types
+      description: 'Return a vocabulary of compliment types. The compliment type is
+        a code for a certain compliment. '
+  /delegations:
+    summary: Path used to manage the list of delegations.
+    description: |+
+      The REST endpoint/path used to list and create zero or more `Delegation` entities.  This path contains a `GET` and `POST` operation to perform the list and create tasks, respectively.
+
+    get:
+      parameters:
+      - name: delegate
+        description: |+
+          the user id acting as a representative for someone else. The format of the user id is the database id of a profile user, or an urn reference. Three formats are allowed:
+
+          urn:nb:ps:user:{primary-key}
+
+          urn:nb:kc:user:{managed-identity}
+
+          me
+
+        schema:
+          type: string
+        in: query
+      - name: delegator
+        description: |-
+          the user id being represented. The format of the user id is the database id of a profile user, or an urn reference. Three formats are allowed:
+
+          urn:nb:ps:user:{primary-key}
+
+          urn:nb:kc:user:{managed-identity}
+
+          me
+        schema:
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-11-30T12:00:00+01:00
+        name: since
+        description: The start date at which to start the listing. Default is now.
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - examples:
+          Format:
+            value: 2019-12-15T14:00:00+01:00
+        name: until
+        description: The start date and later not to include in the listing. The `until`
+          date must be after the `since` parameter. Default is not set, meaning all
+          delegations (after since).
+        schema:
+          format: date-time
+          type: string
+        in: query
+      - name: inactiveToo
+        description: 'Set this flag to ''true'' if inactive delegations should be
+          returned as well, that are delegations that been ended. Default is false. '
+        schema:
+          type: boolean
+        in: query
+      - name: sortDir
+        description: "Direction of the sorting on departure time (or arrival time).\
+          \ Choose either \nascending (ASC, default) or descending (DESC)."
+        schema:
+          enum:
+          - ASC
+          - DESC
+          type: string
+        in: query
+        required: false
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/Delegation'
+          description: Successful response - returns an array of `Delegation` entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      operationId: getDelegations
+      summary: List all delegations
+      description: "Gets a list of `Delegation` entities complying to the filter criteria.\
+        \ The admin can list any delegation. Delegates can list their delegators (present\
+        \ and past). A delegator can list their delegates (again, present and past).\
+        \ \n\nThe admin has no defaults set for delegate and delegator. If no value\
+        \ is set for delegate and delegator, then a user with the delegate role has\
+        \ as default delegate value `me`. Otherwise the delegator value is default\
+        \ set to `me`.\n\nIf you have a delegate role, you are not allowed to list\
+        \ delegations for a delegator, even if you the are or have been a delegate\
+        \ for that user."
+    post:
+      requestBody:
+        description: A new `Delegation` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Delegation'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      operationId: createDelegation
+      summary: Create a Delegation
+      description: |-
+        Creates a new instance of a `Delegation`. The caller must be an admin or a delegate. If the caller is an admin, the delegate must be set explicitly. Otherwise, the delegate is set to `me`.
+
+        When you create a delegation as a delegate, the propected delegator will receive a text message with a code. This code must be passed back to the delegate and entered as activation code within 24 hours. Only after succesful activation the delegation become active. If the telephone number of the prospected delegator is missing or is not a mobile number, the delegation is refused. An admin can always create a delegation. The delegation is in that case immediately activated.
+  /profiles:
+    summary: Path used to manage profiles.
+    description: The REST endpoint/path used to list and create zero or more `Profile`
+      entities. This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively.
+    get:
+      parameters:
+      - name: text
+        description: 'Text for doing a simple text-based lookup. The following fields
+          are searched: first name, last name, email address, telephone number.'
+        schema:
+          type: string
+        in: query
+      - name: role
+        description: The role to search for. If omitted any role will do.
+        schema:
+          enum:
+          - PASSENGER
+          - DRIVER
+          type: string
+        in: query
+      - name: details
+        description: 'Show details of each profile. Only effect for admin. Default:
+          false.'
+        schema:
+          type: boolean
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successfull call. The result contains a `Page` with `Profile`
+            entities.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: listProfiles
+      summary: List profiles of users.
+      description: "List profiles matching the search criteria. \n\nRequires admin\
+        \ or delegate role. An admin can see (potential) more info than a delegate."
+    post:
+      requestBody:
+        description: A profile.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+        required: true
+      responses:
+        "201":
+          description: The profile is created.
+        "400":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+              examples:
+                "400response":
+                  value:
+                    succcess: false
+                    message: Invalid date of birth.
+          description: Invalid or missing date of birth.
+        "409":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+              examples:
+                "409example":
+                  value:
+                    success: false
+                    message: Profile already exists (in Keycloak).
+          description: Profile already exists (in Keycloak).
+        "422":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+              examples:
+                "422response":
+                  value:
+                    success: false
+                    message: Missing mandatory profile attributes (email, firstName
+                      or lastName).
+          description: 'One or more required parameters are missing: email, firstName,
+            lastName.'
+        "451":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+              examples:
+                "451example":
+                  value:
+                    success: false
+                    message: Terms have not been accepted.
+          description: Terms have not been accepted, i.e. one of the consent options
+            is not checked.
+        "500":
+          $ref: '#/components/responses/InternalServerError'
+      security:
+      - apikey: []
+      operationId: createProfile
+      summary: Create a profile.
+      description: Creates a new profile. The user must already be authenticated.
+  /profiles/{profileId}/places:
+    summary: Path used to manage the list of places (favorite locations) for an profile.
+    description: The REST endpoint/path used to list and create zero or more `Place`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively. When a call a made by someone with the delegate
+      role, the effective user will be the user specified in the X-Delegator header.
+    get:
+      parameters:
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a Page with an array of `Place`
+            entities.
+      operationId: getPlaces
+      summary: List All Places
+      description: Gets a list of all `Place` entities of the profile.
+    post:
+      requestBody:
+        description: A new `Place` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Place'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+      operationId: createPlace
+      summary: Create a Place
+      description: Creates a new instance of a `Place`.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: profileId
+      description: The unique id of the profile.
+      schema:
+        type: string
+      in: path
+      required: true
+  /reviews:
+    summary: Path used to manage the list of reviews.
+    description: The REST endpoint/path used to list and create zero or more `Review`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively. When a call a made by someone with the delegate
+      role, the effective user will be the user specified in the X-Delegator header.
+    get:
+      parameters:
+      - name: senderId
+        description: The user ID of the sender of the review.
+        schema:
+          type: string
+        in: query
+      - name: receiverId
+        description: The user ID of the receiver of the review.
+        schema:
+          type: string
+        in: query
+      - name: context
+        description: 'The context of the the review: A reference to a trip (a urn).'
+        schema:
+          type: string
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Review` entities.
+      operationId: getReviews
+      summary: List reviews
+      description: Gets a list of all `Review` entities. The admin can list reviews
+        of anyone. The effective user can only list his own received or given compliments.
+        The parameter `me` referes to the effective user. If not admin the default
+        query id compliments received by me.
+    post:
+      requestBody:
+        description: A new `Review` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Review'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "422":
+          description: Missing parameters.
+      operationId: createReview
+      summary: Create a Review
+      description: Creates a new instance of a `Review`. An admin can post reviews
+        on behalf of anyone about anyone. Non-privileged (effective) users can only
+        post personal reviews about someone. It is an error to review oneself. If
+        a review already exists on the subject, then it is updated.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+  /delegations/{delegationId}:
+    summary: Path used to manage a single Delegation.
+    description: Admin only. The REST endpoint/path used to get, update, and delete
+      single instances of an `Delegation`.  This path contains `GET`, `PUT`, and `DELETE`
+      operations used to perform the get, update, and delete tasks, respectively.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Delegation'
+          description: Successful response - returns a single `Delegation`.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+      operationId: getDelegation
+      summary: Get a Delegation
+      description: Gets the details of a single instance of a `Delegation`. You must
+        be the delegate or the delegator to see the delegation record or be an admin.
+    put:
+      responses:
+        "204":
+          description: The delegation has a new activation code and an SMS with the
+            code has been sent to the prospected delegator.
+        "422":
+          description: The request could not be executed, because the delegation was
+            already activated or was already cancelled.
+      operationId: updateDelegation
+      summary: Update the delegation
+      description: |-
+        Updates the delegation, sort of. There are no modifiable attributes in the delegation, except for the activation code. The effect of an update is the generation of a new activation code and the retransmission to the delegator. Only the participants in the delegation and the admin can update a delegation.
+
+        You don't have to supply a request body, there are no attributes to change by your hand.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+        "422":
+          description: The delegation was already cancelled.
+      operationId: deleteDelegation
+      summary: Delete a Delegation
+      description: Deletes an existing `Delegation` by setting the revocation time.
+        The actual record is retained, but the delegation is no longer active. Only
+        the participants in the delegation and the admin can revoke a delegation.
+        A pending delegation is cancelled by setting  the revocation time.
+    parameters:
+    - name: delegationId
+      description: A unique identifier for a `Delegation`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /delegations/{delegationId}/transfers:
+    summary: Path used to manage the transfer of a delegation to a delegate.
+    description: The REST endpoint/path used to transfer a delegation to a different
+      delegate. This path contains a `POST` operation to perform the transfer task.
+    post:
+      requestBody:
+        description: A `Delegation` with the delegate attribute specified.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Delegation'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "403":
+          description: The caller lacked the permission to perform this operation.
+        "422":
+          description: The delegation was already cancelled.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: transferDelegation
+      summary: Transfer a Delegation
+      description: "Creates a new `Delegation` with the specified delegate. The delegator\
+        \ remains the same. \nOnly the delegate of the current delegation and the\
+        \ admin can transfer a delegation.\nThe process is similar to creating a fresh\
+        \ new Delegation: The delegator receives an activation code by SMS. The new\
+        \ delegate requests the code from the propected delegator and activates the\
+        \ delegation. The old delegation will be revoked on activation of the new\
+        \ one."
+    parameters:
+    - name: delegationId
+      description: A unique identifier for a `Delegation`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /compliments:
+    summary: Path used to manage the list of compliments.
+    description: The REST endpoint/path used to list and create zero or more `Compliments`
+      entities.  This path contains a `GET` and `POST` operation to perform the list
+      and create tasks, respectively. When a call a made by someone with the delegate
+      role, the effective user will be the user specified in the X-Delegator header.
+    get:
+      parameters:
+      - name: senderId
+        description: The user ID of the sender of the compliment. Parameter `me` is
+          allowed as well.
+        schema:
+          type: string
+        in: query
+      - name: receiverId
+        description: The user ID of the receiver of the compliment. Parameter `me`
+          is allowed as well.
+        schema:
+          type: string
+        in: query
+      - name: context
+        description: 'The context of the the review: A reference to a trip (a urn).'
+        schema:
+          type: string
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with `Compliments` entities.
+      operationId: getCompliments
+      summary: List compliments
+      description: "Gets a list of all `Compliments` entities. The admin can list\
+        \ compliments of anyone.\nThe effective user can only list his own received\
+        \ or given compliments. The parameter `me` \nrefers to the effective user.\
+        \ If not admin the default query gets the compliments received by me or sent\
+        \ by me.\n"
+    post:
+      requestBody:
+        description: A new `Compliment` to be created.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Compliments'
+        required: true
+      responses:
+        "201":
+          description: Successful response.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+        "422":
+          description: Missing parameters.
+      operationId: createCompliment
+      summary: Create, update, or delete a Compliment
+      description: |-
+        Creates a new instance of a `Compliments`. An admin can post compliments on behalf of anyone to anyone.
+        Non-privileged (effective) users can only pay personal compliments to someone else.
+        It is an error to compliment oneself.
+
+        If the compliment set exists, then it is overwritten.
+
+        If the input set is empty, the existing set is deleted.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+  /survey-interactions/{surveyInteractionId}/on-redirect:
+    summary: Note an upcoming redirection of a user to the survey provider.
+    description: Just before the actual redirection this call is made to log the redirection
+      of the user to the survey provider. The intention is to see whether a user encounters
+      difficulties in completing the survey. That might be the case if the redirection
+      count is ofter greater than 1.
+    put:
+      responses:
+        "204":
+          description: The interaction has been updated. The front-end can execute
+            the actual redirection.
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "410":
+          $ref: '#/components/responses/Gone'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: onRedirect
+      summary: Take notice of a redirection.
+      description: Signals an upcoming redirection.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: surveyInteractionId
+      description: The survey interaction id.
+      schema:
+        type: string
+      in: path
+      required: true
+  /survey-interactions/{surveyInteractionId}/on-submit:
+    summary: Path used to note the completion of a survey by a user.
+    description: Call used to note the completion of a survey as reported by the survey
+      provider.
+    put:
+      responses:
+        "204":
+          description: The record has been updated and the reward has been transferred.
+        "404":
+          $ref: '#/components/responses/NotFound'
+        "410":
+          $ref: '#/components/responses/Gone'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: onSubmit
+      summary: Record the submission of an SurveyInteraction
+      description: Records the submission of a `Survey`attached to an existing `SurveyInteraction`.
+        Once set the survey interaction will not be found anymore for this user, as
+        it has been completed.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: surveyInteractionId
+      description: The survey interaction id.
+      schema:
+        type: string
+      in: path
+      required: true
+  /survey-interactions/{surveyInteractionId}:
+    summary: Note an upcoming redirection of a user to the survey provider.
+    description: Just before the actual redirection this call is made to log the redirection
+      of the user to the survey provider. The intention is to see whether a user encounters
+      difficulties in completing the survey. That might be the case if the redirection
+      count is ofter greater than 1.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SurveyInteraction'
+          description: Success.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getSurveyInteraction
+      summary: Get a survey interaction
+      description: "Get a specific survey interaction. The admin can read any survey\
+        \ interaction, regular users can only read their own survey interaction. The\
+        \ call is idempotent.\n\nThis getter returns the url of the survey too, required\
+        \ to direct the user to the proper site for taking the survey.. "
+    delete:
+      parameters:
+      - name: hard
+        description: |-
+          If true then remove the object altogether for this user, otherwise reset the submitted status only. Default: false.
+
+          Note that in all cases the reward, if any, is reverted too.
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "204":
+          description: Success.
+        "403":
+          $ref: '#/components/responses/Forbidden'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      operationId: deleteSurveyInteraction
+      summary: Deletes a part of the survey interaction.
+      description: 'For testing and maintenance purposes: Delete the survey interaction
+        record or a logical consequence thereof. The `scope` parameter determines
+        what to do.'
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: surveyInteractionId
+      description: The survey interaction id.
+      schema:
+        type: string
+      in: path
+      required: true
+  /profiles/{profileId}:
+    summary: Path used to manage a single `Profile`.
+    description: The REST endpoint/path used to get, update, and delete a single instance
+      of a `Profile`. This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively. When a call a made
+      by someone with the delegate role, the effective user will be the user specified
+      in the X-Delegator header.
+    get:
+      parameters:
+      - name: public
+        description: Optional flag to indicate to retrieve only the public details.
+          For admin and the effective owner the flag defaults to false (and can be
+          overridden), for others the flag is fixed to true. Used to force the intended
+          behaviour also for privileged users.
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Profile'
+          description: On success the profile is returned. The effective owner and
+            admin get the complete profile. The other users see the public profile.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getProfile
+      summary: Retrieves a profile
+      description: |-
+        Retrieves a profile from the database. The amount of information depends on the caller, the profile requested and / or the role of the caller.
+        The admin is always able to see the complete profile. The (effective) owner also sees the whole profile. Other users see the public information.
+    put:
+      requestBody:
+        description: Updated `Profile` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Profile'
+        required: true
+      responses:
+        "204":
+          description: Successfull update of the profile.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "500":
+          description: The profile could not be updated.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: updateProfile
+      summary: Update a Profile
+      description: Updates an existing `Profile`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "500":
+          description: The profile could not be deleted.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: deleteProfile
+      summary: Delete a Profile
+      description: Deletes an existing `Profile`. Profiles are hard deleted. Admin
+        only for now.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - examples:
+        keycloakId:
+          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
+      name: profileId
+      description: The keycloak managed identity of the user owning the profile.
+      schema:
+        type: string
+      in: path
+      required: true
+  /profiles/{profileId}/places/{placeId}:
+    summary: Path used to manage a single Place.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Place`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively. When a call a made
+      by someone with the delegate role, the effective user will be the user specified
+      in the X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Place'
+          description: Successful response - returns a single `Place`.
+      operationId: getPlace
+      summary: Get a Place
+      description: Gets the details of a single instance of a `Place`.
+    put:
+      requestBody:
+        description: Updated `Place` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Place'
+        required: true
+      responses:
+        "204":
+          description: Successful response.
+      operationId: updatePlace
+      summary: Update a Place
+      description: Updates an existing `Place`.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deletePlace
+      summary: Delete a Place
+      description: Deletes an existing `Place`.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: profileId
+      description: A unique identifier for a `Profile`.
+      schema:
+        type: string
+      in: path
+      required: true
+    - name: placeId
+      description: A unique identifier for an `Place`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /compliments/{complimentId}:
+    summary: Path used to manage a single Compliment.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Compliment`.  This path contains `GET`, `PUT`, and `DELETE` operations
+      used to perform the get, update, and delete tasks, respectively.   When a call
+      a made by someone with the delegate role, the effective user will  be the user
+      specified in the X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Compliments'
+          description: Successful response - returns a single `Compliment`.
+      operationId: getCompliment
+      summary: Get a Compliment
+      description: |-
+        Gets the details of a single instance of a `Compliment`. An admin can see any compliment.
+        Non-privileged user can only see compliments received and given.
+    put:
+      requestBody:
+        description: Updated `Compliment` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Compliments'
+        required: true
+      responses:
+        "204":
+          description: Successful response.
+      operationId: updateCompliment
+      summary: Update a Compliment
+      description: Updates an existing `Compliment`. The same restrictions as with
+        a creating a compliment apply.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deleteCompliment
+      summary: Delete a Compliment
+      description: "Deletes an existing `Compliment`. An admin can delete any compliment.\
+        \ Non-privileged (effective) users can only \nremove compliments made by himself."
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: complimentId
+      description: A unique identifier for a `Compliment`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /reviews/{reviewId}:
+    summary: Path used to manage a single Review.
+    description: The REST endpoint/path used to get, update, and delete single instances
+      of an `Review`.  This path contains `GET`, `PUT`, and `DELETE` operations used
+      to perform the get, update, and delete tasks, respectively. When a call a made
+      by someone with the delegate role, the effective user will be the user specified
+      in the X-Delegator header.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Review'
+          description: Successful response - returns a single `Review`.
+      operationId: getReview
+      summary: Get a Review
+      description: Gets the details of a single instance of a `Review`.
+    put:
+      requestBody:
+        description: Updated `Review` information.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/Review'
+        required: true
+      responses:
+        "204":
+          description: Successful response.
+      operationId: updateReview
+      summary: Update a Review
+      description: Updates an existing `Review`. The same restrictions as with a creating
+        a review apply.
+    delete:
+      responses:
+        "204":
+          description: Successful response.
+      operationId: deleteReview
+      summary: Delete a Review
+      description: "Deletes an existing `Review`. An admin can delete any compliment.\
+        \ Non-privileged (effective) users can only \nremove compliments made by himself."
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: reviewId
+      description: A unique identifier for a `Review`.
+      schema:
+        type: string
+      in: path
+      required: true
+  /profiles/{profileId}/image:
+    summary: Manages the profile image.
+    description: Manage the profile image of the user of this profile. When a call
+      a made by someone with the delegate role, the effective user will be the user
+      specified in the X-Delegator header.
+    put:
+      requestBody:
+        description: The image to upload.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ImageUploadRequest'
+        required: true
+      responses:
+        "204":
+          description: The image is stored.
+      operationId: uploadImage
+      summary: Uploads an image
+      description: Uploads an image. The previous image is removed. The path to the
+        image is saved in the profile.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: profileId
+      description: The unique profile id.
+      schema:
+        type: string
+      in: path
+      required: true
+  /version:
+    summary: Simple call to retrieve the version and the authenticated user.
+    description: |-
+      This endpoint is intended to retrieve the version and, if authenticated, the  caller. It has a `GET` operation to do the job.
+
+      The endpoint is NOT secured. Use this endpoint to check the reachability.
+    get:
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Version'
+          description: Return information about the user.
+      operationId: getVersion
+      summary: Return version information.
+      description: Return version information and info about the caller.
+  /profiles/{profileId}/status:
+    summary: Path used to verify the existence of a `Profile`.
+    description: 'The REST endpoint/path used to get the status of a `Profile`. This
+      path contains a `GET` operation used to perform the get task. When a call a
+      made by someone with the delegate role, the effective user will be the user
+      specified in the X-Delegator header. '
+    get:
+      responses:
+        "204":
+          description: Success, the profile exists.
+        "401":
+          $ref: '#/components/responses/NotAuthorized'
+        "404":
+          $ref: '#/components/responses/NotFound'
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: getProfileStatus
+      summary: Verifies the existence and accessibility of a profile
+      description: |
+        This call verifies whether a profile exists. No content is returned, only a status.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - examples:
+        keycloakId:
+          value: 919e1308-6fe0-4727-881f-419bffa1ca7b
+      name: profileId
+      description: The keycloak managed identity of the user owning the profile.
+      schema:
+        type: string
+      in: path
+      required: true
+  /survey-interactions:
+    summary: Path used to manage the list of survey interactions.
+    description: The REST endpoint/path used to list and create zero or more `SurveyInteraction`
+      entities.  This path contains a `GET` and `POST` operations to perform the list
+      task, resp. the create task. There is at most a single combination of survey
+      and profile possible.
+    get:
+      parameters:
+      - name: surveyId
+        description: Filter the results by the external survey ID.
+        schema:
+          type: string
+        in: query
+      - name: completedToo
+        description: If true then include completed and expired surveys too in the
+          listing.
+        schema:
+          type: boolean
+        in: query
+      - name: incentiveCode
+        description: The incentive code attached to this survey. At any time there
+          should be at most one active survey per incentive code, otherwise the active
+          survey cannot be fould on return from the survey into the app.
+        schema:
+          type: string
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.'
+        schema:
+          type: integer
+        in: query
+      - name: offset
+        description: 'Paging: The zero-based offset in the result set to return.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/SurveyInteraction'
+          description: Successful response - returns an array of `SurveyInteraction`
+            entities.
+      security:
+      - Bearer-only: []
+        apikey: []
+      operationId: getSurveyInteractions
+      summary: List all surveyinteractions
+      description: "Gets a list of all `SurveyInteraction` entities for the calling\
+        \ user. \nWhen no query parameters are supplied, the call looks for pending\
+        \ invitations to take\na survey. The admin can see `SurveyInteraction` entities\
+        \ of any user. \n\nThis call is idempotent."
+    post:
+      responses:
+        "201":
+          description: A new survey interaction is created, the user may complete
+            a survey of some kind.
+        "204":
+          description: 'The system has not seen a trigger to issue a survey interaction. '
+      operationId: createSurveyInteraction
+      summary: Creates a survey interaction
+      description: |-
+        Attempts to create a survey interaction, but only if the conditions are right. Otherwise a 204 will be returned.
+        This call should be issued once in a time, e.g., when logging in.
+
+        If the survey is found, but it is not completed yet, it's invitation count is incremented and a 201 is returned, although a new object is not really created. Consider it as a new opportunity.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: profileId
+      description: The user to list or create a survey interaction for. This parameter
+        defaults to `me` for non-admin users. The admin can list all interactions.
+        The `profileId` is the managed identity of the user or `me`  for the calling
+        user.
+      schema:
+        type: string
+      in: query
+  /profiles/{profileId}/session-log:
+    summary: Manages the user's session log.
+    description: Manage the session log of the user of this profile. When a call a
+      made by someone with the delegate role, the effective user will be the user
+      specified in the X-Delegator header.
+    post:
+      requestBody:
+        description: The image to upload.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserSession'
+        required: true
+      parameters:
+      - name: final
+        description: Marks the session as final. No more logs are expected from this
+          session.
+        schema:
+          type: boolean
+        in: query
+      responses:
+        "202":
+          description: Success, the session log is processed in the background.
+      security:
+      - apikey: []
+        Bearer-only: []
+      operationId: uploadSessionLog
+      summary: Uploads the session log
+      description: Uploads the session log. The log is concatenated with the already
+        existing session, if present.
+    parameters:
+    - name: X-Delegator
+      description: The Keycloak managed identity of a Netmobiel user on whose behalf
+        the call is made. The real user must have the global `delegate` role.
+      schema:
+        type: string
+      in: header
+    - name: profileId
+      description: The unique profile id.
+      schema:
+        type: string
+      in: path
+      required: true
+  /delegations/{delegationId}/activations:
+    summary: Path used to manage the list of delegation activations.
+    description: The REST endpoint/path used to activate a delegation. This path contains
+      a `POST` operation to perform the activation task.
+    post:
+      requestBody:
+        description: A new `DelegationActivation` to compare the delegation record.
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/DelegationActivation'
+        required: true
+      responses:
+        "204":
+          description: Successful response.
+        "400":
+          description: The activation code did not match, or the activation request
+            was not issued in time.
+        "403":
+          description: You lack the permission to perform this operation.
+        "422":
+          description: The delegation was already activated or cancelled.
+      operationId: activateDelegation
+      summary: Activate a Delegation
+      description: Tries to match the activation code. On a match the delegation is
+        activated. Only the participants in the delegation and the admin can activate
+        a delegation.
+    parameters:
+    - name: delegationId
+      description: A unique identifier for a `Delegation`.
+      schema:
+        type: string
+      in: path
+      required: true
+components:
+  schemas:
+    SearchPreferences:
+      type: object
+      properties:
+        numPassengers:
+          description: 'In case of searching for car rides: The preferred number of
+            passengers that will go along. At least 1, at most 4.'
+          maximum: 4
+          minimum: 1
+          type: integer
+        luggageOptions:
+          description: 'A list of default luggage options. Choose from the following
+            options: `HANDLUGGAGE`, `PET`, `STROLLER`, `GROCERIES`.'
+          type: array
+          items:
+            type: string
+        allowedTravelModes:
+          description: 'The default preferences of travel modalities. Choose a combination
+            from the following options: `BICYCLE`, `BUS`, `RAIL`, `RIDESHARE`, `WALK`.'
+          type: array
+          items:
+            type: string
+        allowFirstLegRideshare:
+          description: Flag to signal whether first leg of a multi-modal trip can
+            be a rideshare leg. Default is false.
+          type: boolean
+        allowLastLegRideshare:
+          description: 'Flag to signal whether last leg of a multi-modal trip can
+            be a rideshare leg. Default is false. '
+          type: boolean
+        maxTransfers:
+          description: If true then transfers between modalities are allowed.
+          type: number
+        needsAssistance:
+          description: If true the passenger requires assistance with boarding and
+            alighting of the vehicle.
+          type: boolean
+        maxWalkDistance:
+          description: The maximum distance to walk. Default is 1000 meter.
+          type: number
+    Profile:
+      description: "The profile attributes of a user in NetMobiel. The public profile\
+        \ of a user is visible for other users in case of messaging, being a would-be\
+        \ passenger or a would-be driver. The following attributes are public:\n*\
+        \ Id (managed identity)\n* GivenName\n* FamilyName\n* Age\n* Profile Image\n\
+        * Home Locality\n* Home Country Code \n\n"
+      required:
+      - email
+      - firstName
+      - lastName
+      - dateOfBirth
+      - consent
+      - id
+      - userRole
+      - notificationOptions
+      - age
+      - actingRole
+      type: object
+      properties:
+        email:
+          description: The email address.
+          type: string
+        firstName:
+          description: The given name of the user.
+          type: string
+        lastName:
+          description: The family name of the user.
+          type: string
+        dateOfBirth:
+          format: date
+          description: The date of birth of the user.
+          type: string
+        phoneNumber:
+          description: The phone number where the user can be reached if necessary.
+          type: string
+        searchPreferences:
+          $ref: '#/components/schemas/SearchPreferences'
+          description: The preferences of a NetMobiel traveller role.
+        userRole:
+          description: The role of the user in NetMobiel.
+          enum:
+          - passenger
+          - driver
+          - both
+          type: string
+        consent:
+          $ref: '#/components/schemas/UserConsent'
+          description: The consent flags for the user.
+        address:
+          $ref: '#/components/schemas/Place'
+          description: The home address of the user.
+        id:
+          description: The profile id, which is exactly equal to the Keycloak managed
+            identity.
+          type: string
+        ridePlanOptions:
+          $ref: '#/components/schemas/RidePlanOptions'
+          description: The preferences of a driver role in NetMobiel.
+        image:
+          description: Path to the profile picture of the user. If the path is releatibve,
+            then it starts with /images.
+          type: string
+        interests:
+          description: A list of interests.
+          type: array
+          items:
+            type: string
+        notificationOptions:
+          $ref: '#/components/schemas/NotificationOptions'
+          description: The notification preferences
+        age:
+          description: Read-only. The age of the user at the (local) date of profile
+            retrieval.
+          type: integer
+        actingRole:
+          description: The role currently used in the GUI. Must be equal to `userRole`
+            unless role is `Both`. In that case the acting role is either `Passenger`
+            or `Driver`.
+          enum:
+          - passenger
+          - driver
+          type: string
+    UserConsent:
+      title: Root Type for UserConsent
+      description: Type user to flag consent with the terms of use of NetMobiel.
+      required:
+      - safetyGuidelines
+      - acceptedTerms
+      - olderThanSixteen
+      type: object
+      properties:
+        olderThanSixteen:
+          description: 'If true the user has confirmed his or her age to be at least
+            16 years old. '
+          type: boolean
+        acceptedTerms:
+          description: If true the user has agreed with the terms of use for NetMobiel.
+          type: boolean
+        safetyGuidelines:
+          description: If true the user agrees with the safety guidelines.
+          type: boolean
+      example:
+        olderThanSixteen: true
+        acceptedTerms: true
+        safetyGuidelines: true
+        consentTimestamp: 2021-07-05T13:00:35.000Z
+    RidePlanOptions:
+      type: object
+      properties:
+        luggageOptions:
+          description: 'A list of default luggage options. Choose from the following
+            options: `HANDLUGGAGE`, `PET`, `STROLLER`, `GROCERIES`.'
+          type: array
+          items:
+            type: string
+        maxDistanceDetour:
+          description: The maximum distance in meter the driver is prepared for the
+            detour to pickup and drop-off a passenger. Default is 10000 meter.
+          type: number
+        maxTimeDetour:
+          description: The maximum amount of time in minutes the driver wants to spend
+            at most for the detour to pickup and drop-off a passenger. Default is
+            no limit.
+          type: number
+        selectedCarRef:
+          description: The currently preferred car for ridesharing.
+          type: string
+        ableToAssist:
+          description: 'If true the driver is able to help the passenger with getting
+            in and out of the car. Default: true.'
+          type: boolean
+        maxPassengers:
+          description: The maximum number of passengers that can be taken. At least
+            1, at most 8.
+          maximum: 4
+          minimum: 1
+          type: integer
+    Location:
+      title: Root Type for Location
+      description: A GPS location.
+      required:
+      - type
+      type: object
+      properties:
+        coordinates:
+          description: The coordinates of the location as a longitude, latitude pair.
+          type: array
+          items:
+            format: double
+            type: number
+        type:
+          description: The type of the location. Always `Point`.
+          type: string
+      example:
+        type: Point
+        coordinates:
+        - 6.6047
+        - 52.04157
+    NotificationOptions:
+      title: Root Type for NotificationOptions
+      description: Specified the preferences for notifications.
+      type: object
+      properties:
+        tripConfirmations:
+          type: boolean
+        tripUpdates:
+          type: boolean
+        tripReminders:
+          type: boolean
+        messages:
+          type: boolean
+        shoutouts:
+          type: boolean
+      example:
+        tripConfirmations: true
+        tripUpdates: true
+        tripReminders: true
+        messages: true
+        shoutouts: true
+    UserRef:
+      title: Root Type for UserRef
+      description: A reference to a user, with the name included.
+      required:
+      - id
+      type: object
+      properties:
+        id:
+          description: The managed identity of the user.
+          type: string
+        firstName:
+          description: The given name of the user.
+          type: string
+        lastName:
+          description: The family name of the user.
+          type: string
+      example:
+        id: 5c76c977-2ffd-4100-a8c0-77db7129660d
+        firstName: Passagier
+        lastName: Acceptatie
+    ComplimentTypesResponse:
+      title: Root Type for ComplimentTypesResponse
+      description: 'The response on the request for compliment types: The complete
+        vocabulary.'
+      type: object
+      properties:
+        complimentTypes:
+          description: A list of compliments.
+          type: array
+          items:
+            $ref: '#/components/schemas/complimentType'
+      example:
+        complimentTypes:
+        - NICE_CAR
+        - ON_TIME
+    ImageUploadRequest:
+      description: The request for uploading an image.
+      required:
+      - image
+      type: object
+      properties:
+        image:
+          description: The image data encoded in base64.
+          type: string
+    Page:
+      title: Root Type for Page
+      description: A page from a result set. For smaller sets the page contains the
+        complete result set.
+      type: object
+      properties:
+        totalCount:
+          format: int32
+          description: |-
+            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
+
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
+          type: integer
+        count:
+          format: int32
+          description: The number of items in this page.
+          type: integer
+        data:
+          description: An array with the actual payload. The payload depends on the
+            request being made.
+          type: array
+          items: {}
+        offset:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
+      example:
+        totalCount: 104
+        start: 32
+        count: 16
+        data: []
+    Error:
+      title: Root Type for Error
+      description: The error response.
+      type: object
+      properties:
+        message:
+          type: string
+        reasonPhrase:
+          type: string
+        status:
+          format: int32
+          type: integer
+        errorCode:
+          description: A string code identifying the error. This code can be used
+            to display an error message in the right language.
+          type: string
+      example:
+        message: This is a really bad request
+        reasonPhrase: Bad Request
+        status: 400
+    Place:
+      title: Root Type for Address
+      description: The address of a user.
+      required:
+      - ref
+      type: object
+      properties:
+        street:
+          description: The name of the street.
+          type: string
+        houseNumber:
+          description: The house number.
+          type: string
+        postalCode:
+          description: The postal code for the address.
+          type: string
+        locality:
+          description: The city or village name.
+          type: string
+        location:
+          $ref: '#/components/schemas/Location'
+          description: The GPS location of this address.
+        label:
+          description: A short description of the place, as suggested by the geoservice
+            in case of a `place` location type.
+          type: string
+        id:
+          description: The unique identifier of the `Place`.
+          type: integer
+        ref:
+          description: A vendor-specific reference to the place or address. Use the
+            ref to check whether the same spot is already in a list of places.
+          type: string
+        stateCode:
+          description: The code of the state (provence) the locality is in.
+          type: string
+        category:
+          description: A category of the place. The available categories are copied
+            from the Suggestion categories of the geo-service. The profile service
+            does not interpret the category.
+          type: string
+        countryCode:
+          description: The country code according to ISO 3166-2.
+          type: string
+        name:
+          description: The name of the place in the list of favorite locations. This
+            name is a private denotation and is never shared with, e.g., a driver.
+          type: string
+      example:
+        street: Rembrandtstraat
+        houseNumber: "8"
+        postalCode: 7556WD
+        locality: Hengelo
+        countryCode: NL
+        id: 1234567
+        name: Jaap
+        ref: here:af:streetsection:mwcRU.bxFF9tLSvsSolDdA:CggIBCC2moKoAhABGgE4
+        location:
+          type: Point
+          coordinates:
+          - 6.6047
+          - 52.04157
+    DelegationActivation:
+      title: Root Type for DelegationActivation
+      description: The record to send to activate a delegation. Only when the `activationCode`
+        matches the recorded code, and not too much time has passed since last code
+        transmission, the delegation is activated.
+      type: object
+      properties:
+        activationCode:
+          description: The activation code entered by the delegate to activate the
+            delegation. The code was sent to the delegator.
+          type: string
+      example:
+        activationCode: "123456"
+    Review:
+      title: Root Type for Review
+      description: A review for a user.
+      required:
+      - receiver
+      - review
+      type: object
+      properties:
+        id:
+          description: Read-only. Unique id of the review
+          type: integer
+        published:
+          format: date-time
+          description: Read-only. Date of publishing of the review.
+          type: string
+        sender:
+          $ref: '#/components/schemas/UserRef'
+          description: The sender of the review, i.e. the reviewer.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        receiver:
+          $ref: '#/components/schemas/UserRef'
+          description: The user receiving the review.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        review:
+          description: The review text.
+          type: string
+        context:
+          description: The context of the compliment, i.e. the object owned by the
+            receiver of the compliment. Could be a trip (passenger) or a ride (driver).
+          type: string
+      example:
+        id: 1234
+        published: 2020-10-27T08:29:51.901Z
+        sender:
+          id: 5c76c977-2ffd-4100-a8c0-77db7129660d
+          firstName: Passagier
+          lastName: Acceptatie
+        receiver:
+          id: b0c0d6c0-0de8-4669-88c7-57732a8dcd22
+          firstName: Chauffeur
+          lastName: Acceptatie
+        review: Tot de volgende keer.
+    Compliments:
+      title: Root Type for Review
+      description: A compliment set for a user.
+      required:
+      - receiver
+      - compliments
+      - context
+      type: object
+      properties:
+        id:
+          description: Read-only. Unique id of the compliment
+          type: integer
+        published:
+          format: date-time
+          description: Read-only for non-admin. Date of publishing of the compliment.
+          type: string
+        sender:
+          $ref: '#/components/schemas/UserRef'
+          description: The sender of the compliment, i.e. the reviewer.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        receiver:
+          $ref: '#/components/schemas/UserRef'
+          description: The user receiving the compliment.
+          properties:
+            id:
+              type: string
+            firstName:
+              type: string
+            lastName:
+              type: string
+        context:
+          description: The context of the compliment, i.e. the object owned by the
+            receiver of the compliment. Could be a trip (passenger) or a ride (driver).
+          type: string
+        compliments:
+          description: 'The compliments for the receiver in the given context. '
+          type: array
+          items:
+            $ref: '#/components/schemas/complimentType'
+      example:
+        id: "1234"
+        published: 2020-10-27T08:29:51.901Z
+        sender:
+          id: 5c76c977-2ffd-4100-a8c0-77db7129660d
+          firstName: Passagier
+          lastName: Acceptatie
+        receiver:
+          id: b0c0d6c0-0de8-4669-88c7-57732a8dcd22
+          firstName: Chauffeur
+          lastName: Acceptatie
+        complimentCodes:
+        - NICE_CAR
+        - ON_TIME
+    complimentType:
+      description: The vocabulary of compliments.
+      enum:
+      - SAME_INTERESTS
+      - ON_TIME
+      - TALKS_EASILY
+      - SOCIABLE
+      - NEATLY
+      - NICE_CAR
+      type: string
+    SurveyInteraction:
+      title: Root Type for SurveyInteraction
+      description: The interaction between a user (profile) and a survey. Used to
+        guide the survey process. All attributes are read-only.
+      required:
+      - survey
+      - invitationCount
+      - invitationTime
+      - redirectCount
+      type: object
+      properties:
+        survey:
+          $ref: '#/components/schemas/Survey'
+          description: Details of the survey.
+          properties:
+            id:
+              type: string
+        invitationTime:
+          format: date-time
+          description: The first time the invitation is displayed to the user.
+          type: string
+        invitationCount:
+          format: int32
+          description: 'The (estimated) number of times the invitation is displayed
+            to the user. '
+          type: integer
+        submitTime:
+          format: date-time
+          description: The time the survey provider reported the submitting of a survey
+            by this user.
+          type: string
+        expirationTime:
+          format: date-time
+          description: |-
+            The expiration time after which the survey can no longer be taken by this user. The expiration time is relative to the trigger time.
+            If not set, there is no expiration.
+          type: string
+        redirectCount:
+          format: int32
+          description: The number of times the user has been redirected to the survey.
+          type: integer
+        redirectTime:
+          format: date-time
+          description: The first time the user was redirected to the survey.
+          type: string
+        owner:
+          $ref: '#/components/schemas/UserRef'
+          description: The owner of the survey interaction. Present only if calling
+            user is not the owner.
+        urn:
+          description: Urn of the survey interaction.
+          type: string
+        surveyUrl:
+          description: The url to redirect the end-user to for taking the survey.
+          type: string
+      example:
+        survey:
+          surveyId: ENQ-1
+        invitationTime: 2021-08-31T13:24:00Z
+        invitationCount: 3
+        redirectTime: 2021-09-01T11:58:00Z
+        redirectCount: 1
+        submitTime: 2021-09-01T12:14:00Z
+        expirationTime: 2021-09-06T13:24:00Z
+        urn: urn:nb:pf:surveyint:12345
+        surveyUrl: https://saxion.eu.qualtrics.com/jfe/form/SV_38g7VCfcJFDB75X?NetmobielID=5fd8defe-848e-4b66-8e6f-8a7d3b7ee485
+    Survey:
+      title: Root Type for Survey
+      description: A survey is used to increase the knowledge about the experience
+        of the users about netmobiel.
+      type: object
+      properties:
+        surveyId:
+          description: The identifier of the survey used by the survey provider.
+          type: string
+        displayName:
+          description: The name of the survey to present to the end-user.
+          type: string
+        takeDelayHours:
+          description: The number hours to delay after the trigger time before the
+            survey is offered.
+          type: integer
+        takeIntervalHours:
+          description: "The number of hours the survey is available to the user once\
+            \ eligible for taking the survey. \nIf not set the limit is the end time\
+            \ of the survey."
+          type: integer
+        startTime:
+          format: date-time
+          description: The time where the survey will become availble.
+          type: string
+        endTime:
+          format: date-time
+          description: The optional incentive code for this survey. This code is the
+            key to the incentive and the amount of credits involved.
+          type: string
+        incentiveCode:
+          description: The reward the user will receive on completing the survey.
+          type: string
+      example:
+        surveyId: SV_38g7VCfcJFDB75X
+        displayName: Nulmeting Netmobiel
+        incentiveCode: survey-0
+    Version:
+      description: Object telling us about the version of the system, as well as the
+        caller.
+      required:
+      - buildTime
+      - commitId
+      type: object
+      properties:
+        caller:
+          $ref: '#/components/schemas/UserRef'
+          description: If present, then some information about the caller as known
+            by the IDM.
+        buildTime:
+          description: The timesztamp in ISO8601 format when the software was build.
+          type: string
+        commitId:
+          description: The Git commit id, identifying the exact version of the software.
+          type: string
+        buildVersion:
+          description: The version as generated by the build of the software.
+          type: string
+        effectiveCaller:
+          $ref: '#/components/schemas/UserRef'
+          description: The caller in case delegation is active. Obnly present if different
+            from caller (the real user).
+      example:
+        buildTime: 2022-04-11T21:07:48+0200
+        buildVersion: 0.2.0-SNAPSHOT
+        commitId: 4a24fbe1eff9839c73136afcaf7764421e6bda82
+        caller:
+          id: 3201b5e0-ee7b-474a-98b9-67370cc6b11b
+          firstName: Pietje
+          lastName: Puk
+          email: pietje.puk@netmobiel.eu
+    UserSession:
+      title: Root Type for UserSession
+      description: A record identifying a user session.
+      required:
+      - sessionId
+      - userAgent
+      - sessionStart
+      type: object
+      properties:
+        id:
+          format: int32
+          description: Read-only. The internal id of the user session.
+          type: integer
+        sessionId:
+          description: Read-only. The session id identified by Keycloak.
+          type: string
+        ipAddress:
+          description: Read-only. The ip address used by the client. Filled-in server-side.
+          type: string
+        userAgent:
+          description: The user agent as defined by the browser.
+          type: string
+        sessionStart:
+          format: date-time
+          description: Read-only. The start of the session as defined by Keycloak
+            (actually the first log-entry).
+          type: string
+        sessionEnd:
+          format: date-time
+          description: 'Read-only. In case of logout: Marks the end of the session.'
+          type: string
+        managedIdentity:
+          description: Read-only. The identity of the effective user. Only present
+            when listing records of someone else.
+          type: string
+        userEvents:
+          description: The list of pages visited since the last upload.
+          type: array
+          items:
+            $ref: '#/components/schemas/UserEvent'
+      example:
+        id: 12345
+        sessionId: 1224-2568-abcd-12ef
+        ipAddress: 192.168.0.2
+        userAgent: Android 18
+        sessionStart: 2022-06-01T12:23:00Z
+        sessionEnd: 2022-06-01T13:15:00Z
+        userEvents:
+        - path: /home
+          event: PAGE_VISIT
+          eventTime: 2022-06-01T12:23:00Z
+        - path: /plan
+          event: PAGE_VISIT
+          eventTime: 2022-06-01T12:24:00Z
+    Delegation:
+      title: Root Type for Designation
+      description: A `Delegation` describes the delegation relation between two profiles.
+      type: object
+      properties:
+        delegate:
+          $ref: '#/components/schemas/Profile'
+          description: The person acting on NetMobiel on behalf of someone else (called
+            the delegator).
+          properties:
+            givenName:
+              type: string
+            id:
+              type: string
+        delegator:
+          $ref: '#/components/schemas/Profile'
+          description: The person who is represented in NetMobiel by someone else
+            (called the delegate).
+          properties:
+            givenName:
+              type: string
+            id:
+              type: string
+        revocationTime:
+          format: date-time
+          description: Read-only. The time where the delegation has ended. The delegation
+            is after the revocation time no longer valid. If not set the end time
+            of the delegation is undecided.
+          type: string
+        activationCodeTTL:
+          description: Read-only. The time-to-live value of the activation code in
+            seconds. The reference is the `activationCodeSentTime`.
+          type: integer
+        activationTime:
+          format: date-time
+          description: Read-only. The time the delegation was activated. If not set
+            then the activation proces has not yet completed.
+          type: string
+        activationCodeSentTime:
+          format: date-time
+          description: Read-only. The time the activation code was sent. If not set
+            then the code has not be sent (e.g., when the admin creates the delegation).
+          type: string
+        submissionTime:
+          format: date-time
+          description: Read-only. The time the submission to become a delegate  was
+            issued, it marks the start of the delegation process.
+          type: string
+        id:
+          description: The database identifier.
+          type: integer
+        delegateRef:
+          description: A reference to the delegate, the representative.
+          type: string
+        delegatorRef:
+          description: A reference to person being represented.
+          type: string
+        activationCode:
+          description: |-
+            Read-only. When an delegation is created, an activation code is generated and sent to the delegator. Only when the delegator trusts the delegate and tells the activation code, the delegation becomes active by giving the acceptance time a value.
+
+            The activationCode can only be read by an admin, it is invisible for others.
+          type: string
+      example:
+        delegate:
+          givenName: Jaap
+          id: 1234-5678
+        delegator:
+          givenName: Marietje
+          id: 123421-567821
+        submissionTime: 2021-02-25T10:05:23Z
+        revocationTime: 2021-03-31T12.35.43Z
+        activationTime: 2021-02-25T10:53:16Z
+        activationCodeSentTime: 2021-02-25T10:05:23Z
+        activationCode: "123456"
+        id: 1234
+    UserEvent:
+      title: Root Type for PageVisit
+      description: A record defining a page visit
+      required:
+      - path
+      - eventTime
+      - event
+      type: object
+      properties:
+        path:
+          description: The router path of the page visited.
+          type: string
+        eventTime:
+          format: date-time
+          description: 'The time stamp of the visit. '
+          type: string
+        event:
+          description: The event that occurred in the GUI.
+          enum:
+          - CTA_IN_VIEW
+          - CTA_SELECTED
+          - PAGE_VISIT
+          type: string
+        arguments:
+          description: 'Free form arguments of an event. '
+          type: string
+      example:
+        path: /home
+        eventTime: 2022-06-01T12:23:00Z
+        event: PAGE_VISIT
+  responses:
+    InternalServerError:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Page'
+          examples:
+            "500example":
+              value:
+                success: false
+                message: Error querying profile from database.
+      description: Some application error occurred, indicating a bug in the application
+        (500) or some runtime problem with the database.
+    Forbidden:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Page'
+          examples:
+            "403example":
+              value:
+                success: false
+                message: Forbidden.
+      description: The calling user is not allowed to perform the operation on the
+        resource (403).
+    NotAuthorized:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Page'
+          examples:
+            "401example":
+              value:
+                success: false
+                message: Not authorized.
+      description: The caller is not authorized to performed the intended operation
+        (status 401).
+    ServiceUnavailableException:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Page'
+          examples:
+            "503example":
+              value:
+                success: false
+                message: Not available for now.
+      description: 'The (underlying) service is (temporarily) not available. Try again
+        later (503). '
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Page'
+          examples:
+            "404example":
+              value:
+                success: false
+                message: Not found.
+      description: A requested object could not be found (404).
+    Gone:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Page'
+          examples:
+            "410example":
+              value:
+                success: false
+                message: Object does no longer exist.
+      description: The requested object does no longer exist (410).
+    Conflict:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Page'
+          examples:
+            "409example":
+              value:
+                success: false
+                message: Duplicate object.
+      description: A conflict occurred with existing objects (duplicate key ec.) (409).
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Page'
+          examples:
+            "400example":
+              value:
+                success: false
+                message: Request is invalid and canmnot be understood.
+      description: The request was understood, but in incomplete or invalid and cannot
+        be processed (400).
+  securitySchemes:
+    apikey:
+      type: apiKey
+      description: 'The service requires an Api Key: x-gravitee-api-key in the header.'
+      name: Api-key
+      in: header
+    Bearer-only:
+      scheme: bearer
+      type: http
+      description: You need a valid access token.
+security:
+- apikey: []
+  Bearer-only: []

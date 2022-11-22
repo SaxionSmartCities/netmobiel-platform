@@ -1,0 +1,11 @@
+{
+	"realm": "netmobiel",
+	"auth-server-url": "https://keycloak.actmedialab.nl/auth",
+	"ssl-required": "external",
+	"resource": "profile-service",
+	"use-resource-role-mappings": true,
+	"confidential-port": 0,
+	"credentials": {
+		"secret": "a9a0eba0-e0ef-4a7c-816b-f28d9efea1c2"
+	}
+}

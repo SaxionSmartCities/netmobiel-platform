@@ -1,0 +1,332 @@
+---
+openapi: 3.0.2
+info:
+  title: geo-service
+  version: 1.0.0
+  description: Service for geocoding and searching.
+  contact:
+    name: Jaap Reitsma
+    email: j.reitsma@saxion.nl
+  license:
+    name: Apache 2.0
+    url: https://www.apache.org/licenses/LICENSE-2.0
+servers:
+- url: https://prod.netmobiel.eu/geosvc/api
+  description: The internal URL for the geo-service (production).
+- url: https://api.netmobiel.eu/gwapi/geosvc
+  description: The geo-service service visible to the world (production).
+- url: https://acc.netmobiel.eu/geosvc/api
+  description: The internal URL for the geo-service (acceptance).
+- url: https://api.netmobiel.eu/gwapi/acc/geosvc
+  description: The geo-service service visible to the world (acceptance).
+paths:
+  /suggestions:
+    summary: Get suggestions for geographics places.
+    description: The REST endpoint/path used to list `Suggestion` entities.  This
+      path contains a `GET`operation to perform the list task.
+    get:
+      parameters:
+      - name: query
+        description: The text to search for. The query must contain at least one character.
+        schema:
+          type: string
+        in: query
+        required: true
+      - examples:
+          Station-Borne:
+            value: Station Borne::52.298417,6.749157
+        name: center
+        description: The center of the circle in which to search for geographic places,
+          comprising of a latitude and longitude pair in degrees according WGS84.
+          For logging purposes you may prepend the coordinates with a place label
+          followed by two colons.
+        schema:
+          type: string
+        in: query
+        required: true
+      - name: radius
+        description: the radius (in meter) of the circle around the center to search
+          for places. If omitted a radius of 50km is applied.
+        schema:
+          type: integer
+        in: query
+        required: false
+      - name: lang
+        description: The preferred language to receive items in. Use a BCP 47 language
+          code.
+        schema:
+          type: string
+        in: query
+      - name: details
+        description: 'If set to true then include the address details, if available,
+          at the cost of a small performance penalty. Default: false.'
+        schema:
+          type: boolean
+        in: query
+      - name: maxResults
+        description: 'Paging: The maximum number of results per page. Default is 10.
+          The maximum for HERE is 100.'
+        schema:
+          type: integer
+        in: query
+      responses:
+        "200":
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Page'
+          description: Successful response - returns a `Page` with an array of `Suggestion`
+            entities.
+        "400":
+          $ref: '#/components/responses/BadRequest'
+      security:
+      - apikey: []
+      - Bearer-only: []
+      operationId: getSuggestions
+      summary: List geographical suggestions.
+      description: Gets a list of geographical `Suggestion` entities, given the parameters.
+components:
+  schemas:
+    Error:
+      title: Root Type for Error
+      description: The error response.
+      type: object
+      properties:
+        message:
+          type: string
+        reasonPhrase:
+          type: string
+        status:
+          format: int32
+          type: integer
+        errorCode:
+          description: A string code identifying the error. This code can be used
+            to display an error message in the right language.
+          type: string
+      example:
+        message: This is a really bad request
+        reasonPhrase: Bad Request
+        status: 400
+    Address:
+      title: Root Type for Address
+      description: The address of a place.
+      type: object
+      properties:
+        street:
+          description: The name of the street.
+          type: string
+        houseNumber:
+          description: The house number.
+          type: string
+        postalCode:
+          description: The postal code for the address.
+          type: string
+        locality:
+          description: The city or village name.
+          type: string
+        label:
+          description: A short description of the place.
+          type: string
+        countryCode:
+          description: The country code according to ISO 3166-1 Alpha-3.
+          type: string
+        stateCode:
+          description: The code of the state in a country.
+          type: string
+      example:
+        street: Rembrandtstraat
+        houseNumber: "8"
+        postalCode: 7556WD
+        locality: Hengelo
+        countryCode: NLD
+        stateCode: OV
+        label: Rembrandtstraat 8, 7556 WD Hengelo
+    Location:
+      title: Root Type for Location
+      description: A location on a map, comprising of a GPS coordinate and optional
+        a descriptional label for human display.
+      type: object
+      properties:
+        latitude:
+          format: double
+          description: The latitude of this place.
+          type: number
+        longitude:
+          format: double
+          description: The longitude of this place.
+          type: number
+      example:
+        latitude: 52.004166
+        longitude: 6.517835
+        label: Zieuwent,Kennedystraat
+    Range:
+      title: Root Type for Range
+      description: A range in a string.
+      type: object
+      properties:
+        start:
+          format: int32
+          description: First index of the matched range (0-based indexing, inclusive).
+          type: integer
+        end:
+          format: int32
+          description: One past the last index of the matched range (0-based indexing,
+            exclusive); The difference between end and start gives the length of the
+            term.
+          type: integer
+      example:
+        start: 4
+        end: 10
+    Suggestion:
+      title: Root Type for GeocodeSuggestion
+      description: A suggestion from the geocode service.
+      required:
+      - position
+      - title
+      - resultType
+      - titleHighlights
+      type: object
+      properties:
+        title:
+          description: The title of the suggestion.
+          type: string
+        position:
+          $ref: '#/components/schemas/Location'
+          description: The position of the place in WGS-84 latitude, longitude degrees.
+        access:
+          description: The access (could be multiple) to the place in WGS-84 latitude,
+            longitude degrees.
+          type: array
+          items:
+            $ref: '#/components/schemas/Location'
+        category:
+          description: |-
+            The primary category of the suggestion. Only a limited number of categories are supported.
+            The category is defined only in case of a result type place.
+          enum:
+          - airport
+          - bus-station
+          - hotel
+          - railway-station
+          - restaurant
+          - sights-museums
+          - sports-facility-venue
+          - taxi-stand
+          - theatre-music-culture
+          type: string
+        resultType:
+          description: The actual result the of the suggestion. A category may be
+            defined in case of a place.
+          enum:
+          - locality
+          - street
+          - houseNumber
+          - place
+          type: string
+        id:
+          description: A unique identifier for this suggestion. Format is a vendor-specific
+            string (urn or guid).
+          type: string
+        distance:
+          format: int32
+          description: 'The distance in meter from the reference position specified
+            in the query to the suggestion. '
+          type: integer
+        titleHighlights:
+          description: A list of ranges where the search terms match the title.
+          type: array
+          items:
+            $ref: '#/components/schemas/Range'
+        address:
+          $ref: '#/components/schemas/Address'
+          description: The address of the location. When show=details is set, then
+            the address is as complete as possible, otherwise only an address oneliner
+            is returned in the address label.
+      example:
+        title: Slingeland Ziekenhuis
+        titleHighlights:
+        - start: 0
+          end: 10
+        address:
+          label: Slingeland Ziekenhuis, Kruisbergseweg 25, 7009 BL Doetinchem, Nederland
+        position:
+          lat: 51.97556
+          lng: 6.28735
+        access:
+        - lat: 51.97547
+          lng: 6.28752
+        category: other
+        resultType: place
+        id: here:pds:place:528jx7ps-72fef8446ed3031aed91e95fb3f54453
+        distance: 16110
+    Page:
+      title: Root Type for Page
+      description: A page from a result set. For smaller sets the page contains the
+        complete result set.
+      type: object
+      properties:
+        totalCount:
+          format: int32
+          description: |-
+            The total number of items in the result set. If the number of items is unknown, then this attribute is omitted.
+
+            There are no more items if 'offset' + 'count' >= 'totalCount' or when a resultset is returned with less than maxResults items.
+          type: integer
+        count:
+          format: int32
+          description: The number of items in this page.
+          type: integer
+        data:
+          description: An array with the actual payload. The payload depends on the
+            request being made.
+          type: array
+          items: {}
+        offset:
+          format: int32
+          description: The zero-based offset in the result set. Should be equal to
+            the offset passed by the request.
+          type: integer
+      example:
+        totalCount: 104
+        offset: 32
+        count: 16
+        data: []
+  responses:
+    InternalServerError:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: Some application error occurred, indicating a bug in the application
+        (500).
+    ServiceUnavailableException:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: 'The (underlying) service is (temporarily) not available. Try again
+        later (503). '
+    NotFound:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: A requested or supplied object could not be found (404).
+    BadRequest:
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/Error'
+      description: The request was understood, but in incomplete or invalid and cannot
+        be processed (400).
+  securitySchemes:
+    apikey:
+      type: apiKey
+      description: 'The Geocode service requires an Api Key: x-gravitee-api-key in
+        the header.'
+      name: Api-key
+      in: header
+    Bearer-only:
+      scheme: bearer
+      type: http
+      description: You need a valid access token.
