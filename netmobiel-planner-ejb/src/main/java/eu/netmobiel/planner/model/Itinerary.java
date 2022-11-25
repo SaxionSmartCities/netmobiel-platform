@@ -159,6 +159,9 @@ public class Itinerary implements Serializable {
 	@OrderColumn(name = "leg_ix")
 	private List<Leg> legs;
 
+	/**
+	 * The score of the itinerary, based on waiting time, number of transfers etc.
+	 */
     @Column(name = "score")
     private Double score;
    
@@ -174,6 +177,18 @@ public class Itinerary implements Serializable {
      */
     @Column(name = "fare_credits")
     private Integer fareInCredits;
+    
+    /**
+     * The (computed) average emission rate. Added for easier querying. 
+     */
+    @Column(name = "average_co2_emission_rate")
+    private Integer averageCo2EmissionRate;
+    
+    /**
+     * The sustainability rating. Range: 1 (bad) - 5 (good) 
+     */
+    @Column(name = "sustainability_rating")
+    private Integer sustainabilityRating;
     
 	public Itinerary() {
     	
@@ -362,6 +377,22 @@ public class Itinerary implements Serializable {
 		this.fareInCredits = fareInCredits;
 	}
 
+	public Integer getSustainabilityRating() {
+		return sustainabilityRating;
+	}
+
+	public void setSustainabilityRating(Integer sustainabilityRating) {
+		this.sustainabilityRating = sustainabilityRating;
+	}
+
+	public Integer getAverageCo2EmissionRate() {
+		return averageCo2EmissionRate;
+	}
+
+	public void setAverageCo2EmissionRate(Integer averageCo2EmissionRate) {
+		this.averageCo2EmissionRate = averageCo2EmissionRate;
+	}
+
 	public Set<TraverseMode> getModalities() {
 		return getLegs().stream()
 				.map(leg -> leg.getTraverseMode())
@@ -417,6 +448,17 @@ public class Itinerary implements Serializable {
 	    		.filter(leg -> leg.getTraverseMode() == TraverseMode.CAR || leg.getTraverseMode() == TraverseMode.RIDESHARE)
 	    		.mapToInt(leg -> leg.getDistance())
 	    		.sum();
+	}
+	
+	/**
+	 * Returns the total distance along the itinerary, including walking.
+	 * @return
+	 */
+	public int getTotalDistance() {
+		return getLegs().stream()
+			.filter(lg -> lg.getDistance() != null)
+			.mapToInt(lg -> lg.getDistance())
+			.reduce(0, Integer::sum);
 	}
 	
 	/**
@@ -526,6 +568,9 @@ public class Itinerary implements Serializable {
 		if (score != null) {
 			builder.append(String.format("%.1f", score)).append(" *** ");
 		}
+		if (sustainabilityRating != null) {
+			builder.append(String.format("%c", (char)('E' + 1 - sustainabilityRating))).append(" *** ");
+		}
 		builder.append(formatTime(departureTime)).append(" ");
 		builder.append(formatTime(arrivalTime)).append(" ");
 		builder.append(toStringCompact());
@@ -583,6 +628,14 @@ public class Itinerary implements Serializable {
 		transfers = transferNames.isEmpty() ? 0 : transferNames.size() - 1;
 	}
 
+	public void updateAverageCo2Emission() {
+		int totalEmission = getLegs().stream()
+				.mapToInt(lg -> lg.getCo2Emission())
+				.reduce(0, Integer::sum);
+		int totalDistanceKm = (getTotalDistance() + 500) / 1000;
+		setAverageCo2EmissionRate(totalDistanceKm == 0 ? totalEmission : (totalEmission + (totalDistanceKm / 2))/ totalDistanceKm);
+	}
+
 	public void updateCharacteristics( ) {
 		if (getLegs().isEmpty()) {
 			return;
@@ -599,6 +652,7 @@ public class Itinerary implements Serializable {
 		updateWaitingTime();
 		updateWalkDistance();
 		updateWalkTime();
+		updateAverageCo2Emission();
 	}
 
 	/**

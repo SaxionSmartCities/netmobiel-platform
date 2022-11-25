@@ -73,7 +73,8 @@ public abstract class TompBookingMapper {
     public abstract eu.netmobiel.planner.model.Leg mapTompLeg(Leg source, @Context TransportOperator operator );
 
 	@AfterMapping
-    protected void addLegData(Leg source, @MappingTarget eu.netmobiel.planner.model.Leg target, @Context TransportOperator operator) {
+    protected void addLegData(Leg source, @MappingTarget eu.netmobiel.planner.model.Leg target, 
+    		@Context TransportOperator operator, @Context TripPlan plan) {
 		AssetType at = source.getAssetType();
 		if (at != null && at.getAssetClass() == AssetClass.CAR && "RIDESHARE".equals(at.getAssetSubClass())) {
 			target.setTraverseMode(TraverseMode.RIDESHARE);
@@ -89,6 +90,16 @@ public abstract class TompBookingMapper {
 						((props.getBrand() != null ? props.getBrand() : "") + " " + 
 						 (props.getModel() != null ? props.getModel() : ""))
 						.trim());
+				int emission = 0;
+				if (props.getCo2PerKm() != null) {
+					emission = Math.round(props.getCo2PerKm());
+				} else {
+					// Probably an old car, lot's of CO2 and really bad fumes, assume 1:10, 1 liter benzine about 2.3 kg CO2.
+					// Source: https://www.co2emissiefactoren.nl/wp-content/uploads/2022/08/CO2emissiefactoren-2022-2015-dd-14-7-2022.pdf
+					emission = 230; // [g / vehicle km]
+				}
+				target.setCo2EmissionRate(emission / (plan.getNrSeats() + 1));
+
 			}
 		}
 		target.setDuration(Math.toIntExact(target.getEndTime().getEpochSecond() - target.getStartTime().getEpochSecond()));

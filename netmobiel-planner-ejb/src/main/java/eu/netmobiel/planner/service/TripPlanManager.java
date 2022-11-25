@@ -521,14 +521,16 @@ public class TripPlanManager {
 			throw new IllegalStateException("Expected to find a single leg, instead of " + passengerIt.getLegs().size());
 		}
     	passengerIt.setTripPlan(shoutOutPlan);
-    	BasicItineraryRankingAlgorithm ranker = new BasicItineraryRankingAlgorithm();
-   		ranker.calculateScore(passengerIt, shoutOutPlan.getTravelTime(), shoutOutPlan.isUseAsArrivalTime());
    		itineraryDao.save(passengerIt);
     	
     	// At this point the proposal is added to the passenger's shout-out, but the actual ride and booking hasn't been added yet
     	// So we want the transport provider to notify that this plan is going to be a ride with a booking proposal 
     	TravelOfferEvent toe = new TravelOfferEvent(shoutOutPlan, passengerIt, proposedPlan, driverRef, vehicleRef);
     	EventFireWrapper.fire(travelOfferProposedEvent, toe);
+    	
+    	BasicItineraryRankingAlgorithm ranker = new BasicItineraryRankingAlgorithm();
+   		ranker.calculateScore(passengerIt, shoutOutPlan.getTravelTime(), shoutOutPlan.isUseAsArrivalTime());
+   		ranker.calculateSustainabilityRating(passengerIt);
     }
     
     /**
@@ -540,7 +542,7 @@ public class TripPlanManager {
      * @param bookingRef The booking reference at the transport provider.
      * @throws UpdateException 
      */
-    public void assignBookingProposalReference(String agencyId, Itinerary passengerItinerary, Ride ride, String bookingRef) throws UpdateException {
+    public void assignBookingProposalReference(TripPlan plan, String agencyId, Itinerary passengerItinerary, Ride ride, String bookingRef) throws UpdateException {
     	//FIXME Bad design, bad modelling of interaction with transport provider
     	if (!itineraryDao.isLoaded(passengerItinerary)) {
     		itineraryDao.refresh(passengerItinerary);
@@ -549,11 +551,12 @@ public class TripPlanManager {
     			.filter(leg -> Objects.equals(leg.getAgencyId(), agencyId))
     			.collect(Collectors.toList());
     	legs.forEach(leg -> {
-    		tripPlanHelper.assignRideToPassengerLeg(leg, ride);
+    		tripPlanHelper.assignRideToPassengerLeg(plan, leg, ride);
         	leg.setBookingId(bookingRef);
     	});
     	// The legs are stil in planning state!
     	passengerItinerary.getLegs().forEach(leg -> leg.setState(TripState.PLANNING));
+    	passengerItinerary.updateAverageCo2Emission();
     }
 
     /**

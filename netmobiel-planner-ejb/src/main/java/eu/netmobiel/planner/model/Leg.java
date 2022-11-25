@@ -327,6 +327,12 @@ public class Leg implements Serializable {
     @Column(name = "shout_out_ref")
     private String shoutOutRef;
     
+    /**
+     * Emission of CO2 in [g / traveller km]
+     */
+    @Column(name = "co2_emission_rate")
+    private Integer co2EmissionRate;
+    
     public Leg() {
     	this.state = TripState.PLANNING;
     }
@@ -347,6 +353,7 @@ public class Leg implements Serializable {
 		this.bookingId = other.bookingId;
 		this.bookingRequired = other.bookingRequired;
 		this.cancelledByProvider = other.cancelledByProvider;
+		this.co2EmissionRate = other.co2EmissionRate;
 		this.confirmationRequested = other.confirmationRequested;
 		this.confirmationByProviderRequested = other.confirmationByProviderRequested;
 		this.confirmed = other.confirmed;
@@ -763,6 +770,27 @@ public class Leg implements Serializable {
 
 	public void setShoutOutRef(String shoutOutRef) {
 		this.shoutOutRef = shoutOutRef;
+	}
+
+	public Integer getCo2EmissionRate() {
+		return co2EmissionRate;
+	}
+
+	public void setCo2EmissionRate(Integer co2EmissionRate) {
+		this.co2EmissionRate = co2EmissionRate;
+	}
+
+	/**
+	 * Calculates the total CO2 emission of the traveller oon this leg.
+	 * @return the total CO2 emission in [g].
+	 */
+	public int getCo2Emission() {
+		int emission = 0;
+		if (getCo2EmissionRate() != null && getDistance() != null) {
+			// Distance is in [m], emission rate is in [g/km], emission is in [g]
+			emission = (getCo2EmissionRate() * getDistance() + 500) / 1000;
+		}
+		return emission;
 	}
 
 	/**

@@ -155,7 +155,7 @@ public class ShoutOutProcessor {
     	// for usage of the shout-out feature by the rideshare drivers.
     	b.setPassengerTripPlanRef(sop.getPlanRef());
 		String bookingRef = bookingManager.createBooking(r.getUrn(), sop.getTraveller(), b);
-		tripPlanManager.assignBookingProposalReference(RideManager.AGENCY_ID, soi, r, bookingRef);
+		tripPlanManager.assignBookingProposalReference(sop, RideManager.AGENCY_ID, soi, r, bookingRef);
 
 		// The driver is informed when something is done with bookings
 
