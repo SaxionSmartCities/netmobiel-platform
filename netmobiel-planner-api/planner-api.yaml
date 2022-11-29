@@ -1151,6 +1151,8 @@ components:
             of the itinerary, based on the (direct) CO2 emission of the transporting
             vehicle(s).
           type: integer
+        averageCo2EmissionRate:
+          description: Average CO2 emission rate [gram / traveller kilometer]
     Location:
       title: Root Type for Place
       description: A location on a map, comprising of a GPS coordinate and optional
@@ -1649,6 +1651,8 @@ components:
           description: If set marks the leg as an solution for the traveller's shout-out
             (trip plan).
           type: string
+        co2EmissionRate:
+          description: The CO2 emission rate [gram / traveller kilometer]
       example:
         distance: 152
         duration: 123
