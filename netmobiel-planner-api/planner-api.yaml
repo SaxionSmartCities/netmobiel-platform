@@ -1153,6 +1153,7 @@ components:
           type: integer
         averageCo2EmissionRate:
           description: Average CO2 emission rate [gram / traveller kilometer]
+          type: integer
     Location:
       title: Root Type for Place
       description: A location on a map, comprising of a GPS coordinate and optional
@@ -1653,6 +1654,7 @@ components:
           type: string
         co2EmissionRate:
           description: The CO2 emission rate [gram / traveller kilometer]
+          type: integer
       example:
         distance: 152
         duration: 123
