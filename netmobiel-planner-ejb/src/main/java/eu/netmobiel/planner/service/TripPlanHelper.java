@@ -7,6 +7,7 @@ import javax.inject.Inject;
 import eu.netmobiel.commons.util.Logging;
 import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.TraverseMode;
+import eu.netmobiel.planner.model.TripPlan;
 import eu.netmobiel.rideshare.model.Ride;
 
 /**
@@ -27,7 +28,7 @@ public class TripPlanHelper {
      * @param leg The rideshare leg for the passenger 
      * @param ride The ride carrying the passenger. 
      */
-    public void assignRideToPassengerLeg(Leg leg, Ride ride) {
+    public void assignRideToPassengerLeg(TripPlan plan, Leg leg, Ride ride) {
     	// Use the driver keycloak urn for easier use in shout-out and by client.
 		leg.setDriverId(ride.getDriver().getKeyCloakUrn());
 		leg.setDriverName(ride.getDriver().getName());
@@ -35,6 +36,14 @@ public class TripPlanHelper {
 		leg.setVehicleLicensePlate(ride.getCar().getLicensePlate());
 		leg.setVehicleName(ride.getCar().getName());
 		leg.setTripId(ride.getUrn());
+		Integer emission = ride.getCar().getCo2Emission();
+		if (emission == null) {
+			// Probably an old car, lot's of CO2 and really bad fumes, assume 1:10, 1 liter benzine about 2.3 kg CO2.
+			// Source: https://www.co2emissiefactoren.nl/wp-content/uploads/2022/08/CO2emissiefactoren-2022-2015-dd-14-7-2022.pdf
+			emission = 230; // [g / vehicle km]
+		}
+		// Calculate the emission rate for the car for the total number of occupied seats, including the driver. 
+		leg.setCo2EmissionRate(emission / (plan.getNrSeats() + 1));
 
 		assignFareToRideshareLeg(leg);
 		

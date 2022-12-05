@@ -2,6 +2,7 @@ package eu.netmobiel.planner.service;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.stream.IntStream;
 
 import eu.netmobiel.planner.model.Itinerary;
 
@@ -12,6 +13,12 @@ public class BasicItineraryRankingAlgorithm {
 	private final static double DURATION_PENALTY = -1f;
 	private final static double DEPARTURE_PENALTY = -0.5f;
 	private final static double ARRIVAL_PENALTY = -0.5f;
+	
+	/**
+	 * Simple and rather ad hoc emission rating logic. The value represents emission in gram per traveller kilometer.
+	 * Only an zero emission gives the highest rating (actually the inverse value). 
+	 */
+	private final static int EMISSION_RATE_RATINGS[] = new int[] { 0, 50, 100, 150, 200 };
 	
 	public void calculateScore(Itinerary it, Instant travelTime, boolean isArriveTime) {
 		// The score is based on:
@@ -30,4 +37,17 @@ public class BasicItineraryRankingAlgorithm {
 		}
 		it.setScore(score);
 	}
+
+	public void calculateSustainabilityRating(Itinerary it) {
+		if (it.getAverageCo2EmissionRate() != null) {
+			int er = it.getAverageCo2EmissionRate();
+			int ix = IntStream.range(0, EMISSION_RATE_RATINGS.length)
+					.filter(i -> er <= EMISSION_RATE_RATINGS[i])
+					.findFirst()
+					.orElse(EMISSION_RATE_RATINGS.length - 1);
+			// Range ix is 0 (good) - 4 (bad), this is the inverse rating,
+			it.setSustainabilityRating(5 - ix);
+		}
+	}
+
 }

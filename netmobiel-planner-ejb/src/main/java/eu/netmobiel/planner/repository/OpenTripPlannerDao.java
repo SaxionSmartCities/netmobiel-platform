@@ -25,6 +25,8 @@ import eu.netmobiel.commons.util.ExceptionUtil;
 import eu.netmobiel.commons.util.GeometryHelper;
 import eu.netmobiel.opentripplanner.api.model.PlanResponse;
 import eu.netmobiel.opentripplanner.client.OpenTripPlannerClient;
+import eu.netmobiel.planner.model.Itinerary;
+import eu.netmobiel.planner.model.Leg;
 import eu.netmobiel.planner.model.OtpCluster;
 import eu.netmobiel.planner.model.OtpRoute;
 import eu.netmobiel.planner.model.OtpStop;
@@ -164,6 +166,7 @@ public class OpenTripPlannerDao {
     		} else {
     			report.setStatusCode(Response.Status.OK.getStatusCode());
     			TripPlan plan = tripPlanMapper.map(result.plan);
+    			setDefaultEmissionRate(plan);
     			report.setNrItineraries(plan.getItineraries().size());
     			plannerResult.addItineraries(plan.getItineraries());
     		}
@@ -183,4 +186,43 @@ public class OpenTripPlannerDao {
 		return plannerResult;
     }
     
+    /**
+     * Sets a default emission rate for each leg.
+     * Source: https://www.co2emissiefactoren.nl/wp-content/uploads/2022/08/CO2emissiefactoren-2022-2015-dd-14-7-2022.pdf
+     * @param plan the plan calculated by OTP
+     */
+    private void setDefaultEmissionRate(TripPlan plan) {
+    	for (Itinerary it : plan.getItineraries()) {
+			for (Leg leg : it.getLegs()) {
+				int emissionRate;
+				switch (leg.getTraverseMode()) {
+				case CAR:
+				case RIDESHARE:
+					// Note: grams CO2 per vehicle kilometer
+					emissionRate = 167;
+					break;
+				case BUS:
+					// grams CO2 per traveller kilometer
+					emissionRate = 98;
+					break;
+				case RAIL:
+					// Most trains in The Netherlands use (green) electrical power.
+					// Ignore the few diesel trains for now, because we have no data about which routes are used by diesel trains.
+					emissionRate = 0;
+					break;
+				case SUBWAY:
+				case TRAM:
+					// These means of transport use (green) electrical power. 
+					emissionRate = 0;
+					break;
+				default:
+					// All others, including airplanes :-). 
+					emissionRate = 0;
+					break;
+				}
+				leg.setCo2EmissionRate(emissionRate);
+			}
+			it.updateAverageCo2Emission();
+		}
+    }
 }

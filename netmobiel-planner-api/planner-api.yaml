@@ -1146,6 +1146,14 @@ components:
         fareInCredits:
           description: The amount of credits charged in total for this itinerary.
           type: integer
+        sustainabilityRating:
+          description: A number between 1 (bad) and 5 (good) to rate the sustainability
+            of the itinerary, based on the (direct) CO2 emission of the transporting
+            vehicle(s).
+          type: integer
+        averageCo2EmissionRate:
+          description: Average CO2 emission rate [gram / traveller kilometer]
+          type: integer
     Location:
       title: Root Type for Place
       description: A location on a map, comprising of a GPS coordinate and optional
@@ -1644,6 +1652,9 @@ components:
           description: If set marks the leg as an solution for the traveller's shout-out
             (trip plan).
           type: string
+        co2EmissionRate:
+          description: The CO2 emission rate [gram / traveller kilometer]
+          type: integer
       example:
         distance: 152
         duration: 123

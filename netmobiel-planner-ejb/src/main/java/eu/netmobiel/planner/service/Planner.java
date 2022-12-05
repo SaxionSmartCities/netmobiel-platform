@@ -65,6 +65,12 @@ public class Planner {
 	private static final int MAX_RIDESHARES = 5;	
 	private static final boolean RIDESHARE_LENIENT_SEARCH = true;	
 	
+	/**
+	 * Testing only: If enabled then the tomp api is used too to request rides. The results are currently logged only.
+	 * Integration of TOMP has not finished yet.
+	 */
+	private static final boolean ENABLE_TOMP = false;
+	
 	@Inject
     private Logger log;
 
@@ -274,7 +280,8 @@ public class Planner {
             			throw new IllegalStateException("Expected to find a single leg, instead of " + passengerItinerary.getLegs().size());
             		}
             		// Add the rideshare details to the passengers leg(s)
-            		passengerItinerary.getLegs().forEach(leg -> tripPlanHelper.assignRideToPassengerLeg(leg, ride));
+            		passengerItinerary.getLegs().forEach(leg -> tripPlanHelper.assignRideToPassengerLeg(plan, leg, ride));
+            		passengerItinerary.updateAverageCo2Emission();
             		if (isValid(passengerItinerary)) {
             			// OK, it looks a sane itinerary, add it to the results
             			passengerSharedRidePlanResult.addItineraries(Collections.singletonList(passengerItinerary));
@@ -282,24 +289,25 @@ public class Planner {
             	}
     		}
 		}
-    	// These are itineraries for the passenger, not the complete ones for the driver
-//    	Set<TransportOperator> rsto = transportOperatorRegistrar.getOperatorsforTraverseMode(TraverseMode.RIDESHARE);
-//		for (TransportOperator to: rsto) {
-//			try {
-//				List<Itinerary> its = transportOperatorApiDao.requestPlanningInquiry(to, plan, fromPlace, toPlace);
-////				PlannerResult pr = new PlannerResult();
-////				pr.addItineraries(its);
-//				for (Itinerary it: its) {
-//					log.debug("\n\t" + it.toString());
-//				}
-//			} catch (Exception ex) {
-//				if (ex instanceof BusinessException) {
-//					throw (BusinessException) ex;
-//				}
-//				throw new SystemException(ex);
-//			}
-//		}
-    	
+    	if (ENABLE_TOMP) {
+			// These are itineraries for the passenger, not the complete ones for the driver
+			Set<TransportOperator> rsto = transportOperatorRegistrar.getOperatorsforTraverseMode(TraverseMode.RIDESHARE);
+			for (TransportOperator to: rsto) {
+				try {
+					List<Itinerary> its = transportOperatorApiDao.requestPlanningInquiry(to, plan, fromPlace, toPlace);
+		//				PlannerResult pr = new PlannerResult();
+		//				pr.addItineraries(its);
+					for (Itinerary it: its) {
+						log.debug("\n\t" + it.toString());
+					}
+				} catch (Exception ex) {
+					if (ex instanceof BusinessException) {
+						throw (BusinessException) ex;
+					}
+					throw new SystemException(ex);
+				}
+			}
+    	}    	
     	return results;
     }
 
@@ -461,6 +469,7 @@ public class Planner {
     	BasicItineraryRankingAlgorithm ranker = new BasicItineraryRankingAlgorithm();
     	for (Itinerary it: plan.getItineraries()) {
     		ranker.calculateScore(it, plan.getTravelTime(), plan.isUseAsArrivalTime());
+    		ranker.calculateSustainabilityRating(it);
     	}
     }
 
@@ -552,12 +561,14 @@ public class Planner {
      * @return
      */
     public TripPlan searchMultiModal(TripPlan plan) throws BusinessException {
-    	if (!transportOperatorRegistrar.hasOperators()) {
-        	transportOperatorRegistrar.updateRegistry();
-    	}
-    	if (log.isDebugEnabled()) {
-        	transportOperatorRegistrar.getOperatorsforTraverseMode(TraverseMode.RIDESHARE)
-    		.forEach(to -> log.debug(String.format("Transport Operator '%s' supports rideshare", to.getAgencyName())));
+    	if (ENABLE_TOMP) {
+        	if (!transportOperatorRegistrar.hasOperators()) {
+            	transportOperatorRegistrar.updateRegistry();
+        	}
+        	if (log.isDebugEnabled()) {
+            	transportOperatorRegistrar.getOperatorsforTraverseMode(TraverseMode.RIDESHARE)
+        		.forEach(to -> log.debug(String.format("Transport Operator '%s' supports rideshare", to.getAgencyName())));
+        	}
     	}
 		Set<TraverseMode> transitModalities = plan.getTraverseModes().stream().filter(m -> m.isTransit()).collect(Collectors.toSet());
 		boolean rideshareEligable = plan.getTraverseModes().contains(TraverseMode.RIDESHARE);
